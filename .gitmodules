@@ -7,3 +7,6 @@
 [submodule "scripts"]
 	path = scripts
 	url = git@github.com:Kei18/mapf-lib-exp.git
+[submodule "third_party/ITA-CBS2"]
+	path = third_party/ITA-CBS2
+	url = https://github.com/TachikakaMin/ITA-CBS2.git

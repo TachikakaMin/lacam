@@ -28,5 +28,34 @@ struct Instance {
   bool is_valid(const int verbose = 0) const;
 };
 
+struct TAPFInstance {
+ private:
+  struct YamlData {
+    std::string map_filename;
+    std::vector<int> start_indexes;
+    std::vector<std::vector<int> > task_indexes;
+  };
+
+  static YamlData load_yaml(const std::string& yaml_filename,
+                            const std::string& map_dir);
+  explicit TAPFInstance(const YamlData& data);
+
+ public:
+  const Graph G;  // graph
+  Config starts;  // initial configuration
+  Config tasks;   // unique task/goal locations
+  std::vector<std::vector<bool> > allowed;  // agent-task compatibility
+  const uint N;                           // number of agents
+
+  TAPFInstance(const std::string& map_filename,
+               const std::vector<int>& start_indexes,
+               const std::vector<std::vector<int> >& task_indexes);
+  TAPFInstance(const std::string& yaml_filename,
+               const std::string& map_dir = "");
+  ~TAPFInstance() {}
+
+  bool is_valid(const int verbose = 0) const;
+};
+
 // solution: a sequence of configurations
 using Solution = std::vector<Config>;

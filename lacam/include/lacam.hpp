@@ -5,4 +5,7 @@
 #include "instance.hpp"
 #include "planner.hpp"
 #include "post_processing.hpp"
+#include "tapf_assignment.hpp"
+#include "tapf_dist_table.hpp"
+#include "tapf_planner.hpp"
 #include "utils.hpp"
