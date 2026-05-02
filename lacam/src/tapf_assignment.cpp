@@ -11,14 +11,15 @@ class HungarianAssignment {
  public:
   explicit HungarianAssignment(const std::vector<std::vector<int> >& cost)
       : n(cost.size()),
-        a(n + 1, std::vector<int>(n + 1, 0)),
+        m(cost.empty() ? 0 : cost.front().size()),
+        a(n + 1, std::vector<int>(m + 1, 0)),
         u(n + 1, 0),
-        v(n + 1, 0),
-        p(n + 1, 0),
-        way(n + 1, 0)
+        v(m + 1, 0),
+        p(m + 1, 0),
+        way(m + 1, 0)
   {
     for (size_t i = 0; i < n; ++i) {
-      for (size_t j = 0; j < n; ++j) a[i + 1][j + 1] = cost[i][j];
+      for (size_t j = 0; j < m; ++j) a[i + 1][j + 1] = cost[i][j];
     }
   }
 
@@ -27,14 +28,14 @@ class HungarianAssignment {
     for (size_t i = 1; i <= n; ++i) {
       p[0] = i;
       auto j0 = 0;
-      auto minv = std::vector<int>(n + 1, std::numeric_limits<int>::max());
-      auto used = std::vector<bool>(n + 1, false);
+      auto minv = std::vector<int>(m + 1, std::numeric_limits<int>::max());
+      auto used = std::vector<bool>(m + 1, false);
       do {
         used[j0] = true;
         const auto i0 = p[j0];
         auto delta = std::numeric_limits<int>::max();
         auto j1 = 0;
-        for (size_t j = 1; j <= n; ++j) {
+        for (size_t j = 1; j <= m; ++j) {
           if (used[j]) continue;
           const auto cur = a[i0][j] - u[i0] - v[j];
           if (cur < minv[j]) {
@@ -46,7 +47,7 @@ class HungarianAssignment {
             j1 = j;
           }
         }
-        for (size_t j = 0; j <= n; ++j) {
+        for (size_t j = 0; j <= m; ++j) {
           if (used[j]) {
             u[p[j]] += delta;
             v[j] -= delta;
@@ -68,7 +69,7 @@ class HungarianAssignment {
     result.agent_to_task = std::vector<int>(n, -1);
     result.cost = 0;
     result.feasible = true;
-    for (size_t j = 1; j <= n; ++j) {
+    for (size_t j = 1; j <= m; ++j) {
       if (p[j] == 0) continue;
       const auto i = p[j] - 1;
       const auto task = j - 1;
@@ -81,6 +82,7 @@ class HungarianAssignment {
 
  private:
   size_t n;
+  size_t m;
   std::vector<std::vector<int> > a;
   std::vector<int> u;
   std::vector<int> v;
@@ -108,7 +110,7 @@ TAPFAssignmentResult assign_tapf_tasks(
     return result;
   };
 
-  if (ins.tasks.size() != ins.N || C.size() != ins.N) {
+  if (ins.tasks.size() < ins.N || C.size() != ins.N) {
     return finish(TAPFAssignmentResult{std::vector<int>(), kInfCost, false});
   }
 

@@ -184,8 +184,8 @@ bool TAPFInstance::is_valid(const int verbose) const
     info(1, verbose, "invalid N, check TAPF instance");
     return false;
   }
-  if (tasks.size() != N) {
-    info(1, verbose, "TAPF expects exactly one unique task per agent");
+  if (tasks.size() < N) {
+    info(1, verbose, "TAPF expects at least one unique task per agent");
     return false;
   }
   for (size_t i = 0; i < N; ++i) {

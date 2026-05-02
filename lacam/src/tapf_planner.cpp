@@ -149,6 +149,18 @@ Solution TAPFPlanner::solve()
     auto C = Config(N, nullptr);
     for (auto a : A) C[a->id] = a->v_next;
 
+    if (sticky_penalty == 0) {
+      auto iter = CLOSED.find(C);
+      if (iter != CLOSED.end()) {
+        OPEN.push(iter->second);
+        if (stats != nullptr) {
+          ++stats->hl_duplicate_configs;
+          ++stats->hl_reinsertions;
+        }
+        continue;
+      }
+    }
+
     auto assignment =
         assign_tapf_tasks(*ins, D, C, S->assignment, sticky_penalty,
                           &assignment_stats);

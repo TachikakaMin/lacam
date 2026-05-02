@@ -161,7 +161,15 @@ def run_itacbs(
         "stderr": cp.stderr.strip(),
     }
     if cp.returncode != 0:
-        raise RuntimeError(f"ITA-CBS command failed rc={cp.returncode}: {cp.stderr}")
+        row.update(
+            {
+                "solved": 0,
+                "valid_solution": 0,
+                "collision_free": 0,
+                "first_error": f"nonzero exit code {cp.returncode}",
+            }
+        )
+        return row
     if not output.exists():
         row.update({"solved": 0, "valid_solution": 0, "collision_free": 0})
         return row
@@ -273,6 +281,39 @@ def run_fixture(
     return rows
 
 
+def itacbs_output_path(fixture: Path, itacbs_out_dir: Path) -> Path:
+    relative_name = "_".join(fixture.parts[-2:])
+    return itacbs_out_dir / f"{Path(relative_name).stem}.out.yaml"
+
+
+def run_solver_task(
+    fixture: Path,
+    solver: str,
+    args: argparse.Namespace,
+    itacbs_out_dir: Path,
+) -> Dict[str, Any]:
+    base = fixture_info(fixture)
+    if solver == "lacam_tapf":
+        result = run_lacam(
+            args.lacam_bin,
+            fixture,
+            args.map_dir,
+            args.time_limit,
+            args.lacam_timeout,
+        )
+    elif solver == "itacbs":
+        result = run_itacbs(
+            args.itacbs_bin,
+            fixture,
+            itacbs_output_path(fixture, itacbs_out_dir),
+            args.time_limit,
+            args.itacbs_timeout,
+        )
+    else:
+        raise ValueError(f"unknown solver: {solver}")
+    return {**base, **result}
+
+
 def write_rows(csv_path: Path, jsonl_path: Path, rows: List[Dict[str, Any]]) -> None:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     keys = sorted({key for row in rows for key in row.keys()})
@@ -322,6 +363,16 @@ def main() -> int:
     )
     parser.add_argument("--max-cases", type=int, default=0)
     parser.add_argument("--skip-itacbs", action="store_true")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Load existing rows and skip completed solver/fixture pairs.",
+    )
+    parser.add_argument(
+        "--parallel-solvers",
+        action="store_true",
+        help="Submit each solver/fixture pair as its own parallel task.",
+    )
     parser.add_argument("--out-prefix", type=Path, default=Path("build/results/tapf_full_1s"))
     args = parser.parse_args()
     if args.lacam_timeout <= 0:
@@ -336,6 +387,73 @@ def main() -> int:
     itacbs_out_dir.mkdir(parents=True, exist_ok=True)
     csv_path = args.out_prefix.with_suffix(".csv")
     jsonl_path = args.out_prefix.with_suffix(".jsonl")
+    completed_keys = set()
+    if args.resume and jsonl_path.exists():
+        with jsonl_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                rows.append(row)
+                completed_keys.add((row.get("instance_file"), row.get("solver")))
+
+    if args.parallel_solvers:
+        solvers = ["lacam_tapf"] if args.skip_itacbs else ["lacam_tapf", "itacbs"]
+        tasks = [
+            (fixture, solver)
+            for fixture in fixtures
+            for solver in solvers
+            if (str(fixture), solver) not in completed_keys
+        ]
+        total = len(tasks)
+        print(
+            f"Running {total} solver tasks for {len(fixtures)} fixtures with "
+            f"jobs={args.jobs}, time_limit={args.time_limit}s, "
+            f"lacam_timeout={args.lacam_timeout}s, "
+            f"itacbs_timeout={args.itacbs_timeout}s, "
+            f"resumed_rows={len(rows)}"
+        )
+        executor = concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs)
+        try:
+            future_to_task = {
+                executor.submit(run_solver_task, fixture, solver, args, itacbs_out_dir): (
+                    fixture,
+                    solver,
+                )
+                for fixture, solver in tasks
+            }
+            completed = 0
+            for future in concurrent.futures.as_completed(future_to_task):
+                fixture, solver = future_to_task[future]
+                completed += 1
+                try:
+                    row = future.result()
+                except Exception:
+                    write_rows(csv_path, jsonl_path, rows)
+                    print(
+                        f"[{completed}/{total}] ERROR {solver} {fixture}",
+                        file=sys.stderr,
+                    )
+                    for pending in future_to_task:
+                        pending.cancel()
+                    try:
+                        executor.shutdown(wait=False, cancel_futures=True)
+                    except TypeError:
+                        executor.shutdown(wait=False)
+                    raise
+                rows.append(row)
+                write_rows(csv_path, jsonl_path, rows)
+                print(
+                    f"[{completed}/{total}] {solver} {fixture} "
+                    f"solved={row.get('solved', 0)}"
+                )
+        finally:
+            try:
+                executor.shutdown(wait=True, cancel_futures=False)
+            except TypeError:
+                executor.shutdown(wait=True)
+
+        return 0
 
     print(
         f"Running {len(fixtures)} fixtures with jobs={args.jobs}, "
