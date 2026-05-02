@@ -98,6 +98,37 @@ julia --project=scripts/ --threads=auto
 > include("scripts/eval.jl"); main("scripts/config/mapf-bench.yaml")
 ```
 
+## TAPF Data
+
+The ITA-CBS TAPF fixtures used by the LaCAM-TAPF experiments live outside the
+repository:
+
+```sh
+/media/project0/yimin/lacam_tapf_itacbs_data
+```
+
+`third_party/ITA-CBS2/map_file/` contains symlinks to those generated
+directories. The generated dataset contains ITA-CBS exp1 and exp2 fixtures for
+all paper maps.
+
+The ITA-CBS generation scripts were adjusted for maps with multiple connected
+components. Starts are sampled from all free cells, then each agent's
+`potentialGoals` are sampled from the connected component containing that
+agent's start. This avoids infeasible TAPF fixtures where an agent is assigned
+only unreachable potential goals. For exp2, common goals are component-local
+when sampled starts span multiple connected components.
+
+The full regenerated dataset has:
+
+- exp1: 8 directories, each with `400` YAML files plus one map file.
+- exp2: 28 non-maze ratio directories, each with `200` YAML files plus one map
+  file.
+- exp2 maze: 4 ratio directories, each with `140` YAML files plus one map file
+  because maze uses `5..35` agents.
+
+Validation checks should confirm that every potential goal is reachable from
+its agent's start and that each fixture has a reachable perfect task matching.
+
 ## Notes
 
 - The grid maps and scenarios in `assets/` are from [MAPF benchmarks](https://movingai.com/benchmarks/mapf.html).

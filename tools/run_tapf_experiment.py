@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import csv
 import json
+import os
 import re
 import subprocess
 import sys
@@ -51,6 +53,13 @@ def fixture_info(path: Path) -> Dict[str, Any]:
     }
 
 
+def fixture_sort_key(path: Path) -> Tuple[str, int, int, str]:
+    m = re.search(r"agents_(\d+)_test_(\d+)\.yaml$", path.name)
+    if not m:
+        return (path.parent.name, 0, 0, path.name)
+    return (path.parent.name, int(m.group(1)), int(m.group(2)), path.name)
+
+
 def parse_kv(stdout: str) -> Dict[str, Any]:
     result: Dict[str, Any] = {}
     for line in stdout.splitlines():
@@ -75,7 +84,19 @@ def run_lacam(
 ) -> Dict[str, Any]:
     cmd = [str(binary), str(fixture), str(map_dir), str(time_limit)]
     start = time.time()
-    cp = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+    try:
+        cp = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "solver": "lacam_tapf",
+            "exit_code": 124,
+            "wall_time_s": time.time() - start,
+            "solved": 0,
+            "valid_solution": 0,
+            "collision_free": 0,
+            "timed_out": 1,
+            "stderr": str(exc),
+        }
     wall = time.time() - start
     row = parse_kv(cp.stdout)
     row.update(
@@ -83,6 +104,7 @@ def run_lacam(
             "solver": "lacam_tapf",
             "exit_code": cp.returncode,
             "wall_time_s": wall,
+            "timed_out": 0,
             "stderr": cp.stderr.strip(),
         }
     )
@@ -146,6 +168,38 @@ def run_itacbs(
 
     out_data = load_yaml(output) or {}
     stats = out_data.get("statistics") or {}
+    schedule = out_data.get("schedule") or {}
+    if not schedule:
+        row.update(
+            {
+                "solved": 0,
+                "valid_solution": 0,
+                "collision_free": 0,
+                "first_error": "empty schedule",
+                "makespan": 0,
+                "soc": stats.get("cost", 0),
+                "runtime_ms": float(stats.get("runtime", 0)) * 1000,
+                "itacbs_TA_runtime_ms": float(stats.get("TA_runtime", 0)) * 1000,
+                "itacbs_newnode_runtime_ms": float(stats.get("newnode_runtime", 0))
+                * 1000,
+                "itacbs_firstconflict_runtime_ms": float(
+                    stats.get("firstconflict_runtime", 0)
+                )
+                * 1000,
+                "itacbs_lowlevel_search_time_ms": float(
+                    stats.get("lowlevel_search_time", 0)
+                )
+                * 1000,
+                "itacbs_total_lowlevel_node": stats.get("total_lowlevel_node", 0),
+                "itacbs_lowLevelExpanded": stats.get("lowLevelExpanded", 0),
+                "itacbs_numTaskAssignments": stats.get("numTaskAssignments", 0),
+                "itacbs_numTaskAssignmentChanged": stats.get(
+                    "numTaskAssignmentChanged", 0
+                ),
+            }
+        )
+        return row
+
     errors = validate(fixture, output, require_unique_goals=True)
     row.update(
         {
@@ -179,6 +233,46 @@ def run_itacbs(
     return row
 
 
+def discover_fixtures(fixture_dirs: List[Path], max_cases: int) -> List[Path]:
+    fixtures: List[Path] = []
+    for fixture_dir in fixture_dirs:
+        dir_fixtures = sorted(fixture_dir.glob("*.yaml"), key=fixture_sort_key)
+        fixtures.extend(dir_fixtures[:max_cases] if max_cases > 0 else dir_fixtures)
+    return fixtures
+
+
+def run_fixture(
+    fixture: Path,
+    args: argparse.Namespace,
+    itacbs_out_dir: Path,
+) -> List[Dict[str, Any]]:
+    base = fixture_info(fixture)
+    rows: List[Dict[str, Any]] = []
+
+    lacam = run_lacam(
+        args.lacam_bin,
+        fixture,
+        args.map_dir,
+        args.time_limit,
+        args.lacam_timeout,
+    )
+    rows.append({**base, **lacam})
+
+    if not args.skip_itacbs:
+        relative_name = "_".join(fixture.parts[-2:])
+        output = itacbs_out_dir / f"{Path(relative_name).stem}.out.yaml"
+        itacbs = run_itacbs(
+            args.itacbs_bin,
+            fixture,
+            output,
+            args.time_limit,
+            args.itacbs_timeout,
+        )
+        rows.append({**base, **itacbs})
+
+    return rows
+
+
 def write_rows(csv_path: Path, jsonl_path: Path, rows: List[Dict[str, Any]]) -> None:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     keys = sorted({key for row in rows for key in row.keys()})
@@ -193,7 +287,7 @@ def write_rows(csv_path: Path, jsonl_path: Path, rows: List[Dict[str, Any]]) -> 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fixture-dir", type=Path, required=True)
+    parser.add_argument("--fixture-dir", type=Path, action="append", required=True)
     parser.add_argument("--map-dir", type=Path, required=True)
     parser.add_argument("--lacam-bin", type=Path, default=Path("./build/tapf_benchmark"))
     parser.add_argument(
@@ -202,41 +296,86 @@ def main() -> int:
         default=Path("./third_party/ITA-CBS2/build/ITACBS_remake"),
     )
     parser.add_argument("--time-limit", type=float, default=1.0)
-    parser.add_argument("--timeout", type=float, default=3.0)
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=3.0,
+        help="Default external subprocess timeout in seconds.",
+    )
+    parser.add_argument(
+        "--lacam-timeout",
+        type=float,
+        default=0.0,
+        help="External timeout for LaCAM-TAPF. Defaults to --timeout.",
+    )
+    parser.add_argument(
+        "--itacbs-timeout",
+        type=float,
+        default=0.0,
+        help="External timeout for ITA-CBS. Defaults to --timeout.",
+    )
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=max(1, (os.cpu_count() or 4) // 4),
+        help="Number of fixtures to run concurrently.",
+    )
     parser.add_argument("--max-cases", type=int, default=0)
     parser.add_argument("--skip-itacbs", action="store_true")
     parser.add_argument("--out-prefix", type=Path, default=Path("build/results/tapf_full_1s"))
     args = parser.parse_args()
+    if args.lacam_timeout <= 0:
+        args.lacam_timeout = args.timeout
+    if args.itacbs_timeout <= 0:
+        args.itacbs_timeout = args.timeout
 
-    fixtures = sorted(args.fixture_dir.glob("*.yaml"))
-    fixtures = [
-        path for path in fixtures
-        if (load_yaml(path).get("agents") or [])
-        and "potentialGoals" in load_yaml(path)["agents"][0]
-    ]
-    if args.max_cases > 0:
-        fixtures = fixtures[: args.max_cases]
+    fixtures = discover_fixtures(args.fixture_dir, args.max_cases)
 
     rows: List[Dict[str, Any]] = []
-    itacbs_out_dir = args.out_prefix.parent / "itacbs_outputs"
+    itacbs_out_dir = args.out_prefix.parent / f"{args.out_prefix.name}_itacbs_outputs"
     itacbs_out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = args.out_prefix.with_suffix(".csv")
+    jsonl_path = args.out_prefix.with_suffix(".jsonl")
 
-    for idx, fixture in enumerate(fixtures, 1):
-        base = fixture_info(fixture)
-        print(f"[{idx}/{len(fixtures)}] {fixture}")
-        lacam = run_lacam(
-            args.lacam_bin, fixture, args.map_dir, args.time_limit, args.timeout
-        )
-        rows.append({**base, **lacam})
-
-        if not args.skip_itacbs:
-            output = itacbs_out_dir / f"{fixture.stem}.out.yaml"
-            itacbs = run_itacbs(
-                args.itacbs_bin, fixture, output, args.time_limit, args.timeout
+    print(
+        f"Running {len(fixtures)} fixtures with jobs={args.jobs}, "
+        f"time_limit={args.time_limit}s, lacam_timeout={args.lacam_timeout}s, "
+        f"itacbs_timeout={args.itacbs_timeout}s"
+    )
+    executor = concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs)
+    try:
+        future_to_fixture = {
+            executor.submit(run_fixture, fixture, args, itacbs_out_dir): fixture
+            for fixture in fixtures
+        }
+        completed = 0
+        for future in concurrent.futures.as_completed(future_to_fixture):
+            fixture = future_to_fixture[future]
+            completed += 1
+            try:
+                new_rows = future.result()
+            except Exception:
+                write_rows(csv_path, jsonl_path, rows)
+                print(f"[{completed}/{len(fixtures)}] ERROR {fixture}", file=sys.stderr)
+                for pending in future_to_fixture:
+                    pending.cancel()
+                try:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except TypeError:
+                    executor.shutdown(wait=False)
+                raise
+            rows.extend(new_rows)
+            write_rows(csv_path, jsonl_path, rows)
+            solved = ", ".join(
+                f"{row['solver']}:solved={row.get('solved', 0)}"
+                for row in new_rows
             )
-            rows.append({**base, **itacbs})
-
-        write_rows(args.out_prefix.with_suffix(".csv"), args.out_prefix.with_suffix(".jsonl"), rows)
+            print(f"[{completed}/{len(fixtures)}] {fixture} {solved}")
+    finally:
+        try:
+            executor.shutdown(wait=True, cancel_futures=False)
+        except TypeError:
+            executor.shutdown(wait=True)
 
     return 0
 
