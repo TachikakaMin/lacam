@@ -19,12 +19,15 @@ struct TAPFNode {
   const Config C;
   TAPFNode* parent;
   std::vector<int> assignment;
+  TAPFAssignmentState assignment_state;
+  bool queued;
   std::vector<float> priorities;
   std::vector<int> order;
   std::queue<TAPFConstraint*> search_tree;
 
   TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
-           std::vector<int> _assignment, TAPFNode* _parent = nullptr);
+           std::vector<int> _assignment, TAPFAssignmentState _assignment_state,
+           TAPFNode* _parent = nullptr);
   ~TAPFNode();
 };
 

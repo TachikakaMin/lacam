@@ -2,11 +2,7 @@
 
 #include "../include/utils.hpp"
 
-#include <limits>
-
 namespace {
-constexpr int kInfCost = 100000000;
-
 class HungarianAssignment {
  public:
   explicit HungarianAssignment(const std::vector<std::vector<int> >& cost)
@@ -75,7 +71,7 @@ class HungarianAssignment {
       const auto task = j - 1;
       result.agent_to_task[i] = task;
       result.cost += a[p[j]][j];
-      if (a[p[j]][j] >= kInfCost / 2) result.feasible = false;
+      if (a[p[j]][j] >= kTapfAssignmentInfCost / 2) result.feasible = false;
     }
     return result;
   }
@@ -89,34 +85,35 @@ class HungarianAssignment {
   std::vector<int> p;
   std::vector<int> way;
 };
-}  // namespace
 
-TAPFAssignmentResult assign_tapf_tasks(
-    const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
-    const std::vector<int>& previous_assignment, const int sticky_penalty,
-    TAPFAssignmentStats* stats)
+TAPFAssignmentResult invalid_result()
 {
-  const auto t_start = Time::now();
-  if (stats != nullptr) ++stats->calls;
+  return TAPFAssignmentResult{std::vector<int>(), kTapfAssignmentInfCost,
+                              false};
+}
 
-  auto finish = [&](TAPFAssignmentResult result) {
-    if (stats != nullptr) {
-      stats->time_ms +=
-          std::chrono::duration_cast<std::chrono::nanoseconds>(Time::now() -
-                                                               t_start)
-              .count() /
-          1000000.0;
-    }
-    return result;
-  };
+bool invalid_input(const TAPFInstance& ins, const Config& C)
+{
+  return ins.tasks.size() < ins.N || C.size() != ins.N;
+}
 
-  if (ins.tasks.size() < ins.N || C.size() != ins.N) {
-    return finish(TAPFAssignmentResult{std::vector<int>(), kInfCost, false});
-  }
+void record_assignment_time(const Time::time_point& t_start,
+                            TAPFAssignmentStats* stats)
+{
+  if (stats == nullptr) return;
+  stats->time_ms +=
+      std::chrono::duration_cast<std::chrono::nanoseconds>(Time::now() -
+                                                           t_start)
+          .count() /
+      1000000.0;
+}
 
+std::vector<std::vector<int> > build_cost_matrix(
+    const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
+    const std::vector<int>& previous_assignment, const int sticky_penalty)
+{
   auto cost = std::vector<std::vector<int> >(
-      ins.N, std::vector<int>(ins.tasks.size(), kInfCost));
-
+      ins.N, std::vector<int>(ins.tasks.size(), kTapfAssignmentInfCost));
   for (size_t i = 0; i < ins.N; ++i) {
     for (size_t j = 0; j < ins.tasks.size(); ++j) {
       if (!ins.allowed[i][j]) continue;
@@ -129,6 +126,59 @@ TAPFAssignmentResult assign_tapf_tasks(
       }
     }
   }
+  return cost;
+}
+}  // namespace
 
-  return finish(HungarianAssignment(cost).solve());
+TAPFAssignmentResult assign_tapf_tasks(
+    const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
+    const std::vector<int>& previous_assignment, const int sticky_penalty,
+    TAPFAssignmentStats* stats)
+{
+  const auto t_start = Time::now();
+  if (stats != nullptr) ++stats->calls;
+
+  if (invalid_input(ins, C)) {
+    record_assignment_time(t_start, stats);
+    return invalid_result();
+  }
+
+  auto result = HungarianAssignment(build_cost_matrix(
+                                        ins, D, C, previous_assignment,
+                                        sticky_penalty))
+                    .solve();
+  record_assignment_time(t_start, stats);
+  return result;
+}
+
+TAPFAssignmentResult assign_tapf_tasks_dynamic(
+    const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
+    TAPFAssignmentState& state, const std::vector<int>& changed_agents,
+    const bool force_full, TAPFAssignmentStats* stats)
+{
+  const auto t_start = Time::now();
+  if (stats != nullptr) ++stats->calls;
+
+  if (invalid_input(ins, C)) {
+    record_assignment_time(t_start, stats);
+    return invalid_result();
+  }
+
+  if (!state.ready() || state.org_n != static_cast<int>(ins.N) ||
+      state.org_m != static_cast<int>(ins.tasks.size())) {
+    state.init(ins.N, ins.tasks.size());
+  }
+
+  auto cost = [&](const int i, const int j) {
+    if (j >= static_cast<int>(ins.tasks.size())) return kTapfAssignmentInfCost;
+    if (!ins.allowed[i][j]) return kTapfAssignmentInfCost;
+    auto d = D.get(j, C[i]);
+    if (d >= D.K) return kTapfAssignmentInfCost;
+    return d;
+  };
+
+  auto result = force_full ? state.solve_full(cost)
+                           : state.repair_rows(changed_agents, cost);
+  record_assignment_time(t_start, stats);
+  return result;
 }

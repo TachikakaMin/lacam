@@ -15,10 +15,13 @@ TAPFConstraint::TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v)
 TAPFConstraint::~TAPFConstraint(){};
 
 TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
-                   std::vector<int> _assignment, TAPFNode* _parent)
+                   std::vector<int> _assignment,
+                   TAPFAssignmentState _assignment_state, TAPFNode* _parent)
     : C(_C),
       parent(_parent),
       assignment(_assignment),
+      assignment_state(_assignment_state),
+      queued(false),
       priorities(C.size(), 0),
       order(C.size(), 0),
       search_tree(std::queue<TAPFConstraint*>())
@@ -86,13 +89,19 @@ Solution TAPFPlanner::solve()
   std::unordered_map<Config, TAPFNode*, ConfigHasher> CLOSED;
   std::vector<TAPFConstraint*> GC;
 
-  auto initial_assignment =
-      assign_tapf_tasks(*ins, D, ins->starts, std::vector<int>(),
-                        sticky_penalty, &assignment_stats);
+  auto initial_assignment_state = TAPFAssignmentState();
+  initial_assignment_state.init(ins->N, ins->tasks.size());
+  auto initial_agents = std::vector<int>(N, 0);
+  std::iota(initial_agents.begin(), initial_agents.end(), 0);
+  auto initial_assignment = assign_tapf_tasks_dynamic(
+      *ins, D, ins->starts, initial_assignment_state, initial_agents, true,
+      &assignment_stats);
   if (!initial_assignment.feasible) return Solution();
 
-  auto S = new TAPFNode(ins->starts, D, ins, initial_assignment.agent_to_task);
+  auto S = new TAPFNode(ins->starts, D, ins, initial_assignment.agent_to_task,
+                        initial_assignment_state);
   OPEN.push(S);
+  S->queued = true;
   CLOSED[S->C] = S;
   if (stats != nullptr) {
     stats->hl_nodes_created = 1;
@@ -123,6 +132,7 @@ Solution TAPFPlanner::solve()
 
     if (S->search_tree.empty()) {
       OPEN.pop();
+      S->queued = false;
       continue;
     }
 
@@ -152,18 +162,32 @@ Solution TAPFPlanner::solve()
     if (sticky_penalty == 0) {
       auto iter = CLOSED.find(C);
       if (iter != CLOSED.end()) {
-        OPEN.push(iter->second);
+        if (!iter->second->queued && !iter->second->search_tree.empty()) {
+          OPEN.push(iter->second);
+          iter->second->queued = true;
+          if (stats != nullptr) ++stats->hl_reinsertions;
+        }
         if (stats != nullptr) {
           ++stats->hl_duplicate_configs;
-          ++stats->hl_reinsertions;
         }
         continue;
       }
     }
 
-    auto assignment =
-        assign_tapf_tasks(*ins, D, C, S->assignment, sticky_penalty,
-                          &assignment_stats);
+    auto changed_agents = std::vector<int>();
+    changed_agents.reserve(N);
+    for (size_t i = 0; i < N; ++i) {
+      if (C[i] != S->C[i]) changed_agents.push_back(i);
+    }
+
+    auto assignment_state = S->assignment_state;
+    auto assignment = sticky_penalty == 0
+                          ? assign_tapf_tasks_dynamic(
+                                *ins, D, C, assignment_state, changed_agents,
+                                false, &assignment_stats)
+                          : assign_tapf_tasks(*ins, D, C, S->assignment,
+                                              sticky_penalty,
+                                              &assignment_stats);
     if (!assignment.feasible) continue;
     if (stats != nullptr) {
       for (size_t i = 0; i < assignment.agent_to_task.size(); ++i) {
@@ -177,16 +201,22 @@ Solution TAPFPlanner::solve()
     auto iter = CLOSED.find(C);
     if (iter != CLOSED.end()) {
       iter->second->assignment = assignment.agent_to_task;
-      OPEN.push(iter->second);
+      iter->second->assignment_state = assignment_state;
+      if (!iter->second->queued && !iter->second->search_tree.empty()) {
+        OPEN.push(iter->second);
+        iter->second->queued = true;
+        if (stats != nullptr) ++stats->hl_reinsertions;
+      }
       if (stats != nullptr) {
         ++stats->hl_duplicate_configs;
-        ++stats->hl_reinsertions;
       }
       continue;
     }
 
-    auto S_new = new TAPFNode(C, D, ins, assignment.agent_to_task, S);
+    auto S_new = new TAPFNode(C, D, ins, assignment.agent_to_task,
+                              assignment_state, S);
     OPEN.push(S_new);
+    S_new->queued = true;
     CLOSED[S_new->C] = S_new;
     if (stats != nullptr) ++stats->hl_nodes_created;
   }
