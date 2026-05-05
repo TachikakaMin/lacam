@@ -47,6 +47,8 @@ struct TAPFStats {
   int pibt_recursions = 0;
   int assignment_calls = 0;
   int assignment_changes = 0;
+  int final_assignment_changes = 0;
+  int final_agent_assignment_changes = 0;
   double assignment_time_ms = 0;
   bool timed_out = false;
 };

@@ -1,5 +1,6 @@
 #include <lacam.hpp>
 
+#include <fstream>
 #include <iostream>
 
 namespace {
@@ -65,6 +66,30 @@ ValidationResult validate_tapf_solution(const TAPFInstance& ins,
   }
   return result;
 }
+
+void write_schedule_yaml(const TAPFInstance& ins, const Solution& solution,
+                         const std::string& output_path)
+{
+  if (output_path.empty() || solution.empty()) return;
+  std::ofstream out(output_path);
+  out << "statistics:\n";
+  out << "  cost: " << get_sum_of_costs(solution) << "\n";
+  out << "  makespan: " << get_makespan(solution) << "\n";
+  out << "schedule:\n";
+  for (size_t i = 0; i < ins.N; ++i) {
+    out << "  agent" << i << ":\n";
+    auto last = static_cast<Vertex*>(nullptr);
+    for (size_t t = 0; t < solution.size(); ++t) {
+      auto v = solution[t][i];
+      if (t + 1 < solution.size() && v == solution[t + 1][i]) continue;
+      if (last == v) continue;
+      last = v;
+      out << "    - x: " << v->index / ins.G.width << "\n";
+      out << "      y: " << v->index % ins.G.width << "\n";
+      out << "      t: " << t << "\n";
+    }
+  }
+}
 }  // namespace
 
 int main(int argc, char** argv)
@@ -76,6 +101,7 @@ int main(int argc, char** argv)
   const auto yaml_filename = std::string(argv[1]);
   const auto map_dir = std::string(argv[2]);
   const auto time_limit_sec = argc >= 4 ? std::stod(argv[3]) : 30.0;
+  const auto output_path = argc >= 5 ? std::string(argv[4]) : std::string();
 
   const auto ins = TAPFInstance(yaml_filename, map_dir);
   if (!ins.is_valid()) {
@@ -88,6 +114,7 @@ int main(int argc, char** argv)
   auto solution = solve_tapf(ins, 0, &deadline, nullptr, 0, &stats);
   const auto runtime_ms = deadline.elapsed_ms();
   const auto validation = validate_tapf_solution(ins, solution);
+  write_schedule_yaml(ins, solution, output_path);
 
   std::cout << "valid_instance=1\n";
   std::cout << "solved=" << !solution.empty() << "\n";
@@ -116,6 +143,10 @@ int main(int argc, char** argv)
   std::cout << "pibt_recursions=" << stats.pibt_recursions << "\n";
   std::cout << "assignment_calls=" << stats.assignment_calls << "\n";
   std::cout << "assignment_changes=" << stats.assignment_changes << "\n";
+  std::cout << "final_assignment_changes=" << stats.final_assignment_changes
+            << "\n";
+  std::cout << "final_agent_assignment_changes="
+            << stats.final_agent_assignment_changes << "\n";
   std::cout << "assignment_time_ms=" << stats.assignment_time_ms << "\n";
   std::cout << "timed_out=" << stats.timed_out << "\n";
   return solution.empty() || !validation.valid_solution() ? 1 : 0;

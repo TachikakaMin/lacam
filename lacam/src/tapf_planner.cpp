@@ -121,12 +121,29 @@ Solution TAPFPlanner::solve()
     S = OPEN.top();
 
     if (is_goal_config(S->C)) {
+      auto solution_nodes = std::vector<TAPFNode*>();
       while (S != nullptr) {
+        solution_nodes.push_back(S);
         solution.push_back(S->C);
         S = S->parent;
       }
       std::reverse(solution.begin(), solution.end());
-      if (stats != nullptr) stats->solution_depth = solution.size() - 1;
+      std::reverse(solution_nodes.begin(), solution_nodes.end());
+      if (stats != nullptr) {
+        stats->solution_depth = solution.size() - 1;
+        for (size_t step = 1; step < solution_nodes.size(); ++step) {
+          auto changed = false;
+          const auto& prev = solution_nodes[step - 1]->assignment;
+          const auto& curr = solution_nodes[step]->assignment;
+          for (size_t i = 0; i < curr.size(); ++i) {
+            if (curr[i] != prev[i]) {
+              changed = true;
+              ++stats->final_agent_assignment_changes;
+            }
+          }
+          if (changed) ++stats->final_assignment_changes;
+        }
+      }
       break;
     }
 

@@ -314,16 +314,19 @@ def run_solver_task(
     return {**base, **result}
 
 
-def write_rows(csv_path: Path, jsonl_path: Path, rows: List[Dict[str, Any]]) -> None:
+def write_csv(csv_path: Path, rows: List[Dict[str, Any]]) -> None:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     keys = sorted({key for row in rows for key in row.keys()})
     with csv_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=keys)
         writer.writeheader()
         writer.writerows(rows)
-    with jsonl_path.open("w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def append_jsonl(jsonl_path: Path, row: Dict[str, Any]) -> None:
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    with jsonl_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, sort_keys=True) + "\n")
 
 
 def main() -> int:
@@ -397,6 +400,18 @@ def main() -> int:
                 rows.append(row)
                 completed_keys.add((row.get("instance_file"), row.get("solver")))
 
+    if not args.resume:
+        if csv_path.exists():
+            csv_path.unlink()
+        if jsonl_path.exists():
+            jsonl_path.unlink()
+
+    if rows:
+        write_csv(csv_path, rows)
+        with jsonl_path.open("w", encoding="utf-8") as f:
+            for row in rows:
+                f.write(json.dumps(row, sort_keys=True) + "\n")
+
     if args.parallel_solvers:
         solvers = ["lacam_tapf"] if args.skip_itacbs else ["lacam_tapf", "itacbs"]
         tasks = [
@@ -429,7 +444,7 @@ def main() -> int:
                 try:
                     row = future.result()
                 except Exception:
-                    write_rows(csv_path, jsonl_path, rows)
+                    write_csv(csv_path, rows)
                     print(
                         f"[{completed}/{total}] ERROR {solver} {fixture}",
                         file=sys.stderr,
@@ -442,7 +457,7 @@ def main() -> int:
                         executor.shutdown(wait=False)
                     raise
                 rows.append(row)
-                write_rows(csv_path, jsonl_path, rows)
+                append_jsonl(jsonl_path, row)
                 print(
                     f"[{completed}/{total}] {solver} {fixture} "
                     f"solved={row.get('solved', 0)}"
@@ -452,6 +467,8 @@ def main() -> int:
                 executor.shutdown(wait=True, cancel_futures=False)
             except TypeError:
                 executor.shutdown(wait=True)
+
+        write_csv(csv_path, rows)
 
         return 0
 
@@ -473,7 +490,7 @@ def main() -> int:
             try:
                 new_rows = future.result()
             except Exception:
-                write_rows(csv_path, jsonl_path, rows)
+                write_csv(csv_path, rows)
                 print(f"[{completed}/{len(fixtures)}] ERROR {fixture}", file=sys.stderr)
                 for pending in future_to_fixture:
                     pending.cancel()
@@ -483,7 +500,9 @@ def main() -> int:
                     executor.shutdown(wait=False)
                 raise
             rows.extend(new_rows)
-            write_rows(csv_path, jsonl_path, rows)
+            with jsonl_path.open("a", encoding="utf-8") as f:
+                for row in new_rows:
+                    f.write(json.dumps(row, sort_keys=True) + "\n")
             solved = ", ".join(
                 f"{row['solver']}:solved={row.get('solved', 0)}"
                 for row in new_rows
@@ -494,6 +513,8 @@ def main() -> int:
             executor.shutdown(wait=True, cancel_futures=False)
         except TypeError:
             executor.shutdown(wait=True)
+
+    write_csv(csv_path, rows)
 
     return 0
 
