@@ -3,6 +3,8 @@
  */
 #pragma once
 
+#include <set>
+
 #include "planner.hpp"
 #include "tapf_assignment.hpp"
 
@@ -18,9 +20,13 @@ struct TAPFConstraint {
 struct TAPFNode {
   const Config C;
   TAPFNode* parent;
+  std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
   bool queued;
+  unsigned g;
+  unsigned h;
+  unsigned f;
   std::vector<float> priorities;
   std::vector<int> order;
   std::queue<TAPFConstraint*> search_tree;
@@ -29,6 +35,8 @@ struct TAPFNode {
            std::vector<int> _assignment, TAPFAssignmentState _assignment_state,
            TAPFNode* _parent = nullptr);
   ~TAPFNode();
+  void discard_search_tree();
+  void refresh_priority(TAPFDistTable& D);
 };
 
 struct TAPFStats {
@@ -49,6 +57,10 @@ struct TAPFStats {
   int assignment_changes = 0;
   int final_assignment_changes = 0;
   int final_agent_assignment_changes = 0;
+  int anytime_cost_updates = 0;
+  int swap_checks = 0;
+  int swap_applied = 0;
+  unsigned solution_cost = 0;
   double assignment_time_ms = 0;
   bool timed_out = false;
 };
@@ -59,6 +71,8 @@ struct TAPFPlanner {
   std::mt19937* MT;
   const int verbose;
   const int sticky_penalty;
+  const float restart_rate;
+  const bool anytime;
   TAPFStats* stats;
   TAPFAssignmentStats assignment_stats;
 
@@ -72,16 +86,27 @@ struct TAPFPlanner {
   Agents occupied_next;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
-              std::mt19937* _MT, int _verbose = 0,
-              int _sticky_penalty = 0, TAPFStats* _stats = nullptr);
+              std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
+              float _restart_rate = 0.001f, bool _anytime = true,
+              TAPFStats* _stats = nullptr);
   Solution solve();
   bool is_goal_config(const Config& C) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
+  void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
+               std::stack<TAPFNode*>& OPEN);
+  unsigned get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
+  unsigned get_h_value(const Config& C);
+  Agent* swap_possible_and_required(Agent* ai,
+                                    const std::vector<int>& assignment);
+  bool is_swap_required(const int pusher, const int puller,
+                        Vertex* v_pusher_origin, Vertex* v_puller_origin,
+                        const std::vector<int>& assignment);
+  bool is_swap_possible(Vertex* v_pusher_origin, Vertex* v_puller_origin,
+                        const std::vector<int>& assignment);
   bool funcPIBT(Agent* ai, const std::vector<int>& assignment);
 };
 
 Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
                     const Deadline* deadline = nullptr,
-                    std::mt19937* MT = nullptr,
-                    const int sticky_penalty = 0,
-                    TAPFStats* stats = nullptr);
+                    std::mt19937* MT = nullptr, const int sticky_penalty = 0,
+                    TAPFStats* stats = nullptr, bool anytime = true);

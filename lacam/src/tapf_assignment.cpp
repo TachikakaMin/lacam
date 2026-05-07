@@ -169,7 +169,7 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     state.init(ins.N, ins.tasks.size());
   }
 
-  auto cost = [&](const int i, const int j) {
+  auto cost = [&](const int i, const int j) -> int {
     if (j >= static_cast<int>(ins.tasks.size())) return kTapfAssignmentInfCost;
     if (!ins.allowed[i][j]) return kTapfAssignmentInfCost;
     auto d = D.get(j, C[i]);

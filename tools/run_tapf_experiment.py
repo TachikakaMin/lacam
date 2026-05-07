@@ -80,12 +80,27 @@ def parse_kv(stdout: str) -> Dict[str, Any]:
 
 
 def run_lacam(
-    binary: Path, fixture: Path, map_dir: Path, time_limit: float, timeout: float
+    binary: Path,
+    fixture: Path,
+    map_dir: Path,
+    time_limit: float,
+    timeout: float,
+    anytime: bool,
 ) -> Dict[str, Any]:
-    cmd = [str(binary), str(fixture), str(map_dir), str(time_limit)]
+    cmd = [
+        str(binary),
+        str(fixture),
+        str(map_dir),
+        str(time_limit),
+        "",
+        "1" if anytime else "0",
+    ]
+    external_timeout = max(timeout, time_limit + 2.0)
     start = time.time()
     try:
-        cp = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+        cp = subprocess.run(
+            cmd, text=True, capture_output=True, timeout=external_timeout
+        )
     except subprocess.TimeoutExpired as exc:
         return {
             "solver": "lacam_tapf",
@@ -95,6 +110,7 @@ def run_lacam(
             "valid_solution": 0,
             "collision_free": 0,
             "timed_out": 1,
+            "external_timed_out": 1,
             "stderr": str(exc),
         }
     wall = time.time() - start
@@ -104,12 +120,17 @@ def run_lacam(
             "solver": "lacam_tapf",
             "exit_code": cp.returncode,
             "wall_time_s": wall,
-            "timed_out": 0,
+            "external_timed_out": 0,
             "stderr": cp.stderr.strip(),
         }
     )
+    row.setdefault("timed_out", 0)
     if cp.returncode not in (0, 1):
-        raise RuntimeError(f"LaCAM command failed rc={cp.returncode}: {cp.stderr}")
+        row.setdefault("solved", 0)
+        row.setdefault("valid_solution", 0)
+        row.setdefault("collision_free", 0)
+        row["first_error"] = f"nonzero exit code {cp.returncode}"
+        return row
     if row.get("solved") and not row.get("collision_free"):
         raise RuntimeError(f"LaCAM reported solved but invalid for {fixture}")
     return row
@@ -263,6 +284,7 @@ def run_fixture(
         args.map_dir,
         args.time_limit,
         args.lacam_timeout,
+        args.lacam_anytime,
     )
     rows.append({**base, **lacam})
 
@@ -300,6 +322,7 @@ def run_solver_task(
             args.map_dir,
             args.time_limit,
             args.lacam_timeout,
+            args.lacam_anytime,
         )
     elif solver == "itacbs":
         result = run_itacbs(
@@ -345,6 +368,19 @@ def main() -> int:
         type=float,
         default=3.0,
         help="Default external subprocess timeout in seconds.",
+    )
+    parser.set_defaults(lacam_anytime=True)
+    parser.add_argument(
+        "--lacam-anytime",
+        dest="lacam_anytime",
+        action="store_true",
+        help="Let LaCAM-TAPF keep improving after the first solution.",
+    )
+    parser.add_argument(
+        "--no-lacam-anytime",
+        dest="lacam_anytime",
+        action="store_false",
+        help="Stop LaCAM-TAPF after the first solution.",
     )
     parser.add_argument(
         "--lacam-timeout",
@@ -426,7 +462,7 @@ def main() -> int:
             f"jobs={args.jobs}, time_limit={args.time_limit}s, "
             f"lacam_timeout={args.lacam_timeout}s, "
             f"itacbs_timeout={args.itacbs_timeout}s, "
-            f"resumed_rows={len(rows)}"
+            f"lacam_anytime={args.lacam_anytime}, resumed_rows={len(rows)}"
         )
         executor = concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs)
         try:
@@ -475,7 +511,8 @@ def main() -> int:
     print(
         f"Running {len(fixtures)} fixtures with jobs={args.jobs}, "
         f"time_limit={args.time_limit}s, lacam_timeout={args.lacam_timeout}s, "
-        f"itacbs_timeout={args.itacbs_timeout}s"
+        f"itacbs_timeout={args.itacbs_timeout}s, "
+        f"lacam_anytime={args.lacam_anytime}"
     )
     executor = concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs)
     try:

@@ -12,6 +12,7 @@
 #include "tapf_dist_table.hpp"
 
 constexpr int kTapfAssignmentInfCost = 100000000;
+constexpr long kTapfAssignmentWeightInfCost = 4000000000000000000L;
 
 struct TAPFAssignmentResult {
   std::vector<int> agent_to_task;
@@ -32,6 +33,8 @@ struct TAPFAssignmentState {
   std::vector<int> mateR;
   std::vector<long> lx;
   std::vector<long> ly;
+  long cost_scale = 1;
+  long tie_hash_mod = 1;
 
   void init(const int agent_num, const int task_num)
   {
@@ -42,6 +45,8 @@ struct TAPFAssignmentState {
     mateR.assign(n, -1);
     lx.assign(n, 0);
     ly.assign(n, 0);
+    tie_hash_mod = compute_tie_hash_mod(org_n, org_m);
+    cost_scale = compute_cost_scale(org_n, org_m, tie_hash_mod);
   }
 
   bool ready() const { return n > 0; }
@@ -100,13 +105,49 @@ struct TAPFAssignmentState {
     std::fill(mateR.begin(), mateR.end(), -1);
   }
 
+  static long compute_tie_hash_mod(const int agent_num, const int task_num)
+  {
+    const auto safe_task_num = std::max(1, task_num);
+    const auto base = static_cast<long>(std::max(1, agent_num)) *
+                      std::max(1, agent_num) * safe_task_num;
+    return std::max(1L, 50000000000L / std::max(1L, base));
+  }
+
+  static long compute_cost_scale(const int agent_num, const int task_num,
+                                 const long hash_mod)
+  {
+    const auto max_col = std::max(0, task_num - 1);
+    const auto max_pair_tie =
+        static_cast<long>(std::max(1, agent_num)) * max_col * hash_mod +
+        std::max(0L, hash_mod - 1);
+    return static_cast<long>(std::max(1, agent_num)) * max_pair_tie + 1;
+  }
+
+  long tie_hash(const int row, const int col) const
+  {
+    auto value = static_cast<unsigned long long>(row + 1) * 11995408973635179863ULL;
+    value ^= static_cast<unsigned long long>(col + 1) * 10150724397891781847ULL;
+    value ^= value >> 33;
+    value *= 0xff51afd7ed558ccdULL;
+    value ^= value >> 33;
+    return static_cast<long>(value % static_cast<unsigned long long>(tie_hash_mod));
+  }
+
+  long tie_cost(const int row, const int col) const
+  {
+    if (row >= org_n || col >= org_m) return 0;
+    return static_cast<long>(org_n - row) * col * tie_hash_mod +
+           tie_hash(row, col);
+  }
+
   template <typename CostFn>
   long weight(const int row, const int col, const CostFn& cost_fn) const
   {
     if (row >= org_n) return 0;
-    const auto cost = static_cast<long>(cost_fn(row, col));
-    if (cost >= kTapfAssignmentInfCost / 2) return 0;
-    return static_cast<long>(kTapfAssignmentInfCost) - cost;
+    const auto primary_cost = static_cast<long>(cost_fn(row, col));
+    if (primary_cost >= kTapfAssignmentInfCost / 2) return 0;
+    const auto encoded_cost = primary_cost * cost_scale + tie_cost(row, col);
+    return kTapfAssignmentWeightInfCost - encoded_cost;
   }
 
   template <typename CostFn>
