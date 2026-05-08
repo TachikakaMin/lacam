@@ -75,13 +75,20 @@ namespace
     out << "statistics:\n";
     out << "  cost: " << get_sum_of_costs(solution) << "\n";
     out << "  makespan: " << get_makespan(solution) << "\n";
+    out << "assignments:\n";
+    const auto& final_config = solution.back();
+    for (size_t i = 0; i < ins.N; ++i) {
+      auto goal = final_config[i];
+      out << "  agent" << i << ":\n";
+      out << "    x: " << goal->index / ins.G.width << "\n";
+      out << "    y: " << goal->index % ins.G.width << "\n";
+    }
     out << "schedule:\n";
     for (size_t i = 0; i < ins.N; ++i) {
       out << "  agent" << i << ":\n";
       auto last = static_cast<Vertex*>(nullptr);
       for (size_t t = 0; t < solution.size(); ++t) {
         auto v = solution[t][i];
-        if (t + 1 < solution.size() && v == solution[t + 1][i]) continue;
         if (last == v) continue;
         last = v;
         out << "    - x: " << v->index / ins.G.width << "\n";

@@ -196,15 +196,61 @@ def _round_map_name(state: ScenarioState, work_dir: Path) -> str:
     return str(map_path.resolve())
 
 
-def _agent_targets(agent: AgentState, state: ScenarioState) -> Tuple[List[Coord], str]:
-    if agent.is_droppingoff or agent.current_hold_ore > 0 or agent.current_hold_ore >= agent.capacity > 0:
-        targets = [state.dropoff_points[i] for i in agent.potential_dropoff_ids if 0 <= i < len(state.dropoff_points)]
-        return targets or [agent.pos], "dropoff"
-    targets = [
+def _grid_distance(state: ScenarioState, start: Coord, goals: Sequence[Coord]) -> int:
+    goal_set = set(goals)
+    if not goal_set:
+        return 10**9
+    if start in goal_set:
+        return 0
+    rows = len(state.grid)
+    cols = len(state.grid[0]) if rows else 0
+    queue = [(start, 0)]
+    seen = {start}
+    head = 0
+    while head < len(queue):
+        (r, c), d = queue[head]
+        head += 1
+        for nr, nc in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):
+            if not (0 <= nr < rows and 0 <= nc < cols):
+                continue
+            if state.grid[nr][nc] or (nr, nc) in seen:
+                continue
+            if (nr, nc) in goal_set:
+                return d + 1
+            seen.add((nr, nc))
+            queue.append(((nr, nc), d + 1))
+    return 10**9
+
+
+def _pickup_targets(agent: AgentState, state: ScenarioState) -> List[Coord]:
+    return [
         state.ore_points[i]
         for i in agent.potential_goal_ids
         if 0 <= i < len(state.ore_points) and state.ore_amounts[i] > 0
     ]
+
+
+def _pickup_active_agents(state: ScenarioState) -> set[int]:
+    candidates = []
+    active_ore = {p for i, p in enumerate(state.ore_points) if i < len(state.ore_amounts) and state.ore_amounts[i] > 0}
+    for i, agent in enumerate(state.agents):
+        if agent.is_droppingoff or agent.current_hold_ore > 0 or agent.current_hold_ore >= agent.capacity > 0:
+            continue
+        targets = _pickup_targets(agent, state)
+        if targets:
+            candidates.append((_grid_distance(state, agent.pos, targets), i))
+    candidates.sort()
+    active_count = min(len(candidates), len(active_ore))
+    return {i for _, i in candidates[:active_count]}
+
+
+def _agent_targets(agent_index: int, agent: AgentState, state: ScenarioState, active_pickup_agents: set[int]) -> Tuple[List[Coord], str]:
+    if agent.is_droppingoff or agent.current_hold_ore > 0 or agent.current_hold_ore >= agent.capacity > 0:
+        targets = [state.dropoff_points[i] for i in agent.potential_dropoff_ids if 0 <= i < len(state.dropoff_points)]
+        return targets or [agent.pos], "dropoff"
+    if agent_index not in active_pickup_agents:
+        return [agent.pos], "idle"
+    targets = _pickup_targets(agent, state)
     return targets or [agent.pos], "pickup"
 
 
@@ -212,8 +258,9 @@ def write_round_tapf_input(path: Path, state: ScenarioState, work_dir: Path) -> 
     map_name = _round_map_name(state, work_dir)
     planned_targets = []
     agents_yaml = []
+    active_pickup_agents = _pickup_active_agents(state)
     for i, agent in enumerate(state.agents):
-        targets, mode = _agent_targets(agent, state)
+        targets, mode = _agent_targets(i, agent, state, active_pickup_agents)
         planned_targets.append(targets)
         agents_yaml.append(
             {
@@ -251,17 +298,21 @@ def _expand_schedule(seq: Sequence[Dict[str, Any]], fallback: Coord) -> List[Coo
     return path or [fallback]
 
 
-def _parse_solver_output(out_path: Path, fallback_positions: List[Coord]) -> Tuple[List[List[Coord]], Any, int, bool]:
+def _parse_solver_output(out_path: Path, fallback_positions: List[Coord]) -> Tuple[List[List[Coord]], List[Optional[Coord]], Any, int, bool]:
     data = yaml.safe_load(out_path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError(f"Invalid solver output YAML: {out_path}")
     schedule = data.get("schedule") or {}
+    assignment_nodes = data.get("assignments") or {}
     paths = []
+    assigned_goals: List[Optional[Coord]] = []
     for i, fallback in enumerate(fallback_positions):
         paths.append(_expand_schedule(schedule.get(f"agent{i}", []), fallback))
+        node = assignment_nodes.get(f"agent{i}")
+        assigned_goals.append((int(node["x"]), int(node["y"])) if isinstance(node, dict) and "x" in node and "y" in node else None)
     stats = data.get("statistics") or {}
     team_size = int(stats.get("teamSize", len(schedule) if schedule else 0))
-    return paths, stats.get("cost"), team_size, bool(schedule)
+    return paths, assigned_goals, stats.get("cost"), team_size, bool(schedule)
 
 
 def _coord_to_list(pos: Optional[Coord]) -> Optional[List[int]]:
@@ -271,20 +322,23 @@ def _coord_to_list(pos: Optional[Coord]) -> Optional[List[int]]:
 def _first_event_time_for_agent(
     agent: AgentState,
     path: List[Coord],
+    assigned_goal: Optional[Coord],
     ore_index: Dict[Coord, int],
     ore_amounts: Sequence[int],
     dropoff_set: set[Coord],
 ) -> Tuple[Optional[int], Optional[str], Optional[Coord]]:
-    if not path:
+    if not path or assigned_goal is None:
+        return None, None, None
+    if agent.is_droppingoff or agent.current_hold_ore > 0:
+        kind = "dropoff" if assigned_goal in dropoff_set else None
+    else:
+        ore_idx = ore_index.get(assigned_goal)
+        kind = "pickup" if ore_idx is not None and ore_amounts[ore_idx] > 0 else None
+    if kind is None:
         return None, None, None
     for t, pos in enumerate(path):
-        if agent.is_droppingoff or agent.current_hold_ore > 0:
-            if pos in dropoff_set:
-                return t, "dropoff", pos
-        else:
-            idx = ore_index.get(pos)
-            if idx is not None and ore_amounts[idx] > 0:
-                return t, "pickup", pos
+        if pos == assigned_goal:
+            return t, kind, pos
     return None, None, None
 
 
@@ -327,7 +381,6 @@ def _run_lacam_solver(
     if not output_yaml.exists():
         raise RuntimeError(f"LaCAM-TAPF finished without writing output: {output_yaml}\n{output}")
     return output
-
 
 def _write_round_assignment_file(
     path: Path,
@@ -418,7 +471,7 @@ def run_event_simulation(
         if verbose:
             print(f"[round {rid}] t={sim_time} ore_left={sum(state.ore_amounts)} loaded={sum(1 for a in state.agents if a.current_hold_ore > 0 or a.is_droppingoff)}")
         solver_log = _run_lacam_solver(lacam_binary, in_file, out_file, map_dir, time_limit, timeout_s, anytime)
-        paths, solver_cost, team_size, has_schedule = _parse_solver_output(out_file, [a.pos for a in state.agents])
+        paths, assigned_goals, solver_cost, team_size, has_schedule = _parse_solver_output(out_file, [a.pos for a in state.agents])
 
         if not has_schedule:
             stop_reason = "solver_no_schedule"
@@ -429,10 +482,11 @@ def run_event_simulation(
         dropoff_set = set(state.dropoff_points)
         candidate_events = []
         for i, (agent, path) in enumerate(zip(state.agents, paths)):
-            t, kind, pos = _first_event_time_for_agent(agent, path, ore_index, state.ore_amounts, dropoff_set)
-            agent.current_target = pos
+            assigned_goal = assigned_goals[i] if i < len(assigned_goals) else None
+            t, kind, pos = _first_event_time_for_agent(agent, path, assigned_goal, ore_index, state.ore_amounts, dropoff_set)
+            agent.current_target = assigned_goal
             if t is not None:
-                candidate_events.append({"agent": i, "time": t, "kind": kind, "pos": pos})
+                candidate_events.append({"agent": i, "time": t, "kind": kind, "pos": pos, "assigned_goal": assigned_goal})
         _write_round_assignment_file(assign_file, rid, sim_time, solver_cost, team_size, has_schedule, state.agents, paths, planned_targets, candidate_events)
 
         if not candidate_events:
@@ -443,14 +497,6 @@ def run_event_simulation(
         delta = min(int(e["time"]) for e in candidate_events)
         if sim_time + delta > max_steps:
             delta = max_steps - sim_time
-        collision_t = _first_collision_time(paths)
-        if collision_t is not None and collision_t <= delta:
-            safe_delta = collision_t - 1
-            if safe_delta < 0:
-                stop_reason = "solver_conflicting_schedule"
-                rounds.append({"round": rid, "time_start": sim_time, "time_end": sim_time, "delta": 0, "solver_cost": solver_cost, "events": [], "ore_after": list(state.ore_amounts), "solver_log": solver_log[-2000:]})
-                break
-            delta = safe_delta
         if delta < 0:
             stop_reason = "zero_delta"
             break
@@ -464,12 +510,15 @@ def run_event_simulation(
             agent.past_path_cost += delta
 
         round_events = []
-        for e in candidate_events:
-            if int(e["time"]) != delta:
-                continue
+        executed_events = sorted(
+            (e for e in candidate_events if int(e["time"]) == delta),
+            key=lambda e: (int(e["time"]), 0 if e.get("kind") == "dropoff" else 1, int(e["agent"])),
+        )
+        for e in executed_events:
             i = int(e["agent"])
             agent = state.agents[i]
             pos = e["pos"]
+            event_time = int(e["time"])
             if e["kind"] == "pickup":
                 ore_idx = ore_index[pos]
                 available = max(0, state.ore_amounts[ore_idx])
@@ -480,7 +529,7 @@ def run_event_simulation(
                     agent.current_hold_ore += take
                     agent.is_droppingoff = True
                 agent.current_target = None
-                round_events.append({"agent": i, "type": "pickup", "pos": [pos[0], pos[1]], "amount": int(take), "ore_remaining_at_point": int(state.ore_amounts[ore_idx])})
+                round_events.append({"agent": i, "time": event_time, "type": "pickup", "pos": [pos[0], pos[1]], "amount": int(take), "ore_remaining_at_point": int(state.ore_amounts[ore_idx])})
             elif e["kind"] == "dropoff":
                 delivered = max(0, agent.current_hold_ore)
                 total_delivered_ore += delivered
@@ -488,7 +537,7 @@ def run_event_simulation(
                 agent.is_droppingoff = False
                 agent.past_path_cost = 0
                 agent.current_target = None
-                round_events.append({"agent": i, "type": "dropoff", "pos": [pos[0], pos[1]], "amount": int(delivered)})
+                round_events.append({"agent": i, "time": event_time, "type": "dropoff", "pos": [pos[0], pos[1]], "amount": int(delivered)})
 
         sim_time += delta
         ore_checkpoints.append({"time": sim_time, "ore": [int(v) for v in state.ore_amounts]})
