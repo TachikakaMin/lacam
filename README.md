@@ -129,6 +129,29 @@ The full regenerated dataset has:
 Validation checks should confirm that every potential goal is reachable from
 its agent's start and that each fixture has a reachable perfect task matching.
 
+
+## Lifelong Ore/TAPF Simulation
+
+A LaCAM-TAPF lifelong ore workflow is available at `python/lacam_ore_workflow.py`.
+It mirrors the ITA-CBS ore simulation loop: each round converts the current
+lifelong ore state into a one-shot TAPF YAML, calls `build/tapf_benchmark`, then
+executes the returned joint path until the first pickup/dropoff event.
+
+Example:
+
+```sh
+python3 python/lacam_ore_workflow.py simulate \
+  --input examples/lifelong/debug_data_LTAPF_mine_tunnel_new.yaml \
+  --binary build/tapf_benchmark \
+  --output outputs/lacam_event_sim.json \
+  --work-dir outputs/lacam_rounds \
+  --max-rounds 100 --max-steps 2000 --time-limit 10 --timeout 15 --verbose
+```
+
+For quick lifecycle debugging, add `--no-anytime` so each round stops after the
+first feasible TAPF solution instead of spending the whole time budget improving
+an incumbent.
+
 ## Notes
 
 - The grid maps and scenarios in `assets/` are from [MAPF benchmarks](https://movingai.com/benchmarks/mapf.html).
