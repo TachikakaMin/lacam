@@ -152,6 +152,22 @@ For quick lifecycle debugging, add `--no-anytime` so each round stops after the
 first feasible TAPF solution instead of spending the whole time budget improving
 an incumbent.
 
+Replay the generated JSON interactively with Tk:
+
+```sh
+python3 python/lacam_ore_workflow.py replay \
+  --input outputs/lacam_event_sim.json
+```
+
+Render a single frame to PNG, useful on headless machines:
+
+```sh
+python3 python/lacam_ore_workflow.py snapshot \
+  --input outputs/lacam_event_sim.json \
+  --output outputs/lacam_event_sim_t0.png \
+  --time 0
+```
+
 ## Notes
 
 - The grid maps and scenarios in `assets/` are from [MAPF benchmarks](https://movingai.com/benchmarks/mapf.html).

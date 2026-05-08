@@ -387,6 +387,10 @@ def run_event_simulation(
     if not lacam_binary.exists():
         raise FileNotFoundError(f"LaCAM binary not found: {lacam_binary}")
     state = copy.deepcopy(scenario)
+    if isinstance(state.map_spec, str):
+        map_path = Path(state.map_spec)
+        if not map_path.is_absolute():
+            state.map_spec = str((state.base_dir / map_path).resolve())
     work_dir.mkdir(parents=True, exist_ok=True)
 
     trajectories = {str(i): [[a.pos[0], a.pos[1]]] for i, a in enumerate(state.agents)}
@@ -526,6 +530,213 @@ def run_event_simulation(
     }
 
 
+def _ore_at_time(checkpoints: List[Dict[str, Any]], t: int) -> List[int]:
+    if not checkpoints:
+        return []
+    best = checkpoints[0].get("ore", [])
+    for checkpoint in checkpoints:
+        if int(checkpoint.get("time", 0)) <= t:
+            best = checkpoint.get("ore", [])
+        else:
+            break
+    return [int(x) for x in best]
+
+
+def _load_grid_for_replay(data: Dict[str, Any], sim_output_path: Path) -> List[List[int]]:
+    map_spec = data.get("map_spec")
+    if map_spec is None:
+        raise ValueError("Simulation output missing map_spec")
+    base_dir = sim_output_path.parent
+    if isinstance(map_spec, str):
+        map_path = Path(map_spec)
+        if not map_path.is_absolute() and data.get("source_scenario"):
+            scenario_parent = Path(str(data["source_scenario"])).parent
+            candidate = scenario_parent / map_path
+            if candidate.exists():
+                map_spec = str(candidate)
+    return _load_map_from_spec(map_spec, base_dir)
+
+
+def _replay_data(sim_output_path: Path) -> Tuple[Dict[str, Any], List[List[int]], Dict[int, List[Coord]]]:
+    data = json.loads(sim_output_path.read_text(encoding="utf-8"))
+    grid = _load_grid_for_replay(data, sim_output_path)
+    trajectories = {
+        int(agent_id): [tuple(_normalize_coord(pos)) for pos in payload.get("trajectory", [])]
+        for agent_id, payload in data.get("agents", {}).items()
+    }
+    return data, grid, trajectories
+
+
+def _draw_replay_canvas(canvas: Any, data: Dict[str, Any], grid: List[List[int]], trajectories: Dict[int, List[Coord]], t: int, cell: int, margin: int) -> None:
+    canvas.delete("all")
+    rows = len(grid)
+    cols = len(grid[0]) if rows else 0
+    ore_points = [tuple(_normalize_coord(p)) for p in data.get("ore_points", [])]
+    dropoff_points = {tuple(_normalize_coord(p)) for p in data.get("dropoff_points", [])}
+    ore_now = _ore_at_time(data.get("ore_checkpoints", []), t)
+    ore_by_pos = {ore_points[i]: ore_now[i] if i < len(ore_now) else 0 for i in range(len(ore_points))}
+
+    def cell_box(r: int, c: int) -> Tuple[int, int, int, int]:
+        x0 = margin + c * cell
+        y0 = margin + r * cell
+        return x0, y0, x0 + cell, y0 + cell
+
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0, x1, y1 = cell_box(r, c)
+            fill = "#303030" if grid[r][c] else "#ffffff"
+            canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline="#c8c8c8")
+
+    for r, c in dropoff_points:
+        x0, y0, x1, y1 = cell_box(r, c)
+        canvas.create_rectangle(x0 + 4, y0 + 4, x1 - 4, y1 - 4, fill="#40b37f", outline="")
+
+    for (r, c), amount in ore_by_pos.items():
+        x0, y0, x1, y1 = cell_box(r, c)
+        fill = "#f39c12" if amount > 0 else "#f8d9a0"
+        canvas.create_oval(x0 + 5, y0 + 5, x1 - 5, y1 - 5, fill=fill, outline="#8a5a00")
+        canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=str(amount), fill="black")
+
+    palette = ["#3498db", "#e74c3c", "#9b59b6", "#16a085", "#d35400", "#2c3e50", "#27ae60", "#c0392b"]
+    for aid in sorted(trajectories):
+        traj = trajectories[aid]
+        if not traj:
+            continue
+        r, c = traj[min(t, len(traj) - 1)]
+        x0, y0, x1, y1 = cell_box(r, c)
+        color = palette[aid % len(palette)]
+        canvas.create_oval(x0 + 6, y0 + 6, x1 - 6, y1 - 6, fill=color, outline="")
+        canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=str(aid), fill="white")
+
+    canvas.create_text(
+        margin,
+        max(10, margin // 2),
+        anchor="w",
+        text=f"t={t}  delivered={data.get('total_delivered_ore', 0)}  stop={data.get('stop_reason', '')}",
+        fill="#222222",
+    )
+
+
+def replay_with_tk(sim_output_path: Path, cell: int = 26, speed_ms: int = 150) -> None:
+    import tkinter as tk
+
+    data, grid, trajectories = _replay_data(sim_output_path)
+    rows = len(grid)
+    cols = len(grid[0]) if rows else 0
+    margin = 20
+    max_t = max((len(traj) for traj in trajectories.values()), default=1) - 1
+
+    root = tk.Tk()
+    root.title("LaCAM Lifelong Ore Replay")
+    canvas = tk.Canvas(root, width=margin * 2 + cols * cell, height=margin * 2 + rows * cell + 8, bg="#f8f8f8")
+    canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    controls = tk.Frame(root)
+    controls.pack(side=tk.BOTTOM, fill=tk.X)
+    t_var = tk.IntVar(value=0)
+    playing = {"value": False}
+    after_id = {"value": None}
+
+    def draw() -> None:
+        _draw_replay_canvas(canvas, data, grid, trajectories, t_var.get(), cell, margin)
+
+    def tick() -> None:
+        if not playing["value"]:
+            return
+        if t_var.get() >= max_t:
+            playing["value"] = False
+            return
+        t_var.set(t_var.get() + 1)
+        draw()
+        after_id["value"] = root.after(speed_ms, tick)
+
+    def pause() -> None:
+        playing["value"] = False
+        if after_id["value"] is not None:
+            root.after_cancel(after_id["value"])
+            after_id["value"] = None
+
+    def play() -> None:
+        if playing["value"]:
+            return
+        playing["value"] = True
+        tick()
+
+    def step(delta: int) -> None:
+        pause()
+        t_var.set(max(0, min(max_t, t_var.get() + delta)))
+        draw()
+
+    tk.Button(controls, text="Play", command=play).pack(side=tk.LEFT)
+    tk.Button(controls, text="Pause", command=pause).pack(side=tk.LEFT)
+    tk.Button(controls, text="<", command=lambda: step(-1)).pack(side=tk.LEFT)
+    tk.Button(controls, text=">", command=lambda: step(1)).pack(side=tk.LEFT)
+    tk.Scale(controls, from_=0, to=max_t, orient=tk.HORIZONTAL, variable=t_var, command=lambda _v: draw()).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    draw()
+    root.mainloop()
+
+
+def write_snapshot(sim_output_path: Path, output_path: Path, t: int, cell: int = 28) -> None:
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle, Rectangle
+
+    data, grid, trajectories = _replay_data(sim_output_path)
+    rows = len(grid)
+    cols = len(grid[0]) if rows else 0
+    ore_points = [tuple(_normalize_coord(p)) for p in data.get("ore_points", [])]
+    dropoff_points = {tuple(_normalize_coord(p)) for p in data.get("dropoff_points", [])}
+    ore_now = _ore_at_time(data.get("ore_checkpoints", []), t)
+    ore_by_pos = {ore_points[i]: ore_now[i] if i < len(ore_now) else 0 for i in range(len(ore_points))}
+
+    fig_w = max(4, cols * cell / 110)
+    fig_h = max(4, rows * cell / 110)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+    ax.set_xlim(0, cols)
+    ax.set_ylim(rows, 0)
+    ax.set_aspect("equal")
+    ax.set_xticks(range(cols + 1))
+    ax.set_yticks(range(rows + 1))
+    ax.grid(color="#cccccc", linewidth=0.4)
+    ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c]:
+                ax.add_patch(Rectangle((c, r), 1, 1, color="#303030"))
+    for r, c in dropoff_points:
+        ax.add_patch(Rectangle((c + 0.12, r + 0.12), 0.76, 0.76, color="#40b37f"))
+    for (r, c), amount in ore_by_pos.items():
+        ax.add_patch(Circle((c + 0.5, r + 0.5), 0.34, color="#f39c12" if amount > 0 else "#f8d9a0"))
+        ax.text(c + 0.5, r + 0.5, str(amount), ha="center", va="center", fontsize=8, color="black")
+
+    palette = ["#3498db", "#e74c3c", "#9b59b6", "#16a085", "#d35400", "#2c3e50", "#27ae60", "#c0392b"]
+    for aid in sorted(trajectories):
+        traj = trajectories[aid]
+        if not traj:
+            continue
+        r, c = traj[min(t, len(traj) - 1)]
+        ax.add_patch(Circle((c + 0.5, r + 0.5), 0.28, color=palette[aid % len(palette)]))
+        ax.text(c + 0.5, r + 0.5, str(aid), ha="center", va="center", fontsize=7, color="white")
+
+    ax.set_title(f"LaCAM lifelong replay t={t}, delivered={data.get('total_delivered_ore', 0)}, stop={data.get('stop_reason', '')}")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, bbox_inches="tight", dpi=160)
+    plt.close(fig)
+
+
+def replay(args: argparse.Namespace) -> int:
+    replay_with_tk(args.input, cell=args.cell, speed_ms=args.speed_ms)
+    return 0
+
+
+def snapshot(args: argparse.Namespace) -> int:
+    write_snapshot(args.input, args.output, args.time, cell=args.cell)
+    if args.verbose:
+        print(f"wrote {args.output}")
+    return 0
+
+
 def simulate(args: argparse.Namespace) -> int:
     scenario = load_scenario(args.input)
     result = run_event_simulation(
@@ -566,6 +777,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     sim.add_argument("--no-anytime", action="store_true")
     sim.add_argument("--verbose", action="store_true")
     sim.set_defaults(func=simulate)
+
+    rep = sub.add_parser("replay", help="open an interactive Tk replay window for a simulation JSON")
+    rep.add_argument("--input", type=Path, required=True)
+    rep.add_argument("--cell", type=int, default=26)
+    rep.add_argument("--speed-ms", type=int, default=150)
+    rep.set_defaults(func=replay)
+
+    snap = sub.add_parser("snapshot", help="render one replay frame to a PNG file")
+    snap.add_argument("--input", type=Path, required=True)
+    snap.add_argument("--output", type=Path, required=True)
+    snap.add_argument("--time", type=int, default=0)
+    snap.add_argument("--cell", type=int, default=28)
+    snap.add_argument("--verbose", action="store_true")
+    snap.set_defaults(func=snapshot)
+
     args = parser.parse_args(argv)
     return args.func(args)
 
