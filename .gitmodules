@@ -10,3 +10,6 @@
 [submodule "third_party/ITA-CBS2"]
 	path = third_party/ITA-CBS2
 	url = https://github.com/TachikakaMin/ITA-CBS2.git
+[submodule "third_party/lacam2"]
+	path = third_party/lacam2
+	url = https://github.com/Kei18/lacam2.git
