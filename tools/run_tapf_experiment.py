@@ -86,6 +86,7 @@ def run_lacam(
     time_limit: float,
     timeout: float,
     anytime: bool,
+    full_ta: bool,
 ) -> Dict[str, Any]:
     cmd = [
         str(binary),
@@ -94,6 +95,7 @@ def run_lacam(
         str(time_limit),
         "",
         "1" if anytime else "0",
+        "1" if full_ta else "0",
     ]
     external_timeout = max(timeout, time_limit + 2.0)
     start = time.time()
@@ -323,6 +325,7 @@ def run_solver_task(
             args.time_limit,
             args.lacam_timeout,
             args.lacam_anytime,
+            args.lacam_full_ta,
         )
     elif solver == "itacbs":
         result = run_itacbs(
@@ -381,6 +384,11 @@ def main() -> int:
         dest="lacam_anytime",
         action="store_false",
         help="Stop LaCAM-TAPF after the first solution.",
+    )
+    parser.add_argument(
+        "--lacam-full-ta",
+        action="store_true",
+        help="Force a full TAPF task assignment solve at every LaCAM node.",
     )
     parser.add_argument(
         "--lacam-timeout",
@@ -462,7 +470,8 @@ def main() -> int:
             f"jobs={args.jobs}, time_limit={args.time_limit}s, "
             f"lacam_timeout={args.lacam_timeout}s, "
             f"itacbs_timeout={args.itacbs_timeout}s, "
-            f"lacam_anytime={args.lacam_anytime}, resumed_rows={len(rows)}"
+            f"lacam_anytime={args.lacam_anytime}, "
+            f"lacam_full_ta={args.lacam_full_ta}, resumed_rows={len(rows)}"
         )
         executor = concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs)
         try:

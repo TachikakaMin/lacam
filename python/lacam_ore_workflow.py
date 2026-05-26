@@ -35,6 +35,7 @@ class AgentState:
     potential_goal_ids: List[int]
     potential_dropoff_ids: List[int]
     current_target: Optional[Coord] = None
+    current_service_ore: Optional[Coord] = None
 
 
 @dataclass
@@ -118,6 +119,9 @@ def load_scenario(path: Path) -> ScenarioState:
         target = None
         if node.get("currentTarget") is not None:
             target = _normalize_coord(node["currentTarget"])
+        service_ore = None
+        if node.get("currentServiceOre") is not None:
+            service_ore = _normalize_coord(node["currentServiceOre"])
         agents.append(
             AgentState(
                 name=str(node.get("name", f"agent{i}")),
@@ -129,6 +133,7 @@ def load_scenario(path: Path) -> ScenarioState:
                 potential_goal_ids=potential_goal_ids,
                 potential_dropoff_ids=potential_dropoff_ids,
                 current_target=target,
+                current_service_ore=service_ore,
             )
         )
 
@@ -165,6 +170,7 @@ def _scenario_to_yaml_dict(state: ScenarioState) -> Dict[str, Any]:
                 "capacity": int(a.capacity),
                 "potentialDropoffGoals": [int(x) for x in a.potential_dropoff_ids],
                 **({"currentTarget": [a.current_target[0], a.current_target[1]]} if a.current_target else {}),
+                **({"currentServiceOre": [a.current_service_ore[0], a.current_service_ore[1]]} if a.current_service_ore else {}),
             }
             for a in state.agents
         ],
@@ -222,6 +228,21 @@ def _grid_distance(state: ScenarioState, start: Coord, goals: Sequence[Coord]) -
     return 10**9
 
 
+def _passable(state: ScenarioState, pos: Coord) -> bool:
+    r, c = pos
+    rows = len(state.grid)
+    cols = len(state.grid[0]) if rows else 0
+    return 0 <= r < rows and 0 <= c < cols and not state.grid[r][c]
+
+
+def _dropoff_targets(agent: AgentState, state: ScenarioState) -> List[Coord]:
+    return [
+        state.dropoff_points[i]
+        for i in agent.potential_dropoff_ids
+        if 0 <= i < len(state.dropoff_points)
+    ]
+
+
 def _pickup_targets(agent: AgentState, state: ScenarioState) -> List[Coord]:
     return [
         state.ore_points[i]
@@ -230,38 +251,190 @@ def _pickup_targets(agent: AgentState, state: ScenarioState) -> List[Coord]:
     ]
 
 
-def _pickup_active_agents(state: ScenarioState) -> set[int]:
+def _staging_cells_for_ore(state: ScenarioState, ore: Coord, limit: int) -> List[Coord]:
+    if limit <= 0:
+        return []
+    rows = len(state.grid)
+    cols = len(state.grid[0]) if rows else 0
+    queue = [(ore, 0)]
+    seen = {ore}
+    cells: List[Coord] = []
+    head = 0
+    while head < len(queue) and len(cells) < limit:
+        (r, c), _d = queue[head]
+        head += 1
+        if _passable(state, (r, c)):
+            cells.append((r, c))
+        for nr, nc in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):
+            if not (0 <= nr < rows and 0 <= nc < cols) or (nr, nc) in seen:
+                continue
+            if state.grid[nr][nc]:
+                continue
+            seen.add((nr, nc))
+            queue.append(((nr, nc), _d + 1))
+    return cells
+
+
+def _nearest_free_cell(state: ScenarioState, start: Coord, reserved: set[Coord]) -> Coord:
+    rows = len(state.grid)
+    cols = len(state.grid[0]) if rows else 0
+    queue = [start]
+    seen = {start}
+    head = 0
+    while head < len(queue):
+        r, c = queue[head]
+        head += 1
+        if _passable(state, (r, c)) and (r, c) not in reserved:
+            return (r, c)
+        for nr, nc in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):
+            if not (0 <= nr < rows and 0 <= nc < cols) or (nr, nc) in seen:
+                continue
+            if state.grid[nr][nc]:
+                continue
+            seen.add((nr, nc))
+            queue.append((nr, nc))
+    return start
+
+
+def _best_dropoff_distance_from_ore(agent: AgentState, state: ScenarioState, ore: Coord) -> int:
+    return _grid_distance(state, ore, _dropoff_targets(agent, state))
+
+
+def _pickup_score(agent: AgentState, state: ScenarioState, ore: Coord, goal: Coord) -> int:
+    ore_idx = state.ore_points.index(ore)
+    service_amount = min(max(1, agent.capacity), max(0, state.ore_amounts[ore_idx]))
+    to_goal = _grid_distance(state, agent.pos, [goal])
+    goal_to_ore = _grid_distance(state, goal, [ore])
+    ore_to_dropoff = _best_dropoff_distance_from_ore(agent, state, ore)
+    if to_goal >= 10**9 or goal_to_ore >= 10**9 or ore_to_dropoff >= 10**9:
+        return 10**9
+    commitment_bonus = 0
+    if agent.current_service_ore == ore:
+        commitment_bonus += 8
+    if agent.current_target == goal:
+        commitment_bonus += 4
+    return to_goal + goal_to_ore + ore_to_dropoff - service_amount - commitment_bonus
+
+
+def _empty_pickup_agents(state: ScenarioState) -> List[int]:
+    return [
+        i
+        for i, agent in enumerate(state.agents)
+        if not agent.is_droppingoff
+        and agent.current_hold_ore <= 0
+        and agent.capacity > 0
+        and _pickup_targets(agent, state)
+    ]
+
+
+def _primary_pickup_agents(state: ScenarioState, empty_agents: Sequence[int]) -> set[int]:
+    active_ore = {
+        p
+        for i, p in enumerate(state.ore_points)
+        if i < len(state.ore_amounts) and state.ore_amounts[i] > 0
+    }
     candidates = []
-    active_ore = {p for i, p in enumerate(state.ore_points) if i < len(state.ore_amounts) and state.ore_amounts[i] > 0}
-    for i, agent in enumerate(state.agents):
-        if agent.is_droppingoff or agent.current_hold_ore > 0 or agent.current_hold_ore >= agent.capacity > 0:
-            continue
+    for i in empty_agents:
+        agent = state.agents[i]
         targets = _pickup_targets(agent, state)
-        if targets:
-            candidates.append((_grid_distance(state, agent.pos, targets), i))
+        candidates.append((_grid_distance(state, agent.pos, targets), i))
     candidates.sort()
-    active_count = min(len(candidates), len(active_ore))
-    return {i for _, i in candidates[:active_count]}
+    return {i for _, i in candidates[: min(len(candidates), len(active_ore))]}
 
 
-def _agent_targets(agent_index: int, agent: AgentState, state: ScenarioState, active_pickup_agents: set[int]) -> Tuple[List[Coord], str]:
+def _staging_pickup_plan(state: ScenarioState, primary_agents: set[int], empty_agents: Sequence[int]) -> Dict[int, Dict[str, Any]]:
+    loaded_count = sum(1 for agent in state.agents if agent.is_droppingoff or agent.current_hold_ore > 0)
+    if loaded_count >= 3:
+        return {}
+    extra_agents = [i for i in empty_agents if i not in primary_agents]
+    if not extra_agents:
+        return {}
+
+    blocked_goals = {state.agents[i].pos for i in range(len(state.agents)) if i not in extra_agents}
+    slots: List[Dict[str, Any]] = []
+    for ore_idx, ore in enumerate(state.ore_points):
+        ore_left = state.ore_amounts[ore_idx] if ore_idx < len(state.ore_amounts) else 0
+        if ore_left <= 0:
+            continue
+        interested = [i for i in extra_agents if ore_idx in state.agents[i].potential_goal_ids]
+        if not interested:
+            continue
+        max_capacity = max((state.agents[i].capacity for i in interested), default=1)
+        if ore_left < 4 * max_capacity:
+            continue
+        for rank, goal in enumerate(_staging_cells_for_ore(state, ore, 6)):
+            if goal == ore or goal in blocked_goals:
+                continue
+            slots.append({"ore": ore, "goal": goal, "rank": rank})
+            break
+
+    candidates = []
+    for i in extra_agents:
+        agent = state.agents[i]
+        for slot_idx, slot in enumerate(slots):
+            ore = slot["ore"]
+            ore_idx = state.ore_points.index(ore)
+            if ore_idx not in agent.potential_goal_ids:
+                continue
+            score = _pickup_score(agent, state, ore, slot["goal"]) + int(slot["rank"])
+            if score < 10**9:
+                candidates.append((score, 0 if agent.current_service_ore == ore else 1, i, slot_idx))
+    candidates.sort()
+
+    max_extra = max(0, min(2, 4 - loaded_count))
+    used_agents = set()
+    used_slots = set()
+    plan: Dict[int, Dict[str, Any]] = {}
+    for _score, _switch, agent_idx, slot_idx in candidates:
+        if len(plan) >= max_extra:
+            break
+        if agent_idx in used_agents or slot_idx in used_slots:
+            continue
+        used_agents.add(agent_idx)
+        used_slots.add(slot_idx)
+        plan[agent_idx] = slots[slot_idx]
+    return plan
+
+
+def _agent_targets(
+    agent_index: int,
+    agent: AgentState,
+    state: ScenarioState,
+    primary_pickup_agents: set[int],
+    staging_plan: Dict[int, Dict[str, Any]],
+    reserved_targets: set[Coord],
+) -> Tuple[List[Coord], str, Optional[Coord]]:
     if agent.is_droppingoff or agent.current_hold_ore > 0 or agent.current_hold_ore >= agent.capacity > 0:
-        targets = [state.dropoff_points[i] for i in agent.potential_dropoff_ids if 0 <= i < len(state.dropoff_points)]
-        return targets or [agent.pos], "dropoff"
-    if agent_index not in active_pickup_agents:
-        return [agent.pos], "idle"
-    targets = _pickup_targets(agent, state)
-    return targets or [agent.pos], "pickup"
+        targets = _dropoff_targets(agent, state)
+        return targets or [_nearest_free_cell(state, agent.pos, reserved_targets)], "dropoff", None
+    slot = staging_plan.get(agent_index)
+    if slot is not None:
+        return [slot["goal"]], "pickup", slot["ore"]
+    if agent_index in primary_pickup_agents:
+        targets = _pickup_targets(agent, state)
+        return targets or [_nearest_free_cell(state, agent.pos, reserved_targets)], "pickup", None
+    return [_nearest_free_cell(state, agent.pos, reserved_targets)], "idle", None
 
 
 def write_round_tapf_input(path: Path, state: ScenarioState, work_dir: Path) -> List[List[Coord]]:
     map_name = _round_map_name(state, work_dir)
     planned_targets = []
     agents_yaml = []
-    active_pickup_agents = _pickup_active_agents(state)
+    empty_agents = _empty_pickup_agents(state)
+    primary_pickup_agents = _primary_pickup_agents(state, empty_agents)
+    staging_plan = _staging_pickup_plan(state, primary_pickup_agents, empty_agents)
+    reserved_targets = {slot["goal"] for slot in staging_plan.values()}
     for i, agent in enumerate(state.agents):
-        targets, mode = _agent_targets(i, agent, state, active_pickup_agents)
+        targets, mode, service_ore = _agent_targets(
+            i, agent, state, primary_pickup_agents, staging_plan, reserved_targets
+        )
+        if mode != "pickup" or service_ore is None:
+            reserved_targets.update(targets)
         planned_targets.append(targets)
+        if service_ore is not None:
+            agent.current_service_ore = service_ore
+        elif mode != "pickup":
+            agent.current_service_ore = None
         agents_yaml.append(
             {
                 "name": agent.name or f"agent{i}",
@@ -270,12 +443,12 @@ def write_round_tapf_input(path: Path, state: ScenarioState, work_dir: Path) -> 
                 "lifelongMode": mode,
                 "currentHoldOre": int(agent.current_hold_ore),
                 "capacity": int(agent.capacity),
+                **({"serviceOre": [service_ore[0], service_ore[1]]} if service_ore else {}),
             }
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump({"map": map_name, "agents": agents_yaml}, sort_keys=False), encoding="utf-8")
     return planned_targets
-
 
 def _expand_schedule(seq: Sequence[Dict[str, Any]], fallback: Coord) -> List[Coord]:
     if not seq:
@@ -330,14 +503,19 @@ def _first_event_time_for_agent(
     if not path or assigned_goal is None:
         return None, None, None
     if agent.is_droppingoff or agent.current_hold_ore > 0:
-        kind = "dropoff" if assigned_goal in dropoff_set else None
+        kind = "dropoff" if assigned_goal in dropoff_set else "dropoff_arrival"
     else:
         ore_idx = ore_index.get(assigned_goal)
-        kind = "pickup" if ore_idx is not None and ore_amounts[ore_idx] > 0 else None
-    if kind is None:
-        return None, None, None
+        if ore_idx is not None and ore_amounts[ore_idx] > 0:
+            kind = "pickup"
+        elif agent.current_service_ore is not None:
+            kind = "pickup_arrival"
+        else:
+            return None, None, None
     for t, pos in enumerate(path):
         if pos == assigned_goal:
+            if t == 0 and kind in {"pickup_arrival", "dropoff_arrival"}:
+                return None, None, None
             return t, kind, pos
     return None, None, None
 
@@ -409,6 +587,8 @@ def _write_round_assignment_file(
                 "event_type": evt.get("kind") if evt else None,
                 "event_time": int(evt["time"]) if evt else None,
                 "event_pos": _coord_to_list(evt.get("pos")) if evt else None,
+                "assigned_goal": _coord_to_list(evt.get("assigned_goal")) if evt else None,
+                "service_ore": _coord_to_list(agent.current_service_ore),
                 "path_nodes": len(path_i),
                 "path_end": _coord_to_list(path_i[-1]) if path_i else None,
             }
@@ -529,6 +709,7 @@ def run_event_simulation(
                     agent.current_hold_ore += take
                     agent.is_droppingoff = True
                 agent.current_target = None
+                agent.current_service_ore = None
                 round_events.append({"agent": i, "time": event_time, "type": "pickup", "pos": [pos[0], pos[1]], "amount": int(take), "ore_remaining_at_point": int(state.ore_amounts[ore_idx])})
             elif e["kind"] == "dropoff":
                 delivered = max(0, agent.current_hold_ore)
@@ -537,7 +718,14 @@ def run_event_simulation(
                 agent.is_droppingoff = False
                 agent.past_path_cost = 0
                 agent.current_target = None
+                agent.current_service_ore = None
                 round_events.append({"agent": i, "time": event_time, "type": "dropoff", "pos": [pos[0], pos[1]], "amount": int(delivered)})
+            elif e["kind"] == "pickup_arrival":
+                agent.current_target = None
+                round_events.append({"agent": i, "time": event_time, "type": "pickup_arrival", "pos": [pos[0], pos[1]], "service_ore": [agent.current_service_ore[0], agent.current_service_ore[1]] if agent.current_service_ore else None})
+            elif e["kind"] == "dropoff_arrival":
+                agent.current_target = None
+                round_events.append({"agent": i, "time": event_time, "type": "dropoff_arrival", "pos": [pos[0], pos[1]]})
 
         sim_time += delta
         ore_checkpoints.append({"time": sim_time, "ore": [int(v) for v in state.ore_amounts]})
@@ -572,6 +760,7 @@ def run_event_simulation(
                     "currentHoldOre": int(a.current_hold_ore),
                     "capacity": int(a.capacity),
                     "currentTarget": [a.current_target[0], a.current_target[1]] if a.current_target else None,
+                    "currentServiceOre": [a.current_service_ore[0], a.current_service_ore[1]] if a.current_service_ore else None,
                 },
             }
             for i, a in enumerate(state.agents)

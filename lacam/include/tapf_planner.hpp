@@ -73,6 +73,7 @@ struct TAPFPlanner {
   const int sticky_penalty;
   const float restart_rate;
   const bool anytime;
+  bool force_full_assignment;
   TAPFStats* stats;
   TAPFAssignmentStats assignment_stats;
 
@@ -109,4 +110,5 @@ struct TAPFPlanner {
 Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
                     const Deadline* deadline = nullptr,
                     std::mt19937* MT = nullptr, const int sticky_penalty = 0,
-                    TAPFStats* stats = nullptr, bool anytime = true);
+                    TAPFStats* stats = nullptr, bool anytime = true,
+                    bool force_full_assignment = false);

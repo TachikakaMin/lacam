@@ -145,7 +145,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--csv", type=Path, default=Path("build/results/tapf_full_1s_timeout1.csv"))
     parser.add_argument("--map-dir", type=Path, default=Path("third_party/ITA-CBS2/map_file"))
-    parser.add_argument("--out-dir", type=Path, default=Path("build/results/plots"))
+    parser.add_argument("--out-dir", type=Path, default=Path("build/plots/tapf_results"))
     args = parser.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 

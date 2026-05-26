@@ -80,6 +80,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       sticky_penalty(_sticky_penalty),
       restart_rate(_restart_rate),
       anytime(_anytime),
+      force_full_assignment(false),
       stats(_stats),
       assignment_stats(TAPFAssignmentStats()),
       N(ins->N),
@@ -230,7 +231,7 @@ Solution TAPFPlanner::solve()
     auto assignment_state = S->assignment_state;
     auto assignment =
         assign_tapf_tasks_dynamic(*ins, D, C_new, assignment_state,
-                                  changed_agents, false, &assignment_stats);
+                                  changed_agents, force_full_assignment, &assignment_stats);
     if (!assignment.feasible) continue;
     if (stats != nullptr) {
       for (size_t i = 0; i < assignment.agent_to_task.size(); ++i) {
@@ -549,10 +550,12 @@ bool TAPFPlanner::is_swap_possible(Vertex* v_pusher_origin,
 
 Solution solve_tapf(const TAPFInstance& ins, const int verbose,
                     const Deadline* deadline, std::mt19937* MT,
-                    const int sticky_penalty, TAPFStats* stats, bool anytime)
+                    const int sticky_penalty, TAPFStats* stats, bool anytime,
+                    bool force_full_assignment)
 {
   info(1, verbose, "elapsed:", elapsed_ms(deadline), "ms\tTAPF pre-processing");
   auto planner = TAPFPlanner(&ins, deadline, MT, verbose, sticky_penalty,
                              0.001f, anytime, stats);
+  planner.force_full_assignment = force_full_assignment;
   return planner.solve();
 }

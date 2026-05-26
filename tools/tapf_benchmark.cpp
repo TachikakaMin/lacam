@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 {
   if (argc < 3) {
     std::cerr << "usage: tapf_benchmark YAML MAP_DIR [TIME_LIMIT_SEC] "
-                 "[SCHEDULE_YAML] [ANYTIME=1]\n";
+                 "[SCHEDULE_YAML] [ANYTIME=1] [FULL_TA=0]\n";
     return 2;
   }
   const auto yaml_filename = std::string(argv[1]);
@@ -111,6 +111,7 @@ int main(int argc, char** argv)
   const auto time_limit_sec = argc >= 4 ? std::stod(argv[3]) : 30.0;
   const auto output_path = argc >= 5 ? std::string(argv[4]) : std::string();
   const auto anytime = argc >= 6 ? std::stoi(argv[5]) != 0 : true;
+  const auto force_full_assignment = argc >= 7 ? std::stoi(argv[6]) != 0 : false;
 
   const auto ins = TAPFInstance(yaml_filename, map_dir);
   if (!ins.is_valid()) {
@@ -120,7 +121,8 @@ int main(int argc, char** argv)
 
   auto deadline = Deadline(time_limit_sec * 1000);
   auto stats = TAPFStats();
-  auto solution = solve_tapf(ins, 0, &deadline, nullptr, 0, &stats, anytime);
+  auto solution = solve_tapf(ins, 0, &deadline, nullptr, 0, &stats, anytime,
+                             force_full_assignment);
   const auto runtime_ms = deadline.elapsed_ms();
   const auto validation = validate_tapf_solution(ins, solution);
   write_schedule_yaml(ins, solution, output_path);
@@ -157,6 +159,7 @@ int main(int argc, char** argv)
   std::cout << "final_agent_assignment_changes="
             << stats.final_agent_assignment_changes << "\n";
   std::cout << "anytime=" << anytime << "\n";
+  std::cout << "force_full_assignment=" << force_full_assignment << "\n";
   std::cout << "solution_cost=" << stats.solution_cost << "\n";
   std::cout << "anytime_cost_updates=" << stats.anytime_cost_updates << "\n";
   std::cout << "swap_checks=" << stats.swap_checks << "\n";
