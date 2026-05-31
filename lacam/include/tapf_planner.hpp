@@ -61,6 +61,7 @@ struct TAPFStats {
   int swap_checks = 0;
   int swap_applied = 0;
   unsigned solution_cost = 0;
+  unsigned solution_parent_edge_cost = 0;
   double assignment_time_ms = 0;
   bool timed_out = false;
 };

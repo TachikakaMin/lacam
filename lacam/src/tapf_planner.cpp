@@ -275,6 +275,10 @@ Solution TAPFPlanner::solve()
     stats->assignment_time_ms = assignment_stats.time_ms;
     if (!solution.empty()) {
       stats->solution_cost = S_goal->g;
+      for (size_t step = 1; step < solution_nodes.size(); ++step) {
+        stats->solution_parent_edge_cost +=
+            get_edge_cost(solution_nodes[step - 1], solution_nodes[step]);
+      }
       stats->solution_depth = solution.size() - 1;
       for (size_t step = 1; step < solution_nodes.size(); ++step) {
         auto changed = false;

@@ -67,6 +67,21 @@ namespace
     return result;
   }
 
+  int get_tapf_sum_of_loss(const Solution& solution)
+  {
+    if (solution.empty()) return 0;
+    int cost = 0;
+    const auto N = solution.front().size();
+    const auto T = solution.size();
+    for (size_t i = 0; i < N; ++i) {
+      const auto goal = solution.back()[i];
+      for (size_t t = 1; t < T; ++t) {
+        if (solution[t - 1][i] != goal || solution[t][i] != goal) ++cost;
+      }
+    }
+    return cost;
+  }
+
   void write_schedule_yaml(const TAPFInstance& ins, const Solution& solution,
                            const std::string& output_path)
   {
@@ -103,7 +118,7 @@ int main(int argc, char** argv)
 {
   if (argc < 3) {
     std::cerr << "usage: tapf_benchmark YAML MAP_DIR [TIME_LIMIT_SEC] "
-                 "[SCHEDULE_YAML] [ANYTIME=1] [FULL_TA=0]\n";
+                 "[SCHEDULE_YAML] [ANYTIME=1] [FULL_TA=0] [SEED=-1]\n";
     return 2;
   }
   const auto yaml_filename = std::string(argv[1]);
@@ -112,6 +127,7 @@ int main(int argc, char** argv)
   const auto output_path = argc >= 5 ? std::string(argv[4]) : std::string();
   const auto anytime = argc >= 6 ? std::stoi(argv[5]) != 0 : true;
   const auto force_full_assignment = argc >= 7 ? std::stoi(argv[6]) != 0 : false;
+  const auto seed = argc >= 8 ? std::stoi(argv[7]) : -1;
 
   const auto ins = TAPFInstance(yaml_filename, map_dir);
   if (!ins.is_valid()) {
@@ -121,8 +137,10 @@ int main(int argc, char** argv)
 
   auto deadline = Deadline(time_limit_sec * 1000);
   auto stats = TAPFStats();
-  auto solution = solve_tapf(ins, 0, &deadline, nullptr, 0, &stats, anytime,
-                             force_full_assignment);
+  auto MT = std::mt19937(seed);
+  auto solution =
+      solve_tapf(ins, 0, &deadline, seed >= 0 ? &MT : nullptr, 0, &stats,
+                 anytime, force_full_assignment);
   const auto runtime_ms = deadline.elapsed_ms();
   const auto validation = validate_tapf_solution(ins, solution);
   write_schedule_yaml(ins, solution, output_path);
@@ -139,6 +157,7 @@ int main(int argc, char** argv)
   std::cout << "runtime_ms=" << runtime_ms << "\n";
   std::cout << "makespan=" << get_makespan(solution) << "\n";
   std::cout << "soc=" << get_sum_of_costs(solution) << "\n";
+  std::cout << "sum_of_loss=" << get_tapf_sum_of_loss(solution) << "\n";
   std::cout << "hl_loop_iterations=" << stats.hl_loop_iterations << "\n";
   std::cout << "hl_nodes_created=" << stats.hl_nodes_created << "\n";
   std::cout << "hl_nodes_explored=" << stats.hl_nodes_explored << "\n";
@@ -160,7 +179,10 @@ int main(int argc, char** argv)
             << stats.final_agent_assignment_changes << "\n";
   std::cout << "anytime=" << anytime << "\n";
   std::cout << "force_full_assignment=" << force_full_assignment << "\n";
+  std::cout << "seed=" << seed << "\n";
   std::cout << "solution_cost=" << stats.solution_cost << "\n";
+  std::cout << "solution_parent_edge_cost="
+            << stats.solution_parent_edge_cost << "\n";
   std::cout << "anytime_cost_updates=" << stats.anytime_cost_updates << "\n";
   std::cout << "swap_checks=" << stats.swap_checks << "\n";
   std::cout << "swap_applied=" << stats.swap_applied << "\n";
