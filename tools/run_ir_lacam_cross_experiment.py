@@ -41,12 +41,20 @@ class MapInfo:
     id_to_coord: dict[int, Coord]
 
 
+_MAP_CACHE: dict[Path, MapInfo] = {}
+
+
 def load_yaml(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def load_map(path: Path) -> MapInfo:
+    path = path.resolve()
+    cached = _MAP_CACHE.get(path)
+    if cached is not None:
+        return cached
+
     lines = path.read_text(encoding="utf-8").splitlines()
     width = 0
     height = 0
@@ -75,13 +83,15 @@ def load_map(path: Path) -> MapInfo:
             id_to_coord[vertex_id] = coord
             vertex_id += 1
 
-    return MapInfo(
+    info = MapInfo(
         path=path.resolve(),
         width=width,
         height=height,
         coord_to_id=coord_to_id,
         id_to_coord=id_to_coord,
     )
+    _MAP_CACHE[path] = info
+    return info
 
 
 def resolve_yaml_map(yaml_path: Path, map_dir: Path | None) -> Path:
@@ -284,6 +294,9 @@ def run_lacam(
     timeout: float,
     anytime: bool,
     full_ta: bool,
+    search_mode: str,
+    focal_weight: float,
+    focal_tie_break: str,
 ) -> dict[str, Any]:
     cmd = [
         str(lacam_bin),
@@ -293,6 +306,10 @@ def run_lacam(
         "",
         "1" if anytime else "0",
         "1" if full_ta else "0",
+        "-1",
+        search_mode,
+        str(focal_weight),
+        focal_tie_break,
     ]
     start = time.time()
     try:
@@ -307,6 +324,9 @@ def run_lacam(
             "wall_time_s": time.time() - start,
             "exit_code": 124,
             "stderr": str(exc),
+            "search_mode": search_mode,
+            "focal_weight": focal_weight,
+            "focal_tie_break": focal_tie_break,
         }
     row = parse_kv(cp.stdout)
     row.update(
@@ -316,6 +336,9 @@ def run_lacam(
             "exit_code": cp.returncode,
             "external_timed_out": 0,
             "stderr": cp.stderr.strip(),
+            "search_mode_arg": search_mode,
+            "focal_weight_arg": focal_weight,
+            "focal_tie_break_arg": focal_tie_break,
         }
     )
     row.setdefault("solved", 0)
@@ -400,6 +423,9 @@ def run_task(task: tuple[dict[str, Any], str], args: argparse.Namespace) -> dict
             args.timeout,
             args.lacam_anytime,
             args.lacam_full_ta,
+            args.lacam_search_mode,
+            args.lacam_focal_weight,
+            args.lacam_focal_tie_break,
         )
     elif solver_kind == "ir":
         result = run_ir(
@@ -704,6 +730,13 @@ def main() -> int:
     parser.add_argument("--lacam-anytime", dest="lacam_anytime", action="store_true")
     parser.add_argument("--no-lacam-anytime", dest="lacam_anytime", action="store_false")
     parser.add_argument("--lacam-full-ta", action="store_true")
+    parser.add_argument("--lacam-search-mode", choices=["dfs", "focal"], default="dfs")
+    parser.add_argument("--lacam-focal-weight", type=float, default=1.5)
+    parser.add_argument(
+        "--lacam-focal-tie-break",
+        choices=["h", "anti_wait", "anti_zigzag", "anti_push", "anti_all"],
+        default="h",
+    )
     parser.add_argument("--suite", choices=["both", "lacam", "ir"], default="both")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--out-dir", type=Path, default=Path("build/results/ir_lacam_cross_100"))

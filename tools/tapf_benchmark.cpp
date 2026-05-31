@@ -4,6 +4,53 @@
 
 namespace
 {
+  TAPFSearchMode parse_search_mode(const std::string& value)
+  {
+    if (value == "1" || value == "focal" || value == "FOCAL") {
+      return TAPFSearchMode::FOCAL;
+    }
+    return TAPFSearchMode::DFS;
+  }
+
+  TAPFFocalTieBreak parse_focal_tie_break(const std::string& value)
+  {
+    if (value == "1" || value == "anti_wait") {
+      return TAPFFocalTieBreak::ANTI_WAIT;
+    }
+    if (value == "2" || value == "anti_zigzag") {
+      return TAPFFocalTieBreak::ANTI_ZIGZAG;
+    }
+    if (value == "3" || value == "anti_push") {
+      return TAPFFocalTieBreak::ANTI_PUSH;
+    }
+    if (value == "4" || value == "anti_all") {
+      return TAPFFocalTieBreak::ANTI_ALL;
+    }
+    return TAPFFocalTieBreak::H;
+  }
+
+  std::string search_mode_name(const TAPFSearchMode mode)
+  {
+    return mode == TAPFSearchMode::FOCAL ? "focal" : "dfs";
+  }
+
+  std::string focal_tie_break_name(const TAPFFocalTieBreak tie_break)
+  {
+    switch (tie_break) {
+      case TAPFFocalTieBreak::ANTI_WAIT:
+        return "anti_wait";
+      case TAPFFocalTieBreak::ANTI_ZIGZAG:
+        return "anti_zigzag";
+      case TAPFFocalTieBreak::ANTI_PUSH:
+        return "anti_push";
+      case TAPFFocalTieBreak::ANTI_ALL:
+        return "anti_all";
+      case TAPFFocalTieBreak::H:
+      default:
+        return "h";
+    }
+  }
+
   struct ValidationResult {
     bool start_valid = false;
     bool moves_valid = false;
@@ -118,7 +165,9 @@ int main(int argc, char** argv)
 {
   if (argc < 3) {
     std::cerr << "usage: tapf_benchmark YAML MAP_DIR [TIME_LIMIT_SEC] "
-                 "[SCHEDULE_YAML] [ANYTIME=1] [FULL_TA=0] [SEED=-1]\n";
+                 "[SCHEDULE_YAML] [ANYTIME=1] [FULL_TA=0] [SEED=-1] "
+                 "[SEARCH_MODE=dfs] [FOCAL_WEIGHT=1.5] "
+                 "[FOCAL_TIE_BREAK=h]\n";
     return 2;
   }
   const auto yaml_filename = std::string(argv[1]);
@@ -128,6 +177,10 @@ int main(int argc, char** argv)
   const auto anytime = argc >= 6 ? std::stoi(argv[5]) != 0 : true;
   const auto force_full_assignment = argc >= 7 ? std::stoi(argv[6]) != 0 : false;
   const auto seed = argc >= 8 ? std::stoi(argv[7]) : -1;
+  auto search_config = TAPFSearchConfig();
+  if (argc >= 9) search_config.mode = parse_search_mode(argv[8]);
+  if (argc >= 10) search_config.focal_weight = std::stod(argv[9]);
+  if (argc >= 11) search_config.focal_tie_break = parse_focal_tie_break(argv[10]);
 
   const auto ins = TAPFInstance(yaml_filename, map_dir);
   if (!ins.is_valid()) {
@@ -140,7 +193,7 @@ int main(int argc, char** argv)
   auto MT = std::mt19937(seed);
   auto solution =
       solve_tapf(ins, 0, &deadline, seed >= 0 ? &MT : nullptr, 0, &stats,
-                 anytime, force_full_assignment);
+                 anytime, force_full_assignment, search_config);
   const auto runtime_ms = deadline.elapsed_ms();
   const auto validation = validate_tapf_solution(ins, solution);
   write_schedule_yaml(ins, solution, output_path);
@@ -180,7 +233,15 @@ int main(int argc, char** argv)
   std::cout << "anytime=" << anytime << "\n";
   std::cout << "force_full_assignment=" << force_full_assignment << "\n";
   std::cout << "seed=" << seed << "\n";
+  std::cout << "search_mode=" << search_mode_name(search_config.mode) << "\n";
+  std::cout << "focal_weight=" << search_config.focal_weight << "\n";
+  std::cout << "focal_tie_break="
+            << focal_tie_break_name(search_config.focal_tie_break) << "\n";
   std::cout << "solution_cost=" << stats.solution_cost << "\n";
+  std::cout << "first_solution_cost=" << stats.first_solution_cost << "\n";
+  std::cout << "first_solution_time_ms=" << stats.first_solution_time_ms
+            << "\n";
+  std::cout << "incumbent_updates=" << stats.incumbent_updates << "\n";
   std::cout << "solution_parent_edge_cost="
             << stats.solution_parent_edge_cost << "\n";
   std::cout << "anytime_cost_updates=" << stats.anytime_cost_updates << "\n";

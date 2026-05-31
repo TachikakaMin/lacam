@@ -98,6 +98,33 @@ julia --project=scripts/ --threads=auto
 > include("scripts/eval.jl"); main("scripts/config/mapf-bench.yaml")
 ```
 
+## LaCAM-TAPF Method
+
+This fork includes a LaCAM-style TAPF solver, FOCAL high-level search mode,
+PIBT hindrance tie-breaking, LaCAM2-style swap support, and experiment runners
+for comparing `lacam_dfs`, `lacam_focal_h`, and IR-TAPF. See
+[`lacam_tapf.md`](lacam_tapf.md) for the method details and experiment notes.
+
+Basic TAPF benchmark usage:
+
+```sh
+build/tapf_benchmark case.yaml "" 10 out.yaml 1 0 -1 dfs 1.5 h
+build/tapf_benchmark case.yaml "" 10 out.yaml 1 0 -1 focal 1.5 h
+```
+
+Full exp1/exp2/IR comparison:
+
+```sh
+python3 -u tools/run_full_three_method_experiment.py \
+  --all-itacbs-data \
+  --ir-matrix-root /home/yimin/research/ir-tapf/matrix \
+  --time-limit 10 \
+  --timeout 30 \
+  --jobs 32 \
+  --resume \
+  --out-dir build/results/full_three_method_hindrance_exp1_exp2_ir
+```
+
 ## TAPF Data
 
 The ITA-CBS TAPF fixtures used by the LaCAM-TAPF experiments live outside the

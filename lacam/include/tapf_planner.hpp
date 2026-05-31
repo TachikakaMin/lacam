@@ -4,9 +4,29 @@
 #pragma once
 
 #include <set>
+#include <vector>
 
 #include "planner.hpp"
 #include "tapf_assignment.hpp"
+
+enum class TAPFSearchMode {
+  DFS = 0,
+  FOCAL = 1,
+};
+
+enum class TAPFFocalTieBreak {
+  H = 0,
+  ANTI_WAIT = 1,
+  ANTI_ZIGZAG = 2,
+  ANTI_PUSH = 3,
+  ANTI_ALL = 4,
+};
+
+struct TAPFSearchConfig {
+  TAPFSearchMode mode = TAPFSearchMode::DFS;
+  TAPFFocalTieBreak focal_tie_break = TAPFFocalTieBreak::H;
+  double focal_weight = 1.5;
+};
 
 struct TAPFConstraint {
   std::vector<int> who;
@@ -27,6 +47,11 @@ struct TAPFNode {
   unsigned g;
   unsigned h;
   unsigned f;
+  unsigned depth;
+  unsigned non_goal_waits;
+  unsigned reversals;
+  unsigned distance_increases;
+  unsigned settled_pushes;
   std::vector<float> priorities;
   std::vector<int> order;
   std::queue<TAPFConstraint*> search_tree;
@@ -37,6 +62,7 @@ struct TAPFNode {
   ~TAPFNode();
   void discard_search_tree();
   void refresh_priority(TAPFDistTable& D);
+  void refresh_search_metrics(TAPFDistTable& D, const TAPFInstance* ins);
 };
 
 struct TAPFStats {
@@ -58,11 +84,14 @@ struct TAPFStats {
   int final_assignment_changes = 0;
   int final_agent_assignment_changes = 0;
   int anytime_cost_updates = 0;
+  int incumbent_updates = 0;
   int swap_checks = 0;
   int swap_applied = 0;
   unsigned solution_cost = 0;
+  unsigned first_solution_cost = 0;
   unsigned solution_parent_edge_cost = 0;
   double assignment_time_ms = 0;
+  double first_solution_time_ms = 0;
   bool timed_out = false;
 };
 
@@ -74,6 +103,7 @@ struct TAPFPlanner {
   const int sticky_penalty;
   const float restart_rate;
   const bool anytime;
+  const TAPFSearchConfig search_config;
   bool force_full_assignment;
   TAPFStats* stats;
   TAPFAssignmentStats assignment_stats;
@@ -90,12 +120,13 @@ struct TAPFPlanner {
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
               float _restart_rate = 0.001f, bool _anytime = true,
-              TAPFStats* _stats = nullptr);
+              TAPFStats* _stats = nullptr,
+              TAPFSearchConfig _search_config = TAPFSearchConfig());
   Solution solve();
   bool is_goal_config(const Config& C) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
-               std::stack<TAPFNode*>& OPEN);
+               std::vector<TAPFNode*>& OPEN);
   unsigned get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
   unsigned get_h_value(const Config& C);
   Agent* swap_possible_and_required(Agent* ai,
@@ -112,4 +143,5 @@ Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
                     const Deadline* deadline = nullptr,
                     std::mt19937* MT = nullptr, const int sticky_penalty = 0,
                     TAPFStats* stats = nullptr, bool anytime = true,
-                    bool force_full_assignment = false);
+                    bool force_full_assignment = false,
+                    TAPFSearchConfig search_config = TAPFSearchConfig());
