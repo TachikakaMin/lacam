@@ -21,6 +21,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from run_ir_lacam_cross_experiment import load_map, matrix_to_yaml, parse_ir_stdout, parse_matrix
 
 
@@ -64,6 +66,16 @@ RANDOM_INITIAL_SOLVERS = (
     "sbs_pibt_random_initial",
     "random_pibt_random_initial",
 )
+
+FIG4_BASE_SOLVERS = {
+    "opt_dbs_hungarian": "dbs_hungarian",
+    "opt_sbs_hungarian": "sbs_hungarian",
+    "opt_random_hungarian": "random_hungarian",
+    "opt_dbs_pibt": "dbs_pibt",
+    "opt_sbs_pibt": "sbs_pibt",
+    "opt_random_pibt": "random_pibt",
+    "opt_initial": "lazy_greedy_with_refinement",
+}
 
 
 def one_to(n: int) -> tuple[int, ...]:
@@ -247,6 +259,18 @@ def parse_kv(text: str) -> dict[str, Any]:
     return row
 
 
+def parse_final_goals(stdout: str) -> list[int]:
+    match = re.search(r"(?m)^final_goals:\s*(.*)$", stdout)
+    if not match:
+        return []
+    goals: list[int] = []
+    for token in match.group(1).split():
+        if token == "None":
+            return []
+        goals.append(int(token))
+    return goals
+
+
 def safe_float(value: Any) -> float:
     try:
         if value == "" or value is None:
@@ -402,6 +426,34 @@ def converted_yaml_path(out_dir: Path, scenario_name: str, matrix: Path) -> Path
     return out_dir / "converted_yaml" / scenario_name / matrix.parent.name / f"{matrix.stem}.yaml"
 
 
+def fixed_goal_yaml_path(out_dir: Path, scenario_name: str, method: str, matrix: Path) -> Path:
+    return out_dir / "fixed_goal_yaml" / scenario_name / method / matrix.parent.name / f"{matrix.stem}.yaml"
+
+
+def write_fixed_goal_yaml(matrix: Path, goals: list[int], yaml_path: Path) -> None:
+    parsed = parse_matrix(matrix)
+    info = load_map(Path(parsed["metadata"]["map"]))
+    starts = parsed["starts"]
+    if len(starts) != len(goals):
+        raise ValueError(f"goal count mismatch: starts={len(starts)} goals={len(goals)}")
+    agents = []
+    for i, (start_id, goal_id) in enumerate(zip(starts, goals)):
+        start = info.id_to_coord[start_id]
+        goal = info.id_to_coord[goal_id]
+        agents.append(
+            {
+                "name": f"agent{i}",
+                "start": [start[0], start[1]],
+                "potentialGoals": [[goal[0], goal[1]]],
+            }
+        )
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    yaml_path.write_text(
+        yaml.safe_dump({"agents": agents, "map": str(info.path)}, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
 def run_ir(
     task: dict[str, Any],
     args: argparse.Namespace,
@@ -445,6 +497,7 @@ def run_ir(
                 "external_timed_out": 1, "exit_code": 124,
                 "wall_time_s": time.time() - start, "stderr": str(exc)}
     row = parse_ir_stdout(cp.stdout)
+    final_goals = parse_final_goals(cp.stdout)
     row["sum_shortest_distances"] = sum_shortest_distances
     row.update(
         {
@@ -453,6 +506,7 @@ def run_ir(
             "solver": f"ir_tapf:{solver}",
             "ir_solver_arg": solver,
             "num_pickup_agents": pickup_agents if pickup_agents is not None else "",
+            "final_goals": " ".join(str(g) for g in final_goals),
             "exit_code": cp.returncode,
             "wall_time_s": time.time() - start,
             "external_timed_out": 0,
@@ -463,6 +517,114 @@ def run_ir(
         row["solved"] = 0
         row["valid_solution"] = 0
     return row
+
+
+def run_fig4_final_opt(
+    task: dict[str, Any],
+    args: argparse.Namespace,
+    scenario: Scenario,
+) -> dict[str, Any]:
+    matrix = ensure_matrix(
+        args.ir_bin, args.ir_repo, args.map_root, scenario, task["agents"], task["seed"]
+    )
+    base_solver = FIG4_BASE_SOLVERS[task["method"]]
+    ir_task = {**task, "method": base_solver, "time_limit": 20.0}
+    ir_row = run_ir(ir_task, args, scenario)
+    if not int(ir_row.get("solved") or 0):
+        return {
+            **task,
+            "matrix_file": str(matrix),
+            "solver": f"fig4_two_stage:{base_solver}",
+            "ir_solver_arg": base_solver,
+            "solved": 0,
+            "valid_solution": 0,
+            "timed_out": ir_row.get("timed_out", 0),
+            "external_timed_out": ir_row.get("external_timed_out", 0),
+            "exit_code": ir_row.get("exit_code", -1),
+            "wall_time_s": ir_row.get("wall_time_s", 0),
+            "stderr": ir_row.get("stderr", ""),
+            "first_error": "target refinement failed",
+        }
+
+    final_goals = [int(token) for token in str(ir_row.get("final_goals", "")).split() if token]
+    if not final_goals:
+        return {
+            **task,
+            "matrix_file": str(matrix),
+            "solver": f"fig4_two_stage:{base_solver}",
+            "ir_solver_arg": base_solver,
+            "solved": 0,
+            "valid_solution": 0,
+            "timed_out": 0,
+            "external_timed_out": 0,
+            "exit_code": -1,
+            "wall_time_s": ir_row.get("wall_time_s", 0),
+            "stderr": "",
+            "first_error": "missing final_goals from ir-tapf",
+        }
+
+    yaml_path = fixed_goal_yaml_path(args.out_dir, scenario.name, task["method"], matrix)
+    write_fixed_goal_yaml(matrix, final_goals, yaml_path)
+    cmd = [
+        str(args.lacam_bin),
+        str(yaml_path),
+        "",
+        "10",
+        "",
+        "1",
+        "0",
+        "-1",
+        "focal",
+        str(args.focal_weight),
+        "h",
+    ]
+    start = time.time()
+    try:
+        cp = subprocess.run(cmd, text=True, capture_output=True, timeout=args.timeout)
+    except subprocess.TimeoutExpired as exc:
+        return {
+            **task,
+            "matrix_file": str(matrix),
+            "fixture_file": str(yaml_path),
+            "solver": f"fig4_two_stage:{base_solver}",
+            "ir_solver_arg": base_solver,
+            "solved": 0,
+            "valid_solution": 0,
+            "timed_out": 1,
+            "external_timed_out": 1,
+            "exit_code": 124,
+            "initial_solution_cost": ir_row.get("soc", ""),
+            "initial_solution_time_ms": ir_row.get("wall_time_s", 0) * 1000.0,
+            "sum_shortest_distances": ir_row.get("sum_shortest_distances", ""),
+            "wall_time_s": safe_float(ir_row.get("wall_time_s")) + time.time() - start,
+            "stderr": str(exc),
+        }
+
+    lacam_row = parse_kv(cp.stdout)
+    lacam_row.update(
+        {
+            **task,
+            "matrix_file": str(matrix),
+            "fixture_file": str(yaml_path),
+            "solver": f"fig4_two_stage:{base_solver}",
+            "ir_solver_arg": base_solver,
+            "search_mode_arg": "focal",
+            "exit_code": cp.returncode,
+            "wall_time_s": safe_float(ir_row.get("wall_time_s")) + time.time() - start,
+            "external_timed_out": 0,
+            "stderr": cp.stderr.strip(),
+            "target_refinement_cost": ir_row.get("soc", ""),
+            "target_refinement_wall_time_s": ir_row.get("wall_time_s", ""),
+            "initial_solution_cost": ir_row.get("initial_solution_cost", ir_row.get("soc", "")),
+            "initial_solution_time_ms": ir_row.get("initial_solution_time_ms", ""),
+            "sum_shortest_distances": ir_row.get("sum_shortest_distances", ""),
+            "final_goals": ir_row.get("final_goals", ""),
+        }
+    )
+    lacam_row.setdefault("solved", 0)
+    lacam_row.setdefault("valid_solution", 0)
+    lacam_row.setdefault("timed_out", 0)
+    return lacam_row
 
 
 def run_lacam(
@@ -526,6 +688,8 @@ def run_task(task: dict[str, Any], scenarios: dict[str, Scenario], args: argpars
     scenario = scenarios[task["scenario"]]
     if task["method"].startswith("lacam_"):
         return run_lacam(task, args, scenario)
+    if task["method"] in FIG4_BASE_SOLVERS:
+        return run_fig4_final_opt(task, args, scenario)
     return run_ir(task, args, scenario)
 
 
