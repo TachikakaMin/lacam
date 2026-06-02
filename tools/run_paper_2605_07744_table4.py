@@ -327,6 +327,14 @@ def write_summary(path: Path, rows: list[dict[str, Any]]) -> None:
     write_csv(path, out)
 
 
+def is_completed_row(row: dict[str, Any]) -> bool:
+    return (
+        row.get("exit_code") in (0, None)
+        and not int(row.get("external_timed_out") or 0)
+        and not row.get("first_error")
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", type=Path, default=Path("build/results/paper_2605_07744_table4"))
@@ -348,6 +356,7 @@ def main() -> int:
     parser.add_argument("--focal-weight", type=float, default=1.5)
     parser.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 4) // 4))
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--keep-failed-rows", action="store_true")
     args = parser.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -366,10 +375,17 @@ def main() -> int:
                 if not line.strip():
                     continue
                 row = json.loads(line)
-                rows.append(row)
-                completed.add((str(row["case_id"]), str(row["method"])))
+                if args.keep_failed_rows or is_completed_row(row):
+                    rows.append(row)
+                    if is_completed_row(row):
+                        completed.add((str(row["case_id"]), str(row["method"])))
     elif rows_jsonl.exists():
         rows_jsonl.unlink()
+
+    if args.resume and rows_jsonl.exists() and not args.keep_failed_rows:
+        with rows_jsonl.open("w", encoding="utf-8") as f:
+            for row in rows:
+                f.write(json.dumps(row, sort_keys=True) + "\n")
 
     tasks = [t for t in tasks if (t["case"]["case_id"], t["method"]) not in completed]
     print(f"cases={len(cases)} tasks={len(tasks)} completed={len(rows)} jobs={args.jobs}", flush=True)

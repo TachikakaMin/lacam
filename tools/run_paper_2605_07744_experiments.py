@@ -784,6 +784,14 @@ def write_summary(path: Path, rows: list[dict[str, Any]]) -> None:
     write_csv(path, out)
 
 
+def is_completed_row(row: dict[str, Any]) -> bool:
+    return (
+        row.get("exit_code") in (0, None)
+        and not int(row.get("external_timed_out") or 0)
+        and not row.get("first_error")
+    )
+
+
 def build_tasks(scenarios: list[Scenario]) -> list[dict[str, Any]]:
     tasks = []
     for scenario in scenarios:
@@ -822,6 +830,7 @@ def main() -> int:
     parser.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 4) // 4))
     parser.add_argument("--focal-weight", type=float, default=1.5)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--keep-failed-rows", action="store_true")
     parser.add_argument("--max-tasks", type=int, default=0)
     args = parser.parse_args()
 
@@ -845,10 +854,17 @@ def main() -> int:
                 if not line.strip():
                     continue
                 row = json.loads(line)
-                rows.append(row)
-                completed.add((row["scenario"], row["agents"], row["seed"], row["time_limit"], row["method"]))
+                if args.keep_failed_rows or is_completed_row(row):
+                    rows.append(row)
+                    if is_completed_row(row):
+                        completed.add((row["scenario"], row["agents"], row["seed"], row["time_limit"], row["method"]))
     elif rows_jsonl.exists():
         rows_jsonl.unlink()
+
+    if args.resume and rows_jsonl.exists() and not args.keep_failed_rows:
+        with rows_jsonl.open("w", encoding="utf-8") as f:
+            for row in rows:
+                f.write(json.dumps(row, sort_keys=True) + "\n")
 
     tasks = [
         t
