@@ -140,6 +140,15 @@ python3 tools/plot_paper_2605_07744_results.py \
   --out-dir build/results/paper_2605_07744_fig3/plots
 ```
 
+Table 4 ITA-ECBS comparison:
+
+```sh
+python3 -u tools/run_paper_2605_07744_table4.py \
+  --jobs 16 \
+  --resume \
+  --out-dir build/results/paper_2605_07744_table4
+```
+
 The paper runner generates IR-TAPF matrices with the `ir-tapf setup` command,
 runs the paper IR solvers on those matrices, converts the same matrices to
 LaCAM-TAPF YAML, and records comparable `rows.csv`, `summary.csv`, and plot

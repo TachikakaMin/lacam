@@ -200,8 +200,6 @@ def paper_scenarios(kind: str, smoke: bool) -> list[Scenario]:
         )
 
     if kind in {"all", "fig6"} and not smoke:
-        # ir-tapf currently exposes k internally, so this records the default
-        # k=3 setting. The plotter leaves room for adding patched k variants.
         scenarios.append(
             Scenario(
                 name="fig6_ost003d_multibottleneck_default",
@@ -210,10 +208,18 @@ def paper_scenarios(kind: str, smoke: bool) -> list[Scenario]:
                 agents=(100, 200, 400, 600, 800),
                 seeds=seeds,
                 time_limits=(10.0,),
-                solvers=("dbs_hungarian", "dbs_pibt"),
+                solvers=(
+                    "dbs_hungarian_k1",
+                    "dbs_hungarian_k3",
+                    "dbs_hungarian_k10",
+                    "dbs_pibt_k1",
+                    "dbs_pibt_k3",
+                    "dbs_pibt_k10",
+                ),
                 max_iterations=100000,
                 avoid_distance=0,
                 hotspot_radius=25,
+                lacam_methods=(),
             )
         )
 
@@ -404,18 +410,27 @@ def run_ir(
     matrix = ensure_matrix(
         args.ir_bin, args.ir_repo, args.map_root, scenario, task["agents"], task["seed"]
     )
+    solver = task["method"]
+    pickup_agents = task.get("num_pickup_agents")
+    match = re.match(r"^(.*)_k(\d+)$", solver)
+    if match:
+        solver = match.group(1)
+        pickup_agents = int(match.group(2))
+
     cmd = [
         str(args.ir_bin),
         "solve",
         "--matrix",
         str(matrix.resolve()),
         "--solver",
-        task["method"],
+        solver,
         "--max-iterations",
         str(scenario.max_iterations),
         "--time-limit-sec",
         str(task["time_limit"]),
     ]
+    if pickup_agents is not None:
+        cmd += ["--num-pickup-agents", str(pickup_agents)]
     start = time.time()
     sum_shortest_distances = matrix_sum_shortest_distances(matrix)
     try:
@@ -423,7 +438,9 @@ def run_ir(
             cmd, cwd=args.ir_repo, text=True, capture_output=True, timeout=args.timeout
         )
     except subprocess.TimeoutExpired as exc:
-        return {**task, "matrix_file": str(matrix), "solver": f"ir_tapf:{task['method']}",
+        return {**task, "matrix_file": str(matrix), "solver": f"ir_tapf:{solver}",
+                "ir_solver_arg": solver,
+                "num_pickup_agents": pickup_agents if pickup_agents is not None else "",
                 "solved": 0, "valid_solution": 0, "timed_out": 1,
                 "external_timed_out": 1, "exit_code": 124,
                 "wall_time_s": time.time() - start, "stderr": str(exc)}
@@ -433,7 +450,9 @@ def run_ir(
         {
             **task,
             "matrix_file": str(matrix),
-            "solver": f"ir_tapf:{task['method']}",
+            "solver": f"ir_tapf:{solver}",
+            "ir_solver_arg": solver,
+            "num_pickup_agents": pickup_agents if pickup_agents is not None else "",
             "exit_code": cp.returncode,
             "wall_time_s": time.time() - start,
             "external_timed_out": 0,
@@ -578,16 +597,20 @@ def build_tasks(scenarios: list[Scenario]) -> list[dict[str, Any]]:
                 for time_limit in scenario.time_limits:
                     methods = list(scenario.solvers) + list(scenario.lacam_methods)
                     for method in methods:
+                        task: dict[str, Any] = {
+                            "scenario": scenario.name,
+                            "map_name": scenario.map_name,
+                            "target_mode": scenario.target_mode,
+                            "agents": agents,
+                            "seed": seed,
+                            "time_limit": time_limit,
+                            "method": method,
+                        }
+                        match = re.match(r"^(.*)_k(\d+)$", method)
+                        if match:
+                            task["num_pickup_agents"] = int(match.group(2))
                         tasks.append(
-                            {
-                                "scenario": scenario.name,
-                                "map_name": scenario.map_name,
-                                "target_mode": scenario.target_mode,
-                                "agents": agents,
-                                "seed": seed,
-                                "time_limit": time_limit,
-                                "method": method,
-                            }
+                            task
                         )
     return tasks
 

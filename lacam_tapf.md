@@ -353,8 +353,11 @@ potential targets，而不是各自重新采样实例。matrix 生成加了 `.lo
 - `table3`: random initial assignment variants；
 - `fig4`: final path optimization variants，`lak303d`、200 agents、HOTSPOT；
 - `fig5`: scalability，`warehouse-20-40-10-2-2` 上 1000/2000/5000/10000 agents；
-- `fig6`: 当前记录 IR 默认 `k=3` 的 multi-bottleneck 配置。paper 的完整 k sweep
-  需要在 `ir-tapf` CLI 里额外暴露 `num_pickup_agents` / `num_pickup_groups` 后再跑。
+- `fig6`: DBS-Hungarian 和 DBS-PIBT 的 multi-bottleneck `k ∈ {1,3,10}` sweep，
+  需要配套使用已暴露 `--num-pickup-agents` 的 `ir-tapf` binary；
+- `table4`: 使用 `tools/run_paper_2605_07744_table4.py` 跑 ITA-CBS2 的
+  `map_file_ecbs` YAML fixtures，对比 ITA-ECBS、IR `dbs_hungarian` 和
+  `lacam_focal_h`。
 
 常用命令：
 
@@ -380,7 +383,18 @@ python3 tools/plot_paper_2605_07744_results.py \
 - `derived_metrics.csv`: 每条 row 的 normalized cost 和 improvement；
 - `fig3_components/*.png`: normalized flowtime 和 improvement；
 - `fig5_scalability/*.png`: scalability runtime / improvement；
-- `fig7_profiling/*.png`: IR pathfinding 与 reassignment profiling。
+- `fig6_k_sweep/*.png`: `k ∈ {1,3,10}` 下的 improvement 和 iteration count；
+- `fig7_profiling/*.png`: IR pathfinding 与 reassignment profiling；
+- `table4_ita_ecbs/*.png`: ITA-ECBS / DBS-Hungarian / LaCAM-TAPF success rate 和 cost。
+
+Table 4 单独 runner：
+
+```sh
+python3 -u tools/run_paper_2605_07744_table4.py \
+  --jobs 16 \
+  --resume \
+  --out-dir build/results/paper_2605_07744_table4
+```
 
 指标解释：
 
@@ -395,11 +409,13 @@ python3 tools/plot_paper_2605_07744_results.py \
 
 当前限制：
 
-- Table 4 里的 ITA-ECBS baseline 尚未接入这个 runner；
-- Fig.6 只能跑 IR 默认 `k=3`，完整 sweep 需要修改 `ir-tapf` CLI；
+- Table 4 runner 默认使用 IR 的 `dbs_hungarian`。论文 Table 4 描述了 20 s target
+  refinement + 10 s LaCAM3 final path optimization；但当前 `ir-tapf`
+  `opt_dbs_hungarian` 在 ITA-CBS2 YAML 转出的单目标 fixtures 上会触发 LaCAM3 FFI
+  double-free/corruption，因此暂不作为默认 Table 4 baseline；
 - LaCAM-TAPF 的 `focal` 配置目前固定使用 tie-break `h`，如果要复用
   `anti_zigzag` 等 tie-break，需要在 runner 里扩展 method matrix；
-- plotter 目前覆盖 Fig.3/Fig.5/Fig.7 风格图，Table 1/3 和 Fig.4 的表格化输出需要
+- plotter 目前覆盖 Fig.3/Fig.5/Fig.6/Fig.7/Table4 风格图，Table 1/3 和 Fig.4 的表格化输出需要
   从 `summary.csv` 或 `derived_metrics.csv` 继续整理。
 
 ## 当前全量结果
