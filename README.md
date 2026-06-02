@@ -152,7 +152,10 @@ python3 -u tools/run_paper_2605_07744_table4.py \
 The paper runner generates IR-TAPF matrices with the `ir-tapf setup` command,
 runs the paper IR solvers on those matrices, converts the same matrices to
 LaCAM-TAPF YAML, and records comparable `rows.csv`, `summary.csv`, and plot
-outputs. Supported suites and current limitations are documented in
+outputs. Cached matrices are accepted only when every agent has at least one
+target and the per-agent target graph admits a full matching; invalid cached
+matrices are deleted and regenerated before a solver is launched. Supported
+suites and current limitations are documented in
 [`lacam_tapf.md`](lacam_tapf.md).
 
 ## TAPF Data

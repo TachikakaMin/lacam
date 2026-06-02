@@ -348,9 +348,35 @@ def matrix_path(ir_repo: Path, scenario: Scenario, agents: int, seed: int) -> Pa
 def is_valid_matrix(matrix: Path) -> bool:
     try:
         parsed = parse_matrix(matrix)
-        return bool(parsed["starts"]) and len(parsed["targets"]) == len(parsed["starts"])
+        starts = parsed["starts"]
+        targets = parsed["targets"]
+        if not starts or len(targets) != len(starts):
+            return False
+        if any(not row for row in targets):
+            return False
+        return matrix_has_perfect_matching(targets, len(starts))
     except Exception:
         return False
+
+
+def matrix_has_perfect_matching(targets: list[list[int]], num_agents: int) -> bool:
+    match_to_agent: dict[int, int] = {}
+
+    def augment(agent: int, seen: set[int]) -> bool:
+        for target in targets[agent]:
+            if target in seen:
+                continue
+            seen.add(target)
+            assigned = match_to_agent.get(target)
+            if assigned is None or augment(assigned, seen):
+                match_to_agent[target] = agent
+                return True
+        return False
+
+    for agent in range(num_agents):
+        if not augment(agent, set()):
+            return False
+    return True
 
 
 def ensure_matrix(
@@ -428,6 +454,10 @@ def converted_yaml_path(out_dir: Path, scenario_name: str, matrix: Path) -> Path
 
 def fixed_goal_yaml_path(out_dir: Path, scenario_name: str, method: str, matrix: Path) -> Path:
     return out_dir / "fixed_goal_yaml" / scenario_name / method / matrix.parent.name / f"{matrix.stem}.yaml"
+
+
+def output_needs_refresh(output: Path, source: Path) -> bool:
+    return not output.exists() or output.stat().st_mtime < source.stat().st_mtime
 
 
 def write_fixed_goal_yaml(matrix: Path, goals: list[int], yaml_path: Path) -> None:
@@ -564,7 +594,8 @@ def run_fig4_final_opt(
         }
 
     yaml_path = fixed_goal_yaml_path(args.out_dir, scenario.name, task["method"], matrix)
-    write_fixed_goal_yaml(matrix, final_goals, yaml_path)
+    if output_needs_refresh(yaml_path, matrix):
+        write_fixed_goal_yaml(matrix, final_goals, yaml_path)
     cmd = [
         str(args.lacam_bin),
         str(yaml_path),
@@ -636,7 +667,7 @@ def run_lacam(
         args.ir_bin, args.ir_repo, args.map_root, scenario, task["agents"], task["seed"]
     )
     yaml_path = converted_yaml_path(args.out_dir, scenario.name, matrix)
-    if not yaml_path.exists():
+    if output_needs_refresh(yaml_path, matrix):
         matrix_to_yaml(matrix, yaml_path)
     sum_shortest_distances = matrix_sum_shortest_distances(matrix)
     mode = "focal" if task["method"] == "lacam_focal_h" else "dfs"

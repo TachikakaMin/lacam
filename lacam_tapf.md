@@ -340,7 +340,10 @@ TAPF 实验，并把同一批 generated matrix 同时交给 IR-TAPF 和 LaCAM-TA
 
 这样可以保证 IR 和 LaCAM 用的是同一张地图、同一组 start、同一组 per-agent
 potential targets，而不是各自重新采样实例。matrix 生成加了 `.lock` 文件，支持
-多进程并发时避免读到半写入文件。
+多进程并发时避免读到半写入文件。runner 在复用或新生成 matrix 前会检查两个
+TAPF 必要条件：每个 agent 的 target row 非空，并且 agent-target 二分图存在完整
+matching；不满足条件的缓存 matrix 会被删除并重新生成，避免把不可解实例写进
+paper result rows。
 
 支持的 suite：
 
