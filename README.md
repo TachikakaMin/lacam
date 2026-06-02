@@ -100,10 +100,11 @@ julia --project=scripts/ --threads=auto
 
 ## LaCAM-TAPF Method
 
-This fork includes a LaCAM-style TAPF solver, FOCAL high-level search mode,
-PIBT hindrance tie-breaking, LaCAM2-style swap support, and experiment runners
-for comparing `lacam_dfs`, `lacam_focal_h`, and IR-TAPF. See
-[`lacam_tapf.md`](lacam_tapf.md) for the method details and experiment notes.
+This fork includes a LaCAM-style TAPF solver with dynamic task assignment,
+FOCAL high-level anytime search, PIBT hindrance tie-breaking, LaCAM2-style swap
+support, and experiment runners for comparing `lacam_dfs`, `lacam_focal_h`, and
+IR-TAPF. See [`lacam_tapf.md`](lacam_tapf.md) for the method details, cost
+definitions, known tradeoffs, and experiment notes.
 
 Basic TAPF benchmark usage:
 
@@ -140,6 +141,19 @@ python3 tools/plot_paper_2605_07744_results.py \
   --out-dir build/results/paper_2605_07744_fig3/plots
 ```
 
+The paper runner supports filtered retries for incomplete shards:
+
+```sh
+python3 -u tools/run_paper_2605_07744_experiments.py \
+  --paper-suite fig3 \
+  --resume \
+  --skip-rows-jsonl build/results/paper_2605_07744_fig3/rows.jsonl \
+  --scenarios fig3_Boston_0_256_random \
+  --agent-counts 400 \
+  --seeds 5 9 \
+  --out-dir build/results/paper_2605_07744_fig3_retry
+```
+
 Table 4 ITA-ECBS comparison:
 
 ```sh
@@ -153,9 +167,10 @@ The paper runner generates IR-TAPF matrices with the `ir-tapf setup` command,
 runs the paper IR solvers on those matrices, converts the same matrices to
 LaCAM-TAPF YAML, and records comparable `rows.csv`, `summary.csv`, and plot
 outputs. Cached matrices are accepted only when every agent has at least one
-target and the per-agent target graph admits a full matching; invalid cached
-matrices are deleted and regenerated before a solver is launched. Supported
-suites and current limitations are documented in
+reachable target in its connected component and the reachable per-agent target
+graph admits a full matching; invalid cached matrices are deleted and
+regenerated before a solver is launched. Supported suites and current
+limitations are documented in
 [`lacam_tapf.md`](lacam_tapf.md).
 
 ## TAPF Data

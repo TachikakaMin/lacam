@@ -16,6 +16,7 @@ import math
 import os
 import re
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -306,6 +307,34 @@ def bfs_distances(info: Any, start: int) -> dict[int, int]:
 
 
 _MATRIX_LB_CACHE: dict[Path, int] = {}
+_MAP_COMPONENT_CACHE: dict[Path, dict[int, int]] = {}
+
+
+def map_components(info: Any) -> dict[int, int]:
+    path = Path(info.path).resolve()
+    cached = _MAP_COMPONENT_CACHE.get(path)
+    if cached is not None:
+        return cached
+    components: dict[int, int] = {}
+    component_id = 0
+    for coord, vertex in info.coord_to_id.items():
+        if vertex in components:
+            continue
+        q = [coord]
+        components[vertex] = component_id
+        head = 0
+        while head < len(q):
+            r, c = q[head]
+            head += 1
+            for nr, nc in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):
+                neighbor = info.coord_to_id.get((nr, nc))
+                if neighbor is None or neighbor in components:
+                    continue
+                components[neighbor] = component_id
+                q.append((nr, nc))
+        component_id += 1
+    _MAP_COMPONENT_CACHE[path] = components
+    return components
 
 
 def matrix_sum_shortest_distances(matrix: Path) -> int:
@@ -356,12 +385,26 @@ def is_valid_matrix(matrix: Path) -> bool:
             return False
         if any(not row for row in targets):
             return False
-        return matrix_has_perfect_matching(targets, len(starts))
+        info = load_map(Path(parsed["metadata"]["map"]))
+        components = map_components(info)
+        reachable_targets = []
+        for start, row in zip(starts, targets):
+            start_component = components.get(start)
+            reachable_row = [
+                target
+                for target in row
+                if start_component is not None and components.get(target) == start_component
+            ]
+            if not reachable_row:
+                return False
+            reachable_targets.append(reachable_row)
+        return matrix_has_perfect_matching(reachable_targets, len(starts))
     except Exception:
         return False
 
 
 def matrix_has_perfect_matching(targets: list[list[int]], num_agents: int) -> bool:
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), num_agents * 2 + 100))
     match_to_agent: dict[int, int] = {}
 
     def augment(agent: int, seen: set[int]) -> bool:
@@ -788,7 +831,11 @@ def write_summary(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def is_completed_row(row: dict[str, Any]) -> bool:
     return (
-        row.get("exit_code") in (0, 124, None)
+        (
+            row.get("exit_code") in (0, 124, None)
+            or int(row.get("timed_out") or 0)
+            or int(row.get("external_timed_out") or 0)
+        )
         and not row.get("first_error")
     )
 
@@ -819,6 +866,50 @@ def build_tasks(scenarios: list[Scenario]) -> list[dict[str, Any]]:
     return tasks
 
 
+def parse_int_filter(values: list[int]) -> set[int] | None:
+    return set(values) if values else None
+
+
+def parse_str_filter(values: list[str]) -> set[str] | None:
+    return set(values) if values else None
+
+
+def task_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    return (row["scenario"], row["agents"], row["seed"], row["time_limit"], row["method"])
+
+
+def completed_keys_from_rows(paths: list[Path]) -> set[tuple[Any, ...]]:
+    completed: set[tuple[Any, ...]] = set()
+    for path in paths:
+        if not path.exists():
+            continue
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if is_completed_row(row):
+                    completed.add(task_key(row))
+    return completed
+
+
+def filter_tasks(tasks: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+    scenarios = parse_str_filter(args.scenarios)
+    methods = parse_str_filter(args.methods)
+    agents = parse_int_filter(args.agent_counts)
+    seeds = parse_int_filter(args.seeds)
+    target_modes = parse_str_filter(args.target_modes)
+    return [
+        task
+        for task in tasks
+        if (scenarios is None or task["scenario"] in scenarios)
+        and (methods is None or task["method"] in methods)
+        and (agents is None or int(task["agents"]) in agents)
+        and (seeds is None or int(task["seed"]) in seeds)
+        and (target_modes is None or task["target_mode"] in target_modes)
+    ]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--paper-suite", choices=["all", "fig3", "fig4", "fig5", "fig6", "table1", "table2", "table3", "smoke"], default="smoke")
@@ -833,6 +924,13 @@ def main() -> int:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--keep-failed-rows", action="store_true")
     parser.add_argument("--max-tasks", type=int, default=0)
+    parser.add_argument("--skip-rows-jsonl", type=Path, action="append", default=[])
+    parser.add_argument("--scenarios", nargs="*", default=[])
+    parser.add_argument("--target-modes", nargs="*", choices=["random", "hotspot"], default=[])
+    parser.add_argument("--agent-counts", type=int, nargs="*", default=[])
+    parser.add_argument("--seeds", type=int, nargs="*", default=[])
+    parser.add_argument("--methods", nargs="*", default=[])
+    parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -844,11 +942,12 @@ def main() -> int:
     scenarios = paper_scenarios(args.paper_suite, smoke)
     scenario_by_name = {s.name: s for s in scenarios}
     tasks = build_tasks(scenarios)
+    tasks = filter_tasks(tasks, args)
     if args.max_tasks > 0:
         tasks = tasks[: args.max_tasks]
 
     rows: list[dict[str, Any]] = []
-    completed: set[tuple[Any, ...]] = set()
+    completed: set[tuple[Any, ...]] = completed_keys_from_rows(args.skip_rows_jsonl)
     if args.resume and rows_jsonl.exists():
         with rows_jsonl.open("r", encoding="utf-8") as f:
             for line in f:
@@ -858,7 +957,7 @@ def main() -> int:
                 if args.keep_failed_rows or is_completed_row(row):
                     rows.append(row)
                     if is_completed_row(row):
-                        completed.add((row["scenario"], row["agents"], row["seed"], row["time_limit"], row["method"]))
+                        completed.add(task_key(row))
     elif rows_jsonl.exists():
         rows_jsonl.unlink()
 
@@ -870,10 +969,11 @@ def main() -> int:
     tasks = [
         t
         for t in tasks
-        if (t["scenario"], t["agents"], t["seed"], t["time_limit"], t["method"])
-        not in completed
+        if task_key(t) not in completed
     ]
     print(f"scenarios={len(scenarios)} tasks={len(tasks)} completed={len(rows)} jobs={args.jobs}", flush=True)
+    if args.dry_run:
+        return 0
 
     if rows:
         write_csv(rows_csv, rows)

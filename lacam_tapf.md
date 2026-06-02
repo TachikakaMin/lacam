@@ -73,6 +73,18 @@ edge_cost = count_i not (from.C[i] == assigned_goal_i and to.C[i] == assigned_go
 assignment 为准”的 TAPF cost。`tapf_benchmark` 同时输出 `sum_of_loss`，用于和
 路径级别的 loss 指标交叉检查。
 
+这里的 `soc` 和 `sum_of_loss` 不是同一个量：
+
+- `soc` 是 high-level parent chain 上累计的 edge cost，用于 incumbent 比较和
+  paper result 的主 cost 字段；
+- `sum_of_loss` 是最终 path 输出之后做后处理得到的路径级 loss 指标；
+- 如果 first solution 里有大量来回移动或远距离游走，两者都会偏大，但
+  `sum_of_loss` 不参与当前搜索排序。
+
+因此，只把输出统计从 `sum_of_loss` 换成 `soc` 不能修掉病态路径。病态路径来自
+successor 生成和 OPEN 选择：DFS 会沿着 PIBT 给出的可行分支继续向下走，而不是像
+A* 那样全局按最小 `f = g + h` 扩展。
+
 ## Successor 生成
 
 每个 node 有一棵 lazy local-constraint tree。一次 high-level expansion 做：
@@ -225,6 +237,19 @@ FOCAL 的目标不是替代 LaCAM 的首解策略，而是在 first solution 之
 高 cost 分支。它不是 LaCAM* 的完整最优实现；`f` 目前主要用于剪枝和 FOCAL 选择，
 而不是从 root 开始严格 best-first 展开。
 
+### 为什么不直接全程 priority queue
+
+把 OPEN 改成全程按 `f = g + h` priority queue 可以更早关注低 cost configuration，
+但有两个直接风险：
+
+- 没有 incumbent 前，低 `f` 往往偏向 shallow waiting nodes，可能显著推迟 first
+  solution；
+- TAPF 的 dynamic assignment 不进入 `CLOSED` key，同一个 configuration 的不同
+  assignment 不会被分别保留，严格 best-first 的理论前提并不完整。
+
+所以当前采用更保守的两阶段策略：首解前保持 LaCAM 的 DFS 快速可行性搜索；首解后
+用 incumbent 给出 cost 上界，再用 `f` 和 FOCAL tie-break 控制继续搜索。
+
 ## Anytime 行为
 
 `anytime=1` 时，找到 first solution 后继续搜索更低 cost 的 incumbent。搜索会：
@@ -344,6 +369,34 @@ potential targets，而不是各自重新采样实例。matrix 生成加了 `.lo
 TAPF 必要条件：每个 agent 的 target row 非空，并且 agent-target 二分图存在完整
 matching；不满足条件的缓存 matrix 会被删除并重新生成，避免把不可解实例写进
 paper result rows。
+
+matrix 校验会先读取 map connected components，然后只保留和 agent start 在同一
+component 内的 potential targets。只有每个 agent 都有至少一个 reachable target，
+并且这些 reachable target rows 构成的二分图存在 perfect matching，matrix 才会被
+接受。这个检查修掉了多连通分量 map 上“target 存在但不可达”的缓存实例，也避免
+Hungarian/PIBT baseline 在不合法 target row 上 panic 或写出不可比较的零 cost 行。
+
+为了支持长实验分片和失败补跑，runner 支持这些过滤参数：
+
+```sh
+--skip-rows-jsonl PATH   # 把已有 completed rows 当作已完成 key 跳过，可重复传入
+--scenarios NAME ...     # 只跑指定 scenario
+--target-modes MODE ...  # 只跑 random/hotspot
+--agent-counts N ...     # 只跑指定 agent counts
+--seeds S ...            # 只跑指定 seeds
+--methods METHOD ...     # 只跑指定 solver methods
+--dry-run                # 只打印任务数，不启动 solver
+```
+
+实验收尾时的处理规则：
+
+- solver 自身 timeout 或 external watchdog timeout，如果没有 `first_error`，保留为
+  completed experimental result，避免 resume 时无限重跑同一个超时 case；
+- runner exception、matrix 解析错误、validator 错误等带 `first_error` 的 row 不算
+  completed，需要修复后重跑；
+- `solved=1` 且 `soc=0` 的 row 视为异常，不能进入最终 merge；
+- 多个 shard 覆盖同一个 `(scenario, agents, seed, time_limit, method)` 时，只保留
+  一个通过上述检查的 completed row。
 
 支持的 suite：
 
