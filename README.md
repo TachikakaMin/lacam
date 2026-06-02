@@ -166,11 +166,12 @@ python3 -u tools/run_paper_2605_07744_table4.py \
 The paper runner generates IR-TAPF matrices with the `ir-tapf setup` command,
 runs the paper IR solvers on those matrices, converts the same matrices to
 LaCAM-TAPF YAML, and records comparable `rows.csv`, `summary.csv`, and plot
-outputs. Cached matrices are accepted only when every agent has at least one
-reachable target in its connected component and the reachable per-agent target
-graph admits a full matching; invalid cached matrices are deleted and
-regenerated before a solver is launched. Supported suites and current
-limitations are documented in
+outputs. Comparable paper suites include both `lacam_dfs` and `lacam_focal_h`
+as same-instance baselines, with solver time limits aligned within each suite.
+Cached matrices are accepted only when every agent has at least one reachable
+target in its connected component and the reachable per-agent target graph
+admits a full matching; invalid cached matrices are deleted and regenerated
+before a solver is launched. Supported suites and current limitations are documented in
 [`lacam_tapf.md`](lacam_tapf.md).
 
 For large Fig. 5 shards, `sum_shortest_distances` can dominate runner overhead

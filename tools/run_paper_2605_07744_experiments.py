@@ -148,12 +148,11 @@ def paper_scenarios(kind: str, smoke: bool) -> list[Scenario]:
                     target_mode="hotspot",
                     agents=(200,),
                     seeds=seeds,
-                    time_limits=(1000.0,),
+                    time_limits=(10.0,),
                     solvers=tuple(f"iter_{s}" for s in table_solvers),
                     max_iterations=100,
                     avoid_distance=0,
                     hotspot_radius=25,
-                    lacam_methods=(),
                 )
             )
 
@@ -210,7 +209,6 @@ def paper_scenarios(kind: str, smoke: bool) -> list[Scenario]:
                 max_iterations=100000,
                 avoid_distance=0,
                 hotspot_radius=80,
-                lacam_methods=("lacam_dfs",),
             )
         )
 
@@ -234,7 +232,6 @@ def paper_scenarios(kind: str, smoke: bool) -> list[Scenario]:
                 max_iterations=100000,
                 avoid_distance=0,
                 hotspot_radius=25,
-                lacam_methods=(),
             )
         )
 
@@ -585,15 +582,38 @@ def ensure_matrix(
 
 
 def converted_yaml_path(out_dir: Path, scenario_name: str, matrix: Path) -> Path:
-    return out_dir / "converted_yaml" / scenario_name / matrix.parent.name / f"{matrix.stem}.yaml"
+    agents_dir = matrix.parent.parent.name
+    return out_dir / "converted_yaml" / scenario_name / agents_dir / matrix.parent.name / f"{matrix.stem}.yaml"
 
 
 def fixed_goal_yaml_path(out_dir: Path, scenario_name: str, method: str, matrix: Path) -> Path:
-    return out_dir / "fixed_goal_yaml" / scenario_name / method / matrix.parent.name / f"{matrix.stem}.yaml"
+    agents_dir = matrix.parent.parent.name
+    return out_dir / "fixed_goal_yaml" / scenario_name / method / agents_dir / matrix.parent.name / f"{matrix.stem}.yaml"
 
 
 def output_needs_refresh(output: Path, source: Path) -> bool:
     return not output.exists() or output.stat().st_mtime < source.stat().st_mtime
+
+
+def ensure_converted_yaml(matrix: Path, yaml_path: Path) -> None:
+    if not output_needs_refresh(yaml_path, matrix):
+        return
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    lock = yaml_path.with_suffix(yaml_path.suffix + ".lock")
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            break
+        except FileExistsError:
+            time.sleep(0.1)
+            if not output_needs_refresh(yaml_path, matrix):
+                return
+    try:
+        if output_needs_refresh(yaml_path, matrix):
+            matrix_to_yaml(matrix, yaml_path)
+    finally:
+        lock.unlink(missing_ok=True)
 
 
 def write_fixed_goal_yaml(matrix: Path, goals: list[int], yaml_path: Path) -> None:
@@ -804,8 +824,7 @@ def run_lacam(
         args.ir_bin, args.ir_repo, args.map_root, scenario, task["agents"], task["seed"]
     )
     yaml_path = converted_yaml_path(args.out_dir, scenario.name, matrix)
-    if output_needs_refresh(yaml_path, matrix):
-        matrix_to_yaml(matrix, yaml_path)
+    ensure_converted_yaml(matrix, yaml_path)
     mode = "focal" if task["method"] == "lacam_focal_h" else "dfs"
     cmd = [
         str(args.lacam_bin),
@@ -938,8 +957,7 @@ def build_tasks(scenarios: list[Scenario]) -> list[dict[str, Any]]:
         for agents in scenario.agents:
             for seed in scenario.seeds:
                 for time_limit in scenario.time_limits:
-                    methods = list(scenario.solvers) + list(scenario.lacam_methods)
-                    for method in methods:
+                    for method in scenario.solvers:
                         task: dict[str, Any] = {
                             "scenario": scenario.name,
                             "map_name": scenario.map_name,
@@ -954,6 +972,19 @@ def build_tasks(scenarios: list[Scenario]) -> list[dict[str, Any]]:
                             task["num_pickup_agents"] = int(match.group(2))
                         tasks.append(
                             task
+                        )
+                for time_limit in scenario.time_limits:
+                    for method in scenario.lacam_methods:
+                        tasks.append(
+                            {
+                                "scenario": scenario.name,
+                                "map_name": scenario.map_name,
+                                "target_mode": scenario.target_mode,
+                                "agents": agents,
+                                "seed": seed,
+                                "time_limit": time_limit,
+                                "method": method,
+                            }
                         )
     return tasks
 
@@ -1051,10 +1082,10 @@ def main() -> int:
                     rows.append(row)
                     if is_completed_row(row):
                         completed.add(task_key(row))
-    elif rows_jsonl.exists():
+    elif rows_jsonl.exists() and not args.dry_run:
         rows_jsonl.unlink()
 
-    if args.resume and rows_jsonl.exists() and not args.keep_failed_rows:
+    if args.resume and rows_jsonl.exists() and not args.keep_failed_rows and not args.dry_run:
         with rows_jsonl.open("w", encoding="utf-8") as f:
             for row in rows:
                 f.write(json.dumps(row, sort_keys=True) + "\n")

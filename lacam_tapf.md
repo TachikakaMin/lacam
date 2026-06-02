@@ -364,11 +364,12 @@ TAPF 实验，并把同一批 generated matrix 同时交给 IR-TAPF 和 LaCAM-TA
 5. 所有结果增量写入 `rows.jsonl`，结束后写 `rows.csv` 和 `summary.csv`。
 
 这样可以保证 IR 和 LaCAM 用的是同一张地图、同一组 start、同一组 per-agent
-potential targets，而不是各自重新采样实例。matrix 生成加了 `.lock` 文件，支持
-多进程并发时避免读到半写入文件。runner 在复用或新生成 matrix 前会检查两个
-TAPF 必要条件：每个 agent 的 target row 非空，并且 agent-target 二分图存在完整
-matching；不满足条件的缓存 matrix 会被删除并重新生成，避免把不可解实例写进
-paper result rows。
+potential targets，而不是各自重新采样实例。LaCAM 的 converted YAML 路径包含
+`scenario/agentsN/target-mode-seed`，避免不同 agent-count 但同 seed 的 matrix 在
+并发分片里互相覆盖；YAML 转换本身也加了 `.lock` 文件，避免多进程同时读写半成品。
+runner 在复用或新生成 matrix 前会检查两个 TAPF 必要条件：每个 agent 的 target row
+非空，并且 agent-target 二分图存在完整 matching；不满足条件的缓存 matrix 会被删除
+并重新生成，避免把不可解实例写进 paper result rows。
 
 matrix 校验会先读取 map connected components，然后只保留和 agent start 在同一
 component 内的 potential targets。只有每个 agent 都有至少一个 reachable target，
@@ -416,17 +417,28 @@ Hungarian/PIBT baseline 在不合法 target row 上 panic 或写出不可比较�
   agents、30 seeds，baseline 为 DBS/SBS/Random x Hungarian/PIBT，并加入
   `lacam_dfs`、`lacam_focal_h`；
 - `table1`: time-limited 对照；
-- `table2`: fixed-iteration 对照，只跑 IR，因为 LaCAM-TAPF 没有 paper 中的
-  iteration-mode 接口。历史 `paper_2605_07744_table1` 结果目录里可能同时包含
-  `table1_` 和 `table2_` scenarios；
+- `table2`: paper 的 fixed-iteration 对照。IR 方法保留 `max_iterations=100`，
+  同时把 solver time limit 统一为 10 s；LaCAM-TAPF 没有 iteration-mode 接口，
+  因此作为 same-instance equal-time baseline 跑 `lacam_dfs`、`lacam_focal_h`；
+  历史 `paper_2605_07744_table1` 结果目录里可能同时包含 `table1_` 和 `table2_`
+  scenarios；
 - `table3`: random initial assignment variants；
 - `fig4`: final path optimization variants，`lak303d`、200 agents、HOTSPOT；
-- `fig5`: scalability，`warehouse-20-40-10-2-2` 上 1000/2000/5000/10000 agents；
+- `fig5`: scalability，`warehouse-20-40-10-2-2` 上 1000/2000/5000/10000 agents，
+  对比 `dbs_hungarian`、`lacam_dfs`、`lacam_focal_h`，所有方法 solver time limit
+  都是 600 s；
 - `fig6`: DBS-Hungarian 和 DBS-PIBT 的 multi-bottleneck `k ∈ {1,3,10}` sweep，
-  需要配套使用已暴露 `--num-pickup-agents` 的 `ir-tapf` binary；
+  需要配套使用已暴露 `--num-pickup-agents` 的 `ir-tapf` binary；同时加入
+  k-independent 的 `lacam_dfs`、`lacam_focal_h` same-instance baseline，plotter 在
+  improvement 图里把这两条 LaCAM 曲线叠到对应 IR k-sweep 上；
 - `table4`: 使用 `tools/run_paper_2605_07744_table4.py` 跑 ITA-CBS2 的
   `map_file_ecbs` YAML fixtures，对比 ITA-ECBS、IR `dbs_hungarian` 和
   `lacam_focal_h`。
+
+之前有些 paper tests 没有测 `lacam-tapf`，不是 solver 不能跑，而是 runner 的 suite
+定义过窄：`table2` 和 `fig6` 显式把 `lacam_methods` 设为空，`fig5` 只保留了
+`lacam_dfs`。现在这些可比较 suite 都包含 `lacam_dfs` 和 `lacam_focal_h`，并按 suite
+内部相同 solver time limit 对齐，避免拿 10 s 和 1000 s 或 600 s 和 10 s 的结果混比。
 
 常用命令：
 
@@ -501,10 +513,10 @@ cache 并重写 derived metrics。
 suite   expected  rows   unique  missing  bad  zero  plot_files
 fig3    11520     11520  11520   0        0    0     34
 fig4    270       270    270     0        0    0     2
-fig5    80        80     80      0        0    0     7
-fig6    900       900    900     0        0    0     14
+fig5    120       120    120     0        0    0     7
+fig6    1200      1200   1200    0        0    0     14
 table1  240       420    240     0        0    0     16
-table2  180       180    180     0        0    0     10
+table2  240       240    240     0        0    0     10
 table3  240       240    240     0        0    0     10
 table4  n/a       1890   n/a     n/a      n/a  n/a   14
 ```

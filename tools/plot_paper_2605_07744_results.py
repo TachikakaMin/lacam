@@ -235,6 +235,7 @@ def plot_fig6(rows: list[dict[str, Any]], out_dir: Path) -> None:
         return
     out = out_dir / "fig6_k_sweep"
     out.mkdir(parents=True, exist_ok=True)
+    lacam_rows = [r for r in fig6_rows if str(r.get("method", "")).startswith("lacam_")]
 
     for family, title in (("dbs_pibt", "DBS-PIBT"), ("dbs_hungarian", "DBS-Hungarian")):
         family_rows = [r for r in fig6_rows if str(r.get("method", "")).startswith(f"{family}_k")]
@@ -242,7 +243,7 @@ def plot_fig6(rows: list[dict[str, Any]], out_dir: Path) -> None:
             continue
 
         plt.figure(figsize=(8.5, 5.2))
-        for method, group in sorted(group_rows(family_rows, ("method",)).items()):
+        for method, group in sorted(group_rows(family_rows + lacam_rows, ("method",)).items()):
             pts = []
             for agents, rows_at_agents in group_rows(group, ("agents",)).items():
                 imp = median_or_nan([improvement_pct(r) for r in rows_at_agents])
@@ -258,7 +259,7 @@ def plot_fig6(rows: list[dict[str, Any]], out_dir: Path) -> None:
                 )
         plt.xlabel("agents")
         plt.ylabel("improvement from initial (%)")
-        plt.title(f"Figure 6 style improvement: {title}")
+        plt.title(f"Figure 6 style improvement: {title} with LaCAM baselines")
         plt.grid(True, alpha=0.25)
         plt.legend(fontsize=8)
         plt.tight_layout()
