@@ -78,7 +78,6 @@ def discover_cases(args: argparse.Namespace) -> list[dict[str, Any]]:
                 data = yaml.safe_load(f)
             case_id = f"{mode}/{fixture.stem}"
             matrix = args.out_dir / "yaml_to_matrix" / mode / f"{fixture.stem}.matrix"
-            meta = yaml_to_matrix(fixture, matrix, None, seed=test_id + 1)
             cases.append(
                 {
                     "suite": "table4",
@@ -90,7 +89,7 @@ def discover_cases(args: argparse.Namespace) -> list[dict[str, Any]]:
                     "map_file": str((fixture.parent / data["map"]).resolve()),
                     "agents": agents,
                     "seed": test_id,
-                    "num_unique_tasks": meta["num_unique_tasks"],
+                    "num_unique_tasks": "",
                 }
             )
     if args.max_cases > 0:
@@ -178,6 +177,8 @@ def run_ita_ecbs(case: dict[str, Any], args: argparse.Namespace) -> dict[str, An
 
 
 def run_ir(case: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    meta = yaml_to_matrix(Path(case["fixture_file"]), Path(case["matrix_file"]), None, seed=int(case["seed"]) + 1)
+    case = {**case, "num_unique_tasks": meta["num_unique_tasks"]}
     cmd = [
         str(args.ir_bin),
         "solve",
@@ -338,7 +339,7 @@ def main() -> int:
     parser.add_argument("--modes", nargs="+", choices=["all", *TABLE4_DIRS.keys()], default=["all"])
     parser.add_argument("--methods", nargs="+", choices=["ita_ecbs", "dbs_hungarian", "lacam_focal_h"], default=["ita_ecbs", "dbs_hungarian", "lacam_focal_h"])
     parser.add_argument("--agent-counts", type=int, nargs="*", default=[])
-    parser.add_argument("--max-tests-per-agents", type=int, default=0)
+    parser.add_argument("--max-tests-per-agents", type=int, default=30)
     parser.add_argument("--max-cases", type=int, default=0)
     parser.add_argument("--time-limit", type=float, default=30.0)
     parser.add_argument("--timeout", type=float, default=35.0)
