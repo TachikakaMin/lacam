@@ -173,6 +173,12 @@ regenerated before a solver is launched. Supported suites and current
 limitations are documented in
 [`lacam_tapf.md`](lacam_tapf.md).
 
+For large Fig. 5 shards, `sum_shortest_distances` can dominate runner overhead
+because exact normalization requires many grid BFS calls on 10,000-agent
+matrices. The runner therefore caches this derived value beside each matrix and
+also supports `--skip-sum-shortest` for retry shards where raw solve
+rate/runtime/SOC are the required outputs.
+
 ## TAPF Data
 
 The ITA-CBS TAPF fixtures used by the LaCAM-TAPF experiments live outside the

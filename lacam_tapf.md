@@ -385,6 +385,7 @@ Hungarian/PIBT baseline 在不合法 target row 上 panic 或写出不可比较�
 --agent-counts N ...     # 只跑指定 agent counts
 --seeds S ...            # 只跑指定 seeds
 --methods METHOD ...     # 只跑指定 solver methods
+--skip-sum-shortest      # 不计算 normalized-cost 下界，适合大规模 retry shard
 --dry-run                # 只打印任务数，不启动 solver
 ```
 
@@ -397,6 +398,16 @@ Hungarian/PIBT baseline 在不合法 target row 上 panic 或写出不可比较�
 - `solved=1` 且 `soc=0` 的 row 视为异常，不能进入最终 merge；
 - 多个 shard 覆盖同一个 `(scenario, agents, seed, time_limit, method)` 时，只保留
   一个通过上述检查的 completed row。
+
+`sum_shortest_distances` 是派生归一化指标，不是 solver 输入，也不参与 row 是否完成的
+判定。对 10,000-agent Fig.5 matrix，精确计算该指标需要大量 grid BFS。runner 因此：
+
+- 把 matrix 的 `sum_shortest_distances` 写成
+  `*.matrix.sum_shortest.json` sidecar cache，cache 通过 matrix size 和 mtime 校验；
+- 只在 solved row 需要归一化时计算该值，timeout/unsolved row 留空；
+- 提供 `--skip-sum-shortest`，用于补跑只关心 solve rate、runtime、SOC 的大规模 shard。
+
+这不会改变 solver 路径、SOC 或 success rate，只影响 `normalized_cost` 相关派生列。
 
 支持的 suite：
 
@@ -467,6 +478,11 @@ python3 -u tools/run_paper_2605_07744_table4.py \
   对应 row 仍作为 timed-out experiment result 保留，避免同一超时 case 在 resume
   时无限重跑。
 
+如果某个大规模补跑 shard 使用了 `--skip-sum-shortest`，该 shard 的 solved rows 可能
+没有 `normalized_cost`。这不影响 `summary.csv` 里的 solve rate、SOC、wall time 和
+improvement；需要 normalized flowtime 时，可以之后在同一 matrix 上重新计算 sidecar
+cache 并重写 derived metrics。
+
 当前限制：
 
 - Table 4 runner 默认使用 IR 的 `dbs_hungarian`。论文 Table 4 描述了 20 s target
@@ -478,6 +494,24 @@ python3 -u tools/run_paper_2605_07744_table4.py \
 - plotter 目前覆盖 Fig.3/Fig.5/Fig.6/Fig.7/Table4 风格图，并输出 Table 1/2/3/4
   风格 CSV；Fig.4 的表格化输出仍可从 `summary.csv` 或 `derived_metrics.csv`
   继续整理。
+
+2026-06-02 的 arXiv 2605.07744 runner 审计结果：
+
+```text
+suite   expected  rows   unique  missing  bad  zero  plot_files
+fig3    11520     11520  11520   0        0    0     34
+fig4    270       270    270     0        0    0     2
+fig5    80        80     80      0        0    0     7
+fig6    900       900    900     0        0    0     14
+table1  240       420    240     0        0    0     16
+table2  180       180    180     0        0    0     10
+table3  240       240    240     0        0    0     10
+table4  n/a       1890   n/a     n/a      n/a  n/a   14
+```
+
+`table1` 的最终目录里历史上包含了 `table2_` scenarios，因此 raw rows 是 420；按
+`table1` expected task key 审计时是 240/240。Table 4 用单独
+`tools/run_paper_2605_07744_table4.py` runner，故这里按 rows count 和 plots 审计。
 
 ## 当前全量结果
 

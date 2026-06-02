@@ -337,22 +337,113 @@ def map_components(info: Any) -> dict[int, int]:
     return components
 
 
+def matrix_lb_cache_path(matrix: Path) -> Path:
+    return matrix.with_suffix(matrix.suffix + ".sum_shortest.json")
+
+
+def read_matrix_lb_cache(matrix: Path) -> int | None:
+    cache = matrix_lb_cache_path(matrix)
+    try:
+        stat = matrix.stat()
+        data = json.loads(cache.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+    if (
+        data.get("matrix_size") == stat.st_size
+        and data.get("matrix_mtime_ns") == stat.st_mtime_ns
+        and isinstance(data.get("sum_shortest_distances"), int)
+    ):
+        return int(data["sum_shortest_distances"])
+    return None
+
+
+def write_matrix_lb_cache(matrix: Path, total: int) -> None:
+    cache = matrix_lb_cache_path(matrix)
+    stat = matrix.stat()
+    payload = {
+        "matrix_size": stat.st_size,
+        "matrix_mtime_ns": stat.st_mtime_ns,
+        "sum_shortest_distances": total,
+    }
+    tmp = cache.with_suffix(cache.suffix + f".{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+    os.replace(tmp, cache)
+
+
+def compute_matrix_sum_shortest_distances(matrix: Path) -> int:
+    parsed = parse_matrix(matrix)
+    info = load_map(Path(parsed["metadata"]["map"]))
+    starts = parsed["starts"]
+    targets = parsed["targets"]
+    unique_starts = set(starts)
+    unique_targets = {target for row in targets for target in row}
+
+    total = 0
+    if len(unique_targets) <= len(unique_starts):
+        distances_by_target = {target: bfs_distances(info, target) for target in unique_targets}
+        for start, row in zip(starts, targets):
+            reachable = [distances_by_target[target][start] for target in row if start in distances_by_target[target]]
+            if reachable:
+                total += min(reachable)
+        return total
+
+    distances_by_start: dict[int, dict[int, int]] = {}
+    for start, row in zip(starts, targets):
+        dist = distances_by_start.get(start)
+        if dist is None:
+            dist = bfs_distances(info, start)
+            distances_by_start[start] = dist
+        reachable = [dist[target] for target in row if target in dist]
+        if reachable:
+            total += min(reachable)
+    return total
+
+
 def matrix_sum_shortest_distances(matrix: Path) -> int:
     matrix = matrix.resolve()
     cached = _MATRIX_LB_CACHE.get(matrix)
     if cached is not None:
         return cached
-    parsed = parse_matrix(matrix)
-    info = load_map(Path(parsed["metadata"]["map"]))
-    total = 0
-    for start, targets in zip(parsed["starts"], parsed["targets"]):
-        dist = bfs_distances(info, start)
-        reachable = [dist[t] for t in targets if t in dist]
-        if not reachable:
-            continue
-        total += min(reachable)
+    cached = read_matrix_lb_cache(matrix)
+    if cached is not None:
+        _MATRIX_LB_CACHE[matrix] = cached
+        return cached
+
+    lock = matrix_lb_cache_path(matrix).with_suffix(".lock")
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            break
+        except FileExistsError:
+            time.sleep(0.2)
+            cached = read_matrix_lb_cache(matrix)
+            if cached is not None:
+                _MATRIX_LB_CACHE[matrix] = cached
+                return cached
+            try:
+                if time.time() - lock.stat().st_mtime > 3600:
+                    lock.unlink()
+            except FileNotFoundError:
+                pass
+
+    try:
+        cached = read_matrix_lb_cache(matrix)
+        if cached is not None:
+            total = cached
+        else:
+            total = compute_matrix_sum_shortest_distances(matrix)
+            write_matrix_lb_cache(matrix, total)
+    finally:
+        lock.unlink(missing_ok=True)
     _MATRIX_LB_CACHE[matrix] = total
     return total
+
+
+def task_sum_shortest_distances(matrix: Path, row: dict[str, Any], args: argparse.Namespace) -> int | str:
+    if args.skip_sum_shortest or not int(row.get("solved") or 0):
+        return ""
+    return matrix_sum_shortest_distances(matrix)
 
 
 def matrix_path(ir_repo: Path, scenario: Scenario, agents: int, seed: int) -> Path:
@@ -559,7 +650,6 @@ def run_ir(
     if pickup_agents is not None:
         cmd += ["--num-pickup-agents", str(pickup_agents)]
     start = time.time()
-    sum_shortest_distances = matrix_sum_shortest_distances(matrix)
     try:
         cp = subprocess.run(
             cmd, cwd=args.ir_repo, text=True, capture_output=True, timeout=args.timeout
@@ -570,10 +660,11 @@ def run_ir(
                 "num_pickup_agents": pickup_agents if pickup_agents is not None else "",
                 "solved": 0, "valid_solution": 0, "timed_out": 1,
                 "external_timed_out": 1, "exit_code": 124,
+                "sum_shortest_distances": "",
                 "wall_time_s": time.time() - start, "stderr": str(exc)}
+    wall_time_s = time.time() - start
     row = parse_ir_stdout(cp.stdout)
     final_goals = parse_final_goals(cp.stdout)
-    row["sum_shortest_distances"] = sum_shortest_distances
     row.update(
         {
             **task,
@@ -583,7 +674,7 @@ def run_ir(
             "num_pickup_agents": pickup_agents if pickup_agents is not None else "",
             "final_goals": " ".join(str(g) for g in final_goals),
             "exit_code": cp.returncode,
-            "wall_time_s": time.time() - start,
+            "wall_time_s": wall_time_s,
             "external_timed_out": 0,
             "stderr": cp.stderr.strip(),
         }
@@ -591,6 +682,7 @@ def run_ir(
     if cp.returncode != 0:
         row["solved"] = 0
         row["valid_solution"] = 0
+    row["sum_shortest_distances"] = task_sum_shortest_distances(matrix, row, args)
     return row
 
 
@@ -714,7 +806,6 @@ def run_lacam(
     yaml_path = converted_yaml_path(args.out_dir, scenario.name, matrix)
     if output_needs_refresh(yaml_path, matrix):
         matrix_to_yaml(matrix, yaml_path)
-    sum_shortest_distances = matrix_sum_shortest_distances(matrix)
     mode = "focal" if task["method"] == "lacam_focal_h" else "dfs"
     cmd = [
         str(args.lacam_bin),
@@ -737,10 +828,10 @@ def run_lacam(
                 "solver": "lacam_tapf", "search_mode_arg": mode,
                 "solved": 0, "valid_solution": 0, "timed_out": 1,
                 "external_timed_out": 1, "exit_code": 124,
-                "sum_shortest_distances": sum_shortest_distances,
+                "sum_shortest_distances": "",
                 "wall_time_s": time.time() - start, "stderr": str(exc)}
+    wall_time_s = time.time() - start
     row = parse_kv(cp.stdout)
-    row["sum_shortest_distances"] = sum_shortest_distances
     row.update(
         {
             **task,
@@ -749,7 +840,7 @@ def run_lacam(
             "solver": "lacam_tapf",
             "search_mode_arg": mode,
             "exit_code": cp.returncode,
-            "wall_time_s": time.time() - start,
+            "wall_time_s": wall_time_s,
             "external_timed_out": 0,
             "stderr": cp.stderr.strip(),
         }
@@ -757,6 +848,7 @@ def run_lacam(
     row.setdefault("solved", 0)
     row.setdefault("valid_solution", 0)
     row.setdefault("timed_out", 0)
+    row["sum_shortest_distances"] = task_sum_shortest_distances(matrix, row, args)
     return row
 
 
@@ -930,6 +1022,7 @@ def main() -> int:
     parser.add_argument("--agent-counts", type=int, nargs="*", default=[])
     parser.add_argument("--seeds", type=int, nargs="*", default=[])
     parser.add_argument("--methods", nargs="*", default=[])
+    parser.add_argument("--skip-sum-shortest", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
