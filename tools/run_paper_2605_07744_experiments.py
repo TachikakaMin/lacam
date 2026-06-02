@@ -122,37 +122,39 @@ def paper_scenarios(kind: str, smoke: bool) -> list[Scenario]:
                     )
                 )
 
-    if kind in {"all", "table1", "smoke"}:
+    if kind in {"all", "table1", "table2", "smoke"}:
         table_solvers = solvers_component if smoke else COMPONENT_SOLVERS
-        scenarios.append(
-            Scenario(
-                name="table1_random64_hotspot_200_time",
-                map_name="random-64-64-20",
-                target_mode="hotspot",
-                agents=(200,),
-                seeds=seeds,
-                time_limits=(10.0,),
-                solvers=table_solvers,
-                max_iterations=100000,
-                avoid_distance=0,
-                hotspot_radius=25,
+        if kind in {"all", "table1", "smoke"}:
+            scenarios.append(
+                Scenario(
+                    name="table1_random64_hotspot_200_time",
+                    map_name="random-64-64-20",
+                    target_mode="hotspot",
+                    agents=(200,),
+                    seeds=seeds,
+                    time_limits=(10.0,),
+                    solvers=table_solvers,
+                    max_iterations=100000,
+                    avoid_distance=0,
+                    hotspot_radius=25,
+                )
             )
-        )
-        scenarios.append(
-            Scenario(
-                name="table2_random64_hotspot_200_iter100",
-                map_name="random-64-64-20",
-                target_mode="hotspot",
-                agents=(200,),
-                seeds=seeds,
-                time_limits=(1000.0,),
-                solvers=tuple(f"iter_{s}" for s in table_solvers),
-                max_iterations=100,
-                avoid_distance=0,
-                hotspot_radius=25,
-                lacam_methods=(),
+        if kind in {"all", "table2", "smoke"}:
+            scenarios.append(
+                Scenario(
+                    name="table2_random64_hotspot_200_iter100",
+                    map_name="random-64-64-20",
+                    target_mode="hotspot",
+                    agents=(200,),
+                    seeds=seeds,
+                    time_limits=(1000.0,),
+                    solvers=tuple(f"iter_{s}" for s in table_solvers),
+                    max_iterations=100,
+                    avoid_distance=0,
+                    hotspot_radius=25,
+                    lacam_methods=(),
+                )
             )
-        )
 
     if kind in {"all", "table3"} and not smoke:
         scenarios.append(
@@ -786,8 +788,7 @@ def write_summary(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def is_completed_row(row: dict[str, Any]) -> bool:
     return (
-        row.get("exit_code") in (0, None)
-        and not int(row.get("external_timed_out") or 0)
+        row.get("exit_code") in (0, 124, None)
         and not row.get("first_error")
     )
 
@@ -820,7 +821,7 @@ def build_tasks(scenarios: list[Scenario]) -> list[dict[str, Any]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--paper-suite", choices=["all", "fig3", "fig4", "fig5", "fig6", "table1", "table3", "smoke"], default="smoke")
+    parser.add_argument("--paper-suite", choices=["all", "fig3", "fig4", "fig5", "fig6", "table1", "table2", "table3", "smoke"], default="smoke")
     parser.add_argument("--out-dir", type=Path, default=Path("build/results/paper_2605_07744"))
     parser.add_argument("--ir-repo", type=Path, default=Path("/home/yimin/research/ir-tapf"))
     parser.add_argument("--ir-bin", type=Path, default=Path("/home/yimin/research/ir-tapf/target/release/ir_tapf"))

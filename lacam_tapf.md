@@ -351,8 +351,10 @@ paper result rows。
 - `fig3`: component comparison，覆盖 6 张 paper map、RANDOM/HOTSPOT、200/400/600/800
   agents、30 seeds，baseline 为 DBS/SBS/Random x Hungarian/PIBT，并加入
   `lacam_dfs`、`lacam_focal_h`；
-- `table1`: time-limited 和 fixed-iteration 对照；fixed-iteration 行只跑 IR，因为
-  LaCAM-TAPF 没有 paper 中的 iteration-mode 接口；
+- `table1`: time-limited 对照；
+- `table2`: fixed-iteration 对照，只跑 IR，因为 LaCAM-TAPF 没有 paper 中的
+  iteration-mode 接口。历史 `paper_2605_07744_table1` 结果目录里可能同时包含
+  `table1_` 和 `table2_` scenarios；
 - `table3`: random initial assignment variants；
 - `fig4`: final path optimization variants，`lak303d`、200 agents、HOTSPOT；
 - `fig5`: scalability，`warehouse-20-40-10-2-2` 上 1000/2000/5000/10000 agents；
@@ -388,7 +390,8 @@ python3 tools/plot_paper_2605_07744_results.py \
 - `fig5_scalability/*.png`: scalability runtime / improvement；
 - `fig6_k_sweep/*.png`: `k ∈ {1,3,10}` 下的 improvement 和 iteration count；
 - `fig7_profiling/*.png`: IR pathfinding 与 reassignment profiling；
-- `table4_ita_ecbs/*.png`: ITA-ECBS / DBS-Hungarian / LaCAM-TAPF success rate 和 cost。
+- `table4_ita_ecbs/*.png`: ITA-ECBS / DBS-Hungarian / LaCAM-TAPF success rate 和 cost；
+- `paper_tables/*.csv`: Table 1/2/3/4 风格的汇总表，便于和论文表格逐项对照。
 
 Table 4 单独 runner：
 
@@ -407,8 +410,9 @@ python3 -u tools/run_paper_2605_07744_table4.py \
 - `normalized_cost = soc / sum_shortest_distances`；
 - `initial_solution_cost`: IR 或 LaCAM 首解 cost；
 - `improvement_pct = (initial_solution_cost - soc) / initial_solution_cost * 100`；
-- `external_timed_out`: runner 的 subprocess timeout，不等同于 solver 自己的
-  `timed_out`。
+- `external_timed_out`: runner 的 subprocess watchdog timeout。它是诊断字段；
+  对应 row 仍作为 timed-out experiment result 保留，避免同一超时 case 在 resume
+  时无限重跑。
 
 当前限制：
 
@@ -418,8 +422,9 @@ python3 -u tools/run_paper_2605_07744_table4.py \
   double-free/corruption，因此暂不作为默认 Table 4 baseline；
 - LaCAM-TAPF 的 `focal` 配置目前固定使用 tie-break `h`，如果要复用
   `anti_zigzag` 等 tie-break，需要在 runner 里扩展 method matrix；
-- plotter 目前覆盖 Fig.3/Fig.5/Fig.6/Fig.7/Table4 风格图，Table 1/3 和 Fig.4 的表格化输出需要
-  从 `summary.csv` 或 `derived_metrics.csv` 继续整理。
+- plotter 目前覆盖 Fig.3/Fig.5/Fig.6/Fig.7/Table4 风格图，并输出 Table 1/2/3/4
+  风格 CSV；Fig.4 的表格化输出仍可从 `summary.csv` 或 `derived_metrics.csv`
+  继续整理。
 
 ## 当前全量结果
 

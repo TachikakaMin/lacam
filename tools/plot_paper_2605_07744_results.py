@@ -392,6 +392,93 @@ def plot_table4(rows: list[dict[str, Any]], out_dir: Path) -> None:
         plt.close()
 
 
+def write_paper_tables(rows: list[dict[str, Any]], out_dir: Path) -> None:
+    out = out_dir / "paper_tables"
+    out.mkdir(parents=True, exist_ok=True)
+
+    table_rows = []
+    for prefix, table_name in (
+        ("table1_", "table1_time_limited"),
+        ("table2_", "table2_fixed_iterations"),
+        ("table3_", "table3_random_initial"),
+    ):
+        selected = [r for r in rows if str(r.get("scenario", "")).startswith(prefix)]
+        if not selected:
+            continue
+        for key, group in sorted(group_rows(selected, ("scenario", "method", "agents")).items()):
+            solved = [r for r in group if int(r.get("solved") or 0)]
+            table_rows.append(
+                {
+                    "table": table_name,
+                    "scenario": key[0],
+                    "method": key[1],
+                    "agents": key[2],
+                    "cases": len(group),
+                    "solved": len(solved),
+                    "solve_rate": len(solved) / len(group) if group else math.nan,
+                    "mean_soc": mean_or_nan([safe_float(r.get("soc")) for r in solved]),
+                    "median_soc": median_or_nan([safe_float(r.get("soc")) for r in solved]),
+                    "mean_iterations_used": mean_or_nan([safe_float(r.get("iterations_used")) for r in solved]),
+                    "mean_wall_time_s": mean_or_nan([safe_float(r.get("wall_time_s")) for r in group]),
+                }
+            )
+
+    if table_rows:
+        fields = [
+            "table",
+            "scenario",
+            "method",
+            "agents",
+            "cases",
+            "solved",
+            "solve_rate",
+            "mean_soc",
+            "median_soc",
+            "mean_iterations_used",
+            "mean_wall_time_s",
+        ]
+        with (out / "tables_1_2_3.csv").open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(table_rows)
+
+    table4_rows = [r for r in rows if str(r.get("scenario", "")).startswith("table4_")]
+    if table4_rows:
+        out_rows = []
+        for key, group in sorted(group_rows(table4_rows, ("scenario", "method", "agents")).items()):
+            solved = [r for r in group if int(r.get("solved") or 0)]
+            out_rows.append(
+                {
+                    "scenario": key[0],
+                    "method": key[1],
+                    "agents": key[2],
+                    "cases": len(group),
+                    "solved": len(solved),
+                    "solve_rate": len(solved) / len(group) if group else math.nan,
+                    "mean_soc": mean_or_nan([safe_float(r.get("soc")) for r in solved]),
+                    "median_soc": median_or_nan([safe_float(r.get("soc")) for r in solved]),
+                    "external_timeouts": sum(int(r.get("external_timed_out") or 0) for r in group),
+                    "mean_wall_time_s": mean_or_nan([safe_float(r.get("wall_time_s")) for r in group]),
+                }
+            )
+        fields = [
+            "scenario",
+            "method",
+            "agents",
+            "cases",
+            "solved",
+            "solve_rate",
+            "mean_soc",
+            "median_soc",
+            "external_timeouts",
+            "mean_wall_time_s",
+        ]
+        with (out / "table4_ita_ecbs.csv").open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(out_rows)
+
+
 def write_derived_csv(rows: list[dict[str, Any]], out_dir: Path) -> None:
     out_path = out_dir / "derived_metrics.csv"
     fields = [
@@ -436,6 +523,7 @@ def main() -> int:
     plot_fig6(rows, args.out_dir)
     plot_fig7(rows, args.out_dir)
     plot_table4(rows, args.out_dir)
+    write_paper_tables(rows, args.out_dir)
     print(f"wrote plots under {args.out_dir}")
     return 0
 

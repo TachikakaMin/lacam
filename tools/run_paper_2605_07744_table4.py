@@ -329,8 +329,7 @@ def write_summary(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def is_completed_row(row: dict[str, Any]) -> bool:
     return (
-        row.get("exit_code") in (0, None)
-        and not int(row.get("external_timed_out") or 0)
+        row.get("exit_code") in (0, 124, None)
         and not row.get("first_error")
     )
 
