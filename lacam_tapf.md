@@ -194,6 +194,37 @@ anti_all:
 - `distance_increases`: 下一步离 assigned task 更远；
 - `settled_pushes`: 一个移动 agent 进入了其他 agent 刚从其 assigned goal 离开的格子。
 
+### 设计取舍
+
+这套实现保留了 LaCAM 的核心特点：high-level state 是 joint configuration，
+successor 由 PIBT lazy completion 生成，OPEN 默认用 DFS 快速找 first solution。
+这样做的优点是首解速度很快，缺点是首解质量会强烈依赖局部 PIBT 决策；如果局部让路
+被 tie-break 选坏，DFS 可能沿着一条可行但很长的分支继续向前走，表现为长时间
+zigzag、远距离游走，或者 agent 离开 goal 之后很久才回来。
+
+IR-TAPF 的主流程和这里不同。IR 先固定或迭代改进 target assignment，再调用它的
+底层 path solver 评估 assignment，所以它的搜索压力更多落在 reassignment 上。
+当前 LaCAM-TAPF 则把 assignment 当作每个 configuration 的动态 guidance：
+同一个 physical configuration 不因为 assignment 不同被复制。因此它更像
+configuration search + online assignment，而不是 assignment search + MAPF repair。
+
+FOCAL 的目标不是替代 LaCAM 的首解策略，而是在 first solution 之后更稳定地消费
+剩余时间。首解前仍用 DFS，是为了避免 best-first 一开始倾向展开大量低 `f` 的等待
+状态，导致很久没有可行解。首解后 incumbent 给出了 cost 上界，此时用
+`f = g + h` 过滤 OPEN，并用 tie-break 避开明显病态的局部行为，才比较安全。
+
+`hindrance` 和 LaCAM2 swap 只处理低层 PIBT 的局部冲突：
+
+- `hindrance` 只在当前 agent 对自己的 task 距离不变时生效，避免抢邻居通往目标的
+  同距离格子；
+- swap 处理两 agent 互相挡路的一类局部 livelock；
+- 它们都不会把 high-level search 变成全局最短路搜索，也不会保证 SOC 最优。
+
+所以当前方法的定位是：用 LaCAM 的快速可行性搜索处理大规模 TAPF，用动态 assignment
+给 PIBT 和 heuristic 提供 TAPF 目标，用 FOCAL/metrics 在 anytime 阶段压低明显的
+高 cost 分支。它不是 LaCAM* 的完整最优实现；`f` 目前主要用于剪枝和 FOCAL 选择，
+而不是从 root 开始严格 best-first 展开。
+
 ## Anytime 行为
 
 `anytime=1` 时，找到 first solution 后继续搜索更低 cost 的 incumbent。搜索会：
@@ -294,6 +325,82 @@ python3 -u tools/run_full_three_method_experiment.py \
 
 这个实验用于判断高 cost 是否集中在少数 agent，以及固定其他 assignment 后局部重搜
 是否能改善 SOC / sum-of-loss。
+
+### arXiv 2605.07744 复现实验
+
+`tools/run_paper_2605_07744_experiments.py` 用来复现 arXiv 2605.07744 里的主要
+TAPF 实验，并把同一批 generated matrix 同时交给 IR-TAPF 和 LaCAM-TAPF：
+
+1. 调用 `/home/yimin/research/ir-tapf/target/release/ir_tapf setup` 生成 paper
+   matrix；
+2. 对 paper baseline，调用 `ir_tapf solve --matrix ... --solver METHOD`；
+3. 对 LaCAM baseline，把同一个 matrix 用 `matrix_to_yaml` 转成 TAPF YAML；
+4. 调用 `build/tapf_benchmark` 跑 `lacam_dfs` 和 `lacam_focal_h`；
+5. 所有结果增量写入 `rows.jsonl`，结束后写 `rows.csv` 和 `summary.csv`。
+
+这样可以保证 IR 和 LaCAM 用的是同一张地图、同一组 start、同一组 per-agent
+potential targets，而不是各自重新采样实例。matrix 生成加了 `.lock` 文件，支持
+多进程并发时避免读到半写入文件。
+
+支持的 suite：
+
+- `smoke`: 小规模 sanity check，1 张图、1 个 seed、少量 solver；
+- `fig3`: component comparison，覆盖 6 张 paper map、RANDOM/HOTSPOT、200/400/600/800
+  agents、30 seeds，baseline 为 DBS/SBS/Random x Hungarian/PIBT，并加入
+  `lacam_dfs`、`lacam_focal_h`；
+- `table1`: time-limited 和 fixed-iteration 对照；fixed-iteration 行只跑 IR，因为
+  LaCAM-TAPF 没有 paper 中的 iteration-mode 接口；
+- `table3`: random initial assignment variants；
+- `fig4`: final path optimization variants，`lak303d`、200 agents、HOTSPOT；
+- `fig5`: scalability，`warehouse-20-40-10-2-2` 上 1000/2000/5000/10000 agents；
+- `fig6`: 当前记录 IR 默认 `k=3` 的 multi-bottleneck 配置。paper 的完整 k sweep
+  需要在 `ir-tapf` CLI 里额外暴露 `num_pickup_agents` / `num_pickup_groups` 后再跑。
+
+常用命令：
+
+```sh
+python3 -u tools/run_paper_2605_07744_experiments.py \
+  --paper-suite fig3 \
+  --jobs 32 \
+  --timeout 45 \
+  --resume \
+  --out-dir build/results/paper_2605_07744_fig3
+```
+
+生成图和派生指标：
+
+```sh
+python3 tools/plot_paper_2605_07744_results.py \
+  --rows build/results/paper_2605_07744_fig3/rows.csv \
+  --out-dir build/results/paper_2605_07744_fig3/plots
+```
+
+`tools/plot_paper_2605_07744_results.py` 会写：
+
+- `derived_metrics.csv`: 每条 row 的 normalized cost 和 improvement；
+- `fig3_components/*.png`: normalized flowtime 和 improvement；
+- `fig5_scalability/*.png`: scalability runtime / improvement；
+- `fig7_profiling/*.png`: IR pathfinding 与 reassignment profiling。
+
+指标解释：
+
+- `soc`: solver 输出的 solution cost；
+- `sum_shortest_distances`: 对每个 agent 取其 start 到任一 reachable potential target
+  的最短距离，再求和，用作 normalized flowtime 的下界；
+- `normalized_cost = soc / sum_shortest_distances`；
+- `initial_solution_cost`: IR 或 LaCAM 首解 cost；
+- `improvement_pct = (initial_solution_cost - soc) / initial_solution_cost * 100`；
+- `external_timed_out`: runner 的 subprocess timeout，不等同于 solver 自己的
+  `timed_out`。
+
+当前限制：
+
+- Table 4 里的 ITA-ECBS baseline 尚未接入这个 runner；
+- Fig.6 只能跑 IR 默认 `k=3`，完整 sweep 需要修改 `ir-tapf` CLI；
+- LaCAM-TAPF 的 `focal` 配置目前固定使用 tie-break `h`，如果要复用
+  `anti_zigzag` 等 tie-break，需要在 runner 里扩展 method matrix；
+- plotter 目前覆盖 Fig.3/Fig.5/Fig.7 风格图，Table 1/3 和 Fig.4 的表格化输出需要
+  从 `summary.csv` 或 `derived_metrics.csv` 继续整理。
 
 ## 当前全量结果
 

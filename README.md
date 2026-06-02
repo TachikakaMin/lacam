@@ -125,6 +125,27 @@ python3 -u tools/run_full_three_method_experiment.py \
   --out-dir build/results/full_three_method_hindrance_exp1_exp2_ir
 ```
 
+arXiv 2605.07744-style paper experiment runner:
+
+```sh
+python3 -u tools/run_paper_2605_07744_experiments.py \
+  --paper-suite fig3 \
+  --jobs 32 \
+  --timeout 45 \
+  --resume \
+  --out-dir build/results/paper_2605_07744_fig3
+
+python3 tools/plot_paper_2605_07744_results.py \
+  --rows build/results/paper_2605_07744_fig3/rows.csv \
+  --out-dir build/results/paper_2605_07744_fig3/plots
+```
+
+The paper runner generates IR-TAPF matrices with the `ir-tapf setup` command,
+runs the paper IR solvers on those matrices, converts the same matrices to
+LaCAM-TAPF YAML, and records comparable `rows.csv`, `summary.csv`, and plot
+outputs. Supported suites and current limitations are documented in
+[`lacam_tapf.md`](lacam_tapf.md).
+
 ## TAPF Data
 
 The ITA-CBS TAPF fixtures used by the LaCAM-TAPF experiments live outside the
