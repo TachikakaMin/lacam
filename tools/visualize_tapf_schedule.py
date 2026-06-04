@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-import yaml
+from tapf_schedule_io import load_schedule
 
 
 def agent_index(name):
@@ -529,7 +529,7 @@ def main():
     args = parser.parse_args()
 
     grid = read_movingai_map(args.map)
-    schedule_data = yaml.safe_load(Path(args.schedule).read_text())
+    schedule_data = load_schedule(Path(args.schedule))
     makespan = int(schedule_data["statistics"]["makespan"])
 
     agents = []

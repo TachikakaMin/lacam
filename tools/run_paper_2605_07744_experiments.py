@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -305,6 +305,8 @@ def bfs_distances(info: Any, start: int) -> dict[int, int]:
 
 _MATRIX_LB_CACHE: dict[Path, int] = {}
 _MAP_COMPONENT_CACHE: dict[Path, dict[int, int]] = {}
+FULL_MATRIX_VALIDATION_AGENT_LIMIT = 1000
+MATRIX_LB_LOCK_STALE_S = 60.0
 
 
 def map_components(info: Any) -> dict[int, int]:
@@ -419,7 +421,7 @@ def matrix_sum_shortest_distances(matrix: Path) -> int:
                 _MATRIX_LB_CACHE[matrix] = cached
                 return cached
             try:
-                if time.time() - lock.stat().st_mtime > 3600:
+                if time.time() - lock.stat().st_mtime > MATRIX_LB_LOCK_STALE_S:
                     lock.unlink()
             except FileNotFoundError:
                 pass
@@ -438,6 +440,9 @@ def matrix_sum_shortest_distances(matrix: Path) -> int:
 
 
 def task_sum_shortest_distances(matrix: Path, row: dict[str, Any], args: argparse.Namespace) -> int | str:
+    existing = row.get("sum_shortest_distances", "")
+    if existing not in ("", None):
+        return existing
     if args.skip_sum_shortest or not int(row.get("solved") or 0):
         return ""
     return matrix_sum_shortest_distances(matrix)
@@ -491,6 +496,22 @@ def is_valid_matrix(matrix: Path) -> bool:
         return False
 
 
+def has_basic_matrix_shape(matrix: Path) -> bool:
+    try:
+        parsed = parse_matrix(matrix)
+        starts = parsed["starts"]
+        targets = parsed["targets"]
+        return bool(starts) and len(targets) == len(starts) and all(targets)
+    except Exception:
+        return False
+
+
+def is_reusable_matrix(matrix: Path, agents: int) -> bool:
+    if agents > FULL_MATRIX_VALIDATION_AGENT_LIMIT:
+        return has_basic_matrix_shape(matrix)
+    return is_valid_matrix(matrix)
+
+
 def matrix_has_perfect_matching(targets: list[list[int]], num_agents: int) -> bool:
     sys.setrecursionlimit(max(sys.getrecursionlimit(), num_agents * 2 + 100))
     match_to_agent: dict[int, int] = {}
@@ -521,7 +542,7 @@ def ensure_matrix(
     seed: int,
 ) -> Path:
     matrix = matrix_path(ir_repo, scenario, agents, seed)
-    if matrix.exists() and is_valid_matrix(matrix):
+    if matrix.exists() and is_reusable_matrix(matrix, agents):
         return matrix
     lock = matrix.with_suffix(matrix.suffix + ".lock")
     lock.parent.mkdir(parents=True, exist_ok=True)
@@ -532,11 +553,11 @@ def ensure_matrix(
             break
         except FileExistsError:
             time.sleep(0.1)
-            if matrix.exists() and is_valid_matrix(matrix):
+            if matrix.exists() and is_reusable_matrix(matrix, agents):
                 return matrix
     map_file = (map_root / f"{scenario.map_name}.map").resolve()
     try:
-        if matrix.exists() and not is_valid_matrix(matrix):
+        if matrix.exists() and not is_reusable_matrix(matrix, agents):
             matrix.unlink()
         cmd = [
             str(ir_bin),
@@ -576,7 +597,7 @@ def ensure_matrix(
         subprocess.run(cmd, cwd=ir_repo, check=True, text=True, capture_output=True)
     finally:
         lock.unlink(missing_ok=True)
-    if not is_valid_matrix(matrix):
+    if not is_reusable_matrix(matrix, agents):
         raise ValueError(f"invalid generated matrix: {matrix}")
     return matrix
 
@@ -609,6 +630,11 @@ def ensure_converted_yaml(matrix: Path, yaml_path: Path) -> None:
             time.sleep(0.1)
             if not output_needs_refresh(yaml_path, matrix):
                 return
+            try:
+                if time.time() - lock.stat().st_mtime > MATRIX_LB_LOCK_STALE_S:
+                    lock.unlink()
+            except FileNotFoundError:
+                pass
     try:
         if output_needs_refresh(yaml_path, matrix):
             matrix_to_yaml(matrix, yaml_path)
@@ -711,12 +737,18 @@ def run_fig4_final_opt(
     args: argparse.Namespace,
     scenario: Scenario,
 ) -> dict[str, Any]:
+    total_start = time.time()
+    total_limit_s = safe_float(task.get("time_limit"))
+    if not math.isfinite(total_limit_s) or total_limit_s <= 0:
+        total_limit_s = 10.0
     matrix = ensure_matrix(
         args.ir_bin, args.ir_repo, args.map_root, scenario, task["agents"], task["seed"]
     )
     base_solver = FIG4_BASE_SOLVERS[task["method"]]
-    ir_task = {**task, "method": base_solver, "time_limit": 20.0}
+    ir_task = {**task, "method": base_solver, "time_limit": total_limit_s}
     ir_row = run_ir(ir_task, args, scenario)
+    first_stage_wall_s = safe_float(ir_row.get("wall_time_s"))
+    elapsed_s = time.time() - total_start
     if not int(ir_row.get("solved") or 0):
         return {
             **task,
@@ -730,6 +762,10 @@ def run_fig4_final_opt(
             "exit_code": ir_row.get("exit_code", -1),
             "wall_time_s": ir_row.get("wall_time_s", 0),
             "stderr": ir_row.get("stderr", ""),
+            "first_stage_time_limit_s": total_limit_s,
+            "final_opt_time_limit_s": 0.0,
+            "final_opt_skipped_budget": 1,
+            "target_refinement_wall_time_s": ir_row.get("wall_time_s", ""),
             "first_error": "target refinement failed",
         }
 
@@ -747,8 +783,42 @@ def run_fig4_final_opt(
             "exit_code": -1,
             "wall_time_s": ir_row.get("wall_time_s", 0),
             "stderr": "",
+            "first_stage_time_limit_s": total_limit_s,
+            "final_opt_time_limit_s": 0.0,
+            "final_opt_skipped_budget": 1,
+            "target_refinement_wall_time_s": ir_row.get("wall_time_s", ""),
             "first_error": "missing final_goals from ir-tapf",
         }
+
+    final_opt_limit_s = max(0.0, total_limit_s - elapsed_s)
+    if final_opt_limit_s <= 0.05:
+        row = dict(ir_row)
+        row.update(
+            {
+                **task,
+                "matrix_file": str(matrix),
+                "solver": f"fig4_two_stage:{base_solver}",
+                "ir_solver_arg": base_solver,
+                "search_mode_arg": "skipped_no_budget",
+                "exit_code": ir_row.get("exit_code", 0),
+                "wall_time_s": first_stage_wall_s if math.isfinite(first_stage_wall_s) else elapsed_s,
+                "external_timed_out": ir_row.get("external_timed_out", 0),
+                "stderr": ir_row.get("stderr", ""),
+                "target_refinement_cost": ir_row.get("soc", ""),
+                "target_refinement_wall_time_s": ir_row.get("wall_time_s", ""),
+                "initial_solution_cost": ir_row.get("initial_solution_cost", ir_row.get("soc", "")),
+                "initial_solution_time_ms": ir_row.get("initial_solution_time_ms", ""),
+                "sum_shortest_distances": ir_row.get("sum_shortest_distances", ""),
+                "final_goals": ir_row.get("final_goals", ""),
+                "first_stage_time_limit_s": total_limit_s,
+                "final_opt_time_limit_s": 0.0,
+                "final_opt_skipped_budget": 1,
+            }
+        )
+        row.setdefault("solved", 0)
+        row.setdefault("valid_solution", 0)
+        row.setdefault("timed_out", 0)
+        return row
 
     yaml_path = fixed_goal_yaml_path(args.out_dir, scenario.name, task["method"], matrix)
     if output_needs_refresh(yaml_path, matrix):
@@ -757,18 +827,23 @@ def run_fig4_final_opt(
         str(args.lacam_bin),
         str(yaml_path),
         "",
-        "10",
+        f"{final_opt_limit_s:.6f}",
         "",
         "1",
         "0",
-        "-1",
+        str(task["seed"]),
         "focal",
         str(args.focal_weight),
         "h",
     ]
     start = time.time()
     try:
-        cp = subprocess.run(cmd, text=True, capture_output=True, timeout=args.timeout)
+        cp = subprocess.run(
+            cmd,
+            text=True,
+            capture_output=True,
+            timeout=min(args.timeout, max(0.1, final_opt_limit_s + 2.0)),
+        )
     except subprocess.TimeoutExpired as exc:
         return {
             **task,
@@ -784,8 +859,10 @@ def run_fig4_final_opt(
             "initial_solution_cost": ir_row.get("soc", ""),
             "initial_solution_time_ms": ir_row.get("wall_time_s", 0) * 1000.0,
             "sum_shortest_distances": ir_row.get("sum_shortest_distances", ""),
-            "wall_time_s": safe_float(ir_row.get("wall_time_s")) + time.time() - start,
+            "wall_time_s": time.time() - total_start,
             "stderr": str(exc),
+            "first_stage_time_limit_s": total_limit_s,
+            "final_opt_time_limit_s": final_opt_limit_s,
         }
 
     lacam_row = parse_kv(cp.stdout)
@@ -798,7 +875,7 @@ def run_fig4_final_opt(
             "ir_solver_arg": base_solver,
             "search_mode_arg": "focal",
             "exit_code": cp.returncode,
-            "wall_time_s": safe_float(ir_row.get("wall_time_s")) + time.time() - start,
+            "wall_time_s": time.time() - total_start,
             "external_timed_out": 0,
             "stderr": cp.stderr.strip(),
             "target_refinement_cost": ir_row.get("soc", ""),
@@ -807,6 +884,9 @@ def run_fig4_final_opt(
             "initial_solution_time_ms": ir_row.get("initial_solution_time_ms", ""),
             "sum_shortest_distances": ir_row.get("sum_shortest_distances", ""),
             "final_goals": ir_row.get("final_goals", ""),
+            "first_stage_time_limit_s": total_limit_s,
+            "final_opt_time_limit_s": final_opt_limit_s,
+            "final_opt_skipped_budget": 0,
         }
     )
     lacam_row.setdefault("solved", 0)
@@ -834,7 +914,7 @@ def run_lacam(
         "",
         "1",
         "0",
-        "-1",
+        str(task["seed"]),
         mode,
         str(args.focal_weight),
         "h",
@@ -941,13 +1021,14 @@ def write_summary(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def is_completed_row(row: dict[str, Any]) -> bool:
+    first_error = str(row.get("first_error") or "")
     return (
         (
             row.get("exit_code") in (0, 124, None)
             or int(row.get("timed_out") or 0)
             or int(row.get("external_timed_out") or 0)
         )
-        and not row.get("first_error")
+        and first_error != "runner exception"
     )
 
 
@@ -1042,6 +1123,12 @@ def main() -> int:
     parser.add_argument("--lacam-bin", type=Path, default=Path("build/tapf_benchmark"))
     parser.add_argument("--map-root", type=Path, default=MAP_ROOT)
     parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument(
+        "--time-limit",
+        type=float,
+        default=0.0,
+        help="Override all scenario method time limits when positive.",
+    )
     parser.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 4) // 4))
     parser.add_argument("--focal-weight", type=float, default=1.5)
     parser.add_argument("--resume", action="store_true")
@@ -1064,6 +1151,8 @@ def main() -> int:
 
     smoke = args.paper_suite == "smoke"
     scenarios = paper_scenarios(args.paper_suite, smoke)
+    if args.time_limit > 0:
+        scenarios = [replace(s, time_limits=(args.time_limit,)) for s in scenarios]
     scenario_by_name = {s.name: s for s in scenarios}
     tasks = build_tasks(scenarios)
     tasks = filter_tasks(tasks, args)

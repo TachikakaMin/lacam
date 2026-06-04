@@ -7,6 +7,7 @@ import concurrent.futures
 import csv
 import json
 import math
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -51,6 +52,15 @@ def mean(values: list[float]) -> float:
     return sum(finite) / len(finite) if finite else math.nan
 
 
+def infer_seed(path: str, fallback: int = 0) -> int:
+    stem = Path(path).stem
+    for pattern in (r"seed(\d+)", r"test_(\d+)"):
+        match = re.search(pattern, stem)
+        if match:
+            return int(match.group(1))
+    return fallback
+
+
 def variant_name(mode: str, tie_break: str, weight: float) -> str:
     if mode == "dfs":
         return "dfs"
@@ -73,6 +83,7 @@ def read_cases(base_rows: Path, ir_solver: str) -> list[dict[str, Any]]:
                     "map_file": row.get("map_file", ""),
                     "num_agents": row.get("num_agents", ""),
                     "num_unique_tasks": row.get("num_unique_tasks", ""),
+                    "seed": row.get("seed", ""),
                     "ir_soc": "",
                     "ir_solved": 0,
                     "ir_wall_time_s": "",
@@ -95,6 +106,8 @@ def run_variant(
 ) -> dict[str, Any]:
     case, (mode, tie_break, weight) = task
     name = variant_name(mode, tie_break, weight)
+    seed_value = case.get("seed", "")
+    seed = int(seed_value) if str(seed_value).strip() else infer_seed(case["fixture_file"])
     cmd = [
         str(lacam_bin),
         case["fixture_file"],
@@ -103,7 +116,7 @@ def run_variant(
         "",
         "1" if anytime else "0",
         "1" if full_ta else "0",
-        "-1",
+        str(seed),
         mode,
         str(weight),
         tie_break,

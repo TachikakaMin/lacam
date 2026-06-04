@@ -11,16 +11,27 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from tapf_schedule_io import load_schedule
+
 
 def load_yaml(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def infer_seed(path: Path, fallback: int = 0) -> int:
+    for pattern in (r"seed(\d+)", r"test_(\d+)"):
+        match = re.search(pattern, path.stem)
+        if match:
+            return int(match.group(1))
+    return fallback
 
 
 def write_yaml(path: Path, data: Any) -> None:
@@ -60,7 +71,7 @@ def expand_sparse_path(path: list[dict[str, Any]], makespan: int) -> list[tuple[
 
 
 def per_agent_costs(schedule_yaml: Path) -> tuple[list[dict[str, Any]], dict[int, tuple[int, int]]]:
-    data = load_yaml(schedule_yaml)
+    data = load_schedule(schedule_yaml)
     schedule = data["schedule"]
     assignments = data.get("assignments") or {}
     makespan = int((data.get("statistics") or {}).get("makespan", 0))
@@ -108,6 +119,7 @@ def run_tapf(
     mode: str,
     focal_weight: float,
     tie_break: str,
+    seed: int,
 ) -> dict[str, Any]:
     cmd = [
         str(tapf_bin),
@@ -117,7 +129,7 @@ def run_tapf(
         str(schedule_out),
         "1" if anytime else "0",
         "0",
-        "-1",
+        str(seed),
         mode,
         str(focal_weight),
         tie_break,
@@ -158,6 +170,7 @@ def run_case(args: argparse.Namespace, case_yaml: Path) -> dict[str, Any]:
     first_schedule = case_dir / "first.yaml"
     repair_yaml = case_dir / "repair.yaml"
     repair_schedule = case_dir / "repair_solution.yaml"
+    seed = infer_seed(case_yaml)
 
     first = run_tapf(
         args.tapf_bin,
@@ -168,6 +181,7 @@ def run_case(args: argparse.Namespace, case_yaml: Path) -> dict[str, Any]:
         args.first_mode,
         args.focal_weight,
         args.tie_break,
+        seed,
     )
     if first.get("valid_solution") != "1":
         return {
@@ -199,6 +213,7 @@ def run_case(args: argparse.Namespace, case_yaml: Path) -> dict[str, Any]:
         args.repair_mode,
         args.focal_weight,
         args.tie_break,
+        seed,
     )
 
     first_soc = int(first.get("soc", 0) or 0)

@@ -200,6 +200,14 @@ def parse_matrix(matrix_path: Path) -> dict[str, Any]:
     return {"metadata": metadata, "starts": starts, "targets": target_rows}
 
 
+def infer_seed(path: Path, fallback: int = 0) -> int:
+    for pattern in (r"seed(\d+)", r"test_(\d+)"):
+        match = re.search(pattern, path.stem)
+        if match:
+            return int(match.group(1))
+    return fallback
+
+
 def matrix_to_yaml(matrix_path: Path, yaml_path: Path) -> dict[str, Any]:
     matrix = parse_matrix(matrix_path)
     map_path = Path(matrix["metadata"]["map"]).resolve()
@@ -225,10 +233,12 @@ def matrix_to_yaml(matrix_path: Path, yaml_path: Path) -> dict[str, Any]:
         encoding="utf-8",
     )
     unique_targets = {g for row in target_rows for g in row}
+    seed = int(matrix["metadata"].get("seed", infer_seed(matrix_path)))
     return {
         "num_agents": len(starts),
         "num_unique_tasks": len(unique_targets),
         "map_file": str(info.path),
+        "seed": seed,
     }
 
 
@@ -294,6 +304,7 @@ def run_lacam(
     timeout: float,
     anytime: bool,
     full_ta: bool,
+    seed: int,
     search_mode: str,
     focal_weight: float,
     focal_tie_break: str,
@@ -306,7 +317,7 @@ def run_lacam(
         "",
         "1" if anytime else "0",
         "1" if full_ta else "0",
-        "-1",
+        str(seed),
         search_mode,
         str(focal_weight),
         focal_tie_break,
@@ -410,6 +421,7 @@ def fixture_base(case: dict[str, Any]) -> dict[str, Any]:
         "map_file": case["map_file"],
         "num_agents": case["num_agents"],
         "num_unique_tasks": case["num_unique_tasks"],
+        "seed": case.get("seed", ""),
     }
 
 
@@ -423,6 +435,7 @@ def run_task(task: tuple[dict[str, Any], str], args: argparse.Namespace) -> dict
             args.timeout,
             args.lacam_anytime,
             args.lacam_full_ta,
+            int(case.get("seed", 0)),
             args.lacam_search_mode,
             args.lacam_focal_weight,
             args.lacam_focal_tie_break,
@@ -595,13 +608,15 @@ def prepare_lacam_cases(args: argparse.Namespace) -> list[dict[str, Any]]:
     matrix_dir = args.out_dir / "converted" / "lacam_yaml_to_ir_matrix"
     for i, fixture in enumerate(fixtures):
         matrix = matrix_dir / f"{fixture.parent.name}_{fixture.stem}.matrix"
-        meta = yaml_to_matrix(fixture, matrix, args.lacam_map_dir, seed=i + 1)
+        seed = infer_seed(fixture, i + 1)
+        meta = yaml_to_matrix(fixture, matrix, args.lacam_map_dir, seed=seed)
         cases.append(
             {
                 "suite": "lacam_fixtures",
                 "case_id": f"lacam_{i:04d}",
                 "yaml": fixture,
                 "matrix": matrix,
+                "seed": seed,
                 **meta,
             }
         )

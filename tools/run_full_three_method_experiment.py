@@ -19,10 +19,23 @@ from typing import Any
 import yaml
 
 from run_ir_lacam_cross_experiment import (
+    infer_seed,
+    load_map,
     matrix_to_yaml,
+    parse_matrix,
     parse_ir_stdout,
     yaml_to_matrix,
 )
+
+
+OPT_IR_SOLVERS = {
+    "opt_dbs_hungarian": "dbs_hungarian",
+    "opt_sbs_hungarian": "sbs_hungarian",
+    "opt_random_hungarian": "random_hungarian",
+    "opt_dbs_pibt": "dbs_pibt",
+    "opt_sbs_pibt": "sbs_pibt",
+    "opt_random_pibt": "random_pibt",
+}
 
 
 def fixture_sort_key(path: Path) -> tuple[str, int, int, str]:
@@ -56,6 +69,18 @@ def parse_kv(text: str) -> dict[str, Any]:
     return row
 
 
+def parse_final_goals(stdout: str) -> list[int]:
+    match = re.search(r"(?m)^final_goals:\s*(.*)$", stdout)
+    if not match:
+        return []
+    goals: list[int] = []
+    for token in match.group(1).split():
+        if token == "None":
+            return []
+        goals.append(int(token))
+    return goals
+
+
 def safe_float(value: Any) -> float:
     try:
         if value == "" or value is None:
@@ -77,6 +102,7 @@ def load_yaml(path: Path) -> Any:
 
 def yaml_case_meta(path: Path, suite: str) -> dict[str, Any]:
     m = re.search(r"agents_(\d+)_test_(\d+)\.yaml$", path.name)
+    seed = int(m.group(2)) if m else infer_seed(path)
     return {
         "suite": suite,
         "case_id": f"{path.parent.name}/{path.stem}",
@@ -85,10 +111,12 @@ def yaml_case_meta(path: Path, suite: str) -> dict[str, Any]:
         "map_file": "",
         "num_agents": int(m.group(1)) if m else "",
         "num_unique_tasks": "",
+        "seed": seed,
     }
 
 
 def matrix_case_meta(path: Path) -> dict[str, Any]:
+    seed = infer_seed(path)
     return {
         "suite": "ir",
         "case_id": str(path.relative_to(path.parents[5]))
@@ -99,6 +127,7 @@ def matrix_case_meta(path: Path) -> dict[str, Any]:
         "map_file": "",
         "num_agents": "",
         "num_unique_tasks": "",
+        "seed": seed,
     }
 
 
@@ -125,11 +154,12 @@ def discover_cases(args: argparse.Namespace) -> list[dict[str, Any]]:
             for path in paths:
                 cases.append(yaml_case_meta(path, suite))
 
-    matrices = sorted(args.ir_matrix_root.glob("**/*.matrix"))
-    if args.max_ir_cases > 0:
-        matrices = matrices[: args.max_ir_cases]
-    for matrix in matrices:
-        cases.append(matrix_case_meta(matrix))
+    if not args.skip_ir_suite:
+        matrices = sorted(args.ir_matrix_root.glob("**/*.matrix"))
+        if args.max_ir_cases > 0:
+            matrices = matrices[: args.max_ir_cases]
+        for matrix in matrices:
+            cases.append(matrix_case_meta(matrix))
     return cases
 
 
@@ -154,6 +184,45 @@ def converted_yaml_path(out_dir: Path, matrix: Path) -> Path:
     )
 
 
+def fixed_goal_yaml_path(out_dir: Path, method: str, matrix: Path) -> Path:
+    return (
+        out_dir
+        / "converted"
+        / "fixed_goal_yaml"
+        / matrix.parent.name
+        / method
+        / f"{matrix.stem}.yaml"
+    )
+
+
+def output_needs_refresh(output: Path, source: Path) -> bool:
+    return not output.exists() or output.stat().st_mtime < source.stat().st_mtime
+
+
+def write_fixed_goal_yaml(matrix: Path, goals: list[int], yaml_path: Path) -> None:
+    parsed = parse_matrix(matrix)
+    info = load_map(Path(parsed["metadata"]["map"]))
+    starts = parsed["starts"]
+    if len(starts) != len(goals):
+        raise ValueError(f"goal count mismatch: starts={len(starts)} goals={len(goals)}")
+    agents = []
+    for i, (start_id, goal_id) in enumerate(zip(starts, goals)):
+        start = info.id_to_coord[start_id]
+        goal = info.id_to_coord[goal_id]
+        agents.append(
+            {
+                "name": f"agent{i}",
+                "start": [start[0], start[1]],
+                "potentialGoals": [[goal[0], goal[1]]],
+            }
+        )
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    yaml_path.write_text(
+        yaml.safe_dump({"agents": agents, "map": str(info.path)}, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
 def ensure_matrix(case: dict[str, Any], out_dir: Path) -> Path:
     matrix_value = str(case.get("matrix_file") or "")
     if matrix_value:
@@ -162,7 +231,7 @@ def ensure_matrix(case: dict[str, Any], out_dir: Path) -> Path:
     fixture = Path(case["fixture_file"])
     matrix = converted_matrix_path(out_dir, fixture)
     if not matrix.exists():
-        yaml_to_matrix(fixture, matrix, None, seed=1)
+        yaml_to_matrix(fixture, matrix, None, seed=int(case.get("seed", 0)))
     return matrix
 
 
@@ -193,7 +262,7 @@ def run_lacam(
         "",
         "1",
         "0",
-        "-1",
+        str(int(case.get("seed", 0))),
         mode,
         str(args.focal_weight),
         "h",
@@ -206,6 +275,7 @@ def run_lacam(
             **case,
             "method": method,
             "solver": "lacam_tapf",
+            "time_limit": args.time_limit,
             "solved": 0,
             "valid_solution": 0,
             "timed_out": 1,
@@ -221,6 +291,7 @@ def run_lacam(
             "fixture_file": str(fixture),
             "method": method,
             "solver": "lacam_tapf",
+            "time_limit": args.time_limit,
             "search_mode_arg": mode,
             "exit_code": cp.returncode,
             "wall_time_s": time.time() - start,
@@ -234,19 +305,29 @@ def run_lacam(
     return row
 
 
-def run_ir(case: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+def run_ir(
+    case: dict[str, Any],
+    args: argparse.Namespace,
+    *,
+    method: str = "ir",
+    ir_solver: str | None = None,
+    solver_prefix: str = "ir_tapf",
+    time_limit: float | None = None,
+) -> dict[str, Any]:
     matrix = ensure_matrix(case, args.out_dir)
+    solver = ir_solver or args.ir_solver
+    solve_limit = args.time_limit if time_limit is None else time_limit
     cmd = [
         str(args.ir_bin),
         "solve",
         "--matrix",
         str(matrix.resolve()),
         "--solver",
-        args.ir_solver,
+        solver,
         "--max-iterations",
         str(args.ir_max_iterations),
         "--time-limit-sec",
-        str(args.time_limit),
+        str(solve_limit),
     ]
     start = time.time()
     try:
@@ -257,8 +338,10 @@ def run_ir(case: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
         return {
             **case,
             "matrix_file": str(matrix),
-            "method": "ir",
-            "solver": f"ir_tapf:{args.ir_solver}",
+            "method": method,
+            "solver": f"{solver_prefix}:{solver}",
+            "ir_solver_arg": solver,
+            "time_limit": solve_limit,
             "solved": 0,
             "valid_solution": 0,
             "timed_out": 1,
@@ -268,12 +351,16 @@ def run_ir(case: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
             "stderr": str(exc),
         }
     row = parse_ir_stdout(cp.stdout)
+    final_goals = parse_final_goals(cp.stdout)
     row.update(
         {
             **case,
             "matrix_file": str(matrix),
-            "method": "ir",
-            "solver": f"ir_tapf:{args.ir_solver}",
+            "method": method,
+            "solver": f"{solver_prefix}:{solver}",
+            "ir_solver_arg": solver,
+            "final_goals": " ".join(str(g) for g in final_goals),
+            "time_limit": solve_limit,
             "exit_code": cp.returncode,
             "wall_time_s": time.time() - start,
             "external_timed_out": 0,
@@ -286,10 +373,195 @@ def run_ir(case: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     return row
 
 
+def fallback_opt_row(
+    case: dict[str, Any],
+    method: str,
+    base_solver: str,
+    ir_row: dict[str, Any],
+    *,
+    total_time_limit_s: float | None = None,
+    first_error: str = "",
+    final_opt_skipped_budget: int = 1,
+) -> dict[str, Any]:
+    row = {**case, **ir_row}
+    row.update(
+        {
+            "method": method,
+            "solver": f"ir_opt:{base_solver}",
+            "ir_solver_arg": base_solver,
+            "time_limit": total_time_limit_s if total_time_limit_s is not None else ir_row.get("time_limit", ""),
+            "target_refinement_cost": ir_row.get("soc", ""),
+            "target_refinement_wall_time_s": ir_row.get("wall_time_s", ""),
+            "first_stage_time_limit_s": ir_row.get("time_limit", ""),
+            "final_opt_time_limit_s": 0.0,
+            "final_opt_skipped_budget": final_opt_skipped_budget,
+        }
+    )
+    if first_error:
+        row["first_error"] = first_error
+    return row
+
+
+def run_ir_final_opt(
+    case: dict[str, Any],
+    method: str,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    total_start = time.time()
+    matrix = ensure_matrix(case, args.out_dir)
+    base_solver = OPT_IR_SOLVERS[method]
+    first_stage_limit_s = (
+        args.ir_refinement_time_limit
+        if args.ir_refinement_time_limit > 0
+        else args.time_limit
+    )
+    ir_row = run_ir(
+        case,
+        args,
+        method="ir_refinement",
+        ir_solver=base_solver,
+        solver_prefix="ir_tapf",
+        time_limit=first_stage_limit_s,
+    )
+    if not int(ir_row.get("solved") or 0):
+        return fallback_opt_row(
+            case,
+            method,
+            base_solver,
+            ir_row,
+            total_time_limit_s=args.time_limit,
+            first_error="target refinement failed",
+        )
+
+    final_goals = [int(token) for token in str(ir_row.get("final_goals", "")).split() if token]
+    if not final_goals:
+        return fallback_opt_row(
+            case,
+            method,
+            base_solver,
+            ir_row,
+            total_time_limit_s=args.time_limit,
+            first_error="missing final_goals from ir-tapf",
+        )
+
+    elapsed_s = time.time() - total_start
+    final_opt_limit_s = max(0.0, args.time_limit - elapsed_s)
+    if final_opt_limit_s <= 0.05:
+        return fallback_opt_row(case, method, base_solver, ir_row, total_time_limit_s=args.time_limit)
+
+    yaml_path = fixed_goal_yaml_path(args.out_dir, method, matrix)
+    if output_needs_refresh(yaml_path, matrix):
+        write_fixed_goal_yaml(matrix, final_goals, yaml_path)
+    cmd = [
+        str(args.lacam_bin),
+        str(yaml_path),
+        "",
+        f"{final_opt_limit_s:.6f}",
+        "",
+        "1",
+        "0",
+        str(int(case.get("seed", 0))),
+        "focal",
+        str(args.focal_weight),
+        "h",
+    ]
+    start = time.time()
+    try:
+        cp = subprocess.run(
+            cmd,
+            text=True,
+            capture_output=True,
+            timeout=min(args.timeout, max(0.1, final_opt_limit_s + 2.0)),
+        )
+    except subprocess.TimeoutExpired as exc:
+        total_wall_time_s = time.time() - total_start
+        row = fallback_opt_row(
+            case,
+            method,
+            base_solver,
+            ir_row,
+            total_time_limit_s=args.time_limit,
+            first_error="final path optimization timed out",
+            final_opt_skipped_budget=0,
+        )
+        row.update(
+            {
+                "fixture_file": str(yaml_path),
+                "timed_out": 1,
+                "external_timed_out": 1,
+                "exit_code": 124,
+                "wall_time_s": total_wall_time_s,
+                "runtime_ms": total_wall_time_s * 1000.0,
+                "stderr": str(exc),
+                "final_opt_time_limit_s": final_opt_limit_s,
+            }
+        )
+        return row
+
+    lacam_row = parse_kv(cp.stdout)
+    if cp.returncode != 0 or not int(lacam_row.get("solved") or 0):
+        total_wall_time_s = time.time() - total_start
+        row = fallback_opt_row(
+            case,
+            method,
+            base_solver,
+            ir_row,
+            total_time_limit_s=args.time_limit,
+            first_error="final path optimization failed",
+            final_opt_skipped_budget=0,
+        )
+        row.update(
+            {
+                "fixture_file": str(yaml_path),
+                "exit_code": cp.returncode,
+                "wall_time_s": total_wall_time_s,
+                "runtime_ms": total_wall_time_s * 1000.0,
+                "stderr": cp.stderr.strip(),
+                "final_opt_time_limit_s": final_opt_limit_s,
+            }
+        )
+        return row
+
+    total_wall_time_s = time.time() - total_start
+    final_opt_runtime_ms = lacam_row.get("runtime_ms", "")
+    lacam_row.update(
+        {
+            **case,
+            "matrix_file": str(matrix),
+            "fixture_file": str(yaml_path),
+            "method": method,
+            "solver": f"ir_opt:{base_solver}",
+            "ir_solver_arg": base_solver,
+            "search_mode_arg": "focal",
+            "time_limit": args.time_limit,
+            "exit_code": cp.returncode,
+            "wall_time_s": total_wall_time_s,
+            "runtime_ms": total_wall_time_s * 1000.0,
+            "final_opt_runtime_ms": final_opt_runtime_ms,
+            "external_timed_out": 0,
+            "stderr": cp.stderr.strip(),
+            "target_refinement_cost": ir_row.get("soc", ""),
+            "target_refinement_wall_time_s": ir_row.get("wall_time_s", ""),
+            "initial_solution_cost": ir_row.get("initial_solution_cost", ir_row.get("soc", "")),
+            "initial_solution_time_ms": ir_row.get("initial_solution_time_ms", ""),
+            "sum_shortest_distances": ir_row.get("sum_shortest_distances", ""),
+            "final_goals": ir_row.get("final_goals", ""),
+            "first_stage_time_limit_s": first_stage_limit_s,
+            "final_opt_time_limit_s": final_opt_limit_s,
+            "final_opt_skipped_budget": 0,
+        }
+    )
+    lacam_row.setdefault("valid_solution", 0)
+    lacam_row.setdefault("timed_out", 0)
+    return lacam_row
+
+
 def run_task(task: tuple[dict[str, Any], str], args: argparse.Namespace) -> dict[str, Any]:
     case, method = task
     if method == "ir":
         return run_ir(case, args)
+    if method in OPT_IR_SOLVERS:
+        return run_ir_final_opt(case, method, args)
     return run_lacam(case, method, args)
 
 
@@ -358,11 +630,27 @@ def main() -> int:
     parser.add_argument("--ir-solver", default="dbs_hungarian")
     parser.add_argument("--ir-max-iterations", type=int, default=100000)
     parser.add_argument("--time-limit", type=float, default=10.0)
+    parser.add_argument(
+        "--ir-refinement-time-limit",
+        type=float,
+        default=0.0,
+        help=(
+            "First-stage IR time for opt_* methods. Defaults to --time-limit, "
+            "so final path optimization uses only leftover wall-clock budget."
+        ),
+    )
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--focal-weight", type=float, default=1.5)
     parser.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 4) // 4))
     parser.add_argument("--max-cases-per-dir", type=int, default=0)
     parser.add_argument("--max-ir-cases", type=int, default=0)
+    parser.add_argument("--skip-ir-suite", action="store_true")
+    parser.add_argument(
+        "--methods",
+        nargs="+",
+        default=["lacam_dfs", "lacam_focal_h", "ir"],
+        choices=["lacam_dfs", "lacam_focal_h", "ir", *sorted(OPT_IR_SOLVERS)],
+    )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--out-dir", type=Path, default=Path("build/results/full_three_method"))
     args = parser.parse_args()
@@ -373,7 +661,7 @@ def main() -> int:
     summary_csv = args.out_dir / "summary.csv"
 
     cases = discover_cases(args)
-    methods = ["lacam_dfs", "lacam_focal_h", "ir"]
+    methods = args.methods
     rows: list[dict[str, Any]] = []
     completed: set[tuple[str, str]] = set()
     if args.resume and rows_jsonl.exists():
@@ -414,6 +702,7 @@ def main() -> int:
                     **case,
                     "method": method,
                     "solver": method,
+                    "time_limit": args.time_limit,
                     "solved": 0,
                     "valid_solution": 0,
                     "timed_out": 0,

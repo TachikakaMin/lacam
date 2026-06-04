@@ -17,6 +17,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
+PAPER_DPI = 220
+PAPER_FORMATS = ("png", "pdf")
+
 METHOD_LABELS = {
     "dbs_hungarian": "DBS-Hungarian",
     "sbs_hungarian": "SBS-Hungarian",
@@ -42,6 +45,41 @@ METHOD_LABELS = {
     "opt_initial": "No Target Refinement",
 }
 
+PAPER_METHOD_ORDER = [
+    "dbs_hungarian",
+    "sbs_hungarian",
+    "random_hungarian",
+    "dbs_pibt",
+    "sbs_pibt",
+    "random_pibt",
+    "lacam_dfs",
+    "lacam_focal_h",
+]
+
+PAPER_METHOD_COLORS = {
+    "dbs_hungarian": "#d81b7a",
+    "sbs_hungarian": "#f2a1d3",
+    "random_hungarian": "#ff31d7",
+    "dbs_pibt": "#7fbf3f",
+    "sbs_pibt": "#9bd463",
+    "random_pibt": "#4f9a29",
+    "lacam_dfs": "#1f77b4",
+    "lacam_focal_h": "#111111",
+    "dbs_hungarian_k1": "#f06292",
+    "dbs_hungarian_k3": "#d81b7a",
+    "dbs_hungarian_k10": "#ff31d7",
+    "dbs_pibt_k1": "#7fbf3f",
+    "dbs_pibt_k3": "#4f9a29",
+    "dbs_pibt_k10": "#9bd463",
+    "opt_dbs_hungarian": "#d81b7a",
+    "opt_sbs_hungarian": "#f2a1d3",
+    "opt_random_hungarian": "#ff31d7",
+    "opt_dbs_pibt": "#7fbf3f",
+    "opt_sbs_pibt": "#9bd463",
+    "opt_random_pibt": "#4f9a29",
+    "opt_initial": "#1f77b4",
+}
+
 MARKERS = {
     "dbs_hungarian": "o",
     "sbs_hungarian": "s",
@@ -58,6 +96,58 @@ MARKERS = {
     "dbs_pibt_k3": "s",
     "dbs_pibt_k10": "^",
 }
+
+
+def configure_paper_style() -> None:
+    plt.rcParams.update(
+        {
+            "font.family": "serif",
+            "font.size": 9,
+            "axes.labelsize": 10,
+            "axes.titlesize": 10,
+            "legend.fontsize": 8,
+            "xtick.labelsize": 8,
+            "ytick.labelsize": 8,
+            "axes.linewidth": 0.8,
+            "grid.linewidth": 0.5,
+            "lines.linewidth": 1.5,
+            "lines.markersize": 5,
+        }
+    )
+
+
+def save_figure(fig: Any, out_dir: Path, stem: str, manifest: list[dict[str, str]], note: str) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for suffix in PAPER_FORMATS:
+        kwargs = {"bbox_inches": "tight"}
+        if suffix == "png":
+            kwargs["dpi"] = PAPER_DPI
+        fig.savefig(out_dir / f"{stem}.{suffix}", **kwargs)
+    manifest.append({"figure": stem, "note": note})
+    plt.close(fig)
+
+
+def method_sort_key(method: str) -> tuple[int, str]:
+    if method in PAPER_METHOD_ORDER:
+        return PAPER_METHOD_ORDER.index(method), method
+    return len(PAPER_METHOD_ORDER), method
+
+
+def plot_method_line(ax: Any, xs: list[float], ys: list[float], method: str, *, linestyle: str = "-") -> None:
+    ax.plot(
+        xs,
+        ys,
+        marker=MARKERS.get(method, "o"),
+        color=PAPER_METHOD_COLORS.get(method, None),
+        linestyle=linestyle,
+        label=METHOD_LABELS.get(method, method),
+    )
+
+
+def style_axis(ax: Any, *, grid_axis: str = "both") -> None:
+    ax.grid(True, axis=grid_axis, alpha=0.35)
+    ax.spines["top"].set_visible(True)
+    ax.spines["right"].set_visible(True)
 
 
 def safe_float(value: Any) -> float:
@@ -83,11 +173,18 @@ def normalized_cost(row: dict[str, Any]) -> float:
 
 
 def improvement_pct(row: dict[str, Any]) -> float:
-    initial = safe_float(row.get("initial_solution_cost"))
+    initial = effective_initial_cost(row)
     soc = safe_float(row.get("soc"))
     if not math.isfinite(initial) or initial <= 0:
         return math.nan
     return 100.0 * (initial - soc) / initial
+
+
+def effective_initial_cost(row: dict[str, Any]) -> float:
+    initial = safe_float(row.get("initial_solution_cost"))
+    if math.isfinite(initial) and initial > 0:
+        return initial
+    return safe_float(row.get("first_solution_cost"))
 
 
 def group_rows(rows: list[dict[str, Any]], keys: tuple[str, ...]) -> dict[tuple[Any, ...], list[dict[str, Any]]]:
@@ -494,6 +591,8 @@ def write_derived_csv(rows: list[dict[str, Any]], out_dir: Path) -> None:
         "sum_shortest_distances",
         "normalized_cost",
         "initial_solution_cost",
+        "first_solution_cost",
+        "effective_initial_cost",
         "improvement_pct",
         "wall_time_s",
     ]
@@ -505,20 +604,346 @@ def write_derived_csv(rows: list[dict[str, Any]], out_dir: Path) -> None:
                 {
                     **{k: row.get(k, "") for k in fields},
                     "normalized_cost": normalized_cost(row),
+                    "effective_initial_cost": effective_initial_cost(row),
                     "improvement_pct": improvement_pct(row),
                 }
             )
 
 
+def plot_paper_figure3(rows: list[dict[str, Any]], out_dir: Path, manifest: list[dict[str, str]]) -> None:
+    fig_rows = [r for r in rows if str(r.get("scenario", "")).startswith("fig3_") and int(r.get("solved") or 0)]
+    if not fig_rows:
+        return
+    map_order = [
+        "random-64-64-20",
+        "warehouse-10-20-10-2-2",
+        "ost003d",
+        "lak303d",
+        "den520d",
+        "Boston_0_256",
+    ]
+    maps = [m for m in map_order if any(r.get("map_name") == m for r in fig_rows)]
+    if not maps:
+        maps = sorted({r.get("map_name", "") for r in fig_rows})
+    maps = maps[:6]
+
+    def build_grid(stem: str, methods_allowed: set[str], note: str, allow_log_y: bool) -> None:
+        selected_rows = [r for r in fig_rows if r.get("method") in methods_allowed]
+        if not selected_rows:
+            return
+        fig, axes = plt.subplots(4, 6, figsize=(13.2, 8.6))
+        for ax in axes.flat:
+            ax.set_visible(False)
+
+        for idx, map_name in enumerate(maps):
+            block = 0 if idx < 3 else 2
+            col0 = (idx % 3) * 2
+            for offset, target_mode in enumerate(("hotspot", "random")):
+                col = col0 + offset
+                group = [
+                    r
+                    for r in selected_rows
+                    if r.get("map_name") == map_name and str(r.get("target_mode", "")).lower() == target_mode
+                ]
+                if not group:
+                    continue
+
+                ax_cost = axes[block][col]
+                ax_cost.set_visible(True)
+                ax_cost.set_title(target_mode.upper(), pad=2)
+                cost_upper = 0.0
+                cost_lower = math.inf
+                for method in sorted({r["method"] for r in group}, key=method_sort_key):
+                    pts = []
+                    for agents, rows_at_agents in group_rows([r for r in group if r["method"] == method], ("agents",)).items():
+                        vals = [normalized_cost(r) for r in rows_at_agents]
+                        med = median_or_nan(vals)
+                        lo, hi = minmax(vals)
+                        if math.isfinite(med):
+                            pts.append((int(agents[0]), med, lo, hi))
+                    pts.sort()
+                    if not pts:
+                        continue
+                    xs = [p[0] for p in pts]
+                    ys = [p[1] for p in pts]
+                    plot_method_line(ax_cost, xs, ys, method)
+                    ax_cost.fill_between(xs, [p[2] for p in pts], [p[3] for p in pts], color=PAPER_METHOD_COLORS.get(method), alpha=0.10)
+                    cost_upper = max(cost_upper, *[p[3] for p in pts if math.isfinite(p[3])])
+                    cost_lower = min(cost_lower, *[p[2] for p in pts if math.isfinite(p[2])])
+                if allow_log_y and math.isfinite(cost_lower) and cost_lower > 0 and cost_upper / cost_lower > 12:
+                    ax_cost.set_yscale("log")
+                    ax_cost.text(0.03, 0.92, "log y", transform=ax_cost.transAxes, fontsize=7, color="0.35")
+                ax_cost.set_xlabel("agents")
+                if col == 0:
+                    ax_cost.set_ylabel("normalized\nflowtime")
+                style_axis(ax_cost)
+
+                ax_imp = axes[block + 1][col]
+                ax_imp.set_visible(True)
+                for method in sorted({r["method"] for r in group}, key=method_sort_key):
+                    pts = []
+                    for agents, rows_at_agents in group_rows([r for r in group if r["method"] == method], ("agents",)).items():
+                        med = median_or_nan([improvement_pct(r) for r in rows_at_agents])
+                        if math.isfinite(med):
+                            pts.append((int(agents[0]), med))
+                    pts.sort()
+                    if pts:
+                        plot_method_line(ax_imp, [p[0] for p in pts], [p[1] for p in pts], method)
+                ax_imp.set_xlabel("agents")
+                if col == 0:
+                    ax_imp.set_ylabel("final\nimprv (%)")
+                style_axis(ax_imp)
+
+            axes[block][col0].text(
+                0.0,
+                1.18,
+                map_name,
+                transform=axes[block][col0].transAxes,
+                fontsize=9,
+                fontstyle="italic",
+            )
+
+        handles_by_label: dict[str, Any] = {}
+        for ax in axes.flat:
+            handles, labels = ax.get_legend_handles_labels()
+            for handle, label in zip(handles, labels):
+                handles_by_label.setdefault(label, handle)
+        if handles_by_label:
+            fig.legend(
+                list(handles_by_label.values()),
+                list(handles_by_label.keys()),
+                loc="lower center",
+                ncol=4,
+                frameon=False,
+            )
+        fig.subplots_adjust(left=0.06, right=0.99, top=0.93, bottom=0.12, hspace=0.72, wspace=0.36)
+        save_figure(fig, out_dir, stem, manifest, note)
+
+    build_grid(
+        "figure3_components_grid_with_lacam",
+        set(PAPER_METHOD_ORDER),
+        "Fig.3-style grid with LaCAM-TAPF baselines. Panels with large LaCAM outliers switch to log y for readability. Bottom panels use final improvement vs agent count because rows do not contain per-refinement cost histories.",
+        allow_log_y=True,
+    )
+
+
+def plot_paper_figure4(rows: list[dict[str, Any]], out_dir: Path, manifest: list[dict[str, str]]) -> None:
+    fig_rows = [r for r in rows if str(r.get("scenario", "")).startswith("fig4_") and int(r.get("solved") or 0)]
+    if not fig_rows:
+        return
+    fig, ax = plt.subplots(figsize=(6.2, 3.2))
+    method_order = [
+        "opt_dbs_hungarian",
+        "opt_sbs_hungarian",
+        "opt_random_hungarian",
+        "opt_dbs_pibt",
+        "opt_sbs_pibt",
+        "opt_random_pibt",
+        "opt_initial",
+        "lacam_dfs",
+        "lacam_focal_h",
+    ]
+    for method in [m for m in method_order if any(r.get("method") == m for r in fig_rows)]:
+        group = [r for r in fig_rows if r.get("method") == method]
+        lb_vals = [safe_float(r.get("sum_shortest_distances")) for r in group]
+        ref_vals = [
+            safe_float(r.get("target_refinement_cost")) / safe_float(r.get("sum_shortest_distances"))
+            for r in group
+            if safe_float(r.get("target_refinement_cost")) > 0 and safe_float(r.get("sum_shortest_distances")) > 0
+        ]
+        final_vals = [normalized_cost(r) for r in group]
+        pts = []
+        if ref_vals:
+            pts.append((20.0, median_or_nan(ref_vals)))
+        first_vals = [
+            safe_float(r.get("first_solution_cost")) / safe_float(r.get("sum_shortest_distances"))
+            for r in group
+            if safe_float(r.get("first_solution_cost")) > 0 and safe_float(r.get("sum_shortest_distances")) > 0
+        ]
+        if not ref_vals and first_vals:
+            pts.append((safe_float(group[0].get("first_solution_time_ms")) / 1000.0, median_or_nan(first_vals)))
+        final = median_or_nan(final_vals)
+        if math.isfinite(final):
+            pts.append((30.0, final))
+        pts = [(x, y) for x, y in pts if math.isfinite(x) and math.isfinite(y)]
+        pts.sort()
+        if pts:
+            linestyle = "--" if method.startswith("lacam_") else "-"
+            plot_method_line(ax, [p[0] for p in pts], [p[1] for p in pts], method, linestyle=linestyle)
+    ax.axvline(20, color="0.5", linewidth=0.8)
+    ax.text(10, ax.get_ylim()[1], "Target refinement", ha="center", va="bottom")
+    ax.text(25, ax.get_ylim()[1], "Path optimization", ha="center", va="bottom")
+    ax.set_xlabel("runtime (s)")
+    ax.set_ylabel("normalized flowtime")
+    style_axis(ax)
+    ax.legend(ncol=3, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.20))
+    fig.subplots_adjust(bottom=0.30)
+    save_figure(
+        fig,
+        out_dir,
+        "figure4_final_path_optimization",
+        manifest,
+        "Fig.4-style two-stage view. Points use recorded target-refinement cost and final SOC; continuous refinement trajectories are not available in rows.",
+    )
+
+
+def plot_paper_figure5(rows: list[dict[str, Any]], out_dir: Path, manifest: list[dict[str, str]]) -> None:
+    fig_rows = [r for r in rows if str(r.get("scenario", "")).startswith("fig5_") and int(r.get("solved") or 0)]
+    if not fig_rows:
+        return
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.1))
+    for method in sorted({r["method"] for r in fig_rows}, key=method_sort_key):
+        group = [r for r in fig_rows if r["method"] == method]
+        runtime_pts = []
+        improvement_pts = []
+        for agents, rows_at_agents in group_rows(group, ("agents",)).items():
+            initial_times = []
+            for r in rows_at_agents:
+                t = safe_float(r.get("initial_solution_time_ms"))
+                if not math.isfinite(t):
+                    t = safe_float(r.get("first_solution_time_ms"))
+                if math.isfinite(t):
+                    initial_times.append(t / 1000.0)
+            init_time = median_or_nan(initial_times)
+            imp = median_or_nan([improvement_pct(r) for r in rows_at_agents])
+            n = int(agents[0])
+            if math.isfinite(init_time):
+                runtime_pts.append((n, init_time))
+            if math.isfinite(imp):
+                improvement_pts.append((n, imp))
+        runtime_pts.sort()
+        improvement_pts.sort()
+        if runtime_pts:
+            plot_method_line(axes[0], [p[0] for p in runtime_pts], [p[1] for p in runtime_pts], method)
+        if improvement_pts:
+            plot_method_line(axes[1], [p[0] for p in improvement_pts], [p[1] for p in improvement_pts], method)
+    axes[0].set_xlabel("agents")
+    axes[0].set_ylabel("initial solution time (s)")
+    axes[0].set_yscale("log")
+    axes[1].set_xlabel("agents")
+    axes[1].set_ylabel("final imprv (%)")
+    for ax in axes:
+        style_axis(ax)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False)
+    fig.subplots_adjust(bottom=0.26, wspace=0.32)
+    save_figure(
+        fig,
+        out_dir,
+        "figure5_scalability",
+        manifest,
+        "Fig.5-style scalability summary. Left is initial-solution runtime; right is final improvement because per-refinement improvement histories are not stored in rows.",
+    )
+
+
+def plot_paper_figure6(rows: list[dict[str, Any]], out_dir: Path, manifest: list[dict[str, str]]) -> None:
+    fig_rows = [r for r in rows if str(r.get("scenario", "")).startswith("fig6_") and int(r.get("solved") or 0)]
+    if not fig_rows:
+        return
+    fig, axes = plt.subplots(2, 2, figsize=(6.8, 5.0))
+    families = [("dbs_pibt", "DBS-PIBT"), ("dbs_hungarian", "DBS-Hungarian")]
+    lacam_rows = [r for r in fig_rows if str(r.get("method", "")).startswith("lacam_")]
+    for col, (family, title) in enumerate(families):
+        family_rows = [r for r in fig_rows if str(r.get("method", "")).startswith(f"{family}_k")]
+        for method in sorted({r["method"] for r in family_rows + lacam_rows}, key=method_sort_key):
+            group = [r for r in family_rows + lacam_rows if r["method"] == method]
+            pts = []
+            for agents, rows_at_agents in group_rows(group, ("agents",)).items():
+                imp = median_or_nan([improvement_pct(r) for r in rows_at_agents])
+                if math.isfinite(imp):
+                    pts.append((int(agents[0]), imp))
+            pts.sort()
+            if pts:
+                plot_method_line(axes[0][col], [p[0] for p in pts], [p[1] for p in pts], method)
+        for method in sorted({r["method"] for r in family_rows}, key=method_sort_key):
+            group = [r for r in family_rows if r["method"] == method]
+            pts = []
+            for agents, rows_at_agents in group_rows(group, ("agents",)).items():
+                iters = median_or_nan([safe_float(r.get("iterations_used")) for r in rows_at_agents])
+                if math.isfinite(iters):
+                    pts.append((int(agents[0]), iters))
+            pts.sort()
+            if pts:
+                plot_method_line(axes[1][col], [p[0] for p in pts], [p[1] for p in pts], method)
+        axes[0][col].set_title(title)
+        axes[0][col].set_ylabel("final imprv (%)")
+        axes[1][col].set_ylabel("iterations")
+        axes[1][col].set_xlabel("agents")
+        style_axis(axes[0][col])
+        style_axis(axes[1][col])
+    handles_by_label: dict[str, Any] = {}
+    for ax in axes.flat:
+        handles, labels = ax.get_legend_handles_labels()
+        for handle, label in zip(handles, labels):
+            handles_by_label.setdefault(label, handle)
+    fig.legend(
+        list(handles_by_label.values()),
+        list(handles_by_label.keys()),
+        loc="lower center",
+        ncol=3,
+        frameon=False,
+    )
+    fig.subplots_adjust(bottom=0.20, hspace=0.38, wspace=0.30)
+    save_figure(
+        fig,
+        out_dir,
+        "figure6_multibottleneck",
+        manifest,
+        "Fig.6-style k sweep. LaCAM-TAPF baselines are shown on improvement panels; iteration panels include only IR k-sweep methods.",
+    )
+
+
+def write_manifest(out_dir: Path, rows_paths: list[Path], manifest: list[dict[str, str]]) -> None:
+    lines = [
+        "# Paper Figure Manifest",
+        "",
+        "Input rows:",
+        *[f"- {path}" for path in rows_paths],
+        "",
+        "Generated figures:",
+    ]
+    for item in manifest:
+        lines.append(f"- `{item['figure']}.png` / `{item['figure']}.pdf`: {item['note']}")
+    lines.extend(
+        [
+            "",
+            "Notes:",
+            "- Current experiment rows do not contain per-refinement cost histories, so figures that correspond to paper improvement-over-time plots use recorded final improvement instead of synthetic time curves.",
+            "- All plotted LaCAM-TAPF rows come from the same-instance paper-suite reruns.",
+        ]
+    )
+    (out_dir / "MANIFEST.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def plot_paper_summary(rows: list[dict[str, Any]], rows_paths: list[Path], out_dir: Path) -> None:
+    manifest: list[dict[str, str]] = []
+    plot_paper_figure3(rows, out_dir, manifest)
+    plot_paper_figure4(rows, out_dir, manifest)
+    plot_paper_figure5(rows, out_dir, manifest)
+    plot_paper_figure6(rows, out_dir, manifest)
+    plot_table4(rows, out_dir)
+    write_paper_tables(rows, out_dir)
+    write_manifest(out_dir, rows_paths, manifest)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rows", type=Path, default=Path("build/results/paper_2605_07744/rows.csv"))
+    parser.add_argument("--rows", type=Path, nargs="+", default=[Path("build/results/paper_2605_07744/rows.csv")])
     parser.add_argument("--out-dir", type=Path, default=Path("build/results/paper_2605_07744/plots"))
+    parser.add_argument("--paper-summary", action="store_true", help="write paper-numbered figures into one folder")
     args = parser.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    configure_paper_style()
 
-    rows = read_rows(args.rows)
+    rows = []
+    for path in args.rows:
+        rows.extend(read_rows(path))
     write_derived_csv(rows, args.out_dir)
+    if args.paper_summary:
+        plot_paper_summary(rows, args.rows, args.out_dir)
+        print(f"wrote paper summary figures under {args.out_dir}")
+        return 0
+
     plot_fig3(rows, args.out_dir)
     plot_fig5(rows, args.out_dir)
     plot_fig6(rows, args.out_dir)

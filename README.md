@@ -141,6 +141,23 @@ python3 tools/plot_paper_2605_07744_results.py \
   --out-dir build/results/paper_2605_07744_fig3/plots
 ```
 
+To collect paper-numbered figures into one folder:
+
+```sh
+python3 tools/plot_paper_2605_07744_results.py \
+  --paper-summary \
+  --out-dir build/results/paper_2605_07744_figures \
+  --rows \
+    build/results/paper_2605_07744_fig3/rows.csv \
+    build/results/paper_2605_07744_fig4/rows.csv \
+    build/results/paper_2605_07744_fig5/rows.csv \
+    build/results/paper_2605_07744_fig6/rows.csv \
+    build/results/paper_2605_07744_table1/rows.csv \
+    build/results/paper_2605_07744_table2/rows.csv \
+    build/results/paper_2605_07744_table3/rows.csv \
+    build/results/paper_2605_07744_table4/rows.csv
+```
+
 The paper runner supports filtered retries for incomplete shards:
 
 ```sh
@@ -205,8 +222,21 @@ The full regenerated dataset has:
 - exp1: 8 directories, each with `400` YAML files plus one map file.
 - exp2: 28 non-maze ratio directories, each with `200` YAML files plus one map
   file.
-- exp2 maze: 4 ratio directories, each with `140` YAML files plus one map file
-  because maze uses `5..35` agents.
+- exp2 maze: 4 ratio directories, each with `240` YAML files plus one map file.
+  These directories now cover `5..60` agents in steps of 5, with 20 tests per
+  agent count.
+
+The maze exp2 `40..60` fixtures were generated with
+`third_party/ITA-CBS2/python/generate_data_for_exp2.py` using
+`--agent_start 5 --agent_stop 60 --agent_step 5`. The regenerated `5..35`
+files matched the existing fixtures byte-for-byte before the missing `40..60`
+files were copied into `/media/project0/yimin/lacam_tapf_itacbs_data`.
+
+For arXiv 2307.00663-style plots, `ITA-CBS`, `LaCAM-TAPF`, and `IR-TAPF` use
+row-level local reruns on these YAML fixtures. The `ITA-ECBS` Figure 2 curve is
+different: it is loaded from the precomputed aggregate success-rate table
+`/home/yimin/research/ITA-CBS2/plot_figure_ecbs/cvsdata.csv`, not from local
+row-level YAML reruns.
 
 Validation checks should confirm that every potential goal is reachable from
 its agent's start and that each fixture has a reachable perfect task matching.

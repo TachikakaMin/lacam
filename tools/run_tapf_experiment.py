@@ -17,12 +17,21 @@ from typing import Any, Dict, List, Tuple
 
 import yaml
 
+from tapf_schedule_io import load_schedule
 from validate_tapf_solution import validate
 
 
 def load_yaml(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def infer_seed(path: Path, fallback: int = 0) -> int:
+    for pattern in (r"seed(\d+)", r"test_(\d+)"):
+        match = re.search(pattern, path.stem)
+        if match:
+            return int(match.group(1))
+    return fallback
 
 
 def fixture_info(path: Path) -> Dict[str, Any]:
@@ -38,12 +47,14 @@ def fixture_info(path: Path) -> Dict[str, Any]:
       all_goals.extend(tuple(g) for g in goals)
 
     m = re.search(r"agents_(\d+)_test_(\d+)\.yaml$", path.name)
+    seed = int(m.group(2)) if m else infer_seed(path)
     return {
         "instance_file": str(path),
         "map_file": data.get("map", ""),
         "num_agents": len(agents),
         "case_agents": int(m.group(1)) if m else len(agents),
         "case_test": int(m.group(2)) if m else -1,
+        "seed": seed,
         "num_unique_tasks": len(set(all_goals)),
         "potential_goals_min": min(goals_per_agent) if goals_per_agent else 0,
         "potential_goals_max": max(goals_per_agent) if goals_per_agent else 0,
@@ -96,6 +107,7 @@ def run_lacam(
         "",
         "1" if anytime else "0",
         "1" if full_ta else "0",
+        str(infer_seed(fixture)),
     ]
     external_timeout = max(timeout, time_limit + 2.0)
     start = time.time()
@@ -145,11 +157,14 @@ def state_at(path: List[Dict[str, Any]], t: int) -> Tuple[int, int]:
 
 
 def schedule_makespan(output: Path) -> int:
-    data = load_yaml(output)
+    data = load_schedule(output)
+    stats = (data or {}).get("statistics") or {}
+    if "makespan" in stats:
+        return int(stats["makespan"])
     schedule = (data or {}).get("schedule") or {}
     if not schedule:
         return 0
-    return max(len(path) - 1 for path in schedule.values())
+    return max(max(int(step.get("t", idx)) for idx, step in enumerate(path)) for path in schedule.values())
 
 
 def run_itacbs(
@@ -197,7 +212,7 @@ def run_itacbs(
         row.update({"solved": 0, "valid_solution": 0, "collision_free": 0})
         return row
 
-    out_data = load_yaml(output) or {}
+    out_data = load_schedule(output) or {}
     stats = out_data.get("statistics") or {}
     schedule = out_data.get("schedule") or {}
     if not schedule:
@@ -411,6 +426,11 @@ def main() -> int:
     parser.add_argument("--max-cases", type=int, default=0)
     parser.add_argument("--skip-itacbs", action="store_true")
     parser.add_argument(
+        "--only-itacbs",
+        action="store_true",
+        help="Run only ITA-CBS tasks. Requires --parallel-solvers.",
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
         help="Load existing rows and skip completed solver/fixture pairs.",
@@ -457,7 +477,10 @@ def main() -> int:
                 f.write(json.dumps(row, sort_keys=True) + "\n")
 
     if args.parallel_solvers:
-        solvers = ["lacam_tapf"] if args.skip_itacbs else ["lacam_tapf", "itacbs"]
+        if args.only_itacbs:
+            solvers = ["itacbs"]
+        else:
+            solvers = ["lacam_tapf"] if args.skip_itacbs else ["lacam_tapf", "itacbs"]
         tasks = [
             (fixture, solver)
             for fixture in fixtures

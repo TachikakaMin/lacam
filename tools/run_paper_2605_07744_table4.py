@@ -177,7 +177,12 @@ def run_ita_ecbs(case: dict[str, Any], args: argparse.Namespace) -> dict[str, An
 
 
 def run_ir(case: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
-    meta = yaml_to_matrix(Path(case["fixture_file"]), Path(case["matrix_file"]), None, seed=int(case["seed"]) + 1)
+    meta = yaml_to_matrix(
+        Path(case["fixture_file"]),
+        Path(case["matrix_file"]),
+        None,
+        seed=int(case["seed"]),
+    )
     case = {**case, "num_unique_tasks": meta["num_unique_tasks"]}
     cmd = [
         str(args.ir_bin),
@@ -240,7 +245,7 @@ def run_lacam(case: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
         "",
         "1",
         "0",
-        "-1",
+        str(int(case["seed"])),
         "focal",
         str(args.focal_weight),
         "h",

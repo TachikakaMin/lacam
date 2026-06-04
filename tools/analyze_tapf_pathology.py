@@ -6,7 +6,7 @@ import collections
 import re
 from pathlib import Path
 
-import yaml
+from tapf_schedule_io import load_schedule
 
 
 def agent_index(name: str) -> int:
@@ -155,7 +155,7 @@ def main() -> int:
     args = parser.parse_args()
 
     grid = read_map(args.map)
-    schedule = yaml.safe_load(args.schedule.read_text())
+    schedule = load_schedule(args.schedule)
     makespan = int(schedule["statistics"]["makespan"])
     paths, goals = expand_schedule(schedule, makespan)
     dists = [bfs(grid, goal) for goal in goals]

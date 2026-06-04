@@ -459,6 +459,29 @@ python3 tools/plot_paper_2605_07744_results.py \
   --out-dir build/results/paper_2605_07744_fig3/plots
 ```
 
+生成集中版论文风格图：
+
+```sh
+python3 tools/plot_paper_2605_07744_results.py \
+  --paper-summary \
+  --out-dir build/results/paper_2605_07744_figures \
+  --rows \
+    build/results/paper_2605_07744_fig3/rows.csv \
+    build/results/paper_2605_07744_fig4/rows.csv \
+    build/results/paper_2605_07744_fig5/rows.csv \
+    build/results/paper_2605_07744_fig6/rows.csv \
+    build/results/paper_2605_07744_table1/rows.csv \
+    build/results/paper_2605_07744_table2/rows.csv \
+    build/results/paper_2605_07744_table3/rows.csv \
+    build/results/paper_2605_07744_table4/rows.csv
+```
+
+集中目录会写 `figure3_components_grid_with_lacam.{png,pdf}`、
+`figure4_final_path_optimization.{png,pdf}`、`figure5_scalability.{png,pdf}`、
+`figure6_multibottleneck.{png,pdf}`、`paper_tables/*.csv` 和 `MANIFEST.md`。
+当前 rows 没有保存每次 refinement 的 cost history，因此论文中的
+improvement-over-time 图在集中版里用可验证的 final improvement 代替，不伪造中间曲线。
+
 `tools/plot_paper_2605_07744_results.py` 会写：
 
 - `derived_metrics.csv`: 每条 row 的 normalized cost 和 improvement；
@@ -484,8 +507,11 @@ python3 -u tools/run_paper_2605_07744_table4.py \
 - `sum_shortest_distances`: 对每个 agent 取其 start 到任一 reachable potential target
   的最短距离，再求和，用作 normalized flowtime 的下界；
 - `normalized_cost = soc / sum_shortest_distances`；
-- `initial_solution_cost`: IR 或 LaCAM 首解 cost；
-- `improvement_pct = (initial_solution_cost - soc) / initial_solution_cost * 100`；
+- `initial_solution_cost`: IR 的初始 assignment/MAPF cost；
+- `first_solution_cost`: LaCAM-TAPF 的首个 feasible solution cost；
+- `effective_initial_cost`: plotter 用来计算 improvement 的初始 cost，优先取
+  `initial_solution_cost`，缺失或为 0 时回退到 `first_solution_cost`；
+- `improvement_pct = (effective_initial_cost - soc) / effective_initial_cost * 100`；
 - `external_timed_out`: runner 的 subprocess watchdog timeout。它是诊断字段；
   对应 row 仍作为 timed-out experiment result 保留，避免同一超时 case 在 resume
   时无限重跑。

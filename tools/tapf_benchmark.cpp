@@ -1,6 +1,10 @@
 #include <fstream>
 #include <iostream>
 #include <lacam.hpp>
+#include <cstdint>
+#include <filesystem>
+#include <tuple>
+#include <vector>
 
 namespace
 {
@@ -129,14 +133,62 @@ namespace
     return cost;
   }
 
-  void write_schedule_yaml(const TAPFInstance& ins, const Solution& solution,
-                           const std::string& output_path)
+  void write_u32(std::ofstream& out, const uint32_t value)
+  {
+    out.write(reinterpret_cast<const char*>(&value), sizeof(value));
+  }
+
+  std::string binary_schedule_path(const std::string& output_path)
+  {
+    return output_path + ".bin";
+  }
+
+  std::string binary_schedule_metadata_path(const std::string& binary_path)
+  {
+    return std::filesystem::path(binary_path).filename().string();
+  }
+
+  void write_schedule_binary(const TAPFInstance& ins, const Solution& solution,
+                             const std::string& binary_path)
+  {
+    std::ofstream out(binary_path, std::ios::binary);
+    const char magic[8] = {'T', 'A', 'P', 'F', 'S', 'C', 'H', '1'};
+    out.write(magic, sizeof(magic));
+    write_u32(out, static_cast<uint32_t>(ins.N));
+    write_u32(out, static_cast<uint32_t>(get_makespan(solution)));
+    for (size_t i = 0; i < ins.N; ++i) {
+      auto changes = std::vector<std::tuple<uint32_t, uint32_t, uint32_t>>();
+      auto last = static_cast<Vertex*>(nullptr);
+      for (size_t t = 0; t < solution.size(); ++t) {
+        auto v = solution[t][i];
+        if (last == v) continue;
+        last = v;
+        changes.emplace_back(
+            static_cast<uint32_t>(t),
+            static_cast<uint32_t>(v->index / ins.G.width),
+            static_cast<uint32_t>(v->index % ins.G.width));
+      }
+      write_u32(out, static_cast<uint32_t>(changes.size()));
+      for (const auto& [t, x, y] : changes) {
+        write_u32(out, t);
+        write_u32(out, x);
+        write_u32(out, y);
+      }
+    }
+  }
+
+  void write_schedule_output(const TAPFInstance& ins, const Solution& solution,
+                             const std::string& output_path)
   {
     if (output_path.empty() || solution.empty()) return;
+    const auto binary_path = binary_schedule_path(output_path);
+    write_schedule_binary(ins, solution, binary_path);
+
     std::ofstream out(output_path);
     out << "statistics:\n";
     out << "  cost: " << get_sum_of_costs(solution) << "\n";
     out << "  makespan: " << get_makespan(solution) << "\n";
+    out << "  sum_of_loss: " << get_tapf_sum_of_loss(solution) << "\n";
     out << "assignments:\n";
     const auto& final_config = solution.back();
     for (size_t i = 0; i < ins.N; ++i) {
@@ -145,19 +197,12 @@ namespace
       out << "    x: " << goal->index / ins.G.width << "\n";
       out << "    y: " << goal->index % ins.G.width << "\n";
     }
-    out << "schedule:\n";
-    for (size_t i = 0; i < ins.N; ++i) {
-      out << "  agent" << i << ":\n";
-      auto last = static_cast<Vertex*>(nullptr);
-      for (size_t t = 0; t < solution.size(); ++t) {
-        auto v = solution[t][i];
-        if (last == v) continue;
-        last = v;
-        out << "    - x: " << v->index / ins.G.width << "\n";
-        out << "      y: " << v->index % ins.G.width << "\n";
-        out << "      t: " << t << "\n";
-      }
-    }
+    out << "schedule_binary:\n";
+    out << "  format: tapf_sparse_schedule_v1\n";
+    out << "  encoding: little_endian_u32\n";
+    out << "  path: " << binary_schedule_metadata_path(binary_path) << "\n";
+    out << "  agents: " << ins.N << "\n";
+    out << "  makespan: " << get_makespan(solution) << "\n";
   }
 }  // namespace
 
@@ -196,7 +241,7 @@ int main(int argc, char** argv)
                  anytime, force_full_assignment, search_config);
   const auto runtime_ms = deadline.elapsed_ms();
   const auto validation = validate_tapf_solution(ins, solution);
-  write_schedule_yaml(ins, solution, output_path);
+  write_schedule_output(ins, solution, output_path);
 
   std::cout << "valid_instance=1\n";
   std::cout << "solved=" << !solution.empty() << "\n";

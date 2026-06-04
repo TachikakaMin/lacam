@@ -17,15 +17,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import yaml
+from tapf_schedule_io import load_yaml, load_schedule
 
 
 Coord = Tuple[int, int]
-
-
-def load_yaml(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
 
 
 def agent_index(name: str) -> int:
@@ -47,14 +42,21 @@ def state_coord(state: Dict[str, Any]) -> Coord:
 
 
 def state_at(path: List[Dict[str, Any]], t: int) -> Coord:
-    if t < len(path):
-        return state_coord(path[t])
-    return state_coord(path[-1])
+    current = path[0]
+    for state in path:
+        if int(state.get("t", 0)) > t:
+            break
+        current = state
+    return state_coord(current)
+
+
+def state_time(state: Dict[str, Any], fallback: int) -> int:
+    return int(state.get("t", fallback))
 
 
 def validate(input_yaml: Path, output_yaml: Path, require_unique_goals: bool) -> List[str]:
     instance = load_yaml(input_yaml)
-    output = load_yaml(output_yaml)
+    output = load_schedule(output_yaml)
     errors: List[str] = []
 
     input_agents = instance.get("agents") or []
@@ -66,7 +68,7 @@ def validate(input_yaml: Path, output_yaml: Path, require_unique_goals: bool) ->
         )
 
     final_goals: Dict[Coord, str] = {}
-    max_t = 0
+    max_t = int((output.get("statistics") or {}).get("makespan", -1)) + 1
     scheduled_paths: Dict[str, List[Dict[str, Any]]] = {}
 
     for i, agent in enumerate(input_agents):
@@ -79,23 +81,37 @@ def validate(input_yaml: Path, output_yaml: Path, require_unique_goals: bool) ->
             errors.append(f"{name}: empty schedule")
             continue
         scheduled_paths[name] = path
-        max_t = max(max_t, len(path))
+        path_end = max(state_time(state, idx) for idx, state in enumerate(path))
+        max_t = max(max_t, path_end + 1)
 
         start = coord_from_list(agent["start"])
         if state_coord(path[0]) != start:
             errors.append(f"{name}: invalid start {state_coord(path[0])}, expected {start}")
 
+        prev_t = -1
         for step_idx, state in enumerate(path):
-            if int(state.get("t", step_idx)) != step_idx:
-                errors.append(f"{name}: non-contiguous time at step {step_idx}")
+            state_t = state_time(state, step_idx)
+            if state_t <= prev_t:
+                errors.append(f"{name}: non-increasing time at step {step_idx}")
                 break
+            prev_t = state_t
 
         for t in range(1, len(path)):
             prev = state_coord(path[t - 1])
             curr = state_coord(path[t])
+            prev_time = state_time(path[t - 1], t - 1)
+            curr_time = state_time(path[t], t)
+            if curr_time - prev_time != 1 and prev != curr:
+                errors.append(
+                    f"{name}: non-wait sparse jump t={prev_time}->{curr_time}: "
+                    f"{prev}->{curr}"
+                )
+                break
             manhattan = abs(prev[0] - curr[0]) + abs(prev[1] - curr[1])
             if manhattan > 1:
-                errors.append(f"{name}: invalid move t={t - 1}->{t}: {prev}->{curr}")
+                errors.append(
+                    f"{name}: invalid move t={prev_time}->{curr_time}: {prev}->{curr}"
+                )
                 break
 
         raw_goals = agent.get("potentialGoals")
