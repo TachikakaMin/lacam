@@ -230,6 +230,22 @@ def runtime_seconds(row: pd.Series, *, timeout_s: float) -> float:
     return timeout_s
 
 
+def first_solution_seconds(
+    row: pd.Series,
+    *,
+    method: str,
+    solved: bool,
+    timeout_s: float,
+) -> tuple[float, bool]:
+    if method == "ir" or method in OPT_METHODS:
+        raw_ms = safe_float(row.get("initial_solution_time_ms"))
+    else:
+        raw_ms = safe_float(row.get("first_solution_time_ms"))
+    if not solved or not math.isfinite(raw_ms) or raw_ms < 0:
+        return timeout_s, False
+    return min(timeout_s, raw_ms / 1000.0), True
+
+
 def read_row_table(path: Path) -> pd.DataFrame:
     if path.suffix == ".jsonl":
         records = []
@@ -261,6 +277,12 @@ def read_lacam_ir(path: Path, lacam_method: str, timeout_s: float) -> pd.DataFra
         method = str(row["method"])
         cost = safe_float(row.get("soc"))
         solved = solved_bool(row.get("solved"))
+        first_solution_s, first_solution_found = first_solution_seconds(
+            row,
+            method=method,
+            solved=solved,
+            timeout_s=timeout_s,
+        )
         records.append(
             {
                 "method": method,
@@ -272,6 +294,8 @@ def read_lacam_ir(path: Path, lacam_method: str, timeout_s: float) -> pd.DataFra
                 "case_key": f"{map_name}|{scenario}|{agents}|{test}",
                 "solved": solved,
                 "runtime_s": runtime_seconds(row, timeout_s=timeout_s),
+                "first_solution_s": first_solution_s,
+                "first_solution_found": first_solution_found,
                 "cost": cost if solved and math.isfinite(cost) else math.nan,
                 "assignment_time_s": safe_float(row.get("assignment_time_ms")) / 1000.0,
                 "assignment_calls": safe_float(row.get("assignment_calls")),
@@ -328,6 +352,8 @@ def read_itacbs(path: Path, timeout_s: float) -> pd.DataFrame:
                 "case_key": f"{map_name}|{scenario}|{agents}|{test}",
                 "solved": solved,
                 "runtime_s": runtime_seconds(row, timeout_s=timeout_s),
+                "first_solution_s": math.nan,
+                "first_solution_found": math.nan,
                 "cost": cost if solved and math.isfinite(cost) else math.nan,
                 "assignment_time_s": safe_float(row.get("itacbs_TA_runtime_ms")) / 1000.0,
                 "assignment_calls": safe_float(row.get("itacbs_numTaskAssignments")),
@@ -470,6 +496,11 @@ def capped_runtime_for_scatter(series: pd.Series, timeout_s: float) -> pd.Series
     return values.clip(upper=timeout_s)
 
 
+def capped_first_solution_for_scatter(series: pd.Series, timeout_s: float) -> pd.Series:
+    values = pd.to_numeric(series, errors="coerce").fillna(timeout_s)
+    return values.clip(lower=0.001, upper=timeout_s)
+
+
 def plot_figure3(rows: pd.DataFrame, out_dir: Path, timeout_s: float) -> pd.DataFrame:
     pivot = rows.pivot_table(
         index="case_key",
@@ -524,6 +555,76 @@ def plot_figure3(rows: pd.DataFrame, out_dir: Path, timeout_s: float) -> pd.Data
     fig.suptitle("Figure 3 style: runtime scatter, timeouts capped at 10s")
     save_figure(fig, out_dir, "figure3_runtime_scatter")
     return pd.DataFrame.from_records(scatter_rows)
+
+
+def plot_first_solution_scatter(
+    rows: pd.DataFrame,
+    out_dir: Path,
+    timeout_s: float,
+) -> pd.DataFrame:
+    methods = {"lacam_focal_h", "ir"}
+    subset = rows[rows["method"].isin(methods)].copy()
+    if subset.empty or "first_solution_s" not in subset:
+        return pd.DataFrame()
+    pivot = subset.pivot_table(
+        index="case_key",
+        columns="method",
+        values="first_solution_s",
+        aggfunc="min",
+    )
+    found = subset.pivot_table(
+        index="case_key",
+        columns="method",
+        values="first_solution_found",
+        aggfunc="max",
+    )
+    if not methods.issubset(set(pivot.columns)):
+        return pd.DataFrame()
+
+    x = capped_first_solution_for_scatter(pivot["ir"], timeout_s)
+    y = capped_first_solution_for_scatter(pivot["lacam_focal_h"], timeout_s)
+    common = x.notna() & y.notna()
+    xs = x[common]
+    ys = y[common]
+    if xs.empty:
+        return pd.DataFrame()
+
+    fig, ax = plt.subplots(figsize=(5.2, 4.6))
+    ax.scatter(xs, ys, s=8, alpha=0.35, color=METHOD_COLORS["lacam_focal_h"], edgecolors="none")
+    ax.plot([0.001, timeout_s], [0.001, timeout_s], color="black", linestyle="--", linewidth=0.8)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlim(0.001, timeout_s * 1.08)
+    ax.set_ylim(0.001, timeout_s * 1.08)
+    ax.set_xlabel("IR-TAPF time to first solution (s)")
+    ax.set_ylabel("LaCAM-TAPF time to first solution (s)")
+    ax.set_title("LaCAM-TAPF vs IR-TAPF first-solution time")
+    ax.grid(True, which="both", alpha=0.35)
+    fig.suptitle("Figure 3b style: first-solution scatter, failures capped at 10s")
+    save_figure(fig, out_dir, "figure3b_first_solution_scatter")
+
+    ir_found = found.reindex(xs.index).get("ir", pd.Series(index=xs.index, dtype=float)).astype(float)
+    lacam_found = found.reindex(xs.index).get(
+        "lacam_focal_h",
+        pd.Series(index=xs.index, dtype=float),
+    ).astype(float)
+    summary = pd.DataFrame.from_records(
+        [
+            {
+                "comparison": "ir_vs_lacam_focal_h_first_solution",
+                "cases": int(len(xs)),
+                "lacam_faster_fraction": float((ys < xs).mean()),
+                "ir_faster_fraction": float((xs < ys).mean()),
+                "tie_fraction": float((xs == ys).mean()),
+                "both_found_cases": int((ir_found * lacam_found).sum()),
+                "ir_timeout_or_missing_cases": int((ir_found < 0.5).sum()),
+                "lacam_timeout_or_missing_cases": int((lacam_found < 0.5).sum()),
+                "median_ir_first_solution_s": float(xs.median()),
+                "median_lacam_first_solution_s": float(ys.median()),
+            }
+        ]
+    )
+    return summary
 
 
 def profile_metrics(rows: pd.DataFrame) -> pd.DataFrame:
@@ -645,6 +746,7 @@ def write_manifest(
     success: pd.DataFrame,
     args: argparse.Namespace,
     scatter_summary: pd.DataFrame,
+    first_solution_summary: pd.DataFrame,
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     coverage = (
@@ -666,6 +768,11 @@ def write_manifest(
     rows.to_csv(out_dir / "merged_case_rows.csv", index=False)
     if not scatter_summary.empty:
         scatter_summary.to_csv(out_dir / "figure3_scatter_summary.csv", index=False)
+    if not first_solution_summary.empty:
+        first_solution_summary.to_csv(
+            out_dir / "figure3b_first_solution_summary.csv",
+            index=False,
+        )
 
     ecbs_coverage = pd.DataFrame()
     if not success.empty and "method" in success:
@@ -713,6 +820,7 @@ def write_manifest(
         "- `figure2a_exp1_success_rates.{png,pdf}`",
         "- `figure2b_exp2_success_rates.{png,pdf}`",
         "- `figure3_runtime_scatter.{png,pdf}`",
+        "- `figure3b_first_solution_scatter.{png,pdf}`",
         "- `figure4_ta_runtime_nodes.{png,pdf}`",
         "- `figure5_runtime_breakdown.{png,pdf}`",
         "",
@@ -721,6 +829,7 @@ def write_manifest(
         "- ITA-ECBS is included in Figure 2 from precomputed success-rate rows for `ITA_ECBS_v2`, weight 1.10; those rows are aggregate success rates, not per-case runtime/profile records.",
         "- If multiple LaCAM/IR row files contain the same `(case_key, method)`, later inputs override earlier rows. This is used to replace stale IR rows with the latest rerun without double-counting cases.",
         "- Complete ITA-ECBS row-level runtime/profile data on the same exp1/exp2 fixtures was not available in the normalized inputs, so Figures 3-5 omit ITA-ECBS.",
+        "- Figure 3b compares LaCAM-TAPF `first_solution_time_ms` against IR-TAPF `initial_solution_time_ms`; missing or unsolved cases are plotted at the timeout cap.",
         "- Figure 4 includes only methods with comparable assignment/profile instrumentation. IR and IR+Opt rows are omitted there because the normalized exp1/exp2 rows do not expose comparable TA/node fields.",
         "- Figure 5 maps non-CBS methods to the closest available instrumentation. For LaCAM, target-assignment time is measured directly; the rest is search/refinement. For IR and IR+Opt, only total solver time is used in these exp1/exp2 rows.",
         f"- exp1/exp2 `opt_*` IR rows present in the plotted inputs: `{has_exp_opt}`.",
@@ -794,13 +903,14 @@ def main() -> None:
     args.out_dir.mkdir(parents=True, exist_ok=True)
     plot_figure2(success, args.out_dir)
     scatter_summary = plot_figure3(rows, args.out_dir, args.timeout_s)
+    first_solution_summary = plot_first_solution_scatter(rows, args.out_dir, args.timeout_s)
     fig4_summary = plot_figure4(rows, args.out_dir)
     fig5_breakdown = plot_figure5(rows, args.out_dir)
     if not fig4_summary.empty:
         fig4_summary.to_csv(args.out_dir / "figure4_profile_summary.csv", index=False)
     if not fig5_breakdown.empty:
         fig5_breakdown.to_csv(args.out_dir / "figure5_runtime_breakdown.csv", index=False)
-    write_manifest(args.out_dir, rows, success, args, scatter_summary)
+    write_manifest(args.out_dir, rows, success, args, scatter_summary, first_solution_summary)
     print(f"Wrote figures and tables to {args.out_dir}")
 
 

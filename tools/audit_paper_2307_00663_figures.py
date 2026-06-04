@@ -27,6 +27,7 @@ FIGURE_STEMS = [
     "figure2a_exp1_success_rates",
     "figure2b_exp2_success_rates",
     "figure3_runtime_scatter",
+    "figure3b_first_solution_scatter",
     "figure4_ta_runtime_nodes",
     "figure5_runtime_breakdown",
 ]
@@ -199,6 +200,7 @@ def audit_tables(
     required = [
         "figure2_success_rates.csv",
         "figure3_scatter_summary.csv",
+        "figure3b_first_solution_summary.csv",
         "figure4_profile_summary.csv",
         "figure5_runtime_breakdown.csv",
         "merged_case_rows.csv",
@@ -227,6 +229,22 @@ def audit_tables(
                     fail(errors, f"{comparison} cases={cases}, expected {expected_row_cases}")
                 else:
                     ok(f"{comparison} cases={expected_row_cases}")
+
+    first_solution_path = out_dir / "figure3b_first_solution_summary.csv"
+    if first_solution_path.exists() and first_solution_path.stat().st_size > 0:
+        summary = pd.read_csv(first_solution_path)
+        cur = summary[
+            summary["comparison"].astype(str)
+            == "ir_vs_lacam_focal_h_first_solution"
+        ]
+        if cur.empty:
+            fail(errors, "Figure 3b summary missing ir_vs_lacam_focal_h_first_solution")
+        else:
+            cases = int(cur["cases"].iloc[0])
+            if cases != expected_row_cases:
+                fail(errors, f"Figure 3b cases={cases}, expected {expected_row_cases}")
+            else:
+                ok(f"Figure 3b cases={expected_row_cases}")
 
 
 def parse_args() -> argparse.Namespace:
