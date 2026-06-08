@@ -1,0 +1,2 @@
+comparison,cases,lacam_lower_cost_fraction,ir_lower_cost_fraction,tie_fraction,median_ir_cost,median_lacam_cost,median_ir_over_lacam_cost_ratio,y_axis_lower,y_axis_upper,ratio_below_axis_count,ratio_above_axis_count
+ir_vs_lacam_focal_h_solution_quality,9039,0.6641221374045801,0.2553379798650293,0.08053988273039053,1120.0,1047.0,1.0253929866989118,0.8470020166793025,1.5684336306238689,65,83

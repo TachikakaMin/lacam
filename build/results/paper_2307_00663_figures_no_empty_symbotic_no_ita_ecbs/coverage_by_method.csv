@@ -1,0 +1,4 @@
+method,rows,solved,maps,scenarios,min_agents,max_agents,median_runtime_s,median_cost
+ir,9760,9039,"Boston_0_256,den312d,maze-32-32-2,orz900d,random-32-32-10,room-64-64-8,symbotic,warehouse-10-20-10-2-1","G,000,030,060,100",5,200,10.0,1120.0
+itacbs,9760,4763,"Boston_0_256,den312d,maze-32-32-2,orz900d,random-32-32-10,room-64-64-8,symbotic,warehouse-10-20-10-2-1","G,000,030,060,100",5,200,10.0,536.0
+lacam_focal_h,9760,9727,"Boston_0_256,den312d,maze-32-32-2,orz900d,random-32-32-10,room-64-64-8,symbotic,warehouse-10-20-10-2-1","G,000,030,060,100",5,200,9.059,1170.0

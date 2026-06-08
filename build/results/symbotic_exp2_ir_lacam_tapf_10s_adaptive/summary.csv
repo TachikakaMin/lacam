@@ -1,0 +1,4 @@
+cases,external_timeouts,mean_runtime_ms,mean_soc,mean_sum_of_loss,mean_wall_time_s,method,solve_rate,solved,suite
+800,0,10001.103633916555,468.31224764468374,nan,9.32379166573286,ir,0.92875,743,exp2
+800,0,8616.0875,505.39,473.7025,8.662356779575347,lacam_dfs,1.0,800,exp2
+800,0,8616.36,505.3675,473.635,8.661328121721745,lacam_focal_h,1.0,800,exp2

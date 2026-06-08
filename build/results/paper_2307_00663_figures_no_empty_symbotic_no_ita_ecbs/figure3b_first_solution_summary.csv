@@ -1,0 +1,2 @@
+comparison,cases,lacam_faster_fraction,ir_faster_fraction,tie_fraction,both_found_cases,ir_timeout_or_missing_cases,lacam_timeout_or_missing_cases,median_ir_first_solution_s,median_lacam_first_solution_s
+ir_vs_lacam_focal_h_first_solution,9760,0.8343237704918033,0.16014344262295083,0.005532786885245901,9039,721,33,0.02981,0.018
