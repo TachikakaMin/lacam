@@ -23,7 +23,7 @@ PAPER_FORMATS = ("png", "pdf")
 
 MAP_ORDER = [
     "random-32-32-10",
-    "empty-32-32",
+    "symbotic",
     "den312d",
     "maze-32-32-2",
     "room-64-64-8",
@@ -34,7 +34,7 @@ MAP_ORDER = [
 
 MAP_TITLES = {
     "random-32-32-10": "random-32-32-10",
-    "empty-32-32": "empty-32-32",
+    "symbotic": "symbotic",
     "den312d": "den312d",
     "maze-32-32-2": "maze-32-32-2",
     "room-64-64-8": "room",
@@ -45,7 +45,7 @@ MAP_TITLES = {
 
 DIR_MAPS = {
     "Paper_random_32_32_gp_5": ("random-32-32-10", "G"),
-    "Paper_empty_32_32_gp_5": ("empty-32-32", "G"),
+    "Paper_symbotic_39_37_gp_5": ("symbotic", "G"),
     "Paper_den312d_65_81_gp_5": ("den312d", "G"),
     "Paper_maze_32_32_2_gp_5": ("maze-32-32-2", "G"),
     "Paper_room_64_64_8_gp_5": ("room-64-64-8", "G"),
@@ -56,7 +56,7 @@ DIR_MAPS = {
 
 RATIO_PREFIXES = {
     "paper_random_32_32_ratio": "random-32-32-10",
-    "paper_empty_32_32_ratio": "empty-32-32",
+    "paper_symbotic_39_37_ratio": "symbotic",
     "paper_den312d_65_81_ratio": "den312d",
     "paper_maze_32_32_2_ratio": "maze-32-32-2",
     "paper_room_64_64_8_ratio": "room-64-64-8",
@@ -67,7 +67,6 @@ RATIO_PREFIXES = {
 
 METHOD_LABELS = {
     "itacbs": "ITA-CBS",
-    "ita_ecbs_v2": "ITA-ECBS",
     "lacam_focal_h": "LaCAM-TAPF",
     "lacam_dfs": "LaCAM-TAPF-DFS",
     "ir": "IR-TAPF",
@@ -88,11 +87,10 @@ OPT_METHODS = [
     "opt_random_pibt",
 ]
 
-METHOD_ORDER = ["itacbs", "ita_ecbs_v2", "lacam_focal_h", "ir", "opt_dbs_hungarian"]
+METHOD_ORDER = ["itacbs", "lacam_focal_h", "ir", "opt_dbs_hungarian"]
 FIGURE4_METHOD_ORDER = ["itacbs", "lacam_focal_h", "lacam_dfs"]
 METHOD_COLORS = {
     "itacbs": "#1f77b4",
-    "ita_ecbs_v2": "#17becf",
     "lacam_focal_h": "#d62728",
     "lacam_dfs": "#ff9896",
     "ir": "#2ca02c",
@@ -105,7 +103,6 @@ METHOD_COLORS = {
 }
 METHOD_MARKERS = {
     "itacbs": "o",
-    "ita_ecbs_v2": "s",
     "lacam_focal_h": "^",
     "lacam_dfs": "v",
     "ir": "D",
@@ -367,29 +364,7 @@ def read_itacbs(path: Path, timeout_s: float) -> pd.DataFrame:
     return pd.DataFrame.from_records(records)
 
 
-def read_ecbs_success(path: Path, weight: str) -> pd.DataFrame:
-    if not path.exists():
-        return pd.DataFrame()
-    raw = pd.read_csv(path, sep="\t")
-    raw = raw[
-        (raw["method"] == "ITA_ECBS_v2")
-        & (raw["w"].astype(str) == str(weight))
-    ].copy()
-    if raw.empty:
-        return pd.DataFrame()
-    raw["map"] = raw["map"].map(normalize_map)
-    raw["scenario"] = raw["common_portion"].astype(str).str.zfill(3)
-    raw["agents"] = raw["agent_n"].astype(int)
-    raw["success_rate"] = raw["succ_rate"].astype(float)
-    raw["method"] = "ita_ecbs_v2"
-    raw["method_label"] = METHOD_LABELS["ita_ecbs_v2"]
-    raw["source"] = str(path)
-    return raw[
-        ["method", "method_label", "map", "scenario", "agents", "success_rate", "source"]
-    ]
-
-
-def make_success_rates(rows: pd.DataFrame, ecbs_success: pd.DataFrame) -> pd.DataFrame:
+def make_success_rates(rows: pd.DataFrame) -> pd.DataFrame:
     row_rates = pd.DataFrame()
     if not rows.empty:
         grouped = (
@@ -398,11 +373,7 @@ def make_success_rates(rows: pd.DataFrame, ecbs_success: pd.DataFrame) -> pd.Dat
             .reset_index()
         )
         row_rates = grouped
-    if ecbs_success.empty:
-        return row_rates
-    ecbs = ecbs_success.copy()
-    ecbs["n_cases"] = np.nan
-    return pd.concat([row_rates, ecbs], ignore_index=True, sort=False)
+    return row_rates
 
 
 def save_figure(fig: Any, out_dir: Path, stem: str) -> None:
@@ -413,6 +384,16 @@ def save_figure(fig: Any, out_dir: Path, stem: str) -> None:
             kwargs["dpi"] = PAPER_DPI
         fig.savefig(out_dir / f"{stem}.{suffix}", **kwargs)
     plt.close(fig)
+
+
+def agent_ticks(agent_values: list[float], max_ticks: int = 10) -> list[float]:
+    if len(agent_values) <= max_ticks:
+        return agent_values
+    stride = math.ceil(len(agent_values) / max_ticks)
+    ticks = agent_values[::stride]
+    if ticks[-1] != agent_values[-1]:
+        ticks.append(agent_values[-1])
+    return ticks
 
 
 def plot_figure2_subset(
@@ -455,7 +436,19 @@ def plot_figure2_subset(
                 handles.setdefault(label, line)
         ax.set_title(MAP_TITLES.get(map_name, map_name))
         ax.set_ylim(-0.03, 1.03)
-        ax.set_xlim(left=0, right=max_agents * 1.03 if max_agents is not None else None)
+        if subset.empty:
+            ax.set_xlim(left=0, right=max_agents * 1.03 if max_agents is not None else None)
+        else:
+            agent_values = sorted(pd.to_numeric(subset["agents"], errors="coerce").dropna().unique())
+            agent_min = float(agent_values[0])
+            agent_max = float(max_agents if max_agents is not None else agent_values[-1])
+            if len(agent_values) > 1:
+                diffs = np.diff(agent_values)
+                pad = float(diffs[diffs > 0].min()) * 0.1 if np.any(diffs > 0) else 0.0
+            else:
+                pad = 0.0
+            ax.set_xlim(left=max(0.0, agent_min - pad), right=agent_max * 1.03)
+            ax.set_xticks(agent_ticks(agent_values))
         ax.grid(True, alpha=0.35)
         ax.set_xlabel("# agents")
     axes[0, 0].set_ylabel("success rate")
@@ -627,6 +620,150 @@ def plot_first_solution_scatter(
     return summary
 
 
+def plot_solution_quality_scatter(rows: pd.DataFrame, out_dir: Path) -> pd.DataFrame:
+    methods = {"ir", "lacam_focal_h"}
+    subset = rows[rows["method"].isin(methods)].copy()
+    if subset.empty:
+        return pd.DataFrame()
+
+    cost = subset.pivot_table(
+        index="case_key",
+        columns="method",
+        values="cost",
+        aggfunc="min",
+    )
+    solved = subset.pivot_table(
+        index="case_key",
+        columns="method",
+        values="solved",
+        aggfunc="max",
+    )
+    if not methods.issubset(set(cost.columns)) or not methods.issubset(set(solved.columns)):
+        return pd.DataFrame()
+
+    ir_solved = solved["ir"].astype(float) > 0.5
+    lacam_solved = solved["lacam_focal_h"].astype(float) > 0.5
+    ir_cost = pd.to_numeric(cost["ir"], errors="coerce")
+    lacam_cost = pd.to_numeric(cost["lacam_focal_h"], errors="coerce")
+    common = (
+        ir_solved
+        & lacam_solved
+        & ir_cost.notna()
+        & lacam_cost.notna()
+        & (ir_cost > 0)
+        & (lacam_cost > 0)
+    )
+    xs = ir_cost[common]
+    lacam_values = lacam_cost[common]
+    if xs.empty:
+        return pd.DataFrame()
+    ratio = xs / lacam_values
+
+    x_axis_min = max(1.0, float(xs.min()) * 0.92)
+    x_axis_max = float(xs.max()) * 1.08
+    y_axis_min = min(0.95, float(ratio.quantile(0.01)) * 0.98)
+    y_axis_max = max(1.05, float(ratio.quantile(0.99)) * 1.02)
+    in_range = (ratio >= y_axis_min) & (ratio <= y_axis_max)
+    low = ratio < y_axis_min
+    high = ratio > y_axis_max
+
+    fig, ax = plt.subplots(figsize=(5.2, 4.6))
+    ax.scatter(
+        xs[in_range],
+        ratio[in_range],
+        s=8,
+        alpha=0.32,
+        color=METHOD_COLORS["lacam_focal_h"],
+        edgecolors="none",
+    )
+    if low.any():
+        ax.scatter(
+            xs[low],
+            np.full(int(low.sum()), y_axis_min),
+            s=14,
+            alpha=0.45,
+            marker="v",
+            color=METHOD_COLORS["lacam_focal_h"],
+            edgecolors="none",
+        )
+    if high.any():
+        ax.scatter(
+            xs[high],
+            np.full(int(high.sum()), y_axis_max),
+            s=14,
+            alpha=0.45,
+            marker="^",
+            color=METHOD_COLORS["lacam_focal_h"],
+            edgecolors="none",
+        )
+    if len(xs) >= 20:
+        edges = np.geomspace(float(xs.min()), float(xs.max()), 22)
+        centers: list[float] = []
+        medians: list[float] = []
+        q25: list[float] = []
+        q75: list[float] = []
+        for i, (left, right) in enumerate(zip(edges[:-1], edges[1:])):
+            if i == len(edges) - 2:
+                mask = (xs >= left) & (xs <= right)
+            else:
+                mask = (xs >= left) & (xs < right)
+            if int(mask.sum()) < 15:
+                continue
+            cur_ratio = ratio[mask]
+            centers.append(float(math.sqrt(left * right)))
+            medians.append(float(cur_ratio.median()))
+            q25.append(float(cur_ratio.quantile(0.25)))
+            q75.append(float(cur_ratio.quantile(0.75)))
+        if centers:
+            centers_arr = np.asarray(centers)
+            ax.fill_between(
+                centers_arr,
+                np.clip(np.asarray(q25), y_axis_min, y_axis_max),
+                np.clip(np.asarray(q75), y_axis_min, y_axis_max),
+                color=METHOD_COLORS["lacam_focal_h"],
+                alpha=0.12,
+                linewidth=0,
+            )
+            ax.plot(
+                centers_arr,
+                np.clip(np.asarray(medians), y_axis_min, y_axis_max),
+                color="#8b1a1a",
+                linewidth=1.4,
+                label="binned median",
+            )
+    ax.axhline(1.0, color="black", linestyle="--", linewidth=0.8)
+    ax.set_xscale("log")
+    ax.set_xlim(x_axis_min, x_axis_max)
+    ax.set_ylim(y_axis_min, y_axis_max)
+    ax.set_xlabel("IR-TAPF solution cost (SOC)")
+    ax.set_ylabel("IR-TAPF SOC / LaCAM-TAPF SOC")
+    ax.set_title("Solution quality ratio on cases both methods solved")
+    ax.grid(True, which="both", alpha=0.35)
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend(frameon=False, loc="upper left")
+    fig.suptitle("Figure 3c style: solution quality ratio")
+    save_figure(fig, out_dir, "figure3c_solution_quality_scatter")
+
+    return pd.DataFrame.from_records(
+        [
+            {
+                "comparison": "ir_vs_lacam_focal_h_solution_quality",
+                "cases": int(len(xs)),
+                "lacam_lower_cost_fraction": float((lacam_values < xs).mean()),
+                "ir_lower_cost_fraction": float((xs < lacam_values).mean()),
+                "tie_fraction": float((xs == lacam_values).mean()),
+                "median_ir_cost": float(xs.median()),
+                "median_lacam_cost": float(lacam_values.median()),
+                "median_ir_over_lacam_cost_ratio": float(ratio.median()),
+                "y_axis_lower": float(y_axis_min),
+                "y_axis_upper": float(y_axis_max),
+                "ratio_below_axis_count": int(low.sum()),
+                "ratio_above_axis_count": int(high.sum()),
+            }
+        ]
+    )
+
+
 def profile_metrics(rows: pd.DataFrame) -> pd.DataFrame:
     rows = rows.copy()
     rows = rows[rows["solved"] == True].copy()
@@ -747,6 +884,7 @@ def write_manifest(
     args: argparse.Namespace,
     scatter_summary: pd.DataFrame,
     first_solution_summary: pd.DataFrame,
+    quality_summary: pd.DataFrame,
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     coverage = (
@@ -773,33 +911,11 @@ def write_manifest(
             out_dir / "figure3b_first_solution_summary.csv",
             index=False,
         )
-
-    ecbs_coverage = pd.DataFrame()
-    if not success.empty and "method" in success:
-        ecbs_success = success[success["method"] == "ita_ecbs_v2"]
-        if not ecbs_success.empty:
-            ecbs_coverage = (
-                ecbs_success.groupby("method")
-                .agg(
-                    success_points=("method", "size"),
-                    maps=("map", lambda s: ",".join(sorted(set(s)))),
-                    scenarios=(
-                        "scenario",
-                        lambda s: ",".join(
-                            sorted(
-                                set(s),
-                                key=lambda v: SCENARIO_ORDER.index(v)
-                                if v in SCENARIO_ORDER
-                                else 99,
-                            )
-                        ),
-                    ),
-                    min_agents=("agents", "min"),
-                    max_agents=("agents", "max"),
-                )
-                .reset_index()
-            )
-            ecbs_coverage.to_csv(out_dir / "ecbs_success_coverage.csv", index=False)
+    if not quality_summary.empty:
+        quality_summary.to_csv(
+            out_dir / "figure3c_solution_quality_summary.csv",
+            index=False,
+        )
 
     opt_rows = rows[rows["method"].astype(str).str.startswith("opt_")]
     has_exp_opt = not opt_rows.empty
@@ -812,7 +928,6 @@ def write_manifest(
         f"- LaCAM/IR rows: `{args.lacam_ir_rows}`",
         f"- Extra row files: `{', '.join(str(p) for p in args.extra_rows) if args.extra_rows else ''}`",
         f"- ITA-CBS rows: `{args.itacbs_rows}`",
-        f"- ITA-ECBS success rates: `{args.ecbs_success}`",
         f"- LaCAM method plotted as LaCAM-TAPF: `{args.lacam_method}`",
         f"- Timeout cap used in plots: `{args.timeout_s:g}s`",
         "",
@@ -821,15 +936,15 @@ def write_manifest(
         "- `figure2b_exp2_success_rates.{png,pdf}`",
         "- `figure3_runtime_scatter.{png,pdf}`",
         "- `figure3b_first_solution_scatter.{png,pdf}`",
+        "- `figure3c_solution_quality_scatter.{png,pdf}`",
         "- `figure4_ta_runtime_nodes.{png,pdf}`",
         "- `figure5_runtime_breakdown.{png,pdf}`",
         "",
         "## Data caveats",
         "- The paper uses 30s optimal-solution limits; these local LaCAM/IR/ITA-CBS rows use a 10s rerun.",
-        "- ITA-ECBS is included in Figure 2 from precomputed success-rate rows for `ITA_ECBS_v2`, weight 1.10; those rows are aggregate success rates, not per-case runtime/profile records.",
         "- If multiple LaCAM/IR row files contain the same `(case_key, method)`, later inputs override earlier rows. This is used to replace stale IR rows with the latest rerun without double-counting cases.",
-        "- Complete ITA-ECBS row-level runtime/profile data on the same exp1/exp2 fixtures was not available in the normalized inputs, so Figures 3-5 omit ITA-ECBS.",
         "- Figure 3b compares LaCAM-TAPF `first_solution_time_ms` against IR-TAPF `initial_solution_time_ms`; missing or unsolved cases are plotted at the timeout cap.",
+        "- Figure 3c plots `IR-TAPF SOC / LaCAM-TAPF SOC` against IR-TAPF SOC only on cases solved by both methods; out-of-axis ratios are shown as boundary triangles using 1%-99% ratio limits.",
         "- Figure 4 includes only methods with comparable assignment/profile instrumentation. IR and IR+Opt rows are omitted there because the normalized exp1/exp2 rows do not expose comparable TA/node fields.",
         "- Figure 5 maps non-CBS methods to the closest available instrumentation. For LaCAM, target-assignment time is measured directly; the rest is search/refinement. For IR and IR+Opt, only total solver time is used in these exp1/exp2 rows.",
         f"- exp1/exp2 `opt_*` IR rows present in the plotted inputs: `{has_exp_opt}`.",
@@ -838,15 +953,6 @@ def write_manifest(
         "",
         coverage.to_markdown(index=False),
     ]
-    if not ecbs_coverage.empty:
-        lines.extend(
-            [
-                "",
-                "## ITA-ECBS Figure 2 Coverage",
-                "",
-                ecbs_coverage.to_markdown(index=False),
-            ]
-        )
     (out_dir / "MANIFEST.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -863,12 +969,6 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("build/results/full_10s_solver_parallel.csv"),
     )
-    parser.add_argument(
-        "--ecbs-success",
-        type=Path,
-        default=Path("/home/yimin/research/ITA-CBS2/plot_figure_ecbs/cvsdata.csv"),
-    )
-    parser.add_argument("--ecbs-weight", default="110")
     parser.add_argument("--lacam-method", default="lacam_focal_h")
     parser.add_argument("--timeout-s", type=float, default=10.0)
     parser.add_argument(
@@ -895,8 +995,7 @@ def main() -> None:
     rows["agents"] = rows["agents"].astype(int)
     rows["test"] = rows["test"].astype(int)
 
-    ecbs_success = read_ecbs_success(args.ecbs_success, args.ecbs_weight)
-    success = make_success_rates(rows, ecbs_success)
+    success = make_success_rates(rows)
     success = success[success["map"].isin(MAP_ORDER)].copy()
     success["agents"] = success["agents"].astype(int)
 
@@ -904,13 +1003,14 @@ def main() -> None:
     plot_figure2(success, args.out_dir)
     scatter_summary = plot_figure3(rows, args.out_dir, args.timeout_s)
     first_solution_summary = plot_first_solution_scatter(rows, args.out_dir, args.timeout_s)
+    quality_summary = plot_solution_quality_scatter(rows, args.out_dir)
     fig4_summary = plot_figure4(rows, args.out_dir)
     fig5_breakdown = plot_figure5(rows, args.out_dir)
     if not fig4_summary.empty:
         fig4_summary.to_csv(args.out_dir / "figure4_profile_summary.csv", index=False)
     if not fig5_breakdown.empty:
         fig5_breakdown.to_csv(args.out_dir / "figure5_runtime_breakdown.csv", index=False)
-    write_manifest(args.out_dir, rows, success, args, scatter_summary, first_solution_summary)
+    write_manifest(args.out_dir, rows, success, args, scatter_summary, first_solution_summary, quality_summary)
     print(f"Wrote figures and tables to {args.out_dir}")
 
 
