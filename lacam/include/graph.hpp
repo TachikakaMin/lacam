@@ -17,6 +17,7 @@ using Config = std::vector<Vertex*>;  // locations for all agents
 struct Graph {
   Vertices V;  // without nullptr
   Vertices U;  // with nullptr, i.e., |U| = width * height
+  std::vector<char> cell_types;  // original map chars, indexed like U
   int width;   // grid width
   int height;  // grid height
   Graph();
@@ -24,6 +25,10 @@ struct Graph {
   ~Graph();
 
   int size() const;  // the number of vertices, |V|
+  char cell_type(int index) const;
+  char cell_type(Vertex* v) const;
+  bool is_traversable(int index) const;
+  std::vector<Vertex*> vertices_of_type(char type) const;
 };
 
 bool is_same_config(

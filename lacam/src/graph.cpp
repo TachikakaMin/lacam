@@ -5,7 +5,11 @@ Vertex::Vertex(int _id, int _index)
 {
 }
 
-Graph::Graph() : V(Vertices()), width(0), height(0) {}
+Graph::Graph()
+    : V(Vertices()), U(Vertices()), cell_types(std::vector<char>()), width(0),
+      height(0)
+{
+}
 Graph::~Graph()
 {
   for (auto& v : V)
@@ -18,7 +22,9 @@ static const std::regex r_height = std::regex(R"(height\s(\d+))");
 static const std::regex r_width = std::regex(R"(width\s(\d+))");
 static const std::regex r_map = std::regex(R"(map)");
 
-Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
+Graph::Graph(const std::string& filename)
+    : V(Vertices()), U(Vertices()), cell_types(std::vector<char>()), width(0),
+      height(0)
 {
   std::ifstream file(filename);
   if (!file) {
@@ -43,6 +49,7 @@ Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
   }
 
   U = Vertices(width * height, nullptr);
+  cell_types = std::vector<char>(width * height, '@');
 
   // create vertices
   int y = 0;
@@ -51,6 +58,7 @@ Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
     if (*(line.end() - 1) == 0x0d) line.pop_back();
     for (int x = 0; x < width; ++x) {
       char s = line[x];
+      cell_types[width * y + x] = s;
       if (s == 'T' or s == '@') continue;  // object
       auto index = width * y + x;
       auto v = new Vertex(V.size(), index);
@@ -91,6 +99,32 @@ Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
 }
 
 int Graph::size() const { return V.size(); }
+
+char Graph::cell_type(int index) const
+{
+  if (index < 0 || index >= static_cast<int>(cell_types.size())) return '@';
+  return cell_types[index];
+}
+
+char Graph::cell_type(Vertex* v) const
+{
+  if (v == nullptr) return '@';
+  return cell_type(v->index);
+}
+
+bool Graph::is_traversable(int index) const
+{
+  return index >= 0 && index < static_cast<int>(U.size()) && U[index] != nullptr;
+}
+
+std::vector<Vertex*> Graph::vertices_of_type(char type) const
+{
+  auto vertices = std::vector<Vertex*>();
+  for (auto v : V) {
+    if (cell_type(v) == type) vertices.push_back(v);
+  }
+  return vertices;
+}
 
 bool is_same_config(const Config& C1, const Config& C2)
 {
