@@ -28,6 +28,8 @@ void write_csv_header(std::ostream& out)
          "final_picked_tasks,average_task_completion_time,"
          "average_pickup_time,average_delivery_time,planner_invocations,"
          "planner_success_count,planner_timeout_count,planner_failure_count,"
+         "planner_snapshot_infeasible_count,planner_invalid_instance_count,"
+         "planner_empty_solution_count,"
          "average_planner_runtime,max_planner_runtime,total_simulation_runtime,"
          "average_agent_idle_time,average_agent_loaded_time,"
          "average_agent_unloaded_time,valid,error\n";
@@ -42,7 +44,10 @@ void write_csv_row(std::ostream& out, const LifelongSimulationMetrics& m)
       << m.average_task_completion_time << "," << m.average_pickup_time << ","
       << m.average_delivery_time << "," << m.planner_invocations << ","
       << m.planner_success_count << "," << m.planner_timeout_count << ","
-      << m.planner_failure_count << "," << m.average_planner_runtime << ","
+      << m.planner_failure_count << ","
+      << m.planner_snapshot_infeasible_count << ","
+      << m.planner_invalid_instance_count << ","
+      << m.planner_empty_solution_count << "," << m.average_planner_runtime << ","
       << m.max_planner_runtime << "," << m.total_simulation_runtime << ","
       << m.average_agent_idle_time << "," << m.average_agent_loaded_time << ","
       << m.average_agent_unloaded_time << "," << m.valid << ","
@@ -170,6 +175,26 @@ int main(int argc, char** argv)
   std::cout << "planner_success_count=" << metrics.planner_success_count << "\n";
   std::cout << "planner_timeout_count=" << metrics.planner_timeout_count << "\n";
   std::cout << "planner_failure_count=" << metrics.planner_failure_count << "\n";
+  std::cout << "planner_snapshot_infeasible_count="
+            << metrics.planner_snapshot_infeasible_count << "\n";
+  std::cout << "planner_invalid_instance_count="
+            << metrics.planner_invalid_instance_count << "\n";
+  std::cout << "planner_empty_solution_count="
+            << metrics.planner_empty_solution_count << "\n";
+  if (metrics.first_empty_loaded_agents >= 0) {
+    std::cout << "first_empty_loaded_agents="
+              << metrics.first_empty_loaded_agents << "\n";
+    std::cout << "first_empty_assigned_unloaded_agents="
+              << metrics.first_empty_assigned_unloaded_agents << "\n";
+    std::cout << "first_empty_idle_agents="
+              << metrics.first_empty_idle_agents << "\n";
+    std::cout << "first_empty_unique_target_count="
+              << metrics.first_empty_unique_target_count << "\n";
+    std::cout << "first_empty_singleton_agents="
+              << metrics.first_empty_singleton_agents << "\n";
+    std::cout << "first_empty_multi_goal_agents="
+              << metrics.first_empty_multi_goal_agents << "\n";
+  }
   if (!metrics.valid) std::cout << "error=" << metrics.error << "\n";
   return metrics.valid ? 0 : 1;
 }

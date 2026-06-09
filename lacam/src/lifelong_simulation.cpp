@@ -266,12 +266,51 @@ LifelongSimulationMetrics run_lifelong_simulation(
           auto ins = build_lifelong_tapf_instance(config.map_filename, agents,
                                                   snapshot);
           if (ins.is_valid()) {
+            auto loaded_count = 0;
+            auto assigned_unloaded_count = 0;
+            auto idle_count = 0;
+            auto singleton_count = 0;
+            auto multi_goal_count = 0;
+            auto unique_targets = std::unordered_set<int>();
+            for (size_t i = 0; i < agents.size(); ++i) {
+              if (agents[i].load_state == AgentLoadState::LOADED) {
+                ++loaded_count;
+              } else if (agents[i].current_task_id.has_value()) {
+                ++assigned_unloaded_count;
+              } else {
+                ++idle_count;
+              }
+              if (snapshot.goal_indexes_by_agent[i].size() == 1) {
+                ++singleton_count;
+              } else {
+                ++multi_goal_count;
+              }
+              for (const auto target : snapshot.goal_indexes_by_agent[i]) {
+                unique_targets.insert(target);
+              }
+            }
             auto deadline = Deadline(config.planner_time_limit_sec * 1000);
             auto planner_mt = std::mt19937(config.seed + t);
             solution =
                 solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats, false);
             if (!solution.empty()) next_plan = solution_to_indexes(solution);
+            if (solution.empty() && !stats.timed_out) {
+              ++metrics.planner_empty_solution_count;
+              if (metrics.first_empty_loaded_agents < 0) {
+                metrics.first_empty_loaded_agents = loaded_count;
+                metrics.first_empty_assigned_unloaded_agents =
+                    assigned_unloaded_count;
+                metrics.first_empty_idle_agents = idle_count;
+                metrics.first_empty_unique_target_count = unique_targets.size();
+                metrics.first_empty_singleton_agents = singleton_count;
+                metrics.first_empty_multi_goal_agents = multi_goal_count;
+              }
+            }
+          } else {
+            ++metrics.planner_invalid_instance_count;
           }
+        } else {
+          ++metrics.planner_snapshot_infeasible_count;
         }
         const auto planning_runtime =
             std::chrono::duration_cast<std::chrono::nanoseconds>(

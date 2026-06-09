@@ -36,6 +36,15 @@ struct LifelongSimulationMetrics {
   int planner_success_count = 0;
   int planner_timeout_count = 0;
   int planner_failure_count = 0;
+  int planner_snapshot_infeasible_count = 0;
+  int planner_invalid_instance_count = 0;
+  int planner_empty_solution_count = 0;
+  int first_empty_loaded_agents = -1;
+  int first_empty_assigned_unloaded_agents = -1;
+  int first_empty_idle_agents = -1;
+  int first_empty_unique_target_count = -1;
+  int first_empty_singleton_agents = -1;
+  int first_empty_multi_goal_agents = -1;
   double average_planner_runtime = 0;
   double max_planner_runtime = 0;
   double total_simulation_runtime = 0;
