@@ -1,7 +1,9 @@
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <lacam.hpp>
+#include <tuple>
 
 namespace
 {
@@ -9,7 +11,8 @@ void print_usage()
 {
   std::cerr << "usage: lifelong_benchmark MAP NUM_AGENTS HORIZON SEED "
                "OUTPUT_CSV [CACHE] [TIME_LIMIT_SEC=2] [GOAL_SET_SIZE=5] "
-               "[OUTBOUND_PROB=0.5] [RELEASE_INTERVAL=10] [DEBUG=0]\n";
+               "[OUTBOUND_PROB=0.5] [RELEASE_INTERVAL=10] [DEBUG=0] "
+               "[SCHEDULE_YAML]\n";
 }
 
 bool should_write_header(const std::string& path)
@@ -45,6 +48,85 @@ void write_csv_row(std::ostream& out, const LifelongSimulationMetrics& m)
       << m.average_agent_unloaded_time << "," << m.valid << ","
       << '"' << m.error << '"' << "\n";
 }
+
+void write_u32(std::ofstream& out, std::uint32_t value)
+{
+  out.write(reinterpret_cast<const char*>(&value), sizeof(value));
+}
+
+std::string binary_schedule_path(const std::string& output_path)
+{
+  return output_path + ".bin";
+}
+
+std::string binary_schedule_metadata_path(const std::string& binary_path)
+{
+  return std::filesystem::path(binary_path).filename().string();
+}
+
+void write_schedule_binary(const LifelongSimulationMetrics& metrics,
+                           const std::string& binary_path)
+{
+  std::ofstream out(binary_path, std::ios::binary);
+  const char magic[8] = {'T', 'A', 'P', 'F', 'S', 'C', 'H', '1'};
+  out.write(magic, sizeof(magic));
+  write_u32(out, static_cast<std::uint32_t>(metrics.num_agents));
+  const auto makespan =
+      metrics.executed_path_indexes.empty()
+          ? 0
+          : static_cast<std::uint32_t>(metrics.executed_path_indexes.front().size() - 1);
+  write_u32(out, makespan);
+  for (const auto& path : metrics.executed_path_indexes) {
+    auto changes =
+        std::vector<std::tuple<std::uint32_t, std::uint32_t, std::uint32_t> >();
+    auto last = -1;
+    for (size_t t = 0; t < path.size(); ++t) {
+      if (path[t] == last) continue;
+      last = path[t];
+      changes.emplace_back(static_cast<std::uint32_t>(t),
+                           static_cast<std::uint32_t>(path[t] / metrics.map_width),
+                           static_cast<std::uint32_t>(path[t] % metrics.map_width));
+    }
+    write_u32(out, static_cast<std::uint32_t>(changes.size()));
+    for (const auto& [t, x, y] : changes) {
+      write_u32(out, t);
+      write_u32(out, x);
+      write_u32(out, y);
+    }
+  }
+}
+
+void write_schedule_yaml(const LifelongSimulationMetrics& metrics,
+                         const std::string& output_path)
+{
+  if (output_path.empty() || metrics.executed_path_indexes.empty()) return;
+  if (std::filesystem::path(output_path).has_parent_path()) {
+    std::filesystem::create_directories(std::filesystem::path(output_path).parent_path());
+  }
+  const auto binary_path = binary_schedule_path(output_path);
+  write_schedule_binary(metrics, binary_path);
+
+  std::ofstream out(output_path);
+  const auto makespan = metrics.executed_path_indexes.front().size() - 1;
+  out << "statistics:\n";
+  out << "  makespan: " << makespan << "\n";
+  out << "  completed_tasks: " << metrics.completed_tasks << "\n";
+  out << "  generated_tasks: " << metrics.generated_tasks << "\n";
+  out << "  throughput: " << metrics.throughput << "\n";
+  out << "assignments:\n";
+  for (size_t i = 0; i < metrics.executed_path_indexes.size(); ++i) {
+    const auto final_index = metrics.executed_path_indexes[i].back();
+    out << "  agent" << i << ":\n";
+    out << "    x: " << final_index / metrics.map_width << "\n";
+    out << "    y: " << final_index % metrics.map_width << "\n";
+  }
+  out << "schedule_binary:\n";
+  out << "  format: tapf_sparse_schedule_v1\n";
+  out << "  encoding: little_endian_u32\n";
+  out << "  path: " << binary_schedule_metadata_path(binary_path) << "\n";
+  out << "  agents: " << metrics.num_agents << "\n";
+  out << "  makespan: " << makespan << "\n";
+}
 }  // namespace
 
 int main(int argc, char** argv)
@@ -68,6 +150,7 @@ int main(int argc, char** argv)
       argc >= 10 ? std::stod(argv[9]) : 0.5;
   config.task_config.release_interval = argc >= 11 ? std::stoi(argv[10]) : 10;
   config.debug = argc >= 12 ? std::stoi(argv[11]) != 0 : false;
+  const auto schedule_yaml = argc >= 13 ? std::string(argv[12]) : std::string();
 
   const auto metrics = run_lifelong_simulation(config);
   std::ofstream out(output_csv, std::ios::app);
@@ -77,6 +160,7 @@ int main(int argc, char** argv)
   }
   if (should_write_header(output_csv)) write_csv_header(out);
   write_csv_row(out, metrics);
+  write_schedule_yaml(metrics, schedule_yaml);
 
   std::cout << "valid=" << metrics.valid << "\n";
   std::cout << "generated_tasks=" << metrics.generated_tasks << "\n";

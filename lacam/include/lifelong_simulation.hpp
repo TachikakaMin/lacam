@@ -42,6 +42,9 @@ struct LifelongSimulationMetrics {
   double average_agent_idle_time = 0;
   double average_agent_loaded_time = 0;
   double average_agent_unloaded_time = 0;
+  int map_width = 0;
+  int map_height = 0;
+  std::vector<std::vector<int> > executed_path_indexes;
   bool valid = true;
   std::string error;
 };

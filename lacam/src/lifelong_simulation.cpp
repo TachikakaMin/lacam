@@ -209,6 +209,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
   const auto sim_start = Time::now();
   try {
     auto graph = Graph(config.map_filename);
+    metrics.map_width = graph.width;
+    metrics.map_height = graph.height;
     auto mt = std::mt19937(config.seed);
     auto agents = make_agents(graph, config.num_agents, mt, config.start_indexes);
     auto tasks = std::vector<LifelongTask>();
@@ -325,6 +327,13 @@ LifelongSimulationMetrics run_lifelong_simulation(
 
     finalize_metrics(metrics, tasks, total_planner_runtime, idle_time,
                      loaded_time, unloaded_time);
+    metrics.executed_path_indexes.reserve(agents.size());
+    for (const auto& agent : agents) {
+      auto path = std::vector<int>();
+      path.reserve(agent.executed_path.size());
+      for (auto v : agent.executed_path) path.push_back(v->index);
+      metrics.executed_path_indexes.push_back(std::move(path));
+    }
   } catch (const std::exception& e) {
     metrics.valid = false;
     metrics.error = e.what();
