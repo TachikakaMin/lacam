@@ -1,0 +1,121 @@
+#include <set>
+
+#include <lacam.hpp>
+
+#include "gtest/gtest.h"
+
+namespace
+{
+bool all_goals_have_type(const Graph& graph, const LifelongTask& task,
+                         char type)
+{
+  for (auto goal : task.goal_set) {
+    if (graph.cell_type(goal) != type) return false;
+  }
+  return true;
+}
+
+std::set<int> goal_indexes(const LifelongTask& task)
+{
+  auto indexes = std::set<int>();
+  for (auto goal : task.goal_set) indexes.insert(goal->index);
+  return indexes;
+}
+}  // namespace
+
+TEST(lifelong_task_generator, generates_outbound_tasks_in_valid_regions)
+{
+  const auto graph = Graph("./tests/assets/symbotic.map");
+  auto config = LifelongTaskGeneratorConfig();
+  config.outbound_probability = 1.0;
+  auto generator = LifelongTaskGenerator(&graph, config, 7);
+
+  const auto tasks = generator.generate(0, 3, {});
+
+  ASSERT_EQ(tasks.size(), 3);
+  for (const auto& task : tasks) {
+    ASSERT_EQ(task.task_type, LifelongTaskType::OUTBOUND);
+    ASSERT_EQ(task.status, LifelongTaskStatus::PENDING);
+    ASSERT_EQ(task.release_timestep, 0);
+    ASSERT_EQ(graph.cell_type(task.start), 'a');
+    ASSERT_EQ(task.goal_set.size(), 5);
+    ASSERT_TRUE(all_goals_have_type(graph, task, 'o'));
+    ASSERT_EQ(goal_indexes(task).size(), 5);
+  }
+  ASSERT_NE(tasks[0].start, tasks[1].start);
+  ASSERT_NE(tasks[1].start, tasks[2].start);
+  ASSERT_NE(tasks[0].start, tasks[2].start);
+}
+
+TEST(lifelong_task_generator, generates_inbound_tasks_in_valid_regions)
+{
+  const auto graph = Graph("./tests/assets/symbotic.map");
+  auto config = LifelongTaskGeneratorConfig();
+  config.outbound_probability = 0.0;
+  auto generator = LifelongTaskGenerator(&graph, config, 11);
+
+  const auto tasks = generator.generate(10, 1, {});
+
+  ASSERT_EQ(tasks.size(), 1);
+  ASSERT_EQ(tasks.front().task_type, LifelongTaskType::INBOUND);
+  ASSERT_EQ(graph.cell_type(tasks.front().start), 'i');
+  ASSERT_TRUE(all_goals_have_type(graph, tasks.front(), 'a'));
+  ASSERT_EQ(goal_indexes(tasks.front()).size(), 5);
+}
+
+TEST(lifelong_task_generator, release_schedule_matches_goal)
+{
+  const auto graph = Graph("./tests/assets/symbotic.map");
+  auto generator =
+      LifelongTaskGenerator(&graph, LifelongTaskGeneratorConfig(), 0);
+
+  ASSERT_EQ(generator.release_count(0, 4), 4);
+  ASSERT_EQ(generator.release_count(1, 4), 0);
+  ASSERT_EQ(generator.release_count(9, 4), 0);
+  ASSERT_EQ(generator.release_count(10, 4), 1);
+  ASSERT_EQ(generator.release_count(990, 4), 1);
+}
+
+TEST(lifelong_task_generator, fixed_seed_is_reproducible)
+{
+  const auto graph = Graph("./tests/assets/symbotic.map");
+  auto config = LifelongTaskGeneratorConfig();
+  config.outbound_probability = 1.0;
+  auto generator_a = LifelongTaskGenerator(&graph, config, 123);
+  auto generator_b = LifelongTaskGenerator(&graph, config, 123);
+
+  const auto tasks_a = generator_a.generate(0, 2, {});
+  const auto tasks_b = generator_b.generate(0, 2, {});
+
+  ASSERT_EQ(tasks_a.size(), tasks_b.size());
+  for (size_t i = 0; i < tasks_a.size(); ++i) {
+    ASSERT_EQ(tasks_a[i].start->index, tasks_b[i].start->index);
+    ASSERT_EQ(goal_indexes(tasks_a[i]), goal_indexes(tasks_b[i]));
+  }
+}
+
+TEST(lifelong_task_generator, unfinished_task_starts_are_not_reused)
+{
+  const auto graph = Graph("./tests/assets/lifelong-task-small.map");
+  auto config = LifelongTaskGeneratorConfig();
+  config.goal_set_size = 3;
+  config.outbound_probability = 1.0;
+  auto generator = LifelongTaskGenerator(&graph, config, 5);
+
+  auto existing = generator.generate(0, 2, {});
+  ASSERT_NE(existing[0].start, existing[1].start);
+  ASSERT_THROW(generator.generate(10, 1, existing), std::runtime_error);
+
+  existing[0].status = LifelongTaskStatus::COMPLETED;
+  auto generated = generator.generate(20, 1, existing);
+  ASSERT_EQ(generated.front().start, existing[0].start);
+}
+
+TEST(lifelong_task_generator, throws_when_no_legal_task_can_be_generated)
+{
+  const auto graph = Graph("./tests/assets/2x1.map");
+  auto generator =
+      LifelongTaskGenerator(&graph, LifelongTaskGeneratorConfig(), 0);
+
+  ASSERT_THROW(generator.generate(0, 1, {}), std::runtime_error);
+}
