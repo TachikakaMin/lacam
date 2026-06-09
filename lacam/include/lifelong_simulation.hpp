@@ -14,6 +14,7 @@ struct LifelongSimulationConfig {
   int seed = 0;
   std::vector<int> start_indexes;
   double planner_time_limit_sec = 2.0;
+  bool planner_anytime = false;
   LifelongTaskGeneratorConfig task_config;
   bool debug = false;
 };

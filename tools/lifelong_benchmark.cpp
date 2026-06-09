@@ -12,7 +12,7 @@ void print_usage()
   std::cerr << "usage: lifelong_benchmark MAP NUM_AGENTS HORIZON SEED "
                "OUTPUT_CSV [CACHE] [TIME_LIMIT_SEC=2] [GOAL_SET_SIZE=5] "
                "[OUTBOUND_PROB=0.5] [RELEASE_INTERVAL=10] [DEBUG=0] "
-               "[SCHEDULE_YAML]\n";
+               "[SCHEDULE_YAML] [ANYTIME=0]\n";
 }
 
 bool should_write_header(const std::string& path)
@@ -206,6 +206,7 @@ int main(int argc, char** argv)
   config.task_config.release_interval = argc >= 11 ? std::stoi(argv[10]) : 10;
   config.debug = argc >= 12 ? std::stoi(argv[11]) != 0 : false;
   const auto schedule_yaml = argc >= 13 ? std::string(argv[12]) : std::string();
+  config.planner_anytime = argc >= 14 ? std::stoi(argv[13]) != 0 : false;
 
   const auto metrics = run_lifelong_simulation(config);
   std::ofstream out(output_csv, std::ios::app);

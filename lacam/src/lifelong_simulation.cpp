@@ -341,7 +341,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
             auto deadline = Deadline(config.planner_time_limit_sec * 1000);
             auto planner_mt = std::mt19937(config.seed + t);
             solution =
-                solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats, false);
+                solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats,
+                           config.planner_anytime);
             if (!solution.empty()) next_plan = solution_to_indexes(solution);
             if (solution.empty() && !stats.timed_out) {
               ++metrics.planner_empty_solution_count;
