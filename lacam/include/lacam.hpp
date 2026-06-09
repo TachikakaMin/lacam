@@ -3,6 +3,7 @@
 #include "dist_table.hpp"
 #include "graph.hpp"
 #include "instance.hpp"
+#include "map_dist_cache.hpp"
 #include "planner.hpp"
 #include "post_processing.hpp"
 #include "tapf_assignment.hpp"
