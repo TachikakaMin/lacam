@@ -266,7 +266,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
           if (ins.is_valid()) {
             auto deadline = Deadline(config.planner_time_limit_sec * 1000);
             auto planner_mt = std::mt19937(config.seed + t);
-            solution = solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats);
+            solution =
+                solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats, false);
             if (!solution.empty()) next_plan = solution_to_indexes(solution);
           }
         }
