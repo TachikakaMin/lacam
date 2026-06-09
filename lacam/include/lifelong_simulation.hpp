@@ -18,6 +18,16 @@ struct LifelongSimulationConfig {
   bool debug = false;
 };
 
+struct LifelongTaskVisualizationRecord {
+  int task_id = -1;
+  LifelongTaskType task_type = LifelongTaskType::OUTBOUND;
+  int start_index = -1;
+  std::vector<int> goal_indexes;
+  int release_timestep = -1;
+  int pickup_timestep = -1;
+  int completion_timestep = -1;
+};
+
 struct LifelongSimulationMetrics {
   std::string map_name;
   int num_agents = 0;
@@ -54,6 +64,9 @@ struct LifelongSimulationMetrics {
   int map_width = 0;
   int map_height = 0;
   std::vector<std::vector<int> > executed_path_indexes;
+  std::vector<std::vector<int> > agent_task_ids_by_timestep;
+  std::vector<std::vector<int> > agent_task_phases_by_timestep;
+  std::vector<LifelongTaskVisualizationRecord> task_records;
   bool valid = true;
   std::string error;
 };

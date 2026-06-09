@@ -136,6 +136,43 @@ bool check_motion_conflicts(const std::vector<Vertex*>& previous,
   return true;
 }
 
+int agent_task_phase(const LifelongAgentState& agent)
+{
+  if (!agent.current_task_id.has_value()) return 0;
+  return agent.load_state == AgentLoadState::LOADED ? 2 : 1;
+}
+
+void append_agent_task_snapshot(
+    LifelongSimulationMetrics& metrics,
+    const std::vector<LifelongAgentState>& agents)
+{
+  if (metrics.agent_task_ids_by_timestep.empty()) {
+    metrics.agent_task_ids_by_timestep.resize(agents.size());
+    metrics.agent_task_phases_by_timestep.resize(agents.size());
+  }
+  for (size_t i = 0; i < agents.size(); ++i) {
+    metrics.agent_task_ids_by_timestep[i].push_back(
+        agents[i].current_task_id.value_or(-1));
+    metrics.agent_task_phases_by_timestep[i].push_back(agent_task_phase(agents[i]));
+  }
+}
+
+void overwrite_latest_agent_task_snapshot(
+    LifelongSimulationMetrics& metrics,
+    const std::vector<LifelongAgentState>& agents)
+{
+  if (metrics.agent_task_ids_by_timestep.empty() ||
+      metrics.agent_task_ids_by_timestep.front().empty()) {
+    append_agent_task_snapshot(metrics, agents);
+    return;
+  }
+  for (size_t i = 0; i < agents.size(); ++i) {
+    metrics.agent_task_ids_by_timestep[i].back() =
+        agents[i].current_task_id.value_or(-1);
+    metrics.agent_task_phases_by_timestep[i].back() = agent_task_phase(agents[i]);
+  }
+}
+
 void finalize_metrics(LifelongSimulationMetrics& metrics,
                       const std::vector<LifelongTask>& tasks,
                       double total_planner_runtime, double idle_time,
@@ -148,6 +185,17 @@ void finalize_metrics(LifelongSimulationMetrics& metrics,
   auto delivery_count = 0;
 
   for (const auto& task : tasks) {
+    auto record = LifelongTaskVisualizationRecord();
+    record.task_id = task.task_id;
+    record.task_type = task.task_type;
+    record.start_index = task.start == nullptr ? -1 : task.start->index;
+    record.goal_indexes.reserve(task.goal_set.size());
+    for (auto goal : task.goal_set) record.goal_indexes.push_back(goal->index);
+    record.release_timestep = task.release_timestep;
+    record.pickup_timestep = task.pickup_timestep.value_or(-1);
+    record.completion_timestep = task.completion_timestep.value_or(-1);
+    metrics.task_records.push_back(std::move(record));
+
     switch (task.status) {
       case LifelongTaskStatus::PENDING:
         ++metrics.final_pending_tasks;
@@ -230,6 +278,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
     auto idle_time = 0.0;
     auto loaded_time = 0.0;
     auto unloaded_time = 0.0;
+    append_agent_task_snapshot(metrics, agents);
 
     for (int t = 0; t < config.horizon; ++t) {
       auto released = generator.generate_for_timestep(t, config.num_agents, tasks);
@@ -337,6 +386,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
           }
         }
       }
+      overwrite_latest_agent_task_snapshot(metrics, agents);
 
       auto previous = std::vector<Vertex*>();
       previous.reserve(agents.size());
@@ -355,6 +405,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
       if (process_arrivals()) valid_plan = false;
 
       accumulate_agent_time(agents, idle_time, loaded_time, unloaded_time);
+      append_agent_task_snapshot(metrics, agents);
       if (config.debug) {
         if (!check_motion_conflicts(previous, agents, &metrics.error) ||
             !check_lifelong_state_invariants(agents, tasks, &metrics.error)) {

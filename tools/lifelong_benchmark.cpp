@@ -69,6 +69,23 @@ std::string binary_schedule_metadata_path(const std::string& binary_path)
   return std::filesystem::path(binary_path).filename().string();
 }
 
+const char* task_type_name(LifelongTaskType type)
+{
+  return type == LifelongTaskType::OUTBOUND ? "outbound" : "inbound";
+}
+
+const char* task_phase_name(int phase)
+{
+  if (phase == 1) return "assigned";
+  if (phase == 2) return "loaded";
+  return "idle";
+}
+
+void write_yaml_point(std::ostream& out, int index, int width)
+{
+  out << "{x: " << index / width << ", y: " << index % width << "}";
+}
+
 void write_schedule_binary(const LifelongSimulationMetrics& metrics,
                            const std::string& binary_path)
 {
@@ -131,6 +148,39 @@ void write_schedule_yaml(const LifelongSimulationMetrics& metrics,
   out << "  path: " << binary_schedule_metadata_path(binary_path) << "\n";
   out << "  agents: " << metrics.num_agents << "\n";
   out << "  makespan: " << makespan << "\n";
+  out << "tasks:\n";
+  for (const auto& task : metrics.task_records) {
+    out << "  - id: " << task.task_id << "\n";
+    out << "    type: " << task_type_name(task.task_type) << "\n";
+    out << "    release: " << task.release_timestep << "\n";
+    out << "    pickup: " << task.pickup_timestep << "\n";
+    out << "    completion: " << task.completion_timestep << "\n";
+    out << "    start: ";
+    write_yaml_point(out, task.start_index, metrics.map_width);
+    out << "\n";
+    out << "    goals:\n";
+    for (const auto goal : task.goal_indexes) {
+      out << "      - ";
+      write_yaml_point(out, goal, metrics.map_width);
+      out << "\n";
+    }
+  }
+  out << "agent_task_timeline:\n";
+  for (size_t i = 0; i < metrics.agent_task_ids_by_timestep.size(); ++i) {
+    out << "  agent" << i << ":\n";
+    auto last_task = -2;
+    auto last_phase = -1;
+    const auto& task_ids = metrics.agent_task_ids_by_timestep[i];
+    const auto& phases = metrics.agent_task_phases_by_timestep[i];
+    for (size_t t = 0; t < task_ids.size(); ++t) {
+      if (task_ids[t] == last_task && phases[t] == last_phase) continue;
+      last_task = task_ids[t];
+      last_phase = phases[t];
+      out << "    - t: " << t << "\n";
+      out << "      task: " << task_ids[t] << "\n";
+      out << "      phase: " << task_phase_name(phases[t]) << "\n";
+    }
+  }
 }
 }  // namespace
 

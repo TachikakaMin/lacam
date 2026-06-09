@@ -40,6 +40,27 @@ def expand_path(path, makespan):
     return dense
 
 
+def expand_task_timeline(entries, makespan):
+    if not entries:
+        return [{"task": -1, "phase": "idle"} for _ in range(makespan + 1)]
+    entries = sorted(entries, key=lambda item: int(item.get("t", 0)))
+    dense = [{"task": -1, "phase": "idle"} for _ in range(makespan + 1)]
+    for idx, entry in enumerate(entries):
+        start = max(0, int(entry.get("t", 0)))
+        end = (
+            int(entries[idx + 1].get("t", makespan + 1))
+            if idx + 1 < len(entries)
+            else makespan + 1
+        )
+        value = {
+            "task": int(entry.get("task", -1)),
+            "phase": str(entry.get("phase", "idle")),
+        }
+        for tt in range(start, min(end, makespan + 1)):
+            dense[tt] = value
+    return dense
+
+
 def compute_stats(name, path, goal):
     makespan = len(path) - 1
     goal_t = list(goal)
@@ -281,6 +302,14 @@ tr.selected {{
   font-size: 12px;
   line-height: 1.45;
 }}
+.task-info {{
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}}
+.task-info strong {{
+  color: var(--ink);
+}}
 @media (max-width: 980px) {{
   .app {{
     grid-template-columns: 1fr;
@@ -327,7 +356,13 @@ tr.selected {{
         <div><span class="swatch" style="background:var(--late)"></span>Late departure</div>
         <div><span class="swatch" style="background:var(--both)"></span>Both</div>
         <div><span class="swatch" style="background:var(--other)"></span>Other</div>
+        <div><span class="swatch" style="background:#111;border-radius:2px"></span>Task start</div>
+        <div><span class="swatch" style="background:#fff;border:2px solid #111"></span>Task goals</div>
       </div>
+    </section>
+    <section class="panel">
+      <div class="title">Current Task</div>
+      <div id="taskInfo" class="task-info"></div>
     </section>
     <section class="panel">
       <div class="title">Agent Breakdown</div>
@@ -335,7 +370,7 @@ tr.selected {{
         <table id="table">
           <thead>
             <tr>
-              <th>agent</th><th>SOC</th><th>SOL</th><th>ABA</th><th>hidden</th><th>off</th>
+              <th>agent</th><th>task</th><th>phase</th><th>SOC</th><th>SOL</th><th>ABA</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -358,6 +393,8 @@ const playBtn = document.getElementById('play');
 const modeEl = document.getElementById('mode');
 const focusBtn = document.getElementById('focus');
 const tbody = document.querySelector('#table tbody');
+const taskInfo = document.getElementById('taskInfo');
+const taskById = new Map((DATA.tasks || []).map(task => [Number(task.id), task]));
 let t = 0;
 let timer = null;
 let selected = null;
@@ -379,18 +416,87 @@ function visible(agent) {{
   return true;
 }}
 
+function taskState(agent) {{
+  const idx = Math.min(t, agent.timeline.length - 1);
+  return agent.timeline[idx] || {{task: -1, phase: 'idle'}};
+}}
+
+function phaseLabel(phase) {{
+  if (phase === 'assigned') return 'to-start';
+  if (phase === 'loaded') return 'to-goal';
+  return 'idle';
+}}
+
+function taskLabel(state) {{
+  return state.task >= 0 ? `T${{state.task}}` : '-';
+}}
+
 function bounds() {{
   if (!focusCluster) return {{x0: 0, y0: 0, x1: DATA.height, y1: DATA.width}};
   return {{x0: 7, y0: 7, x1: 13, y1: 16}};
 }}
 
-function cellRect(row, col, b, cell, pad) {{
+function inBounds(point, b) {{
+  return point && point.x >= b.x0 && point.x < b.x1 && point.y >= b.y0 && point.y < b.y1;
+}}
+
+function cellCenter(point, b, cell, offX, offY) {{
   return {{
-    x: pad + (col - b.y0) * cell,
-    y: pad + (row - b.x0) * cell,
-    w: cell,
-    h: cell
+    x: offX + (point.y - b.y0 + 0.5) * cell,
+    y: offY + (point.x - b.x0 + 0.5) * cell
   }};
+}}
+
+function drawTaskMarker(point, b, cell, offX, offY, color, kind, strong, label) {{
+  if (!inBounds(point, b)) return;
+  const p = cellCenter(point, b, cell, offX, offY);
+  ctx.save();
+  ctx.globalAlpha = strong ? 1 : 0.42;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = kind === 'start' ? color : '#ffffff';
+  ctx.lineWidth = Math.max(2, cell * (strong ? 0.09 : 0.06));
+  if (kind === 'start') {{
+    const size = cell * (strong ? 0.46 : 0.34);
+    ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size);
+    ctx.strokeRect(p.x - size / 2, p.y - size / 2, size, size);
+  }} else {{
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, cell * (strong ? 0.35 : 0.25), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }}
+  if (label) {{
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#111827';
+    ctx.font = `${{Math.max(10, cell * 0.28)}}px ui-sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(label, p.x, p.y - cell * 0.34);
+  }}
+  ctx.restore();
+}}
+
+function drawCurrentTasks(b, cell, offX, offY) {{
+  const seen = new Set();
+  for (const agent of DATA.agents) {{
+    if (!visible(agent)) continue;
+    const state = taskState(agent);
+    if (state.task < 0) continue;
+    const task = taskById.get(Number(state.task));
+    if (!task) continue;
+    const key = `${{agent.id}}:${{state.task}}:${{state.phase}}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const color = colorFor(agent);
+    const strong = selected === agent.id;
+    if (state.phase === 'assigned') {{
+      drawTaskMarker(task.start, b, cell, offX, offY, color, 'start', strong, strong ? `T${{task.id}} start` : '');
+    }} else if (state.phase === 'loaded') {{
+      for (const goal of task.goals || []) {{
+        drawTaskMarker(goal, b, cell, offX, offY, color, 'goal', strong, strong ? `T${{task.id}} goal` : '');
+      }}
+    }}
+  }}
 }}
 
 function draw() {{
@@ -419,18 +525,7 @@ function draw() {{
     }}
   }}
 
-  for (const agent of DATA.agents) {{
-    if (!visible(agent)) continue;
-    const [gr, gc] = agent.goal;
-    if (gr < b.x0 || gr >= b.x1 || gc < b.y0 || gc >= b.y1) continue;
-    const x = offX + (gc - b.y0 + 0.5) * cell;
-    const y = offY + (gr - b.x0 + 0.5) * cell;
-    ctx.strokeStyle = colorFor(agent);
-    ctx.lineWidth = Math.max(2, cell * 0.08);
-    ctx.beginPath();
-    ctx.arc(x, y, cell * 0.36, 0, Math.PI * 2);
-    ctx.stroke();
-  }}
+  drawCurrentTasks(b, cell, offX, offY);
 
   for (const agent of DATA.agents) {{
     if (!visible(agent)) continue;
@@ -472,16 +567,44 @@ function draw() {{
     ctx.textBaseline = 'middle';
     ctx.fillText(String(agent.id), x, y);
   }}
+  renderTable();
+  renderTaskInfo();
+}}
+
+function renderTaskInfo() {{
+  if (selected !== null) {{
+    const agent = DATA.agents.find(a => a.id === selected);
+    const state = agent ? taskState(agent) : {{task: -1, phase: 'idle'}};
+    const task = taskById.get(Number(state.task));
+    if (!agent || !task) {{
+      taskInfo.innerHTML = '<strong>Selected agent</strong>: idle';
+      return;
+    }}
+    const goals = (task.goals || []).map(g => `(${{g.x}},${{g.y}})`).join(' ');
+    taskInfo.innerHTML = `<strong>${{agent.name}}</strong> ${{
+      phaseLabel(state.phase)
+    }} <strong>T${{task.id}}</strong> ${{task.type}}<br>start (${{task.start.x}},${{task.start.y}})<br>goals ${{goals}}`;
+    return;
+  }}
+  let assigned = 0;
+  let loaded = 0;
+  for (const agent of DATA.agents) {{
+    const state = taskState(agent);
+    if (state.phase === 'assigned') assigned++;
+    if (state.phase === 'loaded') loaded++;
+  }}
+  taskInfo.innerHTML = `<strong>t=${{t}}</strong>: ${{assigned}} assigned-to-start, ${{loaded}} loaded-to-goal. Click an agent row to show its task start and goal_set labels.`;
 }}
 
 function renderTable() {{
   const agents = [...DATA.agents].sort((a, b) => b.soc - a.soc);
   tbody.innerHTML = '';
   for (const a of agents) {{
+    const state = taskState(a);
     const tr = document.createElement('tr');
     tr.dataset.id = a.id;
     if (a.id === selected) tr.classList.add('selected');
-    tr.innerHTML = `<td><span class="swatch" style="background:${{colorFor(a)}}"></span>${{a.name}}</td><td>${{a.soc}}</td><td>${{a.sol}}</td><td>${{a.aba}}</td><td>${{a.hiddenWait}}</td><td>${{a.offAfter}}</td>`;
+    tr.innerHTML = `<td><span class="swatch" style="background:${{colorFor(a)}}"></span>${{a.name}}</td><td>${{taskLabel(state)}}</td><td>${{phaseLabel(state.phase)}}</td><td>${{a.soc}}</td><td>${{a.sol}}</td><td>${{a.aba}}</td>`;
     tr.addEventListener('click', () => {{
       selected = selected === a.id ? null : a.id;
       renderTable();
@@ -541,6 +664,9 @@ def main():
         dense = expand_path(schedule_data["schedule"][name], makespan)
         stats = compute_stats(name, dense, goal)
         stats["path"] = dense
+        stats["timeline"] = expand_task_timeline(
+            schedule_data.get("agent_task_timeline", {}).get(name, []), makespan
+        )
         agents.append(stats)
 
     payload = {
@@ -548,6 +674,7 @@ def main():
         "height": len(grid),
         "width": len(grid[0]),
         "makespan": makespan,
+        "tasks": schedule_data.get("tasks", []),
         "agents": agents,
     }
     soc = sum(a["soc"] for a in agents)
