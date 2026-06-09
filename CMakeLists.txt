@@ -15,6 +15,10 @@ add_executable(tapf_benchmark tools/tapf_benchmark.cpp)
 target_compile_features(tapf_benchmark PUBLIC cxx_std_17)
 target_link_libraries(tapf_benchmark lacam)
 
+add_executable(lifelong_benchmark tools/lifelong_benchmark.cpp)
+target_compile_features(lifelong_benchmark PUBLIC cxx_std_17)
+target_link_libraries(lifelong_benchmark lacam)
+
 # test
 set(TEST_MAIN_FUNC ./third_party/googletest/googletest/src/gtest_main.cc)
 set(TEST_ALL_SRC ${TEST_MAIN_FUNC})
