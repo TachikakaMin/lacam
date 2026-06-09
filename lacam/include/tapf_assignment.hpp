@@ -263,3 +263,6 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
     TAPFAssignmentState& state, const std::vector<int>& changed_agents,
     const bool force_full = false, TAPFAssignmentStats* stats = nullptr);
+
+TAPFAssignmentResult assign_hungarian_cost_matrix(
+    const std::vector<std::vector<int> >& cost);

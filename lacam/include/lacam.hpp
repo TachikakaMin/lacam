@@ -5,6 +5,7 @@
 #include "instance.hpp"
 #include "lifelong_state.hpp"
 #include "lifelong_task.hpp"
+#include "lifelong_planning.hpp"
 #include "map_dist_cache.hpp"
 #include "planner.hpp"
 #include "post_processing.hpp"

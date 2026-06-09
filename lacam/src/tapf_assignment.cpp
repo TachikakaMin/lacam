@@ -182,3 +182,15 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
   record_assignment_time(t_start, stats);
   return result;
 }
+
+TAPFAssignmentResult assign_hungarian_cost_matrix(
+    const std::vector<std::vector<int> >& cost)
+{
+  if (cost.empty()) return TAPFAssignmentResult{std::vector<int>(), 0, true};
+  const auto width = cost.front().size();
+  if (width == 0 || width < cost.size()) return invalid_result();
+  for (const auto& row : cost) {
+    if (row.size() != width) return invalid_result();
+  }
+  return HungarianAssignment(cost).solve();
+}
