@@ -69,11 +69,45 @@ TEST(lifelong_task_generator, release_schedule_matches_goal)
   auto generator =
       LifelongTaskGenerator(&graph, LifelongTaskGeneratorConfig(), 0);
 
-  ASSERT_EQ(generator.release_count(0, 4), 4);
+  ASSERT_EQ(generator.release_count(0, 4), 8);
   ASSERT_EQ(generator.release_count(1, 4), 0);
   ASSERT_EQ(generator.release_count(9, 4), 0);
   ASSERT_EQ(generator.release_count(10, 4), 1);
   ASSERT_EQ(generator.release_count(990, 4), 1);
+}
+
+TEST(lifelong_task_generator, release_count_refills_backlog)
+{
+  const auto graph = Graph("./tests/assets/symbotic.map");
+  auto generator =
+      LifelongTaskGenerator(&graph, LifelongTaskGeneratorConfig(), 0);
+  auto full_backlog = std::vector<LifelongTask>(8);
+  auto partial_backlog = std::vector<LifelongTask>(8);
+  partial_backlog[0].status = LifelongTaskStatus::COMPLETED;
+  partial_backlog[1].status = LifelongTaskStatus::COMPLETED;
+
+  ASSERT_EQ(generator.release_count(0, 4, {}), 8);
+  ASSERT_EQ(generator.release_count(1, 4, full_backlog), 0);
+  ASSERT_EQ(generator.release_count(10, 4, full_backlog), 1);
+  ASSERT_EQ(generator.release_count(1, 4, partial_backlog), 2);
+  ASSERT_EQ(generator.release_count(10, 4, partial_backlog), 3);
+}
+
+TEST(lifelong_task_generator, generate_for_timestep_refills_completed_tasks)
+{
+  const auto graph = Graph("./tests/assets/symbotic.map");
+  auto config = LifelongTaskGeneratorConfig();
+  config.outbound_probability = 1.0;
+  auto generator = LifelongTaskGenerator(&graph, config, 17);
+
+  auto initial = generator.generate_for_timestep(0, 4, {});
+  ASSERT_EQ(initial.size(), 8);
+
+  initial[0].status = LifelongTaskStatus::COMPLETED;
+  initial[1].status = LifelongTaskStatus::COMPLETED;
+  auto refill = generator.generate_for_timestep(1, 4, initial);
+
+  ASSERT_EQ(refill.size(), 2);
 }
 
 TEST(lifelong_task_generator, fixed_seed_is_reproducible)
@@ -109,6 +143,21 @@ TEST(lifelong_task_generator, unfinished_task_starts_are_not_reused)
   existing[0].status = LifelongTaskStatus::COMPLETED;
   auto generated = generator.generate(20, 1, existing);
   ASSERT_EQ(generated.front().start, existing[0].start);
+}
+
+TEST(lifelong_task_generator, falls_back_when_preferred_task_type_is_illegal)
+{
+  const auto graph = Graph("./tests/assets/lifelong-task-small.map");
+  auto config = LifelongTaskGeneratorConfig();
+  config.goal_set_size = 3;
+  config.outbound_probability = 0.0;
+  auto generator = LifelongTaskGenerator(&graph, config, 5);
+
+  auto generated = generator.generate(0, 1, {});
+
+  ASSERT_EQ(generated.front().task_type, LifelongTaskType::OUTBOUND);
+  ASSERT_EQ(graph.cell_type(generated.front().start), 'a');
+  ASSERT_TRUE(all_goals_have_type(graph, generated.front(), 'o'));
 }
 
 TEST(lifelong_task_generator, throws_when_no_legal_task_can_be_generated)

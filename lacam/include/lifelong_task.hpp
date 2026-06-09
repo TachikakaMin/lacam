@@ -38,6 +38,7 @@ struct LifelongTask {
 struct LifelongTaskGeneratorConfig {
   int goal_set_size = 5;
   int release_interval = 10;
+  int backlog_multiplier = 2;
   double outbound_probability = 0.5;
 };
 
@@ -52,12 +53,17 @@ struct LifelongTaskGenerator {
                         int seed = 0);
 
   int release_count(int timestep, int num_agents) const;
+  int release_count(int timestep, int num_agents,
+                    const std::vector<LifelongTask>& tasks) const;
   std::vector<LifelongTask> generate(int timestep, int count,
                                      const std::vector<LifelongTask>& tasks);
   std::vector<LifelongTask> generate_for_timestep(
       int timestep, int num_agents, const std::vector<LifelongTask>& tasks);
 
  private:
+  std::optional<LifelongTask> try_make_task(
+      int timestep, LifelongTaskType type,
+      const std::unordered_set<int>& used_starts);
   LifelongTask make_task(int timestep, LifelongTaskType type,
                          const std::unordered_set<int>& used_starts);
   LifelongTaskType sample_task_type();

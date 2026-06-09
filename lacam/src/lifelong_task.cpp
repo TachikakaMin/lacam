@@ -56,6 +56,9 @@ LifelongTaskGenerator::LifelongTaskGenerator(
   if (config.release_interval <= 0) {
     throw std::invalid_argument("release_interval must be positive");
   }
+  if (config.backlog_multiplier <= 0) {
+    throw std::invalid_argument("backlog_multiplier must be positive");
+  }
   if (config.outbound_probability < 0.0 || config.outbound_probability > 1.0) {
     throw std::invalid_argument("outbound_probability must be in [0, 1]");
   }
@@ -64,8 +67,27 @@ LifelongTaskGenerator::LifelongTaskGenerator(
 int LifelongTaskGenerator::release_count(int timestep, int num_agents) const
 {
   if (timestep < 0) return 0;
-  if (timestep == 0) return num_agents;
+  if (timestep == 0) return config.backlog_multiplier * num_agents;
   return timestep % config.release_interval == 0 ? 1 : 0;
+}
+
+int LifelongTaskGenerator::release_count(
+    int timestep, int num_agents, const std::vector<LifelongTask>& tasks) const
+{
+  if (timestep < 0) return 0;
+  const auto target_backlog = config.backlog_multiplier * num_agents;
+  auto unfinished_count = 0;
+  for (const auto& task : tasks) {
+    if (is_unfinished(task)) ++unfinished_count;
+  }
+
+  if (timestep == 0) {
+    return std::max(0, target_backlog - unfinished_count);
+  }
+
+  auto count = timestep % config.release_interval == 0 ? 1 : 0;
+  count += std::max(0, target_backlog - unfinished_count);
+  return count;
 }
 
 std::vector<LifelongTask> LifelongTaskGenerator::generate(
@@ -84,10 +106,10 @@ std::vector<LifelongTask> LifelongTaskGenerator::generate(
 std::vector<LifelongTask> LifelongTaskGenerator::generate_for_timestep(
     int timestep, int num_agents, const std::vector<LifelongTask>& tasks)
 {
-  return generate(timestep, release_count(timestep, num_agents), tasks);
+  return generate(timestep, release_count(timestep, num_agents, tasks), tasks);
 }
 
-LifelongTask LifelongTaskGenerator::make_task(
+std::optional<LifelongTask> LifelongTaskGenerator::try_make_task(
     int timestep, LifelongTaskType type,
     const std::unordered_set<int>& used_starts)
 {
@@ -97,11 +119,11 @@ LifelongTask LifelongTaskGenerator::make_task(
   const auto goals = graph->vertices_of_type(goal_type);
   auto start = sample_start(starts, used_starts, mt);
   if (start == nullptr) {
-    throw std::runtime_error("failed to generate task: no available start");
+    return std::nullopt;
   }
   auto goal_set = sample_goal_set(goals, config.goal_set_size, mt);
   if (static_cast<int>(goal_set.size()) != config.goal_set_size) {
-    throw std::runtime_error("failed to generate task: insufficient goals");
+    return std::nullopt;
   }
 
   auto task = LifelongTask();
@@ -112,6 +134,22 @@ LifelongTask LifelongTaskGenerator::make_task(
   task.status = LifelongTaskStatus::PENDING;
   task.release_timestep = timestep;
   return task;
+}
+
+LifelongTask LifelongTaskGenerator::make_task(
+    int timestep, LifelongTaskType type,
+    const std::unordered_set<int>& used_starts)
+{
+  auto task = try_make_task(timestep, type, used_starts);
+  if (task.has_value()) return *task;
+
+  const auto alternate =
+      type == LifelongTaskType::OUTBOUND ? LifelongTaskType::INBOUND
+                                         : LifelongTaskType::OUTBOUND;
+  task = try_make_task(timestep, alternate, used_starts);
+  if (task.has_value()) return *task;
+
+  throw std::runtime_error("failed to generate task: no legal start/goal set");
 }
 
 LifelongTaskType LifelongTaskGenerator::sample_task_type()
