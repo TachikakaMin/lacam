@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace
 {
@@ -32,6 +33,102 @@ std::vector<int> goal_indexes(const Vertices& vertices)
   indexes.reserve(vertices.size());
   for (auto v : vertices) indexes.push_back(v->index);
   return indexes;
+}
+
+Vertices service_targets(const LifelongAgentState& agent,
+                         const std::vector<LifelongTask>& tasks)
+{
+  if (!agent.current_task_id.has_value()) return Vertices();
+  const auto* task = find_task_by_id(tasks, *agent.current_task_id);
+  if (task == nullptr) return Vertices();
+  if (agent.load_state == AgentLoadState::LOADED &&
+      task->status == LifelongTaskStatus::PICKED) {
+    return task->goal_set;
+  }
+  if (agent.load_state == AgentLoadState::UNLOADED &&
+      task->status == LifelongTaskStatus::ASSIGNED) {
+    return Vertices{task->start};
+  }
+  return Vertices();
+}
+
+int yield_assignment_penalty(size_t num_agents,
+                             const MapDistanceCache& distances)
+{
+  const auto max_distance =
+      static_cast<long long>(std::max(1, distances.metadata.traversable_count));
+  const auto desired =
+      (static_cast<long long>(num_agents) + 1) * (max_distance + 1);
+  return static_cast<int>(
+      std::min<long long>(desired, kTapfAssignmentInfCost / 2));
+}
+
+bool coordinate_physical_targets(
+    std::vector<LifelongAgentState>& agents,
+    const std::vector<LifelongTask>& tasks,
+    const MapDistanceCache& distances, LifelongPlanningSnapshot& snapshot)
+{
+  if (agents.empty()) return true;
+
+  auto service_by_agent = std::vector<Vertices>(agents.size());
+  auto targets = Vertices();
+  auto target_by_index = std::unordered_map<int, size_t>();
+  auto parking_indexes = std::unordered_set<int>();
+
+  auto add_target = [&](Vertex* target) {
+    if (target == nullptr) return;
+    if (target_by_index.find(target->index) != target_by_index.end()) return;
+    target_by_index[target->index] = targets.size();
+    targets.push_back(target);
+  };
+
+  for (size_t i = 0; i < agents.size(); ++i) {
+    service_by_agent[i] = service_targets(agents[i], tasks);
+    if (agents[i].current_task_id.has_value() && service_by_agent[i].empty()) {
+      return false;
+    }
+    for (auto target : service_by_agent[i]) add_target(target);
+  }
+  for (const auto& agent : agents) {
+    add_target(agent.current_location);
+    parking_indexes.insert(agent.current_location->index);
+  }
+
+  auto cost = std::vector<std::vector<int> >(
+      agents.size(),
+      std::vector<int>(targets.size(), kTapfAssignmentInfCost));
+  const auto yield_penalty =
+      yield_assignment_penalty(agents.size(), distances);
+
+  for (size_t i = 0; i < agents.size(); ++i) {
+    for (auto target : service_by_agent[i]) {
+      const auto col = target_by_index.at(target->index);
+      const auto distance = distances.get(agents[i].current_location, target);
+      if (distance < kMapDistanceInf) cost[i][col] = distance;
+    }
+    for (size_t col = 0; col < targets.size(); ++col) {
+      if (parking_indexes.find(targets[col]->index) == parking_indexes.end()) {
+        continue;
+      }
+      const auto distance =
+          distances.get(agents[i].current_location, targets[col]);
+      if (distance >= kMapDistanceInf) continue;
+      cost[i][col] =
+          std::min(cost[i][col], yield_penalty + distance);
+    }
+  }
+
+  const auto assignment = assign_hungarian_cost_matrix(cost);
+  if (!assignment.feasible) return false;
+
+  for (size_t i = 0; i < agents.size(); ++i) {
+    const auto col = assignment.agent_to_task[i];
+    if (col < 0 || col >= static_cast<int>(targets.size())) return false;
+    auto* target = targets[col];
+    snapshot.goal_indexes_by_agent[i] = {target->index};
+    agents[i].current_target = target;
+  }
+  return true;
 }
 }  // namespace
 
@@ -99,7 +196,11 @@ LifelongPlanningSnapshot assign_lifelong_tasks_for_replanning(
 
   const auto unloaded_agents = collect_unloaded_agents(agents);
   const auto pending_tasks = collect_pending_tasks(tasks);
-  if (unloaded_agents.empty()) return snapshot;
+  if (unloaded_agents.empty()) {
+    snapshot.feasible =
+        coordinate_physical_targets(agents, tasks, distances, snapshot);
+    return snapshot;
+  }
 
   const auto dummy_cols = unloaded_agents.size();
   const auto total_cols = pending_tasks.size() + dummy_cols;
@@ -137,6 +238,8 @@ LifelongPlanningSnapshot assign_lifelong_tasks_for_replanning(
     snapshot.assignment_cost += cost[row][col];
   }
 
+  snapshot.feasible =
+      coordinate_physical_targets(agents, tasks, distances, snapshot);
   return snapshot;
 }
 

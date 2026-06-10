@@ -107,10 +107,58 @@ TEST(lifelong_planning, loaded_agents_keep_picked_task_goal_set)
   ASSERT_EQ(tasks[0].status, LifelongTaskStatus::PICKED);
   ASSERT_EQ(agents[0].current_task_id, 20);
   ASSERT_EQ(snapshot.assigned_task_ids_by_agent[0], 20);
-  ASSERT_EQ(snapshot.goal_indexes_by_agent[0].size(), 2);
+  ASSERT_EQ(snapshot.goal_indexes_by_agent[0].size(), 1);
+  ASSERT_TRUE(snapshot.goal_indexes_by_agent[0][0] == graph.U[0]->index ||
+              snapshot.goal_indexes_by_agent[0][0] == graph.U[9]->index);
   ASSERT_EQ(tasks[1].status, LifelongTaskStatus::ASSIGNED);
   ASSERT_EQ(tasks[1].assigned_agent_id, 1);
   ASSERT_EQ(snapshot.goal_indexes_by_agent[1][0], graph.U[2]->index);
+}
+
+TEST(lifelong_planning, shared_service_goal_assigns_one_agent_to_yield)
+{
+  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[1]),
+      make_agent(1, graph.U[2]),
+  };
+  agents[0].load_state = AgentLoadState::LOADED;
+  agents[0].current_task_id = 20;
+  agents[1].load_state = AgentLoadState::LOADED;
+  agents[1].current_task_id = 21;
+
+  auto task0 = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[1],
+                                 Vertices{graph.U[4]});
+  task0.status = LifelongTaskStatus::PICKED;
+  task0.picked_agent_id = 0;
+  auto task1 = make_pending_task(21, LifelongTaskType::INBOUND, graph.U[2],
+                                 Vertices{graph.U[4]});
+  task1.status = LifelongTaskStatus::PICKED;
+  task1.picked_agent_id = 1;
+  auto tasks = std::vector<LifelongTask>{task0, task1};
+
+  const auto snapshot =
+      assign_lifelong_tasks_for_replanning(agents, tasks, distances);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
+
+  ASSERT_TRUE(snapshot.feasible);
+  ASSERT_EQ(ins.tasks.size(), 2);
+  ASSERT_NE(snapshot.goal_indexes_by_agent[0][0],
+            snapshot.goal_indexes_by_agent[1][0]);
+  const auto service_count =
+      (snapshot.goal_indexes_by_agent[0][0] == graph.U[4]->index ? 1 : 0) +
+      (snapshot.goal_indexes_by_agent[1][0] == graph.U[4]->index ? 1 : 0);
+  ASSERT_EQ(service_count, 1);
+  const auto yield_count =
+      (snapshot.goal_indexes_by_agent[0][0] == graph.U[1]->index ||
+       snapshot.goal_indexes_by_agent[0][0] == graph.U[2]->index ? 1 : 0) +
+      (snapshot.goal_indexes_by_agent[1][0] == graph.U[1]->index ||
+       snapshot.goal_indexes_by_agent[1][0] == graph.U[2]->index ? 1 : 0);
+  ASSERT_EQ(yield_count, 1);
 }
 
 TEST(lifelong_planning, replanning_releases_and_switches_unpicked_assignment)
