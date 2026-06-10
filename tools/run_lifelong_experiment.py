@@ -24,6 +24,7 @@ def main() -> int:
     parser.add_argument("--goal-set-size", type=int, default=5)
     parser.add_argument("--outbound-prob", type=float, default=0.5)
     parser.add_argument("--release-interval", type=int, default=10)
+    parser.add_argument("--planner-anytime", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -49,6 +50,8 @@ def main() -> int:
                 str(args.outbound_prob),
                 str(args.release_interval),
                 "1" if args.debug else "0",
+                "",
+                "1" if args.planner_anytime else "0",
             ]
             print("running", " ".join(cmd), flush=True)
             subprocess.run(cmd, check=True)
