@@ -35,6 +35,28 @@ std::vector<int> goal_indexes(const Vertices& vertices)
   return indexes;
 }
 
+int stable_unloaded_assignment_cost(
+    int base_cost, const LifelongTask& task,
+    const std::optional<int>& previous_task_id, size_t num_unloaded_agents,
+    bool encode_switches)
+{
+  if (!encode_switches || base_cost >= kTapfAssignmentInfCost) return base_cost;
+  const auto scale = static_cast<long long>(num_unloaded_agents) + 1;
+  const auto switched =
+      previous_task_id.has_value() && *previous_task_id != task.task_id ? 1 : 0;
+  return static_cast<int>(static_cast<long long>(base_cost) * scale + switched);
+}
+
+bool can_encode_stable_assignment_costs(
+    size_t num_unloaded_agents, const MapDistanceCache& distances)
+{
+  const auto max_leg = static_cast<long long>(
+      std::max(0, distances.metadata.traversable_count - 1));
+  const auto max_base_cost = 2 * max_leg;
+  const auto scale = static_cast<long long>(num_unloaded_agents) + 1;
+  return max_base_cost * scale + 1 < kIdleAssignmentCost;
+}
+
 Vertices service_targets(const LifelongAgentState& agent,
                          const std::vector<LifelongTask>& tasks)
 {
@@ -166,6 +188,13 @@ LifelongPlanningSnapshot assign_lifelong_tasks_for_replanning(
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
     const MapDistanceCache& distances)
 {
+  auto previous_task_ids =
+      std::vector<std::optional<int> >(agents.size(), std::nullopt);
+  for (size_t i = 0; i < agents.size(); ++i) {
+    if (agents[i].load_state == AgentLoadState::UNLOADED) {
+      previous_task_ids[i] = agents[i].current_task_id;
+    }
+  }
   release_unpicked_assignments(agents, tasks);
 
   auto snapshot = LifelongPlanningSnapshot();
@@ -206,12 +235,18 @@ LifelongPlanningSnapshot assign_lifelong_tasks_for_replanning(
   const auto total_cols = pending_tasks.size() + dummy_cols;
   auto cost = std::vector<std::vector<int> >(
       unloaded_agents.size(), std::vector<int>(total_cols, kIdleAssignmentCost));
+  const auto encode_switches =
+      can_encode_stable_assignment_costs(unloaded_agents.size(), distances);
 
   for (size_t row = 0; row < unloaded_agents.size(); ++row) {
     const auto agent_idx = unloaded_agents[row];
     for (size_t col = 0; col < pending_tasks.size(); ++col) {
-      cost[row][col] = lifelong_unloaded_assignment_cost(
+      const auto task_idx = pending_tasks[col];
+      const auto base_cost = lifelong_unloaded_assignment_cost(
           agents[agent_idx], tasks[pending_tasks[col]], distances);
+      cost[row][col] = stable_unloaded_assignment_cost(
+          base_cost, tasks[task_idx], previous_task_ids[agent_idx],
+          unloaded_agents.size(), encode_switches);
     }
   }
 
@@ -235,7 +270,8 @@ LifelongPlanningSnapshot assign_lifelong_tasks_for_replanning(
     agents[agent_idx].current_target = task.start;
     snapshot.goal_indexes_by_agent[agent_idx] = {task.start->index};
     snapshot.assigned_task_ids_by_agent[agent_idx] = task.task_id;
-    snapshot.assignment_cost += cost[row][col];
+    snapshot.assignment_cost += lifelong_unloaded_assignment_cost(
+        agents[agent_idx], task, distances);
   }
 
   snapshot.feasible =
