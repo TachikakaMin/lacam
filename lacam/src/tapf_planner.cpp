@@ -176,11 +176,10 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
   if (stats != nullptr) *stats = TAPFStats();
 }
 
-Solution TAPFPlanner::solve()
+Solution TAPFPlanner::solve(std::vector<int>* final_assignment)
 {
   info(1, verbose, "elapsed:", elapsed_ms(deadline), "ms\tstart TAPF search");
-
-  for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
+  if (final_assignment != nullptr) final_assignment->clear();
 
   std::vector<TAPFNode*> OPEN;
   std::unordered_map<Config, TAPFNode*, ConfigHasher> CLOSED;
@@ -233,6 +232,7 @@ Solution TAPFPlanner::solve()
                                 initial_agents, true, &assignment_stats);
   if (!initial_assignment.feasible) return Solution();
 
+  for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
   auto S_init =
       new TAPFNode(ins->starts, D, ins, initial_assignment.agent_to_task,
                    initial_assignment_state);
@@ -244,7 +244,6 @@ Solution TAPFPlanner::solve()
     stats->hl_nodes_created = 1;
     stats->open_max_size = 1;
   }
-
   const auto initial_lower_bound = S_init->h;
   const auto cleanup_reserve_ms =
       deadline == nullptr
@@ -283,7 +282,7 @@ Solution TAPFPlanner::solve()
       continue;
     }
 
-    if (is_goal_config(S->C)) {
+    if (is_goal_node(S)) {
       if (S_goal == nullptr || S->g < S_goal->g) {
         if (stats != nullptr) {
           ++stats->incumbent_updates;
@@ -415,6 +414,10 @@ Solution TAPFPlanner::solve()
       }
     }
   }
+  if (final_assignment != nullptr) {
+    *final_assignment =
+        S_goal == nullptr ? std::vector<int>() : S_goal->assignment;
+  }
 
   info(1, verbose, "elapsed:", elapsed_ms(deadline), "ms\t",
        solution.empty() ? (OPEN.empty() ? "no TAPF solution" : "failed")
@@ -482,18 +485,15 @@ unsigned TAPFPlanner::get_h_value(const Config& C)
   return cost;
 }
 
-bool TAPFPlanner::is_goal_config(const Config& C) const
+bool TAPFPlanner::is_goal_node(const TAPFNode* node) const
 {
-  auto used = std::vector<bool>(ins->tasks.size(), false);
+  if (node == nullptr || node->assignment.size() != ins->N) return false;
   for (size_t i = 0; i < ins->N; ++i) {
-    auto matched = false;
-    for (size_t j = 0; j < ins->tasks.size(); ++j) {
-      if (used[j] || !ins->allowed[i][j] || C[i] != ins->tasks[j]) continue;
-      used[j] = true;
-      matched = true;
-      break;
+    const auto task = node->assignment[i];
+    if (task < 0 || task >= static_cast<int>(ins->tasks.size()) ||
+        !ins->allowed[i][task] || node->C[i] != ins->tasks[task]) {
+      return false;
     }
-    if (!matched) return false;
   }
   return true;
 }
@@ -706,11 +706,12 @@ Solution solve_tapf(const TAPFInstance& ins, const int verbose,
                     const Deadline* deadline, std::mt19937* MT,
                     const int sticky_penalty, TAPFStats* stats, bool anytime,
                     bool force_full_assignment,
-                    TAPFSearchConfig search_config)
+                    TAPFSearchConfig search_config,
+                    std::vector<int>* final_assignment)
 {
   info(1, verbose, "elapsed:", elapsed_ms(deadline), "ms\tTAPF pre-processing");
   auto planner = TAPFPlanner(&ins, deadline, MT, verbose, sticky_penalty,
                              0.001f, anytime, stats, search_config);
   planner.force_full_assignment = force_full_assignment;
-  return planner.solve();
+  return planner.solve(final_assignment);
 }

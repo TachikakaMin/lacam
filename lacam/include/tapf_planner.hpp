@@ -122,8 +122,8 @@ struct TAPFPlanner {
               float _restart_rate = 0.001f, bool _anytime = true,
               TAPFStats* _stats = nullptr,
               TAPFSearchConfig _search_config = TAPFSearchConfig());
-  Solution solve();
-  bool is_goal_config(const Config& C) const;
+  Solution solve(std::vector<int>* final_assignment = nullptr);
+  bool is_goal_node(const TAPFNode* node) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
                std::vector<TAPFNode*>& OPEN);
@@ -144,4 +144,5 @@ Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
                     std::mt19937* MT = nullptr, const int sticky_penalty = 0,
                     TAPFStats* stats = nullptr, bool anytime = true,
                     bool force_full_assignment = false,
-                    TAPFSearchConfig search_config = TAPFSearchConfig());
+                    TAPFSearchConfig search_config = TAPFSearchConfig(),
+                    std::vector<int>* final_assignment = nullptr);

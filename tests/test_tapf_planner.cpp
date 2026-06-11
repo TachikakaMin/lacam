@@ -76,3 +76,30 @@ TEST(tapf_planner, solve_ita_cbs_yaml_fixture)
   auto solution = solve_tapf(ins);
   ASSERT_TRUE(is_tapf_feasible_solution(ins, solution));
 }
+
+TEST(tapf_planner, assignment_uses_agent_target_cost_offsets)
+{
+  const auto map_filename = "./tests/assets/lifelong-task-small.map";
+  const auto starts = std::vector<int>{0, 6};
+  const auto goals =
+      std::vector<std::vector<int> >{{2, 4}, {2, 4}};
+  const auto offsets =
+      std::vector<std::vector<int> >{{10, 0}, {0, 10}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, offsets);
+  auto distances = TAPFDistTable(ins);
+
+  const auto assignment =
+      assign_tapf_tasks(ins, distances, ins.starts);
+
+  ASSERT_TRUE(assignment.feasible);
+  ASSERT_EQ(ins.tasks[assignment.agent_to_task[0]]->index, 4);
+  ASSERT_EQ(ins.tasks[assignment.agent_to_task[1]]->index, 2);
+
+  auto state = TAPFAssignmentState();
+  auto changed_agents = std::vector<int>{0, 1};
+  const auto dynamic_assignment = assign_tapf_tasks_dynamic(
+      ins, distances, ins.starts, state, changed_agents, true);
+  ASSERT_TRUE(dynamic_assignment.feasible);
+  ASSERT_EQ(ins.tasks[dynamic_assignment.agent_to_task[0]]->index, 4);
+  ASSERT_EQ(ins.tasks[dynamic_assignment.agent_to_task[1]]->index, 2);
+}

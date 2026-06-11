@@ -119,7 +119,11 @@ std::vector<std::vector<int> > build_cost_matrix(
       if (!ins.allowed[i][j]) continue;
       auto d = D.get(j, C[i]);
       if (d >= D.K) continue;
-      cost[i][j] = d;
+      const auto offset = ins.assignment_cost_offsets[i][j];
+      const auto scaled_distance =
+          static_cast<long long>(d) * ins.assignment_distance_scale;
+      if (scaled_distance + offset >= kTapfAssignmentInfCost) continue;
+      cost[i][j] = static_cast<int>(scaled_distance + offset);
       if (!previous_assignment.empty() &&
           previous_assignment[i] != static_cast<int>(j)) {
         cost[i][j] += sticky_penalty;
@@ -174,7 +178,13 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     if (!ins.allowed[i][j]) return kTapfAssignmentInfCost;
     auto d = D.get(j, C[i]);
     if (d >= D.K) return kTapfAssignmentInfCost;
-    return d;
+    const auto offset = ins.assignment_cost_offsets[i][j];
+    const auto scaled_distance =
+        static_cast<long long>(d) * ins.assignment_distance_scale;
+    if (scaled_distance + offset >= kTapfAssignmentInfCost) {
+      return kTapfAssignmentInfCost;
+    }
+    return static_cast<int>(scaled_distance + offset);
   };
 
   auto result = force_full ? state.solve_full(cost)

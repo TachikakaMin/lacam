@@ -307,8 +307,9 @@ LifelongSimulationMetrics run_lifelong_simulation(
         ++metrics.planner_invocations;
         const auto planning_start = Time::now();
         auto snapshot =
-            assign_lifelong_tasks_for_replanning(agents, tasks, distances);
+            prepare_lifelong_planning_snapshot(agents, tasks, distances);
         auto solution = Solution();
+        auto final_assignment = std::vector<int>();
         auto next_plan = std::vector<std::vector<int> >();
         auto stats = TAPFStats();
         if (snapshot.feasible) {
@@ -342,8 +343,15 @@ LifelongSimulationMetrics run_lifelong_simulation(
             auto planner_mt = std::mt19937(config.seed + t);
             solution =
                 solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats,
-                           config.planner_anytime);
-            if (!solution.empty()) next_plan = solution_to_indexes(solution);
+                           config.planner_anytime, true, TAPFSearchConfig(),
+                           &final_assignment);
+            if (!solution.empty() &&
+                apply_lifelong_solution_assignment(agents, tasks, snapshot,
+                                                   ins, final_assignment)) {
+              next_plan = solution_to_indexes(solution);
+            } else if (!solution.empty()) {
+              solution.clear();
+            }
             if (solution.empty() && !stats.timed_out) {
               ++metrics.planner_empty_solution_count;
               if (metrics.first_empty_loaded_agents < 0) {

@@ -45,11 +45,15 @@ struct TAPFInstance {
   Config starts;  // initial configuration
   Config tasks;   // unique task/goal locations
   std::vector<std::vector<bool> > allowed;  // agent-task compatibility
+  std::vector<std::vector<int> > assignment_cost_offsets;
+  int assignment_distance_scale;
   const uint N;                           // number of agents
 
   TAPFInstance(const std::string& map_filename,
                const std::vector<int>& start_indexes,
-               const std::vector<std::vector<int> >& task_indexes);
+               const std::vector<std::vector<int> >& task_indexes,
+               const std::vector<std::vector<int> >& task_cost_offsets = {},
+               int task_distance_scale = 1);
   TAPFInstance(const std::string& yaml_filename,
                const std::string& map_dir = "");
   ~TAPFInstance() {}

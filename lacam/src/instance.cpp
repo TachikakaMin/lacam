@@ -99,25 +99,54 @@ bool Instance::is_valid(const int verbose) const
 
 TAPFInstance::TAPFInstance(const std::string& map_filename,
                            const std::vector<int>& start_indexes,
-                           const std::vector<std::vector<int> >& task_indexes)
+                           const std::vector<std::vector<int> >& task_indexes,
+                           const std::vector<std::vector<int> >& task_cost_offsets,
+                           int task_distance_scale)
     : G(map_filename),
       starts(Config()),
       tasks(Config()),
       allowed(std::vector<std::vector<bool> >()),
+      assignment_cost_offsets(std::vector<std::vector<int> >()),
+      assignment_distance_scale(task_distance_scale),
       N(start_indexes.size())
 {
   std::unordered_map<int, int> index_to_task;
   for (auto k : start_indexes) starts.push_back(G.U[k]);
 
   allowed.resize(N);
+  assignment_cost_offsets.resize(N);
+  const auto has_offsets = !task_cost_offsets.empty();
+  if (task_indexes.size() != N ||
+      (has_offsets && task_cost_offsets.size() != N)) {
+    assignment_distance_scale = 0;
+    return;
+  }
+  if (has_offsets) {
+    for (size_t i = 0; i < N; ++i) {
+      if (task_cost_offsets[i].size() != task_indexes[i].size()) {
+        assignment_distance_scale = 0;
+        return;
+      }
+    }
+  }
   for (size_t i = 0; i < task_indexes.size(); ++i) {
-    for (auto k : task_indexes[i]) {
+    for (size_t option = 0; option < task_indexes[i].size(); ++option) {
+      const auto k = task_indexes[i][option];
       if (index_to_task.find(k) == index_to_task.end()) {
         index_to_task[k] = tasks.size();
         tasks.push_back(G.U[k]);
         for (auto& row : allowed) row.push_back(false);
+        for (auto& row : assignment_cost_offsets) row.push_back(0);
       }
-      allowed[i][index_to_task[k]] = true;
+      const auto task = index_to_task[k];
+      const auto offset = has_offsets ? task_cost_offsets[i][option] : 0;
+      if (!allowed[i][task]) {
+        allowed[i][task] = true;
+        assignment_cost_offsets[i][task] = offset;
+      } else {
+        assignment_cost_offsets[i][task] =
+            std::min(assignment_cost_offsets[i][task], offset);
+      }
     }
   }
 }
@@ -184,6 +213,14 @@ bool TAPFInstance::is_valid(const int verbose) const
     info(1, verbose, "invalid N, check TAPF instance");
     return false;
   }
+  if (assignment_cost_offsets.size() != N) {
+    info(1, verbose, "invalid TAPF assignment cost rows");
+    return false;
+  }
+  if (assignment_distance_scale <= 0) {
+    info(1, verbose, "invalid TAPF assignment distance scale");
+    return false;
+  }
   if (tasks.size() < N) {
     info(1, verbose, "TAPF expects at least one unique task per agent");
     return false;
@@ -197,10 +234,18 @@ bool TAPFInstance::is_valid(const int verbose) const
       info(1, verbose, "invalid TAPF compatibility matrix");
       return false;
     }
+    if (assignment_cost_offsets[i].size() != tasks.size()) {
+      info(1, verbose, "invalid TAPF assignment cost matrix");
+      return false;
+    }
     auto any_allowed = false;
     for (size_t j = 0; j < tasks.size(); ++j) {
       if (tasks[j] == nullptr) {
         info(1, verbose, "invalid TAPF task");
+        return false;
+      }
+      if (assignment_cost_offsets[i][j] < 0) {
+        info(1, verbose, "negative TAPF assignment cost offset");
         return false;
       }
       any_allowed = any_allowed || allowed[i][j];
