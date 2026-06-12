@@ -175,7 +175,7 @@ body {{
 .toolbar {{
   padding: 12px;
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto auto;
   gap: 10px;
   align-items: center;
 }}
@@ -272,9 +272,17 @@ canvas {{
   height: 10px;
   margin-right: 6px;
   vertical-align: -1px;
+  border: 1px solid;
+}}
+.cargo-swatch.inbound {{
   background: #f2b84b;
-  border: 1px solid #6b410f;
+  border-color: #6b410f;
   box-shadow: inset 0 3px 0 #ffd980;
+}}
+.cargo-swatch.outbound {{
+  background: #4aa8d8;
+  border-color: #154c69;
+  box-shadow: inset 0 3px 0 #9adcf5;
 }}
 .rows {{
   max-height: 44vh;
@@ -337,6 +345,13 @@ tr.selected {{
       <button id="play">Play</button>
       <input id="slider" type="range" min="0" max="{makespan}" value="0">
       <div class="time">t=<span id="time">0</span>/{makespan}</div>
+      <select id="speed" aria-label="Playback speed" title="Playback speed">
+        <option value="0.25">0.25x</option>
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="2">2x</option>
+        <option value="4">4x</option>
+      </select>
       <select id="mode">
         <option value="all">All agents</option>
         <option value="problem">Zigzag + late</option>
@@ -368,7 +383,8 @@ tr.selected {{
         <div><span class="swatch" style="background:var(--other)"></span>Other</div>
         <div><span class="swatch" style="background:#111;border-radius:2px"></span>Task start</div>
         <div><span class="swatch" style="background:#fff;border:2px solid #111"></span>Task goals</div>
-        <div><span class="cargo-swatch"></span>Loaded cargo</div>
+        <div><span class="cargo-swatch inbound"></span>Inbound cargo</div>
+        <div><span class="cargo-swatch outbound"></span>Outbound cargo</div>
       </div>
     </section>
     <section class="panel">
@@ -401,6 +417,7 @@ const ctx = canvas.getContext('2d');
 const slider = document.getElementById('slider');
 const timeEl = document.getElementById('time');
 const playBtn = document.getElementById('play');
+const speedEl = document.getElementById('speed');
 const modeEl = document.getElementById('mode');
 const focusBtn = document.getElementById('focus');
 const tbody = document.querySelector('#table tbody');
@@ -510,21 +527,26 @@ function drawCurrentTasks(b, cell, offX, offY) {{
   }}
 }}
 
-function drawCargo(x, y, cell) {{
+function drawCargo(x, y, cell, taskType) {{
+  const outbound = taskType === 'outbound';
+  const fill = outbound ? '#4aa8d8' : '#f2b84b';
+  const highlight = outbound ? '#9adcf5' : '#ffd980';
+  const border = outbound ? '#154c69' : '#6b410f';
+  const seam = outbound ? '#28789d' : '#9a6419';
   const width = Math.max(8, cell * 0.46);
   const height = Math.max(7, cell * 0.38);
   const left = x - width / 2;
   const top = y - cell * 0.74;
   ctx.save();
-  ctx.fillStyle = '#f2b84b';
-  ctx.strokeStyle = '#6b410f';
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = border;
   ctx.lineWidth = Math.max(1.2, cell * 0.055);
   ctx.fillRect(left, top, width, height);
   ctx.strokeRect(left, top, width, height);
-  ctx.fillStyle = '#ffd980';
+  ctx.fillStyle = highlight;
   ctx.fillRect(left + ctx.lineWidth / 2, top + ctx.lineWidth / 2,
                width - ctx.lineWidth, height * 0.28);
-  ctx.strokeStyle = '#9a6419';
+  ctx.strokeStyle = seam;
   ctx.lineWidth = Math.max(1, cell * 0.035);
   ctx.beginPath();
   ctx.moveTo(x, top);
@@ -600,8 +622,10 @@ function draw() {{
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(agent.id), x, y);
-    if (taskState(agent).phase === 'loaded') {{
-      drawCargo(x, y, cell);
+    const state = taskState(agent);
+    if (state.phase === 'loaded') {{
+      const task = taskById.get(Number(state.task));
+      drawCargo(x, y, cell, task ? task.type : 'inbound');
     }}
   }}
   renderTable();
@@ -651,19 +675,34 @@ function renderTable() {{
   }}
 }}
 
-playBtn.addEventListener('click', () => {{
-  if (timer) {{
+function stopPlayback() {{
+  if (timer !== null) {{
     clearInterval(timer);
     timer = null;
-    playBtn.textContent = 'Play';
-    return;
   }}
+  playBtn.textContent = 'Play';
+}}
+
+function startPlayback() {{
+  if (timer !== null) clearInterval(timer);
   playBtn.textContent = 'Pause';
+  const delay = Math.max(10, 70 / Number(speedEl.value));
   timer = setInterval(() => {{
     const next = (Number(slider.value) + 1) % (DATA.makespan + 1);
     slider.value = next;
     draw();
-  }}, 70);
+  }}, delay);
+}}
+
+playBtn.addEventListener('click', () => {{
+  if (timer !== null) {{
+    stopPlayback();
+  }} else {{
+    startPlayback();
+  }}
+}});
+speedEl.addEventListener('change', () => {{
+  if (timer !== null) startPlayback();
 }});
 slider.addEventListener('input', draw);
 modeEl.addEventListener('change', () => {{ selected = null; renderTable(); draw(); }});
