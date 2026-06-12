@@ -67,4 +67,7 @@ struct LifelongTaskGenerator {
   LifelongTask make_task(int timestep, LifelongTaskType type,
                          const std::unordered_set<int>& used_starts);
   LifelongTaskType sample_task_type();
+
+  Vertices tunnel_vertices;
+  std::vector<Vertices> tunnels;
 };

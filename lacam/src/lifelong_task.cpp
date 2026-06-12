@@ -1,12 +1,48 @@
 #include "../include/lifelong_task.hpp"
 
 #include <algorithm>
+#include <queue>
 
 namespace
 {
+bool is_tunnel_type(char type) { return type == 'i' || type == 'o'; }
+
 bool is_unfinished(const LifelongTask& task)
 {
   return task.status != LifelongTaskStatus::COMPLETED;
+}
+
+std::vector<Vertices> find_tunnels(const Graph& graph)
+{
+  auto tunnels = std::vector<Vertices>();
+  auto visited = std::unordered_set<int>();
+
+  for (auto start : graph.V) {
+    if (!is_tunnel_type(graph.cell_type(start)) ||
+        visited.find(start->index) != visited.end()) {
+      continue;
+    }
+
+    auto tunnel = Vertices();
+    auto open = std::queue<Vertex*>();
+    open.push(start);
+    visited.insert(start->index);
+    while (!open.empty()) {
+      auto current = open.front();
+      open.pop();
+      tunnel.push_back(current);
+      for (auto neighbor : current->neighbor) {
+        if (!is_tunnel_type(graph.cell_type(neighbor)) ||
+            visited.find(neighbor->index) != visited.end()) {
+          continue;
+        }
+        visited.insert(neighbor->index);
+        open.push(neighbor);
+      }
+    }
+    tunnels.push_back(std::move(tunnel));
+  }
+  return tunnels;
 }
 
 std::unordered_set<int> unfinished_start_indexes(
@@ -41,11 +77,32 @@ Vertices sample_goal_set(const Vertices& candidates, int goal_set_size,
   std::shuffle(shuffled.begin(), shuffled.end(), mt);
   return Vertices(shuffled.begin(), shuffled.begin() + goal_set_size);
 }
+
+Vertices sample_tunnel_goal_set(const std::vector<Vertices>& tunnels,
+                                int goal_set_size, std::mt19937& mt)
+{
+  auto eligible = std::vector<const Vertices*>();
+  for (const auto& tunnel : tunnels) {
+    if (static_cast<int>(tunnel.size()) >= goal_set_size) {
+      eligible.push_back(&tunnel);
+    }
+  }
+  if (eligible.empty()) return Vertices();
+
+  auto tunnel_dist = std::uniform_int_distribution<int>(
+      0, static_cast<int>(eligible.size()) - 1);
+  return sample_goal_set(*eligible[tunnel_dist(mt)], goal_set_size, mt);
+}
 }  // namespace
 
 LifelongTaskGenerator::LifelongTaskGenerator(
     const Graph* _graph, LifelongTaskGeneratorConfig _config, int seed)
-    : graph(_graph), config(_config), mt(seed), next_task_id(0)
+    : graph(_graph),
+      config(_config),
+      mt(seed),
+      next_task_id(0),
+      tunnel_vertices(),
+      tunnels()
 {
   if (graph == nullptr) {
     throw std::invalid_argument("LifelongTaskGenerator requires a graph");
@@ -61,6 +118,11 @@ LifelongTaskGenerator::LifelongTaskGenerator(
   }
   if (config.outbound_probability < 0.0 || config.outbound_probability > 1.0) {
     throw std::invalid_argument("outbound_probability must be in [0, 1]");
+  }
+
+  tunnels = find_tunnels(*graph);
+  for (const auto& tunnel : tunnels) {
+    tunnel_vertices.insert(tunnel_vertices.end(), tunnel.begin(), tunnel.end());
   }
 }
 
@@ -113,15 +175,18 @@ std::optional<LifelongTask> LifelongTaskGenerator::try_make_task(
     int timestep, LifelongTaskType type,
     const std::unordered_set<int>& used_starts)
 {
-  const auto start_type = type == LifelongTaskType::OUTBOUND ? 'a' : 'i';
-  const auto goal_type = type == LifelongTaskType::OUTBOUND ? 'o' : 'a';
-  const auto starts = graph->vertices_of_type(start_type);
-  const auto goals = graph->vertices_of_type(goal_type);
+  const auto starts = type == LifelongTaskType::OUTBOUND
+                          ? graph->vertices_of_type('a')
+                          : tunnel_vertices;
   auto start = sample_start(starts, used_starts, mt);
   if (start == nullptr) {
     return std::nullopt;
   }
-  auto goal_set = sample_goal_set(goals, config.goal_set_size, mt);
+  auto goal_set =
+      type == LifelongTaskType::OUTBOUND
+          ? sample_tunnel_goal_set(tunnels, config.goal_set_size, mt)
+          : sample_goal_set(graph->vertices_of_type('a'),
+                            config.goal_set_size, mt);
   if (static_cast<int>(goal_set.size()) != config.goal_set_size) {
     return std::nullopt;
   }
