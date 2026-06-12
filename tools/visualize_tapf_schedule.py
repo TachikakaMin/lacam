@@ -280,9 +280,9 @@ canvas {{
   box-shadow: inset 0 3px 0 #ffd980;
 }}
 .cargo-swatch.outbound {{
-  background: #4aa8d8;
-  border-color: #154c69;
-  box-shadow: inset 0 3px 0 #9adcf5;
+  background: #43a047;
+  border-color: #14532d;
+  box-shadow: inset 0 3px 0 #9be7a0;
 }}
 .rows {{
   max-height: 44vh;
@@ -424,9 +424,13 @@ const tbody = document.querySelector('#table tbody');
 const taskInfo = document.getElementById('taskInfo');
 const taskById = new Map((DATA.tasks || []).map(task => [Number(task.id), task]));
 let t = 0;
-let timer = null;
+let playhead = 0;
+let animationFrameId = null;
+let lastFrameTime = null;
+let renderedUiStep = -1;
 let selected = null;
 let focusCluster = false;
+const millisecondsPerStep = 70;
 
 function colorFor(agent) {{
   if (agent.isZigzag && agent.isLate) return '#8a4bb8';
@@ -447,6 +451,18 @@ function visible(agent) {{
 function taskState(agent) {{
   const idx = Math.min(t, agent.timeline.length - 1);
   return agent.timeline[idx] || {{task: -1, phase: 'idle'}};
+}}
+
+function interpolatedPosition(agent) {{
+  const fromStep = Math.min(Math.floor(playhead), agent.path.length - 1);
+  const toStep = Math.min(fromStep + 1, agent.path.length - 1);
+  const progress = playhead - Math.floor(playhead);
+  const [fromRow, fromCol] = agent.path[fromStep];
+  const [toRow, toCol] = agent.path[toStep];
+  return [
+    fromRow + (toRow - fromRow) * progress,
+    fromCol + (toCol - fromCol) * progress
+  ];
 }}
 
 function phaseLabel(phase) {{
@@ -529,10 +545,10 @@ function drawCurrentTasks(b, cell, offX, offY) {{
 
 function drawCargo(x, y, cell, taskType) {{
   const outbound = taskType === 'outbound';
-  const fill = outbound ? '#4aa8d8' : '#f2b84b';
-  const highlight = outbound ? '#9adcf5' : '#ffd980';
-  const border = outbound ? '#154c69' : '#6b410f';
-  const seam = outbound ? '#28789d' : '#9a6419';
+  const fill = outbound ? '#43a047' : '#f2b84b';
+  const highlight = outbound ? '#9be7a0' : '#ffd980';
+  const border = outbound ? '#14532d' : '#6b410f';
+  const seam = outbound ? '#237a35' : '#9a6419';
   const width = Math.max(8, cell * 0.46);
   const height = Math.max(7, cell * 0.38);
   const left = x - width / 2;
@@ -555,9 +571,11 @@ function drawCargo(x, y, cell, taskType) {{
   ctx.restore();
 }}
 
-function draw() {{
-  t = Number(slider.value);
-  timeEl.textContent = t;
+function draw(forceUi = false) {{
+  t = Math.min(DATA.makespan, Math.floor(playhead));
+  slider.value = String(t);
+  const fraction = playhead - t;
+  timeEl.textContent = fraction < 0.01 ? String(t) : playhead.toFixed(1);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const b = bounds();
   const rows = b.x1 - b.x0;
@@ -603,13 +621,22 @@ function draw() {{
         ctx.lineTo(x, y);
       }}
     }}
+    if (playhead > t) {{
+      const [r, c] = interpolatedPosition(agent);
+      if (r >= b.x0 && r < b.x1 && c >= b.y0 && c < b.y1) {{
+        const x = offX + (c - b.y0 + 0.5) * cell;
+        const y = offY + (r - b.x0 + 0.5) * cell;
+        if (!started) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }}
+    }}
     ctx.stroke();
     ctx.globalAlpha = 1;
   }}
 
   for (const agent of DATA.agents) {{
     if (!visible(agent)) continue;
-    const [r, c] = agent.path[t];
+    const [r, c] = interpolatedPosition(agent);
     if (r < b.x0 || r >= b.x1 || c < b.y0 || c >= b.y1) continue;
     const x = offX + (c - b.y0 + 0.5) * cell;
     const y = offY + (r - b.x0 + 0.5) * cell;
@@ -628,8 +655,11 @@ function draw() {{
       drawCargo(x, y, cell, task ? task.type : 'inbound');
     }}
   }}
-  renderTable();
-  renderTaskInfo();
+  if (forceUi || renderedUiStep !== t) {{
+    renderTable();
+    renderTaskInfo();
+    renderedUiStep = t;
+  }}
 }}
 
 function renderTaskInfo() {{
@@ -668,51 +698,61 @@ function renderTable() {{
     tr.innerHTML = `<td><span class="swatch" style="background:${{colorFor(a)}}"></span>${{a.name}}</td><td>${{taskLabel(state)}}</td><td>${{phaseLabel(state.phase)}}</td><td>${{a.soc}}</td><td>${{a.sol}}</td><td>${{a.aba}}</td>`;
     tr.addEventListener('click', () => {{
       selected = selected === a.id ? null : a.id;
-      renderTable();
-      draw();
+      draw(true);
     }});
     tbody.appendChild(tr);
   }}
 }}
 
 function stopPlayback() {{
-  if (timer !== null) {{
-    clearInterval(timer);
-    timer = null;
+  if (animationFrameId !== null) {{
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
   }}
+  lastFrameTime = null;
   playBtn.textContent = 'Play';
 }}
 
+function animate(timestamp) {{
+  if (lastFrameTime === null) lastFrameTime = timestamp;
+  const elapsed = Math.min(250, timestamp - lastFrameTime);
+  lastFrameTime = timestamp;
+  const advance =
+      elapsed * Number(speedEl.value) / millisecondsPerStep;
+  playhead = (playhead + advance) % (DATA.makespan + 1);
+  draw();
+  animationFrameId = requestAnimationFrame(animate);
+}}
+
 function startPlayback() {{
-  if (timer !== null) clearInterval(timer);
+  if (animationFrameId !== null) return;
   playBtn.textContent = 'Pause';
-  const delay = Math.max(10, 70 / Number(speedEl.value));
-  timer = setInterval(() => {{
-    const next = (Number(slider.value) + 1) % (DATA.makespan + 1);
-    slider.value = next;
-    draw();
-  }}, delay);
+  lastFrameTime = null;
+  animationFrameId = requestAnimationFrame(animate);
 }}
 
 playBtn.addEventListener('click', () => {{
-  if (timer !== null) {{
+  if (animationFrameId !== null) {{
     stopPlayback();
   }} else {{
     startPlayback();
   }}
 }});
-speedEl.addEventListener('change', () => {{
-  if (timer !== null) startPlayback();
+slider.addEventListener('input', () => {{
+  playhead = Number(slider.value);
+  lastFrameTime = null;
+  draw(true);
 }});
-slider.addEventListener('input', draw);
-modeEl.addEventListener('change', () => {{ selected = null; renderTable(); draw(); }});
+modeEl.addEventListener('change', () => {{
+  selected = null;
+  draw(true);
+}});
 focusBtn.addEventListener('click', () => {{
   focusCluster = !focusCluster;
   focusBtn.classList.toggle('active', focusCluster);
   draw();
 }});
-renderTable();
-draw();
+draw(true);
 </script>
 </body>
 </html>
