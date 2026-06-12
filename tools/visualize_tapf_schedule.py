@@ -266,6 +266,16 @@ canvas {{
   margin-right: 6px;
   vertical-align: -1px;
 }}
+.cargo-swatch {{
+  display: inline-block;
+  width: 12px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  background: #f2b84b;
+  border: 1px solid #6b410f;
+  box-shadow: inset 0 3px 0 #ffd980;
+}}
 .rows {{
   max-height: 44vh;
   overflow: auto;
@@ -358,6 +368,7 @@ tr.selected {{
         <div><span class="swatch" style="background:var(--other)"></span>Other</div>
         <div><span class="swatch" style="background:#111;border-radius:2px"></span>Task start</div>
         <div><span class="swatch" style="background:#fff;border:2px solid #111"></span>Task goals</div>
+        <div><span class="cargo-swatch"></span>Loaded cargo</div>
       </div>
     </section>
     <section class="panel">
@@ -499,6 +510,29 @@ function drawCurrentTasks(b, cell, offX, offY) {{
   }}
 }}
 
+function drawCargo(x, y, cell) {{
+  const width = Math.max(8, cell * 0.46);
+  const height = Math.max(7, cell * 0.38);
+  const left = x - width / 2;
+  const top = y - cell * 0.74;
+  ctx.save();
+  ctx.fillStyle = '#f2b84b';
+  ctx.strokeStyle = '#6b410f';
+  ctx.lineWidth = Math.max(1.2, cell * 0.055);
+  ctx.fillRect(left, top, width, height);
+  ctx.strokeRect(left, top, width, height);
+  ctx.fillStyle = '#ffd980';
+  ctx.fillRect(left + ctx.lineWidth / 2, top + ctx.lineWidth / 2,
+               width - ctx.lineWidth, height * 0.28);
+  ctx.strokeStyle = '#9a6419';
+  ctx.lineWidth = Math.max(1, cell * 0.035);
+  ctx.beginPath();
+  ctx.moveTo(x, top);
+  ctx.lineTo(x, top + height);
+  ctx.stroke();
+  ctx.restore();
+}}
+
 function draw() {{
   t = Number(slider.value);
   timeEl.textContent = t;
@@ -566,6 +600,9 @@ function draw() {{
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(agent.id), x, y);
+    if (taskState(agent).phase === 'loaded') {{
+      drawCargo(x, y, cell);
+    }}
   }}
   renderTable();
   renderTaskInfo();
