@@ -280,9 +280,9 @@ canvas {{
   box-shadow: inset 0 3px 0 #ffd980;
 }}
 .cargo-swatch.outbound {{
-  background: #43a047;
-  border-color: #14532d;
-  box-shadow: inset 0 3px 0 #9be7a0;
+  background: #dc4c3e;
+  border-color: #7f1d1d;
+  box-shadow: inset 0 3px 0 #f5a39b;
 }}
 .rows {{
   max-height: 44vh;
@@ -545,10 +545,10 @@ function drawCurrentTasks(b, cell, offX, offY) {{
 
 function drawCargo(x, y, cell, taskType) {{
   const outbound = taskType === 'outbound';
-  const fill = outbound ? '#43a047' : '#f2b84b';
-  const highlight = outbound ? '#9be7a0' : '#ffd980';
-  const border = outbound ? '#14532d' : '#6b410f';
-  const seam = outbound ? '#237a35' : '#9a6419';
+  const fill = outbound ? '#dc4c3e' : '#f2b84b';
+  const highlight = outbound ? '#f5a39b' : '#ffd980';
+  const border = outbound ? '#7f1d1d' : '#6b410f';
+  const seam = outbound ? '#a32929' : '#9a6419';
   const width = Math.max(8, cell * 0.46);
   const height = Math.max(7, cell * 0.38);
   const left = x - width / 2;
