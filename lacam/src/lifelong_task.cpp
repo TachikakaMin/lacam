@@ -12,6 +12,12 @@ bool is_unfinished(const LifelongTask& task)
   return task.status != LifelongTaskStatus::COMPLETED;
 }
 
+bool reserves_start(const LifelongTask& task)
+{
+  return task.status == LifelongTaskStatus::PENDING ||
+         task.status == LifelongTaskStatus::ASSIGNED;
+}
+
 std::vector<Vertices> find_tunnels(const Graph& graph)
 {
   auto tunnels = std::vector<Vertices>();
@@ -45,23 +51,28 @@ std::vector<Vertices> find_tunnels(const Graph& graph)
   return tunnels;
 }
 
-std::unordered_set<int> unfinished_start_indexes(
+std::unordered_map<int, int> reserved_start_counts(
     const std::vector<LifelongTask>& tasks)
 {
-  auto used = std::unordered_set<int>();
+  auto reservations = std::unordered_map<int, int>();
   for (const auto& task : tasks) {
-    if (task.start != nullptr && is_unfinished(task)) used.insert(task.start->index);
+    if (task.start != nullptr && reserves_start(task)) {
+      ++reservations[task.start->index];
+    }
   }
-  return used;
+  return reservations;
 }
 
 Vertex* sample_start(const Vertices& candidates,
-                     const std::unordered_set<int>& used_starts,
+                     const std::unordered_map<int, int>& start_reservations,
                      std::mt19937& mt)
 {
   auto available = Vertices();
   for (auto v : candidates) {
-    if (used_starts.find(v->index) == used_starts.end()) available.push_back(v);
+    const auto iter = start_reservations.find(v->index);
+    const auto reservations =
+        iter == start_reservations.end() ? 0 : iter->second;
+    if (reservations < kLifelongTaskStartCapacity) available.push_back(v);
   }
   if (available.empty()) return nullptr;
   auto dist = std::uniform_int_distribution<int>(
@@ -156,10 +167,11 @@ std::vector<LifelongTask> LifelongTaskGenerator::generate(
     int timestep, int count, const std::vector<LifelongTask>& tasks)
 {
   auto generated = std::vector<LifelongTask>();
-  auto used_starts = unfinished_start_indexes(tasks);
+  auto start_reservations = reserved_start_counts(tasks);
   for (int i = 0; i < count; ++i) {
-    auto task = make_task(timestep, sample_task_type(), used_starts);
-    used_starts.insert(task.start->index);
+    auto task =
+        make_task(timestep, sample_task_type(), start_reservations);
+    ++start_reservations[task.start->index];
     generated.push_back(task);
   }
   return generated;
@@ -173,12 +185,12 @@ std::vector<LifelongTask> LifelongTaskGenerator::generate_for_timestep(
 
 std::optional<LifelongTask> LifelongTaskGenerator::try_make_task(
     int timestep, LifelongTaskType type,
-    const std::unordered_set<int>& used_starts)
+    const std::unordered_map<int, int>& start_reservations)
 {
   const auto starts = type == LifelongTaskType::OUTBOUND
                           ? graph->vertices_of_type('a')
                           : tunnel_vertices;
-  auto start = sample_start(starts, used_starts, mt);
+  auto start = sample_start(starts, start_reservations, mt);
   if (start == nullptr) {
     return std::nullopt;
   }
@@ -203,15 +215,15 @@ std::optional<LifelongTask> LifelongTaskGenerator::try_make_task(
 
 LifelongTask LifelongTaskGenerator::make_task(
     int timestep, LifelongTaskType type,
-    const std::unordered_set<int>& used_starts)
+    const std::unordered_map<int, int>& start_reservations)
 {
-  auto task = try_make_task(timestep, type, used_starts);
+  auto task = try_make_task(timestep, type, start_reservations);
   if (task.has_value()) return *task;
 
   const auto alternate =
       type == LifelongTaskType::OUTBOUND ? LifelongTaskType::INBOUND
                                          : LifelongTaskType::OUTBOUND;
-  task = try_make_task(timestep, alternate, used_starts);
+  task = try_make_task(timestep, alternate, start_reservations);
   if (task.has_value()) return *task;
 
   throw std::runtime_error("failed to generate task: no legal start/goal set");

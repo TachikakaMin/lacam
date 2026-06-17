@@ -190,7 +190,7 @@ TEST(lifelong_task_generator, fixed_seed_is_reproducible)
   }
 }
 
-TEST(lifelong_task_generator, unfinished_task_starts_are_not_reused)
+TEST(lifelong_task_generator, start_is_reused_after_pickup)
 {
   const auto graph = Graph("./tests/assets/lifelong-task-small.map");
   auto config = LifelongTaskGeneratorConfig();
@@ -198,11 +198,14 @@ TEST(lifelong_task_generator, unfinished_task_starts_are_not_reused)
   config.outbound_probability = 1.0;
   auto generator = LifelongTaskGenerator(&graph, config, 5);
 
-  auto existing = generator.generate(0, 2, {});
-  ASSERT_NE(existing[0].start, existing[1].start);
+  auto existing = generator.generate(0, 4, {});
+  auto start_counts = std::unordered_map<int, int>();
+  for (const auto& task : existing) ++start_counts[task.start->index];
+  ASSERT_EQ(start_counts.size(), 2);
+  for (const auto& [start, count] : start_counts) ASSERT_EQ(count, 2);
   ASSERT_THROW(generator.generate(10, 1, existing), std::runtime_error);
 
-  existing[0].status = LifelongTaskStatus::COMPLETED;
+  existing[0].status = LifelongTaskStatus::PICKED;
   auto generated = generator.generate(20, 1, existing);
   ASSERT_EQ(generated.front().start, existing[0].start);
 }

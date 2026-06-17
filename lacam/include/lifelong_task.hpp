@@ -6,6 +6,7 @@
 #include <optional>
 #include <random>
 #include <stdexcept>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "graph.hpp"
@@ -21,6 +22,8 @@ enum class LifelongTaskStatus {
   PICKED = 2,
   COMPLETED = 3,
 };
+
+constexpr int kLifelongTaskStartCapacity = 2;
 
 struct LifelongTask {
   int task_id = -1;
@@ -63,9 +66,9 @@ struct LifelongTaskGenerator {
  private:
   std::optional<LifelongTask> try_make_task(
       int timestep, LifelongTaskType type,
-      const std::unordered_set<int>& used_starts);
+      const std::unordered_map<int, int>& start_reservations);
   LifelongTask make_task(int timestep, LifelongTaskType type,
-                         const std::unordered_set<int>& used_starts);
+                         const std::unordered_map<int, int>& start_reservations);
   LifelongTaskType sample_task_type();
 
   Vertices tunnel_vertices;

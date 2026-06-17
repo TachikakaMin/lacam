@@ -61,6 +61,22 @@ def expand_task_timeline(entries, makespan):
     return dense
 
 
+def throughput_series(tasks, makespan):
+    completions = [0] * (makespan + 1)
+    for task in tasks:
+        completion = int(task.get("completion", -1))
+        if 0 <= completion <= makespan:
+            completions[completion] += 1
+
+    series = [0.0] * (makespan + 1)
+    completed = 0
+    for t in range(makespan + 1):
+        completed += completions[t]
+        if t > 0:
+            series[t] = completed / t
+    return series
+
+
 def compute_stats(name, path, goal):
     makespan = len(path) - 1
     goal_t = list(goal)
@@ -213,10 +229,30 @@ input[type=range] {{
   place-items: center;
   min-height: 580px;
 }}
-canvas {{
+#canvas {{
   width: min(100%, 760px);
   aspect-ratio: 1 / 1;
   image-rendering: crisp-edges;
+}}
+.throughput-panel {{
+  padding: 12px;
+}}
+.chart-heading {{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+}}
+.chart-values {{
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}}
+#throughputCanvas {{
+  display: block;
+  width: 100%;
+  height: 190px;
 }}
 .side {{
   min-width: 0;
@@ -363,6 +399,16 @@ tr.selected {{
     <div class="canvas-wrap">
       <canvas id="canvas" width="1024" height="1024"></canvas>
     </div>
+    <section class="panel throughput-panel">
+      <div class="chart-heading">
+        <div class="title">Throughput over time</div>
+        <div class="chart-values">
+          current <strong id="currentThroughput">0</strong>
+          &nbsp; final <strong id="finalThroughput">0</strong>
+        </div>
+      </div>
+      <canvas id="throughputCanvas" width="1200" height="220"></canvas>
+    </section>
   </main>
   <aside class="side">
     <section class="panel">
@@ -372,6 +418,8 @@ tr.selected {{
         <div class="metric"><div class="label">Sum-of-loss</div><div class="value">{sol}</div></div>
         <div class="metric"><div class="label">ABA zigzags</div><div class="value">{aba}</div></div>
         <div class="metric"><div class="label">Hidden wait</div><div class="value">{hidden}</div></div>
+        <div class="metric"><div class="label">Alternating tasks</div><div class="value">{alternating_tasks}</div></div>
+        <div class="metric"><div class="label">Alternating throughput</div><div class="value">{alternating_throughput}</div></div>
       </div>
     </section>
     <section class="panel">
@@ -381,7 +429,7 @@ tr.selected {{
         <div><span class="swatch" style="background:var(--late)"></span>Late departure</div>
         <div><span class="swatch" style="background:var(--both)"></span>Both</div>
         <div><span class="swatch" style="background:var(--other)"></span>Other</div>
-        <div><span class="swatch" style="background:#111;border-radius:2px"></span>Task start</div>
+        <div><span class="swatch" style="background:#111;border-radius:2px"></span>Unpicked task start</div>
         <div><span class="swatch" style="background:#fff;border:2px solid #111"></span>Task goals</div>
         <div><span class="cargo-swatch inbound"></span>Inbound cargo</div>
         <div><span class="cargo-swatch outbound"></span>Outbound cargo</div>
@@ -414,6 +462,10 @@ tr.selected {{
 const DATA = {data_json};
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const throughputCanvas = document.getElementById('throughputCanvas');
+const throughputCtx = throughputCanvas.getContext('2d');
+const currentThroughputEl = document.getElementById('currentThroughput');
+const finalThroughputEl = document.getElementById('finalThroughput');
 const slider = document.getElementById('slider');
 const timeEl = document.getElementById('time');
 const playBtn = document.getElementById('play');
@@ -430,7 +482,7 @@ let lastFrameTime = null;
 let renderedUiStep = -1;
 let selected = null;
 let focusCluster = false;
-const millisecondsPerStep = 70;
+const millisecondsPerStep = 280;
 
 function colorFor(agent) {{
   if (agent.isZigzag && agent.isLate) return '#8a4bb8';
@@ -521,6 +573,35 @@ function drawTaskMarker(point, b, cell, offX, offY, color, kind, strong, label) 
 }}
 
 function drawCurrentTasks(b, cell, offX, offY) {{
+  const unpickedByStart = new Map();
+  for (const task of DATA.tasks || []) {{
+    const release = Number(task.release);
+    const pickup = Number(task.pickup);
+    if (release <= t && (pickup < 0 || t < pickup)) {{
+      const key = `${{task.start.x}}:${{task.start.y}}`;
+      const group = unpickedByStart.get(key) || {{
+        point: task.start,
+        count: 0
+      }};
+      group.count++;
+      unpickedByStart.set(key, group);
+    }}
+  }}
+  for (const group of unpickedByStart.values()) {{
+    drawTaskMarker(group.point, b, cell, offX, offY, '#111827', 'start', false, '');
+    if (group.count > 1 && inBounds(group.point, b)) {{
+      const p = cellCenter(group.point, b, cell, offX, offY);
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${{Math.max(8, cell * 0.23)}}px ui-sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(group.count), p.x, p.y);
+      ctx.restore();
+    }}
+  }}
+
   const seen = new Set();
   for (const agent of DATA.agents) {{
     if (!visible(agent)) continue;
@@ -569,6 +650,87 @@ function drawCargo(x, y, cell, taskType) {{
   ctx.lineTo(x, top + height);
   ctx.stroke();
   ctx.restore();
+}}
+
+function drawThroughputChart() {{
+  const values = DATA.throughput || [0];
+  const width = throughputCanvas.width;
+  const height = throughputCanvas.height;
+  const left = 58;
+  const right = 18;
+  const top = 14;
+  const bottom = 34;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const maxValue = Math.max(0.1, ...values) * 1.08;
+  const xFor = step => left + (step / Math.max(1, DATA.makespan)) * plotWidth;
+  const yFor = value => top + plotHeight - (value / maxValue) * plotHeight;
+
+  throughputCtx.clearRect(0, 0, width, height);
+  throughputCtx.fillStyle = '#ffffff';
+  throughputCtx.fillRect(0, 0, width, height);
+  throughputCtx.font = '12px ui-sans-serif';
+  throughputCtx.textBaseline = 'middle';
+
+  for (let i = 0; i <= 4; i++) {{
+    const value = maxValue * i / 4;
+    const y = yFor(value);
+    throughputCtx.strokeStyle = '#e2e7ec';
+    throughputCtx.lineWidth = 1;
+    throughputCtx.beginPath();
+    throughputCtx.moveTo(left, y);
+    throughputCtx.lineTo(width - right, y);
+    throughputCtx.stroke();
+    throughputCtx.fillStyle = '#64727f';
+    throughputCtx.textAlign = 'right';
+    throughputCtx.fillText(value.toFixed(2), left - 8, y);
+  }}
+
+  throughputCtx.fillStyle = '#64727f';
+  throughputCtx.textAlign = 'center';
+  for (const step of [0, Math.floor(DATA.makespan / 2), DATA.makespan]) {{
+    throughputCtx.fillText(String(step), xFor(step), height - 12);
+  }}
+
+  const strokeSeries = (endStep, color, lineWidth) => {{
+    throughputCtx.strokeStyle = color;
+    throughputCtx.lineWidth = lineWidth;
+    throughputCtx.lineJoin = 'round';
+    throughputCtx.lineCap = 'round';
+    throughputCtx.beginPath();
+    throughputCtx.moveTo(xFor(0), yFor(values[0]));
+    const whole = Math.min(Math.floor(endStep), DATA.makespan);
+    for (let step = 1; step <= whole; step++) {{
+      throughputCtx.lineTo(xFor(step), yFor(values[step]));
+    }}
+    if (endStep > whole && whole < DATA.makespan) {{
+      const fraction = endStep - whole;
+      const value =
+          values[whole] + (values[whole + 1] - values[whole]) * fraction;
+      throughputCtx.lineTo(xFor(endStep), yFor(value));
+    }}
+    throughputCtx.stroke();
+  }};
+
+  strokeSeries(DATA.makespan, 'rgba(29, 127, 140, 0.20)', 4);
+  strokeSeries(playhead, '#1d7f8c', 4);
+
+  const step = Math.min(Math.floor(playhead), DATA.makespan);
+  const fraction = playhead - step;
+  const currentValue =
+      step < DATA.makespan
+          ? values[step] + (values[step + 1] - values[step]) * fraction
+          : values[step];
+  const currentX = xFor(playhead);
+  const currentY = yFor(currentValue);
+  throughputCtx.fillStyle = '#1d7f8c';
+  throughputCtx.beginPath();
+  throughputCtx.arc(currentX, currentY, 6, 0, Math.PI * 2);
+  throughputCtx.fill();
+
+  currentThroughputEl.textContent = currentValue.toFixed(4);
+  finalThroughputEl.textContent =
+      values[DATA.makespan].toFixed(4);
 }}
 
 function draw(forceUi = false) {{
@@ -655,6 +817,7 @@ function draw(forceUi = false) {{
       drawCargo(x, y, cell, task ? task.type : 'inbound');
     }}
   }}
+  drawThroughputChart();
   if (forceUi || renderedUiStep !== t) {{
     renderTable();
     renderTaskInfo();
@@ -679,12 +842,18 @@ function renderTaskInfo() {{
   }}
   let assigned = 0;
   let loaded = 0;
+  let unpicked = 0;
+  for (const task of DATA.tasks || []) {{
+    const release = Number(task.release);
+    const pickup = Number(task.pickup);
+    if (release <= t && (pickup < 0 || t < pickup)) unpicked++;
+  }}
   for (const agent of DATA.agents) {{
     const state = taskState(agent);
     if (state.phase === 'assigned') assigned++;
     if (state.phase === 'loaded') loaded++;
   }}
-  taskInfo.innerHTML = `<strong>t=${{t}}</strong>: ${{assigned}} assigned-to-start, ${{loaded}} loaded-to-goal. Click an agent row to show its task start and goal_set labels.`;
+  taskInfo.innerHTML = `<strong>t=${{t}}</strong>: ${{unpicked}} unpicked starts, ${{assigned}} assigned-to-start, ${{loaded}} loaded-to-goal. Click an agent row to show its task start and goal_set labels.`;
 }}
 
 function renderTable() {{
@@ -785,18 +954,23 @@ def main():
         )
         agents.append(stats)
 
+    tasks = schedule_data.get("tasks", [])
     payload = {
         "grid": grid,
         "height": len(grid),
         "width": len(grid[0]),
         "makespan": makespan,
-        "tasks": schedule_data.get("tasks", []),
+        "tasks": tasks,
+        "throughput": throughput_series(tasks, makespan),
         "agents": agents,
     }
     soc = sum(a["soc"] for a in agents)
     sol = sum(a["sol"] for a in agents)
     aba = sum(a["aba"] for a in agents)
     hidden = sum(a["hiddenWait"] for a in agents)
+    statistics = schedule_data.get("statistics", {})
+    alternating_tasks = int(statistics.get("alternating_completed_tasks", 0))
+    alternating_throughput = float(statistics.get("alternating_throughput", 0))
 
     rendered = HTML_TEMPLATE.format(
         title=html.escape(args.title),
@@ -805,6 +979,8 @@ def main():
         sol=sol,
         aba=aba,
         hidden=hidden,
+        alternating_tasks=alternating_tasks,
+        alternating_throughput=f"{alternating_throughput:.6g}",
         data_json=json.dumps(payload, separators=(",", ":")),
     )
     Path(args.output).write_text(rendered)

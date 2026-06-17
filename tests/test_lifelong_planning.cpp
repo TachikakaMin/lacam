@@ -167,6 +167,41 @@ TEST(lifelong_planning, planner_result_assigns_unloaded_task)
   ASSERT_FALSE(agents[assigned_agent == 0 ? 1 : 0].current_task_id.has_value());
 }
 
+TEST(lifelong_planning, shared_pickup_start_assigns_one_task)
+{
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[3]),
+      make_agent(1, graph.U[7]),
+  };
+  auto tasks = std::vector<LifelongTask>{
+      make_pending_task(10, LifelongTaskType::OUTBOUND, graph.U[0],
+                        Vertices{graph.U[4]}),
+      make_pending_task(11, LifelongTaskType::OUTBOUND, graph.U[0],
+                        Vertices{graph.U[6]}),
+  };
+
+  const auto snapshot =
+      prepare_lifelong_planning_snapshot(agents, tasks, distances);
+  const auto result =
+      solve_snapshot(map_filename, agents, tasks, snapshot);
+
+  ASSERT_TRUE(snapshot.feasible);
+  ASSERT_FALSE(result.solution.empty());
+  ASSERT_TRUE(result.applied);
+  ASSERT_EQ(tasks[0].status, LifelongTaskStatus::ASSIGNED);
+  ASSERT_EQ(tasks[1].status, LifelongTaskStatus::PENDING);
+  const auto assigned_count =
+      std::count_if(tasks.begin(), tasks.end(), [](const auto& task) {
+        return task.status == LifelongTaskStatus::ASSIGNED;
+      });
+  ASSERT_EQ(assigned_count, 1);
+}
+
 TEST(lifelong_planning, shared_loaded_drop_uses_alternative_drop)
 {
   const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");

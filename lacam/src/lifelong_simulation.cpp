@@ -174,6 +174,7 @@ void overwrite_latest_agent_task_snapshot(
 }
 
 void finalize_metrics(LifelongSimulationMetrics& metrics,
+                      const std::vector<LifelongAgentState>& agents,
                       const std::vector<LifelongTask>& tasks,
                       double total_planner_runtime, double idle_time,
                       double loaded_time, double unloaded_time)
@@ -227,6 +228,15 @@ void finalize_metrics(LifelongSimulationMetrics& metrics,
       metrics.horizon > 0 ? static_cast<double>(metrics.completed_tasks) /
                                 metrics.horizon
                           : 0;
+  for (const auto& agent : agents) {
+    metrics.alternating_completed_tasks +=
+        agent.alternating_completed_task_count;
+  }
+  metrics.alternating_throughput =
+      metrics.horizon > 0
+          ? static_cast<double>(metrics.alternating_completed_tasks) /
+                metrics.horizon
+          : 0;
   metrics.average_task_completion_time =
       metrics.completed_tasks > 0 ? completion_sum / metrics.completed_tasks : 0;
   metrics.average_pickup_time =
@@ -424,7 +434,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
       }
     }
 
-    finalize_metrics(metrics, tasks, total_planner_runtime, idle_time,
+    finalize_metrics(metrics, agents, tasks, total_planner_runtime, idle_time,
                      loaded_time, unloaded_time);
     metrics.executed_path_indexes.reserve(agents.size());
     for (const auto& agent : agents) {

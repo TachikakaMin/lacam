@@ -12,7 +12,8 @@
 struct LifelongPlanningSnapshot {
   std::vector<std::vector<int> > goal_indexes_by_agent;
   std::vector<std::vector<int> > goal_cost_offsets_by_agent;
-  std::unordered_map<int, int> pending_task_id_by_start_index;
+  std::vector<std::unordered_map<int, int> >
+      pending_task_id_by_start_index_by_agent;
   std::unordered_map<int, Vertex*> target_by_index;
   bool feasible = true;
 };

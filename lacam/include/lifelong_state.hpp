@@ -20,6 +20,8 @@ struct LifelongAgentState {
   Vertex* current_target = nullptr;
   Config executed_path;
   int completed_task_count = 0;
+  std::optional<LifelongTaskType> last_completed_task_type;
+  int alternating_completed_task_count = 0;
 };
 
 struct LifelongStateTransitionResult {

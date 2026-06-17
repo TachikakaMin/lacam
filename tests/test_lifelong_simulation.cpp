@@ -51,6 +51,8 @@ TEST(lifelong_simulation, small_event_driven_smoke_completes_task)
       << " pending=" << metrics.final_pending_tasks;
   ASSERT_GE(metrics.planner_invocations, 1);
   ASSERT_GE(metrics.planner_success_count, 1);
+  ASSERT_EQ(metrics.alternating_completed_tasks, 0);
+  ASSERT_DOUBLE_EQ(metrics.alternating_throughput, 0);
 }
 
 TEST(lifelong_simulation, planner_failure_falls_back_to_wait)

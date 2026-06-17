@@ -84,6 +84,11 @@ LifelongStateTransitionResult try_complete(LifelongAgentState& agent,
   task->completion_timestep = timestep;
   task->assigned_agent_id.reset();
   task->picked_agent_id.reset();
+  if (agent.last_completed_task_type.has_value() &&
+      *agent.last_completed_task_type != task->task_type) {
+    ++agent.alternating_completed_task_count;
+  }
+  agent.last_completed_task_type = task->task_type;
   agent.load_state = AgentLoadState::UNLOADED;
   agent.current_task_id.reset();
   agent.current_target = agent.current_location;
@@ -111,13 +116,17 @@ bool check_lifelong_state_invariants(
     }
   }
 
-  auto active_starts = std::unordered_set<int>();
+  auto active_start_counts = std::unordered_map<int, int>();
   auto active_agent_bindings = std::unordered_set<int>();
   for (const auto& task : tasks) {
-    if (task.status != LifelongTaskStatus::COMPLETED) {
-      if (task.start == nullptr) return fail("unfinished task without start");
-      if (!active_starts.insert(task.start->index).second) {
-        return fail("unfinished task starts are not unique");
+    if (task.status != LifelongTaskStatus::COMPLETED && task.start == nullptr) {
+      return fail("unfinished task without start");
+    }
+    if (task.status == LifelongTaskStatus::PENDING ||
+        task.status == LifelongTaskStatus::ASSIGNED) {
+      if (++active_start_counts[task.start->index] >
+          kLifelongTaskStartCapacity) {
+        return fail("unpicked task start capacity exceeded");
       }
     }
     if (task.assigned_agent_id.has_value()) {

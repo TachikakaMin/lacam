@@ -54,21 +54,27 @@ int deferred_assignment_offset(size_t num_agents,
   return static_cast<int>(std::max(0LL, std::min(desired, max_offset)));
 }
 
-void add_goal_option(LifelongPlanningSnapshot& snapshot, size_t agent,
+bool add_goal_option(LifelongPlanningSnapshot& snapshot, size_t agent,
                      Vertex* target, int cost_offset)
 {
-  if (target == nullptr || cost_offset >= kTapfAssignmentInfCost) return;
+  if (target == nullptr || cost_offset >= kTapfAssignmentInfCost) return false;
   auto& indexes = snapshot.goal_indexes_by_agent[agent];
   auto& offsets = snapshot.goal_cost_offsets_by_agent[agent];
   const auto iter = std::find(indexes.begin(), indexes.end(), target->index);
   if (iter == indexes.end()) {
     indexes.push_back(target->index);
     offsets.push_back(cost_offset);
+    snapshot.target_by_index[target->index] = target;
+    return true;
   } else {
     const auto option = std::distance(indexes.begin(), iter);
-    offsets[option] = std::min(offsets[option], cost_offset);
+    if (cost_offset < offsets[option]) {
+      offsets[option] = cost_offset;
+      snapshot.target_by_index[target->index] = target;
+      return true;
+    }
   }
-  snapshot.target_by_index[target->index] = target;
+  return false;
 }
 }  // namespace
 
@@ -117,12 +123,13 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   auto snapshot = LifelongPlanningSnapshot();
   snapshot.goal_indexes_by_agent.resize(agents.size());
   snapshot.goal_cost_offsets_by_agent.resize(agents.size());
+  snapshot.pending_task_id_by_start_index_by_agent.resize(agents.size());
   const auto pending_tasks = collect_pending_tasks(tasks);
   const auto unloaded_count =
       std::count_if(agents.begin(), agents.end(), [](const auto& agent) {
         return agent.load_state == AgentLoadState::UNLOADED;
       });
-  const auto needs_idle_targets = pending_tasks.size() < unloaded_count;
+  auto pending_start_indexes = std::unordered_set<int>();
   const auto cost_scale = static_cast<int>(agents.size()) + 1;
   const auto deferred_offset =
       deferred_assignment_offset(agents.size(), distances, cost_scale);
@@ -133,12 +140,10 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
       snapshot.feasible = false;
       continue;
     }
-    const auto inserted = snapshot.pending_task_id_by_start_index.emplace(
-        task.start->index, task.task_id);
-    if (!inserted.second && inserted.first->second != task.task_id) {
-      snapshot.feasible = false;
-    }
+    pending_start_indexes.insert(task.start->index);
   }
+  const auto needs_idle_targets =
+      pending_start_indexes.size() < static_cast<size_t>(unloaded_count);
 
   for (size_t i = 0; i < agents.size(); ++i) {
     auto& agent = agents[i];
@@ -171,9 +176,13 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         if (delivery_cost >= kTapfAssignmentInfCost) continue;
         const auto switched = previous_task_ids[i].has_value() &&
                               *previous_task_ids[i] != task.task_id;
-        add_goal_option(snapshot, i, task.start,
-                        scaled_assignment_offset(
-                            delivery_cost, cost_scale, switched ? 1 : 0));
+        if (add_goal_option(
+                snapshot, i, task.start,
+                scaled_assignment_offset(delivery_cost, cost_scale,
+                                         switched ? 1 : 0))) {
+          snapshot.pending_task_id_by_start_index_by_agent[i]
+              [task.start->index] = task.task_id;
+        }
       }
       if (needs_idle_targets) {
         add_goal_option(snapshot, i, agent.current_location,
@@ -226,9 +235,10 @@ bool apply_lifelong_solution_assignment(
     if (allowed == snapshot.goal_indexes_by_agent[i].end()) return false;
     if (agents[i].load_state == AgentLoadState::LOADED) continue;
 
-    const auto task_iter =
-        snapshot.pending_task_id_by_start_index.find(target_index);
-    if (task_iter == snapshot.pending_task_id_by_start_index.end()) continue;
+    const auto& pending_tasks =
+        snapshot.pending_task_id_by_start_index_by_agent[i];
+    const auto task_iter = pending_tasks.find(target_index);
+    if (task_iter == pending_tasks.end()) continue;
     auto* task = find_task_by_id(tasks, task_iter->second);
     if (task == nullptr || task->status != LifelongTaskStatus::PENDING ||
         task->start == nullptr || task->start->index != target_index ||

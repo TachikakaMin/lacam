@@ -24,7 +24,8 @@ bool should_write_header(const std::string& path)
 void write_csv_header(std::ostream& out)
 {
   out << "map_name,num_agents,horizon,seed,generated_tasks,completed_tasks,"
-         "throughput,final_pending_tasks,final_assigned_tasks,"
+         "throughput,alternating_completed_tasks,alternating_throughput,"
+         "final_pending_tasks,final_assigned_tasks,"
          "final_picked_tasks,average_task_completion_time,"
          "average_pickup_time,average_delivery_time,planner_invocations,"
          "planner_success_count,planner_timeout_count,planner_failure_count,"
@@ -39,7 +40,8 @@ void write_csv_row(std::ostream& out, const LifelongSimulationMetrics& m)
 {
   out << m.map_name << "," << m.num_agents << "," << m.horizon << ","
       << m.seed << "," << m.generated_tasks << "," << m.completed_tasks
-      << "," << m.throughput << "," << m.final_pending_tasks << ","
+      << "," << m.throughput << "," << m.alternating_completed_tasks << ","
+      << m.alternating_throughput << "," << m.final_pending_tasks << ","
       << m.final_assigned_tasks << "," << m.final_picked_tasks << ","
       << m.average_task_completion_time << "," << m.average_pickup_time << ","
       << m.average_delivery_time << "," << m.planner_invocations << ","
@@ -135,6 +137,10 @@ void write_schedule_yaml(const LifelongSimulationMetrics& metrics,
   out << "  completed_tasks: " << metrics.completed_tasks << "\n";
   out << "  generated_tasks: " << metrics.generated_tasks << "\n";
   out << "  throughput: " << metrics.throughput << "\n";
+  out << "  alternating_completed_tasks: "
+      << metrics.alternating_completed_tasks << "\n";
+  out << "  alternating_throughput: " << metrics.alternating_throughput
+      << "\n";
   out << "assignments:\n";
   for (size_t i = 0; i < metrics.executed_path_indexes.size(); ++i) {
     const auto final_index = metrics.executed_path_indexes[i].back();
@@ -222,6 +228,10 @@ int main(int argc, char** argv)
   std::cout << "generated_tasks=" << metrics.generated_tasks << "\n";
   std::cout << "completed_tasks=" << metrics.completed_tasks << "\n";
   std::cout << "throughput=" << metrics.throughput << "\n";
+  std::cout << "alternating_completed_tasks="
+            << metrics.alternating_completed_tasks << "\n";
+  std::cout << "alternating_throughput=" << metrics.alternating_throughput
+            << "\n";
   std::cout << "planner_invocations=" << metrics.planner_invocations << "\n";
   std::cout << "planner_success_count=" << metrics.planner_success_count << "\n";
   std::cout << "planner_timeout_count=" << metrics.planner_timeout_count << "\n";

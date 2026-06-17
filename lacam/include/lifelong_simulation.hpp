@@ -37,6 +37,8 @@ struct LifelongSimulationMetrics {
   int generated_tasks = 0;
   int completed_tasks = 0;
   double throughput = 0;
+  int alternating_completed_tasks = 0;
+  double alternating_throughput = 0;
   int final_pending_tasks = 0;
   int final_assigned_tasks = 0;
   int final_picked_tasks = 0;
