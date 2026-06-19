@@ -7,6 +7,7 @@
 #include <chrono>
 #include <limits>
 #include <queue>
+#include <unordered_map>
 #include <vector>
 
 #include "tapf_dist_table.hpp"
@@ -23,6 +24,8 @@ struct TAPFAssignmentResult {
 struct TAPFAssignmentStats {
   int calls = 0;
   double time_ms = 0;
+  long row_cache_requests = 0;
+  long row_cache_hits = 0;
 };
 
 struct TAPFAssignmentState {
@@ -35,6 +38,7 @@ struct TAPFAssignmentState {
   std::vector<long> ly;
   long cost_scale = 1;
   long tie_hash_mod = 1;
+  std::unordered_map<long long, std::vector<int> > row_cost_cache;
 
   void init(const int agent_num, const int task_num)
   {
@@ -45,6 +49,7 @@ struct TAPFAssignmentState {
     mateR.assign(n, -1);
     lx.assign(n, 0);
     ly.assign(n, 0);
+    row_cost_cache.clear();
     tie_hash_mod = compute_tie_hash_mod(org_n, org_m);
     cost_scale = compute_cost_scale(org_n, org_m, tie_hash_mod);
   }
@@ -262,7 +267,9 @@ TAPFAssignmentResult assign_tapf_tasks(
 TAPFAssignmentResult assign_tapf_tasks_dynamic(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
     TAPFAssignmentState& state, const std::vector<int>& changed_agents,
-    const bool force_full = false, TAPFAssignmentStats* stats = nullptr);
+    const bool force_full = false, TAPFAssignmentStats* stats = nullptr,
+    const std::vector<int>& fixed_task_by_agent = std::vector<int>(),
+    const std::vector<bool>& unavailable_tasks = std::vector<bool>());
 
 TAPFAssignmentResult assign_hungarian_cost_matrix(
     const std::vector<std::vector<int> >& cost);

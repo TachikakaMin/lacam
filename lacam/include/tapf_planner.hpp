@@ -26,6 +26,9 @@ struct TAPFSearchConfig {
   TAPFSearchMode mode = TAPFSearchMode::DFS;
   TAPFFocalTieBreak focal_tie_break = TAPFFocalTieBreak::H;
   double focal_weight = 1.5;
+  bool allow_partial_solution = false;
+  bool service_goal_mode = false;
+  int service_commit_agents = 0;
 };
 
 struct TAPFConstraint {
@@ -43,6 +46,8 @@ struct TAPFNode {
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
+  std::vector<bool> satisfied;
+  std::vector<int> satisfied_assignment;
   bool queued;
   unsigned g;
   unsigned h;
@@ -58,11 +63,16 @@ struct TAPFNode {
 
   TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
            std::vector<int> _assignment, TAPFAssignmentState _assignment_state,
+           const TAPFSearchConfig& search_config,
+           const std::vector<bool>& _satisfied = std::vector<bool>(),
+           const std::vector<int>& _satisfied_assignment = std::vector<int>(),
            TAPFNode* _parent = nullptr);
   ~TAPFNode();
   void discard_search_tree();
-  void refresh_priority(TAPFDistTable& D);
-  void refresh_search_metrics(TAPFDistTable& D, const TAPFInstance* ins);
+  void refresh_priority(TAPFDistTable& D, const TAPFInstance* ins,
+                        const TAPFSearchConfig& search_config);
+  void refresh_search_metrics(TAPFDistTable& D, const TAPFInstance* ins,
+                              const TAPFSearchConfig& search_config);
 };
 
 struct TAPFStats {
@@ -87,12 +97,22 @@ struct TAPFStats {
   int incumbent_updates = 0;
   int swap_checks = 0;
   int swap_applied = 0;
+  int initial_assignment_cost = 0;
   unsigned solution_cost = 0;
+  unsigned solution_h = 0;
   unsigned first_solution_cost = 0;
   unsigned solution_parent_edge_cost = 0;
   double assignment_time_ms = 0;
+  long assignment_row_cache_requests = 0;
+  long assignment_row_cache_hits = 0;
   double first_solution_time_ms = 0;
   bool timed_out = false;
+  bool partial_solution = false;
+  int service_satisfied_agents = 0;
+  int service_satisfied_pickups = 0;
+  int service_satisfied_deliveries = 0;
+  int service_best_satisfied_agents = 0;
+  std::vector<int> initial_assignment;
 };
 
 struct TAPFPlanner {
@@ -107,6 +127,7 @@ struct TAPFPlanner {
   bool force_full_assignment;
   TAPFStats* stats;
   TAPFAssignmentStats assignment_stats;
+  std::vector<bool> service_required_agents;
 
   const int N;
   const int V_size;
@@ -122,21 +143,28 @@ struct TAPFPlanner {
               float _restart_rate = 0.001f, bool _anytime = true,
               TAPFStats* _stats = nullptr,
               TAPFSearchConfig _search_config = TAPFSearchConfig());
-  Solution solve(std::vector<int>* final_assignment = nullptr);
+  Solution solve(
+      std::vector<int>* final_assignment = nullptr,
+      std::vector<std::vector<int> >* assignment_schedule = nullptr);
+  bool agent_satisfied(const TAPFNode* node, int agent) const;
+  Vertex* assigned_goal(const std::vector<int>& assignment, int agent) const;
+  int distance_to_assigned_goal(const TAPFNode* node, int agent, Vertex* v);
+  int distance_to_assigned_goal(const std::vector<int>& assignment, int agent,
+                                Vertex* v);
   bool is_goal_node(const TAPFNode* node) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
                std::vector<TAPFNode*>& OPEN);
   unsigned get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
   unsigned get_h_value(const Config& C);
-  Agent* swap_possible_and_required(Agent* ai,
-                                    const std::vector<int>& assignment);
+  unsigned get_h_value(const TAPFNode* node);
+  Agent* swap_possible_and_required(Agent* ai, const TAPFNode* node);
   bool is_swap_required(const int pusher, const int puller,
                         Vertex* v_pusher_origin, Vertex* v_puller_origin,
-                        const std::vector<int>& assignment);
+                        const TAPFNode* node);
   bool is_swap_possible(Vertex* v_pusher_origin, Vertex* v_puller_origin,
-                        const std::vector<int>& assignment);
-  bool funcPIBT(Agent* ai, const std::vector<int>& assignment);
+                        const TAPFNode* node);
+  bool funcPIBT(Agent* ai, const TAPFNode* node);
 };
 
 Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
@@ -145,4 +173,6 @@ Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
                     TAPFStats* stats = nullptr, bool anytime = true,
                     bool force_full_assignment = false,
                     TAPFSearchConfig search_config = TAPFSearchConfig(),
-                    std::vector<int>* final_assignment = nullptr);
+                    std::vector<int>* final_assignment = nullptr,
+                    std::vector<std::vector<int> >* assignment_schedule =
+                        nullptr);

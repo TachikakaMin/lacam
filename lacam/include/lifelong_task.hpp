@@ -39,7 +39,7 @@ struct LifelongTask {
 };
 
 struct LifelongTaskGeneratorConfig {
-  int goal_set_size = 5;
+  int goal_set_size = 3;
   int release_interval = 10;
   int backlog_multiplier = 2;
   double outbound_probability = 0.5;

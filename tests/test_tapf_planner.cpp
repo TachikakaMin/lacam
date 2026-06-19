@@ -103,3 +103,105 @@ TEST(tapf_planner, assignment_uses_agent_target_cost_offsets)
   ASSERT_EQ(ins.tasks[dynamic_assignment.agent_to_task[0]]->index, 4);
   ASSERT_EQ(ins.tasks[dynamic_assignment.agent_to_task[1]]->index, 2);
 }
+
+TEST(tapf_planner, assignment_uses_agent_target_distance_scales)
+{
+  const auto map_filename = "./tests/assets/lifelong-task-small.map";
+  const auto starts = std::vector<int>{0};
+  const auto goals = std::vector<std::vector<int> >{{2, 4}};
+  const auto offsets = std::vector<std::vector<int> >{{0, 0}};
+  const auto scales = std::vector<std::vector<int> >{{10, 1}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, offsets, 1, scales);
+  auto distances = TAPFDistTable(ins);
+
+  const auto assignment = assign_tapf_tasks(ins, distances, ins.starts);
+
+  ASSERT_TRUE(assignment.feasible);
+  ASSERT_EQ(ins.tasks[assignment.agent_to_task[0]]->index, 4);
+}
+
+TEST(tapf_planner, service_mode_searches_until_every_agent_reaches_a_goal)
+{
+  const auto map_filename = "./tests/assets/lifelong-task-small.map";
+  const auto starts = std::vector<int>{0, 7};
+  const auto goals =
+      std::vector<std::vector<int> >{{2, 8}, {2, 8}};
+  const auto ins = TAPFInstance(map_filename, starts, goals);
+
+  ASSERT_TRUE(ins.is_valid());
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config, &final_assignment);
+
+  ASSERT_FALSE(solution.empty());
+  ASSERT_FALSE(stats.partial_solution);
+  ASSERT_EQ(final_assignment.size(), starts.size());
+  ASSERT_GT(stats.hl_nodes_created, 1);
+  ASSERT_GT(stats.assignment_calls, 1);
+  ASSERT_GT(stats.assignment_row_cache_requests, 0);
+  ASSERT_GT(stats.assignment_row_cache_hits, 0);
+  ASSERT_GT(stats.service_satisfied_agents, 0);
+  // Execution commits only through the first service event, while the search
+  // must still prove a continuation that services every agent once.
+  ASSERT_EQ(stats.service_best_satisfied_agents,
+            static_cast<int>(starts.size()));
+}
+
+TEST(tapf_planner, service_at_root_requires_a_committed_stay_transition)
+{
+  const auto map_filename = "./tests/assets/2x1.map";
+  const auto ins = TAPFInstance(map_filename, std::vector<int>{0},
+                                std::vector<std::vector<int> >{{0}});
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config, &final_assignment);
+
+  ASSERT_EQ(solution.size(), 2);
+  ASSERT_EQ(solution[0][0], ins.G.U[0]);
+  ASSERT_EQ(solution[1][0], ins.G.U[0]);
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+  ASSERT_EQ(final_assignment.size(), 1);
+}
+
+TEST(tapf_planner, service_mode_allows_sequential_use_of_one_physical_goal)
+{
+  const auto map_filename = "./tests/assets/lifelong-task-small.map";
+  const auto starts = std::vector<int>{3, 9};
+  const auto goals = std::vector<std::vector<int> >{{0}, {0}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                true);
+
+  ASSERT_TRUE(ins.is_valid());
+  ASSERT_EQ(ins.tasks.size(), starts.size());
+  ASSERT_EQ(ins.tasks[0], ins.tasks[1]);
+
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config, &final_assignment);
+
+  ASSERT_FALSE(solution.empty());
+  ASSERT_EQ(stats.service_best_satisfied_agents, 2);
+  ASSERT_EQ(final_assignment.size(), 2);
+  ASSERT_NE(final_assignment[0], final_assignment[1]);
+  ASSERT_EQ(ins.tasks[final_assignment[0]]->index, 0);
+  ASSERT_EQ(ins.tasks[final_assignment[1]]->index, 0);
+  // Both virtual task slots denote one physical vertex. The searched
+  // continuation services them sequentially because only one agent may occupy
+  // it per step; the returned execution prefix ends at the first service.
+  ASSERT_EQ(std::count(solution.back().begin(), solution.back().end(),
+                       ins.G.U[0]),
+            1);
+}

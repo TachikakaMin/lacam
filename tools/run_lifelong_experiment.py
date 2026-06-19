@@ -21,10 +21,11 @@ def main() -> int:
     parser.add_argument("--seeds", default="0,1,2,3,4")
     parser.add_argument("--horizon", type=int, default=1000)
     parser.add_argument("--time-limit-sec", type=float, default=2.0)
-    parser.add_argument("--goal-set-size", type=int, default=5)
+    parser.add_argument("--goal-set-size", type=int, default=3)
     parser.add_argument("--outbound-prob", type=float, default=0.5)
     parser.add_argument("--release-interval", type=int, default=10)
     parser.add_argument("--planner-anytime", action="store_true")
+    parser.add_argument("--multi-carry-capacity", type=int, default=1)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -52,6 +53,7 @@ def main() -> int:
                 "1" if args.debug else "0",
                 "",
                 "1" if args.planner_anytime else "0",
+                str(args.multi_carry_capacity),
             ]
             print("running", " ".join(cmd), flush=True)
             subprocess.run(cmd, check=True)

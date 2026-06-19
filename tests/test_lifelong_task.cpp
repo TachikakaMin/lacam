@@ -70,12 +70,14 @@ TEST(lifelong_task_generator, generates_outbound_tasks_in_valid_regions)
     ASSERT_EQ(task.status, LifelongTaskStatus::PENDING);
     ASSERT_EQ(task.release_timestep, 0);
     ASSERT_EQ(graph.cell_type(task.start), 'a');
-    ASSERT_EQ(task.goal_set.size(), 5);
+    ASSERT_EQ(task.goal_set.size(),
+              static_cast<size_t>(config.goal_set_size));
     for (auto goal : task.goal_set) {
       ASSERT_TRUE(is_tunnel_type(graph.cell_type(goal)));
     }
     ASSERT_TRUE(all_goals_are_in_one_tunnel(graph, task));
-    ASSERT_EQ(goal_indexes(task).size(), 5);
+    ASSERT_EQ(goal_indexes(task).size(),
+              static_cast<size_t>(config.goal_set_size));
   }
   ASSERT_NE(tasks[0].start, tasks[1].start);
   ASSERT_NE(tasks[1].start, tasks[2].start);
@@ -95,7 +97,8 @@ TEST(lifelong_task_generator, generates_inbound_tasks_in_valid_regions)
   ASSERT_EQ(tasks.front().task_type, LifelongTaskType::INBOUND);
   ASSERT_TRUE(is_tunnel_type(graph.cell_type(tasks.front().start)));
   ASSERT_TRUE(all_goals_have_type(graph, tasks.front(), 'a'));
-  ASSERT_EQ(goal_indexes(tasks.front()).size(), 5);
+  ASSERT_EQ(goal_indexes(tasks.front()).size(),
+            static_cast<size_t>(config.goal_set_size));
 }
 
 TEST(lifelong_task_generator, both_tunnel_types_support_both_task_types)

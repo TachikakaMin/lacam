@@ -97,6 +97,13 @@ bool invalid_input(const TAPFInstance& ins, const Config& C)
   return ins.tasks.size() < ins.N || C.size() != ins.N;
 }
 
+long long row_cache_key(int agent_id, Vertex* cell)
+{
+  const auto cell_id = cell == nullptr ? -1 : cell->id;
+  return (static_cast<long long>(agent_id) << 32) ^
+         static_cast<unsigned int>(cell_id);
+}
+
 void record_assignment_time(const Time::time_point& t_start,
                             TAPFAssignmentStats* stats)
 {
@@ -120,8 +127,11 @@ std::vector<std::vector<int> > build_cost_matrix(
       auto d = D.get(j, C[i]);
       if (d >= D.K) continue;
       const auto offset = ins.assignment_cost_offsets[i][j];
+      const auto distance_scale = ins.assignment_distance_scales.empty()
+                                      ? ins.assignment_distance_scale
+                                      : ins.assignment_distance_scales[i][j];
       const auto scaled_distance =
-          static_cast<long long>(d) * ins.assignment_distance_scale;
+          static_cast<long long>(d) * distance_scale;
       if (scaled_distance + offset >= kTapfAssignmentInfCost) continue;
       cost[i][j] = static_cast<int>(scaled_distance + offset);
       if (!previous_assignment.empty() &&
@@ -158,7 +168,9 @@ TAPFAssignmentResult assign_tapf_tasks(
 TAPFAssignmentResult assign_tapf_tasks_dynamic(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
     TAPFAssignmentState& state, const std::vector<int>& changed_agents,
-    const bool force_full, TAPFAssignmentStats* stats)
+    const bool force_full, TAPFAssignmentStats* stats,
+    const std::vector<int>& fixed_task_by_agent,
+    const std::vector<bool>& unavailable_tasks)
 {
   const auto t_start = Time::now();
   if (stats != nullptr) ++stats->calls;
@@ -173,18 +185,44 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     state.init(ins.N, ins.tasks.size());
   }
 
+  auto build_row = [&](const int i) {
+    auto row =
+        std::vector<int>(ins.tasks.size(), kTapfAssignmentInfCost);
+    for (size_t j = 0; j < ins.tasks.size(); ++j) {
+      if (!ins.allowed[i][j]) continue;
+      auto d = D.get(j, C[i]);
+      if (d >= D.K) continue;
+      const auto offset = ins.assignment_cost_offsets[i][j];
+      const auto distance_scale = ins.assignment_distance_scales.empty()
+                                      ? ins.assignment_distance_scale
+                                      : ins.assignment_distance_scales[i][j];
+      const auto scaled_distance =
+          static_cast<long long>(d) * distance_scale;
+      if (scaled_distance + offset >= kTapfAssignmentInfCost) continue;
+      row[j] = static_cast<int>(scaled_distance + offset);
+    }
+    return row;
+  };
+
   auto cost = [&](const int i, const int j) -> int {
     if (j >= static_cast<int>(ins.tasks.size())) return kTapfAssignmentInfCost;
-    if (!ins.allowed[i][j]) return kTapfAssignmentInfCost;
-    auto d = D.get(j, C[i]);
-    if (d >= D.K) return kTapfAssignmentInfCost;
-    const auto offset = ins.assignment_cost_offsets[i][j];
-    const auto scaled_distance =
-        static_cast<long long>(d) * ins.assignment_distance_scale;
-    if (scaled_distance + offset >= kTapfAssignmentInfCost) {
+    const auto fixed = i < static_cast<int>(fixed_task_by_agent.size())
+                           ? fixed_task_by_agent[i]
+                           : -1;
+    if (fixed >= 0 && j != fixed) return kTapfAssignmentInfCost;
+    if (fixed < 0 && j < static_cast<int>(unavailable_tasks.size()) &&
+        unavailable_tasks[j]) {
       return kTapfAssignmentInfCost;
     }
-    return static_cast<int>(scaled_distance + offset);
+    if (stats != nullptr) ++stats->row_cache_requests;
+    const auto key = row_cache_key(i, C[i]);
+    auto iter = state.row_cost_cache.find(key);
+    if (iter == state.row_cost_cache.end()) {
+      iter = state.row_cost_cache.emplace(key, build_row(i)).first;
+    } else if (stats != nullptr) {
+      ++stats->row_cache_hits;
+    }
+    return iter->second[j];
   };
 
   auto result = force_full ? state.solve_full(cost)

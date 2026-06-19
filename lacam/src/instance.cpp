@@ -101,12 +101,19 @@ TAPFInstance::TAPFInstance(const std::string& map_filename,
                            const std::vector<int>& start_indexes,
                            const std::vector<std::vector<int> >& task_indexes,
                            const std::vector<std::vector<int> >& task_cost_offsets,
-                           int task_distance_scale)
+                           int task_distance_scale,
+                           const std::vector<std::vector<int> >& task_distance_scales,
+                           const std::vector<float>& _agent_priority_offsets,
+                           bool preserve_duplicate_tasks,
+                           const std::vector<std::vector<int> >& task_key_options)
     : G(map_filename),
       starts(Config()),
       tasks(Config()),
+      task_keys(std::vector<int>()),
       allowed(std::vector<std::vector<bool> >()),
       assignment_cost_offsets(std::vector<std::vector<int> >()),
+      assignment_distance_scales(std::vector<std::vector<int> >()),
+      agent_priority_offsets(_agent_priority_offsets),
       assignment_distance_scale(task_distance_scale),
       N(start_indexes.size())
 {
@@ -115,11 +122,23 @@ TAPFInstance::TAPFInstance(const std::string& map_filename,
 
   allowed.resize(N);
   assignment_cost_offsets.resize(N);
+  assignment_distance_scales.resize(N);
   const auto has_offsets = !task_cost_offsets.empty();
+  const auto has_scales = !task_distance_scales.empty();
+  const auto has_keys = !task_key_options.empty();
   if (task_indexes.size() != N ||
-      (has_offsets && task_cost_offsets.size() != N)) {
+      (has_offsets && task_cost_offsets.size() != N) ||
+      (has_scales && task_distance_scales.size() != N) ||
+      (has_keys && task_key_options.size() != N)) {
     assignment_distance_scale = 0;
     return;
+  }
+  if (!agent_priority_offsets.empty() && agent_priority_offsets.size() != N) {
+    assignment_distance_scale = 0;
+    return;
+  }
+  if (agent_priority_offsets.empty()) {
+    agent_priority_offsets.assign(N, 0.0f);
   }
   if (has_offsets) {
     for (size_t i = 0; i < N; ++i) {
@@ -129,23 +148,61 @@ TAPFInstance::TAPFInstance(const std::string& map_filename,
       }
     }
   }
+  if (has_scales) {
+    for (size_t i = 0; i < N; ++i) {
+      if (task_distance_scales[i].size() != task_indexes[i].size()) {
+        assignment_distance_scale = 0;
+        return;
+      }
+    }
+  }
+  if (has_keys) {
+    for (size_t i = 0; i < N; ++i) {
+      if (task_key_options[i].size() != task_indexes[i].size()) {
+        assignment_distance_scale = 0;
+        return;
+      }
+    }
+  }
   for (size_t i = 0; i < task_indexes.size(); ++i) {
     for (size_t option = 0; option < task_indexes[i].size(); ++option) {
       const auto k = task_indexes[i][option];
-      if (index_to_task.find(k) == index_to_task.end()) {
-        index_to_task[k] = tasks.size();
+      const auto key = has_keys ? task_key_options[i][option] : k;
+      int task = -1;
+      if (preserve_duplicate_tasks) {
+        task = tasks.size();
         tasks.push_back(G.U[k]);
+        task_keys.push_back(key);
         for (auto& row : allowed) row.push_back(false);
         for (auto& row : assignment_cost_offsets) row.push_back(0);
+        for (auto& row : assignment_distance_scales) {
+          row.push_back(task_distance_scale);
+        }
+      } else if (index_to_task.find(key) == index_to_task.end()) {
+        index_to_task[key] = tasks.size();
+        tasks.push_back(G.U[k]);
+        task_keys.push_back(key);
+        for (auto& row : allowed) row.push_back(false);
+        for (auto& row : assignment_cost_offsets) row.push_back(0);
+        for (auto& row : assignment_distance_scales) {
+          row.push_back(task_distance_scale);
+        }
       }
-      const auto task = index_to_task[k];
+      if (!preserve_duplicate_tasks) task = index_to_task[key];
       const auto offset = has_offsets ? task_cost_offsets[i][option] : 0;
+      const auto scale =
+          has_scales ? task_distance_scales[i][option] : task_distance_scale;
       if (!allowed[i][task]) {
         allowed[i][task] = true;
         assignment_cost_offsets[i][task] = offset;
+        assignment_distance_scales[i][task] = scale;
       } else {
-        assignment_cost_offsets[i][task] =
-            std::min(assignment_cost_offsets[i][task], offset);
+        const auto old_root_cost = assignment_cost_offsets[i][task];
+        const auto new_root_cost = offset;
+        if (new_root_cost < old_root_cost) {
+          assignment_cost_offsets[i][task] = offset;
+          assignment_distance_scales[i][task] = scale;
+        }
       }
     }
   }
@@ -217,6 +274,14 @@ bool TAPFInstance::is_valid(const int verbose) const
     info(1, verbose, "invalid TAPF assignment cost rows");
     return false;
   }
+  if (assignment_distance_scales.size() != N) {
+    info(1, verbose, "invalid TAPF assignment distance scale rows");
+    return false;
+  }
+  if (agent_priority_offsets.size() != N) {
+    info(1, verbose, "invalid TAPF agent priority offsets");
+    return false;
+  }
   if (assignment_distance_scale <= 0) {
     info(1, verbose, "invalid TAPF assignment distance scale");
     return false;
@@ -238,6 +303,10 @@ bool TAPFInstance::is_valid(const int verbose) const
       info(1, verbose, "invalid TAPF assignment cost matrix");
       return false;
     }
+    if (assignment_distance_scales[i].size() != tasks.size()) {
+      info(1, verbose, "invalid TAPF assignment distance scale matrix");
+      return false;
+    }
     auto any_allowed = false;
     for (size_t j = 0; j < tasks.size(); ++j) {
       if (tasks[j] == nullptr) {
@@ -246,6 +315,10 @@ bool TAPFInstance::is_valid(const int verbose) const
       }
       if (assignment_cost_offsets[i][j] < 0) {
         info(1, verbose, "negative TAPF assignment cost offset");
+        return false;
+      }
+      if (assignment_distance_scales[i][j] <= 0) {
+        info(1, verbose, "nonpositive TAPF assignment distance scale");
         return false;
       }
       any_allowed = any_allowed || allowed[i][j];

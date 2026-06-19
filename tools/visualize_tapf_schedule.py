@@ -42,9 +42,15 @@ def expand_path(path, makespan):
 
 def expand_task_timeline(entries, makespan):
     if not entries:
-        return [{"task": -1, "phase": "idle"} for _ in range(makespan + 1)]
+        return [
+            {"task": -1, "phase": "idle", "assigned_task": -1, "carried_tasks": []}
+            for _ in range(makespan + 1)
+        ]
     entries = sorted(entries, key=lambda item: int(item.get("t", 0)))
-    dense = [{"task": -1, "phase": "idle"} for _ in range(makespan + 1)]
+    dense = [
+        {"task": -1, "phase": "idle", "assigned_task": -1, "carried_tasks": []}
+        for _ in range(makespan + 1)
+    ]
     for idx, entry in enumerate(entries):
         start = max(0, int(entry.get("t", 0)))
         end = (
@@ -52,9 +58,14 @@ def expand_task_timeline(entries, makespan):
             if idx + 1 < len(entries)
             else makespan + 1
         )
+        carried = entry.get("carried_tasks", [])
+        if carried is None:
+            carried = []
         value = {
             "task": int(entry.get("task", -1)),
             "phase": str(entry.get("phase", "idle")),
+            "assigned_task": int(entry.get("assigned_task", entry.get("task", -1))),
+            "carried_tasks": [int(task_id) for task_id in carried],
         }
         for tt in range(start, min(end, makespan + 1)):
             dense[tt] = value
@@ -502,7 +513,31 @@ function visible(agent) {{
 
 function taskState(agent) {{
   const idx = Math.min(t, agent.timeline.length - 1);
-  return agent.timeline[idx] || {{task: -1, phase: 'idle'}};
+  return agent.timeline[idx] || {{task: -1, phase: 'idle', assigned_task: -1, carried_tasks: []}};
+}}
+
+function stateTaskIds(state) {{
+  if (state.phase === 'assigned') {{
+    const task = Number(state.assigned_task ?? state.task ?? -1);
+    return task >= 0 ? [task] : [];
+  }}
+  if (state.phase === 'loaded') {{
+    const carried = Array.isArray(state.carried_tasks) ? state.carried_tasks : [];
+    if (carried.length > 0) return carried.map(Number).filter(id => id >= 0);
+    const task = Number(state.task ?? -1);
+    return task >= 0 ? [task] : [];
+  }}
+  return [];
+}}
+
+function carriedTaskIds(state) {{
+  const carried = Array.isArray(state.carried_tasks) ? state.carried_tasks : [];
+  return carried.map(Number).filter(id => id >= 0);
+}}
+
+function assignedTaskId(state) {{
+  const task = Number(state.assigned_task ?? -1);
+  return task >= 0 ? task : -1;
 }}
 
 function interpolatedPosition(agent) {{
@@ -524,7 +559,14 @@ function phaseLabel(phase) {{
 }}
 
 function taskLabel(state) {{
-  return state.task >= 0 ? `T${{state.task}}` : '-';
+  const assigned = assignedTaskId(state);
+  const carried = carriedTaskIds(state);
+  const parts = [];
+  if (assigned >= 0) parts.push(`P:T${{assigned}}`);
+  if (carried.length > 0) parts.push(`C:${{carried.map(id => `T${{id}}`).join('+')}}`);
+  if (parts.length > 0) return parts.join(' ');
+  const ids = stateTaskIds(state);
+  return ids.length > 0 ? ids.map(id => `T${{id}}`).join('+') : '-';
 }}
 
 function bounds() {{
@@ -606,25 +648,39 @@ function drawCurrentTasks(b, cell, offX, offY) {{
   for (const agent of DATA.agents) {{
     if (!visible(agent)) continue;
     const state = taskState(agent);
-    if (state.task < 0) continue;
-    const task = taskById.get(Number(state.task));
-    if (!task) continue;
-    const key = `${{agent.id}}:${{state.task}}:${{state.phase}}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
     const color = colorFor(agent);
     const strong = selected === agent.id;
     if (state.phase === 'assigned') {{
+      const taskId = stateTaskIds(state)[0];
+      const task = taskById.get(Number(taskId));
+      if (!task) continue;
+      const key = `${{agent.id}}:${{taskId}}:${{state.phase}}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       drawTaskMarker(task.start, b, cell, offX, offY, color, 'start', strong, strong ? `T${{task.id}} start` : '');
+      for (const carriedId of carriedTaskIds(state)) {{
+        const carriedTask = taskById.get(Number(carriedId));
+        if (!carriedTask) continue;
+        for (const goal of carriedTask.goals || []) {{
+          drawTaskMarker(goal, b, cell, offX, offY, color, 'goal', false, '');
+        }}
+      }}
     }} else if (state.phase === 'loaded') {{
-      for (const goal of task.goals || []) {{
-        drawTaskMarker(goal, b, cell, offX, offY, color, 'goal', strong, strong ? `T${{task.id}} goal` : '');
+      for (const taskId of stateTaskIds(state)) {{
+        const task = taskById.get(Number(taskId));
+        if (!task) continue;
+        const key = `${{agent.id}}:${{taskId}}:${{state.phase}}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        for (const goal of task.goals || []) {{
+          drawTaskMarker(goal, b, cell, offX, offY, color, 'goal', strong, strong ? `T${{task.id}} goal` : '');
+        }}
       }}
     }}
   }}
 }}
 
-function drawCargo(x, y, cell, taskType) {{
+function drawCargo(x, y, cell, taskType, slot = 0, count = 1) {{
   const outbound = taskType === 'outbound';
   const fill = outbound ? '#dc4c3e' : '#f2b84b';
   const highlight = outbound ? '#f5a39b' : '#ffd980';
@@ -632,8 +688,9 @@ function drawCargo(x, y, cell, taskType) {{
   const seam = outbound ? '#a32929' : '#9a6419';
   const width = Math.max(8, cell * 0.46);
   const height = Math.max(7, cell * 0.38);
-  const left = x - width / 2;
-  const top = y - cell * 0.74;
+  const spread = Math.min(cell * 0.34, 12);
+  const left = x - width / 2 + (slot - (count - 1) / 2) * spread;
+  const top = y - cell * 0.74 - Math.min(slot, 2) * cell * 0.11;
   ctx.save();
   ctx.fillStyle = fill;
   ctx.strokeStyle = border;
@@ -812,9 +869,13 @@ function draw(forceUi = false) {{
     ctx.textBaseline = 'middle';
     ctx.fillText(String(agent.id), x, y);
     const state = taskState(agent);
-    if (state.phase === 'loaded') {{
-      const task = taskById.get(Number(state.task));
-      drawCargo(x, y, cell, task ? task.type : 'inbound');
+    const cargoIds = carriedTaskIds(state);
+    if (cargoIds.length > 0 || state.phase === 'loaded') {{
+      const ids = cargoIds.length > 0 ? cargoIds : stateTaskIds(state);
+      ids.forEach((taskId, idx) => {{
+        const task = taskById.get(Number(taskId));
+        drawCargo(x, y, cell, task ? task.type : 'inbound', idx, ids.length);
+      }});
     }}
   }}
   drawThroughputChart();
@@ -828,16 +889,24 @@ function draw(forceUi = false) {{
 function renderTaskInfo() {{
   if (selected !== null) {{
     const agent = DATA.agents.find(a => a.id === selected);
-    const state = agent ? taskState(agent) : {{task: -1, phase: 'idle'}};
-    const task = taskById.get(Number(state.task));
-    if (!agent || !task) {{
+    const state = agent ? taskState(agent) : {{task: -1, phase: 'idle', assigned_task: -1, carried_tasks: []}};
+    const assigned = assignedTaskId(state);
+    const carried = carriedTaskIds(state);
+    const taskIds = [...(assigned >= 0 ? [assigned] : []), ...carried];
+    if (!agent || taskIds.length === 0) {{
       taskInfo.innerHTML = '<strong>Selected agent</strong>: idle';
       return;
     }}
-    const goals = (task.goals || []).map(g => `(${{g.x}},${{g.y}})`).join(' ');
+    const details = taskIds.map(taskId => {{
+      const task = taskById.get(Number(taskId));
+      if (!task) return `T${{taskId}}`;
+      const goals = (task.goals || []).map(g => `(${{g.x}},${{g.y}})`).join(' ');
+      const role = taskId === assigned ? 'pickup target' : 'carried';
+      return `${{role}} <strong>T${{task.id}}</strong> ${{task.type}} start (${{task.start.x}},${{task.start.y}}) goals ${{goals}}`;
+    }}).join('<br>');
     taskInfo.innerHTML = `<strong>${{agent.name}}</strong> ${{
       phaseLabel(state.phase)
-    }} <strong>T${{task.id}}</strong> ${{task.type}}<br>start (${{task.start.x}},${{task.start.y}})<br>goals ${{goals}}`;
+    }}<br>${{details}}`;
     return;
   }}
   let assigned = 0;
@@ -851,9 +920,14 @@ function renderTaskInfo() {{
   for (const agent of DATA.agents) {{
     const state = taskState(agent);
     if (state.phase === 'assigned') assigned++;
-    if (state.phase === 'loaded') loaded++;
+    const carried = carriedTaskIds(state);
+    if (carried.length > 0) {{
+      loaded += carried.length;
+    }} else if (state.phase === 'loaded') {{
+      loaded += Math.max(1, stateTaskIds(state).length);
+    }}
   }}
-  taskInfo.innerHTML = `<strong>t=${{t}}</strong>: ${{unpicked}} unpicked starts, ${{assigned}} assigned-to-start, ${{loaded}} loaded-to-goal. Click an agent row to show its task start and goal_set labels.`;
+  taskInfo.innerHTML = `<strong>t=${{t}}</strong>: ${{unpicked}} unpicked starts, ${{assigned}} assigned-to-start, ${{loaded}} carried tasks. Click an agent row to show its task start and goal_set labels.`;
 }}
 
 function renderTable() {{
