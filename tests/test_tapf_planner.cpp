@@ -120,6 +120,24 @@ TEST(tapf_planner, assignment_uses_agent_target_distance_scales)
   ASSERT_EQ(ins.tasks[assignment.agent_to_task[0]]->index, 4);
 }
 
+TEST(tapf_planner, unsolved_instance_returns_no_partial_path)
+{
+  const auto map_filename = "./tests/assets/2x1.map";
+  const auto starts = std::vector<int>{0, 1};
+  const auto goals = std::vector<std::vector<int> >{{1}, {0}};
+  const auto ins = TAPFInstance(map_filename, starts, goals);
+
+  ASSERT_TRUE(ins.is_valid());
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 TAPFSearchConfig(), &final_assignment);
+
+  ASSERT_TRUE(solution.empty());
+  ASSERT_TRUE(final_assignment.empty());
+}
+
 TEST(tapf_planner, service_mode_searches_until_every_agent_reaches_a_goal)
 {
   const auto map_filename = "./tests/assets/lifelong-task-small.map";
@@ -138,7 +156,6 @@ TEST(tapf_planner, service_mode_searches_until_every_agent_reaches_a_goal)
                  search_config, &final_assignment);
 
   ASSERT_FALSE(solution.empty());
-  ASSERT_FALSE(stats.partial_solution);
   ASSERT_EQ(final_assignment.size(), starts.size());
   ASSERT_GT(stats.hl_nodes_created, 1);
   ASSERT_GT(stats.assignment_calls, 1);

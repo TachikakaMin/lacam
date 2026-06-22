@@ -31,7 +31,7 @@ void write_csv_header(std::ostream& out)
          "final_picked_tasks,average_task_completion_time,"
          "average_pickup_time,average_delivery_time,planner_invocations,"
          "planner_success_count,planner_timeout_count,"
-         "planner_partial_solution_count,planner_failure_count,"
+         "planner_failure_count,"
          "planner_snapshot_infeasible_count,planner_invalid_instance_count,"
          "planner_empty_solution_count,"
          "average_planner_runtime,max_planner_runtime,total_planner_runtime,"
@@ -58,7 +58,6 @@ void write_csv_row(std::ostream& out, const LifelongSimulationMetrics& m)
       << m.average_task_completion_time << "," << m.average_pickup_time << ","
       << m.average_delivery_time << "," << m.planner_invocations << ","
       << m.planner_success_count << "," << m.planner_timeout_count << ","
-      << m.planner_partial_solution_count << ","
       << m.planner_failure_count << ","
       << m.planner_snapshot_infeasible_count << ","
       << m.planner_invalid_instance_count << ","
@@ -88,7 +87,7 @@ void write_trace_csv(const std::string& path,
   std::ofstream out(path);
   out << "timestep,should_replan,event_happened,plan_finished,"
          "previous_planner_failed,idle_unloaded_with_pending,snapshot_feasible,"
-         "instance_valid,solution_found,timed_out,partial_solution,"
+         "instance_valid,solution_found,timed_out,"
          "planning_runtime_ms,"
          "assignment_time_ms,planner_search_time_ms,loaded_agents,"
          "assigned_unloaded_agents,idle_agents,pending_tasks,assigned_tasks,"
@@ -132,7 +131,7 @@ void write_trace_csv(const std::string& path,
         << "," << r.plan_finished << "," << r.previous_planner_failed << ","
         << r.idle_unloaded_with_pending << "," << r.snapshot_feasible << ","
         << r.instance_valid << "," << r.solution_found << "," << r.timed_out
-        << "," << r.partial_solution << "," << r.planning_runtime_ms << ","
+        << "," << r.planning_runtime_ms << ","
         << r.assignment_time_ms << ","
         << r.planner_search_time_ms << "," << r.loaded_agents << ","
         << r.assigned_unloaded_agents << "," << r.idle_agents << ","
@@ -435,8 +434,6 @@ int main(int argc, char** argv)
             << metrics.total_planner_search_runtime << "\n";
   std::cout << "planner_success_count=" << metrics.planner_success_count << "\n";
   std::cout << "planner_timeout_count=" << metrics.planner_timeout_count << "\n";
-  std::cout << "planner_partial_solution_count="
-            << metrics.planner_partial_solution_count << "\n";
   std::cout << "planner_failure_count=" << metrics.planner_failure_count << "\n";
   std::cout << "planner_snapshot_infeasible_count="
             << metrics.planner_snapshot_infeasible_count << "\n";

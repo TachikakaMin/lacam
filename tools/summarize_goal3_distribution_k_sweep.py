@@ -39,20 +39,19 @@ def main() -> int:
         "",
         "Seed: 0",
         "",
-        "| distribution | K | agents | throughput | completed | invocations | partial | timeout | failure |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| distribution | K | agents | throughput | completed | invocations | timeout | failure |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in rows:
         lines.append(
             "| {distribution} | {k} | {agents} | {throughput} | {completed} | "
-            "{invocations} | {partial} | {timeout} | {failure} |".format(
+            "{invocations} | {timeout} | {failure} |".format(
                 distribution=row["distribution"],
                 k=row["requested_capacity"],
                 agents=row["num_agents"],
                 throughput=row["throughput"],
                 completed=row["completed_tasks"],
                 invocations=row["planner_invocations"],
-                partial=row["planner_partial_solution_count"],
                 timeout=row["planner_timeout_count"],
                 failure=row["planner_failure_count"],
             )

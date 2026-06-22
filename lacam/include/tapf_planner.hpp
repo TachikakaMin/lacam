@@ -26,7 +26,6 @@ struct TAPFSearchConfig {
   TAPFSearchMode mode = TAPFSearchMode::DFS;
   TAPFFocalTieBreak focal_tie_break = TAPFFocalTieBreak::H;
   double focal_weight = 1.5;
-  bool allow_partial_solution = false;
   bool service_goal_mode = false;
   int service_commit_agents = 0;
 };
@@ -107,7 +106,6 @@ struct TAPFStats {
   long assignment_row_cache_hits = 0;
   double first_solution_time_ms = 0;
   bool timed_out = false;
-  bool partial_solution = false;
   int service_satisfied_agents = 0;
   int service_satisfied_pickups = 0;
   int service_satisfied_deliveries = 0;

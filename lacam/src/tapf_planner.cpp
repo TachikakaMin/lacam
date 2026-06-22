@@ -514,36 +514,6 @@ Solution TAPFPlanner::solve(
   auto solution = Solution();
   auto solution_nodes = std::vector<TAPFNode*>();
   auto S_return = S_goal;
-  if (S_return == nullptr && search_config.allow_partial_solution &&
-      deadline != nullptr && is_expired(deadline)) {
-    auto partial_better = [&](const TAPFNode* candidate,
-                              const TAPFNode* incumbent) {
-      if (incumbent == nullptr) return true;
-      if (search_config.service_goal_mode) {
-        const auto candidate_satisfied = std::count(
-            candidate->satisfied.begin(), candidate->satisfied.end(), true);
-        const auto incumbent_satisfied = std::count(
-            incumbent->satisfied.begin(), incumbent->satisfied.end(), true);
-        if (candidate_satisfied != incumbent_satisfied) {
-          return candidate_satisfied > incumbent_satisfied;
-        }
-      }
-      return candidate->h < incumbent->h ||
-             (candidate->h == incumbent->h && candidate->f < incumbent->f) ||
-             (candidate->h == incumbent->h && candidate->f == incumbent->f &&
-              candidate->depth > incumbent->depth);
-    };
-    for (const auto& item : CLOSED) {
-      auto node = item.second;
-      if (node == nullptr || node->parent == nullptr) continue;
-      if (partial_better(node, S_return)) S_return = node;
-    }
-    for (const auto& item : CLOSED_SERVICE) {
-      auto node = item.second;
-      if (node == nullptr || node->parent == nullptr) continue;
-      if (partial_better(node, S_return)) S_return = node;
-    }
-  }
   if (S_return != nullptr) {
     auto S = S_return;
     while (S != nullptr) {
@@ -586,7 +556,6 @@ Solution TAPFPlanner::solve(
                                    ? CLOSED_SERVICE.size()
                                    : CLOSED.size();
     stats->timed_out = S_goal == nullptr && is_expired(deadline);
-    stats->partial_solution = S_goal == nullptr && !solution.empty();
     stats->assignment_calls = assignment_stats.calls;
     stats->assignment_time_ms = assignment_stats.time_ms;
     stats->assignment_row_cache_requests =

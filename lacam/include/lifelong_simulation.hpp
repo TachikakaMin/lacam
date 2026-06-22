@@ -42,7 +42,6 @@ struct LifelongPlannerTraceRecord {
   bool snapshot_feasible = false;
   bool instance_valid = false;
   bool solution_found = false;
-  bool partial_solution = false;
   bool timed_out = false;
   double planning_runtime_ms = 0;
   double assignment_time_ms = 0;
@@ -139,7 +138,6 @@ struct LifelongSimulationMetrics {
   int planner_invocations = 0;
   int planner_success_count = 0;
   int planner_timeout_count = 0;
-  int planner_partial_solution_count = 0;
   int planner_failure_count = 0;
   int planner_snapshot_infeasible_count = 0;
   int planner_invalid_instance_count = 0;

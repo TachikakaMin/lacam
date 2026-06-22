@@ -732,7 +732,6 @@ LifelongSimulationMetrics run_lifelong_simulation(
             auto deadline = Deadline(config.planner_time_limit_sec * 1000);
             auto planner_mt = std::mt19937(config.seed + t);
             auto search_config = TAPFSearchConfig();
-            search_config.allow_partial_solution = true;
             search_config.service_goal_mode = true;
             search_config.service_commit_agents =
                 config.service_commit_agents > 0
@@ -869,7 +868,6 @@ LifelongSimulationMetrics run_lifelong_simulation(
                 .count() /
             1000000.0;
         trace.solution_found = !solution.empty();
-        trace.partial_solution = stats.partial_solution;
         trace.timed_out = stats.timed_out;
         trace.planning_runtime_ms = planning_runtime;
         trace.assignment_time_ms = stats.assignment_time_ms;
@@ -914,20 +912,18 @@ LifelongSimulationMetrics run_lifelong_simulation(
           valid_plan = true;
           previous_planner_failed = false;
           ++metrics.planner_success_count;
-          if (stats.partial_solution) {
-            ++metrics.planner_partial_solution_count;
-          }
         } else {
           valid_plan = false;
           previous_planner_failed = true;
-          if (stats.partial_solution) {
-            ++metrics.planner_partial_solution_count;
-            ++metrics.planner_failure_count;
-          } else if (stats.timed_out) {
+          if (stats.timed_out) {
             ++metrics.planner_timeout_count;
           } else {
             ++metrics.planner_failure_count;
           }
+          throw std::runtime_error(
+              stats.timed_out
+                  ? "failed to find complete TAPF solution before deadline"
+                  : "failed to find complete TAPF solution");
         }
       }
       overwrite_latest_agent_task_snapshot(metrics, agents);
