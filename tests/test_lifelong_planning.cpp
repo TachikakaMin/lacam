@@ -66,6 +66,15 @@ int count_physical_task_columns(const TAPFInstance& instance, int vertex_index)
         return task != nullptr && task->index == vertex_index;
       }));
 }
+
+bool has_private_wait_option(const LifelongPlanningSnapshot& snapshot,
+                             size_t agent)
+{
+  return agent < snapshot.goal_keys_by_agent.size() &&
+         std::any_of(snapshot.goal_keys_by_agent[agent].begin(),
+                     snapshot.goal_keys_by_agent[agent].end(),
+                     [](const auto key) { return key < 0; });
+}
 }  // namespace
 
 TEST(lifelong_planning, unloaded_cost_includes_pickup_and_delivery)
@@ -214,6 +223,48 @@ TEST(lifelong_planning, shared_pickup_start_has_one_slot_per_planning_round)
         return task.status == LifelongTaskStatus::ASSIGNED;
       });
   ASSERT_EQ(assigned_count, 1);
+}
+
+TEST(lifelong_planning, unloaded_wait_is_only_added_when_pickups_are_scarce)
+{
+  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[3]),
+      make_agent(1, graph.U[7]),
+  };
+
+  {
+    auto tasks = std::vector<LifelongTask>{
+        make_pending_task(10, LifelongTaskType::OUTBOUND, graph.U[0],
+                          Vertices{graph.U[4]}),
+        make_pending_task(11, LifelongTaskType::OUTBOUND, graph.U[2],
+                          Vertices{graph.U[6]}),
+    };
+    const auto snapshot =
+        prepare_lifelong_planning_snapshot(agents, tasks, distances);
+
+    ASSERT_TRUE(snapshot.feasible);
+    ASSERT_FALSE(has_private_wait_option(snapshot, 0));
+    ASSERT_FALSE(has_private_wait_option(snapshot, 1));
+  }
+
+  {
+    auto tasks = std::vector<LifelongTask>{
+        make_pending_task(20, LifelongTaskType::OUTBOUND, graph.U[0],
+                          Vertices{graph.U[4]}),
+        make_pending_task(21, LifelongTaskType::OUTBOUND, graph.U[0],
+                          Vertices{graph.U[6]}),
+    };
+    const auto snapshot =
+        prepare_lifelong_planning_snapshot(agents, tasks, distances);
+
+    ASSERT_TRUE(snapshot.feasible);
+    ASSERT_TRUE(has_private_wait_option(snapshot, 0));
+    ASSERT_TRUE(has_private_wait_option(snapshot, 1));
+  }
 }
 
 TEST(lifelong_planning, multi_carry_candidate_set_depends_on_load_count)

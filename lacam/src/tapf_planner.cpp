@@ -1,9 +1,13 @@
 #include "../include/tapf_planner.hpp"
 
 #include <limits>
+#include <unordered_set>
 
 namespace
 {
+  constexpr int kPickupLocationKeyBase = 500000000;
+  constexpr int kDeliveryLocationKeyBase = 1000000000;
+
   struct ServiceConfigKey {
     Config C;
     std::vector<bool> satisfied;
@@ -234,16 +238,36 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       occupied_now(Agents(V_size, nullptr)),
       occupied_next(Agents(V_size, nullptr)),
       shared_goal_entry_counts(std::vector<int>(V_size, 0)),
-      real_service_vertices(std::vector<bool>(V_size, false))
+      real_service_vertices(std::vector<bool>(V_size, false)),
+      shareable_service_vertices(std::vector<bool>(V_size, false))
 {
   if (stats != nullptr) *stats = TAPFStats();
   if (search_config.service_goal_mode) {
+    auto regular_task_columns_by_vertex = std::vector<int>(V_size, 0);
+    auto has_lifelong_special_key = std::vector<bool>(V_size, false);
+    auto delivery_keys_by_vertex =
+        std::vector<std::unordered_set<int> >(V_size);
     for (size_t task = 0; task < ins->tasks.size(); ++task) {
-      if (task >= ins->task_keys.size() || ins->task_keys[task] < 1000000000) {
-        continue;
-      }
       const auto goal = ins->tasks[task];
-      if (goal != nullptr) real_service_vertices[goal->id] = true;
+      if (goal == nullptr) continue;
+      const auto key = task < ins->task_keys.size() ? ins->task_keys[task]
+                                                    : static_cast<int>(task);
+      if (key >= kDeliveryLocationKeyBase) {
+        real_service_vertices[goal->id] = true;
+        has_lifelong_special_key[goal->id] = true;
+        delivery_keys_by_vertex[goal->id].insert(key);
+      } else if (key >= kPickupLocationKeyBase || key < 0) {
+        has_lifelong_special_key[goal->id] = true;
+      } else {
+        ++regular_task_columns_by_vertex[goal->id];
+      }
+    }
+    for (size_t vertex = 0; vertex < shareable_service_vertices.size();
+         ++vertex) {
+      shareable_service_vertices[vertex] =
+          has_lifelong_special_key[vertex]
+              ? delivery_keys_by_vertex[vertex].size() > 1
+              : regular_task_columns_by_vertex[vertex] > 1;
     }
   }
 }
@@ -900,11 +924,15 @@ bool TAPFPlanner::can_reserve_next(const TAPFNode* node, Agent* agent,
   if (agent == nullptr || vertex == nullptr) return false;
   const auto representative = occupied_next[vertex->id];
   if (representative != nullptr &&
-      (!can_share_service_goal(node, agent->id, vertex) ||
+      (vertex->id >= static_cast<int>(shareable_service_vertices.size()) ||
+       !shareable_service_vertices[vertex->id] ||
+       !can_share_service_goal(node, agent->id, vertex) ||
        !can_share_service_goal(node, representative->id, vertex))) {
     return false;
   }
-  if (can_share_service_goal(node, agent->id, vertex) &&
+  if (vertex->id < static_cast<int>(shareable_service_vertices.size()) &&
+      shareable_service_vertices[vertex->id] &&
+      can_share_service_goal(node, agent->id, vertex) &&
       agent->v_now != vertex && shared_goal_entry_counts[vertex->id] > 0) {
     return false;
   }
@@ -920,7 +948,9 @@ void TAPFPlanner::reserve_next(const TAPFNode* node, Agent* agent,
                                Vertex* vertex)
 {
   if (agent == nullptr || vertex == nullptr) return;
-  if (can_share_service_goal(node, agent->id, vertex) &&
+  if (vertex->id < static_cast<int>(shareable_service_vertices.size()) &&
+      shareable_service_vertices[vertex->id] &&
+      can_share_service_goal(node, agent->id, vertex) &&
       agent->v_now != vertex) {
     ++shared_goal_entry_counts[vertex->id];
   }
@@ -956,6 +986,11 @@ bool TAPFPlanner::validate_service_child_config(
   for (size_t v = 0; v < occupancy.size(); ++v) {
     const auto& agents = occupancy[v];
     if (agents.size() <= 1) continue;
+    if (v >= shareable_service_vertices.size() ||
+        !shareable_service_vertices[v]) {
+      if (stack_failure != nullptr) *stack_failure = true;
+      return false;
+    }
     if (entrants[v] > 1) {
       if (stack_failure != nullptr) *stack_failure = true;
       return false;

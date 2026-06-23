@@ -250,6 +250,32 @@ TEST(tapf_planner,
   }
 }
 
+TEST(tapf_planner, service_mode_does_not_stack_singleton_lifelong_service)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{0, 1};
+  const auto goals = std::vector<std::vector<int> >{{1}, {1}};
+  const auto task_keys =
+      std::vector<std::vector<int> >{{1000000001}, {-2}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                false, task_keys);
+
+  ASSERT_TRUE(ins.is_valid());
+  ASSERT_EQ(ins.tasks.size(), starts.size());
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config);
+
+  ASSERT_FALSE(solution.empty());
+  ASSERT_EQ(stats.service_satisfied_deliveries, 1);
+  for (const auto& config : solution) {
+    ASSERT_LE(vertex_occupancy(config, ins.G.U[1]), 1);
+  }
+}
+
 TEST(tapf_planner, service_at_root_requires_a_committed_stay_transition)
 {
   const auto map_filename = "./tests/assets/2x1.map";

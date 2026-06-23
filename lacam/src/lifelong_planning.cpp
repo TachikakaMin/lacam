@@ -290,6 +290,11 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   const auto common_scale = snapshot.common_cost_scale;
   const auto deferred_offset =
       deferred_assignment_offset(agents.size(), distances, common_scale);
+  const auto unloaded_count =
+      std::count_if(agents.begin(), agents.end(), [](const auto& agent) {
+        return agent.load_state == AgentLoadState::UNLOADED;
+      });
+  auto pending_start_indexes = std::unordered_set<int>();
 
   for (const auto task_idx : pending_tasks) {
     const auto& task = tasks[task_idx];
@@ -297,7 +302,10 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
       snapshot.feasible = false;
       continue;
     }
+    pending_start_indexes.insert(task.start->index);
   }
+  const auto needs_unloaded_wait_targets =
+      pending_start_indexes.size() < static_cast<size_t>(unloaded_count);
 
   for (size_t i = 0; i < agents.size(); ++i) {
     auto& agent = agents[i];
@@ -380,9 +388,11 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
       }
     }
 
-    add_goal_option(snapshot, i, agent.current_location,
-                    agent.current_location, common_scale, deferred_offset,
-                    -static_cast<int>(i) - 1, distances);
+    if (carried_count > 0 || needs_unloaded_wait_targets) {
+      add_goal_option(snapshot, i, agent.current_location,
+                      agent.current_location, common_scale, deferred_offset,
+                      -static_cast<int>(i) - 1, distances);
+    }
     if (snapshot.goal_indexes_by_agent[i].empty()) snapshot.feasible = false;
   }
 
