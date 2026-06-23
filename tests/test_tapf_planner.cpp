@@ -44,6 +44,11 @@ bool is_tapf_feasible_solution(const TAPFInstance& ins,
   }
   return true;
 }
+
+int vertex_occupancy(const Config& config, Vertex* vertex)
+{
+  return std::count(config.begin(), config.end(), vertex);
+}
 }  // namespace
 
 TEST(tapf_planner, solve_shared_task_set)
@@ -138,7 +143,24 @@ TEST(tapf_planner, unsolved_instance_returns_no_partial_path)
   ASSERT_TRUE(final_assignment.empty());
 }
 
-TEST(tapf_planner, service_mode_searches_until_every_agent_reaches_a_goal)
+TEST(tapf_planner, normal_mode_rejects_duplicate_physical_goal_stack)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{0, 1};
+  const auto goals = std::vector<std::vector<int> >{{2}, {2}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                true);
+
+  ASSERT_TRUE(ins.is_valid());
+  ASSERT_EQ(ins.tasks.size(), starts.size());
+  ASSERT_EQ(ins.tasks[0], ins.tasks[1]);
+  const auto solution = solve_tapf(ins, 0, nullptr, nullptr, 0, nullptr,
+                                   false, false, TAPFSearchConfig());
+
+  ASSERT_TRUE(solution.empty());
+}
+
+TEST(tapf_planner, service_mode_default_commits_first_real_service)
 {
   const auto map_filename = "./tests/assets/lifelong-task-small.map";
   const auto starts = std::vector<int>{0, 7};
@@ -161,11 +183,71 @@ TEST(tapf_planner, service_mode_searches_until_every_agent_reaches_a_goal)
   ASSERT_GT(stats.assignment_calls, 1);
   ASSERT_GT(stats.assignment_row_cache_requests, 0);
   ASSERT_GT(stats.assignment_row_cache_hits, 0);
-  ASSERT_GT(stats.service_satisfied_agents, 0);
-  // Execution commits only through the first service event, while the search
-  // must still prove a continuation that services every agent once.
-  ASSERT_EQ(stats.service_best_satisfied_agents,
-            static_cast<int>(starts.size()));
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+  ASSERT_GE(stats.service_best_satisfied_agents, 1);
+}
+
+TEST(tapf_planner,
+     service_mode_allows_sequential_entries_to_one_physical_goal)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{0, 1};
+  const auto goals = std::vector<std::vector<int> >{{2}, {2}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                true);
+
+  ASSERT_TRUE(ins.is_valid());
+  ASSERT_EQ(ins.tasks.size(), starts.size());
+  ASSERT_EQ(ins.tasks[0], ins.tasks[1]);
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto assignment_schedule = std::vector<std::vector<int> >();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = starts.size();
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config, &final_assignment, &assignment_schedule);
+
+  ASSERT_FALSE(solution.empty());
+  ASSERT_EQ(stats.service_best_satisfied_agents, 2);
+  ASSERT_EQ(final_assignment.size(), starts.size());
+  ASSERT_EQ(assignment_schedule.size(), solution.size());
+  ASSERT_EQ(vertex_occupancy(solution.back(), ins.G.U[2]), 2)
+      << "explicitly committing both services should prove the sequential "
+         "shared-goal stack";
+}
+
+TEST(tapf_planner,
+     service_mode_does_not_execute_simultaneous_entries_to_shared_goal)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{0, 2};
+  const auto goals = std::vector<std::vector<int> >{{1}, {1}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                true);
+
+  ASSERT_TRUE(ins.is_valid());
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = starts.size();
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config);
+
+  ASSERT_FALSE(solution.empty());
+  ASSERT_EQ(stats.service_best_satisfied_agents, 2);
+  for (size_t t = 1; t < solution.size(); ++t) {
+    auto entrants = 0;
+    for (size_t i = 0; i < starts.size(); ++i) {
+      if (solution[t - 1][i] != ins.G.U[1] && solution[t][i] == ins.G.U[1]) {
+        ++entrants;
+      }
+    }
+    ASSERT_LE(entrants, 1) << "two agents entered the shared service goal at t="
+                           << t;
+  }
 }
 
 TEST(tapf_planner, service_at_root_requires_a_committed_stay_transition)
@@ -205,6 +287,7 @@ TEST(tapf_planner, service_mode_allows_sequential_use_of_one_physical_goal)
   auto final_assignment = std::vector<int>();
   auto search_config = TAPFSearchConfig();
   search_config.service_goal_mode = true;
+  search_config.service_commit_agents = starts.size();
   const auto solution =
       solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
                  search_config, &final_assignment);

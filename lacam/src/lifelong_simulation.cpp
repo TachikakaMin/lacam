@@ -513,12 +513,17 @@ LifelongSimulationMetrics run_lifelong_simulation(
   metrics.horizon = config.horizon;
   metrics.seed = config.seed;
   metrics.multi_carry_capacity = config.multi_carry_capacity;
+  metrics.max_shared_drop_goal_agents = config.max_shared_drop_goal_agents;
   metrics.planner_force_full_assignment = config.planner_force_full_assignment;
 
   const auto sim_start = Time::now();
   try {
     if (config.multi_carry_capacity <= 0) {
       throw std::invalid_argument("multi_carry_capacity must be positive");
+    }
+    if (config.max_shared_drop_goal_agents <= 0) {
+      throw std::invalid_argument(
+          "max_shared_drop_goal_agents must be positive");
     }
     auto graph = Graph(config.map_filename);
     metrics.map_width = graph.width;
@@ -591,7 +596,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
         const auto planning_start = Time::now();
         auto snapshot =
             prepare_lifelong_planning_snapshot(agents, tasks, distances,
-                                               config.multi_carry_capacity);
+                                               config.multi_carry_capacity,
+                                               config.max_shared_drop_goal_agents);
         auto solution = Solution();
         auto final_assignment = std::vector<int>();
         auto assignment_schedule = std::vector<std::vector<int> >();
@@ -920,10 +926,6 @@ LifelongSimulationMetrics run_lifelong_simulation(
           } else {
             ++metrics.planner_failure_count;
           }
-          throw std::runtime_error(
-              stats.timed_out
-                  ? "failed to find complete TAPF solution before deadline"
-                  : "failed to find complete TAPF solution");
         }
       }
       overwrite_latest_agent_task_snapshot(metrics, agents);
@@ -953,6 +955,17 @@ LifelongSimulationMetrics run_lifelong_simulation(
           valid_plan = false;
           previous_planner_failed = true;
         }
+      }
+      auto max_loaded_distance_now = 0;
+      for (const auto& agent : agents) {
+        if (agent_is_loaded(agent)) {
+          max_loaded_distance_now =
+              std::max(max_loaded_distance_now,
+                       agent.loaded_distance_since_last_delivery);
+        }
+      }
+      if (valid_plan && max_loaded_distance_now >= 500) {
+        valid_plan = false;
       }
 
       accumulate_agent_time(agents, idle_time, loaded_time, unloaded_time,

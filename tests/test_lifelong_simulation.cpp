@@ -54,3 +54,32 @@ TEST(lifelong_simulation, small_event_driven_smoke_completes_task)
   ASSERT_EQ(metrics.alternating_completed_tasks, 0);
   ASSERT_DOUBLE_EQ(metrics.alternating_throughput, 0);
 }
+
+TEST(lifelong_simulation, planner_timeout_waits_and_replans_without_invalidating)
+{
+  auto config = LifelongSimulationConfig();
+  config.map_filename = "./tests/assets/lifelong-sim-small.map";
+  config.cache_filename =
+      (std::filesystem::temp_directory_path() /
+       "lacam_lifelong_sim_timeout_cache.bin")
+          .string();
+  config.num_agents = 1;
+  config.horizon = 3;
+  config.seed = 0;
+  config.start_indexes = {3};
+  config.planner_time_limit_sec = -0.001;
+  config.task_config.goal_set_size = 3;
+  config.task_config.release_interval = 100;
+  config.task_config.outbound_probability = 1.0;
+  std::filesystem::remove(config.cache_filename);
+
+  const auto metrics = run_lifelong_simulation(config);
+
+  std::filesystem::remove(config.cache_filename);
+  ASSERT_TRUE(metrics.valid) << metrics.error;
+  ASSERT_EQ(metrics.completed_tasks, 0);
+  ASSERT_GE(metrics.planner_timeout_count + metrics.planner_failure_count +
+                metrics.planner_empty_solution_count,
+            1);
+  ASSERT_GE(metrics.planner_invocations, 1);
+}

@@ -35,7 +35,8 @@ struct LifelongSolveResult {
 LifelongSolveResult solve_snapshot(
     const std::string& map_filename,
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
-    const LifelongPlanningSnapshot& snapshot)
+    const LifelongPlanningSnapshot& snapshot, int service_commit_agents = 1,
+    TAPFStats* stats = nullptr)
 {
   const auto ins =
       build_lifelong_tapf_instance(map_filename, agents, snapshot);
@@ -46,9 +47,9 @@ LifelongSolveResult solve_snapshot(
   // Private wait columns keep the rectangular assignment feasible but are not
   // service events. Production lifelong planning commits one real service
   // cohort at a time.
-  search_config.service_commit_agents = 1;
+  search_config.service_commit_agents = service_commit_agents;
   result.solution =
-      solve_tapf(ins, 0, nullptr, nullptr, 0, nullptr, true, true,
+      solve_tapf(ins, 0, nullptr, nullptr, 0, stats, true, true,
                  search_config, &result.final_assignment);
   for (const auto target : result.final_assignment) {
     result.target_indexes.push_back(ins.tasks[target]->index);
@@ -56,6 +57,14 @@ LifelongSolveResult solve_snapshot(
   result.applied = apply_lifelong_solution_assignment(
       agents, tasks, snapshot, ins, result.final_assignment);
   return result;
+}
+
+int count_physical_task_columns(const TAPFInstance& instance, int vertex_index)
+{
+  return static_cast<int>(std::count_if(
+      instance.tasks.begin(), instance.tasks.end(), [&](const auto* task) {
+        return task != nullptr && task->index == vertex_index;
+      }));
 }
 }  // namespace
 
@@ -121,7 +130,7 @@ TEST(lifelong_planning, snapshot_contains_loaded_and_unloaded_cost_rows)
       ++unloaded_pickups;
     }
   }
-  ASSERT_EQ(loaded_goals, 2);
+  ASSERT_EQ(loaded_goals, 10);
   ASSERT_EQ(unloaded_pickups, 1);
 }
 
@@ -338,11 +347,11 @@ TEST(lifelong_planning, loaded_distance_sets_priority_offset)
   const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
 
   ASSERT_EQ(ins.agent_priority_offsets.size(), agents.size());
-  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[0], 5.0f);
+  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[0], 10.0f);
   ASSERT_FLOAT_EQ(ins.agent_priority_offsets[1], 0.0f);
 }
 
-TEST(lifelong_planning, shared_loaded_drop_has_one_slot_per_planning_round)
+TEST(lifelong_planning, shared_loaded_drop_uses_distinct_service_slots)
 {
   const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
@@ -377,10 +386,72 @@ TEST(lifelong_planning, shared_loaded_drop_has_one_slot_per_planning_round)
   const auto service_count =
       (result.target_indexes[0] == graph.U[4]->index ? 1 : 0) +
       (result.target_indexes[1] == graph.U[4]->index ? 1 : 0);
-  ASSERT_EQ(service_count, 1);
+  ASSERT_EQ(service_count, 2);
   ASSERT_TRUE(result.applied);
   ASSERT_EQ(agents[0].current_task_id, 20);
   ASSERT_EQ(agents[1].current_task_id, 21);
+}
+
+TEST(lifelong_planning, shared_loaded_drop_defaults_to_five_service_slots)
+{
+  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+  constexpr auto kAgents = 6;
+  auto agents = std::vector<LifelongAgentState>();
+  auto tasks = std::vector<LifelongTask>();
+  agents.reserve(kAgents);
+  tasks.reserve(kAgents);
+  for (auto i = 0; i < kAgents; ++i) {
+    agents.push_back(make_agent(i, graph.U[i]));
+    agents.back().load_state = AgentLoadState::LOADED;
+    agents.back().current_task_id = 100 + i;
+    auto task = make_pending_task(100 + i, LifelongTaskType::INBOUND,
+                                  graph.U[i], Vertices{graph.U[9]});
+    task.status = LifelongTaskStatus::PICKED;
+    task.picked_agent_id = i;
+    tasks.push_back(task);
+  }
+
+  const auto snapshot =
+      prepare_lifelong_planning_snapshot(agents, tasks, distances);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
+
+  ASSERT_TRUE(snapshot.feasible);
+  ASSERT_TRUE(ins.is_valid());
+  ASSERT_EQ(count_physical_task_columns(ins, graph.U[9]->index), 5);
+}
+
+TEST(lifelong_planning, shared_loaded_drop_service_slots_are_configurable)
+{
+  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+  constexpr auto kAgents = 4;
+  auto agents = std::vector<LifelongAgentState>();
+  auto tasks = std::vector<LifelongTask>();
+  agents.reserve(kAgents);
+  tasks.reserve(kAgents);
+  for (auto i = 0; i < kAgents; ++i) {
+    agents.push_back(make_agent(i, graph.U[i]));
+    agents.back().load_state = AgentLoadState::LOADED;
+    agents.back().current_task_id = 200 + i;
+    auto task = make_pending_task(200 + i, LifelongTaskType::INBOUND,
+                                  graph.U[i], Vertices{graph.U[9]});
+    task.status = LifelongTaskStatus::PICKED;
+    task.picked_agent_id = i;
+    tasks.push_back(task);
+  }
+
+  const auto snapshot =
+      prepare_lifelong_planning_snapshot(agents, tasks, distances, 1, 2);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
+
+  ASSERT_TRUE(snapshot.feasible);
+  ASSERT_TRUE(ins.is_valid());
+  ASSERT_EQ(count_physical_task_columns(ins, graph.U[9]->index), 2);
 }
 
 TEST(lifelong_planning, shared_singleton_drop_is_serviced_sequentially)
@@ -418,10 +489,66 @@ TEST(lifelong_planning, shared_singleton_drop_is_serviced_sequentially)
   const auto service_count =
       (result.target_indexes[0] == graph.U[4]->index ? 1 : 0) +
       (result.target_indexes[1] == graph.U[4]->index ? 1 : 0);
-  ASSERT_EQ(service_count, 1);
+  ASSERT_EQ(service_count, 2);
   ASSERT_TRUE(result.applied);
   ASSERT_EQ(agents[0].current_task_id, 20);
   ASSERT_EQ(agents[1].current_task_id, 21);
+}
+
+TEST(lifelong_planning,
+     full_service_proof_can_assign_two_agents_to_one_drop_location)
+{
+  const auto map_filename = std::string("./tests/assets/3x1.map");
+  const auto graph = Graph(map_filename);
+  const auto distances = build_map_distance_cache(graph, "3x1.map", 1);
+
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[0]),
+      make_agent(1, graph.U[1]),
+  };
+  agents[0].load_state = AgentLoadState::LOADED;
+  agents[0].current_task_id = 20;
+  agents[1].load_state = AgentLoadState::LOADED;
+  agents[1].current_task_id = 21;
+
+  auto task0 = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[0],
+                                 Vertices{graph.U[2]});
+  task0.status = LifelongTaskStatus::PICKED;
+  task0.picked_agent_id = 0;
+  auto task1 = make_pending_task(21, LifelongTaskType::INBOUND, graph.U[1],
+                                 Vertices{graph.U[2]});
+  task1.status = LifelongTaskStatus::PICKED;
+  task1.picked_agent_id = 1;
+  auto tasks = std::vector<LifelongTask>{task0, task1};
+
+  const auto snapshot =
+      prepare_lifelong_planning_snapshot(agents, tasks, distances);
+  auto stats = TAPFStats();
+  const auto ins =
+      build_lifelong_tapf_instance(map_filename, agents, snapshot);
+  auto final_assignment = std::vector<int>();
+  auto assignment_schedule = std::vector<std::vector<int> >();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = agents.size();
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, true, true,
+                 search_config, &final_assignment, &assignment_schedule);
+
+  ASSERT_TRUE(snapshot.feasible);
+  ASSERT_TRUE(ins.is_valid());
+  ASSERT_FALSE(solution.empty());
+  ASSERT_EQ(stats.service_best_satisfied_agents, 2);
+  ASSERT_EQ(final_assignment.size(), agents.size());
+  ASSERT_EQ(assignment_schedule.size(), solution.size());
+  ASSERT_EQ(std::count_if(solution.back().begin(), solution.back().end(),
+                          [&](const auto* vertex) {
+                            return vertex != nullptr &&
+                                   vertex->index == graph.U[2]->index;
+                          }),
+            2)
+      << "a multi-service commit should keep the prefix through all committed "
+         "services; shared service goals may stack after sequential entry";
 }
 
 TEST(lifelong_planning, loaded_drop_and_unloaded_pickup_compete_together)

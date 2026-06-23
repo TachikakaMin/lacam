@@ -90,6 +90,10 @@ struct TAPFStats {
   int pibt_recursions = 0;
   int assignment_calls = 0;
   int assignment_changes = 0;
+  int assignment_infeasible_count = 0;
+  int service_child_validation_failures = 0;
+  int service_child_stack_validation_failures = 0;
+  int service_child_swap_validation_failures = 0;
   int final_assignment_changes = 0;
   int final_agent_assignment_changes = 0;
   int anytime_cost_updates = 0;
@@ -135,6 +139,8 @@ struct TAPFPlanner {
   Agents A;
   Agents occupied_now;
   Agents occupied_next;
+  std::vector<int> shared_goal_entry_counts;
+  std::vector<bool> real_service_vertices;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
@@ -146,6 +152,25 @@ struct TAPFPlanner {
       std::vector<std::vector<int> >* assignment_schedule = nullptr);
   bool agent_satisfied(const TAPFNode* node, int agent) const;
   Vertex* assigned_goal(const std::vector<int>& assignment, int agent) const;
+  Vertex* service_goal(const TAPFNode* node, int agent) const;
+  Vertex* service_goal_for_state(
+      const std::vector<int>& assignment, const std::vector<bool>& satisfied,
+      const std::vector<int>& satisfied_assignment, int agent) const;
+  bool agent_has_service_option_at(int agent, Vertex* vertex) const;
+  bool can_share_service_goal(const TAPFNode* node, int agent,
+                              Vertex* vertex) const;
+  bool can_share_service_goal_for_state(
+      const std::vector<int>& assignment, const std::vector<bool>& satisfied,
+      const std::vector<int>& satisfied_assignment, int agent,
+      Vertex* vertex) const;
+  bool can_reserve_next(const TAPFNode* node, Agent* agent,
+                        Vertex* vertex);
+  void reserve_next(const TAPFNode* node, Agent* agent, Vertex* vertex);
+  bool validate_service_child_config(
+      const TAPFNode* parent, const Config& C,
+      const std::vector<int>& assignment, const std::vector<bool>& satisfied,
+      const std::vector<int>& satisfied_assignment,
+      bool* stack_failure = nullptr, bool* swap_failure = nullptr) const;
   int distance_to_assigned_goal(const TAPFNode* node, int agent, Vertex* v);
   int distance_to_assigned_goal(const std::vector<int>& assignment, int agent,
                                 Vertex* v);

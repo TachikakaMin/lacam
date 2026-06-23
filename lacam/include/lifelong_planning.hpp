@@ -30,7 +30,8 @@ int lifelong_loaded_cost(const LifelongAgentState& agent,
                          const MapDistanceCache& distances);
 LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
-    const MapDistanceCache& distances, int multi_carry_capacity = 1);
+    const MapDistanceCache& distances, int multi_carry_capacity = 1,
+    int max_shared_drop_goal_agents = 5);
 TAPFInstance build_lifelong_tapf_instance(
     const std::string& map_filename,
     const std::vector<LifelongAgentState>& agents,

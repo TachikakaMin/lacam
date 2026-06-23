@@ -18,6 +18,7 @@ struct LifelongSimulationConfig {
   bool planner_force_full_assignment = false;
   int multi_carry_capacity = 1;
   int service_commit_agents = 0;
+  int max_shared_drop_goal_agents = 5;
   LifelongTaskGeneratorConfig task_config;
   bool debug = false;
 };
@@ -166,6 +167,7 @@ struct LifelongSimulationMetrics {
   int delivery_events = 0;
   double average_tasks_carried_at_delivery = 0;
   int multi_carry_capacity = 1;
+  int max_shared_drop_goal_agents = 5;
   long assignment_row_cache_requests = 0;
   long assignment_row_cache_hits = 0;
   double assignment_row_cache_hit_rate = 0;

@@ -12,6 +12,7 @@ namespace
 {
 constexpr int kDeliveryLocationKeyBase = 1000000000;
 constexpr int kPickupLocationKeyBase = 500000000;
+constexpr int kDeliveryLocationSlotStride = 1000000;
 
 std::vector<size_t> collect_pending_tasks(const std::vector<LifelongTask>& tasks)
 {
@@ -112,9 +113,10 @@ std::vector<const LifelongTask*> carried_tasks_for_agent(
   return carried;
 }
 
-int delivery_location_key(size_t, int target_index)
+int delivery_location_slot_key(int target_index, int slot)
 {
-  return kDeliveryLocationKeyBase + target_index;
+  return kDeliveryLocationKeyBase + slot * kDeliveryLocationSlotStride +
+         target_index;
 }
 
 int pickup_location_key(int target_index)
@@ -264,7 +266,8 @@ int lifelong_loaded_cost(const LifelongAgentState& agent,
 
 LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
-    const MapDistanceCache& distances, int multi_carry_capacity)
+    const MapDistanceCache& distances, int multi_carry_capacity,
+    int max_shared_drop_goal_agents)
 {
   normalize_agent_task_state(agents, tasks);
   auto previous_task_ids =
@@ -302,6 +305,10 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
       snapshot.feasible = false;
       continue;
     }
+    if (max_shared_drop_goal_agents <= 0) {
+      snapshot.feasible = false;
+      continue;
+    }
 
     const auto carried = carried_tasks_for_agent(agent, tasks);
     const auto carried_count = static_cast<int>(carried.size());
@@ -311,7 +318,7 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     }
     if (carried_count > 0) {
       snapshot.agent_priority_offsets[i] =
-          static_cast<float>(agent.loaded_distance_since_last_delivery) /
+          2.0f * static_cast<float>(agent.loaded_distance_since_last_delivery) /
           static_cast<float>(std::max<size_t>(1, agents.size()));
     }
 
@@ -363,9 +370,12 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
           const auto offset =
               scaled_static_cost(circle, common_scale, carried_count);
           const auto distance_scale = common_scale / carried_count;
-          add_goal_option(snapshot, i, agent.current_location, goal,
-                          distance_scale, offset,
-                          delivery_location_key(i, goal->index), distances);
+          for (auto slot = 0; slot < max_shared_drop_goal_agents; ++slot) {
+            add_goal_option(snapshot, i, agent.current_location, goal,
+                            distance_scale, offset,
+                            delivery_location_slot_key(goal->index, slot),
+                            distances);
+          }
         }
       }
     }

@@ -14,7 +14,8 @@ void print_usage()
                "OUTPUT_CSV [CACHE] [TIME_LIMIT_SEC=2] [GOAL_SET_SIZE=3] "
                "[OUTBOUND_PROB=0.5] [RELEASE_INTERVAL=10] [DEBUG=0] "
                "[SCHEDULE_YAML] [ANYTIME=0] [MULTI_CARRY_CAPACITY=1] "
-               "[FORCE_FULL_ASSIGNMENT=0] [SERVICE_COMMIT_AGENTS=0]\n";
+               "[FORCE_FULL_ASSIGNMENT=0] [SERVICE_COMMIT_AGENTS=0] "
+               "[MAX_SHARED_DROP_GOAL_AGENTS=5]\n";
 }
 
 bool should_write_header(const std::string& path)
@@ -39,7 +40,7 @@ void write_csv_header(std::ostream& out)
          "total_simulation_runtime,"
          "average_agent_idle_time,average_agent_loaded_time,"
          "average_agent_unloaded_time,planner_force_full_assignment,"
-         "multi_carry_capacity,"
+         "multi_carry_capacity,max_shared_drop_goal_agents,"
          "average_carried_tasks,max_carried_tasks,"
          "average_loaded_distance_since_last_delivery,"
          "max_loaded_distance_since_last_delivery,pickup_while_loaded_count,"
@@ -68,7 +69,7 @@ void write_csv_row(std::ostream& out, const LifelongSimulationMetrics& m)
       << m.average_agent_idle_time << "," << m.average_agent_loaded_time << ","
       << m.average_agent_unloaded_time << ","
       << m.planner_force_full_assignment << ","
-      << m.multi_carry_capacity << ","
+      << m.multi_carry_capacity << "," << m.max_shared_drop_goal_agents << ","
       << m.average_carried_tasks << "," << m.max_carried_tasks << ","
       << m.average_loaded_distance_since_last_delivery << ","
       << m.max_loaded_distance_since_last_delivery << ","
@@ -388,7 +389,10 @@ int main(int argc, char** argv)
   config.multi_carry_capacity = argc >= 15 ? std::stoi(argv[14]) : 1;
   config.planner_force_full_assignment =
       argc >= 16 ? std::stoi(argv[15]) != 0 : false;
-  config.service_commit_agents = argc >= 17 ? std::stoi(argv[16]) : 0;
+  config.service_commit_agents =
+      argc >= 17 ? std::stoi(argv[16]) : config.service_commit_agents;
+  config.max_shared_drop_goal_agents =
+      argc >= 18 ? std::stoi(argv[17]) : config.max_shared_drop_goal_agents;
 
   const auto metrics = run_lifelong_simulation(config);
   std::ofstream out(output_csv, std::ios::app);
@@ -410,6 +414,8 @@ int main(int argc, char** argv)
   std::cout << "alternating_throughput=" << metrics.alternating_throughput
             << "\n";
   std::cout << "multi_carry_capacity=" << metrics.multi_carry_capacity << "\n";
+  std::cout << "max_shared_drop_goal_agents="
+            << metrics.max_shared_drop_goal_agents << "\n";
   std::cout << "planner_force_full_assignment="
             << metrics.planner_force_full_assignment << "\n";
   std::cout << "average_carried_tasks=" << metrics.average_carried_tasks << "\n";
