@@ -28,6 +28,8 @@ struct TAPFSearchConfig {
   double focal_weight = 1.5;
   bool service_goal_mode = false;
   int service_commit_agents = 0;
+  int pickup_service_duration = 1;
+  int delivery_service_duration = 1;
 };
 
 struct TAPFConstraint {
@@ -45,6 +47,8 @@ struct TAPFNode {
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
+  std::vector<int> service_assignment;
+  std::vector<int> service_progress;
   std::vector<bool> satisfied;
   std::vector<int> satisfied_assignment;
   bool queued;
@@ -63,6 +67,8 @@ struct TAPFNode {
   TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
            std::vector<int> _assignment, TAPFAssignmentState _assignment_state,
            const TAPFSearchConfig& search_config,
+           const std::vector<int>& _service_assignment = std::vector<int>(),
+           const std::vector<int>& _service_progress = std::vector<int>(),
            const std::vector<bool>& _satisfied = std::vector<bool>(),
            const std::vector<int>& _satisfied_assignment = std::vector<int>(),
            TAPFNode* _parent = nullptr);
@@ -154,13 +160,17 @@ struct TAPFPlanner {
   Vertex* assigned_goal(const std::vector<int>& assignment, int agent) const;
   Vertex* service_goal(const TAPFNode* node, int agent) const;
   Vertex* service_goal_for_state(
-      const std::vector<int>& assignment, const std::vector<bool>& satisfied,
+      const std::vector<int>& assignment,
+      const std::vector<int>& service_assignment,
+      const std::vector<bool>& satisfied,
       const std::vector<int>& satisfied_assignment, int agent) const;
   bool agent_has_service_option_at(int agent, Vertex* vertex) const;
   bool can_share_service_goal(const TAPFNode* node, int agent,
                               Vertex* vertex) const;
   bool can_share_service_goal_for_state(
-      const std::vector<int>& assignment, const std::vector<bool>& satisfied,
+      const std::vector<int>& assignment,
+      const std::vector<int>& service_assignment,
+      const std::vector<bool>& satisfied,
       const std::vector<int>& satisfied_assignment, int agent,
       Vertex* vertex) const;
   bool can_reserve_next(const TAPFNode* node, Agent* agent,
@@ -168,7 +178,9 @@ struct TAPFPlanner {
   void reserve_next(const TAPFNode* node, Agent* agent, Vertex* vertex);
   bool validate_service_child_config(
       const TAPFNode* parent, const Config& C,
-      const std::vector<int>& assignment, const std::vector<bool>& satisfied,
+      const std::vector<int>& assignment,
+      const std::vector<int>& service_assignment,
+      const std::vector<bool>& satisfied,
       const std::vector<int>& satisfied_assignment,
       bool* stack_failure = nullptr, bool* swap_failure = nullptr) const;
   int distance_to_assigned_goal(const TAPFNode* node, int agent, Vertex* v);

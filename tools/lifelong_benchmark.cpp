@@ -15,7 +15,8 @@ void print_usage()
                "[OUTBOUND_PROB=0.5] [RELEASE_INTERVAL=10] [DEBUG=0] "
                "[SCHEDULE_YAML] [ANYTIME=0] [MULTI_CARRY_CAPACITY=1] "
                "[FORCE_FULL_ASSIGNMENT=0] [SERVICE_COMMIT_AGENTS=0] "
-               "[MAX_SHARED_DROP_GOAL_AGENTS=5]\n";
+               "[MAX_SHARED_DROP_GOAL_AGENTS=5] "
+               "[PICKUP_SERVICE_DURATION=1] [DELIVERY_SERVICE_DURATION=1]\n";
 }
 
 bool should_write_header(const std::string& path)
@@ -119,10 +120,14 @@ void write_trace_csv(const std::string& path,
          "max_loaded_distance_agent_final_target_type,"
          "average_carried_tasks_now,max_carried_tasks_now,"
          "average_loaded_distance_now,max_loaded_distance_now,"
-         "hl_loop_iterations,hl_nodes_created,hl_nodes_explored,open_max_size,"
+         "hl_loop_iterations,hl_nodes_created,hl_nodes_explored,"
+         "hl_reinsertions,hl_duplicate_configs,open_max_size,"
          "constraints_popped,constraints_generated,constraint_failures,"
          "pibt_calls,pibt_failures,pibt_recursions,assignment_calls,"
-         "assignment_changes,final_assignment_changes,"
+         "assignment_changes,assignment_infeasible_count,"
+         "service_child_validation_failures,"
+         "service_child_stack_validation_failures,"
+         "service_child_swap_validation_failures,final_assignment_changes,"
          "final_agent_assignment_changes,assignment_row_cache_requests,"
          "assignment_row_cache_hits,solution_depth,solution_cost,solution_h,"
          "service_satisfied_agents,service_satisfied_pickups,"
@@ -174,11 +179,16 @@ void write_trace_csv(const std::string& path,
         << r.average_carried_tasks_now << "," << r.max_carried_tasks_now << ","
         << r.average_loaded_distance_now << "," << r.max_loaded_distance_now
         << "," << r.hl_loop_iterations << "," << r.hl_nodes_created << ","
-        << r.hl_nodes_explored << "," << r.open_max_size << ","
+        << r.hl_nodes_explored << "," << r.hl_reinsertions << ","
+        << r.hl_duplicate_configs << "," << r.open_max_size << ","
         << r.constraints_popped << "," << r.constraints_generated << ","
         << r.constraint_failures << "," << r.pibt_calls << ","
         << r.pibt_failures << "," << r.pibt_recursions << ","
         << r.assignment_calls << "," << r.assignment_changes << ","
+        << r.assignment_infeasible_count << ","
+        << r.service_child_validation_failures << ","
+        << r.service_child_stack_validation_failures << ","
+        << r.service_child_swap_validation_failures << ","
         << r.final_assignment_changes << ","
         << r.final_agent_assignment_changes << ","
         << r.assignment_row_cache_requests << ","
@@ -393,6 +403,10 @@ int main(int argc, char** argv)
       argc >= 17 ? std::stoi(argv[16]) : config.service_commit_agents;
   config.max_shared_drop_goal_agents =
       argc >= 18 ? std::stoi(argv[17]) : config.max_shared_drop_goal_agents;
+  config.pickup_service_duration =
+      argc >= 19 ? std::stoi(argv[18]) : config.pickup_service_duration;
+  config.delivery_service_duration =
+      argc >= 20 ? std::stoi(argv[19]) : config.delivery_service_duration;
 
   const auto metrics = run_lifelong_simulation(config);
   std::ofstream out(output_csv, std::ios::app);
@@ -416,6 +430,10 @@ int main(int argc, char** argv)
   std::cout << "multi_carry_capacity=" << metrics.multi_carry_capacity << "\n";
   std::cout << "max_shared_drop_goal_agents="
             << metrics.max_shared_drop_goal_agents << "\n";
+  std::cout << "pickup_service_duration="
+            << config.pickup_service_duration << "\n";
+  std::cout << "delivery_service_duration="
+            << config.delivery_service_duration << "\n";
   std::cout << "planner_force_full_assignment="
             << metrics.planner_force_full_assignment << "\n";
   std::cout << "average_carried_tasks=" << metrics.average_carried_tasks << "\n";

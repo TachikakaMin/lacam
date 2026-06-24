@@ -267,7 +267,8 @@ int lifelong_loaded_cost(const LifelongAgentState& agent,
 LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
     const MapDistanceCache& distances, int multi_carry_capacity,
-    int max_shared_drop_goal_agents)
+    int max_shared_drop_goal_agents, int pickup_service_duration,
+    int delivery_service_duration)
 {
   normalize_agent_task_state(agents, tasks);
   auto previous_task_ids =
@@ -345,7 +346,7 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         const auto static_cost =
             static_cast<long long>(delivery_cost) + circle +
             (carried_count > 0 ? agent.loaded_distance_since_last_delivery : 0) +
-            (switched ? 1 : 0);
+            (switched ? 1 : 0) + std::max(0, pickup_service_duration);
         const auto denominator = carried_count + 1;
         const auto offset =
             scaled_static_cost(static_cost, common_scale, denominator);
@@ -375,8 +376,11 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
           if (!delivery_targets.insert(goal->index).second) continue;
           const auto circle = circle_cost(goal, carried, distances);
           if (circle >= kTapfAssignmentInfCost) continue;
+          const auto static_cost =
+              static_cast<long long>(circle) +
+              std::max(0, delivery_service_duration);
           const auto offset =
-              scaled_static_cost(circle, common_scale, carried_count);
+              scaled_static_cost(static_cost, common_scale, carried_count);
           const auto distance_scale = common_scale / carried_count;
           for (auto slot = 0; slot < max_shared_drop_goal_agents; ++slot) {
             add_goal_option(snapshot, i, agent.current_location, goal,

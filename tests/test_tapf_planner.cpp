@@ -304,6 +304,102 @@ TEST(tapf_planner, service_at_root_requires_a_committed_stay_transition)
   ASSERT_EQ(final_assignment.size(), 1);
 }
 
+TEST(tapf_planner, service_duration_at_root_requires_n_stays)
+{
+  const auto map_filename = "./tests/assets/2x1.map";
+  const auto ins = TAPFInstance(map_filename, std::vector<int>{0},
+                                std::vector<std::vector<int> >{{0}});
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.pickup_service_duration = 3;
+  search_config.delivery_service_duration = 3;
+
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config, &final_assignment);
+
+  ASSERT_EQ(solution.size(), 4);
+  for (size_t t = 0; t < solution.size(); ++t) {
+    ASSERT_EQ(solution[t][0], ins.G.U[0]);
+  }
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+  ASSERT_EQ(final_assignment.size(), 1);
+}
+
+TEST(tapf_planner, service_duration_blocks_vertex_until_complete)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{1, 0};
+  const auto goals = std::vector<std::vector<int> >{{1}, {2}};
+  const auto task_keys = std::vector<std::vector<int> >{{0}, {1}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                false, task_keys);
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = 1;
+  search_config.pickup_service_duration = 3;
+  search_config.delivery_service_duration = 3;
+
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config);
+
+  ASSERT_EQ(solution.size(), 4);
+  for (size_t t = 1; t <= 3; ++t) {
+    ASSERT_EQ(solution[t][0], ins.G.U[1]) << "service agent left at t=" << t;
+    ASSERT_NE(solution[t][1], ins.G.U[1])
+        << "transiting agent entered blocked service vertex at t=" << t;
+  }
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+}
+
+TEST(tapf_planner, service_duration_counts_consecutive_stays_after_arrival)
+{
+  const auto map_filename = "./tests/assets/2x1.map";
+  const auto ins = TAPFInstance(map_filename, std::vector<int>{0},
+                                std::vector<std::vector<int> >{{1}});
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.pickup_service_duration = 2;
+  search_config.delivery_service_duration = 2;
+
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config);
+
+  ASSERT_EQ(solution.size(), 4);
+  ASSERT_EQ(solution[0][0], ins.G.U[0]);
+  ASSERT_EQ(solution[1][0], ins.G.U[1]);
+  ASSERT_EQ(solution[2][0], ins.G.U[1]);
+  ASSERT_EQ(solution[3][0], ins.G.U[1]);
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+}
+
+TEST(tapf_planner, service_duration_zero_completes_on_arrival)
+{
+  const auto map_filename = "./tests/assets/2x1.map";
+  const auto ins = TAPFInstance(map_filename, std::vector<int>{0},
+                                std::vector<std::vector<int> >{{1}});
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.pickup_service_duration = 0;
+  search_config.delivery_service_duration = 0;
+
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config);
+
+  ASSERT_EQ(solution.size(), 2);
+  ASSERT_EQ(solution[0][0], ins.G.U[0]);
+  ASSERT_EQ(solution[1][0], ins.G.U[1]);
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+}
+
 TEST(tapf_planner, service_mode_allows_sequential_use_of_one_physical_goal)
 {
   const auto map_filename = "./tests/assets/lifelong-task-small.map";

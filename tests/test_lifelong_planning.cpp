@@ -129,18 +129,110 @@ TEST(lifelong_planning, snapshot_contains_loaded_and_unloaded_cost_rows)
     if (ins.allowed[0][target] &&
         (ins.tasks[target]->index == graph.U[0]->index ||
          ins.tasks[target]->index == graph.U[9]->index) &&
-        ins.assignment_cost_offsets[0][target] == 0) {
+        ins.assignment_cost_offsets[0][target] == 1) {
       ++loaded_goals;
     }
     if (ins.allowed[1][target] &&
         ins.tasks[target]->index == graph.U[2]->index &&
-        ins.assignment_cost_offsets[1][target] == 2 &&
+        ins.assignment_cost_offsets[1][target] == 3 &&
         ins.assignment_distance_scales[1][target] == 1) {
       ++unloaded_pickups;
     }
   }
   ASSERT_EQ(loaded_goals, 10);
   ASSERT_EQ(unloaded_pickups, 1);
+}
+
+TEST(lifelong_planning, service_durations_are_encoded_in_cost_offsets)
+{
+  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[1]),
+      make_agent(1, graph.U[3]),
+  };
+  agents[0].load_state = AgentLoadState::LOADED;
+  agents[0].carried_task_ids.push_back(20);
+
+  auto picked = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[1],
+                                  Vertices{graph.U[0]});
+  picked.status = LifelongTaskStatus::PICKED;
+  picked.picked_agent_id = 0;
+  auto tasks = std::vector<LifelongTask>{
+      picked,
+      make_pending_task(21, LifelongTaskType::OUTBOUND, graph.U[2],
+                        Vertices{graph.U[4]}),
+  };
+
+  const auto snapshot = prepare_lifelong_planning_snapshot(
+      agents, tasks, distances, 1, 5, 4, 3);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
+
+  ASSERT_TRUE(snapshot.feasible);
+  ASSERT_TRUE(ins.is_valid());
+  auto saw_delivery = false;
+  auto saw_pickup = false;
+  for (size_t target = 0; target < ins.tasks.size(); ++target) {
+    if (ins.allowed[0][target] && ins.tasks[target]->index == graph.U[0]->index) {
+      EXPECT_EQ(ins.assignment_cost_offsets[0][target], 3);
+      saw_delivery = true;
+    }
+    if (ins.allowed[1][target] && ins.tasks[target]->index == graph.U[2]->index) {
+      EXPECT_EQ(ins.assignment_cost_offsets[1][target], 6);
+      saw_pickup = true;
+    }
+  }
+  ASSERT_TRUE(saw_delivery);
+  ASSERT_TRUE(saw_pickup);
+}
+
+TEST(lifelong_planning, zero_service_duration_does_not_add_cost_offsets)
+{
+  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[1]),
+      make_agent(1, graph.U[3]),
+  };
+  agents[0].load_state = AgentLoadState::LOADED;
+  agents[0].carried_task_ids.push_back(20);
+
+  auto picked = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[1],
+                                  Vertices{graph.U[0]});
+  picked.status = LifelongTaskStatus::PICKED;
+  picked.picked_agent_id = 0;
+  auto tasks = std::vector<LifelongTask>{
+      picked,
+      make_pending_task(21, LifelongTaskType::OUTBOUND, graph.U[2],
+                        Vertices{graph.U[4]}),
+  };
+
+  const auto snapshot = prepare_lifelong_planning_snapshot(
+      agents, tasks, distances, 1, 5, 0, 0);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
+
+  ASSERT_TRUE(snapshot.feasible);
+  ASSERT_TRUE(ins.is_valid());
+  auto saw_delivery = false;
+  auto saw_pickup = false;
+  for (size_t target = 0; target < ins.tasks.size(); ++target) {
+    if (ins.allowed[0][target] && ins.tasks[target]->index == graph.U[0]->index) {
+      EXPECT_EQ(ins.assignment_cost_offsets[0][target], 0);
+      saw_delivery = true;
+    }
+    if (ins.allowed[1][target] && ins.tasks[target]->index == graph.U[2]->index) {
+      EXPECT_EQ(ins.assignment_cost_offsets[1][target], 2);
+      saw_pickup = true;
+    }
+  }
+  ASSERT_TRUE(saw_delivery);
+  ASSERT_TRUE(saw_pickup);
 }
 
 TEST(lifelong_planning, planner_result_assigns_unloaded_task)

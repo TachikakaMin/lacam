@@ -83,3 +83,64 @@ TEST(lifelong_simulation, planner_timeout_waits_and_replans_without_invalidating
             1);
   ASSERT_GE(metrics.planner_invocations, 1);
 }
+
+TEST(lifelong_simulation, pickup_service_duration_delays_pickup_event)
+{
+  auto config = LifelongSimulationConfig();
+  config.map_filename = "./tests/assets/lifelong-sim-small.map";
+  config.cache_filename = "";
+  config.num_agents = 1;
+  config.horizon = 20;
+  config.seed = 3;
+  config.planner_time_limit_sec = 0.2;
+  config.task_config.goal_set_size = 1;
+  config.pickup_service_duration = 3;
+  config.delivery_service_duration = 1;
+  config.debug = true;
+
+  const auto baseline = run_lifelong_simulation([&] {
+    auto baseline_config = config;
+    baseline_config.pickup_service_duration = 1;
+    return baseline_config;
+  }());
+  const auto delayed = run_lifelong_simulation(config);
+
+  ASSERT_TRUE(baseline.valid) << baseline.error;
+  ASSERT_TRUE(delayed.valid) << delayed.error;
+  ASSERT_FALSE(baseline.task_records.empty());
+  ASSERT_FALSE(delayed.task_records.empty());
+  ASSERT_GE(baseline.task_records.front().pickup_timestep, 0);
+  ASSERT_EQ(delayed.task_records.front().pickup_timestep,
+            baseline.task_records.front().pickup_timestep + 2);
+}
+
+TEST(lifelong_simulation,
+     delivery_service_duration_delays_completion_event)
+{
+  auto config = LifelongSimulationConfig();
+  config.map_filename = "./tests/assets/lifelong-sim-small.map";
+  config.cache_filename = "";
+  config.num_agents = 1;
+  config.horizon = 30;
+  config.seed = 3;
+  config.planner_time_limit_sec = 0.2;
+  config.task_config.goal_set_size = 1;
+  config.pickup_service_duration = 1;
+  config.delivery_service_duration = 3;
+  config.debug = true;
+
+  const auto baseline = run_lifelong_simulation([&] {
+    auto baseline_config = config;
+    baseline_config.delivery_service_duration = 1;
+    return baseline_config;
+  }());
+  const auto delayed = run_lifelong_simulation(config);
+
+  ASSERT_TRUE(baseline.valid) << baseline.error;
+  ASSERT_TRUE(delayed.valid) << delayed.error;
+  ASSERT_FALSE(baseline.task_records.empty());
+  ASSERT_FALSE(delayed.task_records.empty());
+  ASSERT_GE(baseline.task_records.front().completion_timestep, 0);
+  ASSERT_EQ(delayed.task_records.front().completion_timestep,
+            baseline.task_records.front().completion_timestep + 2);
+}

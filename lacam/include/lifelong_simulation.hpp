@@ -18,6 +18,8 @@ struct LifelongSimulationConfig {
   bool planner_force_full_assignment = false;
   int multi_carry_capacity = 1;
   int service_commit_agents = 0;
+  int pickup_service_duration = 1;
+  int delivery_service_duration = 1;
   int max_shared_drop_goal_agents = 5;
   LifelongTaskGeneratorConfig task_config;
   bool debug = false;
@@ -98,6 +100,8 @@ struct LifelongPlannerTraceRecord {
   int hl_loop_iterations = 0;
   int hl_nodes_created = 0;
   int hl_nodes_explored = 0;
+  int hl_reinsertions = 0;
+  int hl_duplicate_configs = 0;
   int open_max_size = 0;
   int constraints_popped = 0;
   int constraints_generated = 0;
@@ -107,6 +111,10 @@ struct LifelongPlannerTraceRecord {
   int pibt_recursions = 0;
   int assignment_calls = 0;
   int assignment_changes = 0;
+  int assignment_infeasible_count = 0;
+  int service_child_validation_failures = 0;
+  int service_child_stack_validation_failures = 0;
+  int service_child_swap_validation_failures = 0;
   int final_assignment_changes = 0;
   int final_agent_assignment_changes = 0;
   long assignment_row_cache_requests = 0;

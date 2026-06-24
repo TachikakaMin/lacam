@@ -555,6 +555,10 @@ LifelongSimulationMetrics run_lifelong_simulation(
     auto max_carried_tasks = 0;
     auto max_loaded_distance_since_last_delivery = 0;
     auto delivery_carried_sum = 0;
+    auto service_active = std::vector<bool>(agents.size(), false);
+    auto service_keys = std::vector<int>(agents.size(), -1);
+    auto service_target_indexes = std::vector<int>(agents.size(), -1);
+    auto service_progress = std::vector<int>(agents.size(), 0);
     append_agent_task_snapshot(metrics, agents);
 
     for (int t = 0; t < config.horizon; ++t) {
@@ -562,9 +566,15 @@ LifelongSimulationMetrics run_lifelong_simulation(
       metrics.generated_tasks += static_cast<int>(released.size());
       tasks.insert(tasks.end(), released.begin(), released.end());
 
-      auto process_arrivals = [&](int event_timestep) {
+      auto process_arrivals = [&](int event_timestep,
+                                  const std::vector<bool>* ready_agents) {
         auto changed = false;
-        for (auto& agent : agents) {
+        for (size_t i = 0; i < agents.size(); ++i) {
+          if (ready_agents != nullptr &&
+              (i >= ready_agents->size() || !(*ready_agents)[i])) {
+            continue;
+          }
+          auto& agent = agents[i];
           const auto carried_before_pickup = carried_task_count(agent);
           auto pickup = try_pickup(agent, tasks, event_timestep,
                                    config.multi_carry_capacity);
@@ -577,13 +587,79 @@ LifelongSimulationMetrics run_lifelong_simulation(
             ++metrics.delivery_events;
             delivery_carried_sum += carried_before_delivery;
           }
+          if (pickup.changed || completion.changed) {
+            service_active[i] = false;
+            service_keys[i] = -1;
+            service_target_indexes[i] = -1;
+            service_progress[i] = 0;
+          }
           changed = changed || pickup.changed || completion.changed;
         }
         return changed;
       };
-      auto event_happened = process_arrivals(t);
-
+      auto service_ready_agents = [&](const std::vector<Vertex*>& previous) {
+        auto ready = std::vector<bool>(agents.size(), false);
+        for (size_t i = 0; i < agents.size(); ++i) {
+          if (agents[i].current_location == nullptr) {
+            service_active[i] = false;
+            service_keys[i] = -1;
+            service_target_indexes[i] = -1;
+            service_progress[i] = 0;
+            continue;
+          }
+          auto key = -1;
+          auto duration = 0;
+          if (agents[i].assigned_task_id.has_value() &&
+              carried_task_count(agents[i]) < config.multi_carry_capacity) {
+            const auto* task = find_task_by_id(
+                tasks, *agents[i].assigned_task_id);
+            if (task != nullptr && task->status == LifelongTaskStatus::ASSIGNED &&
+                task->assigned_agent_id == agents[i].agent_id &&
+                task->start == agents[i].current_location) {
+              key = task->task_id;
+              duration = config.pickup_service_duration;
+            }
+          }
+          if (key < 0 && agent_is_loaded(agents[i])) {
+            for (const auto task_id : agents[i].carried_task_ids) {
+              const auto* task = find_task_by_id(tasks, task_id);
+              if (task != nullptr && task->status == LifelongTaskStatus::PICKED &&
+                  task->picked_agent_id == agents[i].agent_id &&
+                  vertex_in_goal_set(agents[i].current_location,
+                                     task->goal_set)) {
+                key = kDeliveryLocationKeyBase + task->task_id;
+                duration = config.delivery_service_duration;
+                break;
+              }
+            }
+          }
+          const auto target_index = agents[i].current_location->index;
+          if (key < 0) {
+            service_active[i] = false;
+            service_keys[i] = -1;
+            service_target_indexes[i] = -1;
+            service_progress[i] = 0;
+            continue;
+          }
+          const auto same_service =
+              service_active[i] && service_keys[i] == key &&
+              service_target_indexes[i] == target_index;
+          if (!same_service) {
+            service_active[i] = true;
+            service_keys[i] = key;
+            service_target_indexes[i] = target_index;
+            service_progress[i] = 0;
+          } else if (i < previous.size() && previous[i] != nullptr &&
+                     previous[i]->index == target_index) {
+            service_progress[i] = std::max(0, service_progress[i]) + 1;
+          }
+          ready[i] = service_progress[i] >= std::max(0, duration);
+        }
+        return ready;
+      };
       const auto plan_finished = !valid_plan || plan_step + 1 >= plan.size();
+      auto ready_at_t = service_ready_agents(std::vector<Vertex*>());
+      auto event_happened = process_arrivals(t, &ready_at_t);
       const auto should_replan =
           t == 0 || event_happened ||
           (plan_finished && has_unfinished_work(agents, tasks)) ||
@@ -597,7 +673,9 @@ LifelongSimulationMetrics run_lifelong_simulation(
         auto snapshot =
             prepare_lifelong_planning_snapshot(agents, tasks, distances,
                                                config.multi_carry_capacity,
-                                               config.max_shared_drop_goal_agents);
+                                               config.max_shared_drop_goal_agents,
+                                               config.pickup_service_duration,
+                                               config.delivery_service_duration);
         auto solution = Solution();
         auto final_assignment = std::vector<int>();
         auto assignment_schedule = std::vector<std::vector<int> >();
@@ -744,6 +822,10 @@ LifelongSimulationMetrics run_lifelong_simulation(
                     ? std::min(config.num_agents,
                                config.service_commit_agents)
                     : 0;
+            search_config.pickup_service_duration =
+                config.pickup_service_duration;
+            search_config.delivery_service_duration =
+                config.delivery_service_duration;
             solution =
                 solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats,
                            config.planner_anytime,
@@ -882,6 +964,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
         trace.hl_loop_iterations = stats.hl_loop_iterations;
         trace.hl_nodes_created = stats.hl_nodes_created;
         trace.hl_nodes_explored = stats.hl_nodes_explored;
+        trace.hl_reinsertions = stats.hl_reinsertions;
+        trace.hl_duplicate_configs = stats.hl_duplicate_configs;
         trace.open_max_size = stats.open_max_size;
         trace.constraints_popped = stats.constraints_popped;
         trace.constraints_generated = stats.constraints_generated;
@@ -891,6 +975,13 @@ LifelongSimulationMetrics run_lifelong_simulation(
         trace.pibt_recursions = stats.pibt_recursions;
         trace.assignment_calls = stats.assignment_calls;
         trace.assignment_changes = stats.assignment_changes;
+        trace.assignment_infeasible_count = stats.assignment_infeasible_count;
+        trace.service_child_validation_failures =
+            stats.service_child_validation_failures;
+        trace.service_child_stack_validation_failures =
+            stats.service_child_stack_validation_failures;
+        trace.service_child_swap_validation_failures =
+            stats.service_child_swap_validation_failures;
         trace.final_assignment_changes = stats.final_assignment_changes;
         trace.final_agent_assignment_changes =
             stats.final_agent_assignment_changes;
@@ -945,7 +1036,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
         for (auto& agent : agents) agent.executed_path.push_back(agent.current_location);
       }
 
-      process_arrivals(t + 1);
+      auto ready_agents = service_ready_agents(previous);
+      process_arrivals(t + 1, &ready_agents);
       if (valid_plan && plan_step + 1 < plan.size()) {
         if (plan_step >= plan_assignment_keys.size() ||
             plan_step >= plan_assignment_target_indexes.size() ||
