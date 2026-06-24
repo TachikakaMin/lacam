@@ -641,25 +641,26 @@ TEST(lifelong_planning, shared_singleton_drop_is_serviced_sequentially)
 TEST(lifelong_planning,
      full_service_proof_can_assign_two_agents_to_one_drop_location)
 {
-  const auto map_filename = std::string("./tests/assets/3x1.map");
+  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
-  const auto distances = build_map_distance_cache(graph, "3x1.map", 1);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
 
   auto agents = std::vector<LifelongAgentState>{
-      make_agent(0, graph.U[0]),
-      make_agent(1, graph.U[1]),
+      make_agent(0, graph.U[3]),
+      make_agent(1, graph.U[9]),
   };
   agents[0].load_state = AgentLoadState::LOADED;
   agents[0].current_task_id = 20;
   agents[1].load_state = AgentLoadState::LOADED;
   agents[1].current_task_id = 21;
 
-  auto task0 = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[0],
-                                 Vertices{graph.U[2]});
+  auto task0 = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[3],
+                                 Vertices{graph.U[0]});
   task0.status = LifelongTaskStatus::PICKED;
   task0.picked_agent_id = 0;
-  auto task1 = make_pending_task(21, LifelongTaskType::INBOUND, graph.U[1],
-                                 Vertices{graph.U[2]});
+  auto task1 = make_pending_task(21, LifelongTaskType::INBOUND, graph.U[9],
+                                 Vertices{graph.U[0]});
   task1.status = LifelongTaskStatus::PICKED;
   task1.picked_agent_id = 1;
   auto tasks = std::vector<LifelongTask>{task0, task1};
@@ -687,11 +688,11 @@ TEST(lifelong_planning,
   ASSERT_EQ(std::count_if(solution.back().begin(), solution.back().end(),
                           [&](const auto* vertex) {
                             return vertex != nullptr &&
-                                   vertex->index == graph.U[2]->index;
+                                   vertex->index == graph.U[0]->index;
                           }),
-            2)
+            1)
       << "a multi-service commit should keep the prefix through all committed "
-         "services; shared service goals may stack after sequential entry";
+         "services without stacking agents during an active service";
 }
 
 TEST(lifelong_planning, loaded_drop_and_unloaded_pickup_compete_together)

@@ -967,18 +967,16 @@ Vertex* TAPFPlanner::service_goal_for_state(
   if (agent < 0 || agent >= static_cast<int>(assignment.size())) {
     return nullptr;
   }
+  if (search_config.service_goal_mode &&
+      agent < static_cast<int>(satisfied.size()) && satisfied[agent]) {
+    return nullptr;
+  }
   auto task = assignment[agent];
   if (search_config.service_goal_mode && agent < static_cast<int>(
                                                 service_assignment.size()) &&
       service_assignment[agent] >= 0 &&
       (agent >= static_cast<int>(satisfied.size()) || !satisfied[agent])) {
     task = service_assignment[agent];
-  } else if (search_config.service_goal_mode &&
-      agent < static_cast<int>(satisfied.size()) && satisfied[agent]) {
-    if (agent >= static_cast<int>(satisfied_assignment.size())) {
-      return nullptr;
-    }
-    task = satisfied_assignment[agent];
   }
   if (task < 0 || task >= static_cast<int>(ins->tasks.size())) {
     return nullptr;
@@ -1039,8 +1037,12 @@ bool TAPFPlanner::can_reserve_next(const TAPFNode* node, Agent* agent,
         node->service_assignment[id] < 0 || node->satisfied[id]) {
       return false;
     }
-    return service_duration_for_task(ins, search_config,
-                                     node->service_assignment[id]) > 1;
+    const auto task = node->service_assignment[id];
+    const auto progress = id < static_cast<int>(node->service_progress.size())
+                              ? node->service_progress[id]
+                              : 0;
+    return service_duration_for_task(ins, search_config, task) >
+           std::max(0, progress);
   };
   const auto representative = occupied_next[vertex->id];
   if (representative != nullptr && representative != agent &&

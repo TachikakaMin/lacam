@@ -190,9 +190,9 @@ TEST(tapf_planner, service_mode_default_commits_first_real_service)
 TEST(tapf_planner,
      service_mode_allows_sequential_entries_to_one_physical_goal)
 {
-  const auto map_filename = "./tests/assets/3x1.map";
-  const auto starts = std::vector<int>{0, 1};
-  const auto goals = std::vector<std::vector<int> >{{2}, {2}};
+  const auto map_filename = "./tests/assets/lifelong-task-small.map";
+  const auto starts = std::vector<int>{3, 9};
+  const auto goals = std::vector<std::vector<int> >{{0}, {0}};
   const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
                                 true);
 
@@ -213,9 +213,9 @@ TEST(tapf_planner,
   ASSERT_EQ(stats.service_best_satisfied_agents, 2);
   ASSERT_EQ(final_assignment.size(), starts.size());
   ASSERT_EQ(assignment_schedule.size(), solution.size());
-  ASSERT_EQ(vertex_occupancy(solution.back(), ins.G.U[2]), 2)
-      << "explicitly committing both services should prove the sequential "
-         "shared-goal stack";
+  ASSERT_EQ(vertex_occupancy(solution.back(), ins.G.U[0]), 1)
+      << "explicitly committing both services should prove sequential service "
+         "without stacking agents during an active service";
 }
 
 TEST(tapf_planner,
@@ -250,7 +250,7 @@ TEST(tapf_planner,
   }
 }
 
-TEST(tapf_planner, service_mode_keeps_same_target_occupant_when_agent_enters)
+TEST(tapf_planner, service_mode_blocks_same_target_while_occupant_services)
 {
   const auto map_filename = "./tests/assets/3x1.map";
   const auto starts = std::vector<int>{0, 1};
@@ -271,7 +271,7 @@ TEST(tapf_planner, service_mode_keeps_same_target_occupant_when_agent_enters)
 
   ASSERT_FALSE(solution.empty());
   ASSERT_EQ(stats.service_satisfied_deliveries, 1);
-  ASSERT_EQ(vertex_occupancy(solution.back(), ins.G.U[1]), 2);
+  ASSERT_EQ(vertex_occupancy(solution.back(), ins.G.U[1]), 1);
   for (size_t t = 1; t < solution.size(); ++t) {
     auto entrants = 0;
     for (size_t i = 0; i < starts.size(); ++i) {
@@ -353,6 +353,32 @@ TEST(tapf_planner, service_duration_blocks_vertex_until_complete)
     ASSERT_NE(solution[t][1], ins.G.U[1])
         << "transiting agent entered blocked service vertex at t=" << t;
   }
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+}
+
+TEST(tapf_planner, unit_service_duration_blocks_vertex_for_committed_stay)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{1, 0};
+  const auto goals = std::vector<std::vector<int> >{{1}, {2}};
+  const auto task_keys = std::vector<std::vector<int> >{{0}, {1}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                false, task_keys);
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = 1;
+  search_config.pickup_service_duration = 1;
+  search_config.delivery_service_duration = 1;
+
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config);
+
+  ASSERT_EQ(solution.size(), 2);
+  ASSERT_EQ(solution[1][0], ins.G.U[1]);
+  ASSERT_NE(solution[1][1], ins.G.U[1])
+      << "duration=1 still requires one committed service stay";
   ASSERT_EQ(stats.service_satisfied_agents, 1);
 }
 
