@@ -167,12 +167,13 @@ HTML_TEMPLATE = """<!doctype html>
   --ink: #17202a;
   --muted: #64727f;
   --line: #d6dde5;
-  --wall: #20252b;
-  --free: #f9fafb;
+  --wall: #9aa3ad;
+  --free: #fbfcfd;
   --late: #d9472b;
   --zig: #1d7f8c;
   --both: #8a4bb8;
   --other: #5867d8;
+  --unloading: #169b62;
 }}
 * {{ box-sizing: border-box; }}
 body {{
@@ -238,10 +239,10 @@ input[type=range] {{
   flex: 1;
   display: grid;
   place-items: center;
-  min-height: 580px;
+  min-height: 720px;
 }}
 #canvas {{
-  width: min(100%, 760px);
+  width: min(100%, 920px);
   aspect-ratio: 1 / 1;
   image-rendering: crisp-edges;
 }}
@@ -408,7 +409,7 @@ tr.selected {{
       <button id="focus">Focus cluster</button>
     </div>
     <div class="canvas-wrap">
-      <canvas id="canvas" width="1024" height="1024"></canvas>
+      <canvas id="canvas" width="1200" height="1200"></canvas>
     </div>
     <section class="panel throughput-panel">
       <div class="chart-heading">
@@ -440,6 +441,7 @@ tr.selected {{
         <div><span class="swatch" style="background:var(--late)"></span>Late departure</div>
         <div><span class="swatch" style="background:var(--both)"></span>Both</div>
         <div><span class="swatch" style="background:var(--other)"></span>Other</div>
+        <div><span class="swatch" style="background:var(--unloading)"></span>Unloading</div>
         <div><span class="swatch" style="background:#111;border-radius:2px"></span>Unpicked task start</div>
         <div><span class="swatch" style="background:#fff;border:2px solid #111"></span>Task goals</div>
         <div><span class="cargo-swatch inbound"></span>Inbound cargo</div>
@@ -502,6 +504,10 @@ function colorFor(agent) {{
   return '#5867d8';
 }}
 
+function pointEqualsCell(point, row, col) {{
+  return point && Number(point.x) === row && Number(point.y) === col;
+}}
+
 function visible(agent) {{
   if (selected !== null) return agent.id === selected;
   const mode = modeEl.value;
@@ -530,6 +536,25 @@ function stateTaskIds(state) {{
   return [];
 }}
 
+function isUnloading(agent, state) {{
+  if (!agent || !state || state.phase !== 'loaded') return false;
+  const pos = agent.path[Math.min(t, agent.path.length - 1)];
+  if (!pos) return false;
+  const [row, col] = pos;
+  for (const taskId of stateTaskIds(state)) {{
+    const task = taskById.get(Number(taskId));
+    if (!task) continue;
+    if ((task.goals || []).some(goal => pointEqualsCell(goal, row, col))) {{
+      return true;
+    }}
+  }}
+  return false;
+}}
+
+function colorForState(agent, state) {{
+  return isUnloading(agent, state) ? '#169b62' : colorFor(agent);
+}}
+
 function carriedTaskIds(state) {{
   const carried = Array.isArray(state.carried_tasks) ? state.carried_tasks : [];
   return carried.map(Number).filter(id => id >= 0);
@@ -556,6 +581,10 @@ function phaseLabel(phase) {{
   if (phase === 'assigned') return 'to-start';
   if (phase === 'loaded') return 'to-goal';
   return 'idle';
+}}
+
+function phaseLabelForState(agent, state) {{
+  return isUnloading(agent, state) ? 'unloading' : phaseLabel(state.phase);
 }}
 
 function taskLabel(state) {{
@@ -648,7 +677,7 @@ function drawCurrentTasks(b, cell, offX, offY) {{
   for (const agent of DATA.agents) {{
     if (!visible(agent)) continue;
     const state = taskState(agent);
-    const color = colorFor(agent);
+    const color = colorForState(agent, state);
     const strong = selected === agent.id;
     if (state.phase === 'assigned') {{
       const taskId = stateTaskIds(state)[0];
@@ -810,7 +839,7 @@ function draw(forceUi = false) {{
     for (let c = b.y0; c < b.y1; c++) {{
       const x = offX + (c - b.y0) * cell;
       const y = offY + (r - b.x0) * cell;
-      ctx.fillStyle = DATA.grid[r][c] === '@' ? '#20252b' : '#f9fafb';
+      ctx.fillStyle = DATA.grid[r][c] === '@' ? '#9aa3ad' : '#fbfcfd';
       ctx.fillRect(x, y, cell, cell);
       ctx.strokeStyle = '#d8dee6';
       ctx.lineWidth = 1;
@@ -822,7 +851,8 @@ function draw(forceUi = false) {{
 
   for (const agent of DATA.agents) {{
     if (!visible(agent)) continue;
-    ctx.strokeStyle = colorFor(agent);
+    const state = taskState(agent);
+    ctx.strokeStyle = colorForState(agent, state);
     ctx.globalAlpha = 0.35;
     ctx.lineWidth = Math.max(2, cell * 0.08);
     ctx.beginPath();
@@ -859,7 +889,8 @@ function draw(forceUi = false) {{
     if (r < b.x0 || r >= b.x1 || c < b.y0 || c >= b.y1) continue;
     const x = offX + (c - b.y0 + 0.5) * cell;
     const y = offY + (r - b.x0 + 0.5) * cell;
-    ctx.fillStyle = colorFor(agent);
+    const state = taskState(agent);
+    ctx.fillStyle = colorForState(agent, state);
     ctx.beginPath();
     ctx.arc(x, y, cell * 0.32, 0, Math.PI * 2);
     ctx.fill();
@@ -868,7 +899,6 @@ function draw(forceUi = false) {{
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(agent.id), x, y);
-    const state = taskState(agent);
     const cargoIds = carriedTaskIds(state);
     if (cargoIds.length > 0 || state.phase === 'loaded') {{
       const ids = cargoIds.length > 0 ? cargoIds : stateTaskIds(state);
@@ -878,8 +908,8 @@ function draw(forceUi = false) {{
       }});
     }}
   }}
-  drawThroughputChart();
   if (forceUi || renderedUiStep !== t) {{
+    drawThroughputChart();
     renderTable();
     renderTaskInfo();
     renderedUiStep = t;
@@ -905,12 +935,13 @@ function renderTaskInfo() {{
       return `${{role}} <strong>T${{task.id}}</strong> ${{task.type}} start (${{task.start.x}},${{task.start.y}}) goals ${{goals}}`;
     }}).join('<br>');
     taskInfo.innerHTML = `<strong>${{agent.name}}</strong> ${{
-      phaseLabel(state.phase)
+      phaseLabelForState(agent, state)
     }}<br>${{details}}`;
     return;
   }}
   let assigned = 0;
   let loaded = 0;
+  let unloading = 0;
   let unpicked = 0;
   for (const task of DATA.tasks || []) {{
     const release = Number(task.release);
@@ -920,6 +951,7 @@ function renderTaskInfo() {{
   for (const agent of DATA.agents) {{
     const state = taskState(agent);
     if (state.phase === 'assigned') assigned++;
+    if (isUnloading(agent, state)) unloading++;
     const carried = carriedTaskIds(state);
     if (carried.length > 0) {{
       loaded += carried.length;
@@ -927,7 +959,7 @@ function renderTaskInfo() {{
       loaded += Math.max(1, stateTaskIds(state).length);
     }}
   }}
-  taskInfo.innerHTML = `<strong>t=${{t}}</strong>: ${{unpicked}} unpicked starts, ${{assigned}} assigned-to-start, ${{loaded}} carried tasks. Click an agent row to show its task start and goal_set labels.`;
+  taskInfo.innerHTML = `<strong>t=${{t}}</strong>: ${{unpicked}} unpicked starts, ${{assigned}} assigned-to-start, ${{loaded}} carried tasks, ${{unloading}} unloading agents. Click an agent row to show its task start and goal_set labels.`;
 }}
 
 function renderTable() {{
@@ -938,7 +970,7 @@ function renderTable() {{
     const tr = document.createElement('tr');
     tr.dataset.id = a.id;
     if (a.id === selected) tr.classList.add('selected');
-    tr.innerHTML = `<td><span class="swatch" style="background:${{colorFor(a)}}"></span>${{a.name}}</td><td>${{taskLabel(state)}}</td><td>${{phaseLabel(state.phase)}}</td><td>${{a.soc}}</td><td>${{a.sol}}</td><td>${{a.aba}}</td>`;
+    tr.innerHTML = `<td><span class="swatch" style="background:${{colorForState(a, state)}}"></span>${{a.name}}</td><td>${{taskLabel(state)}}</td><td>${{phaseLabelForState(a, state)}}</td><td>${{a.soc}}</td><td>${{a.sol}}</td><td>${{a.aba}}</td>`;
     tr.addEventListener('click', () => {{
       selected = selected === a.id ? null : a.id;
       draw(true);
