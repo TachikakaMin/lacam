@@ -185,7 +185,7 @@ TEST(tapf_planner, service_mode_default_commits_first_real_service)
   ASSERT_GE(stats.service_best_satisfied_agents, 1);
 }
 
-TEST(tapf_planner, service_mode_default_does_not_add_late_service_starts)
+TEST(tapf_planner, service_mode_default_completes_late_service_starts)
 {
   const auto map_filename = "./tests/assets/5x1.map";
   const auto starts = std::vector<int>{0, 4};
@@ -204,10 +204,20 @@ TEST(tapf_planner, service_mode_default_does_not_add_late_service_starts)
                                    false, search_config);
 
   ASSERT_FALSE(solution.empty());
-  ASSERT_EQ(stats.service_satisfied_agents, 1);
+  ASSERT_EQ(stats.service_satisfied_agents, 2);
+  ASSERT_GE(solution.size(), 5);
+  auto agent1_entry = solution.size();
   for (size_t t = 1; t < solution.size(); ++t) {
-    ASSERT_NE(solution[t][1], ins.G.U[2])
-        << "default service batch admitted a later service start at t=" << t;
+    if (solution[t - 1][1] != ins.G.U[2] && solution[t][1] == ins.G.U[2]) {
+      agent1_entry = t;
+      break;
+    }
+  }
+  ASSERT_LT(agent1_entry, solution.size());
+  ASSERT_GE(solution.size(), agent1_entry + 3);
+  for (size_t t = agent1_entry; t <= agent1_entry + 2; ++t) {
+    ASSERT_EQ(solution[t][1], ins.G.U[2])
+        << "late service start was cut before duration completed at t=" << t;
   }
 }
 
@@ -464,6 +474,32 @@ TEST(tapf_planner, service_duration_zero_completes_on_arrival)
   ASSERT_EQ(solution[0][0], ins.G.U[0]);
   ASSERT_EQ(solution[1][0], ins.G.U[1]);
   ASSERT_EQ(stats.service_satisfied_agents, 1);
+}
+
+TEST(tapf_planner, non_real_wait_target_does_not_use_service_duration)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{0, 2};
+  const auto goals = std::vector<std::vector<int> >{{0}, {1}};
+  const auto task_keys =
+      std::vector<std::vector<int> >{{-2}, {1000000001}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                false, task_keys);
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.pickup_service_duration = 4;
+  search_config.delivery_service_duration = 1;
+
+  const auto solution = solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false,
+                                   false, search_config);
+
+  ASSERT_EQ(solution.size(), 3);
+  ASSERT_EQ(solution[0][0], ins.G.U[0]);
+  ASSERT_EQ(solution[1][1], ins.G.U[1]);
+  ASSERT_EQ(solution[2][1], ins.G.U[1]);
+  ASSERT_EQ(stats.service_satisfied_agents, 2);
+  ASSERT_EQ(stats.service_satisfied_deliveries, 1);
 }
 
 TEST(tapf_planner, service_mode_allows_sequential_use_of_one_physical_goal)

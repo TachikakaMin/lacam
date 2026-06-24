@@ -287,7 +287,6 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       occupied_now(Agents(V_size, nullptr)),
       occupied_next(Agents(V_size, nullptr)),
       shared_goal_entry_counts(std::vector<int>(V_size, 0)),
-      committed_service_entries_next(0),
       real_service_vertices(std::vector<bool>(V_size, false))
 {
   if (stats != nullptr) *stats = TAPFStats();
@@ -341,29 +340,6 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     }
     return false;
   };
-  auto service_commit_target = [&]() {
-    return search_config.service_commit_agents > 0
-               ? std::min<int>(ins->N, search_config.service_commit_agents)
-               : static_cast<int>(ins->N);
-  };
-  auto committed_real_services = [&](const TAPFNode* node,
-                                     const std::vector<bool>& committed,
-                                     const std::vector<bool>& satisfied,
-                                     const std::vector<int>& satisfied_tasks) {
-    auto count = 0;
-    if (node == nullptr) return count;
-    for (size_t i = 0; i < committed.size(); ++i) {
-      if (!committed[i]) continue;
-      auto task = -1;
-      if (i < satisfied.size() && satisfied[i]) {
-        task = i < satisfied_tasks.size() ? satisfied_tasks[i] : -1;
-      } else if (i < node->service_assignment.size()) {
-        task = node->service_assignment[i];
-      }
-      if (is_real_service_task(ins, task)) ++count;
-    }
-    return count;
-  };
 
   struct ServiceState {
     std::vector<int> service_assignment;
@@ -388,10 +364,6 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       state.satisfied = parent->satisfied;
       state.satisfied_assignment = parent->satisfied_assignment;
     }
-    const auto parent_committed_count =
-        committed_real_services(parent, state.service_committed,
-                                state.satisfied, state.satisfied_assignment);
-    auto committed_count = parent_committed_count;
     for (size_t i = 0; i < N; ++i) {
       if (state.satisfied[i]) continue;
       if (parent == nullptr ||
@@ -402,20 +374,17 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
                                                    : parent->assignment[i];
       if (task >= 0 && task < static_cast<int>(ins->tasks.size()) &&
           C[i] == ins->tasks[task]) {
+        if (!is_real_service_task(ins, task)) {
+          state.satisfied[i] = true;
+          state.satisfied_assignment[i] = task;
+          state.service_assignment[i] = -1;
+          state.service_progress[i] = 0;
+          state.service_committed[i] = false;
+          continue;
+        }
         const auto starting_service = state.service_assignment[i] < 0;
-        if (starting_service && is_real_service_task(ins, task)) {
-          const auto required =
-              i < service_required_agents.size() && service_required_agents[i];
-          if (required ||
-              ((search_config.service_commit_agents > 0 ||
-                parent_committed_count == 0) &&
-               committed_count < service_commit_target())) {
-            state.service_committed[i] = true;
-            ++committed_count;
-          } else {
-            state.valid = false;
-            return state;
-          }
+        if (starting_service) {
+          state.service_committed[i] = true;
         }
         const auto stayed_at_service =
             parent->C[i] == C[i] && parent->C[i] == ins->tasks[task];
@@ -527,8 +496,12 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
           ins->starts[i] != ins->tasks[task]) {
         continue;
       }
-      if (service_duration_for_task(ins, search_config, task) > 0) {
+      if (is_real_service_task(ins, task) &&
+          service_duration_for_task(ins, search_config, task) > 0) {
         initial_service_assignment[i] = task;
+      } else if (!is_real_service_task(ins, task)) {
+        initial_satisfied[i] = true;
+        initial_satisfied_assignment[i] = task;
       }
     }
   }
@@ -665,9 +638,13 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     }
 
     auto changed_agents = std::vector<int>();
+    auto changed_agent_flags = std::vector<bool>(N, false);
     changed_agents.reserve(N);
     for (size_t i = 0; i < N; ++i) {
-      if (C_new[i] != S->C[i]) changed_agents.push_back(i);
+      if (C_new[i] != S->C[i]) {
+        changed_agents.push_back(i);
+        changed_agent_flags[i] = true;
+      }
     }
 
     auto satisfied = std::vector<bool>();
@@ -683,6 +660,20 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       service_committed = service_state.service_committed;
       satisfied = service_state.satisfied;
       satisfied_assignment = service_state.satisfied_assignment;
+      for (size_t i = 0; i < N; ++i) {
+        const auto service_changed =
+            i >= S->service_assignment.size() ||
+            i >= S->service_progress.size() || i >= S->satisfied.size() ||
+            i >= S->satisfied_assignment.size() ||
+            service_assignment[i] != S->service_assignment[i] ||
+            service_progress[i] != S->service_progress[i] ||
+            satisfied[i] != S->satisfied[i] ||
+            satisfied_assignment[i] != S->satisfied_assignment[i];
+        if (service_changed && !changed_agent_flags[i]) {
+          changed_agents.push_back(i);
+          changed_agent_flags[i] = true;
+        }
+      }
     }
 
     auto assignment_state = S->assignment_state;
@@ -1122,50 +1113,6 @@ bool TAPFPlanner::can_reserve_next(const TAPFNode* node, Agent* agent,
                                    Vertex* vertex)
 {
   if (agent == nullptr || vertex == nullptr) return false;
-  auto committed_real_services = [&]() {
-    auto count = 0;
-    if (node == nullptr) return count;
-    for (size_t i = 0; i < node->service_committed.size(); ++i) {
-      if (!node->service_committed[i]) continue;
-      auto task = -1;
-      if (i < node->satisfied.size() && node->satisfied[i]) {
-        task = i < node->satisfied_assignment.size()
-                   ? node->satisfied_assignment[i]
-                   : -1;
-      } else if (i < node->service_assignment.size()) {
-        task = node->service_assignment[i];
-      }
-      if (is_real_service_task(ins, task)) ++count;
-    }
-    return count;
-  };
-  auto starts_real_service = [&]() {
-    if (!search_config.service_goal_mode || node == nullptr ||
-        agent->v_now == vertex ||
-        agent->id >= static_cast<int>(node->assignment.size()) ||
-        (agent->id < static_cast<int>(node->service_assignment.size()) &&
-         node->service_assignment[agent->id] >= 0) ||
-        service_goal(node, agent->id) != vertex) {
-      return false;
-    }
-    return is_real_service_task(ins, node->assignment[agent->id]);
-  };
-  if (starts_real_service()) {
-    const auto parent_committed = committed_real_services();
-    const auto target =
-        search_config.service_commit_agents > 0
-            ? std::min<int>(ins->N, search_config.service_commit_agents)
-            : static_cast<int>(ins->N);
-    const auto required =
-        agent->id >= 0 &&
-        agent->id < static_cast<int>(service_required_agents.size()) &&
-        service_required_agents[agent->id];
-    if (!required &&
-        ((search_config.service_commit_agents <= 0 && parent_committed > 0) ||
-         parent_committed + committed_service_entries_next >= target)) {
-      return false;
-    }
-  }
   auto in_active_blocking_service = [&](const Agent* candidate) {
     if (candidate == nullptr || node == nullptr) return false;
     const auto id = candidate->id;
@@ -1207,15 +1154,6 @@ void TAPFPlanner::reserve_next(const TAPFNode* node, Agent* agent,
                                Vertex* vertex)
 {
   if (agent == nullptr || vertex == nullptr) return;
-  if (search_config.service_goal_mode && node != nullptr &&
-      agent->v_now != vertex &&
-      agent->id < static_cast<int>(node->assignment.size()) &&
-      (agent->id >= static_cast<int>(node->service_assignment.size()) ||
-       node->service_assignment[agent->id] < 0) &&
-      service_goal(node, agent->id) == vertex &&
-      is_real_service_task(ins, node->assignment[agent->id])) {
-    ++committed_service_entries_next;
-  }
   if (can_share_service_goal(node, agent->id, vertex) &&
       agent->v_now != vertex) {
     ++shared_goal_entry_counts[vertex->id];
@@ -1370,7 +1308,6 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
 {
   std::fill(shared_goal_entry_counts.begin(), shared_goal_entry_counts.end(),
             0);
-  committed_service_entries_next = 0;
   for (auto a : A) {
     if (a->v_now != nullptr && occupied_now[a->v_now->id] == a) {
       occupied_now[a->v_now->id] = nullptr;
@@ -1540,13 +1477,10 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const TAPFNode* node)
     for (const auto a : A) next_snapshot[a->id] = a->v_next;
     const auto occupied_next_snapshot = occupied_next;
     const auto shared_goal_entry_snapshot = shared_goal_entry_counts;
-    const auto committed_service_entries_snapshot =
-        committed_service_entries_next;
     auto restore_candidate = [&]() {
       for (const auto a : A) a->v_next = next_snapshot[a->id];
       occupied_next = occupied_next_snapshot;
       shared_goal_entry_counts = shared_goal_entry_snapshot;
-      committed_service_entries_next = committed_service_entries_snapshot;
     };
     reserve_next(node, ai, u);
 

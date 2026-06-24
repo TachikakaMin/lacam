@@ -150,7 +150,6 @@ struct TAPFPlanner {
   Agents occupied_now;
   Agents occupied_next;
   std::vector<int> shared_goal_entry_counts;
-  int committed_service_entries_next;
   std::vector<bool> real_service_vertices;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
