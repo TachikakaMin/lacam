@@ -327,20 +327,6 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     return ServiceConfigKey{node->C, service_assignment, service_progress,
                             service_committed, node->satisfied};
   };
-  auto has_unfinished_committed_service = [](const TAPFNode* node) {
-    if (node == nullptr) return false;
-    for (size_t i = 0; i < node->service_assignment.size(); ++i) {
-      if (node->service_assignment[i] < 0) continue;
-      if (i >= node->service_committed.size() ||
-          !node->service_committed[i]) {
-        continue;
-      }
-      if (i < node->satisfied.size() && node->satisfied[i]) continue;
-      return true;
-    }
-    return false;
-  };
-
   struct ServiceState {
     std::vector<int> service_assignment;
     std::vector<int> service_progress;
@@ -785,8 +771,7 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
             ++required_reached;
           }
         }
-        if (required_reached == required_total &&
-            !has_unfinished_committed_service(solution_nodes[step])) {
+        if (required_reached == required_total) {
           solution.resize(step + 1);
           solution_nodes.resize(step + 1);
           break;
@@ -806,8 +791,7 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
           search_config.service_commit_agents > 1
               ? std::min<int>(ins->N, search_config.service_commit_agents)
               : 1;
-      if (real_services < required_real_services ||
-          has_unfinished_committed_service(solution_nodes[step])) {
+      if (real_services < required_real_services) {
         continue;
       }
       solution.resize(step + 1);
@@ -1253,15 +1237,6 @@ bool TAPFPlanner::is_goal_node(const TAPFNode* node) const
 {
   if (node == nullptr || node->assignment.size() != ins->N) return false;
   if (search_config.service_goal_mode) {
-    for (size_t i = 0; i < node->service_assignment.size(); ++i) {
-      if (node->service_assignment[i] < 0) continue;
-      if (i >= node->service_committed.size() ||
-          !node->service_committed[i]) {
-        continue;
-      }
-      if (i < node->satisfied.size() && node->satisfied[i]) continue;
-      return false;
-    }
     auto reached = 0;
     auto real_services = 0;
     auto required_reached = 0;

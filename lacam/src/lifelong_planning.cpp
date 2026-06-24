@@ -288,12 +288,9 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   snapshot.goal_distance_scales_by_agent.resize(agents.size());
   snapshot.goal_keys_by_agent.resize(agents.size());
   snapshot.agent_priority_offsets.assign(agents.size(), 0.0f);
-  if (!agent_priority_offsets.empty()) {
-    if (agent_priority_offsets.size() != agents.size()) {
-      snapshot.feasible = false;
-    } else {
-      snapshot.agent_priority_offsets = agent_priority_offsets;
-    }
+  const auto has_inherited_priorities = !agent_priority_offsets.empty();
+  if (has_inherited_priorities && agent_priority_offsets.size() != agents.size()) {
+    snapshot.feasible = false;
   }
   snapshot.pending_task_id_by_start_index_by_agent.resize(agents.size());
   snapshot.common_cost_scale = lcm_upto(multi_carry_capacity);
@@ -335,10 +332,16 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
       snapshot.feasible = false;
       continue;
     }
-    if (agent_priority_offsets.empty() && carried_count > 0) {
+    if (carried_count > 0) {
       snapshot.agent_priority_offsets[i] =
           2.0f * static_cast<float>(agent.loaded_distance_since_last_delivery) /
           static_cast<float>(std::max<size_t>(1, agents.size()));
+    }
+    if (has_inherited_priorities && i < agent_priority_offsets.size()) {
+      const auto aging_priority =
+          std::min(2.0f, agent_priority_offsets[i] /
+                             static_cast<float>(std::max<size_t>(1, agents.size())));
+      snapshot.agent_priority_offsets[i] += aging_priority;
     }
 
     if (carried_count < multi_carry_capacity) {

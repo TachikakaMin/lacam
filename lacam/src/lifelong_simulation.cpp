@@ -739,23 +739,12 @@ LifelongSimulationMetrics run_lifelong_simulation(
         }
         return ready;
       };
-      auto has_pending_service = [&]() {
-        for (size_t i = 0; i < agents.size(); ++i) {
-          if (!service_active[i]) continue;
-          const auto duration = service_keys[i] >= kDeliveryLocationKeyBase
-                                    ? config.delivery_service_duration
-                                    : config.pickup_service_duration;
-          if (service_progress[i] < std::max(0, duration)) return true;
-        }
-        return false;
-      };
       const auto plan_finished = !valid_plan || plan_step + 1 >= plan.size();
       auto ready_at_t = service_ready_agents(std::vector<Vertex*>());
       auto event_happened = process_arrivals(t, &ready_at_t);
       refresh_lifelong_priorities(inherited_priorities, agents, tasks, false);
-      const auto service_in_progress = has_pending_service();
       const auto should_replan =
-          t == 0 || (!service_in_progress && event_happened) ||
+          t == 0 || event_happened ||
           (plan_finished && has_unfinished_work(agents, tasks)) ||
           (previous_planner_failed && !valid_plan) ||
           (!valid_plan && has_idle_unloaded_agent(agents) &&
@@ -932,37 +921,6 @@ LifelongSimulationMetrics run_lifelong_simulation(
                 config.pickup_service_duration;
             search_config.delivery_service_duration =
                 config.delivery_service_duration;
-            search_config.initial_service_assignments.assign(agents.size(), -1);
-            search_config.initial_service_progress.assign(agents.size(), 0);
-            for (size_t i = 0; i < agents.size(); ++i) {
-              if (!service_active[i] || agents[i].current_location == nullptr ||
-                  agents[i].current_location->index !=
-                      service_target_indexes[i]) {
-                continue;
-              }
-              const auto duration = service_keys[i] >= kDeliveryLocationKeyBase
-                                        ? config.delivery_service_duration
-                                        : config.pickup_service_duration;
-              if (service_progress[i] >= std::max(0, duration)) continue;
-              for (size_t task = 0; task < ins.tasks.size(); ++task) {
-                if (!ins.allowed[i][task] ||
-                    ins.tasks[task]->index != service_target_indexes[i]) {
-                  continue;
-                }
-                const auto key = task < ins.task_keys.size()
-                                     ? ins.task_keys[task]
-                                     : ins.tasks[task]->index;
-                const auto service_is_delivery =
-                    service_keys[i] >= kDeliveryLocationKeyBase;
-                if (service_is_delivery != (key >= kDeliveryLocationKeyBase)) {
-                  continue;
-                }
-                search_config.initial_service_assignments[i] =
-                    static_cast<int>(task);
-                search_config.initial_service_progress[i] = service_progress[i];
-                break;
-              }
-            }
             solution = solve_tapf(
                 ins, 0, &deadline, &planner_mt, 0, &stats,
                 config.planner_anytime, config.planner_force_full_assignment,

@@ -504,7 +504,7 @@ TEST(lifelong_planning, loaded_distance_sets_priority_offset)
   ASSERT_FLOAT_EQ(ins.agent_priority_offsets[1], 0.0f);
 }
 
-TEST(lifelong_planning, provided_priority_offsets_override_loaded_distance)
+TEST(lifelong_planning, provided_priority_offsets_add_bounded_aging_bias)
 {
   const auto map_filename =
       std::string("./tests/assets/lifelong-task-small.map");
@@ -535,8 +535,8 @@ TEST(lifelong_planning, provided_priority_offsets_override_loaded_distance)
   const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
 
   ASSERT_EQ(ins.agent_priority_offsets.size(), agents.size());
-  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[0], 4.0f);
-  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[1], 7.0f);
+  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[0], 12.0f);
+  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[1], 2.0f);
 }
 
 TEST(lifelong_planning, shared_loaded_drop_uses_distinct_service_slots)
