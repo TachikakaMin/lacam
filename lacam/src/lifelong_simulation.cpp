@@ -11,504 +11,578 @@
 
 namespace
 {
-constexpr int kDeliveryLocationKeyBase = 1000000000;
-constexpr int kPickupLocationKeyBase = 500000000;
+  constexpr int kDeliveryLocationKeyBase = 1000000000;
+  constexpr int kPickupLocationKeyBase = 500000000;
 
-std::vector<LifelongAgentState> make_agents(const Graph& graph, int num_agents,
-                                            std::mt19937& mt,
-                                            const std::vector<int>& start_indexes)
-{
-  auto agents = std::vector<LifelongAgentState>();
-  for (int i = 0; i < num_agents; ++i) {
-    Vertex* start = nullptr;
-    if (!start_indexes.empty()) {
-      if (static_cast<int>(start_indexes.size()) != num_agents) {
-        throw std::runtime_error("start_indexes size must match num_agents");
+  std::vector<LifelongAgentState> make_agents(
+      const Graph& graph, int num_agents, std::mt19937& mt,
+      const std::vector<int>& start_indexes)
+  {
+    auto agents = std::vector<LifelongAgentState>();
+    for (int i = 0; i < num_agents; ++i) {
+      Vertex* start = nullptr;
+      if (!start_indexes.empty()) {
+        if (static_cast<int>(start_indexes.size()) != num_agents) {
+          throw std::runtime_error("start_indexes size must match num_agents");
+        }
+        const auto index = start_indexes[i];
+        if (!graph.is_traversable(index)) {
+          throw std::runtime_error("agent start index is not traversable");
+        }
+        start = graph.U[index];
       }
-      const auto index = start_indexes[i];
-      if (!graph.is_traversable(index)) {
-        throw std::runtime_error("agent start index is not traversable");
-      }
-      start = graph.U[index];
+      auto agent = LifelongAgentState();
+      agent.agent_id = i;
+      agent.current_location = start;
+      agent.current_target = start;
+      agent.executed_path.push_back(start);
+      agents.push_back(agent);
     }
-    auto agent = LifelongAgentState();
-    agent.agent_id = i;
-    agent.current_location = start;
-    agent.current_target = start;
-    agent.executed_path.push_back(start);
-    agents.push_back(agent);
-  }
-  if (!start_indexes.empty()) return agents;
+    if (!start_indexes.empty()) return agents;
 
-  auto vertices = graph.V;
-  std::shuffle(vertices.begin(), vertices.end(), mt);
-  if (static_cast<int>(vertices.size()) < num_agents) {
-    throw std::runtime_error("not enough traversable starts for agents");
-  }
-  for (int i = 0; i < num_agents; ++i) {
-    agents[i].current_location = vertices[i];
-    agents[i].current_target = vertices[i];
-    agents[i].executed_path[0] = vertices[i];
-  }
-  return agents;
-}
-
-std::vector<std::vector<int> > solution_to_indexes(const Solution& solution)
-{
-  auto indexes = std::vector<std::vector<int> >();
-  indexes.reserve(solution.size());
-  for (const auto& config : solution) {
-    auto row = std::vector<int>();
-    row.reserve(config.size());
-    for (auto v : config) row.push_back(v->index);
-    indexes.push_back(row);
-  }
-  return indexes;
-}
-
-bool has_pending_task(const std::vector<LifelongTask>& tasks)
-{
-  for (const auto& task : tasks) {
-    if (task.status == LifelongTaskStatus::PENDING) return true;
-  }
-  return false;
-}
-
-bool has_idle_unloaded_agent(const std::vector<LifelongAgentState>& agents)
-{
-  for (const auto& agent : agents) {
-    if (!agent_is_loaded(agent) && !agent.assigned_task_id.has_value()) {
-      return true;
+    auto vertices = graph.V;
+    std::shuffle(vertices.begin(), vertices.end(), mt);
+    if (static_cast<int>(vertices.size()) < num_agents) {
+      throw std::runtime_error("not enough traversable starts for agents");
     }
-  }
-  return false;
-}
-
-bool has_unfinished_work(const std::vector<LifelongAgentState>& agents,
-                         const std::vector<LifelongTask>& tasks)
-{
-  for (const auto& agent : agents) {
-    if (agent_is_loaded(agent) || agent.assigned_task_id.has_value()) {
-      return true;
+    for (int i = 0; i < num_agents; ++i) {
+      agents[i].current_location = vertices[i];
+      agents[i].current_target = vertices[i];
+      agents[i].executed_path[0] = vertices[i];
     }
+    return agents;
   }
-  for (const auto& task : tasks) {
-    if (task.status != LifelongTaskStatus::COMPLETED) return true;
-  }
-  return false;
-}
 
-void accumulate_agent_time(const std::vector<LifelongAgentState>& agents,
-                           double& idle_time, double& loaded_time,
-                           double& unloaded_time, double& carried_time,
-                           double& loaded_distance_time,
-                           int& max_carried_tasks,
-                           int& max_loaded_distance_since_last_delivery)
-{
-  for (const auto& agent : agents) {
-    const auto carried = carried_task_count(agent);
-    carried_time += carried;
-    loaded_distance_time += agent.loaded_distance_since_last_delivery;
-    max_carried_tasks = std::max(max_carried_tasks, carried);
-    max_loaded_distance_since_last_delivery =
-        std::max(max_loaded_distance_since_last_delivery,
-                 agent.loaded_distance_since_last_delivery);
-    if (agent_is_loaded(agent)) {
-      loaded_time += 1;
-    } else {
-      unloaded_time += 1;
-      if (!agent.assigned_task_id.has_value()) idle_time += 1;
+  std::vector<std::vector<int> > solution_to_indexes(const Solution& solution)
+  {
+    auto indexes = std::vector<std::vector<int> >();
+    indexes.reserve(solution.size());
+    for (const auto& config : solution) {
+      auto row = std::vector<int>();
+      row.reserve(config.size());
+      for (auto v : config) row.push_back(v->index);
+      indexes.push_back(row);
     }
+    return indexes;
   }
-}
 
-bool check_motion_conflicts(const std::vector<Vertex*>& previous,
-                            const std::vector<LifelongAgentState>& agents,
-                            std::string* error)
-{
-  auto occupied = std::unordered_set<int>();
-  for (size_t i = 0; i < agents.size(); ++i) {
-    const auto current = agents[i].current_location;
-    if (current == nullptr) {
-      if (error != nullptr) *error = "agent on null location";
-      return false;
+  bool has_pending_task(const std::vector<LifelongTask>& tasks)
+  {
+    for (const auto& task : tasks) {
+      if (task.status == LifelongTaskStatus::PENDING) return true;
     }
-    if (!occupied.insert(current->index).second) {
-      if (error != nullptr) *error = "vertex conflict";
-      return false;
-    }
-    for (size_t j = i + 1; j < agents.size(); ++j) {
-      if (previous[i] == agents[j].current_location &&
-          previous[j] == agents[i].current_location) {
-        if (error != nullptr) *error = "edge swap conflict";
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-int agent_task_phase(const LifelongAgentState& agent)
-{
-  if (agent.assigned_task_id.has_value()) return 1;
-  if (agent_is_loaded(agent)) return 2;
-  return 0;
-}
-
-void append_agent_task_snapshot(
-    LifelongSimulationMetrics& metrics,
-    const std::vector<LifelongAgentState>& agents)
-{
-  if (metrics.agent_task_ids_by_timestep.empty()) {
-    metrics.agent_task_ids_by_timestep.resize(agents.size());
-    metrics.agent_task_phases_by_timestep.resize(agents.size());
-    metrics.agent_carried_task_ids_by_timestep.resize(agents.size());
-    metrics.agent_assigned_task_ids_by_timestep.resize(agents.size());
-  }
-  for (size_t i = 0; i < agents.size(); ++i) {
-    metrics.agent_task_ids_by_timestep[i].push_back(
-        agents[i].current_task_id.value_or(-1));
-    metrics.agent_task_phases_by_timestep[i].push_back(agent_task_phase(agents[i]));
-    metrics.agent_carried_task_ids_by_timestep[i].push_back(
-        agents[i].carried_task_ids);
-    metrics.agent_assigned_task_ids_by_timestep[i].push_back(
-        agents[i].assigned_task_id.value_or(-1));
-  }
-}
-
-void overwrite_latest_agent_task_snapshot(
-    LifelongSimulationMetrics& metrics,
-    const std::vector<LifelongAgentState>& agents)
-{
-  if (metrics.agent_task_ids_by_timestep.empty() ||
-      metrics.agent_task_ids_by_timestep.front().empty()) {
-    append_agent_task_snapshot(metrics, agents);
-    return;
-  }
-  for (size_t i = 0; i < agents.size(); ++i) {
-    metrics.agent_task_ids_by_timestep[i].back() =
-        agents[i].current_task_id.value_or(-1);
-    metrics.agent_task_phases_by_timestep[i].back() = agent_task_phase(agents[i]);
-    metrics.agent_carried_task_ids_by_timestep[i].back() =
-        agents[i].carried_task_ids;
-    metrics.agent_assigned_task_ids_by_timestep[i].back() =
-        agents[i].assigned_task_id.value_or(-1);
-  }
-}
-
-void count_task_statuses(const std::vector<LifelongTask>& tasks, int& pending,
-                         int& assigned, int& picked, int& completed)
-{
-  pending = 0;
-  assigned = 0;
-  picked = 0;
-  completed = 0;
-  for (const auto& task : tasks) {
-    switch (task.status) {
-      case LifelongTaskStatus::PENDING:
-        ++pending;
-        break;
-      case LifelongTaskStatus::ASSIGNED:
-        ++assigned;
-        break;
-      case LifelongTaskStatus::PICKED:
-        ++picked;
-        break;
-      case LifelongTaskStatus::COMPLETED:
-        ++completed;
-        break;
-    }
-  }
-}
-
-bool target_is_delivery_goal(const LifelongAgentState& agent,
-                             const std::vector<LifelongTask>& tasks,
-                             int target_index)
-{
-  for (const auto task_id : agent.carried_task_ids) {
-    const auto* task = find_task_by_id(tasks, task_id);
-    if (task == nullptr || task->status != LifelongTaskStatus::PICKED) {
-      continue;
-    }
-    for (auto goal : task->goal_set) {
-      if (goal != nullptr && goal->index == target_index) return true;
-    }
-  }
-  return false;
-}
-
-int task_id_from_assignment_key(int key)
-{
-  return key >= 1000000 ? key / 1000000 - 1 : key;
-}
-
-bool apply_assignment_key_step(
-    std::vector<LifelongAgentState>& agents,
-    std::vector<LifelongTask>& tasks, const Graph& graph,
-    const std::vector<int>& target_keys,
-    const std::vector<int>& target_indexes)
-{
-  if (target_keys.size() != agents.size() ||
-      target_indexes.size() != agents.size()) {
     return false;
   }
 
-  release_unpicked_assignments(agents, tasks);
-  auto pickup_task_ids =
-      std::vector<std::optional<int> >(agents.size(), std::nullopt);
-  auto used_pickups = std::unordered_set<int>();
-  for (size_t i = 0; i < agents.size(); ++i) {
-    const auto target_index = target_indexes[i];
-    if (target_index < 0 || target_index >= static_cast<int>(graph.U.size())) {
-      return false;
+  bool has_idle_unloaded_agent(const std::vector<LifelongAgentState>& agents)
+  {
+    for (const auto& agent : agents) {
+      if (!agent_is_loaded(agent) && !agent.assigned_task_id.has_value()) {
+        return true;
+      }
     }
-    const auto key = target_keys[i];
-    if (key < 0) continue;
-    if (key >= kDeliveryLocationKeyBase) {
-      const auto valid_delivery = std::any_of(
-          agents[i].carried_task_ids.begin(), agents[i].carried_task_ids.end(),
-          [&](const int carried_task_id) {
-            const auto* carried = find_task_by_id(tasks, carried_task_id);
-            return carried != nullptr &&
-                   carried->status == LifelongTaskStatus::PICKED &&
-                   vertex_in_goal_set(graph.U[target_index], carried->goal_set);
-          });
-      if (!valid_delivery) return false;
-      continue;
+    return false;
+  }
+
+  bool has_unfinished_work(const std::vector<LifelongAgentState>& agents,
+                           const std::vector<LifelongTask>& tasks)
+  {
+    for (const auto& agent : agents) {
+      if (agent_is_loaded(agent) || agent.assigned_task_id.has_value()) {
+        return true;
+      }
     }
-    if (key >= kPickupLocationKeyBase) return false;
-    const auto task_id = task_id_from_assignment_key(key);
-    auto* task = find_task_by_id(tasks, task_id);
-    if (task == nullptr) return false;
-    if (key < 1000000) {
-      if (task->status != LifelongTaskStatus::PENDING ||
-          task->start == nullptr || task->start->index != target_index ||
-          !used_pickups.insert(task_id).second) {
+    for (const auto& task : tasks) {
+      if (task.status != LifelongTaskStatus::COMPLETED) return true;
+    }
+    return false;
+  }
+
+  bool agent_has_priority_target(const LifelongAgentState& agent,
+                                 const std::vector<LifelongTask>& tasks)
+  {
+    if (agent.current_location == nullptr) return false;
+    if (agent.assigned_task_id.has_value()) {
+      const auto* task = find_task_by_id(tasks, *agent.assigned_task_id);
+      if (task != nullptr && task->status == LifelongTaskStatus::ASSIGNED &&
+          task->assigned_agent_id == agent.agent_id && task->start != nullptr) {
+        return true;
+      }
+    }
+    if (agent_is_loaded(agent)) {
+      for (const auto task_id : agent.carried_task_ids) {
+        const auto* task = find_task_by_id(tasks, task_id);
+        if (task != nullptr && task->status == LifelongTaskStatus::PICKED &&
+            task->picked_agent_id == agent.agent_id &&
+            !task->goal_set.empty()) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool agent_at_priority_target(const LifelongAgentState& agent,
+                                const std::vector<LifelongTask>& tasks)
+  {
+    if (agent.current_location == nullptr) return false;
+    if (agent.assigned_task_id.has_value()) {
+      const auto* task = find_task_by_id(tasks, *agent.assigned_task_id);
+      if (task != nullptr && task->status == LifelongTaskStatus::ASSIGNED &&
+          task->assigned_agent_id == agent.agent_id &&
+          task->start == agent.current_location) {
+        return true;
+      }
+    }
+    if (agent_is_loaded(agent)) {
+      for (const auto task_id : agent.carried_task_ids) {
+        const auto* task = find_task_by_id(tasks, task_id);
+        if (task != nullptr && task->status == LifelongTaskStatus::PICKED &&
+            task->picked_agent_id == agent.agent_id &&
+            vertex_in_goal_set(agent.current_location, task->goal_set)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  void refresh_lifelong_priorities(
+      std::vector<float>& priorities,
+      const std::vector<LifelongAgentState>& agents,
+      const std::vector<LifelongTask>& tasks, bool advance)
+  {
+    if (priorities.size() != agents.size()) {
+      priorities.assign(agents.size(), 0.0f);
+    }
+    for (size_t i = 0; i < agents.size(); ++i) {
+      if (!agent_has_priority_target(agents[i], tasks)) {
+        priorities[i] = 0.0f;
+        continue;
+      }
+      if (agent_at_priority_target(agents[i], tasks)) continue;
+      if (advance) priorities[i] += 1.0f;
+    }
+  }
+
+  void accumulate_agent_time(const std::vector<LifelongAgentState>& agents,
+                             double& idle_time, double& loaded_time,
+                             double& unloaded_time, double& carried_time,
+                             double& loaded_distance_time,
+                             int& max_carried_tasks,
+                             int& max_loaded_distance_since_last_delivery)
+  {
+    for (const auto& agent : agents) {
+      const auto carried = carried_task_count(agent);
+      carried_time += carried;
+      loaded_distance_time += agent.loaded_distance_since_last_delivery;
+      max_carried_tasks = std::max(max_carried_tasks, carried);
+      max_loaded_distance_since_last_delivery =
+          std::max(max_loaded_distance_since_last_delivery,
+                   agent.loaded_distance_since_last_delivery);
+      if (agent_is_loaded(agent)) {
+        loaded_time += 1;
+      } else {
+        unloaded_time += 1;
+        if (!agent.assigned_task_id.has_value()) idle_time += 1;
+      }
+    }
+  }
+
+  bool check_motion_conflicts(const std::vector<Vertex*>& previous,
+                              const std::vector<LifelongAgentState>& agents,
+                              std::string* error)
+  {
+    auto occupied = std::unordered_set<int>();
+    for (size_t i = 0; i < agents.size(); ++i) {
+      const auto current = agents[i].current_location;
+      if (current == nullptr) {
+        if (error != nullptr) *error = "agent on null location";
         return false;
       }
-      pickup_task_ids[i] = task_id;
-      continue;
+      if (!occupied.insert(current->index).second) {
+        if (error != nullptr) *error = "vertex conflict";
+        return false;
+      }
+      for (size_t j = i + 1; j < agents.size(); ++j) {
+        if (previous[i] == agents[j].current_location &&
+            previous[j] == agents[i].current_location) {
+          if (error != nullptr) *error = "edge swap conflict";
+          return false;
+        }
+      }
     }
-    if (task->status != LifelongTaskStatus::PICKED ||
-        std::find(agents[i].carried_task_ids.begin(),
-                  agents[i].carried_task_ids.end(), task_id) ==
-            agents[i].carried_task_ids.end() ||
-        !vertex_in_goal_set(graph.U[target_index], task->goal_set)) {
-      return false;
+    return true;
+  }
+
+  int agent_task_phase(const LifelongAgentState& agent)
+  {
+    if (agent.assigned_task_id.has_value()) return 1;
+    if (agent_is_loaded(agent)) return 2;
+    return 0;
+  }
+
+  void append_agent_task_snapshot(LifelongSimulationMetrics& metrics,
+                                  const std::vector<LifelongAgentState>& agents)
+  {
+    if (metrics.agent_task_ids_by_timestep.empty()) {
+      metrics.agent_task_ids_by_timestep.resize(agents.size());
+      metrics.agent_task_phases_by_timestep.resize(agents.size());
+      metrics.agent_carried_task_ids_by_timestep.resize(agents.size());
+      metrics.agent_assigned_task_ids_by_timestep.resize(agents.size());
+    }
+    for (size_t i = 0; i < agents.size(); ++i) {
+      metrics.agent_task_ids_by_timestep[i].push_back(
+          agents[i].current_task_id.value_or(-1));
+      metrics.agent_task_phases_by_timestep[i].push_back(
+          agent_task_phase(agents[i]));
+      metrics.agent_carried_task_ids_by_timestep[i].push_back(
+          agents[i].carried_task_ids);
+      metrics.agent_assigned_task_ids_by_timestep[i].push_back(
+          agents[i].assigned_task_id.value_or(-1));
     }
   }
 
-  for (size_t i = 0; i < agents.size(); ++i) {
-    agents[i].current_target = graph.U[target_indexes[i]];
-    agents[i].assigned_task_id.reset();
-    if (pickup_task_ids[i].has_value()) {
-      auto* task = find_task_by_id(tasks, *pickup_task_ids[i]);
-      if (task == nullptr) return false;
-      task->status = LifelongTaskStatus::ASSIGNED;
-      task->assigned_agent_id = agents[i].agent_id;
-      agents[i].assigned_task_id = task->task_id;
-      agents[i].current_target = task->start;
+  void overwrite_latest_agent_task_snapshot(
+      LifelongSimulationMetrics& metrics,
+      const std::vector<LifelongAgentState>& agents)
+  {
+    if (metrics.agent_task_ids_by_timestep.empty() ||
+        metrics.agent_task_ids_by_timestep.front().empty()) {
+      append_agent_task_snapshot(metrics, agents);
+      return;
     }
-    sync_agent_load_state(agents[i]);
-  }
-  return true;
-}
-
-enum class LifelongTraceTargetType {
-  NONE = 0,
-  PICKUP = 1,
-  DELIVERY = 2,
-  WAIT = 3,
-  OTHER = 4,
-};
-
-LifelongTraceTargetType classify_trace_target(
-    const LifelongAgentState& agent, const std::vector<LifelongTask>& tasks,
-    const LifelongPlanningSnapshot& snapshot, size_t agent_index,
-    int target_index)
-{
-  if (target_index < 0) return LifelongTraceTargetType::NONE;
-  if (snapshot.pending_task_id_by_start_index_by_agent[agent_index].count(
-          target_index)) {
-    return LifelongTraceTargetType::PICKUP;
-  }
-  if (target_is_delivery_goal(agent, tasks, target_index)) {
-    return LifelongTraceTargetType::DELIVERY;
-  }
-  if (agent.current_location != nullptr &&
-      agent.current_location->index == target_index) {
-    return LifelongTraceTargetType::WAIT;
-  }
-  return LifelongTraceTargetType::OTHER;
-}
-
-LifelongTraceTargetType classify_trace_assignment_target(
-    const LifelongAgentState& agent, int target_key, int target_index)
-{
-  if (target_key < 0) return LifelongTraceTargetType::WAIT;
-  if (target_key < kDeliveryLocationKeyBase) {
-    return LifelongTraceTargetType::PICKUP;
-  }
-  if (agent_is_loaded(agent)) return LifelongTraceTargetType::DELIVERY;
-  return LifelongTraceTargetType::OTHER;
-}
-
-int encode_trace_target_type(LifelongTraceTargetType type)
-{
-  return static_cast<int>(type);
-}
-
-void accumulate_trace_assignment_type(
-    LifelongPlannerTraceRecord& trace, const LifelongAgentState& agent,
-    LifelongTraceTargetType type)
-{
-  if (agent_is_loaded(agent)) {
-    if (type == LifelongTraceTargetType::PICKUP) {
-      ++trace.root_loaded_pickup_assignments;
-    } else if (type == LifelongTraceTargetType::DELIVERY) {
-      ++trace.root_loaded_delivery_assignments;
-    } else if (type == LifelongTraceTargetType::WAIT) {
-      ++trace.root_loaded_wait_assignments;
-    }
-  } else {
-    if (type == LifelongTraceTargetType::PICKUP) {
-      ++trace.root_unloaded_pickup_assignments;
-    } else if (type == LifelongTraceTargetType::WAIT) {
-      ++trace.root_unloaded_wait_assignments;
+    for (size_t i = 0; i < agents.size(); ++i) {
+      metrics.agent_task_ids_by_timestep[i].back() =
+          agents[i].current_task_id.value_or(-1);
+      metrics.agent_task_phases_by_timestep[i].back() =
+          agent_task_phase(agents[i]);
+      metrics.agent_carried_task_ids_by_timestep[i].back() =
+          agents[i].carried_task_ids;
+      metrics.agent_assigned_task_ids_by_timestep[i].back() =
+          agents[i].assigned_task_id.value_or(-1);
     }
   }
-}
 
-void accumulate_final_trace_assignment_type(
-    LifelongPlannerTraceRecord& trace, const LifelongAgentState& agent,
-    LifelongTraceTargetType type)
-{
-  if (agent_is_loaded(agent)) {
-    if (type == LifelongTraceTargetType::PICKUP) {
-      ++trace.final_loaded_pickup_assignments;
-    } else if (type == LifelongTraceTargetType::DELIVERY) {
-      ++trace.final_loaded_delivery_assignments;
-    } else if (type == LifelongTraceTargetType::WAIT) {
-      ++trace.final_loaded_wait_assignments;
-    }
-  } else {
-    if (type == LifelongTraceTargetType::PICKUP) {
-      ++trace.final_unloaded_pickup_assignments;
-    } else if (type == LifelongTraceTargetType::WAIT) {
-      ++trace.final_unloaded_wait_assignments;
-    }
-  }
-}
-
-void finalize_metrics(LifelongSimulationMetrics& metrics,
-                      const std::vector<LifelongAgentState>& agents,
-                      const std::vector<LifelongTask>& tasks,
-                      double total_planner_runtime, double idle_time,
-                      double loaded_time, double unloaded_time,
-                      double carried_time, double loaded_distance_time,
-                      int max_carried_tasks,
-                      int max_loaded_distance_since_last_delivery,
-                      int delivery_carried_sum)
-{
-  auto completion_sum = 0.0;
-  auto pickup_sum = 0.0;
-  auto delivery_sum = 0.0;
-  auto pickup_count = 0;
-  auto delivery_count = 0;
-
-  for (const auto& task : tasks) {
-    auto record = LifelongTaskVisualizationRecord();
-    record.task_id = task.task_id;
-    record.task_type = task.task_type;
-    record.start_index = task.start == nullptr ? -1 : task.start->index;
-    record.goal_indexes.reserve(task.goal_set.size());
-    for (auto goal : task.goal_set) record.goal_indexes.push_back(goal->index);
-    record.release_timestep = task.release_timestep;
-    record.pickup_timestep = task.pickup_timestep.value_or(-1);
-    record.completion_timestep = task.completion_timestep.value_or(-1);
-    metrics.task_records.push_back(std::move(record));
-
-    switch (task.status) {
-      case LifelongTaskStatus::PENDING:
-        ++metrics.final_pending_tasks;
-        break;
-      case LifelongTaskStatus::ASSIGNED:
-        ++metrics.final_assigned_tasks;
-        break;
-      case LifelongTaskStatus::PICKED:
-        ++metrics.final_picked_tasks;
-        break;
-      case LifelongTaskStatus::COMPLETED:
-        ++metrics.completed_tasks;
-        break;
-    }
-    if (task.pickup_timestep.has_value()) {
-      pickup_sum += *task.pickup_timestep - task.release_timestep;
-      ++pickup_count;
-    }
-    if (task.completion_timestep.has_value()) {
-      completion_sum += *task.completion_timestep - task.release_timestep;
-      if (task.pickup_timestep.has_value()) {
-        delivery_sum += *task.completion_timestep - *task.pickup_timestep;
-        ++delivery_count;
+  void count_task_statuses(const std::vector<LifelongTask>& tasks, int& pending,
+                           int& assigned, int& picked, int& completed)
+  {
+    pending = 0;
+    assigned = 0;
+    picked = 0;
+    completed = 0;
+    for (const auto& task : tasks) {
+      switch (task.status) {
+        case LifelongTaskStatus::PENDING:
+          ++pending;
+          break;
+        case LifelongTaskStatus::ASSIGNED:
+          ++assigned;
+          break;
+        case LifelongTaskStatus::PICKED:
+          ++picked;
+          break;
+        case LifelongTaskStatus::COMPLETED:
+          ++completed;
+          break;
       }
     }
   }
 
-  metrics.throughput =
-      metrics.horizon > 0 ? static_cast<double>(metrics.completed_tasks) /
-                                metrics.horizon
-                          : 0;
-  for (const auto& agent : agents) {
-    metrics.alternating_completed_tasks +=
-        agent.alternating_completed_task_count;
+  bool target_is_delivery_goal(const LifelongAgentState& agent,
+                               const std::vector<LifelongTask>& tasks,
+                               int target_index)
+  {
+    for (const auto task_id : agent.carried_task_ids) {
+      const auto* task = find_task_by_id(tasks, task_id);
+      if (task == nullptr || task->status != LifelongTaskStatus::PICKED) {
+        continue;
+      }
+      for (auto goal : task->goal_set) {
+        if (goal != nullptr && goal->index == target_index) return true;
+      }
+    }
+    return false;
   }
-  metrics.alternating_throughput =
-      metrics.horizon > 0
-          ? static_cast<double>(metrics.alternating_completed_tasks) /
-                metrics.horizon
-          : 0;
-  metrics.average_task_completion_time =
-      metrics.completed_tasks > 0 ? completion_sum / metrics.completed_tasks : 0;
-  metrics.average_pickup_time =
-      pickup_count > 0 ? pickup_sum / pickup_count : 0;
-  metrics.average_delivery_time =
-      delivery_count > 0 ? delivery_sum / delivery_count : 0;
-  metrics.average_planner_runtime =
-      metrics.planner_invocations > 0
-          ? total_planner_runtime / metrics.planner_invocations
-          : 0;
-  metrics.total_planner_runtime = total_planner_runtime;
-  metrics.total_planner_search_runtime =
-      std::max(0.0, total_planner_runtime - metrics.total_assignment_runtime);
-  const auto denom =
-      static_cast<double>(std::max(1, metrics.horizon * metrics.num_agents));
-  metrics.average_agent_idle_time = idle_time / denom;
-  metrics.average_agent_loaded_time = loaded_time / denom;
-  metrics.average_agent_unloaded_time = unloaded_time / denom;
-  metrics.average_carried_tasks = carried_time / denom;
-  metrics.max_carried_tasks = max_carried_tasks;
-  metrics.average_loaded_distance_since_last_delivery =
-      loaded_distance_time / denom;
-  metrics.max_loaded_distance_since_last_delivery =
-      max_loaded_distance_since_last_delivery;
-  metrics.average_tasks_carried_at_delivery =
-      metrics.delivery_events > 0
-          ? static_cast<double>(delivery_carried_sum) / metrics.delivery_events
-          : 0;
-  metrics.assignment_row_cache_hit_rate =
-      metrics.assignment_row_cache_requests > 0
-          ? static_cast<double>(metrics.assignment_row_cache_hits) /
-                metrics.assignment_row_cache_requests
-          : 0;
-}
+
+  int task_id_from_assignment_key(int key)
+  {
+    return key >= 1000000 ? key / 1000000 - 1 : key;
+  }
+
+  bool apply_assignment_key_step(std::vector<LifelongAgentState>& agents,
+                                 std::vector<LifelongTask>& tasks,
+                                 const Graph& graph,
+                                 const std::vector<int>& target_keys,
+                                 const std::vector<int>& target_indexes)
+  {
+    if (target_keys.size() != agents.size() ||
+        target_indexes.size() != agents.size()) {
+      return false;
+    }
+
+    release_unpicked_assignments(agents, tasks);
+    auto pickup_task_ids =
+        std::vector<std::optional<int> >(agents.size(), std::nullopt);
+    auto used_pickups = std::unordered_set<int>();
+    for (size_t i = 0; i < agents.size(); ++i) {
+      const auto target_index = target_indexes[i];
+      if (target_index < 0 ||
+          target_index >= static_cast<int>(graph.U.size())) {
+        return false;
+      }
+      const auto key = target_keys[i];
+      if (key < 0) continue;
+      if (key >= kDeliveryLocationKeyBase) {
+        const auto valid_delivery = std::any_of(
+            agents[i].carried_task_ids.begin(),
+            agents[i].carried_task_ids.end(), [&](const int carried_task_id) {
+              const auto* carried = find_task_by_id(tasks, carried_task_id);
+              return carried != nullptr &&
+                     carried->status == LifelongTaskStatus::PICKED &&
+                     vertex_in_goal_set(graph.U[target_index],
+                                        carried->goal_set);
+            });
+        if (!valid_delivery) return false;
+        continue;
+      }
+      if (key >= kPickupLocationKeyBase) return false;
+      const auto task_id = task_id_from_assignment_key(key);
+      auto* task = find_task_by_id(tasks, task_id);
+      if (task == nullptr) return false;
+      if (key < 1000000) {
+        if (task->status != LifelongTaskStatus::PENDING ||
+            task->start == nullptr || task->start->index != target_index ||
+            !used_pickups.insert(task_id).second) {
+          return false;
+        }
+        pickup_task_ids[i] = task_id;
+        continue;
+      }
+      if (task->status != LifelongTaskStatus::PICKED ||
+          std::find(agents[i].carried_task_ids.begin(),
+                    agents[i].carried_task_ids.end(),
+                    task_id) == agents[i].carried_task_ids.end() ||
+          !vertex_in_goal_set(graph.U[target_index], task->goal_set)) {
+        return false;
+      }
+    }
+
+    for (size_t i = 0; i < agents.size(); ++i) {
+      agents[i].current_target = graph.U[target_indexes[i]];
+      agents[i].assigned_task_id.reset();
+      if (pickup_task_ids[i].has_value()) {
+        auto* task = find_task_by_id(tasks, *pickup_task_ids[i]);
+        if (task == nullptr) return false;
+        task->status = LifelongTaskStatus::ASSIGNED;
+        task->assigned_agent_id = agents[i].agent_id;
+        agents[i].assigned_task_id = task->task_id;
+        agents[i].current_target = task->start;
+      }
+      sync_agent_load_state(agents[i]);
+    }
+    return true;
+  }
+
+  enum class LifelongTraceTargetType {
+    NONE = 0,
+    PICKUP = 1,
+    DELIVERY = 2,
+    WAIT = 3,
+    OTHER = 4,
+  };
+
+  LifelongTraceTargetType classify_trace_target(
+      const LifelongAgentState& agent, const std::vector<LifelongTask>& tasks,
+      const LifelongPlanningSnapshot& snapshot, size_t agent_index,
+      int target_index)
+  {
+    if (target_index < 0) return LifelongTraceTargetType::NONE;
+    if (snapshot.pending_task_id_by_start_index_by_agent[agent_index].count(
+            target_index)) {
+      return LifelongTraceTargetType::PICKUP;
+    }
+    if (target_is_delivery_goal(agent, tasks, target_index)) {
+      return LifelongTraceTargetType::DELIVERY;
+    }
+    if (agent.current_location != nullptr &&
+        agent.current_location->index == target_index) {
+      return LifelongTraceTargetType::WAIT;
+    }
+    return LifelongTraceTargetType::OTHER;
+  }
+
+  LifelongTraceTargetType classify_trace_assignment_target(
+      const LifelongAgentState& agent, int target_key, int target_index)
+  {
+    if (target_key < 0) return LifelongTraceTargetType::WAIT;
+    if (target_key < kDeliveryLocationKeyBase) {
+      return LifelongTraceTargetType::PICKUP;
+    }
+    if (agent_is_loaded(agent)) return LifelongTraceTargetType::DELIVERY;
+    return LifelongTraceTargetType::OTHER;
+  }
+
+  int encode_trace_target_type(LifelongTraceTargetType type)
+  {
+    return static_cast<int>(type);
+  }
+
+  void accumulate_trace_assignment_type(LifelongPlannerTraceRecord& trace,
+                                        const LifelongAgentState& agent,
+                                        LifelongTraceTargetType type)
+  {
+    if (agent_is_loaded(agent)) {
+      if (type == LifelongTraceTargetType::PICKUP) {
+        ++trace.root_loaded_pickup_assignments;
+      } else if (type == LifelongTraceTargetType::DELIVERY) {
+        ++trace.root_loaded_delivery_assignments;
+      } else if (type == LifelongTraceTargetType::WAIT) {
+        ++trace.root_loaded_wait_assignments;
+      }
+    } else {
+      if (type == LifelongTraceTargetType::PICKUP) {
+        ++trace.root_unloaded_pickup_assignments;
+      } else if (type == LifelongTraceTargetType::WAIT) {
+        ++trace.root_unloaded_wait_assignments;
+      }
+    }
+  }
+
+  void accumulate_final_trace_assignment_type(LifelongPlannerTraceRecord& trace,
+                                              const LifelongAgentState& agent,
+                                              LifelongTraceTargetType type)
+  {
+    if (agent_is_loaded(agent)) {
+      if (type == LifelongTraceTargetType::PICKUP) {
+        ++trace.final_loaded_pickup_assignments;
+      } else if (type == LifelongTraceTargetType::DELIVERY) {
+        ++trace.final_loaded_delivery_assignments;
+      } else if (type == LifelongTraceTargetType::WAIT) {
+        ++trace.final_loaded_wait_assignments;
+      }
+    } else {
+      if (type == LifelongTraceTargetType::PICKUP) {
+        ++trace.final_unloaded_pickup_assignments;
+      } else if (type == LifelongTraceTargetType::WAIT) {
+        ++trace.final_unloaded_wait_assignments;
+      }
+    }
+  }
+
+  void finalize_metrics(LifelongSimulationMetrics& metrics,
+                        const std::vector<LifelongAgentState>& agents,
+                        const std::vector<LifelongTask>& tasks,
+                        double total_planner_runtime, double idle_time,
+                        double loaded_time, double unloaded_time,
+                        double carried_time, double loaded_distance_time,
+                        int max_carried_tasks,
+                        int max_loaded_distance_since_last_delivery,
+                        int delivery_carried_sum)
+  {
+    auto completion_sum = 0.0;
+    auto pickup_sum = 0.0;
+    auto delivery_sum = 0.0;
+    auto pickup_count = 0;
+    auto delivery_count = 0;
+
+    for (const auto& task : tasks) {
+      auto record = LifelongTaskVisualizationRecord();
+      record.task_id = task.task_id;
+      record.task_type = task.task_type;
+      record.start_index = task.start == nullptr ? -1 : task.start->index;
+      record.goal_indexes.reserve(task.goal_set.size());
+      for (auto goal : task.goal_set)
+        record.goal_indexes.push_back(goal->index);
+      record.release_timestep = task.release_timestep;
+      record.pickup_timestep = task.pickup_timestep.value_or(-1);
+      record.completion_timestep = task.completion_timestep.value_or(-1);
+      metrics.task_records.push_back(std::move(record));
+
+      switch (task.status) {
+        case LifelongTaskStatus::PENDING:
+          ++metrics.final_pending_tasks;
+          break;
+        case LifelongTaskStatus::ASSIGNED:
+          ++metrics.final_assigned_tasks;
+          break;
+        case LifelongTaskStatus::PICKED:
+          ++metrics.final_picked_tasks;
+          break;
+        case LifelongTaskStatus::COMPLETED:
+          ++metrics.completed_tasks;
+          break;
+      }
+      if (task.pickup_timestep.has_value()) {
+        pickup_sum += *task.pickup_timestep - task.release_timestep;
+        ++pickup_count;
+      }
+      if (task.completion_timestep.has_value()) {
+        completion_sum += *task.completion_timestep - task.release_timestep;
+        if (task.pickup_timestep.has_value()) {
+          delivery_sum += *task.completion_timestep - *task.pickup_timestep;
+          ++delivery_count;
+        }
+      }
+    }
+
+    metrics.throughput =
+        metrics.horizon > 0
+            ? static_cast<double>(metrics.completed_tasks) / metrics.horizon
+            : 0;
+    for (const auto& agent : agents) {
+      metrics.alternating_completed_tasks +=
+          agent.alternating_completed_task_count;
+    }
+    metrics.alternating_throughput =
+        metrics.horizon > 0
+            ? static_cast<double>(metrics.alternating_completed_tasks) /
+                  metrics.horizon
+            : 0;
+    metrics.average_task_completion_time =
+        metrics.completed_tasks > 0 ? completion_sum / metrics.completed_tasks
+                                    : 0;
+    metrics.average_pickup_time =
+        pickup_count > 0 ? pickup_sum / pickup_count : 0;
+    metrics.average_delivery_time =
+        delivery_count > 0 ? delivery_sum / delivery_count : 0;
+    metrics.average_planner_runtime =
+        metrics.planner_invocations > 0
+            ? total_planner_runtime / metrics.planner_invocations
+            : 0;
+    metrics.total_planner_runtime = total_planner_runtime;
+    metrics.total_planner_search_runtime =
+        std::max(0.0, total_planner_runtime - metrics.total_assignment_runtime);
+    const auto denom =
+        static_cast<double>(std::max(1, metrics.horizon * metrics.num_agents));
+    metrics.average_agent_idle_time = idle_time / denom;
+    metrics.average_agent_loaded_time = loaded_time / denom;
+    metrics.average_agent_unloaded_time = unloaded_time / denom;
+    metrics.average_carried_tasks = carried_time / denom;
+    metrics.max_carried_tasks = max_carried_tasks;
+    metrics.average_loaded_distance_since_last_delivery =
+        loaded_distance_time / denom;
+    metrics.max_loaded_distance_since_last_delivery =
+        max_loaded_distance_since_last_delivery;
+    metrics.average_tasks_carried_at_delivery =
+        metrics.delivery_events > 0
+            ? static_cast<double>(delivery_carried_sum) /
+                  metrics.delivery_events
+            : 0;
+    metrics.assignment_row_cache_hit_rate =
+        metrics.assignment_row_cache_requests > 0
+            ? static_cast<double>(metrics.assignment_row_cache_hits) /
+                  metrics.assignment_row_cache_requests
+            : 0;
+  }
 }  // namespace
 
 LifelongSimulationMetrics run_lifelong_simulation(
     const LifelongSimulationConfig& config)
 {
   auto metrics = LifelongSimulationMetrics();
-  metrics.map_name = std::filesystem::path(config.map_filename).filename().string();
+  metrics.map_name =
+      std::filesystem::path(config.map_filename).filename().string();
   metrics.num_agents = config.num_agents;
   metrics.horizon = config.horizon;
   metrics.seed = config.seed;
@@ -529,9 +603,11 @@ LifelongSimulationMetrics run_lifelong_simulation(
     metrics.map_width = graph.width;
     metrics.map_height = graph.height;
     auto mt = std::mt19937(config.seed);
-    auto agents = make_agents(graph, config.num_agents, mt, config.start_indexes);
+    auto agents =
+        make_agents(graph, config.num_agents, mt, config.start_indexes);
     auto tasks = std::vector<LifelongTask>();
-    auto generator = LifelongTaskGenerator(&graph, config.task_config, config.seed);
+    auto generator =
+        LifelongTaskGenerator(&graph, config.task_config, config.seed);
     const auto cache_path =
         config.cache_filename.empty()
             ? std::filesystem::temp_directory_path() / "lacam_lifelong_dist.bin"
@@ -541,8 +617,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
 
     auto plan = std::vector<std::vector<int> >();
     auto plan_assignment_keys = std::vector<std::vector<int> >();
-    auto plan_assignment_target_indexes =
-        std::vector<std::vector<int> >();
+    auto plan_assignment_target_indexes = std::vector<std::vector<int> >();
     auto plan_step = size_t(0);
     auto valid_plan = false;
     auto previous_planner_failed = false;
@@ -559,10 +634,12 @@ LifelongSimulationMetrics run_lifelong_simulation(
     auto service_keys = std::vector<int>(agents.size(), -1);
     auto service_target_indexes = std::vector<int>(agents.size(), -1);
     auto service_progress = std::vector<int>(agents.size(), 0);
+    auto inherited_priorities = std::vector<float>(agents.size(), 0.0f);
     append_agent_task_snapshot(metrics, agents);
 
     for (int t = 0; t < config.horizon; ++t) {
-      auto released = generator.generate_for_timestep(t, config.num_agents, tasks);
+      auto released =
+          generator.generate_for_timestep(t, config.num_agents, tasks);
       metrics.generated_tasks += static_cast<int>(released.size());
       tasks.insert(tasks.end(), released.begin(), released.end());
 
@@ -592,6 +669,9 @@ LifelongSimulationMetrics run_lifelong_simulation(
             service_keys[i] = -1;
             service_target_indexes[i] = -1;
             service_progress[i] = 0;
+            if (i < inherited_priorities.size()) {
+              inherited_priorities[i] = 0.0f;
+            }
           }
           changed = changed || pickup.changed || completion.changed;
         }
@@ -611,9 +691,10 @@ LifelongSimulationMetrics run_lifelong_simulation(
           auto duration = 0;
           if (agents[i].assigned_task_id.has_value() &&
               carried_task_count(agents[i]) < config.multi_carry_capacity) {
-            const auto* task = find_task_by_id(
-                tasks, *agents[i].assigned_task_id);
-            if (task != nullptr && task->status == LifelongTaskStatus::ASSIGNED &&
+            const auto* task =
+                find_task_by_id(tasks, *agents[i].assigned_task_id);
+            if (task != nullptr &&
+                task->status == LifelongTaskStatus::ASSIGNED &&
                 task->assigned_agent_id == agents[i].agent_id &&
                 task->start == agents[i].current_location) {
               key = task->task_id;
@@ -623,7 +704,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
           if (key < 0 && agent_is_loaded(agents[i])) {
             for (const auto task_id : agents[i].carried_task_ids) {
               const auto* task = find_task_by_id(tasks, task_id);
-              if (task != nullptr && task->status == LifelongTaskStatus::PICKED &&
+              if (task != nullptr &&
+                  task->status == LifelongTaskStatus::PICKED &&
                   task->picked_agent_id == agents[i].agent_id &&
                   vertex_in_goal_set(agents[i].current_location,
                                      task->goal_set)) {
@@ -641,9 +723,9 @@ LifelongSimulationMetrics run_lifelong_simulation(
             service_progress[i] = 0;
             continue;
           }
-          const auto same_service =
-              service_active[i] && service_keys[i] == key &&
-              service_target_indexes[i] == target_index;
+          const auto same_service = service_active[i] &&
+                                    service_keys[i] == key &&
+                                    service_target_indexes[i] == target_index;
           if (!same_service) {
             service_active[i] = true;
             service_keys[i] = key;
@@ -657,11 +739,23 @@ LifelongSimulationMetrics run_lifelong_simulation(
         }
         return ready;
       };
+      auto has_pending_service = [&]() {
+        for (size_t i = 0; i < agents.size(); ++i) {
+          if (!service_active[i]) continue;
+          const auto duration = service_keys[i] >= kDeliveryLocationKeyBase
+                                    ? config.delivery_service_duration
+                                    : config.pickup_service_duration;
+          if (service_progress[i] < std::max(0, duration)) return true;
+        }
+        return false;
+      };
       const auto plan_finished = !valid_plan || plan_step + 1 >= plan.size();
       auto ready_at_t = service_ready_agents(std::vector<Vertex*>());
       auto event_happened = process_arrivals(t, &ready_at_t);
+      refresh_lifelong_priorities(inherited_priorities, agents, tasks, false);
+      const auto service_in_progress = has_pending_service();
       const auto should_replan =
-          t == 0 || event_happened ||
+          t == 0 || (!service_in_progress && event_happened) ||
           (plan_finished && has_unfinished_work(agents, tasks)) ||
           (previous_planner_failed && !valid_plan) ||
           (!valid_plan && has_idle_unloaded_agent(agents) &&
@@ -670,12 +764,10 @@ LifelongSimulationMetrics run_lifelong_simulation(
       if (should_replan) {
         ++metrics.planner_invocations;
         const auto planning_start = Time::now();
-        auto snapshot =
-            prepare_lifelong_planning_snapshot(agents, tasks, distances,
-                                               config.multi_carry_capacity,
-                                               config.max_shared_drop_goal_agents,
-                                               config.pickup_service_duration,
-                                               config.delivery_service_duration);
+        auto snapshot = prepare_lifelong_planning_snapshot(
+            agents, tasks, distances, config.multi_carry_capacity,
+            config.max_shared_drop_goal_agents, config.pickup_service_duration,
+            config.delivery_service_duration, inherited_priorities);
         auto solution = Solution();
         auto final_assignment = std::vector<int>();
         auto assignment_schedule = std::vector<std::vector<int> >();
@@ -713,7 +805,18 @@ LifelongSimulationMetrics run_lifelong_simulation(
             auto loaded_distance_count = 0;
             auto max_loaded_distance_now = 0;
             auto max_loaded_distance_agent_index = -1;
+            auto priority_sum = 0.0;
+            auto max_priority_offset_now = 0.0f;
+            auto max_priority_offset_agent_id = -1;
             for (size_t i = 0; i < agents.size(); ++i) {
+              const auto priority_offset = i < inherited_priorities.size()
+                                               ? inherited_priorities[i]
+                                               : 0.0f;
+              priority_sum += priority_offset;
+              if (priority_offset > max_priority_offset_now) {
+                max_priority_offset_now = priority_offset;
+                max_priority_offset_agent_id = agents[i].agent_id;
+              }
               const auto carried = carried_task_count(agents[i]);
               total_carried += carried;
               max_carried_now = std::max(max_carried_now, carried);
@@ -756,8 +859,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
               for (const auto target : snapshot.goal_indexes_by_agent[i]) {
                 unique_targets.insert(target);
                 ++target_agent_counts[target];
-                const auto type = classify_trace_target(
-                    agents[i], tasks, snapshot, i, target);
+                const auto type = classify_trace_target(agents[i], tasks,
+                                                        snapshot, i, target);
                 if (type == LifelongTraceTargetType::PICKUP) {
                   ++pickup_options;
                 } else if (type == LifelongTraceTargetType::DELIVERY) {
@@ -767,7 +870,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
                 }
               }
               if (agent_is_loaded(agents[i])) {
-                if (pickup_options > 0) ++trace.loaded_agents_with_pickup_options;
+                if (pickup_options > 0)
+                  ++trace.loaded_agents_with_pickup_options;
                 if (delivery_options > 0) {
                   ++trace.loaded_agents_with_delivery_options;
                 }
@@ -777,9 +881,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
                 trace.loaded_pickup_goal_options += pickup_options;
                 trace.loaded_delivery_goal_options += delivery_options;
                 trace.loaded_wait_goal_options += wait_options;
-                trace.max_loaded_pickup_options_per_agent =
-                    std::max(trace.max_loaded_pickup_options_per_agent,
-                             pickup_options);
+                trace.max_loaded_pickup_options_per_agent = std::max(
+                    trace.max_loaded_pickup_options_per_agent, pickup_options);
                 trace.max_loaded_delivery_options_per_agent =
                     std::max(trace.max_loaded_delivery_options_per_agent,
                              delivery_options);
@@ -808,6 +911,10 @@ LifelongSimulationMetrics run_lifelong_simulation(
                     ? loaded_distance_sum / loaded_distance_count
                     : 0;
             trace.max_loaded_distance_now = max_loaded_distance_now;
+            trace.average_priority_offset_now =
+                agents.empty() ? 0 : priority_sum / agents.size();
+            trace.max_priority_offset_now = max_priority_offset_now;
+            trace.max_priority_offset_agent_id = max_priority_offset_agent_id;
             for (const auto& [target, count] : target_agent_counts) {
               trace.max_agents_per_target =
                   std::max(trace.max_agents_per_target, count);
@@ -819,19 +926,47 @@ LifelongSimulationMetrics run_lifelong_simulation(
             search_config.service_goal_mode = true;
             search_config.service_commit_agents =
                 config.service_commit_agents > 0
-                    ? std::min(config.num_agents,
-                               config.service_commit_agents)
+                    ? std::min(config.num_agents, config.service_commit_agents)
                     : 0;
             search_config.pickup_service_duration =
                 config.pickup_service_duration;
             search_config.delivery_service_duration =
                 config.delivery_service_duration;
-            solution =
-                solve_tapf(ins, 0, &deadline, &planner_mt, 0, &stats,
-                           config.planner_anytime,
-                           config.planner_force_full_assignment,
-                           search_config,
-                           &final_assignment, &assignment_schedule);
+            search_config.initial_service_assignments.assign(agents.size(), -1);
+            search_config.initial_service_progress.assign(agents.size(), 0);
+            for (size_t i = 0; i < agents.size(); ++i) {
+              if (!service_active[i] || agents[i].current_location == nullptr ||
+                  agents[i].current_location->index !=
+                      service_target_indexes[i]) {
+                continue;
+              }
+              const auto duration = service_keys[i] >= kDeliveryLocationKeyBase
+                                        ? config.delivery_service_duration
+                                        : config.pickup_service_duration;
+              if (service_progress[i] >= std::max(0, duration)) continue;
+              for (size_t task = 0; task < ins.tasks.size(); ++task) {
+                if (!ins.allowed[i][task] ||
+                    ins.tasks[task]->index != service_target_indexes[i]) {
+                  continue;
+                }
+                const auto key = task < ins.task_keys.size()
+                                     ? ins.task_keys[task]
+                                     : ins.tasks[task]->index;
+                const auto service_is_delivery =
+                    service_keys[i] >= kDeliveryLocationKeyBase;
+                if (service_is_delivery != (key >= kDeliveryLocationKeyBase)) {
+                  continue;
+                }
+                search_config.initial_service_assignments[i] =
+                    static_cast<int>(task);
+                search_config.initial_service_progress[i] = service_progress[i];
+                break;
+              }
+            }
+            solution = solve_tapf(
+                ins, 0, &deadline, &planner_mt, 0, &stats,
+                config.planner_anytime, config.planner_force_full_assignment,
+                search_config, &final_assignment, &assignment_schedule);
             trace.root_initial_assignment_cost = stats.initial_assignment_cost;
             for (size_t i = 0; i < stats.initial_assignment.size(); ++i) {
               const auto assignment = stats.initial_assignment[i];
@@ -855,7 +990,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
             }
             metrics.assignment_row_cache_requests +=
                 stats.assignment_row_cache_requests;
-            metrics.assignment_row_cache_hits += stats.assignment_row_cache_hits;
+            metrics.assignment_row_cache_hits +=
+                stats.assignment_row_cache_hits;
             metrics.total_assignment_runtime += stats.assignment_time_ms;
             if (!solution.empty()) {
               for (size_t i = 0; i < final_assignment.size(); ++i) {
@@ -924,9 +1060,9 @@ LifelongSimulationMetrics run_lifelong_simulation(
               const auto translated =
                   next_plan_assignment_keys.size() == solution.size();
               if (translated && !assignment_schedule.empty() &&
-                  apply_lifelong_solution_assignment(agents, tasks, snapshot,
-                                                     ins,
-                                                     assignment_schedule.front())) {
+                  apply_lifelong_solution_assignment(
+                      agents, tasks, snapshot, ins,
+                      assignment_schedule.front())) {
                 next_plan = solution_to_indexes(solution);
               } else {
                 solution.clear();
@@ -951,8 +1087,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
           ++metrics.planner_snapshot_infeasible_count;
         }
         const auto planning_runtime =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(
-                Time::now() - planning_start)
+            std::chrono::duration_cast<std::chrono::nanoseconds>(Time::now() -
+                                                                 planning_start)
                 .count() /
             1000000.0;
         trace.solution_found = !solution.empty();
@@ -994,7 +1130,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
         trace.service_satisfied_agents = stats.service_satisfied_agents;
         trace.service_satisfied_pickups = stats.service_satisfied_pickups;
         trace.service_satisfied_deliveries = stats.service_satisfied_deliveries;
-        trace.service_best_satisfied_agents = stats.service_best_satisfied_agents;
+        trace.service_best_satisfied_agents =
+            stats.service_best_satisfied_agents;
         metrics.planner_trace_records.push_back(trace);
         total_planner_runtime += planning_runtime;
         metrics.max_planner_runtime =
@@ -1003,8 +1140,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
         if (!solution.empty()) {
           plan = next_plan;
           plan_assignment_keys = next_plan_assignment_keys;
-          plan_assignment_target_indexes =
-              next_plan_assignment_target_indexes;
+          plan_assignment_target_indexes = next_plan_assignment_target_indexes;
           plan_step = 0;
           valid_plan = true;
           previous_planner_failed = false;
@@ -1023,7 +1159,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
 
       auto previous = std::vector<Vertex*>();
       previous.reserve(agents.size());
-      for (const auto& agent : agents) previous.push_back(agent.current_location);
+      for (const auto& agent : agents)
+        previous.push_back(agent.current_location);
 
       if (valid_plan && plan_step + 1 < plan.size()) {
         ++plan_step;
@@ -1033,7 +1170,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
           agents[i].executed_path.push_back(agents[i].current_location);
         }
       } else {
-        for (auto& agent : agents) agent.executed_path.push_back(agent.current_location);
+        for (auto& agent : agents)
+          agent.executed_path.push_back(agent.current_location);
       }
 
       auto ready_agents = service_ready_agents(previous);
@@ -1048,6 +1186,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
           previous_planner_failed = true;
         }
       }
+      refresh_lifelong_priorities(inherited_priorities, agents, tasks, true);
       auto max_loaded_distance_now = 0;
       for (const auto& agent : agents) {
         if (agent_is_loaded(agent)) {
@@ -1067,19 +1206,18 @@ LifelongSimulationMetrics run_lifelong_simulation(
       append_agent_task_snapshot(metrics, agents);
       if (config.debug) {
         if (!check_motion_conflicts(previous, agents, &metrics.error) ||
-            !check_lifelong_state_invariants(
-                agents, tasks, &metrics.error, config.multi_carry_capacity)) {
+            !check_lifelong_state_invariants(agents, tasks, &metrics.error,
+                                             config.multi_carry_capacity)) {
           metrics.valid = false;
           break;
         }
       }
     }
 
-    finalize_metrics(metrics, agents, tasks, total_planner_runtime, idle_time,
-                     loaded_time, unloaded_time, carried_time,
-                     loaded_distance_time, max_carried_tasks,
-                     max_loaded_distance_since_last_delivery,
-                     delivery_carried_sum);
+    finalize_metrics(
+        metrics, agents, tasks, total_planner_runtime, idle_time, loaded_time,
+        unloaded_time, carried_time, loaded_distance_time, max_carried_tasks,
+        max_loaded_distance_since_last_delivery, delivery_carried_sum);
     metrics.executed_path_indexes.reserve(agents.size());
     for (const auto& agent : agents) {
       auto path = std::vector<int>();

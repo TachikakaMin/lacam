@@ -30,6 +30,8 @@ struct TAPFSearchConfig {
   int service_commit_agents = 0;
   int pickup_service_duration = 1;
   int delivery_service_duration = 1;
+  std::vector<int> initial_service_assignments;
+  std::vector<int> initial_service_progress;
 };
 
 struct TAPFConstraint {
@@ -49,6 +51,7 @@ struct TAPFNode {
   TAPFAssignmentState assignment_state;
   std::vector<int> service_assignment;
   std::vector<int> service_progress;
+  std::vector<bool> service_committed;
   std::vector<bool> satisfied;
   std::vector<int> satisfied_assignment;
   bool queued;
@@ -69,6 +72,7 @@ struct TAPFNode {
            const TAPFSearchConfig& search_config,
            const std::vector<int>& _service_assignment = std::vector<int>(),
            const std::vector<int>& _service_progress = std::vector<int>(),
+           const std::vector<bool>& _service_committed = std::vector<bool>(),
            const std::vector<bool>& _satisfied = std::vector<bool>(),
            const std::vector<int>& _satisfied_assignment = std::vector<int>(),
            TAPFNode* _parent = nullptr);
@@ -146,6 +150,7 @@ struct TAPFPlanner {
   Agents occupied_now;
   Agents occupied_next;
   std::vector<int> shared_goal_entry_counts;
+  int committed_service_entries_next;
   std::vector<bool> real_service_vertices;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
@@ -153,17 +158,16 @@ struct TAPFPlanner {
               float _restart_rate = 0.001f, bool _anytime = true,
               TAPFStats* _stats = nullptr,
               TAPFSearchConfig _search_config = TAPFSearchConfig());
-  Solution solve(
-      std::vector<int>* final_assignment = nullptr,
-      std::vector<std::vector<int> >* assignment_schedule = nullptr);
+  Solution solve(std::vector<int>* final_assignment = nullptr,
+                 std::vector<std::vector<int> >* assignment_schedule = nullptr);
   bool agent_satisfied(const TAPFNode* node, int agent) const;
   Vertex* assigned_goal(const std::vector<int>& assignment, int agent) const;
   Vertex* service_goal(const TAPFNode* node, int agent) const;
-  Vertex* service_goal_for_state(
-      const std::vector<int>& assignment,
-      const std::vector<int>& service_assignment,
-      const std::vector<bool>& satisfied,
-      const std::vector<int>& satisfied_assignment, int agent) const;
+  Vertex* service_goal_for_state(const std::vector<int>& assignment,
+                                 const std::vector<int>& service_assignment,
+                                 const std::vector<bool>& satisfied,
+                                 const std::vector<int>& satisfied_assignment,
+                                 int agent) const;
   bool agent_has_service_option_at(int agent, Vertex* vertex) const;
   bool can_share_service_goal(const TAPFNode* node, int agent,
                               Vertex* vertex) const;
@@ -173,8 +177,7 @@ struct TAPFPlanner {
       const std::vector<bool>& satisfied,
       const std::vector<int>& satisfied_assignment, int agent,
       Vertex* vertex) const;
-  bool can_reserve_next(const TAPFNode* node, Agent* agent,
-                        Vertex* vertex);
+  bool can_reserve_next(const TAPFNode* node, Agent* agent, Vertex* vertex);
   void reserve_next(const TAPFNode* node, Agent* agent, Vertex* vertex);
   bool validate_service_child_config(
       const TAPFNode* parent, const Config& C,
@@ -202,12 +205,11 @@ struct TAPFPlanner {
   bool funcPIBT(Agent* ai, const TAPFNode* node);
 };
 
-Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
-                    const Deadline* deadline = nullptr,
-                    std::mt19937* MT = nullptr, const int sticky_penalty = 0,
-                    TAPFStats* stats = nullptr, bool anytime = true,
-                    bool force_full_assignment = false,
-                    TAPFSearchConfig search_config = TAPFSearchConfig(),
-                    std::vector<int>* final_assignment = nullptr,
-                    std::vector<std::vector<int> >* assignment_schedule =
-                        nullptr);
+Solution solve_tapf(
+    const TAPFInstance& ins, const int verbose = 0,
+    const Deadline* deadline = nullptr, std::mt19937* MT = nullptr,
+    const int sticky_penalty = 0, TAPFStats* stats = nullptr,
+    bool anytime = true, bool force_full_assignment = false,
+    TAPFSearchConfig search_config = TAPFSearchConfig(),
+    std::vector<int>* final_assignment = nullptr,
+    std::vector<std::vector<int> >* assignment_schedule = nullptr);

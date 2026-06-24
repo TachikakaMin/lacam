@@ -10,230 +10,232 @@
 
 namespace
 {
-constexpr int kDeliveryLocationKeyBase = 1000000000;
-constexpr int kPickupLocationKeyBase = 500000000;
-constexpr int kDeliveryLocationSlotStride = 1000000;
+  constexpr int kDeliveryLocationKeyBase = 1000000000;
+  constexpr int kPickupLocationKeyBase = 500000000;
+  constexpr int kDeliveryLocationSlotStride = 1000000;
 
-std::vector<size_t> collect_pending_tasks(const std::vector<LifelongTask>& tasks)
-{
-  auto ids = std::vector<size_t>();
-  for (size_t i = 0; i < tasks.size(); ++i) {
-    if (tasks[i].status == LifelongTaskStatus::PENDING) ids.push_back(i);
+  std::vector<size_t> collect_pending_tasks(
+      const std::vector<LifelongTask>& tasks)
+  {
+    auto ids = std::vector<size_t>();
+    for (size_t i = 0; i < tasks.size(); ++i) {
+      if (tasks[i].status == LifelongTaskStatus::PENDING) ids.push_back(i);
+    }
+    return ids;
   }
-  return ids;
-}
 
-int task_delivery_cost(const LifelongTask& task,
+  int task_delivery_cost(const LifelongTask& task,
+                         const MapDistanceCache& distances)
+  {
+    if (task.start == nullptr) return kTapfAssignmentInfCost;
+    auto cost = kMapDistanceInf;
+    for (auto goal : task.goal_set) {
+      cost = std::min(cost, distances.get(task.start, goal));
+    }
+    return cost >= kMapDistanceInf ? kTapfAssignmentInfCost : cost;
+  }
+
+  int lcm_upto(int value)
+  {
+    auto result = 1;
+    for (int i = 2; i <= std::max(1, value); ++i) {
+      result = std::lcm(result, i);
+    }
+    return result;
+  }
+
+  int deferred_assignment_offset(size_t num_agents,
+                                 const MapDistanceCache& distances,
+                                 int cost_scale)
+  {
+    const auto max_distance = static_cast<long long>(
+        std::max(1, distances.metadata.traversable_count - 1));
+    const auto max_service_cost = 2 * max_distance;
+    const auto desired = (static_cast<long long>(num_agents) + 1) *
+                         (max_service_cost + 1) *
+                         static_cast<long long>(cost_scale);
+    const auto max_offset =
+        static_cast<long long>(kTapfAssignmentInfCost / 2 - 1) -
+        max_distance * cost_scale - 1;
+    return static_cast<int>(std::max(0LL, std::min(desired, max_offset)));
+  }
+
+  bool add_goal_option(LifelongPlanningSnapshot& snapshot, size_t agent,
+                       Vertex* agent_location, Vertex* target,
+                       int distance_scale, int cost_offset, int goal_key,
                        const MapDistanceCache& distances)
-{
-  if (task.start == nullptr) return kTapfAssignmentInfCost;
-  auto cost = kMapDistanceInf;
-  for (auto goal : task.goal_set) {
-    cost = std::min(cost, distances.get(task.start, goal));
-  }
-  return cost >= kMapDistanceInf ? kTapfAssignmentInfCost : cost;
-}
+  {
+    if (agent_location == nullptr || target == nullptr || distance_scale <= 0 ||
+        cost_offset >= kTapfAssignmentInfCost) {
+      return false;
+    }
+    const auto root_distance = distances.get(agent_location, target);
+    if (root_distance >= kMapDistanceInf) return false;
+    const auto root_cost =
+        static_cast<long long>(root_distance) * distance_scale + cost_offset;
+    if (root_cost >= kTapfAssignmentInfCost) return false;
 
-int lcm_upto(int value)
-{
-  auto result = 1;
-  for (int i = 2; i <= std::max(1, value); ++i) {
-    result = std::lcm(result, i);
-  }
-  return result;
-}
-
-int deferred_assignment_offset(size_t num_agents,
-                               const MapDistanceCache& distances,
-                               int cost_scale)
-{
-  const auto max_distance =
-      static_cast<long long>(
-          std::max(1, distances.metadata.traversable_count - 1));
-  const auto max_service_cost = 2 * max_distance;
-  const auto desired =
-      (static_cast<long long>(num_agents) + 1) *
-      (max_service_cost + 1) * static_cast<long long>(cost_scale);
-  const auto max_offset =
-      static_cast<long long>(kTapfAssignmentInfCost / 2 - 1) -
-      max_distance * cost_scale - 1;
-  return static_cast<int>(std::max(0LL, std::min(desired, max_offset)));
-}
-
-bool add_goal_option(LifelongPlanningSnapshot& snapshot, size_t agent,
-                     Vertex* agent_location, Vertex* target, int distance_scale,
-                     int cost_offset, int goal_key,
-                     const MapDistanceCache& distances)
-{
-  if (agent_location == nullptr || target == nullptr || distance_scale <= 0 ||
-      cost_offset >= kTapfAssignmentInfCost) {
-    return false;
-  }
-  const auto root_distance = distances.get(agent_location, target);
-  if (root_distance >= kMapDistanceInf) return false;
-  const auto root_cost =
-      static_cast<long long>(root_distance) * distance_scale + cost_offset;
-  if (root_cost >= kTapfAssignmentInfCost) return false;
-
-  auto& indexes = snapshot.goal_indexes_by_agent[agent];
-  auto& offsets = snapshot.goal_cost_offsets_by_agent[agent];
-  auto& scales = snapshot.goal_distance_scales_by_agent[agent];
-  auto& keys = snapshot.goal_keys_by_agent[agent];
-  const auto iter = std::find(keys.begin(), keys.end(), goal_key);
-  if (iter == keys.end()) {
-    indexes.push_back(target->index);
-    offsets.push_back(cost_offset);
-    scales.push_back(distance_scale);
-    keys.push_back(goal_key);
-    snapshot.target_by_index[target->index] = target;
-    return true;
-  } else {
-    const auto option = std::distance(keys.begin(), iter);
-    const auto old_root_cost =
-        static_cast<long long>(root_distance) * scales[option] +
-        offsets[option];
-    if (root_cost < old_root_cost) {
-      offsets[option] = cost_offset;
-      scales[option] = distance_scale;
+    auto& indexes = snapshot.goal_indexes_by_agent[agent];
+    auto& offsets = snapshot.goal_cost_offsets_by_agent[agent];
+    auto& scales = snapshot.goal_distance_scales_by_agent[agent];
+    auto& keys = snapshot.goal_keys_by_agent[agent];
+    const auto iter = std::find(keys.begin(), keys.end(), goal_key);
+    if (iter == keys.end()) {
+      indexes.push_back(target->index);
+      offsets.push_back(cost_offset);
+      scales.push_back(distance_scale);
+      keys.push_back(goal_key);
       snapshot.target_by_index[target->index] = target;
       return true;
-    }
-  }
-  return false;
-}
-
-std::vector<const LifelongTask*> carried_tasks_for_agent(
-    const LifelongAgentState& agent, const std::vector<LifelongTask>& tasks)
-{
-  auto carried = std::vector<const LifelongTask*>();
-  for (const auto task_id : agent.carried_task_ids) {
-    const auto* task = find_task_by_id(tasks, task_id);
-    if (task != nullptr) carried.push_back(task);
-  }
-  return carried;
-}
-
-int delivery_location_slot_key(int target_index, int slot)
-{
-  return kDeliveryLocationKeyBase + slot * kDeliveryLocationSlotStride +
-         target_index;
-}
-
-int pickup_location_key(int target_index)
-{
-  return kPickupLocationKeyBase + target_index;
-}
-
-bool is_pickup_location_key(int key)
-{
-  return key >= kPickupLocationKeyBase && key < kDeliveryLocationKeyBase;
-}
-
-bool is_delivery_location_key(int key)
-{
-  return key >= kDeliveryLocationKeyBase;
-}
-
-int task_id_from_goal_option_key(int key)
-{
-  return key >= 1000000 ? key / 1000000 - 1 : key;
-}
-
-bool vertex_index_in_goal_set(int vertex_index, const Vertices& goal_set)
-{
-  return std::any_of(goal_set.begin(), goal_set.end(), [&](const auto* goal) {
-    return goal != nullptr && goal->index == vertex_index;
-  });
-}
-
-Vertex* representative_goal(Vertex* reference, const LifelongTask& task,
-                            const MapDistanceCache& distances)
-{
-  Vertex* best = nullptr;
-  auto best_distance = kMapDistanceInf;
-  for (auto goal : task.goal_set) {
-    const auto distance = distances.get(reference, goal);
-    if (distance < best_distance ||
-        (distance == best_distance && best != nullptr &&
-         std::make_tuple(goal->index / distances.metadata.width,
-                         goal->index % distances.metadata.width, goal->index) <
-             std::make_tuple(best->index / distances.metadata.width,
-                             best->index % distances.metadata.width,
-                             best->index))) {
-      best = goal;
-      best_distance = distance;
-    } else if (distance == best_distance && best == nullptr) {
-      best = goal;
-    }
-  }
-  return best_distance >= kMapDistanceInf ? nullptr : best;
-}
-
-int circle_cost(Vertex* reference, const std::vector<const LifelongTask*>& tasks,
-                const MapDistanceCache& distances)
-{
-  if (tasks.size() <= 1) return 0;
-  auto representatives = Vertices();
-  representatives.reserve(tasks.size());
-  for (const auto* task : tasks) {
-    auto* goal = representative_goal(reference, *task, distances);
-    if (goal == nullptr) return kTapfAssignmentInfCost;
-    representatives.push_back(goal);
-  }
-  std::sort(representatives.begin(), representatives.end(),
-            [&](const auto* lhs, const auto* rhs) {
-              return std::make_tuple(lhs->index / distances.metadata.width,
-                                     lhs->index % distances.metadata.width,
-                                     lhs->index) <
-                     std::make_tuple(rhs->index / distances.metadata.width,
-                                     rhs->index % distances.metadata.width,
-                                     rhs->index);
-            });
-  auto total = 0LL;
-  for (size_t i = 0; i < representatives.size(); ++i) {
-    const auto* from = representatives[i];
-    const auto* to = representatives[(i + 1) % representatives.size()];
-    const auto distance = distances.get(const_cast<Vertex*>(from),
-                                        const_cast<Vertex*>(to));
-    if (distance >= kMapDistanceInf) return kTapfAssignmentInfCost;
-    total += distance;
-  }
-  return total >= kTapfAssignmentInfCost ? kTapfAssignmentInfCost
-                                         : static_cast<int>(total);
-}
-
-int scaled_static_cost(long long numerator, int common_scale, int denominator)
-{
-  if (denominator <= 0 || numerator >= kTapfAssignmentInfCost) {
-    return kTapfAssignmentInfCost;
-  }
-  const auto cost = numerator * common_scale / denominator;
-  return cost >= kTapfAssignmentInfCost ? kTapfAssignmentInfCost
-                                        : static_cast<int>(cost);
-}
-
-void normalize_agent_task_state(std::vector<LifelongAgentState>& agents,
-                                const std::vector<LifelongTask>& tasks)
-{
-  for (auto& agent : agents) {
-    if (agent.carried_task_ids.empty() &&
-        agent.load_state == AgentLoadState::LOADED &&
-        agent.current_task_id.has_value()) {
-      const auto* task = find_task_by_id(tasks, *agent.current_task_id);
-      if (task != nullptr && task->status == LifelongTaskStatus::PICKED) {
-        agent.carried_task_ids.push_back(task->task_id);
+    } else {
+      const auto option = std::distance(keys.begin(), iter);
+      const auto old_root_cost =
+          static_cast<long long>(root_distance) * scales[option] +
+          offsets[option];
+      if (root_cost < old_root_cost) {
+        offsets[option] = cost_offset;
+        scales[option] = distance_scale;
+        snapshot.target_by_index[target->index] = target;
+        return true;
       }
     }
-    if (!agent.assigned_task_id.has_value() &&
-        agent.carried_task_ids.empty() && agent.current_task_id.has_value()) {
-      const auto* task = find_task_by_id(tasks, *agent.current_task_id);
-      if (task != nullptr && task->status == LifelongTaskStatus::ASSIGNED) {
-        agent.assigned_task_id = task->task_id;
+    return false;
+  }
+
+  std::vector<const LifelongTask*> carried_tasks_for_agent(
+      const LifelongAgentState& agent, const std::vector<LifelongTask>& tasks)
+  {
+    auto carried = std::vector<const LifelongTask*>();
+    for (const auto task_id : agent.carried_task_ids) {
+      const auto* task = find_task_by_id(tasks, task_id);
+      if (task != nullptr) carried.push_back(task);
+    }
+    return carried;
+  }
+
+  int delivery_location_slot_key(int target_index, int slot)
+  {
+    return kDeliveryLocationKeyBase + slot * kDeliveryLocationSlotStride +
+           target_index;
+  }
+
+  int pickup_location_key(int target_index)
+  {
+    return kPickupLocationKeyBase + target_index;
+  }
+
+  bool is_pickup_location_key(int key)
+  {
+    return key >= kPickupLocationKeyBase && key < kDeliveryLocationKeyBase;
+  }
+
+  bool is_delivery_location_key(int key)
+  {
+    return key >= kDeliveryLocationKeyBase;
+  }
+
+  int task_id_from_goal_option_key(int key)
+  {
+    return key >= 1000000 ? key / 1000000 - 1 : key;
+  }
+
+  bool vertex_index_in_goal_set(int vertex_index, const Vertices& goal_set)
+  {
+    return std::any_of(goal_set.begin(), goal_set.end(), [&](const auto* goal) {
+      return goal != nullptr && goal->index == vertex_index;
+    });
+  }
+
+  Vertex* representative_goal(Vertex* reference, const LifelongTask& task,
+                              const MapDistanceCache& distances)
+  {
+    Vertex* best = nullptr;
+    auto best_distance = kMapDistanceInf;
+    for (auto goal : task.goal_set) {
+      const auto distance = distances.get(reference, goal);
+      if (distance < best_distance ||
+          (distance == best_distance && best != nullptr &&
+           std::make_tuple(goal->index / distances.metadata.width,
+                           goal->index % distances.metadata.width,
+                           goal->index) <
+               std::make_tuple(best->index / distances.metadata.width,
+                               best->index % distances.metadata.width,
+                               best->index))) {
+        best = goal;
+        best_distance = distance;
+      } else if (distance == best_distance && best == nullptr) {
+        best = goal;
       }
     }
-    sync_agent_load_state(agent);
+    return best_distance >= kMapDistanceInf ? nullptr : best;
   }
-}
+
+  int circle_cost(Vertex* reference,
+                  const std::vector<const LifelongTask*>& tasks,
+                  const MapDistanceCache& distances)
+  {
+    if (tasks.size() <= 1) return 0;
+    auto representatives = Vertices();
+    representatives.reserve(tasks.size());
+    for (const auto* task : tasks) {
+      auto* goal = representative_goal(reference, *task, distances);
+      if (goal == nullptr) return kTapfAssignmentInfCost;
+      representatives.push_back(goal);
+    }
+    std::sort(representatives.begin(), representatives.end(),
+              [&](const auto* lhs, const auto* rhs) {
+                return std::make_tuple(lhs->index / distances.metadata.width,
+                                       lhs->index % distances.metadata.width,
+                                       lhs->index) <
+                       std::make_tuple(rhs->index / distances.metadata.width,
+                                       rhs->index % distances.metadata.width,
+                                       rhs->index);
+              });
+    auto total = 0LL;
+    for (size_t i = 0; i < representatives.size(); ++i) {
+      const auto* from = representatives[i];
+      const auto* to = representatives[(i + 1) % representatives.size()];
+      const auto distance =
+          distances.get(const_cast<Vertex*>(from), const_cast<Vertex*>(to));
+      if (distance >= kMapDistanceInf) return kTapfAssignmentInfCost;
+      total += distance;
+    }
+    return total >= kTapfAssignmentInfCost ? kTapfAssignmentInfCost
+                                           : static_cast<int>(total);
+  }
+
+  int scaled_static_cost(long long numerator, int common_scale, int denominator)
+  {
+    if (denominator <= 0 || numerator >= kTapfAssignmentInfCost) {
+      return kTapfAssignmentInfCost;
+    }
+    const auto cost = numerator * common_scale / denominator;
+    return cost >= kTapfAssignmentInfCost ? kTapfAssignmentInfCost
+                                          : static_cast<int>(cost);
+  }
+
+  void normalize_agent_task_state(std::vector<LifelongAgentState>& agents,
+                                  const std::vector<LifelongTask>& tasks)
+  {
+    for (auto& agent : agents) {
+      if (agent.carried_task_ids.empty() &&
+          agent.load_state == AgentLoadState::LOADED &&
+          agent.current_task_id.has_value()) {
+        const auto* task = find_task_by_id(tasks, *agent.current_task_id);
+        if (task != nullptr && task->status == LifelongTaskStatus::PICKED) {
+          agent.carried_task_ids.push_back(task->task_id);
+        }
+      }
+      if (!agent.assigned_task_id.has_value() &&
+          agent.carried_task_ids.empty() && agent.current_task_id.has_value()) {
+        const auto* task = find_task_by_id(tasks, *agent.current_task_id);
+        if (task != nullptr && task->status == LifelongTaskStatus::ASSIGNED) {
+          agent.assigned_task_id = task->task_id;
+        }
+      }
+      sync_agent_load_state(agent);
+    }
+  }
 }  // namespace
 
 int lifelong_unloaded_assignment_cost(const LifelongAgentState& agent,
@@ -268,7 +270,8 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
     const MapDistanceCache& distances, int multi_carry_capacity,
     int max_shared_drop_goal_agents, int pickup_service_duration,
-    int delivery_service_duration)
+    int delivery_service_duration,
+    const std::vector<float>& agent_priority_offsets)
 {
   normalize_agent_task_state(agents, tasks);
   auto previous_task_ids =
@@ -285,6 +288,13 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   snapshot.goal_distance_scales_by_agent.resize(agents.size());
   snapshot.goal_keys_by_agent.resize(agents.size());
   snapshot.agent_priority_offsets.assign(agents.size(), 0.0f);
+  if (!agent_priority_offsets.empty()) {
+    if (agent_priority_offsets.size() != agents.size()) {
+      snapshot.feasible = false;
+    } else {
+      snapshot.agent_priority_offsets = agent_priority_offsets;
+    }
+  }
   snapshot.pending_task_id_by_start_index_by_agent.resize(agents.size());
   snapshot.common_cost_scale = lcm_upto(multi_carry_capacity);
   const auto pending_tasks = collect_pending_tasks(tasks);
@@ -325,7 +335,7 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
       snapshot.feasible = false;
       continue;
     }
-    if (carried_count > 0) {
+    if (agent_priority_offsets.empty() && carried_count > 0) {
       snapshot.agent_priority_offsets[i] =
           2.0f * static_cast<float>(agent.loaded_distance_since_last_delivery) /
           static_cast<float>(std::max<size_t>(1, agents.size()));
@@ -340,12 +350,12 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         pickup_set.push_back(&task);
         const auto circle = circle_cost(task.start, pickup_set, distances);
         if (circle >= kTapfAssignmentInfCost) continue;
-        const auto switched =
-            previous_task_ids[i].has_value() &&
-            *previous_task_ids[i] != task.task_id;
+        const auto switched = previous_task_ids[i].has_value() &&
+                              *previous_task_ids[i] != task.task_id;
         const auto static_cost =
             static_cast<long long>(delivery_cost) + circle +
-            (carried_count > 0 ? agent.loaded_distance_since_last_delivery : 0) +
+            (carried_count > 0 ? agent.loaded_distance_since_last_delivery
+                               : 0) +
             (switched ? 1 : 0) + std::max(0, pickup_service_duration);
         const auto denominator = carried_count + 1;
         const auto offset =
@@ -358,8 +368,9 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         const auto pickup_key = pickup_location_key(task.start->index);
         if (add_goal_option(snapshot, i, agent.current_location, task.start,
                             distance_scale, offset, pickup_key, distances)) {
-          snapshot.pending_task_id_by_start_index_by_agent[i]
-              [task.start->index] = task.task_id;
+          snapshot
+              .pending_task_id_by_start_index_by_agent[i][task.start->index] =
+              task.task_id;
         }
       }
     }
@@ -376,9 +387,8 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
           if (!delivery_targets.insert(goal->index).second) continue;
           const auto circle = circle_cost(goal, carried, distances);
           if (circle >= kTapfAssignmentInfCost) continue;
-          const auto static_cost =
-              static_cast<long long>(circle) +
-              std::max(0, delivery_service_duration);
+          const auto static_cost = static_cast<long long>(circle) +
+                                   std::max(0, delivery_service_duration);
           const auto offset =
               scaled_static_cost(static_cost, common_scale, carried_count);
           const auto distance_scale = common_scale / carried_count;
@@ -413,13 +423,11 @@ TAPFInstance build_lifelong_tapf_instance(
   for (const auto& agent : agents) {
     start_indexes.push_back(agent.current_location->index);
   }
-  return TAPFInstance(map_filename, start_indexes,
-                      snapshot.goal_indexes_by_agent,
-                      snapshot.goal_cost_offsets_by_agent,
-                      snapshot.common_cost_scale,
-                      snapshot.goal_distance_scales_by_agent,
-                      snapshot.agent_priority_offsets, false,
-                      snapshot.goal_keys_by_agent);
+  return TAPFInstance(
+      map_filename, start_indexes, snapshot.goal_indexes_by_agent,
+      snapshot.goal_cost_offsets_by_agent, snapshot.common_cost_scale,
+      snapshot.goal_distance_scales_by_agent, snapshot.agent_priority_offsets,
+      false, snapshot.goal_keys_by_agent);
 }
 
 bool apply_lifelong_solution_assignment(
@@ -491,7 +499,8 @@ bool apply_lifelong_solution_assignment(
           agents[i].carried_task_ids.begin(), agents[i].carried_task_ids.end(),
           [&](const int carried_task_id) {
             const auto* task = find_task_by_id(tasks, carried_task_id);
-            return task != nullptr && task->status == LifelongTaskStatus::PICKED &&
+            return task != nullptr &&
+                   task->status == LifelongTaskStatus::PICKED &&
                    vertex_index_in_goal_set(target_index, task->goal_set);
           });
       if (!valid_delivery) return false;
@@ -501,13 +510,13 @@ bool apply_lifelong_solution_assignment(
     if (task == nullptr) return false;
     if (task->status == LifelongTaskStatus::PICKED &&
         std::find(agents[i].carried_task_ids.begin(),
-                  agents[i].carried_task_ids.end(), task->task_id) !=
-            agents[i].carried_task_ids.end() &&
+                  agents[i].carried_task_ids.end(),
+                  task->task_id) != agents[i].carried_task_ids.end() &&
         vertex_index_in_goal_set(target_index, task->goal_set)) {
       continue;
     }
-    if (task->status != LifelongTaskStatus::PENDING ||
-        task->start == nullptr || task->start->index != target_index ||
+    if (task->status != LifelongTaskStatus::PENDING || task->start == nullptr ||
+        task->start->index != target_index ||
         !used_task_ids.insert(task->task_id).second) {
       return false;
     }

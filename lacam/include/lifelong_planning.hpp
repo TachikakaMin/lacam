@@ -32,7 +32,8 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
     const MapDistanceCache& distances, int multi_carry_capacity = 1,
     int max_shared_drop_goal_agents = 5, int pickup_service_duration = 1,
-    int delivery_service_duration = 1);
+    int delivery_service_duration = 1,
+    const std::vector<float>& agent_priority_offsets = std::vector<float>());
 TAPFInstance build_lifelong_tapf_instance(
     const std::string& map_filename,
     const std::vector<LifelongAgentState>& agents,

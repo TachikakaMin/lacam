@@ -97,6 +97,9 @@ struct LifelongPlannerTraceRecord {
   int max_carried_tasks_now = 0;
   double average_loaded_distance_now = 0;
   int max_loaded_distance_now = 0;
+  double average_priority_offset_now = 0;
+  double max_priority_offset_now = 0;
+  int max_priority_offset_agent_id = -1;
   int hl_loop_iterations = 0;
   int hl_nodes_created = 0;
   int hl_nodes_explored = 0;
@@ -184,7 +187,8 @@ struct LifelongSimulationMetrics {
   std::vector<std::vector<int> > executed_path_indexes;
   std::vector<std::vector<int> > agent_task_ids_by_timestep;
   std::vector<std::vector<int> > agent_task_phases_by_timestep;
-  std::vector<std::vector<std::vector<int> > > agent_carried_task_ids_by_timestep;
+  std::vector<std::vector<std::vector<int> > >
+      agent_carried_task_ids_by_timestep;
   std::vector<std::vector<int> > agent_assigned_task_ids_by_timestep;
   std::vector<LifelongTaskVisualizationRecord> task_records;
   std::vector<LifelongPlannerTraceRecord> planner_trace_records;

@@ -4,77 +4,78 @@
 
 namespace
 {
-LifelongTask make_pending_task(int id, LifelongTaskType type, Vertex* start,
-                               const Vertices& goals)
-{
-  auto task = LifelongTask();
-  task.task_id = id;
-  task.task_type = type;
-  task.start = start;
-  task.goal_set = goals;
-  task.status = LifelongTaskStatus::PENDING;
-  return task;
-}
-
-LifelongAgentState make_agent(int id, Vertex* location)
-{
-  auto agent = LifelongAgentState();
-  agent.agent_id = id;
-  agent.current_location = location;
-  agent.current_target = location;
-  return agent;
-}
-
-struct LifelongSolveResult {
-  Solution solution;
-  std::vector<int> final_assignment;
-  std::vector<int> target_indexes;
-  bool applied = false;
-};
-
-LifelongSolveResult solve_snapshot(
-    const std::string& map_filename,
-    std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
-    const LifelongPlanningSnapshot& snapshot, int service_commit_agents = 1,
-    TAPFStats* stats = nullptr)
-{
-  const auto ins =
-      build_lifelong_tapf_instance(map_filename, agents, snapshot);
-  EXPECT_TRUE(ins.is_valid());
-  auto result = LifelongSolveResult();
-  auto search_config = TAPFSearchConfig();
-  search_config.service_goal_mode = true;
-  // Private wait columns keep the rectangular assignment feasible but are not
-  // service events. Production lifelong planning commits one real service
-  // cohort at a time.
-  search_config.service_commit_agents = service_commit_agents;
-  result.solution =
-      solve_tapf(ins, 0, nullptr, nullptr, 0, stats, true, true,
-                 search_config, &result.final_assignment);
-  for (const auto target : result.final_assignment) {
-    result.target_indexes.push_back(ins.tasks[target]->index);
+  LifelongTask make_pending_task(int id, LifelongTaskType type, Vertex* start,
+                                 const Vertices& goals)
+  {
+    auto task = LifelongTask();
+    task.task_id = id;
+    task.task_type = type;
+    task.start = start;
+    task.goal_set = goals;
+    task.status = LifelongTaskStatus::PENDING;
+    return task;
   }
-  result.applied = apply_lifelong_solution_assignment(
-      agents, tasks, snapshot, ins, result.final_assignment);
-  return result;
-}
 
-int count_physical_task_columns(const TAPFInstance& instance, int vertex_index)
-{
-  return static_cast<int>(std::count_if(
-      instance.tasks.begin(), instance.tasks.end(), [&](const auto* task) {
-        return task != nullptr && task->index == vertex_index;
-      }));
-}
+  LifelongAgentState make_agent(int id, Vertex* location)
+  {
+    auto agent = LifelongAgentState();
+    agent.agent_id = id;
+    agent.current_location = location;
+    agent.current_target = location;
+    return agent;
+  }
 
-bool has_private_wait_option(const LifelongPlanningSnapshot& snapshot,
-                             size_t agent)
-{
-  return agent < snapshot.goal_keys_by_agent.size() &&
-         std::any_of(snapshot.goal_keys_by_agent[agent].begin(),
-                     snapshot.goal_keys_by_agent[agent].end(),
-                     [](const auto key) { return key < 0; });
-}
+  struct LifelongSolveResult {
+    Solution solution;
+    std::vector<int> final_assignment;
+    std::vector<int> target_indexes;
+    bool applied = false;
+  };
+
+  LifelongSolveResult solve_snapshot(const std::string& map_filename,
+                                     std::vector<LifelongAgentState>& agents,
+                                     std::vector<LifelongTask>& tasks,
+                                     const LifelongPlanningSnapshot& snapshot,
+                                     int service_commit_agents = 1,
+                                     TAPFStats* stats = nullptr)
+  {
+    const auto ins =
+        build_lifelong_tapf_instance(map_filename, agents, snapshot);
+    EXPECT_TRUE(ins.is_valid());
+    auto result = LifelongSolveResult();
+    auto search_config = TAPFSearchConfig();
+    search_config.service_goal_mode = true;
+    // Private wait columns keep the rectangular assignment feasible but are not
+    // service events. Production lifelong planning commits one real service
+    // cohort at a time.
+    search_config.service_commit_agents = service_commit_agents;
+    result.solution = solve_tapf(ins, 0, nullptr, nullptr, 0, stats, true, true,
+                                 search_config, &result.final_assignment);
+    for (const auto target : result.final_assignment) {
+      result.target_indexes.push_back(ins.tasks[target]->index);
+    }
+    result.applied = apply_lifelong_solution_assignment(
+        agents, tasks, snapshot, ins, result.final_assignment);
+    return result;
+  }
+
+  int count_physical_task_columns(const TAPFInstance& instance,
+                                  int vertex_index)
+  {
+    return static_cast<int>(std::count_if(
+        instance.tasks.begin(), instance.tasks.end(), [&](const auto* task) {
+          return task != nullptr && task->index == vertex_index;
+        }));
+  }
+
+  bool has_private_wait_option(const LifelongPlanningSnapshot& snapshot,
+                               size_t agent)
+  {
+    return agent < snapshot.goal_keys_by_agent.size() &&
+           std::any_of(snapshot.goal_keys_by_agent[agent].begin(),
+                       snapshot.goal_keys_by_agent[agent].end(),
+                       [](const auto key) { return key < 0; });
+  }
 }  // namespace
 
 TEST(lifelong_planning, unloaded_cost_includes_pickup_and_delivery)
@@ -92,7 +93,8 @@ TEST(lifelong_planning, unloaded_cost_includes_pickup_and_delivery)
 
 TEST(lifelong_planning, snapshot_contains_loaded_and_unloaded_cost_rows)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -145,7 +147,8 @@ TEST(lifelong_planning, snapshot_contains_loaded_and_unloaded_cost_rows)
 
 TEST(lifelong_planning, service_durations_are_encoded_in_cost_offsets)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -167,8 +170,8 @@ TEST(lifelong_planning, service_durations_are_encoded_in_cost_offsets)
                         Vertices{graph.U[4]}),
   };
 
-  const auto snapshot = prepare_lifelong_planning_snapshot(
-      agents, tasks, distances, 1, 5, 4, 3);
+  const auto snapshot =
+      prepare_lifelong_planning_snapshot(agents, tasks, distances, 1, 5, 4, 3);
   const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
 
   ASSERT_TRUE(snapshot.feasible);
@@ -176,11 +179,13 @@ TEST(lifelong_planning, service_durations_are_encoded_in_cost_offsets)
   auto saw_delivery = false;
   auto saw_pickup = false;
   for (size_t target = 0; target < ins.tasks.size(); ++target) {
-    if (ins.allowed[0][target] && ins.tasks[target]->index == graph.U[0]->index) {
+    if (ins.allowed[0][target] &&
+        ins.tasks[target]->index == graph.U[0]->index) {
       EXPECT_EQ(ins.assignment_cost_offsets[0][target], 3);
       saw_delivery = true;
     }
-    if (ins.allowed[1][target] && ins.tasks[target]->index == graph.U[2]->index) {
+    if (ins.allowed[1][target] &&
+        ins.tasks[target]->index == graph.U[2]->index) {
       EXPECT_EQ(ins.assignment_cost_offsets[1][target], 6);
       saw_pickup = true;
     }
@@ -191,7 +196,8 @@ TEST(lifelong_planning, service_durations_are_encoded_in_cost_offsets)
 
 TEST(lifelong_planning, zero_service_duration_does_not_add_cost_offsets)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -213,8 +219,8 @@ TEST(lifelong_planning, zero_service_duration_does_not_add_cost_offsets)
                         Vertices{graph.U[4]}),
   };
 
-  const auto snapshot = prepare_lifelong_planning_snapshot(
-      agents, tasks, distances, 1, 5, 0, 0);
+  const auto snapshot =
+      prepare_lifelong_planning_snapshot(agents, tasks, distances, 1, 5, 0, 0);
   const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
 
   ASSERT_TRUE(snapshot.feasible);
@@ -222,11 +228,13 @@ TEST(lifelong_planning, zero_service_duration_does_not_add_cost_offsets)
   auto saw_delivery = false;
   auto saw_pickup = false;
   for (size_t target = 0; target < ins.tasks.size(); ++target) {
-    if (ins.allowed[0][target] && ins.tasks[target]->index == graph.U[0]->index) {
+    if (ins.allowed[0][target] &&
+        ins.tasks[target]->index == graph.U[0]->index) {
       EXPECT_EQ(ins.assignment_cost_offsets[0][target], 0);
       saw_delivery = true;
     }
-    if (ins.allowed[1][target] && ins.tasks[target]->index == graph.U[2]->index) {
+    if (ins.allowed[1][target] &&
+        ins.tasks[target]->index == graph.U[2]->index) {
       EXPECT_EQ(ins.assignment_cost_offsets[1][target], 2);
       saw_pickup = true;
     }
@@ -237,7 +245,8 @@ TEST(lifelong_planning, zero_service_duration_does_not_add_cost_offsets)
 
 TEST(lifelong_planning, planner_result_assigns_unloaded_task)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -253,8 +262,7 @@ TEST(lifelong_planning, planner_result_assigns_unloaded_task)
 
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
-  const auto ins =
-      build_lifelong_tapf_instance(map_filename, agents, snapshot);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
   auto tapf_distances = TAPFDistTable(ins);
   const auto initial_assignment =
       assign_tapf_tasks(ins, tapf_distances, ins.starts);
@@ -269,8 +277,7 @@ TEST(lifelong_planning, planner_result_assigns_unloaded_task)
            ? 1
            : 0);
   ASSERT_EQ(initially_selected_service_count, 1);
-  const auto result =
-      solve_snapshot(map_filename, agents, tasks, snapshot);
+  const auto result = solve_snapshot(map_filename, agents, tasks, snapshot);
 
   ASSERT_FALSE(result.solution.empty());
   ASSERT_EQ(result.final_assignment.size(), agents.size());
@@ -304,8 +311,7 @@ TEST(lifelong_planning, shared_pickup_start_has_one_slot_per_planning_round)
 
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
-  const auto result =
-      solve_snapshot(map_filename, agents, tasks, snapshot);
+  const auto result = solve_snapshot(map_filename, agents, tasks, snapshot);
 
   ASSERT_TRUE(snapshot.feasible);
   ASSERT_FALSE(result.solution.empty());
@@ -319,7 +325,8 @@ TEST(lifelong_planning, shared_pickup_start_has_one_slot_per_planning_round)
 
 TEST(lifelong_planning, unloaded_wait_is_only_added_when_pickups_are_scarce)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -361,7 +368,8 @@ TEST(lifelong_planning, unloaded_wait_is_only_added_when_pickups_are_scarce)
 
 TEST(lifelong_planning, multi_carry_candidate_set_depends_on_load_count)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -398,10 +406,10 @@ TEST(lifelong_planning, multi_carry_candidate_set_depends_on_load_count)
     ASSERT_TRUE(snapshot.feasible);
     ASSERT_TRUE(snapshot.pending_task_id_by_start_index_by_agent[0].count(
         graph.U[0]->index));
-    ASSERT_NE(std::find(snapshot.goal_indexes_by_agent[0].begin(),
-                        snapshot.goal_indexes_by_agent[0].end(),
-                        graph.U[5]->index),
-              snapshot.goal_indexes_by_agent[0].end());
+    ASSERT_NE(
+        std::find(snapshot.goal_indexes_by_agent[0].begin(),
+                  snapshot.goal_indexes_by_agent[0].end(), graph.U[5]->index),
+        snapshot.goal_indexes_by_agent[0].end());
   }
 
   {
@@ -415,16 +423,17 @@ TEST(lifelong_planning, multi_carry_candidate_set_depends_on_load_count)
     ASSERT_TRUE(snapshot.feasible);
     ASSERT_FALSE(snapshot.pending_task_id_by_start_index_by_agent[0].count(
         graph.U[0]->index));
-    ASSERT_NE(std::find(snapshot.goal_indexes_by_agent[0].begin(),
-                        snapshot.goal_indexes_by_agent[0].end(),
-                        graph.U[5]->index),
-              snapshot.goal_indexes_by_agent[0].end());
+    ASSERT_NE(
+        std::find(snapshot.goal_indexes_by_agent[0].begin(),
+                  snapshot.goal_indexes_by_agent[0].end(), graph.U[5]->index),
+        snapshot.goal_indexes_by_agent[0].end());
   }
 }
 
 TEST(lifelong_planning, multi_carry_uses_per_pair_fixed_point_scales)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -463,7 +472,8 @@ TEST(lifelong_planning, multi_carry_uses_per_pair_fixed_point_scales)
 
 TEST(lifelong_planning, loaded_distance_sets_priority_offset)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -494,9 +504,45 @@ TEST(lifelong_planning, loaded_distance_sets_priority_offset)
   ASSERT_FLOAT_EQ(ins.agent_priority_offsets[1], 0.0f);
 }
 
+TEST(lifelong_planning, provided_priority_offsets_override_loaded_distance)
+{
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[3]),
+      make_agent(1, graph.U[2]),
+  };
+  agents[0].load_state = AgentLoadState::LOADED;
+  agents[0].carried_task_ids = {20};
+  agents[0].current_task_id = 20;
+  agents[0].loaded_distance_since_last_delivery = 10;
+
+  auto carried = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[1],
+                                   Vertices{graph.U[5]});
+  carried.status = LifelongTaskStatus::PICKED;
+  carried.picked_agent_id = 0;
+  auto pending = make_pending_task(10, LifelongTaskType::OUTBOUND, graph.U[0],
+                                   Vertices{graph.U[4]});
+  auto tasks = std::vector<LifelongTask>{carried, pending};
+  const auto inherited_priorities = std::vector<float>{4.0f, 7.0f};
+
+  const auto snapshot = prepare_lifelong_planning_snapshot(
+      agents, tasks, distances, 2, 5, 1, 1, inherited_priorities);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
+
+  ASSERT_EQ(ins.agent_priority_offsets.size(), agents.size());
+  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[0], 4.0f);
+  ASSERT_FLOAT_EQ(ins.agent_priority_offsets[1], 7.0f);
+}
+
 TEST(lifelong_planning, shared_loaded_drop_uses_distinct_service_slots)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -522,8 +568,7 @@ TEST(lifelong_planning, shared_loaded_drop_uses_distinct_service_slots)
 
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
-  const auto result =
-      solve_snapshot(map_filename, agents, tasks, snapshot);
+  const auto result = solve_snapshot(map_filename, agents, tasks, snapshot);
 
   ASSERT_FALSE(result.solution.empty());
   const auto service_count =
@@ -537,7 +582,8 @@ TEST(lifelong_planning, shared_loaded_drop_uses_distinct_service_slots)
 
 TEST(lifelong_planning, shared_loaded_drop_defaults_to_five_service_slots)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -568,7 +614,8 @@ TEST(lifelong_planning, shared_loaded_drop_defaults_to_five_service_slots)
 
 TEST(lifelong_planning, shared_loaded_drop_service_slots_are_configurable)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -599,7 +646,8 @@ TEST(lifelong_planning, shared_loaded_drop_service_slots_are_configurable)
 
 TEST(lifelong_planning, shared_singleton_drop_is_serviced_sequentially)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -625,8 +673,7 @@ TEST(lifelong_planning, shared_singleton_drop_is_serviced_sequentially)
 
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
-  const auto result =
-      solve_snapshot(map_filename, agents, tasks, snapshot);
+  const auto result = solve_snapshot(map_filename, agents, tasks, snapshot);
 
   ASSERT_FALSE(result.solution.empty());
   const auto service_count =
@@ -641,7 +688,8 @@ TEST(lifelong_planning, shared_singleton_drop_is_serviced_sequentially)
 TEST(lifelong_planning,
      full_service_proof_can_assign_two_agents_to_one_drop_location)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -668,16 +716,15 @@ TEST(lifelong_planning,
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
   auto stats = TAPFStats();
-  const auto ins =
-      build_lifelong_tapf_instance(map_filename, agents, snapshot);
+  const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
   auto final_assignment = std::vector<int>();
   auto assignment_schedule = std::vector<std::vector<int> >();
   auto search_config = TAPFSearchConfig();
   search_config.service_goal_mode = true;
   search_config.service_commit_agents = agents.size();
   const auto solution =
-      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, true, true,
-                 search_config, &final_assignment, &assignment_schedule);
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, true, true, search_config,
+                 &final_assignment, &assignment_schedule);
 
   ASSERT_TRUE(snapshot.feasible);
   ASSERT_TRUE(ins.is_valid());
@@ -697,7 +744,8 @@ TEST(lifelong_planning,
 
 TEST(lifelong_planning, loaded_drop_and_unloaded_pickup_compete_together)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -715,14 +763,13 @@ TEST(lifelong_planning, loaded_drop_and_unloaded_pickup_compete_together)
   picked.picked_agent_id = 0;
   auto pending = make_pending_task(21, LifelongTaskType::OUTBOUND, graph.U[1],
                                    Vertices{graph.U[6]});
-  auto alternative = make_pending_task(
-      22, LifelongTaskType::OUTBOUND, graph.U[3], Vertices{graph.U[7]});
+  auto alternative = make_pending_task(22, LifelongTaskType::OUTBOUND,
+                                       graph.U[3], Vertices{graph.U[7]});
   auto tasks = std::vector<LifelongTask>{picked, pending, alternative};
 
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
-  const auto result =
-      solve_snapshot(map_filename, agents, tasks, snapshot);
+  const auto result = solve_snapshot(map_filename, agents, tasks, snapshot);
 
   ASSERT_FALSE(result.solution.empty());
   ASSERT_EQ(result.target_indexes[0], graph.U[1]->index);
@@ -736,7 +783,8 @@ TEST(lifelong_planning, loaded_drop_and_unloaded_pickup_compete_together)
 
 TEST(lifelong_planning, replanning_can_switch_unpicked_task)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
@@ -755,8 +803,7 @@ TEST(lifelong_planning, replanning_can_switch_unpicked_task)
 
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
-  const auto result =
-      solve_snapshot(map_filename, agents, tasks, snapshot);
+  const auto result = solve_snapshot(map_filename, agents, tasks, snapshot);
 
   ASSERT_TRUE(result.applied);
   ASSERT_EQ(tasks[0].status, LifelongTaskStatus::PENDING);
@@ -766,13 +813,13 @@ TEST(lifelong_planning, replanning_can_switch_unpicked_task)
 
 TEST(lifelong_planning, equal_cost_replanning_keeps_unpicked_task)
 {
-  const auto map_filename = std::string("./tests/assets/lifelong-task-small.map");
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
   const auto graph = Graph(map_filename);
   const auto distances =
       build_map_distance_cache(graph, "lifelong-task-small.map", 1);
 
-  auto agents =
-      std::vector<LifelongAgentState>{make_agent(0, graph.U[1])};
+  auto agents = std::vector<LifelongAgentState>{make_agent(0, graph.U[1])};
   agents[0].current_task_id = 30;
   agents[0].current_target = graph.U[0];
 
@@ -786,8 +833,7 @@ TEST(lifelong_planning, equal_cost_replanning_keeps_unpicked_task)
 
   const auto snapshot =
       prepare_lifelong_planning_snapshot(agents, tasks, distances);
-  const auto result =
-      solve_snapshot(map_filename, agents, tasks, snapshot);
+  const auto result = solve_snapshot(map_filename, agents, tasks, snapshot);
 
   ASSERT_TRUE(result.applied);
   ASSERT_EQ(tasks[0].status, LifelongTaskStatus::ASSIGNED);
