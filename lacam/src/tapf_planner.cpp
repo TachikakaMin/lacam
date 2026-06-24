@@ -1,11 +1,9 @@
 #include "../include/tapf_planner.hpp"
 
 #include <limits>
-#include <unordered_set>
 
 namespace
 {
-  constexpr int kPickupLocationKeyBase = 500000000;
   constexpr int kDeliveryLocationKeyBase = 1000000000;
 
   struct ServiceConfigKey {
@@ -238,36 +236,17 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       occupied_now(Agents(V_size, nullptr)),
       occupied_next(Agents(V_size, nullptr)),
       shared_goal_entry_counts(std::vector<int>(V_size, 0)),
-      real_service_vertices(std::vector<bool>(V_size, false)),
-      shareable_service_vertices(std::vector<bool>(V_size, false))
+      real_service_vertices(std::vector<bool>(V_size, false))
 {
   if (stats != nullptr) *stats = TAPFStats();
   if (search_config.service_goal_mode) {
-    auto regular_task_columns_by_vertex = std::vector<int>(V_size, 0);
-    auto has_lifelong_special_key = std::vector<bool>(V_size, false);
-    auto delivery_keys_by_vertex =
-        std::vector<std::unordered_set<int> >(V_size);
     for (size_t task = 0; task < ins->tasks.size(); ++task) {
-      const auto goal = ins->tasks[task];
-      if (goal == nullptr) continue;
-      const auto key = task < ins->task_keys.size() ? ins->task_keys[task]
-                                                    : static_cast<int>(task);
-      if (key >= kDeliveryLocationKeyBase) {
-        real_service_vertices[goal->id] = true;
-        has_lifelong_special_key[goal->id] = true;
-        delivery_keys_by_vertex[goal->id].insert(key);
-      } else if (key >= kPickupLocationKeyBase || key < 0) {
-        has_lifelong_special_key[goal->id] = true;
-      } else {
-        ++regular_task_columns_by_vertex[goal->id];
+      if (task >= ins->task_keys.size() ||
+          ins->task_keys[task] < kDeliveryLocationKeyBase) {
+        continue;
       }
-    }
-    for (size_t vertex = 0; vertex < shareable_service_vertices.size();
-         ++vertex) {
-      shareable_service_vertices[vertex] =
-          has_lifelong_special_key[vertex]
-              ? delivery_keys_by_vertex[vertex].size() > 1
-              : regular_task_columns_by_vertex[vertex] > 1;
+      const auto goal = ins->tasks[task];
+      if (goal != nullptr) real_service_vertices[goal->id] = true;
     }
   }
 }
@@ -675,10 +654,10 @@ Solution TAPFPlanner::solve(
           if (task < 0 || task >= static_cast<int>(ins->task_keys.size())) {
             continue;
           }
-          if (ins->task_keys[task] < 1000000) {
-            ++stats->service_satisfied_pickups;
-          } else {
+          if (ins->task_keys[task] >= kDeliveryLocationKeyBase) {
             ++stats->service_satisfied_deliveries;
+          } else if (ins->task_keys[task] >= 0) {
+            ++stats->service_satisfied_pickups;
           }
         }
       }
@@ -924,15 +903,11 @@ bool TAPFPlanner::can_reserve_next(const TAPFNode* node, Agent* agent,
   if (agent == nullptr || vertex == nullptr) return false;
   const auto representative = occupied_next[vertex->id];
   if (representative != nullptr &&
-      (vertex->id >= static_cast<int>(shareable_service_vertices.size()) ||
-       !shareable_service_vertices[vertex->id] ||
-       !can_share_service_goal(node, agent->id, vertex) ||
+      (!can_share_service_goal(node, agent->id, vertex) ||
        !can_share_service_goal(node, representative->id, vertex))) {
     return false;
   }
-  if (vertex->id < static_cast<int>(shareable_service_vertices.size()) &&
-      shareable_service_vertices[vertex->id] &&
-      can_share_service_goal(node, agent->id, vertex) &&
+  if (can_share_service_goal(node, agent->id, vertex) &&
       agent->v_now != vertex && shared_goal_entry_counts[vertex->id] > 0) {
     return false;
   }
@@ -948,9 +923,7 @@ void TAPFPlanner::reserve_next(const TAPFNode* node, Agent* agent,
                                Vertex* vertex)
 {
   if (agent == nullptr || vertex == nullptr) return;
-  if (vertex->id < static_cast<int>(shareable_service_vertices.size()) &&
-      shareable_service_vertices[vertex->id] &&
-      can_share_service_goal(node, agent->id, vertex) &&
+  if (can_share_service_goal(node, agent->id, vertex) &&
       agent->v_now != vertex) {
     ++shared_goal_entry_counts[vertex->id];
   }
@@ -986,11 +959,6 @@ bool TAPFPlanner::validate_service_child_config(
   for (size_t v = 0; v < occupancy.size(); ++v) {
     const auto& agents = occupancy[v];
     if (agents.size() <= 1) continue;
-    if (v >= shareable_service_vertices.size() ||
-        !shareable_service_vertices[v]) {
-      if (stack_failure != nullptr) *stack_failure = true;
-      return false;
-    }
     if (entrants[v] > 1) {
       if (stack_failure != nullptr) *stack_failure = true;
       return false;
@@ -1107,7 +1075,7 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
     reserve_next(S, A[i], M->where[k]);
   }
 
-  if (search_config.service_goal_mode && search_config.service_commit_agents > 0) {
+  if (search_config.service_goal_mode) {
     auto direct_entries = 0;
     constexpr auto kMaxDirectServiceEntries = 8;
     for (auto k : S->order) {
@@ -1118,7 +1086,7 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
       const auto task = S->assignment[k];
       if (task < 0 || task >= static_cast<int>(ins->tasks.size())) continue;
       if (task >= static_cast<int>(ins->task_keys.size()) ||
-          ins->task_keys[task] < 1000000000) {
+          ins->task_keys[task] < kDeliveryLocationKeyBase) {
         continue;
       }
       auto goal = ins->tasks[task];
@@ -1247,10 +1215,15 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const TAPFNode* node)
     reserve_next(node, ai, u);
 
     if (ak != nullptr && ak != ai && ak->v_next == nullptr) {
-      if (stats != nullptr) ++stats->pibt_recursions;
-      if (!funcPIBT(ak, node)) {
-        restore_candidate();
-        continue;
+      if (can_share_service_goal(node, ai->id, u) &&
+          can_share_service_goal(node, ak->id, u)) {
+        reserve_next(node, ak, u);
+      } else {
+        if (stats != nullptr) ++stats->pibt_recursions;
+        if (!funcPIBT(ak, node)) {
+          restore_candidate();
+          continue;
+        }
       }
     }
 

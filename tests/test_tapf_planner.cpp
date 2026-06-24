@@ -250,7 +250,7 @@ TEST(tapf_planner,
   }
 }
 
-TEST(tapf_planner, service_mode_does_not_stack_singleton_lifelong_service)
+TEST(tapf_planner, service_mode_keeps_same_target_occupant_when_agent_enters)
 {
   const auto map_filename = "./tests/assets/3x1.map";
   const auto starts = std::vector<int>{0, 1};
@@ -271,8 +271,15 @@ TEST(tapf_planner, service_mode_does_not_stack_singleton_lifelong_service)
 
   ASSERT_FALSE(solution.empty());
   ASSERT_EQ(stats.service_satisfied_deliveries, 1);
-  for (const auto& config : solution) {
-    ASSERT_LE(vertex_occupancy(config, ins.G.U[1]), 1);
+  ASSERT_EQ(vertex_occupancy(solution.back(), ins.G.U[1]), 2);
+  for (size_t t = 1; t < solution.size(); ++t) {
+    auto entrants = 0;
+    for (size_t i = 0; i < starts.size(); ++i) {
+      if (solution[t - 1][i] != ins.G.U[1] && solution[t][i] == ins.G.U[1]) {
+        ++entrants;
+      }
+    }
+    ASSERT_LE(entrants, 1);
   }
 }
 
