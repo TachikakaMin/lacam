@@ -532,9 +532,15 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
           return Solution();
         }
         initial_assignment.agent_to_task[i] = task;
-        initial_service_assignment[i] = task;
-        initial_service_committed[i] = true;
         service_required_agents[i] = true;
+        if (is_real_service_task(ins, task) &&
+            service_duration_for_task(ins, search_config, task) == 0) {
+          initial_satisfied[i] = true;
+          initial_satisfied_assignment[i] = task;
+        } else {
+          initial_service_assignment[i] = task;
+          initial_service_committed[i] = true;
+        }
       }
     }
     if (search_config.initial_service_progress.size() == N) {
@@ -571,10 +577,14 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
           ins->starts[i] != ins->tasks[task]) {
         continue;
       }
-      if (is_real_service_task(ins, task) &&
-          service_duration_for_task(ins, search_config, task) > 0) {
-        initial_service_assignment[i] = task;
-        initial_service_committed[i] = true;
+      if (is_real_service_task(ins, task)) {
+        if (service_duration_for_task(ins, search_config, task) > 0) {
+          initial_service_assignment[i] = task;
+          initial_service_committed[i] = true;
+        } else {
+          initial_satisfied[i] = true;
+          initial_satisfied_assignment[i] = task;
+        }
       } else if (!is_real_service_task(ins, task)) {
         initial_satisfied[i] = true;
         initial_satisfied_assignment[i] = task;

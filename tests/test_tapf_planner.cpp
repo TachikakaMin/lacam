@@ -571,6 +571,27 @@ TEST(tapf_planner, service_duration_zero_completes_on_arrival)
   ASSERT_EQ(stats.service_satisfied_agents, 1);
 }
 
+TEST(tapf_planner, service_duration_zero_at_root_completes_without_stay)
+{
+  const auto map_filename = "./tests/assets/2x1.map";
+  const auto ins = TAPFInstance(map_filename, std::vector<int>{1},
+                                std::vector<std::vector<int> >{{1}});
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.pickup_service_duration = 0;
+  search_config.delivery_service_duration = 0;
+
+  const auto solution = solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false,
+                                   false, search_config, &final_assignment);
+
+  ASSERT_EQ(solution.size(), 1);
+  ASSERT_EQ(solution[0][0], ins.G.U[1]);
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+  ASSERT_EQ(final_assignment.size(), 1);
+}
+
 TEST(tapf_planner, non_real_wait_target_does_not_use_service_duration)
 {
   const auto map_filename = "./tests/assets/3x1.map";
