@@ -1,7 +1,0 @@
-metric,method,median_over_cases,n_cases
-per_assignment_time_s,itacbs,0.000110518,4763
-per_assignment_time_s,lacam_focal_h,2.8591608695652175e-05,9727
-assignment_calls,itacbs,6.0,4763
-assignment_calls,lacam_focal_h,7924.0,9727
-node_count,itacbs,9.0,4763
-node_count,lacam_focal_h,7924.0,9727

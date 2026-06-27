@@ -1,2 +1,0 @@
-cases,external_timeouts,mean_runtime_ms,mean_soc,mean_sum_of_loss,mean_wall_time_s,method,solve_rate,solved,suite
-400,0,10000.511508951407,7470.6547314578,nan,9.807676624655723,ir,0.9775,391,exp1
