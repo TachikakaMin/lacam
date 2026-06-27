@@ -32,6 +32,8 @@ struct TAPFSearchConfig {
   int delivery_service_duration = 1;
   std::vector<int> initial_service_assignments;
   std::vector<int> initial_service_progress;
+  std::vector<int> initial_optional_service_assignments;
+  std::vector<int> initial_optional_service_remaining;
 };
 
 struct TAPFConstraint {

@@ -428,6 +428,125 @@ namespace
     return static_cast<int>(type);
   }
 
+  std::vector<std::unordered_map<int, int> > partial_pickup_preferences(
+      const std::vector<LifelongAgentState>& agents,
+      const std::vector<LifelongTask>& tasks,
+      const std::vector<bool>& service_active,
+      const std::vector<int>& service_keys,
+      const std::vector<int>& service_target_indexes,
+      const std::vector<int>& service_progress, int pickup_service_duration)
+  {
+    auto preferred =
+        std::vector<std::unordered_map<int, int> >(agents.size());
+    for (size_t i = 0; i < agents.size(); ++i) {
+      if (i >= service_active.size() || i >= service_keys.size() ||
+          i >= service_target_indexes.size() || i >= service_progress.size() ||
+          !service_active[i]) {
+        continue;
+      }
+      const auto task_id = service_keys[i];
+      const auto target_index = service_target_indexes[i];
+      const auto remaining =
+          std::max(0, pickup_service_duration - std::max(0, service_progress[i]));
+      if (task_id < 0 || task_id >= kPickupLocationKeyBase ||
+          target_index < 0 || remaining <= 0 ||
+          agents[i].current_location == nullptr ||
+          agents[i].current_location->index != target_index) {
+        continue;
+      }
+      const auto* task = find_task_by_id(tasks, task_id);
+      if (task == nullptr || task->start == nullptr ||
+          task->start->index != target_index) {
+        continue;
+      }
+      const auto valid_pending = task->status == LifelongTaskStatus::PENDING;
+      const auto valid_assigned =
+          task->status == LifelongTaskStatus::ASSIGNED &&
+          task->assigned_agent_id.has_value() &&
+          *task->assigned_agent_id == agents[i].agent_id;
+      if (valid_pending || valid_assigned) preferred[i][target_index] = task_id;
+    }
+    return preferred;
+  }
+
+  void initialize_optional_partial_services(
+      const TAPFInstance& ins, const LifelongPlanningSnapshot& snapshot,
+      const std::vector<LifelongAgentState>& agents,
+      const std::vector<bool>& service_active,
+      const std::vector<int>& service_keys,
+      const std::vector<int>& service_target_indexes,
+      const std::vector<int>& service_progress, int pickup_service_duration,
+      int delivery_service_duration, TAPFSearchConfig& search_config)
+  {
+    search_config.initial_optional_service_assignments.assign(agents.size(), -1);
+    search_config.initial_optional_service_remaining.assign(agents.size(), 0);
+    auto used_tasks = std::vector<bool>(ins.tasks.size(), false);
+    for (size_t i = 0; i < agents.size(); ++i) {
+      if (i >= service_active.size() || i >= service_keys.size() ||
+          i >= service_target_indexes.size() || i >= service_progress.size() ||
+          !service_active[i] || agents[i].current_location == nullptr) {
+        continue;
+      }
+      const auto key = service_keys[i];
+      const auto target_index = service_target_indexes[i];
+      if (target_index < 0 ||
+          agents[i].current_location->index != target_index) {
+        continue;
+      }
+      const auto is_delivery = key >= kDeliveryLocationKeyBase;
+      const auto is_pickup = key >= 0 && key < kPickupLocationKeyBase;
+      if (!is_delivery && !is_pickup) continue;
+      const auto duration =
+          is_delivery ? delivery_service_duration : pickup_service_duration;
+      const auto remaining =
+          std::max(0, duration - std::max(0, service_progress[i]));
+      if (remaining <= 0) continue;
+
+      auto task_column = -1;
+      if (is_pickup) {
+        if (i >= snapshot.pending_task_id_by_start_index_by_agent.size()) {
+          continue;
+        }
+        const auto& pending =
+            snapshot.pending_task_id_by_start_index_by_agent[i];
+        const auto iter = pending.find(target_index);
+        if (iter == pending.end() || iter->second != key) continue;
+        for (size_t j = 0; j < ins.tasks.size(); ++j) {
+          const auto task_key =
+              j < ins.task_keys.size() ? ins.task_keys[j] : -1;
+          if (!used_tasks[j] && ins.allowed[i][j] &&
+              ins.tasks[j]->index == target_index &&
+              task_key >= kPickupLocationKeyBase &&
+              task_key < kDeliveryLocationKeyBase) {
+            task_column = static_cast<int>(j);
+            break;
+          }
+        }
+      } else {
+        const auto carried_task_id = key - kDeliveryLocationKeyBase;
+        if (std::find(agents[i].carried_task_ids.begin(),
+                      agents[i].carried_task_ids.end(),
+                      carried_task_id) == agents[i].carried_task_ids.end()) {
+          continue;
+        }
+        for (size_t j = 0; j < ins.tasks.size(); ++j) {
+          const auto task_key =
+              j < ins.task_keys.size() ? ins.task_keys[j] : -1;
+          if (!used_tasks[j] && ins.allowed[i][j] &&
+              ins.tasks[j]->index == target_index &&
+              task_key >= kDeliveryLocationKeyBase) {
+            task_column = static_cast<int>(j);
+            break;
+          }
+        }
+      }
+      if (task_column < 0) continue;
+      used_tasks[task_column] = true;
+      search_config.initial_optional_service_assignments[i] = task_column;
+      search_config.initial_optional_service_remaining[i] = remaining;
+    }
+  }
+
   void accumulate_trace_assignment_type(LifelongPlannerTraceRecord& trace,
                                         const LifelongAgentState& agent,
                                         LifelongTraceTargetType type)
@@ -635,6 +754,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
     auto service_target_indexes = std::vector<int>(agents.size(), -1);
     auto service_progress = std::vector<int>(agents.size(), 0);
     auto inherited_priorities = std::vector<float>(agents.size(), 0.0f);
+    auto pending_replan_from_arrival = false;
     append_agent_task_snapshot(metrics, agents);
 
     for (int t = 0; t < config.horizon; ++t) {
@@ -741,7 +861,10 @@ LifelongSimulationMetrics run_lifelong_simulation(
       };
       const auto plan_finished = !valid_plan || plan_step + 1 >= plan.size();
       auto ready_at_t = service_ready_agents(std::vector<Vertex*>());
-      auto event_happened = process_arrivals(t, &ready_at_t);
+      const auto arrival_event_at_t = process_arrivals(t, &ready_at_t);
+      auto event_happened =
+          pending_replan_from_arrival || arrival_event_at_t;
+      pending_replan_from_arrival = false;
       refresh_lifelong_priorities(inherited_priorities, agents, tasks, false);
       const auto should_replan =
           t == 0 || event_happened ||
@@ -753,10 +876,14 @@ LifelongSimulationMetrics run_lifelong_simulation(
       if (should_replan) {
         ++metrics.planner_invocations;
         const auto planning_start = Time::now();
+        const auto preferred_partial_pickups = partial_pickup_preferences(
+            agents, tasks, service_active, service_keys, service_target_indexes,
+            service_progress, config.pickup_service_duration);
         auto snapshot = prepare_lifelong_planning_snapshot(
             agents, tasks, distances, config.multi_carry_capacity,
             config.max_shared_drop_goal_agents, config.pickup_service_duration,
-            config.delivery_service_duration, inherited_priorities);
+            config.delivery_service_duration, inherited_priorities,
+            preferred_partial_pickups);
         auto solution = Solution();
         auto final_assignment = std::vector<int>();
         auto assignment_schedule = std::vector<std::vector<int> >();
@@ -921,6 +1048,11 @@ LifelongSimulationMetrics run_lifelong_simulation(
                 config.pickup_service_duration;
             search_config.delivery_service_duration =
                 config.delivery_service_duration;
+            initialize_optional_partial_services(
+                ins, snapshot, agents, service_active, service_keys,
+                service_target_indexes, service_progress,
+                config.pickup_service_duration,
+                config.delivery_service_duration, search_config);
             solution = solve_tapf(
                 ins, 0, &deadline, &planner_mt, 0, &stats,
                 config.planner_anytime, config.planner_force_full_assignment,
@@ -1133,7 +1265,9 @@ LifelongSimulationMetrics run_lifelong_simulation(
       }
 
       auto ready_agents = service_ready_agents(previous);
-      process_arrivals(t + 1, &ready_agents);
+      pending_replan_from_arrival =
+          process_arrivals(t + 1, &ready_agents) ||
+          pending_replan_from_arrival;
       if (valid_plan && plan_step + 1 < plan.size()) {
         if (plan_step >= plan_assignment_keys.size() ||
             plan_step >= plan_assignment_target_indexes.size() ||

@@ -13,6 +13,7 @@ struct LifelongPlanningSnapshot {
   std::vector<std::vector<int> > goal_indexes_by_agent;
   std::vector<std::vector<int> > goal_cost_offsets_by_agent;
   std::vector<std::vector<int> > goal_distance_scales_by_agent;
+  std::vector<std::vector<int> > goal_service_durations_by_agent;
   std::vector<std::vector<int> > goal_keys_by_agent;
   std::vector<float> agent_priority_offsets;
   std::vector<std::unordered_map<int, int> >
@@ -33,7 +34,10 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     const MapDistanceCache& distances, int multi_carry_capacity = 1,
     int max_shared_drop_goal_agents = 5, int pickup_service_duration = 1,
     int delivery_service_duration = 1,
-    const std::vector<float>& agent_priority_offsets = std::vector<float>());
+    const std::vector<float>& agent_priority_offsets = std::vector<float>(),
+    const std::vector<std::unordered_map<int, int> >&
+        preferred_pickup_task_id_by_start_index_by_agent =
+            std::vector<std::unordered_map<int, int> >());
 TAPFInstance build_lifelong_tapf_instance(
     const std::string& map_filename,
     const std::vector<LifelongAgentState>& agents,

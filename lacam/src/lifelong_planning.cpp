@@ -63,7 +63,8 @@ namespace
   bool add_goal_option(LifelongPlanningSnapshot& snapshot, size_t agent,
                        Vertex* agent_location, Vertex* target,
                        int distance_scale, int cost_offset, int goal_key,
-                       const MapDistanceCache& distances)
+                       const MapDistanceCache& distances,
+                       int service_duration = 0, bool force_replace = false)
   {
     if (agent_location == nullptr || target == nullptr || distance_scale <= 0 ||
         cost_offset >= kTapfAssignmentInfCost) {
@@ -79,12 +80,17 @@ namespace
     auto& offsets = snapshot.goal_cost_offsets_by_agent[agent];
     auto& scales = snapshot.goal_distance_scales_by_agent[agent];
     auto& keys = snapshot.goal_keys_by_agent[agent];
+    auto& service_durations = snapshot.goal_service_durations_by_agent[agent];
+    if (service_durations.size() < keys.size()) {
+      service_durations.resize(keys.size(), 0);
+    }
     const auto iter = std::find(keys.begin(), keys.end(), goal_key);
     if (iter == keys.end()) {
       indexes.push_back(target->index);
       offsets.push_back(cost_offset);
       scales.push_back(distance_scale);
       keys.push_back(goal_key);
+      service_durations.push_back(std::max(0, service_duration));
       snapshot.target_by_index[target->index] = target;
       return true;
     } else {
@@ -92,9 +98,10 @@ namespace
       const auto old_root_cost =
           static_cast<long long>(root_distance) * scales[option] +
           offsets[option];
-      if (root_cost < old_root_cost) {
+      if (force_replace || root_cost < old_root_cost) {
         offsets[option] = cost_offset;
         scales[option] = distance_scale;
+        service_durations[option] = std::max(0, service_duration);
         snapshot.target_by_index[target->index] = target;
         return true;
       }
@@ -271,7 +278,9 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     const MapDistanceCache& distances, int multi_carry_capacity,
     int max_shared_drop_goal_agents, int pickup_service_duration,
     int delivery_service_duration,
-    const std::vector<float>& agent_priority_offsets)
+    const std::vector<float>& agent_priority_offsets,
+    const std::vector<std::unordered_map<int, int> >&
+        preferred_pickup_task_id_by_start_index_by_agent)
 {
   normalize_agent_task_state(agents, tasks);
   auto previous_task_ids =
@@ -286,10 +295,17 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   snapshot.goal_indexes_by_agent.resize(agents.size());
   snapshot.goal_cost_offsets_by_agent.resize(agents.size());
   snapshot.goal_distance_scales_by_agent.resize(agents.size());
+  snapshot.goal_service_durations_by_agent.resize(agents.size());
   snapshot.goal_keys_by_agent.resize(agents.size());
   snapshot.agent_priority_offsets.assign(agents.size(), 0.0f);
   const auto has_inherited_priorities = !agent_priority_offsets.empty();
   if (has_inherited_priorities && agent_priority_offsets.size() != agents.size()) {
+    snapshot.feasible = false;
+  }
+  const auto has_preferred_pickups =
+      !preferred_pickup_task_id_by_start_index_by_agent.empty();
+  if (has_preferred_pickups &&
+      preferred_pickup_task_id_by_start_index_by_agent.size() != agents.size()) {
     snapshot.feasible = false;
   }
   snapshot.pending_task_id_by_start_index_by_agent.resize(agents.size());
@@ -359,7 +375,7 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
             static_cast<long long>(delivery_cost) + circle +
             (carried_count > 0 ? agent.loaded_distance_since_last_delivery
                                : 0) +
-            (switched ? 1 : 0) + std::max(0, pickup_service_duration);
+            (switched ? 1 : 0);
         const auto denominator = carried_count + 1;
         const auto offset =
             scaled_static_cost(static_cost, common_scale, denominator);
@@ -369,8 +385,18 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         // replan, so they are serviced sequentially rather than contending for
         // the same cell simultaneously.
         const auto pickup_key = pickup_location_key(task.start->index);
+        auto force_pickup_task = false;
+        if (has_preferred_pickups &&
+            i < preferred_pickup_task_id_by_start_index_by_agent.size()) {
+          const auto& preferred =
+              preferred_pickup_task_id_by_start_index_by_agent[i];
+          const auto iter = preferred.find(task.start->index);
+          force_pickup_task =
+              iter != preferred.end() && iter->second == task.task_id;
+        }
         if (add_goal_option(snapshot, i, agent.current_location, task.start,
-                            distance_scale, offset, pickup_key, distances)) {
+                            distance_scale, offset, pickup_key, distances,
+                            pickup_service_duration, force_pickup_task)) {
           snapshot
               .pending_task_id_by_start_index_by_agent[i][task.start->index] =
               task.task_id;
@@ -390,16 +416,15 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
           if (!delivery_targets.insert(goal->index).second) continue;
           const auto circle = circle_cost(goal, carried, distances);
           if (circle >= kTapfAssignmentInfCost) continue;
-          const auto static_cost = static_cast<long long>(circle) +
-                                   std::max(0, delivery_service_duration);
+          const auto static_cost = static_cast<long long>(circle);
           const auto offset =
               scaled_static_cost(static_cost, common_scale, carried_count);
           const auto distance_scale = common_scale / carried_count;
           for (auto slot = 0; slot < max_shared_drop_goal_agents; ++slot) {
+            const auto goal_key = delivery_location_slot_key(goal->index, slot);
             add_goal_option(snapshot, i, agent.current_location, goal,
-                            distance_scale, offset,
-                            delivery_location_slot_key(goal->index, slot),
-                            distances);
+                            distance_scale, offset, goal_key, distances,
+                            delivery_service_duration);
           }
         }
       }
@@ -430,7 +455,8 @@ TAPFInstance build_lifelong_tapf_instance(
       map_filename, start_indexes, snapshot.goal_indexes_by_agent,
       snapshot.goal_cost_offsets_by_agent, snapshot.common_cost_scale,
       snapshot.goal_distance_scales_by_agent, snapshot.agent_priority_offsets,
-      false, snapshot.goal_keys_by_agent);
+      false, snapshot.goal_keys_by_agent,
+      snapshot.goal_service_durations_by_agent);
 }
 
 bool apply_lifelong_solution_assignment(

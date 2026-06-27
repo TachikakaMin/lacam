@@ -97,11 +97,13 @@ bool invalid_input(const TAPFInstance& ins, const Config& C)
   return ins.tasks.size() < ins.N || C.size() != ins.N;
 }
 
-long long row_cache_key(int agent_id, Vertex* cell)
+TAPFAssignmentRowCacheKey row_cache_key(int agent_id, Vertex* cell,
+                                        int partial_task,
+                                        int partial_remaining)
 {
   const auto cell_id = cell == nullptr ? -1 : cell->id;
-  return (static_cast<long long>(agent_id) << 32) ^
-         static_cast<unsigned int>(cell_id);
+  return TAPFAssignmentRowCacheKey{agent_id, cell_id, partial_task,
+                                   partial_remaining};
 }
 
 void record_assignment_time(const Time::time_point& t_start,
@@ -117,7 +119,8 @@ void record_assignment_time(const Time::time_point& t_start,
 
 std::vector<std::vector<int> > build_cost_matrix(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
-    const std::vector<int>& previous_assignment, const int sticky_penalty)
+    const std::vector<int>& previous_assignment, const int sticky_penalty,
+    const TAPFAssignmentServiceCostState& service_cost_state)
 {
   auto cost = std::vector<std::vector<int> >(
       ins.N, std::vector<int>(ins.tasks.size(), kTapfAssignmentInfCost));
@@ -130,10 +133,26 @@ std::vector<std::vector<int> > build_cost_matrix(
       const auto distance_scale = ins.assignment_distance_scales.empty()
                                       ? ins.assignment_distance_scale
                                       : ins.assignment_distance_scales[i][j];
-      const auto scaled_distance =
-          static_cast<long long>(d) * distance_scale;
-      if (scaled_distance + offset >= kTapfAssignmentInfCost) continue;
-      cost[i][j] = static_cast<int>(scaled_distance + offset);
+      const auto full_service_duration =
+          ins.assignment_service_durations.empty()
+              ? 0
+              : ins.assignment_service_durations[i][j];
+      const auto partial_task =
+          i < service_cost_state.partial_task_by_agent.size()
+              ? service_cost_state.partial_task_by_agent[i]
+              : -1;
+      const auto partial_remaining =
+          i < service_cost_state.partial_remaining_by_agent.size()
+              ? std::max(0, service_cost_state.partial_remaining_by_agent[i])
+              : 0;
+      const auto continues_partial =
+          partial_task == static_cast<int>(j) && C[i] == ins.tasks[j];
+      const auto service_duration =
+          continues_partial ? partial_remaining : full_service_duration;
+      const auto scaled_work =
+          static_cast<long long>(d + service_duration) * distance_scale;
+      if (scaled_work + offset >= kTapfAssignmentInfCost) continue;
+      cost[i][j] = static_cast<int>(scaled_work + offset);
       if (!previous_assignment.empty() &&
           previous_assignment[i] != static_cast<int>(j)) {
         cost[i][j] += sticky_penalty;
@@ -147,7 +166,8 @@ std::vector<std::vector<int> > build_cost_matrix(
 TAPFAssignmentResult assign_tapf_tasks(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
     const std::vector<int>& previous_assignment, const int sticky_penalty,
-    TAPFAssignmentStats* stats)
+    TAPFAssignmentStats* stats,
+    const TAPFAssignmentServiceCostState& service_cost_state)
 {
   const auto t_start = Time::now();
   if (stats != nullptr) ++stats->calls;
@@ -157,9 +177,10 @@ TAPFAssignmentResult assign_tapf_tasks(
     return invalid_result();
   }
 
-  auto result = HungarianAssignment(build_cost_matrix(
-                                        ins, D, C, previous_assignment,
-                                        sticky_penalty))
+  auto result = HungarianAssignment(build_cost_matrix(ins, D, C,
+                                                      previous_assignment,
+                                                      sticky_penalty,
+                                                      service_cost_state))
                     .solve();
   record_assignment_time(t_start, stats);
   return result;
@@ -170,7 +191,8 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     TAPFAssignmentState& state, const std::vector<int>& changed_agents,
     const bool force_full, TAPFAssignmentStats* stats,
     const std::vector<int>& fixed_task_by_agent,
-    const std::vector<bool>& unavailable_tasks)
+    const std::vector<bool>& unavailable_tasks,
+    const TAPFAssignmentServiceCostState& service_cost_state)
 {
   const auto t_start = Time::now();
   if (stats != nullptr) ++stats->calls;
@@ -196,10 +218,28 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
       const auto distance_scale = ins.assignment_distance_scales.empty()
                                       ? ins.assignment_distance_scale
                                       : ins.assignment_distance_scales[i][j];
-      const auto scaled_distance =
-          static_cast<long long>(d) * distance_scale;
-      if (scaled_distance + offset >= kTapfAssignmentInfCost) continue;
-      row[j] = static_cast<int>(scaled_distance + offset);
+      const auto full_service_duration =
+          ins.assignment_service_durations.empty()
+              ? 0
+              : ins.assignment_service_durations[i][j];
+      const auto partial_task =
+          i < static_cast<int>(service_cost_state.partial_task_by_agent.size())
+              ? service_cost_state.partial_task_by_agent[i]
+              : -1;
+      const auto partial_remaining =
+          i <
+                  static_cast<int>(
+                      service_cost_state.partial_remaining_by_agent.size())
+              ? std::max(0, service_cost_state.partial_remaining_by_agent[i])
+              : 0;
+      const auto continues_partial =
+          partial_task == static_cast<int>(j) && C[i] == ins.tasks[j];
+      const auto service_duration =
+          continues_partial ? partial_remaining : full_service_duration;
+      const auto scaled_work =
+          static_cast<long long>(d + service_duration) * distance_scale;
+      if (scaled_work + offset >= kTapfAssignmentInfCost) continue;
+      row[j] = static_cast<int>(scaled_work + offset);
     }
     return row;
   };
@@ -215,7 +255,17 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
       return kTapfAssignmentInfCost;
     }
     if (stats != nullptr) ++stats->row_cache_requests;
-    const auto key = row_cache_key(i, C[i]);
+    const auto partial_task =
+        i < static_cast<int>(service_cost_state.partial_task_by_agent.size())
+            ? service_cost_state.partial_task_by_agent[i]
+            : -1;
+    const auto partial_remaining =
+        i <
+                static_cast<int>(
+                    service_cost_state.partial_remaining_by_agent.size())
+            ? std::max(0, service_cost_state.partial_remaining_by_agent[i])
+            : 0;
+    const auto key = row_cache_key(i, C[i], partial_task, partial_remaining);
     auto iter = state.row_cost_cache.find(key);
     if (iter == state.row_cost_cache.end()) {
       iter = state.row_cost_cache.emplace(key, build_row(i)).first;

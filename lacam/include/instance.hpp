@@ -48,6 +48,7 @@ struct TAPFInstance {
   std::vector<std::vector<bool> > allowed;  // agent-task compatibility
   std::vector<std::vector<int> > assignment_cost_offsets;
   std::vector<std::vector<int> > assignment_distance_scales;
+  std::vector<std::vector<int> > assignment_service_durations;
   std::vector<float> agent_priority_offsets;
   int assignment_distance_scale;
   const uint N;                           // number of agents
@@ -60,7 +61,9 @@ struct TAPFInstance {
                const std::vector<std::vector<int> >& task_distance_scales = {},
                const std::vector<float>& agent_priority_offsets = {},
                bool preserve_duplicate_tasks = false,
-               const std::vector<std::vector<int> >& task_key_options = {});
+               const std::vector<std::vector<int> >& task_key_options = {},
+               const std::vector<std::vector<int> >& task_service_durations =
+                   {});
   TAPFInstance(const std::string& yaml_filename,
                const std::string& map_dir = "");
   ~TAPFInstance() {}

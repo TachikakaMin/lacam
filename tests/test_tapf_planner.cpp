@@ -185,7 +185,7 @@ TEST(tapf_planner, service_mode_default_commits_first_real_service)
   ASSERT_GE(stats.service_best_satisfied_agents, 1);
 }
 
-TEST(tapf_planner, service_mode_default_completes_late_service_starts)
+TEST(tapf_planner, service_mode_default_cuts_at_first_service_completion)
 {
   const auto map_filename = "./tests/assets/5x1.map";
   const auto starts = std::vector<int>{0, 4};
@@ -204,8 +204,7 @@ TEST(tapf_planner, service_mode_default_completes_late_service_starts)
                                    false, search_config);
 
   ASSERT_FALSE(solution.empty());
-  ASSERT_EQ(stats.service_satisfied_agents, 2);
-  ASSERT_GE(solution.size(), 5);
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
   auto agent1_entry = solution.size();
   for (size_t t = 1; t < solution.size(); ++t) {
     if (solution[t - 1][1] != ins.G.U[2] && solution[t][1] == ins.G.U[2]) {
@@ -214,11 +213,10 @@ TEST(tapf_planner, service_mode_default_completes_late_service_starts)
     }
   }
   ASSERT_LT(agent1_entry, solution.size());
-  ASSERT_GE(solution.size(), agent1_entry + 3);
-  for (size_t t = agent1_entry; t <= agent1_entry + 2; ++t) {
-    ASSERT_EQ(solution[t][1], ins.G.U[2])
-        << "late service start was cut before duration completed at t=" << t;
-  }
+  ASSERT_EQ(solution.size(), agent1_entry + 2)
+      << "lifelong replanning consumes only the prefix ending at the first "
+         "completed service; later started services continue via partial state";
+  ASSERT_EQ(solution.back()[1], ins.G.U[2]);
 }
 
 TEST(tapf_planner, service_mode_allows_sequential_entries_to_one_physical_goal)
@@ -432,6 +430,103 @@ TEST(tapf_planner, initial_service_progress_requires_remaining_stays)
   ASSERT_EQ(solution[1][0], ins.G.U[1]);
   ASSERT_NE(solution[1][1], ins.G.U[1]);
   ASSERT_EQ(stats.service_satisfied_agents, 1);
+}
+
+TEST(tapf_planner,
+     optional_partial_service_continuation_uses_remaining_duration)
+{
+  const auto map_filename = "./tests/assets/2x1.map";
+  const auto starts = std::vector<int>{0};
+  const auto goals = std::vector<std::vector<int> >{{0}};
+  const auto task_keys = std::vector<std::vector<int> >{{0}};
+  const auto service_durations = std::vector<std::vector<int> >{{3}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
+                                false, task_keys, service_durations);
+  auto stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = 1;
+  search_config.pickup_service_duration = 3;
+  search_config.delivery_service_duration = 3;
+  search_config.initial_optional_service_assignments = {0};
+  search_config.initial_optional_service_remaining = {1};
+
+  const auto solution = solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false,
+                                   false, search_config);
+
+  ASSERT_EQ(solution.size(), 2);
+  ASSERT_EQ(solution[0][0], ins.G.U[0]);
+  ASSERT_EQ(solution[1][0], ins.G.U[0]);
+  ASSERT_EQ(stats.service_satisfied_agents, 1);
+}
+
+TEST(tapf_planner, optional_partial_service_can_be_abandoned)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{1};
+  const auto goals = std::vector<std::vector<int> >{{1, 2}};
+  const auto offsets = std::vector<std::vector<int> >{{100, 0}};
+  const auto task_keys = std::vector<std::vector<int> >{{0, 1}};
+  const auto service_durations = std::vector<std::vector<int> >{{3, 3}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, offsets, 1, {},
+                                {}, false, task_keys, service_durations);
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = 1;
+  search_config.pickup_service_duration = 3;
+  search_config.delivery_service_duration = 3;
+  search_config.initial_optional_service_assignments = {0};
+  search_config.initial_optional_service_remaining = {2};
+
+  const auto solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
+                 search_config, &final_assignment);
+
+  ASSERT_FALSE(solution.empty());
+  ASSERT_EQ(final_assignment.size(), 1);
+  ASSERT_EQ(ins.tasks[final_assignment[0]], ins.G.U[2]);
+  ASSERT_EQ(solution.back()[0], ins.G.U[2]);
+}
+
+TEST(tapf_planner, optional_partial_service_changes_root_assignment_cost)
+{
+  const auto map_filename = "./tests/assets/3x1.map";
+  const auto starts = std::vector<int>{1};
+  const auto goals = std::vector<std::vector<int> >{{1, 2}};
+  const auto offsets = std::vector<std::vector<int> >{{0, 0}};
+  const auto scales = std::vector<std::vector<int> >{{1, 1}};
+  const auto task_keys = std::vector<std::vector<int> >{{0, 1}};
+  const auto service_durations = std::vector<std::vector<int> >{{5, 1}};
+  const auto ins = TAPFInstance(map_filename, starts, goals, offsets, 1,
+                                scales, {}, false, task_keys,
+                                service_durations);
+
+  auto no_partial_stats = TAPFStats();
+  auto search_config = TAPFSearchConfig();
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = 1;
+  search_config.pickup_service_duration = 5;
+  search_config.delivery_service_duration = 5;
+  const auto no_partial_solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &no_partial_stats, false,
+                 false, search_config);
+
+  ASSERT_FALSE(no_partial_solution.empty());
+  ASSERT_EQ(no_partial_stats.initial_assignment.size(), 1);
+  ASSERT_EQ(ins.tasks[no_partial_stats.initial_assignment[0]], ins.G.U[2]);
+
+  auto partial_stats = TAPFStats();
+  search_config.initial_optional_service_assignments = {0};
+  search_config.initial_optional_service_remaining = {1};
+  const auto partial_solution =
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &partial_stats, false, false,
+                 search_config);
+
+  ASSERT_FALSE(partial_solution.empty());
+  ASSERT_EQ(partial_stats.initial_assignment.size(), 1);
+  ASSERT_EQ(ins.tasks[partial_stats.initial_assignment[0]], ins.G.U[1]);
 }
 
 TEST(tapf_planner, service_duration_counts_consecutive_stays_after_arrival)

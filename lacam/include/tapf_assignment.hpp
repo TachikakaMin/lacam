@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <functional>
 #include <limits>
 #include <queue>
 #include <unordered_map>
@@ -28,6 +29,41 @@ struct TAPFAssignmentStats {
   long row_cache_hits = 0;
 };
 
+struct TAPFAssignmentServiceCostState {
+  std::vector<int> partial_task_by_agent;
+  std::vector<int> partial_remaining_by_agent;
+};
+
+struct TAPFAssignmentRowCacheKey {
+  int agent_id = -1;
+  int cell_id = -1;
+  int partial_task = -1;
+  int partial_remaining = 0;
+
+  bool operator==(const TAPFAssignmentRowCacheKey& other) const
+  {
+    return agent_id == other.agent_id && cell_id == other.cell_id &&
+           partial_task == other.partial_task &&
+           partial_remaining == other.partial_remaining;
+  }
+};
+
+struct TAPFAssignmentRowCacheKeyHash {
+  size_t operator()(const TAPFAssignmentRowCacheKey& key) const
+  {
+    auto seed = size_t{0xcbf29ce484222325ULL};
+    auto combine = [&](const int value) {
+      seed ^= std::hash<int>()(value) + 0x9e3779b97f4a7c15ULL + (seed << 6) +
+              (seed >> 2);
+    };
+    combine(key.agent_id);
+    combine(key.cell_id);
+    combine(key.partial_task);
+    combine(key.partial_remaining);
+    return seed;
+  }
+};
+
 struct TAPFAssignmentState {
   int org_n = 0;
   int org_m = 0;
@@ -38,7 +74,9 @@ struct TAPFAssignmentState {
   std::vector<long> ly;
   long cost_scale = 1;
   long tie_hash_mod = 1;
-  std::unordered_map<long long, std::vector<int> > row_cost_cache;
+  std::unordered_map<TAPFAssignmentRowCacheKey, std::vector<int>,
+                     TAPFAssignmentRowCacheKeyHash>
+      row_cost_cache;
 
   void init(const int agent_num, const int task_num)
   {
@@ -262,14 +300,18 @@ TAPFAssignmentResult assign_tapf_tasks(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
     const std::vector<int>& previous_assignment = std::vector<int>(),
     const int sticky_penalty = 0,
-    TAPFAssignmentStats* stats = nullptr);
+    TAPFAssignmentStats* stats = nullptr,
+    const TAPFAssignmentServiceCostState& service_cost_state =
+        TAPFAssignmentServiceCostState());
 
 TAPFAssignmentResult assign_tapf_tasks_dynamic(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
     TAPFAssignmentState& state, const std::vector<int>& changed_agents,
     const bool force_full = false, TAPFAssignmentStats* stats = nullptr,
     const std::vector<int>& fixed_task_by_agent = std::vector<int>(),
-    const std::vector<bool>& unavailable_tasks = std::vector<bool>());
+    const std::vector<bool>& unavailable_tasks = std::vector<bool>(),
+    const TAPFAssignmentServiceCostState& service_cost_state =
+        TAPFAssignmentServiceCostState());
 
 TAPFAssignmentResult assign_hungarian_cost_matrix(
     const std::vector<std::vector<int> >& cost);
