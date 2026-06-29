@@ -13,6 +13,7 @@ namespace
   constexpr int kDeliveryLocationKeyBase = 1000000000;
   constexpr int kPickupLocationKeyBase = 500000000;
   constexpr int kDeliveryLocationSlotStride = 1000000;
+  constexpr int kCongestionRegionRadius = 2;
 
   std::vector<size_t> collect_pending_tasks(
       const std::vector<LifelongTask>& tasks)
@@ -221,12 +222,109 @@ namespace
                                           : static_cast<int>(cost);
   }
 
+  bool uses_mild_loaded_pickup_delay(int assignment_cost_mode)
+  {
+    return assignment_cost_mode ==
+               LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY ||
+           assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_CONGESTION;
+  }
+
+  bool uses_local_congestion_cost(int assignment_cost_mode)
+  {
+    return assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_CONGESTION;
+  }
+
+  int add_cost_offset_penalty(int base_offset, long long penalty)
+  {
+    if (base_offset >= kTapfAssignmentInfCost) return kTapfAssignmentInfCost;
+    if (penalty <= 0) return base_offset;
+    const auto total = static_cast<long long>(base_offset) + penalty;
+    return total >= kTapfAssignmentInfCost ? kTapfAssignmentInfCost
+                                           : static_cast<int>(total);
+  }
+
+  bool vertex_in_local_region(Vertex* center, Vertex* candidate,
+                              const MapDistanceCache& distances)
+  {
+    if (center == nullptr || candidate == nullptr) return false;
+    return distances.get(center, candidate) <= kCongestionRegionRadius;
+  }
+
+  void increment_cell_count(std::vector<int>& counts, Vertex* vertex)
+  {
+    if (vertex == nullptr || vertex->index < 0 ||
+        vertex->index >= static_cast<int>(counts.size())) {
+      return;
+    }
+    ++counts[vertex->index];
+  }
+
+  int local_region_cell_count(Vertex* center,
+                              const std::vector<int>& count_by_index)
+  {
+    if (center == nullptr) return 0;
+    auto total = 0;
+    auto seen = std::vector<int>();
+    seen.reserve(16);
+    auto add_vertex = [&](Vertex* vertex) {
+      if (vertex == nullptr || vertex->index < 0 ||
+          vertex->index >= static_cast<int>(count_by_index.size())) {
+        return;
+      }
+      if (std::find(seen.begin(), seen.end(), vertex->index) != seen.end()) {
+        return;
+      }
+      seen.push_back(vertex->index);
+      total += count_by_index[vertex->index];
+    };
+
+    add_vertex(center);
+    for (auto* first : center->neighbor) {
+      add_vertex(first);
+      if (kCongestionRegionRadius < 2 || first == nullptr) continue;
+      for (auto* second : first->neighbor) {
+        add_vertex(second);
+      }
+    }
+    return total;
+  }
+
+  int local_congestion_count(
+      Vertex* target, Vertex* excluded_agent_location,
+      const std::vector<int>& current_agent_count_by_index,
+      const std::vector<int>& created_target_count_by_index,
+      const MapDistanceCache& distances, int assignment_cost_mode)
+  {
+    if (!uses_local_congestion_cost(assignment_cost_mode)) return 0;
+    auto count =
+        local_region_cell_count(target, current_agent_count_by_index) +
+        local_region_cell_count(target, created_target_count_by_index);
+    if (vertex_in_local_region(target, excluded_agent_location, distances)) {
+      --count;
+    }
+    return std::max(0, count);
+  }
+
+  long long local_congestion_penalty(
+      Vertex* target, Vertex* excluded_agent_location,
+      const std::vector<int>& current_agent_count_by_index,
+      const std::vector<int>& created_target_count_by_index,
+      const MapDistanceCache& distances, int assignment_cost_mode,
+      int common_scale)
+  {
+    return static_cast<long long>(std::max(1, common_scale)) *
+           local_congestion_count(target, excluded_agent_location,
+                                  current_agent_count_by_index,
+                                  created_target_count_by_index, distances,
+                                  assignment_cost_mode);
+  }
+
   long long mild_loaded_pickup_delay_penalty(
       int carried_count, int root_pickup_distance, int pickup_service_duration,
       int assignment_cost_mode)
   {
     if (carried_count <= 0 ||
-        assignment_cost_mode != LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY) {
+        !uses_mild_loaded_pickup_delay(assignment_cost_mode)) {
       return 0;
     }
     return static_cast<long long>(carried_count) *
@@ -345,6 +443,13 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   }
   const auto needs_unloaded_wait_targets =
       pending_start_indexes.size() < static_cast<size_t>(unloaded_count);
+  const auto cell_count =
+      std::max(0, distances.metadata.width * distances.metadata.height);
+  auto current_agent_count_by_index = std::vector<int>(cell_count, 0);
+  auto created_target_count_by_index = std::vector<int>(cell_count, 0);
+  for (const auto& agent : agents) {
+    increment_cell_count(current_agent_count_by_index, agent.current_location);
+  }
 
   for (size_t i = 0; i < agents.size(); ++i) {
     auto& agent = agents[i];
@@ -398,8 +503,14 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
             (carried_count > 0 ? agent.loaded_distance_since_last_delivery
                                : 0) +
             (switched ? 1 : 0) + delay_penalty * denominator;
-        const auto offset =
+        auto offset =
             scaled_static_cost(static_cost, common_scale, denominator);
+        offset = add_cost_offset_penalty(
+            offset, local_congestion_penalty(
+                        task.start, agent.current_location,
+                        current_agent_count_by_index,
+                        created_target_count_by_index, distances,
+                        assignment_cost_mode, common_scale));
         const auto distance_scale = common_scale / denominator;
         // A physical pickup has capacity one in the current planning round.
         // Tasks sharing it become available again after the event-driven
@@ -415,12 +526,19 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
           force_pickup_task =
               iter != preferred.end() && iter->second == task.task_id;
         }
+        const auto has_pickup_option =
+            std::find(snapshot.goal_keys_by_agent[i].begin(),
+                      snapshot.goal_keys_by_agent[i].end(),
+                      pickup_key) != snapshot.goal_keys_by_agent[i].end();
         if (add_goal_option(snapshot, i, agent.current_location, task.start,
                             distance_scale, offset, pickup_key, distances,
                             pickup_service_duration, force_pickup_task)) {
           snapshot
               .pending_task_id_by_start_index_by_agent[i][task.start->index] =
               task.task_id;
+          if (!has_pickup_option) {
+            increment_cell_count(created_target_count_by_index, task.start);
+          }
         }
       }
     }
@@ -438,14 +556,26 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
           const auto circle = circle_cost(goal, carried, distances);
           if (circle >= kTapfAssignmentInfCost) continue;
           const auto static_cost = static_cast<long long>(circle);
-          const auto offset =
+          auto offset =
               scaled_static_cost(static_cost, common_scale, carried_count);
+          offset = add_cost_offset_penalty(
+              offset, local_congestion_penalty(
+                          goal, agent.current_location,
+                          current_agent_count_by_index,
+                          created_target_count_by_index, distances,
+                          assignment_cost_mode, common_scale));
           const auto distance_scale = common_scale / carried_count;
+          auto added_delivery_target = false;
           for (auto slot = 0; slot < max_shared_drop_goal_agents; ++slot) {
             const auto goal_key = delivery_location_slot_key(goal->index, slot);
-            add_goal_option(snapshot, i, agent.current_location, goal,
-                            distance_scale, offset, goal_key, distances,
-                            delivery_service_duration);
+            added_delivery_target =
+                add_goal_option(snapshot, i, agent.current_location, goal,
+                                distance_scale, offset, goal_key, distances,
+                                delivery_service_duration) ||
+                added_delivery_target;
+          }
+          if (added_delivery_target) {
+            increment_cell_count(created_target_count_by_index, goal);
           }
         }
       }

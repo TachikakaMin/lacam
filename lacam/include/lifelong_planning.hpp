@@ -26,6 +26,7 @@ struct LifelongPlanningSnapshot {
 enum LifelongAssignmentCostMode {
   LIFELONG_ASSIGNMENT_COST_BASELINE = 0,
   LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY = 1,
+  LIFELONG_ASSIGNMENT_COST_CONGESTION = 2,
 };
 
 int lifelong_unloaded_assignment_cost(const LifelongAgentState& agent,

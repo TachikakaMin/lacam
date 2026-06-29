@@ -76,6 +76,43 @@ namespace
                        snapshot.goal_keys_by_agent[agent].end(),
                        [](const auto key) { return key < 0; });
   }
+
+  int root_assignment_cost_for_target(
+      const std::string& map_filename,
+      const std::vector<LifelongAgentState>& agents,
+      const MapDistanceCache& distances,
+      const LifelongPlanningSnapshot& snapshot, size_t agent_index,
+      int target_index)
+  {
+    if (agent_index >= agents.size() ||
+        agents[agent_index].current_location == nullptr) {
+      return kTapfAssignmentInfCost;
+    }
+    const auto ins = build_lifelong_tapf_instance(map_filename, agents,
+                                                  snapshot);
+    if (!ins.is_valid()) return kTapfAssignmentInfCost;
+    auto best = static_cast<long long>(kTapfAssignmentInfCost);
+    for (size_t target = 0; target < ins.tasks.size(); ++target) {
+      if (!ins.allowed[agent_index][target] ||
+          ins.tasks[target]->index != target_index) {
+        continue;
+      }
+      const auto root_distance =
+          distances.get(agents[agent_index].current_location,
+                        ins.tasks[target]);
+      if (root_distance >= kMapDistanceInf) continue;
+      const auto root_cost =
+          static_cast<long long>(root_distance) *
+              ins.assignment_distance_scales[agent_index][target] +
+          ins.assignment_cost_offsets[agent_index][target] +
+          static_cast<long long>(
+              ins.assignment_service_durations[agent_index][target]) *
+              ins.assignment_distance_scales[agent_index][target];
+      best = std::min(best, root_cost);
+    }
+    return best >= kTapfAssignmentInfCost ? kTapfAssignmentInfCost
+                                          : static_cast<int>(best);
+  }
 }  // namespace
 
 TEST(lifelong_planning, unloaded_cost_includes_pickup_and_delivery)
@@ -566,6 +603,138 @@ TEST(lifelong_planning, mild_pickup_delay_penalizes_loaded_pickup)
 
   ASSERT_LT(baseline_cost, kTapfAssignmentInfCost);
   EXPECT_GT(mild_delay_cost, baseline_cost);
+}
+
+TEST(lifelong_planning, assignment_cost_modes_are_compactly_numbered)
+{
+  EXPECT_EQ(LIFELONG_ASSIGNMENT_COST_BASELINE, 0);
+  EXPECT_EQ(LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY, 1);
+  EXPECT_EQ(LIFELONG_ASSIGNMENT_COST_CONGESTION, 2);
+}
+
+TEST(lifelong_planning,
+     congestion_cost_penalizes_pickups_near_current_agents)
+{
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[3]),
+      make_agent(1, graph.U[1]),
+      make_agent(2, graph.U[7]),
+  };
+  auto tasks = std::vector<LifelongTask>{
+      make_pending_task(10, LifelongTaskType::OUTBOUND, graph.U[0],
+                        Vertices{graph.U[4]}),
+  };
+
+  auto baseline_agents = agents;
+  auto baseline_tasks = tasks;
+  const auto baseline_snapshot = prepare_lifelong_planning_snapshot(
+      baseline_agents, baseline_tasks, distances, 1, 5, 1, 1, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_BASELINE);
+  auto congestion_agents = agents;
+  auto congestion_tasks = tasks;
+  const auto congestion_snapshot = prepare_lifelong_planning_snapshot(
+      congestion_agents, congestion_tasks, distances, 1, 5, 1, 1, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_CONGESTION);
+
+  const auto baseline_cost = root_assignment_cost_for_target(
+      map_filename, agents, distances, baseline_snapshot, 0, graph.U[0]->index);
+  const auto congestion_cost = root_assignment_cost_for_target(
+      map_filename, agents, distances, congestion_snapshot, 0,
+      graph.U[0]->index);
+
+  ASSERT_LT(baseline_cost, kTapfAssignmentInfCost);
+  EXPECT_GT(congestion_cost, baseline_cost);
+}
+
+TEST(lifelong_planning,
+     congestion_cost_penalizes_repeated_candidate_regions)
+{
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[3]),
+      make_agent(1, graph.U[13]),
+  };
+  auto tasks = std::vector<LifelongTask>{
+      make_pending_task(10, LifelongTaskType::OUTBOUND, graph.U[0],
+                        Vertices{graph.U[4]}),
+  };
+
+  auto baseline_agents = agents;
+  auto baseline_tasks = tasks;
+  const auto baseline_snapshot = prepare_lifelong_planning_snapshot(
+      baseline_agents, baseline_tasks, distances, 1, 5, 1, 1, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_BASELINE);
+  auto congestion_agents = agents;
+  auto congestion_tasks = tasks;
+  const auto congestion_snapshot = prepare_lifelong_planning_snapshot(
+      congestion_agents, congestion_tasks, distances, 1, 5, 1, 1, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_CONGESTION);
+
+  const auto baseline_cost = root_assignment_cost_for_target(
+      map_filename, agents, distances, baseline_snapshot, 1, graph.U[0]->index);
+  const auto congestion_cost = root_assignment_cost_for_target(
+      map_filename, agents, distances, congestion_snapshot, 1,
+      graph.U[0]->index);
+
+  ASSERT_LT(baseline_cost, kTapfAssignmentInfCost);
+  EXPECT_GT(congestion_cost, baseline_cost);
+}
+
+TEST(lifelong_planning,
+     congestion_cost_penalizes_delivery_targets_near_current_agents)
+{
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+  auto agents = std::vector<LifelongAgentState>{
+      make_agent(0, graph.U[3]),
+      make_agent(1, graph.U[4]),
+  };
+  agents[0].load_state = AgentLoadState::LOADED;
+  agents[0].carried_task_ids = {20};
+  agents[0].current_task_id = 20;
+  auto carried = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[1],
+                                   Vertices{graph.U[5]});
+  carried.status = LifelongTaskStatus::PICKED;
+  carried.picked_agent_id = 0;
+  auto tasks = std::vector<LifelongTask>{carried};
+
+  auto baseline_agents = agents;
+  auto baseline_tasks = tasks;
+  const auto baseline_snapshot = prepare_lifelong_planning_snapshot(
+      baseline_agents, baseline_tasks, distances, 1, 5, 1, 1, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_BASELINE);
+  auto congestion_agents = agents;
+  auto congestion_tasks = tasks;
+  const auto congestion_snapshot = prepare_lifelong_planning_snapshot(
+      congestion_agents, congestion_tasks, distances, 1, 5, 1, 1, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_CONGESTION);
+
+  const auto baseline_cost = root_assignment_cost_for_target(
+      map_filename, agents, distances, baseline_snapshot, 0, graph.U[5]->index);
+  const auto congestion_cost = root_assignment_cost_for_target(
+      map_filename, agents, distances, congestion_snapshot, 0,
+      graph.U[5]->index);
+
+  ASSERT_LT(baseline_cost, kTapfAssignmentInfCost);
+  EXPECT_GT(congestion_cost, baseline_cost);
 }
 
 TEST(lifelong_planning, loaded_distance_sets_priority_offset)

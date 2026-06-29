@@ -13,6 +13,7 @@ namespace
 {
   constexpr int kDeliveryLocationKeyBase = 1000000000;
   constexpr int kPickupLocationKeyBase = 500000000;
+  constexpr int kCongestionTraceRegionRadius = 2;
 
   std::vector<LifelongAgentState> make_agents(
       const Graph& graph, int num_agents, std::mt19937& mt,
@@ -428,6 +429,86 @@ namespace
     return static_cast<int>(type);
   }
 
+  struct TargetRegionTraceStats {
+    double average_agent_count = 0;
+    int max_agent_count = 0;
+    double average_loaded_agent_count = 0;
+    int max_loaded_agent_count = 0;
+    double average_loaded_waiting_count = 0;
+    int max_loaded_waiting_count = 0;
+    double average_loaded_stopped_count = 0;
+    int max_loaded_stopped_count = 0;
+  };
+
+  bool agent_stopped_last_step(const LifelongAgentState& agent)
+  {
+    return agent.executed_path.size() >= 2 &&
+           agent.executed_path[agent.executed_path.size() - 1] != nullptr &&
+           agent.executed_path[agent.executed_path.size() - 2] != nullptr &&
+           agent.executed_path[agent.executed_path.size() - 1]->index ==
+               agent.executed_path[agent.executed_path.size() - 2]->index;
+  }
+
+  bool loaded_agent_waiting_now(const LifelongAgentState& agent)
+  {
+    return agent_is_loaded(agent) && agent.current_location != nullptr &&
+           agent.current_target != nullptr &&
+           agent.current_location->index == agent.current_target->index;
+  }
+
+  TargetRegionTraceStats compute_target_region_trace_stats(
+      const Graph& graph, const MapDistanceCache& distances,
+      const std::vector<LifelongAgentState>& agents,
+      const std::unordered_set<int>& target_region_indexes)
+  {
+    auto stats = TargetRegionTraceStats();
+    if (target_region_indexes.empty()) return stats;
+    auto total_agents = 0;
+    auto total_loaded = 0;
+    auto total_loaded_waiting = 0;
+    auto total_loaded_stopped = 0;
+    for (const auto target_index : target_region_indexes) {
+      if (target_index < 0 ||
+          target_index >= static_cast<int>(graph.U.size()) ||
+          graph.U[target_index] == nullptr) {
+        continue;
+      }
+      auto agent_count = 0;
+      auto loaded_count = 0;
+      auto loaded_waiting_count = 0;
+      auto loaded_stopped_count = 0;
+      for (const auto& agent : agents) {
+        if (agent.current_location == nullptr) continue;
+        if (distances.get(graph.U[target_index], agent.current_location) >
+            kCongestionTraceRegionRadius) {
+          continue;
+        }
+        ++agent_count;
+        if (!agent_is_loaded(agent)) continue;
+        ++loaded_count;
+        if (loaded_agent_waiting_now(agent)) ++loaded_waiting_count;
+        if (agent_stopped_last_step(agent)) ++loaded_stopped_count;
+      }
+      total_agents += agent_count;
+      total_loaded += loaded_count;
+      total_loaded_waiting += loaded_waiting_count;
+      total_loaded_stopped += loaded_stopped_count;
+      stats.max_agent_count = std::max(stats.max_agent_count, agent_count);
+      stats.max_loaded_agent_count =
+          std::max(stats.max_loaded_agent_count, loaded_count);
+      stats.max_loaded_waiting_count =
+          std::max(stats.max_loaded_waiting_count, loaded_waiting_count);
+      stats.max_loaded_stopped_count =
+          std::max(stats.max_loaded_stopped_count, loaded_stopped_count);
+    }
+    const auto denom = static_cast<double>(target_region_indexes.size());
+    stats.average_agent_count = total_agents / denom;
+    stats.average_loaded_agent_count = total_loaded / denom;
+    stats.average_loaded_waiting_count = total_loaded_waiting / denom;
+    stats.average_loaded_stopped_count = total_loaded_stopped / denom;
+    return stats;
+  }
+
   std::vector<std::unordered_map<int, int> > partial_pickup_preferences(
       const std::vector<LifelongAgentState>& agents,
       const std::vector<LifelongTask>& tasks,
@@ -721,7 +802,8 @@ LifelongSimulationMetrics run_lifelong_simulation(
     }
     if (config.assignment_cost_mode != LIFELONG_ASSIGNMENT_COST_BASELINE &&
         config.assignment_cost_mode !=
-            LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY) {
+            LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY &&
+        config.assignment_cost_mode != LIFELONG_ASSIGNMENT_COST_CONGESTION) {
       throw std::invalid_argument("unsupported assignment_cost_mode");
     }
     auto graph = Graph(config.map_filename);
@@ -930,6 +1012,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
             auto priority_sum = 0.0;
             auto max_priority_offset_now = 0.0f;
             auto max_priority_offset_agent_id = -1;
+            auto target_region_indexes = std::unordered_set<int>();
             for (size_t i = 0; i < agents.size(); ++i) {
               const auto priority_offset = i < inherited_priorities.size()
                                                ? inherited_priorities[i]
@@ -985,8 +1068,10 @@ LifelongSimulationMetrics run_lifelong_simulation(
                                                         snapshot, i, target);
                 if (type == LifelongTraceTargetType::PICKUP) {
                   ++pickup_options;
+                  target_region_indexes.insert(target);
                 } else if (type == LifelongTraceTargetType::DELIVERY) {
                   ++delivery_options;
+                  target_region_indexes.insert(target);
                 } else if (type == LifelongTraceTargetType::WAIT) {
                   ++wait_options;
                 }
@@ -1037,6 +1122,24 @@ LifelongSimulationMetrics run_lifelong_simulation(
                 agents.empty() ? 0 : priority_sum / agents.size();
             trace.max_priority_offset_now = max_priority_offset_now;
             trace.max_priority_offset_agent_id = max_priority_offset_agent_id;
+            const auto region_stats = compute_target_region_trace_stats(
+                graph, distances, agents, target_region_indexes);
+            trace.average_target_region_agent_count =
+                region_stats.average_agent_count;
+            trace.max_target_region_agent_count =
+                region_stats.max_agent_count;
+            trace.average_target_region_loaded_agent_count =
+                region_stats.average_loaded_agent_count;
+            trace.max_target_region_loaded_agent_count =
+                region_stats.max_loaded_agent_count;
+            trace.average_target_region_loaded_waiting_count =
+                region_stats.average_loaded_waiting_count;
+            trace.max_target_region_loaded_waiting_count =
+                region_stats.max_loaded_waiting_count;
+            trace.average_target_region_loaded_stopped_count =
+                region_stats.average_loaded_stopped_count;
+            trace.max_target_region_loaded_stopped_count =
+                region_stats.max_loaded_stopped_count;
             for (const auto& [target, count] : target_agent_counts) {
               trace.max_agents_per_target =
                   std::max(trace.max_agents_per_target, count);

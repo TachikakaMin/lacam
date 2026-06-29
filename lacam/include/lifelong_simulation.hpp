@@ -94,6 +94,14 @@ struct LifelongPlannerTraceRecord {
   int max_loaded_distance_agent_final_target_index = -1;
   int max_loaded_distance_agent_root_target_type = 0;
   int max_loaded_distance_agent_final_target_type = 0;
+  double average_target_region_agent_count = 0;
+  int max_target_region_agent_count = 0;
+  double average_target_region_loaded_agent_count = 0;
+  int max_target_region_loaded_agent_count = 0;
+  double average_target_region_loaded_waiting_count = 0;
+  int max_target_region_loaded_waiting_count = 0;
+  double average_target_region_loaded_stopped_count = 0;
+  int max_target_region_loaded_stopped_count = 0;
   double average_carried_tasks_now = 0;
   int max_carried_tasks_now = 0;
   double average_loaded_distance_now = 0;

@@ -144,3 +144,41 @@ TEST(lifelong_simulation,
   ASSERT_EQ(delayed.task_records.front().completion_timestep,
             baseline.task_records.front().completion_timestep + 2);
 }
+
+TEST(lifelong_simulation,
+     congestion_cost_mode_records_target_region_trace_metrics)
+{
+  auto config = LifelongSimulationConfig();
+  config.map_filename = "./tests/assets/lifelong-sim-small.map";
+  config.cache_filename =
+      (std::filesystem::temp_directory_path() /
+       "lacam_lifelong_sim_congestion_cache.bin")
+          .string();
+  config.num_agents = 2;
+  config.horizon = 8;
+  config.seed = 0;
+  config.start_indexes = {3, 4};
+  config.planner_time_limit_sec = 0.2;
+  config.task_config.goal_set_size = 1;
+  config.task_config.release_interval = 100;
+  config.task_config.outbound_probability = 1.0;
+  config.assignment_cost_mode = LIFELONG_ASSIGNMENT_COST_CONGESTION;
+  config.debug = true;
+  std::filesystem::remove(config.cache_filename);
+
+  const auto metrics = run_lifelong_simulation(config);
+
+  std::filesystem::remove(config.cache_filename);
+  ASSERT_TRUE(metrics.valid) << metrics.error;
+  ASSERT_GE(metrics.planner_invocations, 1);
+  ASSERT_FALSE(metrics.planner_trace_records.empty());
+  EXPECT_EQ(metrics.assignment_cost_mode,
+            LIFELONG_ASSIGNMENT_COST_CONGESTION);
+  const auto& trace = metrics.planner_trace_records.front();
+  EXPECT_GE(trace.max_target_region_agent_count, 0);
+  EXPECT_GE(trace.max_target_region_loaded_agent_count, 0);
+  EXPECT_GE(trace.max_target_region_loaded_waiting_count, 0);
+  EXPECT_GE(trace.max_target_region_loaded_stopped_count, 0);
+  EXPECT_GE(trace.average_target_region_agent_count, 0);
+  EXPECT_GE(trace.average_target_region_loaded_agent_count, 0);
+}
