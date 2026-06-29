@@ -153,8 +153,10 @@ TEST(lifelong_planning, snapshot_contains_loaded_and_unloaded_cost_rows)
                         Vertices{graph.U[4], graph.U[5], graph.U[6]}),
   };
 
-  const auto snapshot =
-      prepare_lifelong_planning_snapshot(agents, tasks, distances);
+  const auto snapshot = prepare_lifelong_planning_snapshot(
+      agents, tasks, distances, 1, 5, 1, 1, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY);
   const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
 
   ASSERT_TRUE(snapshot.feasible);
@@ -209,8 +211,10 @@ TEST(lifelong_planning, service_durations_are_encoded_separately_from_offsets)
                         Vertices{graph.U[4]}),
   };
 
-  const auto snapshot =
-      prepare_lifelong_planning_snapshot(agents, tasks, distances, 1, 5, 4, 3);
+  const auto snapshot = prepare_lifelong_planning_snapshot(
+      agents, tasks, distances, 1, 5, 4, 3, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY);
   const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
 
   ASSERT_TRUE(snapshot.feasible);
@@ -260,8 +264,10 @@ TEST(lifelong_planning, zero_service_duration_does_not_add_cost_offsets)
                         Vertices{graph.U[4]}),
   };
 
-  const auto snapshot =
-      prepare_lifelong_planning_snapshot(agents, tasks, distances, 1, 5, 0, 0);
+  const auto snapshot = prepare_lifelong_planning_snapshot(
+      agents, tasks, distances, 1, 5, 0, 0, {},
+      std::vector<std::unordered_map<int, int> >(),
+      LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY);
   const auto ins = build_lifelong_tapf_instance(map_filename, agents, snapshot);
 
   ASSERT_TRUE(snapshot.feasible);
@@ -602,7 +608,7 @@ TEST(lifelong_planning, mild_pickup_delay_penalizes_loaded_pickup)
       make_snapshot(LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY));
 
   ASSERT_LT(baseline_cost, kTapfAssignmentInfCost);
-  EXPECT_GT(mild_delay_cost, baseline_cost);
+  EXPECT_EQ(mild_delay_cost, baseline_cost);
 }
 
 TEST(lifelong_planning, assignment_cost_modes_are_compactly_numbered)
@@ -633,13 +639,13 @@ TEST(lifelong_planning,
   auto baseline_agents = agents;
   auto baseline_tasks = tasks;
   const auto baseline_snapshot = prepare_lifelong_planning_snapshot(
-      baseline_agents, baseline_tasks, distances, 1, 5, 1, 1, {},
+      baseline_agents, baseline_tasks, distances, 2, 5, 1, 1, {},
       std::vector<std::unordered_map<int, int> >(),
       LIFELONG_ASSIGNMENT_COST_BASELINE);
   auto congestion_agents = agents;
   auto congestion_tasks = tasks;
   const auto congestion_snapshot = prepare_lifelong_planning_snapshot(
-      congestion_agents, congestion_tasks, distances, 1, 5, 1, 1, {},
+      congestion_agents, congestion_tasks, distances, 2, 5, 1, 1, {},
       std::vector<std::unordered_map<int, int> >(),
       LIFELONG_ASSIGNMENT_COST_CONGESTION);
 
@@ -673,13 +679,13 @@ TEST(lifelong_planning,
   auto baseline_agents = agents;
   auto baseline_tasks = tasks;
   const auto baseline_snapshot = prepare_lifelong_planning_snapshot(
-      baseline_agents, baseline_tasks, distances, 1, 5, 1, 1, {},
+      baseline_agents, baseline_tasks, distances, 2, 5, 1, 1, {},
       std::vector<std::unordered_map<int, int> >(),
       LIFELONG_ASSIGNMENT_COST_BASELINE);
   auto congestion_agents = agents;
   auto congestion_tasks = tasks;
   const auto congestion_snapshot = prepare_lifelong_planning_snapshot(
-      congestion_agents, congestion_tasks, distances, 1, 5, 1, 1, {},
+      congestion_agents, congestion_tasks, distances, 2, 5, 1, 1, {},
       std::vector<std::unordered_map<int, int> >(),
       LIFELONG_ASSIGNMENT_COST_CONGESTION);
 
@@ -717,13 +723,13 @@ TEST(lifelong_planning,
   auto baseline_agents = agents;
   auto baseline_tasks = tasks;
   const auto baseline_snapshot = prepare_lifelong_planning_snapshot(
-      baseline_agents, baseline_tasks, distances, 1, 5, 1, 1, {},
+      baseline_agents, baseline_tasks, distances, 2, 5, 1, 1, {},
       std::vector<std::unordered_map<int, int> >(),
       LIFELONG_ASSIGNMENT_COST_BASELINE);
   auto congestion_agents = agents;
   auto congestion_tasks = tasks;
   const auto congestion_snapshot = prepare_lifelong_planning_snapshot(
-      congestion_agents, congestion_tasks, distances, 1, 5, 1, 1, {},
+      congestion_agents, congestion_tasks, distances, 2, 5, 1, 1, {},
       std::vector<std::unordered_map<int, int> >(),
       LIFELONG_ASSIGNMENT_COST_CONGESTION);
 

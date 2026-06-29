@@ -1307,6 +1307,8 @@ LifelongEnvAction LacamTapfPolicy::replan(
       auto deadline = Deadline(config_.planner_time_limit_sec * 1000);
       auto planner_mt = std::mt19937(config_.seed + request.timestep);
       auto search_config = TAPFSearchConfig();
+      search_config.mode = TAPFSearchMode::FOCAL;
+      search_config.focal_tie_break = TAPFFocalTieBreak::H;
       search_config.service_goal_mode = true;
       search_config.service_commit_agents =
           config_.service_commit_agents > 0

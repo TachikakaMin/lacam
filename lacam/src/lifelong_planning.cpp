@@ -224,14 +224,16 @@ namespace
 
   bool uses_mild_loaded_pickup_delay(int assignment_cost_mode)
   {
-    return assignment_cost_mode ==
+    return assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_BASELINE ||
+           assignment_cost_mode ==
                LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY ||
            assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_CONGESTION;
   }
 
   bool uses_local_congestion_cost(int assignment_cost_mode)
   {
-    return assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_CONGESTION;
+    return assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_BASELINE ||
+           assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_CONGESTION;
   }
 
   int add_cost_offset_penalty(int base_offset, long long penalty)
@@ -312,7 +314,11 @@ namespace
       const MapDistanceCache& distances, int assignment_cost_mode,
       int common_scale)
   {
-    return static_cast<long long>(std::max(1, common_scale)) *
+    const auto penalty_scale =
+        assignment_cost_mode == LIFELONG_ASSIGNMENT_COST_BASELINE
+            ? std::max(1, common_scale / 2)
+            : std::max(1, common_scale);
+    return static_cast<long long>(penalty_scale) *
            local_congestion_count(target, excluded_agent_location,
                                   current_agent_count_by_index,
                                   created_target_count_by_index, distances,
