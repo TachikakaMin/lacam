@@ -142,44 +142,58 @@ cmake --build build --target lifelong_benchmark
 All direct tests passed.  `ctest --test-dir build --output-on-failure` reports
 that this build directory has no registered tests.
 
-Benchmark subset run, all valid:
+Full benchmark run, all valid:
 
 ```text
 maps: symbotic, symbotic_star
-agents: 100,150,200
+agents: 50,100,150,200
 K: 1,2,4
-slot: 2
-duration: 4
+slot: 1,2,3
+duration: 0,2,4,8
 dist: 50_50,80_20
 seeds: 0,1,2
 cost modes: 0,1,2
 horizon: 200
 time limit: 1s
-cases: 324
-aggregate: tmp_runs/mode2_congestion_subset_opt_aggregate.csv
+cases: 5184
+matched triples: 1728
+aggregate: tmp_runs/mode2_congestion_full_aggregate.csv
+summary: tmp_runs/mode2_congestion_full_summary.csv
 ```
 
 Mean matched deltas for mode2:
 
 ```text
-overall:             throughput -0.1164 vs mode0, -0.0825 vs mode1
-symbotic all:        throughput -0.1881 vs mode0, -0.1142 vs mode1
-star agents 150/200: throughput -0.0433 vs mode0, -0.0442 vs mode1
-star K=1 150/200:    throughput +0.0308 vs mode0/mode1
-star K=2/4 150/200:  throughput -0.0804 vs mode0, -0.0817 vs mode1
+overall:             throughput -0.1131 vs mode0, -0.1040 vs mode1
+symbotic all:        throughput -0.1852 vs mode0, -0.1663 vs mode1
+symbotic_star all:   throughput -0.0411 vs mode0, -0.0416 vs mode1
+star agents 150/200: throughput -0.0095 vs mode0, -0.0139 vs mode1
+star K=1 150/200:    throughput +0.0487 vs mode0/mode1
+star K=2/4 150/200:  throughput -0.0386 vs mode0, -0.0451 vs mode1
 ```
 
-Mode2 reduced WIP-style pressure in the subset:
+Best/worst strata by map, K, and agent count:
 
 ```text
-overall final_picked_tasks:         -11.62 vs mode0
-overall loaded_stopped near target: -0.078 vs mode0
-star agents 150/200 final_picked:   -10.72 vs mode0
-star agents 150/200 loaded_stopped: -0.106 vs mode0
+best:  symbotic_star K=1 agents=200, throughput +0.0608 vs mode0
+best:  symbotic_star K=1 agents=150, throughput +0.0366 vs mode0
+near:  symbotic_star K=2 agents=200, throughput -0.0013 vs mode0
+worst: symbotic K=4 agents=200,      throughput -0.3465 vs mode0
+worst: symbotic K=4 agents=150,      throughput -0.3135 vs mode0
+worst: symbotic K=2 agents=200,      throughput -0.2746 vs mode0
+```
+
+Mode2 reduced WIP-style pressure, but much of that came from suppressing work:
+
+```text
+overall final_picked_tasks:       -8.12 vs mode0
+star agents 150/200 final_picked: -10.39 vs mode0
+star K=1 150/200 delivery time:   -3.779 vs mode0
+symbotic delivery time:           +1.623 vs mode0
 ```
 
 Decision: keep mode2 as diagnostics/experiment only.  It helps K=1 high-agent
-`symbotic_star`, but it does not hold across K and it significantly regresses
-`symbotic`.  Next useful direction is a path-aware or bottleneck-aware
-congestion estimate that prices shared approaches without broadly suppressing
-pickup/delivery work.
+`symbotic_star`, especially at 150/200 agents, but it does not hold across K
+and it significantly regresses `symbotic`.  Next useful direction is a
+path-aware or bottleneck-aware congestion estimate that prices shared
+approaches without broadly suppressing pickup/delivery work.
