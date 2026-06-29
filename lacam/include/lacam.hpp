@@ -7,6 +7,7 @@
 #include "lifelong_task.hpp"
 #include "lifelong_planning.hpp"
 #include "lifelong_simulation.hpp"
+#include "lifelong_env.hpp"
 #include "map_dist_cache.hpp"
 #include "planner.hpp"
 #include "post_processing.hpp"

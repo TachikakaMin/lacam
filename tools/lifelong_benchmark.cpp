@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -433,7 +434,11 @@ int main(int argc, char** argv)
   config.assignment_cost_mode =
       argc >= 21 ? std::stoi(argv[20]) : config.assignment_cost_mode;
 
-  const auto metrics = run_lifelong_simulation(config);
+  const auto* legacy_env = std::getenv("LACAM_LIFELONG_BENCHMARK_LEGACY");
+  const auto use_legacy =
+      legacy_env != nullptr && std::string(legacy_env) == "1";
+  const auto metrics = use_legacy ? run_lifelong_simulation(config)
+                                  : run_lifelong_simulation_via_env(config);
   std::ofstream out(output_csv, std::ios::app);
   if (!out) {
     std::cerr << "failed to open output CSV: " << output_csv << "\n";
