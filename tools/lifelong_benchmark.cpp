@@ -16,7 +16,8 @@ namespace
                  "[SCHEDULE_YAML] [ANYTIME=0] [MULTI_CARRY_CAPACITY=1] "
                  "[FORCE_FULL_ASSIGNMENT=0] [SERVICE_COMMIT_AGENTS=0] "
                  "[MAX_SHARED_DROP_GOAL_AGENTS=5] "
-                 "[PICKUP_SERVICE_DURATION=1] [DELIVERY_SERVICE_DURATION=1]\n";
+                 "[PICKUP_SERVICE_DURATION=1] [DELIVERY_SERVICE_DURATION=1] "
+                 "[ASSIGNMENT_COST_MODE=0]\n";
   }
 
   bool should_write_header(const std::string& path)
@@ -42,6 +43,7 @@ namespace
            "average_agent_idle_time,average_agent_loaded_time,"
            "average_agent_unloaded_time,planner_force_full_assignment,"
            "multi_carry_capacity,max_shared_drop_goal_agents,"
+           "assignment_cost_mode,"
            "average_carried_tasks,max_carried_tasks,"
            "average_loaded_distance_since_last_delivery,"
            "max_loaded_distance_since_last_delivery,pickup_while_loaded_count,"
@@ -70,6 +72,7 @@ namespace
         << m.average_agent_unloaded_time << ","
         << m.planner_force_full_assignment << "," << m.multi_carry_capacity
         << "," << m.max_shared_drop_goal_agents << ","
+        << m.assignment_cost_mode << ","
         << m.average_carried_tasks << "," << m.max_carried_tasks << ","
         << m.average_loaded_distance_since_last_delivery << ","
         << m.max_loaded_distance_since_last_delivery << ","
@@ -411,6 +414,8 @@ int main(int argc, char** argv)
       argc >= 19 ? std::stoi(argv[18]) : config.pickup_service_duration;
   config.delivery_service_duration =
       argc >= 20 ? std::stoi(argv[19]) : config.delivery_service_duration;
+  config.assignment_cost_mode =
+      argc >= 21 ? std::stoi(argv[20]) : config.assignment_cost_mode;
 
   const auto metrics = run_lifelong_simulation(config);
   std::ofstream out(output_csv, std::ios::app);
@@ -438,6 +443,7 @@ int main(int argc, char** argv)
             << "\n";
   std::cout << "delivery_service_duration=" << config.delivery_service_duration
             << "\n";
+  std::cout << "assignment_cost_mode=" << metrics.assignment_cost_mode << "\n";
   std::cout << "planner_force_full_assignment="
             << metrics.planner_force_full_assignment << "\n";
   std::cout << "average_carried_tasks=" << metrics.average_carried_tasks

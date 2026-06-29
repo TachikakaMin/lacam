@@ -21,6 +21,7 @@ struct LifelongSimulationConfig {
   int pickup_service_duration = 1;
   int delivery_service_duration = 1;
   int max_shared_drop_goal_agents = 5;
+  int assignment_cost_mode = LIFELONG_ASSIGNMENT_COST_BASELINE;
   LifelongTaskGeneratorConfig task_config;
   bool debug = false;
 };
@@ -179,6 +180,7 @@ struct LifelongSimulationMetrics {
   double average_tasks_carried_at_delivery = 0;
   int multi_carry_capacity = 1;
   int max_shared_drop_goal_agents = 5;
+  int assignment_cost_mode = LIFELONG_ASSIGNMENT_COST_BASELINE;
   long assignment_row_cache_requests = 0;
   long assignment_row_cache_hits = 0;
   double assignment_row_cache_hit_rate = 0;

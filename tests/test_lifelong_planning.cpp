@@ -515,6 +515,59 @@ TEST(lifelong_planning, multi_carry_uses_per_pair_fixed_point_scales)
   ASSERT_EQ(delivery_scale, 2);
 }
 
+TEST(lifelong_planning, mild_pickup_delay_penalizes_loaded_pickup)
+{
+  const auto map_filename =
+      std::string("./tests/assets/lifelong-task-small.map");
+  const auto graph = Graph(map_filename);
+  const auto distances =
+      build_map_distance_cache(graph, "lifelong-task-small.map", 1);
+
+  auto make_snapshot = [&](int cost_mode) {
+    auto agents = std::vector<LifelongAgentState>{make_agent(0, graph.U[3])};
+    agents[0].load_state = AgentLoadState::LOADED;
+    agents[0].carried_task_ids = {20};
+    agents[0].current_task_id = 20;
+    auto carried = make_pending_task(20, LifelongTaskType::INBOUND, graph.U[1],
+                                     Vertices{graph.U[5]});
+    carried.status = LifelongTaskStatus::PICKED;
+    carried.picked_agent_id = 0;
+    auto pending = make_pending_task(10, LifelongTaskType::OUTBOUND, graph.U[0],
+                                     Vertices{graph.U[4]});
+    auto tasks = std::vector<LifelongTask>{carried, pending};
+    return prepare_lifelong_planning_snapshot(
+        agents, tasks, distances, 2, 5, 1, 1, {},
+        std::vector<std::unordered_map<int, int> >(), cost_mode);
+  };
+
+  auto pickup_root_cost = [&](const LifelongPlanningSnapshot& snapshot) {
+    auto agents = std::vector<LifelongAgentState>{make_agent(0, graph.U[3])};
+    const auto ins =
+        build_lifelong_tapf_instance(map_filename, agents, snapshot);
+    for (size_t target = 0; target < ins.tasks.size(); ++target) {
+      if (!ins.allowed[0][target] ||
+          ins.tasks[target]->index != graph.U[0]->index) {
+        continue;
+      }
+      return static_cast<int>(
+          distances.get(graph.U[3], graph.U[0]) *
+              ins.assignment_distance_scales[0][target] +
+          ins.assignment_cost_offsets[0][target] +
+          ins.assignment_service_durations[0][target] *
+              ins.assignment_distance_scales[0][target]);
+    }
+    return kTapfAssignmentInfCost;
+  };
+
+  const auto baseline_cost =
+      pickup_root_cost(make_snapshot(LIFELONG_ASSIGNMENT_COST_BASELINE));
+  const auto mild_delay_cost = pickup_root_cost(
+      make_snapshot(LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY));
+
+  ASSERT_LT(baseline_cost, kTapfAssignmentInfCost);
+  EXPECT_GT(mild_delay_cost, baseline_cost);
+}
+
 TEST(lifelong_planning, loaded_distance_sets_priority_offset)
 {
   const auto map_filename =

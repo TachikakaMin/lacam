@@ -1,88 +1,105 @@
-# Goal: partial service state across lifelong replanning
+# Goal: mode2 congestion-aware assignment cost
+
+## Current retained state
+
+- Keep `assignment_cost_mode` plumbing through planning, simulation,
+  benchmark CSV output, and grid runner.
+- Keep `mode0` as the default baseline.
+- Keep `mode1` as a mild loaded-pickup-delay comparator only.
+- Remove the rejected strong pickup-delay, delivery-first, and WIP-delay
+  formulas from the main implementation; benchmark evidence showed they
+  reduced throughput overall.
 
 ## Problem
 
-LaCAM one-shot planning may produce a full plan until all currently assigned
-agents finish service, but the lifelong loop executes only the prefix ending at
-the first completed pickup/delivery. Other agents may have already started
-pickup/delivery service inside that prefix. The next replanning cycle must
-preserve this partial progress when it is still continuous.
+On `symbotic_star`, increasing agent count beyond roughly 100 creates visible
+queues near aisle mouths / channel entrances. The current cost matrix mostly
+uses static distance and loaded-pickup delay. It does not price the fact that a
+target or corridor is already crowded, so many loaded delivery agents are sent
+through the same narrow area at the same time.
 
-## Service semantics
+The next useful experiment is `mode2`: a general congestion-aware cost mode
+that improves assignment decisions without hard-coding a specific K, map, or
+agent count.
 
-- Pickup and delivery use the same service-progress rule.
-- Track per-agent partial service: type, task id, target index, and remaining
-  service steps.
-- Progress is reusable only for the same agent, same task, same service vertex,
-  with continuous staying on that vertex.
-- If the next plan keeps the agent there, the service needs only the remaining
-  steps.
-- If the agent leaves, another agent takes over pickup, or the same agent later
-  re-enters, the old progress is discarded and full service duration is needed.
-- Delivery handoff is not allowed unless cargo transfer is explicitly added;
-  pickup handoff is allowed, but the new pickup starts from full duration.
+## Mode2 first version
 
-## Replanning initialization
-
-At the start of each lifelong replanning cycle:
-
-- Validate each stored partial service against current agent location and task
-  state. Invalid entries are discarded.
-- Build TAPF root state with optional partial service metadata per agent. This
-  must not force continuation; it only says continuation is cheaper/faster if
-  the agent keeps staying.
-- Release ordinary en-route pickup assignments as before. A partial pickup may
-  be abandoned or reassigned, but only the original agent can reuse its partial
-  progress by continuously staying at the same pickup vertex.
-- For delivery, keep the task carried by the current agent; only that carrier
-  gets delivery candidates.
-
-## Cost matrix rule
-
-The cost matrix must be state-aware. Do not permanently bake full service
-duration into a snapshot offset for agents with partial service.
-
-For each agent-target pair:
+Add a new assignment cost mode:
 
 ```text
-cost = distance(current_cell, target) * distance_scale
-     + base_static_offset_without_service
-     + service_steps(agent_state, target) * distance_scale
+LIFELONG_ASSIGNMENT_COST_CONGESTION = 2
+```
+
+For every pickup or delivery candidate target, add a local crowding penalty:
+
+```text
+final_cost = baseline_or_mode1_cost
+           + congestion_weight * local_congestion(target_region)
 ```
 
 where:
 
 ```text
-service_steps = remaining_duration
-  if this target continues the same valid partial service
+target_region = free cells within radius r around the target
 
-service_steps = full_pickup_or_delivery_duration
-  otherwise
+local_congestion =
+    current agents inside target_region
+  + already-created candidate targets in the same target_region
 ```
 
-The same rule must be used during internal TAPF assignment repairs, not only at
-the root. If an agent leaves the partial-service vertex, its node state clears
-the partial service and later costs use full duration.
+Start with simple constants:
 
-Because service cost now depends on agent service state, the dynamic assignment
-row cache cannot be keyed only by `(agent_id, cell_id)`. Include partial-service
-identity/remaining state in the cache key, or bypass row caching for stateful
-partial-service rows.
+```text
+r = 1 or 2
+congestion_weight = common_cost_scale
+```
 
-## Planner behavior
+The first version should stay local and cheap. Do not implement full
+shortest-path traffic prediction until the local penalty shows a measurable
+benefit.
 
-- TAPF service transition logic must support optional continuation:
-  staying consumes remaining service; leaving resets progress.
-- Continued partial service and restarted service at the same physical target
-  must be distinguishable through node state and assignment costs.
-- Solution prefix extraction still returns the prefix ending at the first
-  completed real pickup/delivery.
+## Metrics to add before trusting mode2
 
-## Tests
+Record congestion diagnostics in benchmark traces or CSV summaries:
 
-- Replanning after a prefix preserves remaining service time when the agent
-  stays on the same task and vertex.
-- Leaving a partially completed pickup/delivery resets progress.
-- Reassigning a partial pickup to another agent charges full pickup duration.
-- Cost rows charge remaining duration for continuation and full duration after
-  interruption.
+- Average and max number of agents near aisle-mouth / target regions.
+- Loaded agents waiting in those regions.
+- Loaded agents stopped in place while near those regions.
+- Final picked tasks.
+- Average delivery time.
+- Throughput.
+
+These metrics are needed to distinguish true congestion relief from simply
+doing fewer pickups.
+
+## Benchmark plan
+
+Run paired comparisons:
+
+```text
+maps: symbotic_star, symbotic
+agents: 50,100,150,200
+K: 1,2,4
+slot: 1,2,3
+duration: 0,2,4,8
+dist: 50_50,80_20
+seeds: 0,1,2
+cost modes: 0,1,2
+horizon: 200
+time limit: 1s
+```
+
+Primary success criteria:
+
+- `mode2` improves or preserves throughput on `symbotic_star` at 150/200
+  agents.
+- `mode2` lowers final picked tasks and average delivery time.
+- `mode2` does not significantly regress `symbotic`.
+- Benefits hold across K without K-specific rules.
+
+## Expected decision
+
+- If mode2 reduces congestion and improves high-agent star throughput, make it
+  the next candidate default.
+- If mode2 only reduces WIP but loses throughput, keep it as diagnostics and
+  explore a path-aware congestion estimate.

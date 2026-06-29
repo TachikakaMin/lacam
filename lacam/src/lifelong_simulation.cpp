@@ -707,6 +707,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
   metrics.seed = config.seed;
   metrics.multi_carry_capacity = config.multi_carry_capacity;
   metrics.max_shared_drop_goal_agents = config.max_shared_drop_goal_agents;
+  metrics.assignment_cost_mode = config.assignment_cost_mode;
   metrics.planner_force_full_assignment = config.planner_force_full_assignment;
 
   const auto sim_start = Time::now();
@@ -717,6 +718,11 @@ LifelongSimulationMetrics run_lifelong_simulation(
     if (config.max_shared_drop_goal_agents <= 0) {
       throw std::invalid_argument(
           "max_shared_drop_goal_agents must be positive");
+    }
+    if (config.assignment_cost_mode != LIFELONG_ASSIGNMENT_COST_BASELINE &&
+        config.assignment_cost_mode !=
+            LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY) {
+      throw std::invalid_argument("unsupported assignment_cost_mode");
     }
     auto graph = Graph(config.map_filename);
     metrics.map_width = graph.width;
@@ -883,7 +889,7 @@ LifelongSimulationMetrics run_lifelong_simulation(
             agents, tasks, distances, config.multi_carry_capacity,
             config.max_shared_drop_goal_agents, config.pickup_service_duration,
             config.delivery_service_duration, inherited_priorities,
-            preferred_partial_pickups);
+            preferred_partial_pickups, config.assignment_cost_mode);
         auto solution = Solution();
         auto final_assignment = std::vector<int>();
         auto assignment_schedule = std::vector<std::vector<int> >();

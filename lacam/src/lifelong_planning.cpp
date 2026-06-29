@@ -221,6 +221,20 @@ namespace
                                           : static_cast<int>(cost);
   }
 
+  long long mild_loaded_pickup_delay_penalty(
+      int carried_count, int root_pickup_distance, int pickup_service_duration,
+      int assignment_cost_mode)
+  {
+    if (carried_count <= 0 ||
+        assignment_cost_mode != LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY) {
+      return 0;
+    }
+    return static_cast<long long>(carried_count) *
+           ((std::max(0, root_pickup_distance) +
+             std::max(0, pickup_service_duration) + 1) /
+            2);
+  }
+
   void normalize_agent_task_state(std::vector<LifelongAgentState>& agents,
                                   const std::vector<LifelongTask>& tasks)
   {
@@ -280,7 +294,8 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     int delivery_service_duration,
     const std::vector<float>& agent_priority_offsets,
     const std::vector<std::unordered_map<int, int> >&
-        preferred_pickup_task_id_by_start_index_by_agent)
+        preferred_pickup_task_id_by_start_index_by_agent,
+    int assignment_cost_mode)
 {
   normalize_agent_task_state(agents, tasks);
   auto previous_task_ids =
@@ -363,20 +378,26 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     if (carried_count < multi_carry_capacity) {
       for (const auto task_idx : pending_tasks) {
         const auto& task = tasks[task_idx];
+        const auto pickup_distance =
+            distances.get(agent.current_location, task.start);
+        if (pickup_distance >= kMapDistanceInf) continue;
         const auto delivery_cost = task_delivery_cost(task, distances);
         if (delivery_cost >= kTapfAssignmentInfCost) continue;
         auto pickup_set = carried;
         pickup_set.push_back(&task);
         const auto circle = circle_cost(task.start, pickup_set, distances);
         if (circle >= kTapfAssignmentInfCost) continue;
+        const auto denominator = carried_count + 1;
+        const auto delay_penalty = mild_loaded_pickup_delay_penalty(
+            carried_count, pickup_distance, pickup_service_duration,
+            assignment_cost_mode);
         const auto switched = previous_task_ids[i].has_value() &&
                               *previous_task_ids[i] != task.task_id;
         const auto static_cost =
             static_cast<long long>(delivery_cost) + circle +
             (carried_count > 0 ? agent.loaded_distance_since_last_delivery
                                : 0) +
-            (switched ? 1 : 0);
-        const auto denominator = carried_count + 1;
+            (switched ? 1 : 0) + delay_penalty * denominator;
         const auto offset =
             scaled_static_cost(static_cost, common_scale, denominator);
         const auto distance_scale = common_scale / denominator;

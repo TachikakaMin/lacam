@@ -23,6 +23,11 @@ struct LifelongPlanningSnapshot {
   bool feasible = true;
 };
 
+enum LifelongAssignmentCostMode {
+  LIFELONG_ASSIGNMENT_COST_BASELINE = 0,
+  LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY = 1,
+};
+
 int lifelong_unloaded_assignment_cost(const LifelongAgentState& agent,
                                       const LifelongTask& task,
                                       const MapDistanceCache& distances);
@@ -37,7 +42,8 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     const std::vector<float>& agent_priority_offsets = std::vector<float>(),
     const std::vector<std::unordered_map<int, int> >&
         preferred_pickup_task_id_by_start_index_by_agent =
-            std::vector<std::unordered_map<int, int> >());
+            std::vector<std::unordered_map<int, int> >(),
+    int assignment_cost_mode = LIFELONG_ASSIGNMENT_COST_BASELINE);
 TAPFInstance build_lifelong_tapf_instance(
     const std::string& map_filename,
     const std::vector<LifelongAgentState>& agents,
