@@ -141,7 +141,7 @@ OUTBOUND_PROB = 0.5
 
 默认保持不变的评测参数：
 
-HORIZON = 200
+HORIZON = 400
 TIME_LIMIT_SEC = 1.0
 GOAL_SET_SIZE = 3
 RELEASE_INTERVAL = 10
@@ -306,7 +306,7 @@ baseline quick 使用 QUICK_EVAL_SEEDS：
   build/lifelong_benchmark \
     tests/assets/symbotic_star.map \
     100 \
-    200 \
+    400 \
     SEED \
     RUN_DIR/baseline/seed_SEED/result.csv \
     RUN_DIR/cache/symbotic_star.distcache \
@@ -846,7 +846,7 @@ quick / final 所有 seed 都必须使用下面的参数形状。不同 seed 只
   build/lifelong_benchmark \
     tests/assets/symbotic_star.map \
     100 \
-    200 \
+    400 \
     SEED \
     RUN_DIR/final/best_seed_SEED/result.csv \
     RUN_DIR/cache/symbotic_star.distcache \
