@@ -1,0 +1,1116 @@
+你是一个实验控制型 coding agent，不是单分支调参器。
+
+现在请只针对当前本地仓库：
+
+  /home/yimin/research/lacam_agent
+
+做 throughput 优化实验。目标是在不改变固定评测场景含义的前提下，基于现有 C++ lifelong TAPF env、任务生成器和 LaCAM/TAPF 算法继续推进 throughput。
+
+你的工作产物不是一个“看起来合理的 patch”，而是一个完整实验记录：
+
+  真实轨迹观察
+  -> 根因假设
+  -> 最小代码改动
+  -> quick 验证
+  -> trajectory / trace signal
+  -> final 同 seed 对比
+
+不要请求确认，不要输出中途进展汇报。所有中间推理、脚本、trace、图、日志和说明文档都写入 RUN_DIR。直到满足停止规则并完成 final eval 后，再输出最终总结。
+
+本轮禁止只围绕上一轮 `loaded_distance_since_last_delivery = 0.75x` 做机械微调。可以继续研究 loaded batching，但只有当新的 trajectory diagnostics 给出新的根因证据时才允许沿这个方向继续。不要把本任务理解成某个预设方向的参数搜索。
+
+项目已经有对应的 env 和算法实现；评测必须通过仓库内已有的：
+
+  build/lifelong_benchmark
+
+或等价的仓库内 harness 完成。
+
+
+====================
+基本配置
+====================
+
+REPO_DIR = "/home/yimin/research/lacam_agent"
+RUN_ROOT_DIR = "/home/yimin/research/lacam_agent/hl_agent/runs"
+RUN_DIR = "/home/yimin/research/lacam_agent/hl_agent/runs/run_{YYYYMMDD_HHMMSS}_{PID}_repeat_{{REPEAT_INDEX}}"
+
+REPEAT_INDEX = {{REPEAT_INDEX}}
+
+TOTAL_BENCHMARK_RUN_BUDGET = 100
+PRE_FINAL_RUN_MIN = 80
+FINAL_EVAL_RUNS = 20
+
+定义：
+
+- benchmark run 指一次 `build/lifelong_benchmark` 调用。
+- TOTAL_BENCHMARK_RUN_BUDGET 包含 baseline quick、所有 search / diagnostic / simplification benchmark、baseline final 和 best candidate final。
+- FINAL_EVAL_RUNS 固定为 20：
+  - baseline final seeds 0..9，共 10 runs；
+  - best candidate final seeds 0..9，共 10 runs。
+- pre_final_runs_used 包含：
+  - baseline quick；
+  - search quick；
+  - diagnostic seed trial；
+  - simplification rerun；
+  - 任何 final eval 之前发生的 benchmark run。
+- final eval 之前必须满足：
+  - pre_final_runs_used >= PRE_FINAL_RUN_MIN；
+  - total_runs_used + FINAL_EVAL_RUNS <= TOTAL_BENCHMARK_RUN_BUDGET。
+- 因为 QUICK_EVAL_SEEDS 有 3 个 seed，如果三 seed batch 无法刚好达到 PRE_FINAL_RUN_MIN，可以使用有明确诊断目的的单 seed 或双 seed trial 补齐，但不能为了凑数做无意义运行。
+- 不要超过 TOTAL_BENCHMARK_RUN_BUDGET。若因为 invalid candidate 或构建失败导致无法完成完整 final eval，必须在 README.md 中诚实说明。
+
+
+====================
+当前已知状态
+====================
+
+当前仓库最新 code 已经包含上一轮最终候选和本轮 runtime tie-breaker 优化。运行开始时的当前 HEAD 就是本轮 baseline；不要再把旧固定 hash 当作 baseline gate。
+
+当前最新 code 基线为：
+
+  latest HEAD at run start, i.e. BASELINE_COMMIT=$(git rev-parse HEAD)
+
+截至本模板更新时，最新 code commit 是：
+
+  06ec6ba Improve lifelong planner runtime
+
+该版本在固定目标场景：
+
+  symbotic_star / 100 agents / K=2
+
+上继承了上一轮 throughput 提升，并在同 seed final 上保持 throughput/completed 不变、降低 runtime tie-breaker：
+
+- final mean throughput 保持 0.9325；
+- completed_tasks mean 保持 186.5；
+- alternating_throughput mean 保持 0.1850；
+- total_planner_runtime mean 从约 2638.027 降到约 2450.685；
+- total_assignment_runtime mean 从约 1925.375 降到约 1741.937；
+- 所有 final row 均为 valid=1。
+
+上一轮 throughput 提升候选仍作为历史背景：
+
+  89809c1 Tune loaded pickup distance cost
+
+与原始 baseline 相比，当前 baseline 已经从 final mean throughput 0.749 提升到 0.9325。
+
+不要再把 `89809c1`、`7b355e5` 或原始 baseline 当成本轮优化起点。运行开始时的最新 code / BASELINE_COMMIT 才是当前 baseline。
+
+上一轮最终候选的关键改动是：
+
+  lacam/src/lifelong_planning.cpp
+
+中 loaded agent 继续 pickup 的：
+
+  loaded_distance_since_last_delivery
+
+静态成本从 1.0x 调整为 0.75x。
+
+trajectory 观察显示，该改动让部分 loaded agent 更有效地完成第二单 batching。例如 quick seed 2 的等待比例从约 0.280 降到约 0.259，pickup-while-loaded 增加，但平均 delivery time 没有同步恶化。
+
+最新大 benchmark sweep 仅作为背景参考，不作为本轮优化目标。它显示 `7b355e5` 不是通用提升：
+
+- `symbotic_star`：9 个 `(agents,K)` group 中胜 6 负 3，平均 delta +0.0838。
+- `symbotic`：9 个 `(agents,K)` group 中胜 1 负 8，平均 delta -0.0588。
+- 总计 18 个 group 中胜 7 负 11，group-level 平均 delta 仅 +0.0125。
+
+本轮目标仍然只针对固定场景：
+
+  symbotic_star / 100 agents / K=2
+
+继续优化。
+
+不需要为了 `symbotic.map`、`50 agents` 或其他 K 做泛化让步。
+
+不要重复证明当前起点相对 `89809c1`、`7b355e5` 或原始 baseline 有效。下一轮重点是从固定目标场景的真实轨迹和代码执行路径出发，定位当前 latest-code baseline 的 throughput 瓶颈根因，并做能消除根因的通用算法、环境语义安全或工程结构改动。
+
+
+====================
+固定评测场景
+====================
+
+MAP_NAME = "symbotic_star"
+MAP_FILE = "tests/assets/symbotic_star.map"
+NUM_AGENTS = 100
+K = 2
+MULTI_CARRY_CAPACITY = 2
+DURATION = 4
+PICKUP_SERVICE_DURATION = 4
+DELIVERY_SERVICE_DURATION = 4
+TASK_DISTRIBUTION = "50_50"
+OUTBOUND_PROB = 0.5
+
+默认保持不变的评测参数：
+
+HORIZON = 200
+TIME_LIMIT_SEC = 1.0
+GOAL_SET_SIZE = 3
+RELEASE_INTERVAL = 10
+PLANNER_ANYTIME = 1
+PLANNER_FORCE_FULL_ASSIGNMENT = 0
+SERVICE_COMMIT_AGENTS = 0
+MAX_SHARED_DROP_GOAL_AGENTS = 5
+ASSIGNMENT_COST_MODE = 0
+
+种子设置：
+
+QUICK_EVAL_SEEDS = "0,1,2"
+FINAL_EVAL_SEEDS = "0,1,2,3,4,5,6,7,8,9"
+
+
+====================
+硬约束
+====================
+
+1. 不要改变固定评测场景：
+
+   - map；
+   - agent count；
+   - K / capacity；
+   - duration；
+   - pickup service duration；
+   - delivery service duration；
+   - task distribution；
+   - outbound probability；
+   - horizon；
+   - release interval；
+   - goal set size；
+   - time limit；
+   - seed 集合。
+
+2. 不要通过修改 CSV、trace、schedule、stdout、stderr 或汇总脚本来伪造结果。
+
+3. 不要把 seed、task id、具体 task stream 或 symbotic_star 地图位置硬编码成只对当前评测 seed 有效的捷径。
+
+4. 可以阅读和修改本仓库已有 env、planner、assignment、cache、runner、测试和工具代码。
+
+5. 最终改动必须仍然是通用算法或工程优化，而不是针对输出文件格式、固定 seed、固定 task stream 或固定坐标的作弊。
+
+6. 不要引入新的大型外部依赖。若需要小工具脚本，优先使用：
+
+   - Python 标准库；
+   - CMake；
+   - 现有 C++17 代码；
+   - 仓库已有依赖。
+
+7. 代码修改只允许发生在 REPO_DIR 的源码、测试或工具文件里。
+
+8. 一次性实验产物、临时脚本、日志、CSV、trace、图和说明文档必须写进 RUN_DIR，不要写进源码目录。
+
+9. RUN_DIR 位于 repo 内部，因此所有 git status、git diff、changed_files、patch hash 和 best_patch.diff 统计必须排除：
+
+   hl_agent/runs/**
+
+10. 可以把 `hl_agent/runs/` 追加到 `.git/info/exclude`，但不要修改 `.gitignore`，除非这是项目本身需要的可提交改动。
+
+11. 不要停下来讨论方案，不要请求确认，不要输出中途进展汇报；直接在本地迭代，直到满足停止规则后再给最终总结。
+
+
+====================
+允许和禁止的 env 修改
+====================
+
+允许：
+
+- 添加 instrumentation；
+- 重构 env 代码但不改变行为；
+- 修复一个清楚证明存在的 bug，前提是修复后仍保持 documented TAPF / lifelong semantics；
+- 添加 state-machine invariant 测试；
+- 改善内部数据结构、cache 或 bookkeeping；
+- 增加可复用 diagnostic 输出，但不能影响 benchmark 语义。
+
+禁止：
+
+- 改变 task generation distribution；
+- 改变 service duration 的含义；
+- 改变 capacity 的含义；
+- 改变 completed_tasks 递增时机；
+- 改变 throughput 计算；
+- 改变 valid / invalid 判定标准；
+- 改变 movement / collision semantics；
+- 让 service 比配置更早或更晚完成；
+- 按 seed、task id 或固定 task stream drop / merge / skip / reorder task；
+- 对 `symbotic_star`、精确坐标、seed 值或 task id 做特殊处理。
+
+任何 env 行为改动都必须包含：
+
+- before / after invariant 解释；
+- 最小测试或 diagnostic；
+- 固定场景含义未改变的证据。
+
+
+====================
+Anti-overfitting 规则
+====================
+
+允许 inspection：
+
+- 可以检查每个 seed 的 trajectory；
+- 可以根据 trajectory 诊断拥堵、等待、goal churn、service dwell、loaded batching 等现象。
+
+禁止 encoding：
+
+- 不允许写依赖 seed value 的逻辑；
+- 不允许写依赖 task id 的逻辑；
+- 不允许写依赖绝对 task stream order 的逻辑；
+- 不允许写死 symbotic_star 具体坐标 literal；
+- 不允许写死 agent 数量，除非通过 runtime config 泛化读取；
+- 不允许把某个 observed final seed 的行为变成特殊 case。
+
+允许 geometry-aware logic，但必须满足：
+
+- geometry、pickup/drop zone、corridor congestion、service-region capacity、loaded-agent state 等量必须从当前 env / map / task state 中泛化计算；
+- 不能使用固定坐标表；
+- 不能使用固定 seed 下的 task 序列；
+- 任何新常数都必须有语义解释，不能只说“这个值在 seed 0,1,2 上最好”。
+
+
+====================
+开始前必须执行并记录
+====================
+
+先创建：
+
+  RUN_ROOT_DIR
+  RUN_DIR
+
+然后记录到 RUN_DIR：
+
+1. `git rev-parse HEAD`
+2. `git status --short`
+3. `cmake -B build && cmake --build build -j`
+4. `ctest --test-dir build --output-on-failure`
+5. 一次 baseline quick evaluation
+
+当前 HEAD 必须是运行开始时的 latest-code baseline。不要校验固定旧 hash；应记录并使用：
+
+  BASELINE_COMMIT=$(git rev-parse HEAD)
+
+如果工作树在源码、测试或工具文件中已有未提交改动，必须先记录到 `RUN_DIR/README.md` 并停止，不要把 dirty working tree 当 baseline。`hl_agent/runs/**` 产物不计入 dirty 判断。
+
+保存：
+
+  BASELINE_COMMIT=$(git rev-parse HEAD)
+
+baseline quick evaluation 必须在 BASELINE_COMMIT 的代码状态上重新运行，并作为本轮 RUN_DIR 内的新 baseline 记录。
+
+不要复用旧 RUN_DIR 的 CSV、trace 或 schedule。
+
+不要回退到 `89809c1`、`7b355e5` 或更早版本。
+
+baseline quick 使用 QUICK_EVAL_SEEDS：
+
+  0,1,2
+
+参数必须使用下面形状。不同 seed 只能改 SEED、输出路径和 schedule 路径：
+
+  build/lifelong_benchmark \
+    tests/assets/symbotic_star.map \
+    100 \
+    200 \
+    SEED \
+    RUN_DIR/baseline/seed_SEED/result.csv \
+    RUN_DIR/cache/symbotic_star.distcache \
+    1.0 \
+    3 \
+    0.5 \
+    10 \
+    0 \
+    RUN_DIR/baseline/seed_SEED/schedule.yaml \
+    1 \
+    2 \
+    0 \
+    0 \
+    5 \
+    4 \
+    4 \
+    0
+
+每个 seed 的 stdout / stderr 必须保存到对应 trial 目录，例如：
+
+  RUN_DIR/baseline/seed_SEED/stdout.txt
+  RUN_DIR/baseline/seed_SEED/stderr.txt
+
+
+====================
+Git / run directory hygiene
+====================
+
+所有代码修改前保存：
+
+  BASELINE_COMMIT=$(git rev-parse HEAD)
+
+由于 RUN_DIR 位于 repo 内部，所有 git 统计必须排除：
+
+  hl_agent/runs/**
+
+生成 diff 时使用类似：
+
+  git diff BASELINE_COMMIT -- . ':(exclude)hl_agent/runs/**' > RUN_DIR/best_patch.diff
+
+计算 changed_files 时使用类似：
+
+  git diff --name-only BASELINE_COMMIT -- . ':(exclude)hl_agent/runs/**'
+
+计算 git_diff_sha256 时对排除 RUN_DIR 后的 diff 计算。
+
+changed_files 只能统计真实代码、测试或工具文件，不能把 RUN_DIR 下的实验产物计入。
+
+不要把 RUN_DIR 下文件 commit 到源码改动里。
+
+
+====================
+Baseline preservation
+====================
+
+baseline quick 必须在 BASELINE_COMMIT 的代码状态运行。
+
+final baseline 也必须使用 BASELINE_COMMIT 的代码状态，不能用改动后的代码伪装 baseline。
+
+允许两种方式之一：
+
+方式 A：最终阶段临时保存 candidate diff / branch，然后 checkout BASELINE_COMMIT，重新 build，并运行 baseline final seeds 0..9。运行完 baseline final 后，恢复 candidate，再 build，并运行 best final seeds 0..9。
+
+方式 B：创建干净 baseline worktree 或等价隔离目录，在 BASELINE_COMMIT 下 build 并运行 baseline final seeds 0..9。baseline final 输出仍然写入 RUN_DIR。
+
+无论使用哪种方式，必须保证：
+
+- baseline final 的二进制来自 BASELINE_COMMIT；
+- best final 的二进制来自最终候选代码；
+- final_eval.csv 做同 seed paired comparison；
+- 不允许复用旧 RUN_DIR 或历史汇总结果。
+
+
+====================
+每次 benchmark 的强制观察步骤
+====================
+
+每跑完一个 benchmark trial，不要只看 result.csv 的 aggregate 指标。
+
+必须打开并检查该 trial 实际生成的：
+
+- schedule.yaml；
+- result.csv；
+- result.csv.trace.csv；
+- stdout；
+- stderr。
+
+观察时重点回答：
+
+1. agent 是否在 pickup / drop 区域排队、互相阻塞或反复等待；
+2. loaded agent 是否过度继续 pickup，导致 delivery / completion 滞后；
+3. loaded agent 是否过早 delivery，错失合理 batching；
+4. 多个 agent 是否被 assignment 引向同一局部区域或同一 service slot；
+5. FOCAL / service-goal search 是否产生明显绕路、振荡、swap blocking 或长期 idle；
+6. replan 后目标是否频繁改变，导致有效推进不足；
+7. service duration = 4 时是否有 agent 卡在 drop / pickup 附近等待服务完成；
+8. 如果想进一步大幅提升性能，当前 trajectory 暴露了哪个最值得攻击的瓶颈。
+
+每个 trial 写入 trials.jsonl 的 notes 时，必须包含一句基于实际 trajectory / trace 观察得到的 pattern，以及下一步代码调整如何对应这个 pattern。
+
+不要写空泛结论。
+
+不合格示例：
+
+  "可能提高 throughput"
+  "等待比较多，调参看看"
+  "看起来有拥堵"
+
+合格示例：
+
+  "seed=2 中 loaded_wait_ratio=0.259，drop 区附近 dwell steps 明显集中，多个 loaded agent 在未满载时反复接近 drop goal；下一步尝试让 delivery 目标选择考虑 service slot 局部拥堵，预期降低 wait_steps_near_drop。"
+
+如果观察不到清晰 pattern，也要在 notes 里明确写：
+
+  "未观察到明确瓶颈"
+
+并说明下一步为什么仍然值得尝试。禁止在完全不看 trajectory / trace 的情况下继续进行下一轮代码调整。
+
+
+====================
+Trajectory / trace analyzer
+====================
+
+在第一个 baseline quick seed 结束后，先检查实际输出格式：
+
+- schedule.yaml；
+- result.csv；
+- result.csv.trace.csv；
+- stdout；
+- stderr。
+
+然后创建：
+
+  RUN_DIR/tools/analyze_trial.py
+
+该 analyzer 必须从实际可用字段中尽可能推导 trajectory diagnostics。
+
+如果某个字段不可用，记录为 null，并在 diagnostics.md 或 notes 中说明原因。
+
+每个 benchmark trial 后都必须运行 analyzer，并保存：
+
+  trial_dir/diagnostics.json
+  trial_dir/diagnostics.md
+
+尽可能提取以下指标。
+
+1. wait / idle metrics
+
+- total_wait_steps
+- wait_steps_per_agent_mean
+- wait_ratio
+- loaded_wait_ratio
+- unloaded_wait_ratio
+
+2. pickup / drop congestion
+
+- wait_steps_near_pickup
+- wait_steps_near_drop
+- max_agents_near_same_pickup_region
+- max_agents_near_same_drop_region
+- repeated_entry_count_into_service_regions
+
+3. loaded behavior
+
+- pickup_while_loaded_count
+- delivery_while_single_loaded_count
+- delivery_while_full_loaded_count
+- loaded_distance_since_last_delivery_mean
+- loaded_time_before_delivery_mean
+- loaded_agents_stuck_near_service_count
+
+4. replan / goal churn
+
+- goal_change_count
+- goal_change_count_loaded
+- repeated_goal_flip_count
+- average_steps_moving_toward_same_goal
+
+5. planner / search symptoms
+
+- planner_timeout_count
+- planner_failure_count
+- planner_empty_solution_count
+- runtime spikes by timestep, if trace supports it
+- long_idle_after_replan_count
+
+6. movement inefficiency
+
+- backtrack_count
+- local_oscillation_count
+- swap_blocking_suspected_count
+- same_cell_or_edge_contention_count, if reconstructable
+
+The `trajectory_pattern_observed` field in trials.jsonl must include at least one concrete measured fact, for example:
+
+  "seed=2 loaded_wait_ratio=0.259, wait_steps_near_drop=..., pickup_while_loaded_count=..."
+
+不能只写：
+
+  "agents seem blocked"
+
+
+====================
+Mandatory hypothesis phase
+====================
+
+在第一次代码修改之前，必须基于 baseline quick 的结果、diagnostics、trace、schedule、stdout / stderr 和相关代码路径写：
+
+  RUN_DIR/baseline_observations.md
+  RUN_DIR/hypotheses.jsonl
+
+至少创建 10 个 hypotheses。
+
+它们必须覆盖以下层次：
+
+1. assignment / task selection；
+2. loaded-vs-delivery decision policy；
+3. service-goal generation；
+4. LaCAM / FOCAL search behavior；
+5. replan stability / goal commitment；
+6. service duration interaction；
+7. congestion / region capacity handling；
+8. runtime engineering / cache / data structure；
+9. env state-machine invariant or accounting issue；
+10. one deliberately different algorithmic direction。
+
+每条 hypothesis 必须包含：
+
+- hypothesis_id；
+- observed_pattern；
+- suspected_code_path；
+- causal_chain；
+- proposed_change；
+- expected_metric_signal；
+- possible_regression；
+- minimum_experiment；
+- why_this_is_not_seed_hardcoding；
+- estimated_implementation_cost。
+
+不允许在没有 hypothesis_id 的情况下实现代码改动。
+
+如果某个改动只是 heuristic 常数调整，它必须明确说明：
+
+- 该常数对应哪个实测瓶颈；
+- 为什么现有值造成该瓶颈；
+- 预期哪个 diagnostic signal 会改变；
+- 为什么这不是围绕 quick seeds 的盲目拟合。
+
+
+====================
+探索原则
+====================
+
+不要把优化过程理解为某个预设方向的参数搜索。除了硬约束和固定评测场景外，不要预设 assignment、planner、service-goal、cache、runner 或 env 哪一层一定是正确切入点。
+
+每一轮都先从当前证据出发建立根因假设。可以使用：
+
+- trajectory；
+- trace；
+- schedule；
+- stdout / stderr；
+- runtime profile；
+- 代码路径；
+- 状态转移不变量；
+- 任务生成分布；
+- planner search statistics；
+- assignment 输入输出；
+- service duration 语义；
+- cache 命中行为；
+- goal churn；
+- local congestion；
+- failure / timeout / empty solution 计数。
+
+优先寻找“为什么 throughput 被浪费”的本质原因，而不是只调已有启发式常数。
+
+可以修改：
+
+- 数据结构；
+- 状态表示；
+- 目标构造；
+- replan / commit 策略；
+- search / assignment 交互；
+- cache 边界；
+- benchmark harness 的内部工程实现；
+- 可复用 instrumentation；
+- 可复用测试或工具。
+
+但任务 / agent 状态机、env accounting、validity checking、throughput / completed_tasks 计算只能做 instrumentation、refactor 或有测试支持的 bug fix，不能改变固定场景语义。
+
+对任何候选改动，必须说明它作用在哪个因果链条上：
+
+- 观察到的低效行为是什么；
+- 该行为由哪段代码、状态表示或算法假设导致；
+- 改动如何改变这个因果链条；
+- 预期会改善哪个可观测指标；
+- 可能牺牲什么；
+- 如何用 quick / final 结果验证。
+
+允许做更本质的重构或算法替换，而不是被限制在轻量 heuristic tuning。
+
+不要因为某个方向之前有效或无效就机械重复。只有当新的 trajectory evidence 给出不同根因解释时，才沿相似方向继续；否则换层次、换假设、换观测方法。
+
+如果当前 trace 指标不足以解释根因，可以先补充通用 instrumentation 或分析脚本。
+
+这些工具必须：
+
+- 写入 RUN_DIR；或
+- 作为可复用工具 / 测试进入源码目录。
+
+禁止通过修改结果文件来制造结论。
+
+
+====================
+Diversity requirement
+====================
+
+进入 final eval 前，除非 budget 异常耗尽，search trials 必须至少包含一次来自以下类别的代码尝试或明确 falsification：
+
+1. assignment / cost / task choice；
+2. loaded batching vs delivery policy；
+3. service goal selection or goal set construction；
+4. planner search behavior / focal ordering / conflict handling；
+5. replan stability / goal churn reduction；
+6. congestion or service-region blocking；
+7. runtime / cache / engineering optimization。
+
+某个类别可以被标记为 "falsified without code change"，但必须在：
+
+  RUN_DIR/falsified_directions.md
+
+中写出具体理由，包括：
+
+- baseline diagnostics；
+- code inspection evidence；
+- 为什么该方向当前不值得消耗 benchmark budget。
+
+不要把超过 50% 的 pre-final benchmark runs 花在同一种 causal mechanism 的变体上。
+
+尤其不要反复微调：
+
+  loaded_distance_since_last_delivery
+
+或类似 loaded pickup distance scalar，除非 diagnostics 显示了一个新的、具体的 loaded-agent failure mode，且上一轮 0.75x 改动没有覆盖这个 failure mode。
+
+
+====================
+每个 trial 的记录要求
+====================
+
+每个实际 benchmark trial 都必须向：
+
+  RUN_DIR/trials.jsonl
+
+追加一个 JSON object。
+
+至少包含以下字段：
+
+- trial_index
+- timestamp
+- repeat_index
+- git_commit
+- baseline_commit
+- git_diff_sha256
+- hypothesis_id
+- trial_name
+- changed_files
+- quick_or_final
+- seeds
+- benchmark_runs_used
+- pre_final_runs_used
+- total_runs_used
+- valid_count
+- throughput_mean
+- throughput_min
+- throughput_max
+- completed_tasks_mean
+- alternating_throughput_mean
+- total_planner_runtime_mean
+- total_assignment_runtime_mean
+- planner_timeout_count_sum
+- planner_failure_count_sum
+- planner_empty_solution_count_sum
+
+diagnostic_summary 至少包含：
+
+- wait_ratio_mean
+- loaded_wait_ratio_mean
+- unloaded_wait_ratio_mean
+- wait_steps_near_pickup_mean
+- wait_steps_near_drop_mean
+- pickup_while_loaded_count_sum
+- delivery_while_single_loaded_count_sum
+- delivery_while_full_loaded_count_sum
+- goal_change_count_sum
+- local_oscillation_count_sum
+- service_region_dwell_steps_sum
+
+还必须包含：
+
+- trajectory_pattern_observed
+- pattern_driven_next_hypothesis
+- causal_chain_claim
+- expected_signal
+- actual_signal
+- regression_observed
+- notes
+
+每个 trial 的 notes 必须体现：
+
+  观察 -> 根因假设 -> 改动 -> 验证信号
+
+不能写空泛的“可能提高 throughput”“调参看看”。
+
+
+====================
+Best quick simplification rule
+====================
+
+每次发现新的 best quick score 时，不要立刻扩大改动。
+
+先进入一次代码简化阶段：
+
+1. 保存当前完整 diff 到：
+
+   trial_dir/raw_candidate.diff
+
+2. 删除没有贡献的参数、分支、实验性 dead code、临时调试输出和偶然改动。
+
+3. 保留能解释 throughput 提升的最小实现。
+
+4. 该最小实现必须对应当前 hypothesis_id 和 causal_chain_claim。
+
+5. 如果 budget 允许，重新跑 QUICK_EVAL_SEEDS，确认 quick score 没有实质下降。
+
+6. 如果简化版相对 raw candidate 的 quick throughput_mean 下降超过 0.001，则恢复 raw candidate，除非 diagnostics 显示 raw candidate 是过拟合、invalid 或语义风险更高。
+
+7. raw 和 simplified 的结果都要写入 trials.jsonl。
+
+8. simplification rerun 计入 benchmark budget。
+
+9. 如果 simplification 会导致剩余 budget 不足以完成 FINAL_EVAL_RUNS，则不要启动 simplification，直接记录原因。
+
+
+====================
+优化目标
+====================
+
+主指标：
+
+  throughput
+
+按 FINAL_EVAL_SEEDS 的 mean 判断。
+
+必须满足：
+
+  所有计入结果的 row 都有 valid=1。
+
+同分或近似同分时优先选择：
+
+1. 更高的 completed_tasks mean；
+2. 更高的 alternating_throughput mean；
+3. 更低的 total_planner_runtime；
+4. 更低的 total_assignment_runtime；
+5. 更少的 planner timeout / failure / empty-solution 计数；
+6. 更小、更可解释、更语义安全的 diff。
+
+
+====================
+停止规则
+====================
+
+pre_final_runs_used < PRE_FINAL_RUN_MIN 时，不要因为暂时平台期、已经超过 baseline、或短期没有新想法就停止。
+
+必须继续尝试新的通用算法改动、工程优化、diagnostic-guided falsification 或更换切入层。
+
+只有当：
+
+  pre_final_runs_used >= PRE_FINAL_RUN_MIN
+
+且：
+
+  total_runs_used + FINAL_EVAL_RUNS <= TOTAL_BENCHMARK_RUN_BUDGET
+
+时，才允许停止搜索并进入 final eval。
+
+停止前必须对最终候选跑 FINAL_EVAL_SEEDS，并和 baseline FINAL_EVAL_SEEDS 做同 seed 对比。
+
+
+====================
+Final evaluation
+====================
+
+在 pre_final_runs_used >= PRE_FINAL_RUN_MIN，并且剩余 budget 足够完成 FINAL_EVAL_RUNS 后，选择 best candidate。
+
+选择规则：
+
+1. highest quick throughput_mean；
+2. 如果 within 0.002，则选 completed_tasks_mean 更高者；
+3. 如果仍接近，则选 alternating_throughput_mean 更高者；
+4. 如果仍接近，则选 total_planner_runtime_mean + total_assignment_runtime_mean 更低者；
+5. 如果仍接近，则选 timeout / failure / empty-solution 更少者；
+6. 如果仍接近，则选 diff 更简单、causal-chain evidence 更清楚、语义风险更低者。
+
+然后运行 FINAL_EVAL_SEEDS：
+
+- baseline commit `BASELINE_COMMIT`，即运行开始时的 latest-code baseline；
+- selected best candidate。
+
+final 决策只基于 paired FINAL_EVAL_SEEDS comparison。
+
+final_eval.csv 必须包含：
+
+- one row per seed for baseline；
+- one row per seed for best；
+- one paired delta row per seed；
+- one mean row；
+- one win / loss / tie summary。
+
+所有 final rows 必须 valid=1。
+
+如果任何 best candidate final row 有 valid != 1，则 candidate rejected。如果 budget 允许，评估 next-best valid candidate。如果 budget 不允许，诚实报告失败，不要伪造或补写结果。
+
+
+====================
+固定 benchmark 命令形状
+====================
+
+quick / final 所有 seed 都必须使用下面的参数形状。不同 seed 只能改变：
+
+- SEED；
+- result.csv 输出路径；
+- schedule.yaml 输出路径；
+- stdout / stderr 保存路径。
+
+单 seed 复现形状：
+
+  build/lifelong_benchmark \
+    tests/assets/symbotic_star.map \
+    100 \
+    200 \
+    SEED \
+    RUN_DIR/final/best_seed_SEED/result.csv \
+    RUN_DIR/cache/symbotic_star.distcache \
+    1.0 \
+    3 \
+    0.5 \
+    10 \
+    0 \
+    RUN_DIR/final/best_seed_SEED/schedule.yaml \
+    1 \
+    2 \
+    0 \
+    0 \
+    5 \
+    4 \
+    4 \
+    0
+
+
+====================
+输出文件要求
+====================
+
+最终必须生成以下文件。
+
+1. RUN_DIR/README.md
+
+写清楚：
+
+- 环境；
+- git baseline commit；
+- 当前最终候选 commit / diff hash；
+- 构建命令；
+- ctest 结果；
+- baseline quick；
+- baseline final；
+- best trial；
+- final score；
+- benchmark budget；
+- 已用 benchmark runs；
+- pre_final_runs_used；
+- total_runs_used；
+- 主要 trajectory 观察；
+- pattern 如何驱动代码调整；
+- 主要改动；
+- 主要失败方向；
+- falsified directions；
+- semantic safety 说明；
+- 是否所有 final rows valid=1；
+- 复现命令；
+- 为什么满足停止规则。
+
+2. RUN_DIR/trials.jsonl
+
+每个实际 benchmark trial 追加一行。
+
+所有实际跑过 benchmark 的 seed 都要计入。
+
+3. RUN_DIR/summary.csv
+
+从 trials.jsonl 汇总，包含 running best。
+
+至少包含：
+
+- trial_index；
+- trial_name；
+- hypothesis_id；
+- quick_or_final；
+- seeds；
+- benchmark_runs_used；
+- pre_final_runs_used；
+- total_runs_used；
+- throughput_mean；
+- running_best_quick；
+- completed_tasks_mean；
+- alternating_throughput_mean；
+- total_planner_runtime_mean；
+- total_assignment_runtime_mean；
+- valid_count；
+- changed_files；
+- notes_short。
+
+4. RUN_DIR/sample_efficiency.png
+
+至少两张子图：
+
+- x = benchmark_runs_used，y = throughput_mean 和 running_best_quick；
+- x = benchmark_runs_used，y = total_planner_runtime_mean 和 total_assignment_runtime_mean。
+
+5. RUN_DIR/best_patch.diff
+
+最终代码改动的 diff。
+
+必须排除：
+
+  hl_agent/runs/**
+
+6. RUN_DIR/final_eval.csv
+
+baseline 与 best candidate 在 FINAL_EVAL_SEEDS 上的逐 seed 对比和均值。
+
+必须包含：
+
+- seed；
+- baseline_valid；
+- best_valid；
+- baseline_throughput；
+- best_throughput；
+- delta_throughput；
+- baseline_completed_tasks；
+- best_completed_tasks；
+- delta_completed_tasks；
+- baseline_alternating_throughput；
+- best_alternating_throughput；
+- delta_alternating_throughput；
+- baseline_total_planner_runtime；
+- best_total_planner_runtime；
+- baseline_total_assignment_runtime；
+- best_total_assignment_runtime；
+- baseline_timeout_count；
+- best_timeout_count；
+- baseline_failure_count；
+- best_failure_count；
+- baseline_empty_solution_count；
+- best_empty_solution_count。
+
+7. RUN_DIR/baseline_observations.md
+
+记录 baseline quick 的 trajectory / trace / stdout / stderr 观察。
+
+必须包含具体 measured pattern。
+
+8. RUN_DIR/hypotheses.jsonl
+
+记录第一次代码修改前建立的至少 10 个 hypotheses。
+
+9. RUN_DIR/falsified_directions.md
+
+记录未实施或被否定的方向，以及具体证据。
+
+10. RUN_DIR/tools/analyze_trial.py
+
+trajectory / trace analyzer。
+
+11. 每个 seed trial 目录下：
+
+- result.csv；
+- result.csv.trace.csv；
+- schedule.yaml；
+- stdout.txt；
+- stderr.txt；
+- diagnostics.json；
+- diagnostics.md。
+
+
+====================
+执行循环
+====================
+
+按以下顺序执行：
+
+1. Create RUN_ROOT_DIR and RUN_DIR。
+
+2. Record：
+
+   - git rev-parse HEAD；
+   - git status --short；
+   - cmake build log；
+   - ctest log。
+
+3. Verify HEAD is clean latest-code baseline and save `BASELINE_COMMIT=$(git rev-parse HEAD)`。
+
+4. Run baseline quick on seeds 0,1,2 at BASELINE_COMMIT。
+
+5. Inspect actual output schemas：
+
+   - schedule.yaml；
+   - result.csv；
+   - result.csv.trace.csv；
+   - stdout；
+   - stderr。
+
+6. Create trajectory analyzer：
+
+   RUN_DIR/tools/analyze_trial.py
+
+7. Analyze baseline quick schedules / traces and write：
+
+   - RUN_DIR/baseline_observations.md；
+   - RUN_DIR/hypotheses.jsonl。
+
+8. Iterate until pre_final_runs_used >= PRE_FINAL_RUN_MIN and enough budget remains for final eval：
+
+   a. Select a hypothesis_id not already exhausted。
+
+   b. Implement the minimum code change needed to test it。
+
+   c. Build。
+
+   d. Run quick benchmark seeds 0,1,2, or a justified smaller diagnostic seed set if budget control requires it。
+
+   e. Save stdout / stderr for every seed。
+
+   f. Run trajectory analyzer for every seed。
+
+   g. Append trials.jsonl with causal-chain evidence。
+
+   h. If new best quick, simplify diff and rerun quick if budget allows。
+
+   i. If invalid rows or semantic-risk changes appear, revert or fix before continuing。
+
+   j. Do not spend more than half of pre-final runs on variants of the same mechanism。
+
+9. Select final candidate using quick score, diagnostics, semantic safety and tie-break rules。
+
+10. Run final baseline and final candidate on seeds 0..9。
+
+11. Generate：
+
+   - README.md；
+   - trials.jsonl；
+   - summary.csv；
+   - sample_efficiency.png；
+   - best_patch.diff；
+   - final_eval.csv；
+   - baseline_observations.md；
+   - hypotheses.jsonl；
+   - falsified_directions.md。
+
+12. Final response should only summarize：
+
+   - RUN_DIR；
+   - baseline final mean throughput；
+   - best final mean throughput；
+   - paired seed deltas；
+   - whether all final rows valid=1；
+   - total benchmark runs used；
+   - code files changed；
+   - main trajectory pattern；
+   - why the selected change targets that pattern；
+   - failed directions；
+   - exact reproduction commands。
+
+
+====================
+最终响应格式
+====================
+
+最终只输出下面这些内容，不要输出长篇中途日志：
+
+1. RUN_DIR
+2. baseline final mean
+3. best final mean
+4. delta
+5. paired seed result table
+6. all valid=1 是否成立
+7. total benchmark runs used
+8. changed files
+9. best_patch.diff 路径
+10. final_eval.csv 路径
+11. sample_efficiency.png 路径
+12. 主要 trajectory pattern
+13. 主要代码改动及 causal chain
+14. 失败方向摘要
+15. 复现命令
+
+现在直接开始执行。先创建 RUN_DIR，记录 baseline，然后基于 trace、trajectory、profile 和代码路径自己决定怎么迭代。中途不要问我，也不要汇报进展，直到满足停止规则并完成 final eval 后再输出最终总结。
