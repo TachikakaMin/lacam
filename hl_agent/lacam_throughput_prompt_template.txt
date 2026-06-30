@@ -64,7 +64,7 @@ FINAL_EVAL_RUNS = 20
 当前已知状态
 ====================
 
-当前仓库最新 code 已经包含上一轮最终候选和本轮 runtime tie-breaker 优化。运行开始时的当前 HEAD 就是本轮 baseline；不要再把旧固定 hash 当作 baseline gate。
+当前仓库最新 code 已经包含上一轮 throughput 候选、本轮 runtime tie-breaker 优化，以及固定评测 horizon 从 200 改为 400 的模板更新。运行开始时的当前 HEAD 就是本轮 baseline；不要再把旧固定 hash 当作 baseline gate。
 
 当前最新 code 基线为：
 
@@ -72,26 +72,30 @@ FINAL_EVAL_RUNS = 20
 
 截至本模板更新时，最新 code commit 是：
 
-  06ec6ba Improve lifelong planner runtime
+  478b985 Update throughput horizon to 400
 
-该版本在固定目标场景：
+当前固定目标场景已经改为：
 
-  symbotic_star / 100 agents / K=2
+  symbotic_star / 100 agents / K=2 / horizon=400
 
-上继承了上一轮 throughput 提升，并在同 seed final 上保持 throughput/completed 不变、降低 runtime tie-breaker：
+因此，下一轮必须在 horizon=400 下重新建立 baseline quick 和 final 对比；不要把 horizon=200 的旧 CSV、trace、schedule 或 final_eval 复用为当前 baseline 证据。
 
-- final mean throughput 保持 0.9325；
-- completed_tasks mean 保持 186.5；
-- alternating_throughput mean 保持 0.1850；
-- total_planner_runtime mean 从约 2638.027 降到约 2450.685；
-- total_assignment_runtime mean 从约 1925.375 降到约 1741.937；
-- 所有 final row 均为 valid=1。
+horizon=200 下的最近历史结果仅作为背景参考：
+
+- `89809c1 Tune loaded pickup distance cost` 将 final mean throughput 提升到 0.9325；
+- `06ec6ba Improve lifelong planner runtime` 在同 seed final 上保持 throughput/completed 不变，并降低 runtime tie-breaker：
+  - final mean throughput 保持 0.9325；
+  - completed_tasks mean 保持 186.5；
+  - alternating_throughput mean 保持 0.1850；
+  - total_planner_runtime mean 从约 2638.027 降到约 2450.685；
+  - total_assignment_runtime mean 从约 1925.375 降到约 1741.937；
+  - 所有 final row 均为 valid=1。
 
 上一轮 throughput 提升候选仍作为历史背景：
 
   89809c1 Tune loaded pickup distance cost
 
-与原始 baseline 相比，当前 baseline 已经从 final mean throughput 0.749 提升到 0.9325。
+与原始 baseline 相比，horizon=200 历史 baseline 已经从 final mean throughput 0.749 提升到 0.9325。horizon=400 下的当前 baseline 性能尚未由本模板后的新 RUN_DIR 证明，必须重新运行。
 
 不要再把 `89809c1`、`7b355e5` 或原始 baseline 当成本轮优化起点。运行开始时的最新 code / BASELINE_COMMIT 才是当前 baseline。
 
