@@ -88,6 +88,7 @@ struct TAPFAssignmentState {
     lx.assign(n, 0);
     ly.assign(n, 0);
     row_cost_cache.clear();
+    row_cost_cache.reserve(static_cast<size_t>(std::max(1, org_n)) * 32);
     tie_hash_mod = compute_tie_hash_mod(org_n, org_m);
     cost_scale = compute_cost_scale(org_n, org_m, tie_hash_mod);
   }

@@ -1454,7 +1454,7 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
 
   if (search_config.service_goal_mode) {
     auto direct_entries = 0;
-    constexpr auto kMaxDirectServiceEntries = 8;
+    constexpr auto kMaxDirectServiceEntries = 100;
     for (auto k : S->order) {
       if (direct_entries >= kMaxDirectServiceEntries) break;
       auto a = A[k];
