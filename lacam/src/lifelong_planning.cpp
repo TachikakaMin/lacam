@@ -506,7 +506,7 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
                               *previous_task_ids[i] != task.task_id;
         const auto static_cost =
             static_cast<long long>(delivery_cost) + circle +
-            (carried_count > 0 ? agent.loaded_distance_since_last_delivery
+            (carried_count > 0 ? (3 * agent.loaded_distance_since_last_delivery) / 4
                                : 0) +
             (switched ? 1 : 0) + delay_penalty * denominator;
         auto offset =
