@@ -34,6 +34,7 @@ class Case:
     dist_label: str
     duration: int
     cost_mode: int = 0
+    seed: int = 0
 
     @property
     def outbound_prob(self) -> float:
@@ -45,11 +46,44 @@ class Case:
             f"map-{self.map_name}__k-{self.k}__slot-{self.slot}"
             f"__agents-{self.agents}__dist-{self.dist_label}"
             f"__dur-{self.duration}__cost-{self.cost_mode}"
+            f"__seed-{self.seed}"
         )
 
 
 def parse_ints(value: str) -> list[int]:
     return [int(item) for item in value.split(",") if item]
+
+
+def parse_seed_values(args: argparse.Namespace) -> list[int]:
+    seeds = getattr(args, "seeds", None)
+    if seeds:
+        return parse_ints(seeds)
+    return [int(args.seed)]
+
+
+def build_cases(args: argparse.Namespace) -> list[Case]:
+    maps = [item for item in args.maps.split(",") if item]
+    dists = [item for item in args.dists.split(",") if item]
+    unknown_maps = sorted(set(maps) - set(MAPS))
+    unknown_dists = sorted(set(dists) - set(DISTS))
+    if unknown_maps:
+        raise ValueError(f"unknown map labels: {unknown_maps}")
+    if unknown_dists:
+        raise ValueError(f"unknown distribution labels: {unknown_dists}")
+
+    return [
+        Case(map_name, k, slot, agents, dist_label, duration, cost_mode, seed)
+        for map_name, k, slot, agents, dist_label, duration, cost_mode, seed in itertools.product(
+            maps,
+            parse_ints(args.ks),
+            parse_ints(args.slots),
+            parse_ints(args.agent_counts),
+            dists,
+            parse_ints(args.durations),
+            parse_ints(args.cost_modes),
+            parse_seed_values(args),
+        )
+    ]
 
 
 def read_single_row(path: Path) -> dict[str, str]:
@@ -120,7 +154,7 @@ def run_case(args: argparse.Namespace, case: Case) -> dict[str, str]:
             MAPS[case.map_name],
             str(case.agents),
             str(args.horizon),
-            str(args.seed),
+            str(case.seed),
             str(result_csv),
             str(cache_path),
             str(args.time_limit_sec),
@@ -170,7 +204,7 @@ def run_case(args: argparse.Namespace, case: Case) -> dict[str, str]:
             "cost_mode": str(case.cost_mode),
             "time_limit_sec": str(args.time_limit_sec),
             "horizon_requested": str(args.horizon),
-            "seed_requested": str(args.seed),
+            "seed_requested": str(case.seed),
             "goal_set_size_requested": str(args.goal_set_size),
             "release_interval_requested": str(args.release_interval),
             "anytime_requested": "1",
@@ -201,6 +235,11 @@ def main() -> int:
     parser.add_argument("--cost-modes", default="0")
     parser.add_argument("--horizon", type=int, default=200)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--seeds",
+        default="",
+        help="Comma-separated seeds. When set, overrides --seed.",
+    )
     parser.add_argument("--time-limit-sec", type=float, default=1.0)
     parser.add_argument("--goal-set-size", type=int, default=3)
     parser.add_argument("--release-interval", type=int, default=10)
@@ -213,27 +252,7 @@ def main() -> int:
     if not args.binary.exists():
         raise FileNotFoundError(f"benchmark binary not found: {args.binary}")
 
-    maps = [item for item in args.maps.split(",") if item]
-    dists = [item for item in args.dists.split(",") if item]
-    unknown_maps = sorted(set(maps) - set(MAPS))
-    unknown_dists = sorted(set(dists) - set(DISTS))
-    if unknown_maps:
-        raise ValueError(f"unknown map labels: {unknown_maps}")
-    if unknown_dists:
-        raise ValueError(f"unknown distribution labels: {unknown_dists}")
-
-    cases = [
-        Case(map_name, k, slot, agents, dist_label, duration, cost_mode)
-        for map_name, k, slot, agents, dist_label, duration, cost_mode in itertools.product(
-            maps,
-            parse_ints(args.ks),
-            parse_ints(args.slots),
-            parse_ints(args.agent_counts),
-            dists,
-            parse_ints(args.durations),
-            parse_ints(args.cost_modes),
-        )
-    ]
+    cases = build_cases(args)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     summary_path = args.out_dir / "all_results.csv"
@@ -258,6 +277,7 @@ def main() -> int:
                     r["dist_label"],
                     int(r["duration"]),
                     int(r["cost_mode"]),
+                    int(r["seed_requested"]),
                 )
             )
             write_rows(summary_path, rows)
