@@ -266,9 +266,10 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
             ? std::max(0, service_cost_state.partial_remaining_by_agent[i])
             : 0;
     const auto key = row_cache_key(i, C[i], partial_task, partial_remaining);
-    auto iter = state.row_cost_cache.find(key);
-    if (iter == state.row_cost_cache.end()) {
-      iter = state.row_cost_cache.emplace(key, build_row(i)).first;
+    if (state.row_cost_cache == nullptr) state.reset_row_cost_cache();
+    auto iter = state.row_cost_cache->find(key);
+    if (iter == state.row_cost_cache->end()) {
+      iter = state.row_cost_cache->emplace(key, build_row(i)).first;
     } else if (stats != nullptr) {
       ++stats->row_cache_hits;
     }

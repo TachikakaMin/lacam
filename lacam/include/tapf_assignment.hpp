@@ -7,6 +7,7 @@
 #include <chrono>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <unordered_map>
 #include <vector>
@@ -74,9 +75,10 @@ struct TAPFAssignmentState {
   std::vector<long> ly;
   long cost_scale = 1;
   long tie_hash_mod = 1;
-  std::unordered_map<TAPFAssignmentRowCacheKey, std::vector<int>,
-                     TAPFAssignmentRowCacheKeyHash>
-      row_cost_cache;
+  using RowCostCache = std::unordered_map<TAPFAssignmentRowCacheKey,
+                                          std::vector<int>,
+                                          TAPFAssignmentRowCacheKeyHash>;
+  std::shared_ptr<RowCostCache> row_cost_cache;
 
   void init(const int agent_num, const int task_num)
   {
@@ -87,13 +89,18 @@ struct TAPFAssignmentState {
     mateR.assign(n, -1);
     lx.assign(n, 0);
     ly.assign(n, 0);
-    row_cost_cache.clear();
-    row_cost_cache.reserve(static_cast<size_t>(std::max(1, org_n)) * 32);
+    reset_row_cost_cache();
     tie_hash_mod = compute_tie_hash_mod(org_n, org_m);
     cost_scale = compute_cost_scale(org_n, org_m, tie_hash_mod);
   }
 
-  bool ready() const { return n > 0; }
+  void reset_row_cost_cache()
+  {
+    row_cost_cache = std::make_shared<RowCostCache>();
+    row_cost_cache->reserve(static_cast<size_t>(std::max(1, org_n)) * 32);
+  }
+
+  bool ready() const { return n > 0 && row_cost_cache != nullptr; }
 
   template <typename CostFn>
   TAPFAssignmentResult solve_full(const CostFn& cost_fn)
