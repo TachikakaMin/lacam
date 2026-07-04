@@ -1,0 +1,1074 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>[2108.04629] Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving</title><meta property="og:description" content="Cooperative intelligent transportation systems (ITS) are used by autonomous vehicles to communicate with surrounding autonomous vehicles and roadside units (RSU).
+Current C-ITS applications focus primarily on real-time…">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving">
+<meta name="twitter:image:src" content="https://ar5iv.labs.arxiv.org/assets/ar5iv_card.png">
+<meta name="twitter:image:alt" content="ar5iv logo">
+<meta property="og:title" content="Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving">
+<meta property="og:site_name" content="ar5iv">
+<meta property="og:image" content="https://ar5iv.labs.arxiv.org/assets/ar5iv_card.png">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://ar5iv.labs.arxiv.org/html/2108.04629">
+<link rel="canonical" target="_blank" href="https://ar5iv.labs.arxiv.org/html/2108.04629">
+
+<!--Generated on Tue Mar 19 10:21:15 2024 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<script>
+  function detectColorScheme(){
+    var theme="light";
+    var current_theme = localStorage.getItem("ar5iv_theme");
+    if(current_theme){
+      if(current_theme == "dark"){
+        theme = "dark";
+      } }
+    else if(!window.matchMedia) { return false; }
+    else if(window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      theme = "dark"; }
+    if (theme=="dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light"); } }
+
+  detectColorScheme();
+
+  function toggleColorScheme(){
+    var current_theme = localStorage.getItem("ar5iv_theme");
+    if (current_theme) {
+      if (current_theme == "light") {
+        localStorage.setItem("ar5iv_theme", "dark"); }
+      else {
+        localStorage.setItem("ar5iv_theme", "light"); } }
+    else {
+        localStorage.setItem("ar5iv_theme", "dark"); }
+    detectColorScheme(); }
+</script>
+<link media="all" rel="stylesheet" href="/assets/ar5iv-fonts.0.8.4.css"><link media="all" rel="stylesheet" href="/assets/ar5iv.0.8.4.css"><link media="all" rel="stylesheet" href="/assets/ar5iv-site.0.2.2.css">
+</head>
+<body>
+<div class="ltx_page_main">
+<div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_title_document">Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving
+</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">
+Mai Hirata1,
+Manabu Tsukada1,
+Keisuke Okumura2,
+Yasumasa Tamura2,
+Hideya Ochiai1,
+Xavier Défago2
+
+
+2
+School of Computing, Tokyo Institute of Technology, Tokyo, Japan
+<br class="ltx_break">Email: {<span id="id3.1.id1" class="ltx_text ltx_font_italic">okumura.k, tamura.y, defago.x</span>}<span id="id4.2.id2" class="ltx_text ltx_font_italic">@coord.c.titech.ac.jp</span>
+</span><span class="ltx_author_notes">
+<span class="ltx_contact ltx_role_affiliation">1
+Graduate School of Information Science and Technology, The University of Tokyo, Tokyo, Japan
+<br class="ltx_break">Email: {<span id="id5.3.id1" class="ltx_text ltx_font_italic">mai, tsukada, jo2lxq</span>}<span id="id6.4.id2" class="ltx_text ltx_font_italic">@hongo.wide.ad.jp</span>
+</span></span></span>
+</div>
+
+<div class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p id="id2.2" class="ltx_p">Cooperative intelligent transportation systems (ITS) are used by autonomous vehicles to communicate with surrounding autonomous vehicles and roadside units (RSU).
+Current C-ITS applications focus primarily on real-time information sharing, such as cooperative perception.
+In addition to real-time information sharing, self-driving cars need to coordinate their action plans to achieve higher safety and efficiency.
+For this reason, this study defines a vehicle’s future action plan/path and designs a cooperative path-planning model at intersections using future path sharing based on the future path information of multiple vehicles.
+The notion is that when the RSU detects a potential conflict of vehicle paths or an acceleration opportunity according to the shared future paths, it will generate a coordinated path update that adjusts the speeds of the vehicles.
+We implemented the proposed method using the open-source Autoware autonomous driving software and evaluated it with the LGSVL autonomous vehicle simulator.
+We conducted simulation experiments with two vehicles at a blind intersection scenario, finding that each car can travel safely and more efficiently by planning a path that reflects the action plans of all vehicles involved. The time consumed by introducing the RSU is <math id="id1.1.m1.3" class="ltx_Math" alttext="23.0\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="id1.1.m1.3a"><mrow id="id1.1.m1.3.3" xref="id1.1.m1.3.3.cmml"><mn id="id1.1.m1.1.1.1.1.1.1" xref="id1.1.m1.1.1.1.1.1.1.cmml">23.0</mn><mtext id="id1.1.m1.2.2.2.2.2.2" xref="id1.1.m1.2.2.2.2.2.2.cmml"> </mtext><mrow id="id1.1.m1.3.3.3.3.3.3" xref="id1.1.m1.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="id1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1" xref="id1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="id1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2" xref="id1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="id1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3" xref="id1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="id1.1.m1.3b"><apply id="id1.1.m1.3.3.cmml" xref="id1.1.m1.3.3"><csymbol cd="latexml" id="id1.1.m1.2.2.2.2.2.2.cmml" xref="id1.1.m1.2.2.2.2.2.2">times</csymbol><cn type="float" id="id1.1.m1.1.1.1.1.1.1.cmml" xref="id1.1.m1.1.1.1.1.1.1">23.0</cn><apply id="id1.1.m1.3.3.3.3.3.3.cmml" xref="id1.1.m1.3.3.3.3.3.3"><csymbol cd="latexml" id="id1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="id1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="id1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="id1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="id1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="id1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="id1.1.m1.3c">23.0\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> and <math id="id2.2.m2.3" class="ltx_Math" alttext="28.1\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="id2.2.m2.3a"><mrow id="id2.2.m2.3.3" xref="id2.2.m2.3.3.cmml"><mn id="id2.2.m2.1.1.1.1.1.1" xref="id2.2.m2.1.1.1.1.1.1.cmml">28.1</mn><mtext id="id2.2.m2.2.2.2.2.2.2" xref="id2.2.m2.2.2.2.2.2.2.cmml"> </mtext><mrow id="id2.2.m2.3.3.3.3.3.3" xref="id2.2.m2.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="id2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1" xref="id2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="id2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2" xref="id2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="id2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3" xref="id2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="id2.2.m2.3b"><apply id="id2.2.m2.3.3.cmml" xref="id2.2.m2.3.3"><csymbol cd="latexml" id="id2.2.m2.2.2.2.2.2.2.cmml" xref="id2.2.m2.2.2.2.2.2.2">times</csymbol><cn type="float" id="id2.2.m2.1.1.1.1.1.1.cmml" xref="id2.2.m2.1.1.1.1.1.1">28.1</cn><apply id="id2.2.m2.3.3.3.3.3.3.cmml" xref="id2.2.m2.3.3.3.3.3.3"><csymbol cd="latexml" id="id2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="id2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="id2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="id2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="id2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="id2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="id2.2.m2.3c">28.1\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> shorter than that of the stand-alone autonomous driving case at the intersection.</p>
+</div>
+<section id="S1" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">I </span><span id="S1.1.1" class="ltx_text ltx_font_smallcaps">Introduction</span>
+</h2>
+
+<div id="S1.p1" class="ltx_para">
+<p id="S1.p1.1" class="ltx_p">Autonomous driving technologies are a part of intelligent transport systems (ITS) that use information and communication technologies to exchange pedestrian, road, and vehicles data to mitigate common road and traffic problems, including accident and congestion avoidance. Consequently, they have attracted a great deal of attention in recent years.
+Car companies have already commercialized related functions, such as autonomous emergency braking, lane-keeping assistance, and automatic parking <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib1" title="" class="ltx_ref">1</a>, <a href="#bib.bib2" title="" class="ltx_ref">2</a>]</cite>. Several organizations are developing autonomous automated driving along with open-source software packages such as Autoware <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib3" title="" class="ltx_ref">3</a>]</cite> and Apollo <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib4" title="" class="ltx_ref">4</a>]</cite>.</p>
+</div>
+<div id="S1.p2" class="ltx_para">
+<p id="S1.p2.1" class="ltx_p">Cooperative ITS is important because autonomous vehicles cannot otherwise guarantee the safety of pedestrians, vehicles, and property.
+The common architecture is a station infrastructure <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib5" title="" class="ltx_ref">5</a>, <a href="#bib.bib6" title="" class="ltx_ref">6</a>]</cite> that was developed by the European Telecommunications Standards Institute (ETSI) and the International Organization for Standardization (ISO). According to standards, a cooperative awareness message (CAM) <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib7" title="" class="ltx_ref">7</a>]</cite> is the fundamental safety-related vehicle-to-vehicle (V2V) process that shares real-time data about other vehicles.
+Vehicle-to-everything (V2X) processes are advancements that share sensors information to vehicles and roadside equipment to create a collective perception capability.
+In this regard, ETSI is in the process of standardizing collective perception messages (CPMs) <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib8" title="" class="ltx_ref">8</a>, <a href="#bib.bib9" title="" class="ltx_ref">9</a>]</cite>.</p>
+</div>
+<div id="S1.p3" class="ltx_para">
+<p id="S1.p3.1" class="ltx_p">The future information consists of a list of planned positions of a vehicle over time (i.e., the planned trajectory). According to ETSI, a maneuver coordination message (MCM) exchanges planned trajectories and performs driving coordination. However, its format is still under development <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib10" title="" class="ltx_ref">10</a>]</cite>, and no standard has been issued. Maneuver coordination (MC) research has been conducted in various scenarios such as platooning, lane changing, and merge coordination<cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib11" title="" class="ltx_ref">11</a>, <a href="#bib.bib12" title="" class="ltx_ref">12</a>]</cite>.</p>
+</div>
+<div id="S1.p4" class="ltx_para">
+<p id="S1.p4.1" class="ltx_p">In many field demonstrations, infrastructure-based CPM has been demonstrated to improve the perception of automated vehicles<cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib13" title="" class="ltx_ref">13</a>, <a href="#bib.bib14" title="" class="ltx_ref">14</a>]</cite>.
+However, research on the infrastructure which supports the vehicle’s better prediction and planning is still in its nascent stage. Especially it is not thoroughly investigated with the full-fledged autonomous software.</p>
+</div>
+<div id="S1.p5" class="ltx_para">
+<p id="S1.p5.1" class="ltx_p">The contribution of this study is designing a roadside unit (RSU) that enhances vehicle’ prediction and planing cooperatively with other vehicles to improve traffic flow at intersections. We implemented the solution in Autoware <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib3" title="" class="ltx_ref">3</a>]</cite>, open-source software for autonomous driving systems.
+To the best of our knowledge, this study is the first to implement cooperative planning in Autoware.
+The proposed method is divided into two schemes: a periodic message broadcast to exchange vehicles’ future path (<em id="S1.p5.1.1" class="ltx_emph ltx_font_italic">i.e., future path sharing</em>) and a maneuver coordination algorithm based on a reservation table that manages the set of future paths in the RSU (<em id="S1.p5.1.2" class="ltx_emph ltx_font_italic">i.e., cooperative planning</em>).</p>
+</div>
+<div id="S1.p6" class="ltx_para">
+<p id="S1.p6.1" class="ltx_p">The rest of this paper is structured as follows.
+Section <a href="#S2" title="II Related work ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">II</span></a> reviews related works and
+Section <a href="#S3" title="III Future Path Sharing based Cooperative Planning ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">III</span></a> describes our proposal.
+Section <a href="#S4" title="IV Implementation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">IV</span></a> shows our implementation based on Autoware.
+Section <a href="#S5" title="V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">V</span></a> evaluates the implementation using LG Corporation’s Silicon Valley Lab (LGSVL) simulator  <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib15" title="" class="ltx_ref">15</a>]</cite>.
+Section <a href="#S6" title="VI Conclusion and future work ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">VI</span></a> concludes the paper and provides future works.</p>
+</div>
+</section>
+<section id="S2" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">II </span><span id="S2.1.1" class="ltx_text ltx_font_smallcaps">Related work</span>
+</h2>
+
+<div id="S2.p1" class="ltx_para">
+<p id="S2.p1.1" class="ltx_p">Renzler et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib16" title="" class="ltx_ref">16</a>]</cite> proposed CAM extensions to inform future path information for emergency response in the event of collisions. It was shown to reduce evasive maneuvers that would otherwise pose a danger to vehicles in adjacent lanes.</p>
+</div>
+<div id="S2.p2" class="ltx_para">
+<p id="S2.p2.1" class="ltx_p">Technologies for sharing sensor information, including ITS messages, can be broadly divided into three levels: low, feature, and track  <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib17" title="" class="ltx_ref">17</a>]</cite>.
+Track-level data exchange has the advantage of not requiring large network bandwidth.
+Gabb et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib18" title="" class="ltx_ref">18</a>]</cite> presented a scheme for data sent from a mobile edge computing (MEC) server to a car and proposed a system that fuses data from the car’s sensors with an environmental model based on infrastructure sensor data at the MEC server.
+Tsukada et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="" class="ltx_ref">14</a>, <a href="#bib.bib19" title="" class="ltx_ref">19</a>]</cite> proposed AutoC2X, a system that shares information collected by roadside equipment with an automatic vehicle using Autoware <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib3" title="" class="ltx_ref">3</a>]</cite> and OpenC2X, open-source experimental and prototype platforms for cooperative ITS.</p>
+</div>
+<div id="S2.p3" class="ltx_para">
+<p id="S2.p3.1" class="ltx_p">Existing research on the management of autonomous vehicles at intersections can be categorized into decentralized and centralized approaches.
+In the decentralized approach, autonomous vehicles communicate via a wireless network.
+Azimi et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib20" title="" class="ltx_ref">20</a>]</cite> proposed a cooperative intersection management algorithm that models the area of an intersection as a grid.
+Each cell in the grid is assigned a unique identifier and shares current and future locations with vehicles.
+Aoki et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib21" title="" class="ltx_ref">21</a>]</cite> studied how autonomous vehicles drive through dynamic intersections in ways that lead to accidents using sensor-based perception and inter-vehicle communication.
+The autonomous vehicles communicate with the Intersection Manager (IM) for the crossing plan for the centralized approach.
+Dresner et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib22" title="" class="ltx_ref">22</a>]</cite> proposed autonomous intersection management (AIM) system for coordinating the independent movements of self-driving cars through intersections.
+Liu et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib23" title="" class="ltx_ref">23</a>]</cite> proposed a trajectory-planning-based version, whereas Bashiri et al. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib24" title="" class="ltx_ref">24</a>]</cite> proposed a platoon-based approach.</p>
+</div>
+<div id="S2.p4" class="ltx_para">
+<p id="S2.p4.1" class="ltx_p">Maneuver coordination (MC) research can be divided into two categories: scenario-specific MC and general MC.
+In a platooning coordination study, <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib25" title="" class="ltx_ref">25</a>]</cite> suggested a V2X protocol for handling all possible scenarios of platooning. Vehicles are coordinated with the protocol to merge two platooning sequences into one. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib26" title="" class="ltx_ref">26</a>]</cite> also proposed a redundant message protocol for cooperative driving that involves various vehicles, including platooning. In the proposed system <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib27" title="" class="ltx_ref">27</a>]</cite> for smooth ramp merging, the roadside unit at the merging point detects the merging activity while searching for vehicles on the main road with the possibility of involving in a collision. Subsequently, it instructs speed adjustment to the identified vehicles. Furthermore, the cooperative maneuver protocol (CMP) is proposed <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib28" title="" class="ltx_ref">28</a>]</cite> as a coordination message at the merge point. For coordinated lane changing, <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib12" title="" class="ltx_ref">12</a>]</cite> suggested lane-change messaging. Various studies have employed the space-time reservation protocol (STRP) that uses messaging for reserving a particular location for a certain period. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib29" title="" class="ltx_ref">29</a>]</cite> used STRP for lane-change coordination and carried out field experiments to justify the technique. In <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib30" title="" class="ltx_ref">30</a>]</cite>, the method is extended to intersections, passing, and roundabouts.</p>
+</div>
+<div id="S2.p5" class="ltx_para">
+<p id="S2.p5.1" class="ltx_p"><cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib31" title="" class="ltx_ref">31</a>]</cite> put forward the TransAID project that conducts research and development on more generic V2X messages. It also involved the study of cooperative automated driving and Cooperative ITS standard messages, including CAM, CPM, and MCM <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib32" title="" class="ltx_ref">32</a>, <a href="#bib.bib33" title="" class="ltx_ref">33</a>]</cite>. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib32" title="" class="ltx_ref">32</a>]</cite> suggested a format for a more generic MCM message. It considered the transition of control (switching from automatic to manual driving) as an instruction type for MCM along with lane change and speed adjustment. In <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib33" title="" class="ltx_ref">33</a>]</cite>, a V2X framework was implemented for exchanging each message sets standardized in Cooperative ITS.</p>
+</div>
+<div id="S2.p6" class="ltx_para">
+<p id="S2.p6.1" class="ltx_p">Furthermore, in <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib34" title="" class="ltx_ref">34</a>, <a href="#bib.bib35" title="" class="ltx_ref">35</a>]</cite>, a full stack from the access layer was applied to the facility layer. Besides MCM, they used a maneuver recommended message for driving coordination. For the same purpose, <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib36" title="" class="ltx_ref">36</a>]</cite> proposed the complex vehicular interactions protocol. <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib37" title="" class="ltx_ref">37</a>]</cite> assumed that vehicles always provide a trajectory when carrying out driving cooperation. Apart from using MCM for the reduction of uncertainty in automated vehicles, <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib11" title="" class="ltx_ref">11</a>]</cite> proposed the MCM as a more general protocol.
+An Autoware-based MC protocol is implemented as AutoMCM <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib38" title="" class="ltx_ref">38</a>]</cite>, and the system demonstrates robustness against packet loss in the experiments.</p>
+</div>
+<div id="S2.p7" class="ltx_para">
+<p id="S2.p7.1" class="ltx_p">We reviewed these studies and others on future path replacement, driving management at intersections, and maneuver coordination.
+Future path exchange methods are in their infancy, and no experimental data have yet been obtained.
+There have also been just a few examples of intersection driving management platforms that enable actual autonomous driving.</p>
+</div>
+</section>
+<section id="S3" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">III </span><span id="S3.1.1" class="ltx_text ltx_font_smallcaps">Future Path Sharing based Cooperative Planning</span>
+</h2>
+
+<figure id="S3.F1" class="ltx_figure"><img src="/html/2108.04629/assets/x1.png" id="S3.F1.1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="322" height="226" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 1: </span>Cooperative planning using future path sharing</figcaption>
+</figure>
+<div id="S3.p1" class="ltx_para">
+<p id="S3.p1.1" class="ltx_p">Figure <a href="#S3.F1" title="Figure 1 ‣ III Future Path Sharing based Cooperative Planning ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">1</span></a> shows an overview of our scheme.
+The autonomous vehicles periodically broadcast their <span id="S3.p1.1.1" class="ltx_text ltx_font_italic">future path</span> information to the surrounding vehicles.
+Receiver vehicles make adjustments based on the perception of the other vehicles’ future paths as obstacles.
+As a result, all vehicles that receive the future path will slow down and not pass through the intersection efficiently.
+In our proposal, the RSU improves the situation by collecting future paths and adding them to its <span id="S3.p1.1.2" class="ltx_text ltx_font_italic">reservation table</span>.
+When one future path conflicts with another vehicles’ future path in the reservation table, the RSU computes a conflict-free resolution (<span id="S3.p1.1.3" class="ltx_text ltx_font_italic">coordinated path</span>) and sends it to the affected vehicle.
+When the vehicle receives a new path from the RSU, it prioritizes it over its previously prepared path.
+In the following sections, we describe future path sharing and coordinated path generation in detail.</p>
+</div>
+<section id="S3.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS1.4.1.1" class="ltx_text">III-A</span> </span><span id="S3.SS1.5.2" class="ltx_text ltx_font_italic">Future path sharing</span>
+</h3>
+
+<div id="S3.SS1.p1" class="ltx_para">
+<p id="S3.SS1.p1.1" class="ltx_p">Figure <a href="#S3.F2" title="Figure 2 ‣ III-A Future path sharing ‣ III Future Path Sharing based Cooperative Planning ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">2</span></a> displays a typical autonomous driving system.
+First, the perception subsystem processes sensor inputs to interpret the surrounding environment.
+It detects the location, size, and type of surrounding vehicles and pedestrians and predicts their movements.
+The planning module then calculates a route from the map to the target point and generates an action plan along that route.
+As an output, the planning module generates a trajectory and provides it to the control module.</p>
+</div>
+<div id="S3.SS1.p2" class="ltx_para">
+<p id="S3.SS1.p2.1" class="ltx_p">We define the following terms to describe our system:</p>
+<ul id="S3.I1" class="ltx_itemize">
+<li id="S3.I1.i1" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S3.I1.i1.p1" class="ltx_para">
+<p id="S3.I1.i1.p1.1" class="ltx_p"><span id="S3.I1.i1.p1.1.1" class="ltx_text ltx_font_bold">The trajectory</span> consists of continuous paired sequences of the location and velocity.
+It results from the planning module’s decision, and the control module follows the trajectory in typical autonomous driving software (e.g., Autoware).</p>
+</div>
+</li>
+<li id="S3.I1.i2" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S3.I1.i2.p1" class="ltx_para">
+<p id="S3.I1.i2.p1.1" class="ltx_p"><span id="S3.I1.i2.p1.1.1" class="ltx_text ltx_font_bold">The future path</span> consists of continuous paired sequences of coordinates and timing factors of their passing. The future path employs a data structure that makes it easy for cars and RSUs to detect conflicts.
+We generate the future path assuming that the velocity from a position to the next position is constant.
+The time to pass <math id="S3.I1.i2.p1.1.m1.1" class="ltx_Math" alttext="n-" display="inline"><semantics id="S3.I1.i2.p1.1.m1.1a"><mrow id="S3.I1.i2.p1.1.m1.1.1" xref="S3.I1.i2.p1.1.m1.1.1.cmml"><mi id="S3.I1.i2.p1.1.m1.1.1.2" xref="S3.I1.i2.p1.1.m1.1.1.2.cmml">n</mi><mo id="S3.I1.i2.p1.1.m1.1.1.3" xref="S3.I1.i2.p1.1.m1.1.1.3.cmml">−</mo></mrow><annotation-xml encoding="MathML-Content" id="S3.I1.i2.p1.1.m1.1b"><apply id="S3.I1.i2.p1.1.m1.1.1.cmml" xref="S3.I1.i2.p1.1.m1.1.1"><csymbol cd="latexml" id="S3.I1.i2.p1.1.m1.1.1.1.cmml" xref="S3.I1.i2.p1.1.m1.1.1">limit-from</csymbol><ci id="S3.I1.i2.p1.1.m1.1.1.2.cmml" xref="S3.I1.i2.p1.1.m1.1.1.2">𝑛</ci><minus id="S3.I1.i2.p1.1.m1.1.1.3.cmml" xref="S3.I1.i2.p1.1.m1.1.1.3"></minus></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.I1.i2.p1.1.m1.1c">n-</annotation></semantics></math>th point is calculated by equation (<a href="#S3.E1" title="In 2nd item ‣ III-A Future path sharing ‣ III Future Path Sharing based Cooperative Planning ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">1</span></a>).</p>
+<table id="S3.E1" class="ltx_equation ltx_eqn_table">
+
+<tbody><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_eqn_cell ltx_align_center"><math id="S3.E1.m1.1" class="ltx_Math" alttext="t_{n}=\sum_{k=0}^{n}\frac{x_{k}-x_{k-1}}{v_{k}}+t_{0}(n\geq 1)," display="block"><semantics id="S3.E1.m1.1a"><mrow id="S3.E1.m1.1.1.1" xref="S3.E1.m1.1.1.1.1.cmml"><mrow id="S3.E1.m1.1.1.1.1" xref="S3.E1.m1.1.1.1.1.cmml"><msub id="S3.E1.m1.1.1.1.1.3" xref="S3.E1.m1.1.1.1.1.3.cmml"><mi id="S3.E1.m1.1.1.1.1.3.2" xref="S3.E1.m1.1.1.1.1.3.2.cmml">t</mi><mi id="S3.E1.m1.1.1.1.1.3.3" xref="S3.E1.m1.1.1.1.1.3.3.cmml">n</mi></msub><mo rspace="0.111em" id="S3.E1.m1.1.1.1.1.2" xref="S3.E1.m1.1.1.1.1.2.cmml">=</mo><mrow id="S3.E1.m1.1.1.1.1.1" xref="S3.E1.m1.1.1.1.1.1.cmml"><mrow id="S3.E1.m1.1.1.1.1.1.3" xref="S3.E1.m1.1.1.1.1.1.3.cmml"><munderover id="S3.E1.m1.1.1.1.1.1.3.1" xref="S3.E1.m1.1.1.1.1.1.3.1.cmml"><mo movablelimits="false" id="S3.E1.m1.1.1.1.1.1.3.1.2.2" xref="S3.E1.m1.1.1.1.1.1.3.1.2.2.cmml">∑</mo><mrow id="S3.E1.m1.1.1.1.1.1.3.1.2.3" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3.cmml"><mi id="S3.E1.m1.1.1.1.1.1.3.1.2.3.2" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3.2.cmml">k</mi><mo id="S3.E1.m1.1.1.1.1.1.3.1.2.3.1" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3.1.cmml">=</mo><mn id="S3.E1.m1.1.1.1.1.1.3.1.2.3.3" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3.3.cmml">0</mn></mrow><mi id="S3.E1.m1.1.1.1.1.1.3.1.3" xref="S3.E1.m1.1.1.1.1.1.3.1.3.cmml">n</mi></munderover><mfrac id="S3.E1.m1.1.1.1.1.1.3.2" xref="S3.E1.m1.1.1.1.1.1.3.2.cmml"><mrow id="S3.E1.m1.1.1.1.1.1.3.2.2" xref="S3.E1.m1.1.1.1.1.1.3.2.2.cmml"><msub id="S3.E1.m1.1.1.1.1.1.3.2.2.2" xref="S3.E1.m1.1.1.1.1.1.3.2.2.2.cmml"><mi id="S3.E1.m1.1.1.1.1.1.3.2.2.2.2" xref="S3.E1.m1.1.1.1.1.1.3.2.2.2.2.cmml">x</mi><mi id="S3.E1.m1.1.1.1.1.1.3.2.2.2.3" xref="S3.E1.m1.1.1.1.1.1.3.2.2.2.3.cmml">k</mi></msub><mo id="S3.E1.m1.1.1.1.1.1.3.2.2.1" xref="S3.E1.m1.1.1.1.1.1.3.2.2.1.cmml">−</mo><msub id="S3.E1.m1.1.1.1.1.1.3.2.2.3" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.cmml"><mi id="S3.E1.m1.1.1.1.1.1.3.2.2.3.2" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.2.cmml">x</mi><mrow id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.cmml"><mi id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.2" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.2.cmml">k</mi><mo id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.1" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.1.cmml">−</mo><mn id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.3" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.3.cmml">1</mn></mrow></msub></mrow><msub id="S3.E1.m1.1.1.1.1.1.3.2.3" xref="S3.E1.m1.1.1.1.1.1.3.2.3.cmml"><mi id="S3.E1.m1.1.1.1.1.1.3.2.3.2" xref="S3.E1.m1.1.1.1.1.1.3.2.3.2.cmml">v</mi><mi id="S3.E1.m1.1.1.1.1.1.3.2.3.3" xref="S3.E1.m1.1.1.1.1.1.3.2.3.3.cmml">k</mi></msub></mfrac></mrow><mo id="S3.E1.m1.1.1.1.1.1.2" xref="S3.E1.m1.1.1.1.1.1.2.cmml">+</mo><mrow id="S3.E1.m1.1.1.1.1.1.1" xref="S3.E1.m1.1.1.1.1.1.1.cmml"><msub id="S3.E1.m1.1.1.1.1.1.1.3" xref="S3.E1.m1.1.1.1.1.1.1.3.cmml"><mi id="S3.E1.m1.1.1.1.1.1.1.3.2" xref="S3.E1.m1.1.1.1.1.1.1.3.2.cmml">t</mi><mn id="S3.E1.m1.1.1.1.1.1.1.3.3" xref="S3.E1.m1.1.1.1.1.1.1.3.3.cmml">0</mn></msub><mo lspace="0em" rspace="0em" id="S3.E1.m1.1.1.1.1.1.1.2" xref="S3.E1.m1.1.1.1.1.1.1.2.cmml">​</mo><mrow id="S3.E1.m1.1.1.1.1.1.1.1.1" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.cmml"><mo stretchy="false" id="S3.E1.m1.1.1.1.1.1.1.1.1.2" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.cmml">(</mo><mrow id="S3.E1.m1.1.1.1.1.1.1.1.1.1" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.cmml"><mi id="S3.E1.m1.1.1.1.1.1.1.1.1.1.2" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.2.cmml">n</mi><mo id="S3.E1.m1.1.1.1.1.1.1.1.1.1.1" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.1.cmml">≥</mo><mn id="S3.E1.m1.1.1.1.1.1.1.1.1.1.3" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.3.cmml">1</mn></mrow><mo stretchy="false" id="S3.E1.m1.1.1.1.1.1.1.1.1.3" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.cmml">)</mo></mrow></mrow></mrow></mrow><mo id="S3.E1.m1.1.1.1.2" xref="S3.E1.m1.1.1.1.1.cmml">,</mo></mrow><annotation-xml encoding="MathML-Content" id="S3.E1.m1.1b"><apply id="S3.E1.m1.1.1.1.1.cmml" xref="S3.E1.m1.1.1.1"><eq id="S3.E1.m1.1.1.1.1.2.cmml" xref="S3.E1.m1.1.1.1.1.2"></eq><apply id="S3.E1.m1.1.1.1.1.3.cmml" xref="S3.E1.m1.1.1.1.1.3"><csymbol cd="ambiguous" id="S3.E1.m1.1.1.1.1.3.1.cmml" xref="S3.E1.m1.1.1.1.1.3">subscript</csymbol><ci id="S3.E1.m1.1.1.1.1.3.2.cmml" xref="S3.E1.m1.1.1.1.1.3.2">𝑡</ci><ci id="S3.E1.m1.1.1.1.1.3.3.cmml" xref="S3.E1.m1.1.1.1.1.3.3">𝑛</ci></apply><apply id="S3.E1.m1.1.1.1.1.1.cmml" xref="S3.E1.m1.1.1.1.1.1"><plus id="S3.E1.m1.1.1.1.1.1.2.cmml" xref="S3.E1.m1.1.1.1.1.1.2"></plus><apply id="S3.E1.m1.1.1.1.1.1.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3"><apply id="S3.E1.m1.1.1.1.1.1.3.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1"><csymbol cd="ambiguous" id="S3.E1.m1.1.1.1.1.1.3.1.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1">superscript</csymbol><apply id="S3.E1.m1.1.1.1.1.1.3.1.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1"><csymbol cd="ambiguous" id="S3.E1.m1.1.1.1.1.1.3.1.2.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1">subscript</csymbol><sum id="S3.E1.m1.1.1.1.1.1.3.1.2.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1.2.2"></sum><apply id="S3.E1.m1.1.1.1.1.1.3.1.2.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3"><eq id="S3.E1.m1.1.1.1.1.1.3.1.2.3.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3.1"></eq><ci id="S3.E1.m1.1.1.1.1.1.3.1.2.3.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3.2">𝑘</ci><cn type="integer" id="S3.E1.m1.1.1.1.1.1.3.1.2.3.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1.2.3.3">0</cn></apply></apply><ci id="S3.E1.m1.1.1.1.1.1.3.1.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.1.3">𝑛</ci></apply><apply id="S3.E1.m1.1.1.1.1.1.3.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2"><divide id="S3.E1.m1.1.1.1.1.1.3.2.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2"></divide><apply id="S3.E1.m1.1.1.1.1.1.3.2.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2"><minus id="S3.E1.m1.1.1.1.1.1.3.2.2.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.1"></minus><apply id="S3.E1.m1.1.1.1.1.1.3.2.2.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.2"><csymbol cd="ambiguous" id="S3.E1.m1.1.1.1.1.1.3.2.2.2.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.2">subscript</csymbol><ci id="S3.E1.m1.1.1.1.1.1.3.2.2.2.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.2.2">𝑥</ci><ci id="S3.E1.m1.1.1.1.1.1.3.2.2.2.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.2.3">𝑘</ci></apply><apply id="S3.E1.m1.1.1.1.1.1.3.2.2.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3"><csymbol cd="ambiguous" id="S3.E1.m1.1.1.1.1.1.3.2.2.3.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3">subscript</csymbol><ci id="S3.E1.m1.1.1.1.1.1.3.2.2.3.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.2">𝑥</ci><apply id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3"><minus id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.1"></minus><ci id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.2">𝑘</ci><cn type="integer" id="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.2.3.3.3">1</cn></apply></apply></apply><apply id="S3.E1.m1.1.1.1.1.1.3.2.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.3"><csymbol cd="ambiguous" id="S3.E1.m1.1.1.1.1.1.3.2.3.1.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.3">subscript</csymbol><ci id="S3.E1.m1.1.1.1.1.1.3.2.3.2.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.3.2">𝑣</ci><ci id="S3.E1.m1.1.1.1.1.1.3.2.3.3.cmml" xref="S3.E1.m1.1.1.1.1.1.3.2.3.3">𝑘</ci></apply></apply></apply><apply id="S3.E1.m1.1.1.1.1.1.1.cmml" xref="S3.E1.m1.1.1.1.1.1.1"><times id="S3.E1.m1.1.1.1.1.1.1.2.cmml" xref="S3.E1.m1.1.1.1.1.1.1.2"></times><apply id="S3.E1.m1.1.1.1.1.1.1.3.cmml" xref="S3.E1.m1.1.1.1.1.1.1.3"><csymbol cd="ambiguous" id="S3.E1.m1.1.1.1.1.1.1.3.1.cmml" xref="S3.E1.m1.1.1.1.1.1.1.3">subscript</csymbol><ci id="S3.E1.m1.1.1.1.1.1.1.3.2.cmml" xref="S3.E1.m1.1.1.1.1.1.1.3.2">𝑡</ci><cn type="integer" id="S3.E1.m1.1.1.1.1.1.1.3.3.cmml" xref="S3.E1.m1.1.1.1.1.1.1.3.3">0</cn></apply><apply id="S3.E1.m1.1.1.1.1.1.1.1.1.1.cmml" xref="S3.E1.m1.1.1.1.1.1.1.1.1"><geq id="S3.E1.m1.1.1.1.1.1.1.1.1.1.1.cmml" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.1"></geq><ci id="S3.E1.m1.1.1.1.1.1.1.1.1.1.2.cmml" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.2">𝑛</ci><cn type="integer" id="S3.E1.m1.1.1.1.1.1.1.1.1.1.3.cmml" xref="S3.E1.m1.1.1.1.1.1.1.1.1.1.3">1</cn></apply></apply></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.E1.m1.1c">t_{n}=\sum_{k=0}^{n}\frac{x_{k}-x_{k-1}}{v_{k}}+t_{0}(n\geq 1),</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+<td rowspan="1" class="ltx_eqn_cell ltx_eqn_eqno ltx_align_middle ltx_align_right"><span class="ltx_tag ltx_tag_equation ltx_align_right">(1)</span></td>
+</tr></tbody>
+</table>
+<p id="S3.I1.i2.p1.4" class="ltx_p">where <math id="S3.I1.i2.p1.2.m1.1" class="ltx_Math" alttext="{t_{0}}" display="inline"><semantics id="S3.I1.i2.p1.2.m1.1a"><msub id="S3.I1.i2.p1.2.m1.1.1" xref="S3.I1.i2.p1.2.m1.1.1.cmml"><mi id="S3.I1.i2.p1.2.m1.1.1.2" xref="S3.I1.i2.p1.2.m1.1.1.2.cmml">t</mi><mn id="S3.I1.i2.p1.2.m1.1.1.3" xref="S3.I1.i2.p1.2.m1.1.1.3.cmml">0</mn></msub><annotation-xml encoding="MathML-Content" id="S3.I1.i2.p1.2.m1.1b"><apply id="S3.I1.i2.p1.2.m1.1.1.cmml" xref="S3.I1.i2.p1.2.m1.1.1"><csymbol cd="ambiguous" id="S3.I1.i2.p1.2.m1.1.1.1.cmml" xref="S3.I1.i2.p1.2.m1.1.1">subscript</csymbol><ci id="S3.I1.i2.p1.2.m1.1.1.2.cmml" xref="S3.I1.i2.p1.2.m1.1.1.2">𝑡</ci><cn type="integer" id="S3.I1.i2.p1.2.m1.1.1.3.cmml" xref="S3.I1.i2.p1.2.m1.1.1.3">0</cn></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.I1.i2.p1.2.m1.1c">{t_{0}}</annotation></semantics></math> is the current time, <math id="S3.I1.i2.p1.3.m2.1" class="ltx_Math" alttext="x_{0}" display="inline"><semantics id="S3.I1.i2.p1.3.m2.1a"><msub id="S3.I1.i2.p1.3.m2.1.1" xref="S3.I1.i2.p1.3.m2.1.1.cmml"><mi id="S3.I1.i2.p1.3.m2.1.1.2" xref="S3.I1.i2.p1.3.m2.1.1.2.cmml">x</mi><mn id="S3.I1.i2.p1.3.m2.1.1.3" xref="S3.I1.i2.p1.3.m2.1.1.3.cmml">0</mn></msub><annotation-xml encoding="MathML-Content" id="S3.I1.i2.p1.3.m2.1b"><apply id="S3.I1.i2.p1.3.m2.1.1.cmml" xref="S3.I1.i2.p1.3.m2.1.1"><csymbol cd="ambiguous" id="S3.I1.i2.p1.3.m2.1.1.1.cmml" xref="S3.I1.i2.p1.3.m2.1.1">subscript</csymbol><ci id="S3.I1.i2.p1.3.m2.1.1.2.cmml" xref="S3.I1.i2.p1.3.m2.1.1.2">𝑥</ci><cn type="integer" id="S3.I1.i2.p1.3.m2.1.1.3.cmml" xref="S3.I1.i2.p1.3.m2.1.1.3">0</cn></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.I1.i2.p1.3.m2.1c">x_{0}</annotation></semantics></math> and <math id="S3.I1.i2.p1.4.m3.1" class="ltx_Math" alttext="v_{0}" display="inline"><semantics id="S3.I1.i2.p1.4.m3.1a"><msub id="S3.I1.i2.p1.4.m3.1.1" xref="S3.I1.i2.p1.4.m3.1.1.cmml"><mi id="S3.I1.i2.p1.4.m3.1.1.2" xref="S3.I1.i2.p1.4.m3.1.1.2.cmml">v</mi><mn id="S3.I1.i2.p1.4.m3.1.1.3" xref="S3.I1.i2.p1.4.m3.1.1.3.cmml">0</mn></msub><annotation-xml encoding="MathML-Content" id="S3.I1.i2.p1.4.m3.1b"><apply id="S3.I1.i2.p1.4.m3.1.1.cmml" xref="S3.I1.i2.p1.4.m3.1.1"><csymbol cd="ambiguous" id="S3.I1.i2.p1.4.m3.1.1.1.cmml" xref="S3.I1.i2.p1.4.m3.1.1">subscript</csymbol><ci id="S3.I1.i2.p1.4.m3.1.1.2.cmml" xref="S3.I1.i2.p1.4.m3.1.1.2">𝑣</ci><cn type="integer" id="S3.I1.i2.p1.4.m3.1.1.3.cmml" xref="S3.I1.i2.p1.4.m3.1.1.3">0</cn></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.I1.i2.p1.4.m3.1c">v_{0}</annotation></semantics></math> are the pair of the location and the velocity of the closest point to the current vehicle position in the trajectory.</p>
+</div>
+</li>
+</ul>
+</div>
+<div id="S3.SS1.p3" class="ltx_para">
+<p id="S3.SS1.p3.1" class="ltx_p">Our proposal converts the trajectory output from the planning module to the future path using equation (<a href="#S3.E1" title="In 2nd item ‣ III-A Future path sharing ‣ III Future Path Sharing based Cooperative Planning ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">1</span></a>).
+Then, the future path is broadcast to the surrounding vehicles with an identifier, the current position, the current speed, and the vehicle shape.
+The receiving vehicle can treat the received information as a dynamic obstacle by integrating it with the output of the perception module.
+This integration potentially causes unnecessary deceleration because the future path is treated as a future obstacle.
+Therefore, a coordinated path (detailed in the next section) is necessary to improve traffic flow at the intersection.</p>
+</div>
+<figure id="S3.F2" class="ltx_figure"><img src="/html/2108.04629/assets/x2.png" id="S3.F2.1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="332" height="167" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 2: </span>Future path, autonomous path, coordinated path, and reservation table</figcaption>
+</figure>
+</section>
+<section id="S3.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS2.4.1.1" class="ltx_text">III-B</span> </span><span id="S3.SS2.5.2" class="ltx_text ltx_font_italic">Coordinated path generation</span>
+</h3>
+
+<div id="S3.SS2.p1" class="ltx_para">
+<p id="S3.SS2.p1.1" class="ltx_p">We define the following terms to describe our system:</p>
+</div>
+<div id="S3.SS2.p2" class="ltx_para">
+<ul id="S3.I2" class="ltx_itemize">
+<li id="S3.I2.i1" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S3.I2.i1.p1" class="ltx_para">
+<p id="S3.I2.i1.p1.1" class="ltx_p"><span id="S3.I2.i1.p1.1.1" class="ltx_text ltx_font_bold">The reservation table</span> is the RSU’s database that stores the set of future paths sent by autonomous vehicles. The reservation table is used to detect conflicts between cars and calculate opportunities for acceleration.</p>
+</div>
+</li>
+<li id="S3.I2.i2" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S3.I2.i2.p1" class="ltx_para">
+<p id="S3.I2.i2.p1.1" class="ltx_p"><span id="S3.I2.i2.p1.1.1" class="ltx_text ltx_font_bold">An autonomous path</span> is calculated by the autonomous vehicle to the desired destination.
+The vehicle periodically unicasts its autonomous path to the RSU during the coordinated mode.
+Expectedly, the path may conflict with other vehicles paths, causing unnecessary deceleration.</p>
+</div>
+</li>
+<li id="S3.I2.i3" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S3.I2.i3.p1" class="ltx_para">
+<p id="S3.I2.i3.p1.1" class="ltx_p"><span id="S3.I2.i3.p1.1.1" class="ltx_text ltx_font_bold">The coordinated path</span> is the new path in which the RSU modifies the autonomous path to avoid conflicts and improve traffic flow. The RSU periodically unicasts this information to the target vehicles, and the vehicles give priority to this path.</p>
+</div>
+</li>
+</ul>
+</div>
+<div id="S3.SS2.p3" class="ltx_para">
+<p id="S3.SS2.p3.1" class="ltx_p">Our scheme is a hybrid one in which vehicles create a trajectory, and the RSU modifies their speeds along the trajectories.
+The RSU receives the vehicles’ future paths, as shown in Fig. <a href="#S3.F2" title="Figure 2 ‣ III-A Future path sharing ‣ III Future Path Sharing based Cooperative Planning ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">2</span></a>, and it updates its reservation table.
+When a received future path conflicts with another path in the table, the RSU sends an initiation message to a vehicle to enter a coordinated mode.
+As depicted in Fig. <a href="#S3.F2" title="Figure 2 ‣ III-A Future path sharing ‣ III Future Path Sharing based Cooperative Planning ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">2</span></a>, the RSU then generates a coordinated path that slows the vehicle’s speed until the future path is sufficiently shortened, and the conflict disappears. This could involve one vehicle ultimately stopping.</p>
+</div>
+<div id="S3.SS2.p4" class="ltx_para">
+<p id="S3.SS2.p4.1" class="ltx_p">When the received future path does not conflict with any path in the reservation table, the RSU determines room for acceleration. If so, it performs the same steps, resulting in the vehicle temporarily speeding up.</p>
+</div>
+</section>
+</section>
+<section id="S4" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">IV </span><span id="S4.1.1" class="ltx_text ltx_font_smallcaps">Implementation</span>
+</h2>
+
+<div id="S4.p1" class="ltx_para">
+<p id="S4.p1.1" class="ltx_p">We implemented the proposed method by extending Autoware.IV (v.0.6.0). In this section, we describe Autoware and explain our proposed extension in detail.</p>
+</div>
+<section id="S4.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S4.SS1.4.1.1" class="ltx_text">IV-A</span> </span><span id="S4.SS1.5.2" class="ltx_text ltx_font_italic">Autoware</span>
+</h3>
+
+<div id="S4.SS1.p1" class="ltx_para">
+<p id="S4.SS1.p1.1" class="ltx_p">Autoware is a Linux-based open-source software for autonomous driving <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib3" title="" class="ltx_ref">3</a>]</cite> and is based on the Robot Operating System (ROS) <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib39" title="" class="ltx_ref">39</a>]</cite>.
+ROS is a distributed robot platform that utilizes <span id="S4.SS1.p1.1.1" class="ltx_text ltx_font_italic">nodes</span> and <span id="S4.SS1.p1.1.2" class="ltx_text ltx_font_italic">topics</span>. The nodes represent the processing module of a task and interact via topics. The ROS includes the <span id="S4.SS1.p1.1.3" class="ltx_text ltx_font_italic">RViz</span> 3D visualization tool, which displays the status of the tasks.
+Autoware provides a set of applications necessary for autonomous driving, including localization, perception, planning, and control.
+Using 3D maps, LiDAR, a camera, and the Global Navigation Satellite System, Autoware performs localization and perception.</p>
+</div>
+<div id="S4.SS1.p2" class="ltx_para">
+<p id="S4.SS1.p2.1" class="ltx_p">The perception module provides detected obstacle information to the Autoware planning module, which is divided into three parts: mission planning, scenario selection, and behavior planning.
+The mission planner calculates the entire route to the goal by searching a static map.
+The scenario selector decides which behavior planner should be applied depending on the situation. Notably, it is technically challenging to have a unified behavior planner handle every possible situation. Currently, Autoware provides two: one for on-road driving and another for parking.
+The selected planner gives the calculated trajectory to the control module that manipulates acceleration, braking, and steering via a controller area network.
+</p>
+</div>
+</section>
+<section id="S4.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S4.SS2.4.1.1" class="ltx_text">IV-B</span> </span><span id="S4.SS2.5.2" class="ltx_text ltx_font_italic">Implementation overview</span>
+</h3>
+
+<div id="S4.SS2.p1" class="ltx_para">
+<p id="S4.SS2.p1.1" class="ltx_p">Figure <a href="#S4.F3" title="Figure 3 ‣ IV-B Implementation overview ‣ IV Implementation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">3</span></a> shows the overview of our implementation. The white box comes with Autoware, and the blue box is newly implemented in our extension.</p>
+</div>
+<figure id="S4.F3" class="ltx_figure"><img src="/html/2108.04629/assets/x3.png" id="S4.F3.1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="461" height="213" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 3: </span>Implementation overview</figcaption>
+</figure>
+<div id="S4.SS2.p2" class="ltx_para">
+<p id="S4.SS2.p2.2" class="ltx_p">We modified the structure of ROS nodes as follows. We added the coordinated planner in addition to the on-road planner and the parking planner.
+The scenario selector switches between the on-road and coordinated planners depending on the mode (described later). The parking planner is not used. The planning module passes the trajectory to the control module with the topic, <span id="S4.SS2.p2.2.1" class="ltx_text ltx_font_sansserif">/planning/scenario_planning/trajectory</span>.
+The <span id="S4.SS2.p2.2.2" class="ltx_text ltx_font_bold">future-path sender</span> converts the trajectory to a future path and sends it using a user datagram protocol (UDP) broadcast at a frequency of <math id="S4.SS2.p2.1.m1.3" class="ltx_Math" alttext="10\text{\,}\mathrm{Hz}\text{/}" display="inline"><semantics id="S4.SS2.p2.1.m1.3a"><mrow id="S4.SS2.p2.1.m1.3.3" xref="S4.SS2.p2.1.m1.3.3.cmml"><mn id="S4.SS2.p2.1.m1.1.1.1.1.1.1" xref="S4.SS2.p2.1.m1.1.1.1.1.1.1.cmml">10</mn><mtext id="S4.SS2.p2.1.m1.2.2.2.2.2.2" xref="S4.SS2.p2.1.m1.2.2.2.2.2.2.cmml"> </mtext><mrow id="S4.SS2.p2.1.m1.3.3.3.3.3.3" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3.cmml"><mi class="ltx_unit" id="S4.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml">Hz</mi><mtext id="S4.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S4.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S4.SS2.p2.1.m1.3b"><apply id="S4.SS2.p2.1.m1.3.3.cmml" xref="S4.SS2.p2.1.m1.3.3"><csymbol cd="latexml" id="S4.SS2.p2.1.m1.2.2.2.2.2.2.cmml" xref="S4.SS2.p2.1.m1.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S4.SS2.p2.1.m1.1.1.1.1.1.1.cmml" xref="S4.SS2.p2.1.m1.1.1.1.1.1.1">10</cn><apply id="S4.SS2.p2.1.m1.3.3.3.3.3.3.cmml" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3"><csymbol cd="latexml" id="S4.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S4.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1">hertz</csymbol><csymbol cd="latexml" id="S4.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S4.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS2.p2.1.m1.3c">10\text{\,}\mathrm{Hz}\text{/}</annotation></semantics></math>.
+A future path includes 120 trajectory points, and the distance between each point should be at least <math id="S4.SS2.p2.2.m2.3" class="ltx_Math" alttext="0.1\text{\,}\mathrm{m}\text{/}" display="inline"><semantics id="S4.SS2.p2.2.m2.3a"><mrow id="S4.SS2.p2.2.m2.3.3" xref="S4.SS2.p2.2.m2.3.3.cmml"><mn id="S4.SS2.p2.2.m2.1.1.1.1.1.1" xref="S4.SS2.p2.2.m2.1.1.1.1.1.1.cmml">0.1</mn><mtext id="S4.SS2.p2.2.m2.2.2.2.2.2.2" xref="S4.SS2.p2.2.m2.2.2.2.2.2.2.cmml"> </mtext><mrow id="S4.SS2.p2.2.m2.3.3.3.3.3.3" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S4.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml">m</mi><mtext id="S4.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S4.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S4.SS2.p2.2.m2.3b"><apply id="S4.SS2.p2.2.m2.3.3.cmml" xref="S4.SS2.p2.2.m2.3.3"><csymbol cd="latexml" id="S4.SS2.p2.2.m2.2.2.2.2.2.2.cmml" xref="S4.SS2.p2.2.m2.2.2.2.2.2.2">times</csymbol><cn type="float" id="S4.SS2.p2.2.m2.1.1.1.1.1.1.cmml" xref="S4.SS2.p2.2.m2.1.1.1.1.1.1">0.1</cn><apply id="S4.SS2.p2.2.m2.3.3.3.3.3.3.cmml" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3"><csymbol cd="latexml" id="S4.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S4.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1">meter</csymbol><csymbol cd="latexml" id="S4.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S4.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS2.p2.2.m2.3c">0.1\text{\,}\mathrm{m}\text{/}</annotation></semantics></math>. The network load and the implications are analyzed in section <a href="#S5.SS3" title="V-C Discussion ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag"><span class="ltx_text">V-C</span></span></a>.
+Both vehicles and the RSU receive the future path, the future path receiver publishes it to <span id="S4.SS2.p2.2.3" class="ltx_text ltx_font_sansserif">/perception/object_recognition/objects</span>, and the perception module sends the surrounding objects to the planning module. Hence, the planning module can also employ future data from V2X.</p>
+</div>
+<div id="S4.SS2.p3" class="ltx_para">
+<p id="S4.SS2.p3.1" class="ltx_p">When the RSU receives the data and no conflicts are detected, the future path is added to the reservation table.
+In case of a conflict, the RSU sends an initiation message to the vehicle requesting it switch to the coordinated mode.
+The vehicle then activates the <span id="S4.SS2.p3.1.1" class="ltx_text ltx_font_bold">autonomous path sender</span> to send its autonomous paths to the RSU periodically at a unicast of <math id="S4.SS2.p3.1.m1.3" class="ltx_Math" alttext="100\text{\,}\mathrm{ms}\text{/}" display="inline"><semantics id="S4.SS2.p3.1.m1.3a"><mrow id="S4.SS2.p3.1.m1.3.3" xref="S4.SS2.p3.1.m1.3.3.cmml"><mn id="S4.SS2.p3.1.m1.1.1.1.1.1.1" xref="S4.SS2.p3.1.m1.1.1.1.1.1.1.cmml">100</mn><mtext id="S4.SS2.p3.1.m1.2.2.2.2.2.2" xref="S4.SS2.p3.1.m1.2.2.2.2.2.2.cmml"> </mtext><mrow id="S4.SS2.p3.1.m1.3.3.3.3.3.3" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3.cmml"><mi class="ltx_unit" id="S4.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml">ms</mi><mtext id="S4.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S4.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S4.SS2.p3.1.m1.3b"><apply id="S4.SS2.p3.1.m1.3.3.cmml" xref="S4.SS2.p3.1.m1.3.3"><csymbol cd="latexml" id="S4.SS2.p3.1.m1.2.2.2.2.2.2.cmml" xref="S4.SS2.p3.1.m1.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S4.SS2.p3.1.m1.1.1.1.1.1.1.cmml" xref="S4.SS2.p3.1.m1.1.1.1.1.1.1">100</cn><apply id="S4.SS2.p3.1.m1.3.3.3.3.3.3.cmml" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3"><csymbol cd="latexml" id="S4.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S4.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1">millisecond</csymbol><csymbol cd="latexml" id="S4.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S4.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS2.p3.1.m1.3c">100\text{\,}\mathrm{ms}\text{/}</annotation></semantics></math> intervals.
+Upon reception at the RSU, the velocity manager generates a coordinated path by modifying the autonomous path’s speed from the autonomous path receiver. The velocity manager then decreases the vehicle’s speed when a conflict is detected and increases its speed when it discovers room for acceleration. When the vehicle receives the coordinated path from the RSU, the vehicle performs planning in the coordinated mode.</p>
+</div>
+<div id="S4.SS2.p4" class="ltx_para">
+<p id="S4.SS2.p4.1" class="ltx_p">As a limitation of the current implementation, it only focuses on the longitudinal vehicle motion, and the lateral vehicle motion calculation is future work.
+Also, our current implementation uses the JavaScript Object Notation (JSON) format <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib40" title="" class="ltx_ref">40</a>]</cite> to send the future path, the autonomous path, and the coordinated path where the size of the data is 60 KB when the path has 120 points.
+The future work includes reducing the packet size within the maximum transmission unit size of UDP (i.e., 1460 Bytes).</p>
+</div>
+</section>
+<section id="S4.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S4.SS3.4.1.1" class="ltx_text">IV-C</span> </span><span id="S4.SS3.5.2" class="ltx_text ltx_font_italic">Coordinated path generation with mode management</span>
+</h3>
+
+<div id="S4.SS3.p1" class="ltx_para">
+<p id="S4.SS3.p1.3" class="ltx_p">The RSU applies one of three modes for each vehicle as follows: <math id="S4.SS3.p1.1.m1.1" class="ltx_Math" alttext="Auto" display="inline"><semantics id="S4.SS3.p1.1.m1.1a"><mrow id="S4.SS3.p1.1.m1.1.1" xref="S4.SS3.p1.1.m1.1.1.cmml"><mi id="S4.SS3.p1.1.m1.1.1.2" xref="S4.SS3.p1.1.m1.1.1.2.cmml">A</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.1.m1.1.1.1" xref="S4.SS3.p1.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p1.1.m1.1.1.3" xref="S4.SS3.p1.1.m1.1.1.3.cmml">u</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.1.m1.1.1.1a" xref="S4.SS3.p1.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p1.1.m1.1.1.4" xref="S4.SS3.p1.1.m1.1.1.4.cmml">t</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.1.m1.1.1.1b" xref="S4.SS3.p1.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p1.1.m1.1.1.5" xref="S4.SS3.p1.1.m1.1.1.5.cmml">o</mi></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p1.1.m1.1b"><apply id="S4.SS3.p1.1.m1.1.1.cmml" xref="S4.SS3.p1.1.m1.1.1"><times id="S4.SS3.p1.1.m1.1.1.1.cmml" xref="S4.SS3.p1.1.m1.1.1.1"></times><ci id="S4.SS3.p1.1.m1.1.1.2.cmml" xref="S4.SS3.p1.1.m1.1.1.2">𝐴</ci><ci id="S4.SS3.p1.1.m1.1.1.3.cmml" xref="S4.SS3.p1.1.m1.1.1.3">𝑢</ci><ci id="S4.SS3.p1.1.m1.1.1.4.cmml" xref="S4.SS3.p1.1.m1.1.1.4">𝑡</ci><ci id="S4.SS3.p1.1.m1.1.1.5.cmml" xref="S4.SS3.p1.1.m1.1.1.5">𝑜</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p1.1.m1.1c">Auto</annotation></semantics></math> is used when the vehicle follows the autonomous planning mode; <math id="S4.SS3.p1.2.m2.1" class="ltx_Math" alttext="C_{slow}" display="inline"><semantics id="S4.SS3.p1.2.m2.1a"><msub id="S4.SS3.p1.2.m2.1.1" xref="S4.SS3.p1.2.m2.1.1.cmml"><mi id="S4.SS3.p1.2.m2.1.1.2" xref="S4.SS3.p1.2.m2.1.1.2.cmml">C</mi><mrow id="S4.SS3.p1.2.m2.1.1.3" xref="S4.SS3.p1.2.m2.1.1.3.cmml"><mi id="S4.SS3.p1.2.m2.1.1.3.2" xref="S4.SS3.p1.2.m2.1.1.3.2.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.2.m2.1.1.3.1" xref="S4.SS3.p1.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p1.2.m2.1.1.3.3" xref="S4.SS3.p1.2.m2.1.1.3.3.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.2.m2.1.1.3.1a" xref="S4.SS3.p1.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p1.2.m2.1.1.3.4" xref="S4.SS3.p1.2.m2.1.1.3.4.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.2.m2.1.1.3.1b" xref="S4.SS3.p1.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p1.2.m2.1.1.3.5" xref="S4.SS3.p1.2.m2.1.1.3.5.cmml">w</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p1.2.m2.1b"><apply id="S4.SS3.p1.2.m2.1.1.cmml" xref="S4.SS3.p1.2.m2.1.1"><csymbol cd="ambiguous" id="S4.SS3.p1.2.m2.1.1.1.cmml" xref="S4.SS3.p1.2.m2.1.1">subscript</csymbol><ci id="S4.SS3.p1.2.m2.1.1.2.cmml" xref="S4.SS3.p1.2.m2.1.1.2">𝐶</ci><apply id="S4.SS3.p1.2.m2.1.1.3.cmml" xref="S4.SS3.p1.2.m2.1.1.3"><times id="S4.SS3.p1.2.m2.1.1.3.1.cmml" xref="S4.SS3.p1.2.m2.1.1.3.1"></times><ci id="S4.SS3.p1.2.m2.1.1.3.2.cmml" xref="S4.SS3.p1.2.m2.1.1.3.2">𝑠</ci><ci id="S4.SS3.p1.2.m2.1.1.3.3.cmml" xref="S4.SS3.p1.2.m2.1.1.3.3">𝑙</ci><ci id="S4.SS3.p1.2.m2.1.1.3.4.cmml" xref="S4.SS3.p1.2.m2.1.1.3.4">𝑜</ci><ci id="S4.SS3.p1.2.m2.1.1.3.5.cmml" xref="S4.SS3.p1.2.m2.1.1.3.5">𝑤</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p1.2.m2.1c">C_{slow}</annotation></semantics></math> is used during the coordinated mode while slowing down; and <math id="S4.SS3.p1.3.m3.1" class="ltx_Math" alttext="C_{fast}" display="inline"><semantics id="S4.SS3.p1.3.m3.1a"><msub id="S4.SS3.p1.3.m3.1.1" xref="S4.SS3.p1.3.m3.1.1.cmml"><mi id="S4.SS3.p1.3.m3.1.1.2" xref="S4.SS3.p1.3.m3.1.1.2.cmml">C</mi><mrow id="S4.SS3.p1.3.m3.1.1.3" xref="S4.SS3.p1.3.m3.1.1.3.cmml"><mi id="S4.SS3.p1.3.m3.1.1.3.2" xref="S4.SS3.p1.3.m3.1.1.3.2.cmml">f</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.3.m3.1.1.3.1" xref="S4.SS3.p1.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p1.3.m3.1.1.3.3" xref="S4.SS3.p1.3.m3.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.3.m3.1.1.3.1a" xref="S4.SS3.p1.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p1.3.m3.1.1.3.4" xref="S4.SS3.p1.3.m3.1.1.3.4.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p1.3.m3.1.1.3.1b" xref="S4.SS3.p1.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p1.3.m3.1.1.3.5" xref="S4.SS3.p1.3.m3.1.1.3.5.cmml">t</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p1.3.m3.1b"><apply id="S4.SS3.p1.3.m3.1.1.cmml" xref="S4.SS3.p1.3.m3.1.1"><csymbol cd="ambiguous" id="S4.SS3.p1.3.m3.1.1.1.cmml" xref="S4.SS3.p1.3.m3.1.1">subscript</csymbol><ci id="S4.SS3.p1.3.m3.1.1.2.cmml" xref="S4.SS3.p1.3.m3.1.1.2">𝐶</ci><apply id="S4.SS3.p1.3.m3.1.1.3.cmml" xref="S4.SS3.p1.3.m3.1.1.3"><times id="S4.SS3.p1.3.m3.1.1.3.1.cmml" xref="S4.SS3.p1.3.m3.1.1.3.1"></times><ci id="S4.SS3.p1.3.m3.1.1.3.2.cmml" xref="S4.SS3.p1.3.m3.1.1.3.2">𝑓</ci><ci id="S4.SS3.p1.3.m3.1.1.3.3.cmml" xref="S4.SS3.p1.3.m3.1.1.3.3">𝑎</ci><ci id="S4.SS3.p1.3.m3.1.1.3.4.cmml" xref="S4.SS3.p1.3.m3.1.1.3.4">𝑠</ci><ci id="S4.SS3.p1.3.m3.1.1.3.5.cmml" xref="S4.SS3.p1.3.m3.1.1.3.5">𝑡</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p1.3.m3.1c">C_{fast}</annotation></semantics></math> is used during the coordinated mode while speeding up.
+The RSU chooses the modal behavior using the process shown in Fig. <a href="#S4.F4" title="Figure 4 ‣ IV-C Coordinated path generation with mode management ‣ IV Implementation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">4</span></a>.</p>
+</div>
+<figure id="S4.F4" class="ltx_figure"><img src="/html/2108.04629/assets/x4.png" id="S4.F4.1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="461" height="281" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 4: </span>Mode-switching flowchart</figcaption>
+</figure>
+<div id="S4.SS3.p2" class="ltx_para">
+<p id="S4.SS3.p2.10" class="ltx_p">During the first stage, all vehicles’ modes are set to <math id="S4.SS3.p2.1.m1.1" class="ltx_Math" alttext="Auto" display="inline"><semantics id="S4.SS3.p2.1.m1.1a"><mrow id="S4.SS3.p2.1.m1.1.1" xref="S4.SS3.p2.1.m1.1.1.cmml"><mi id="S4.SS3.p2.1.m1.1.1.2" xref="S4.SS3.p2.1.m1.1.1.2.cmml">A</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.1.m1.1.1.1" xref="S4.SS3.p2.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p2.1.m1.1.1.3" xref="S4.SS3.p2.1.m1.1.1.3.cmml">u</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.1.m1.1.1.1a" xref="S4.SS3.p2.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p2.1.m1.1.1.4" xref="S4.SS3.p2.1.m1.1.1.4.cmml">t</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.1.m1.1.1.1b" xref="S4.SS3.p2.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p2.1.m1.1.1.5" xref="S4.SS3.p2.1.m1.1.1.5.cmml">o</mi></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.1.m1.1b"><apply id="S4.SS3.p2.1.m1.1.1.cmml" xref="S4.SS3.p2.1.m1.1.1"><times id="S4.SS3.p2.1.m1.1.1.1.cmml" xref="S4.SS3.p2.1.m1.1.1.1"></times><ci id="S4.SS3.p2.1.m1.1.1.2.cmml" xref="S4.SS3.p2.1.m1.1.1.2">𝐴</ci><ci id="S4.SS3.p2.1.m1.1.1.3.cmml" xref="S4.SS3.p2.1.m1.1.1.3">𝑢</ci><ci id="S4.SS3.p2.1.m1.1.1.4.cmml" xref="S4.SS3.p2.1.m1.1.1.4">𝑡</ci><ci id="S4.SS3.p2.1.m1.1.1.5.cmml" xref="S4.SS3.p2.1.m1.1.1.5">𝑜</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.1.m1.1c">Auto</annotation></semantics></math>.
+The future path of the first vehicle is then added to the table.
+When a future path is received, the RSU checks for conflicts within <math id="S4.SS3.p2.2.m2.1" class="ltx_Math" alttext="T_{collision}" display="inline"><semantics id="S4.SS3.p2.2.m2.1a"><msub id="S4.SS3.p2.2.m2.1.1" xref="S4.SS3.p2.2.m2.1.1.cmml"><mi id="S4.SS3.p2.2.m2.1.1.2" xref="S4.SS3.p2.2.m2.1.1.2.cmml">T</mi><mrow id="S4.SS3.p2.2.m2.1.1.3" xref="S4.SS3.p2.2.m2.1.1.3.cmml"><mi id="S4.SS3.p2.2.m2.1.1.3.2" xref="S4.SS3.p2.2.m2.1.1.3.2.cmml">c</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.3" xref="S4.SS3.p2.2.m2.1.1.3.3.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1a" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.4" xref="S4.SS3.p2.2.m2.1.1.3.4.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1b" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.5" xref="S4.SS3.p2.2.m2.1.1.3.5.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1c" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.6" xref="S4.SS3.p2.2.m2.1.1.3.6.cmml">i</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1d" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.7" xref="S4.SS3.p2.2.m2.1.1.3.7.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1e" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.8" xref="S4.SS3.p2.2.m2.1.1.3.8.cmml">i</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1f" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.9" xref="S4.SS3.p2.2.m2.1.1.3.9.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.2.m2.1.1.3.1g" xref="S4.SS3.p2.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.2.m2.1.1.3.10" xref="S4.SS3.p2.2.m2.1.1.3.10.cmml">n</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.2.m2.1b"><apply id="S4.SS3.p2.2.m2.1.1.cmml" xref="S4.SS3.p2.2.m2.1.1"><csymbol cd="ambiguous" id="S4.SS3.p2.2.m2.1.1.1.cmml" xref="S4.SS3.p2.2.m2.1.1">subscript</csymbol><ci id="S4.SS3.p2.2.m2.1.1.2.cmml" xref="S4.SS3.p2.2.m2.1.1.2">𝑇</ci><apply id="S4.SS3.p2.2.m2.1.1.3.cmml" xref="S4.SS3.p2.2.m2.1.1.3"><times id="S4.SS3.p2.2.m2.1.1.3.1.cmml" xref="S4.SS3.p2.2.m2.1.1.3.1"></times><ci id="S4.SS3.p2.2.m2.1.1.3.2.cmml" xref="S4.SS3.p2.2.m2.1.1.3.2">𝑐</ci><ci id="S4.SS3.p2.2.m2.1.1.3.3.cmml" xref="S4.SS3.p2.2.m2.1.1.3.3">𝑜</ci><ci id="S4.SS3.p2.2.m2.1.1.3.4.cmml" xref="S4.SS3.p2.2.m2.1.1.3.4">𝑙</ci><ci id="S4.SS3.p2.2.m2.1.1.3.5.cmml" xref="S4.SS3.p2.2.m2.1.1.3.5">𝑙</ci><ci id="S4.SS3.p2.2.m2.1.1.3.6.cmml" xref="S4.SS3.p2.2.m2.1.1.3.6">𝑖</ci><ci id="S4.SS3.p2.2.m2.1.1.3.7.cmml" xref="S4.SS3.p2.2.m2.1.1.3.7">𝑠</ci><ci id="S4.SS3.p2.2.m2.1.1.3.8.cmml" xref="S4.SS3.p2.2.m2.1.1.3.8">𝑖</ci><ci id="S4.SS3.p2.2.m2.1.1.3.9.cmml" xref="S4.SS3.p2.2.m2.1.1.3.9">𝑜</ci><ci id="S4.SS3.p2.2.m2.1.1.3.10.cmml" xref="S4.SS3.p2.2.m2.1.1.3.10">𝑛</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.2.m2.1c">T_{collision}</annotation></semantics></math> seconds with all other future paths in the reservation table.
+The coordinates that exist within the safety margin <math id="S4.SS3.p2.3.m3.1" class="ltx_Math" alttext="D_{margin}" display="inline"><semantics id="S4.SS3.p2.3.m3.1a"><msub id="S4.SS3.p2.3.m3.1.1" xref="S4.SS3.p2.3.m3.1.1.cmml"><mi id="S4.SS3.p2.3.m3.1.1.2" xref="S4.SS3.p2.3.m3.1.1.2.cmml">D</mi><mrow id="S4.SS3.p2.3.m3.1.1.3" xref="S4.SS3.p2.3.m3.1.1.3.cmml"><mi id="S4.SS3.p2.3.m3.1.1.3.2" xref="S4.SS3.p2.3.m3.1.1.3.2.cmml">m</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.3.m3.1.1.3.1" xref="S4.SS3.p2.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.3.m3.1.1.3.3" xref="S4.SS3.p2.3.m3.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.3.m3.1.1.3.1a" xref="S4.SS3.p2.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.3.m3.1.1.3.4" xref="S4.SS3.p2.3.m3.1.1.3.4.cmml">r</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.3.m3.1.1.3.1b" xref="S4.SS3.p2.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.3.m3.1.1.3.5" xref="S4.SS3.p2.3.m3.1.1.3.5.cmml">g</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.3.m3.1.1.3.1c" xref="S4.SS3.p2.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.3.m3.1.1.3.6" xref="S4.SS3.p2.3.m3.1.1.3.6.cmml">i</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.3.m3.1.1.3.1d" xref="S4.SS3.p2.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.3.m3.1.1.3.7" xref="S4.SS3.p2.3.m3.1.1.3.7.cmml">n</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.3.m3.1b"><apply id="S4.SS3.p2.3.m3.1.1.cmml" xref="S4.SS3.p2.3.m3.1.1"><csymbol cd="ambiguous" id="S4.SS3.p2.3.m3.1.1.1.cmml" xref="S4.SS3.p2.3.m3.1.1">subscript</csymbol><ci id="S4.SS3.p2.3.m3.1.1.2.cmml" xref="S4.SS3.p2.3.m3.1.1.2">𝐷</ci><apply id="S4.SS3.p2.3.m3.1.1.3.cmml" xref="S4.SS3.p2.3.m3.1.1.3"><times id="S4.SS3.p2.3.m3.1.1.3.1.cmml" xref="S4.SS3.p2.3.m3.1.1.3.1"></times><ci id="S4.SS3.p2.3.m3.1.1.3.2.cmml" xref="S4.SS3.p2.3.m3.1.1.3.2">𝑚</ci><ci id="S4.SS3.p2.3.m3.1.1.3.3.cmml" xref="S4.SS3.p2.3.m3.1.1.3.3">𝑎</ci><ci id="S4.SS3.p2.3.m3.1.1.3.4.cmml" xref="S4.SS3.p2.3.m3.1.1.3.4">𝑟</ci><ci id="S4.SS3.p2.3.m3.1.1.3.5.cmml" xref="S4.SS3.p2.3.m3.1.1.3.5">𝑔</ci><ci id="S4.SS3.p2.3.m3.1.1.3.6.cmml" xref="S4.SS3.p2.3.m3.1.1.3.6">𝑖</ci><ci id="S4.SS3.p2.3.m3.1.1.3.7.cmml" xref="S4.SS3.p2.3.m3.1.1.3.7">𝑛</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.3.m3.1c">D_{margin}</annotation></semantics></math> m are counted as conflicts.
+In case of no conflict, the RSU then searches for an acceleration opportunity by checking if there is also no conflict in <math id="S4.SS3.p2.4.m4.1" class="ltx_Math" alttext="T_{free}" display="inline"><semantics id="S4.SS3.p2.4.m4.1a"><msub id="S4.SS3.p2.4.m4.1.1" xref="S4.SS3.p2.4.m4.1.1.cmml"><mi id="S4.SS3.p2.4.m4.1.1.2" xref="S4.SS3.p2.4.m4.1.1.2.cmml">T</mi><mrow id="S4.SS3.p2.4.m4.1.1.3" xref="S4.SS3.p2.4.m4.1.1.3.cmml"><mi id="S4.SS3.p2.4.m4.1.1.3.2" xref="S4.SS3.p2.4.m4.1.1.3.2.cmml">f</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.4.m4.1.1.3.1" xref="S4.SS3.p2.4.m4.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.4.m4.1.1.3.3" xref="S4.SS3.p2.4.m4.1.1.3.3.cmml">r</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.4.m4.1.1.3.1a" xref="S4.SS3.p2.4.m4.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.4.m4.1.1.3.4" xref="S4.SS3.p2.4.m4.1.1.3.4.cmml">e</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.4.m4.1.1.3.1b" xref="S4.SS3.p2.4.m4.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.4.m4.1.1.3.5" xref="S4.SS3.p2.4.m4.1.1.3.5.cmml">e</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.4.m4.1b"><apply id="S4.SS3.p2.4.m4.1.1.cmml" xref="S4.SS3.p2.4.m4.1.1"><csymbol cd="ambiguous" id="S4.SS3.p2.4.m4.1.1.1.cmml" xref="S4.SS3.p2.4.m4.1.1">subscript</csymbol><ci id="S4.SS3.p2.4.m4.1.1.2.cmml" xref="S4.SS3.p2.4.m4.1.1.2">𝑇</ci><apply id="S4.SS3.p2.4.m4.1.1.3.cmml" xref="S4.SS3.p2.4.m4.1.1.3"><times id="S4.SS3.p2.4.m4.1.1.3.1.cmml" xref="S4.SS3.p2.4.m4.1.1.3.1"></times><ci id="S4.SS3.p2.4.m4.1.1.3.2.cmml" xref="S4.SS3.p2.4.m4.1.1.3.2">𝑓</ci><ci id="S4.SS3.p2.4.m4.1.1.3.3.cmml" xref="S4.SS3.p2.4.m4.1.1.3.3">𝑟</ci><ci id="S4.SS3.p2.4.m4.1.1.3.4.cmml" xref="S4.SS3.p2.4.m4.1.1.3.4">𝑒</ci><ci id="S4.SS3.p2.4.m4.1.1.3.5.cmml" xref="S4.SS3.p2.4.m4.1.1.3.5">𝑒</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.4.m4.1c">T_{free}</annotation></semantics></math> second, and the vehicle is approaching the intersection.
+In this implementation, we set <math id="S4.SS3.p2.5.m5.1" class="ltx_Math" alttext="T_{collision}" display="inline"><semantics id="S4.SS3.p2.5.m5.1a"><msub id="S4.SS3.p2.5.m5.1.1" xref="S4.SS3.p2.5.m5.1.1.cmml"><mi id="S4.SS3.p2.5.m5.1.1.2" xref="S4.SS3.p2.5.m5.1.1.2.cmml">T</mi><mrow id="S4.SS3.p2.5.m5.1.1.3" xref="S4.SS3.p2.5.m5.1.1.3.cmml"><mi id="S4.SS3.p2.5.m5.1.1.3.2" xref="S4.SS3.p2.5.m5.1.1.3.2.cmml">c</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.3" xref="S4.SS3.p2.5.m5.1.1.3.3.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1a" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.4" xref="S4.SS3.p2.5.m5.1.1.3.4.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1b" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.5" xref="S4.SS3.p2.5.m5.1.1.3.5.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1c" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.6" xref="S4.SS3.p2.5.m5.1.1.3.6.cmml">i</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1d" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.7" xref="S4.SS3.p2.5.m5.1.1.3.7.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1e" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.8" xref="S4.SS3.p2.5.m5.1.1.3.8.cmml">i</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1f" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.9" xref="S4.SS3.p2.5.m5.1.1.3.9.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.5.m5.1.1.3.1g" xref="S4.SS3.p2.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.5.m5.1.1.3.10" xref="S4.SS3.p2.5.m5.1.1.3.10.cmml">n</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.5.m5.1b"><apply id="S4.SS3.p2.5.m5.1.1.cmml" xref="S4.SS3.p2.5.m5.1.1"><csymbol cd="ambiguous" id="S4.SS3.p2.5.m5.1.1.1.cmml" xref="S4.SS3.p2.5.m5.1.1">subscript</csymbol><ci id="S4.SS3.p2.5.m5.1.1.2.cmml" xref="S4.SS3.p2.5.m5.1.1.2">𝑇</ci><apply id="S4.SS3.p2.5.m5.1.1.3.cmml" xref="S4.SS3.p2.5.m5.1.1.3"><times id="S4.SS3.p2.5.m5.1.1.3.1.cmml" xref="S4.SS3.p2.5.m5.1.1.3.1"></times><ci id="S4.SS3.p2.5.m5.1.1.3.2.cmml" xref="S4.SS3.p2.5.m5.1.1.3.2">𝑐</ci><ci id="S4.SS3.p2.5.m5.1.1.3.3.cmml" xref="S4.SS3.p2.5.m5.1.1.3.3">𝑜</ci><ci id="S4.SS3.p2.5.m5.1.1.3.4.cmml" xref="S4.SS3.p2.5.m5.1.1.3.4">𝑙</ci><ci id="S4.SS3.p2.5.m5.1.1.3.5.cmml" xref="S4.SS3.p2.5.m5.1.1.3.5">𝑙</ci><ci id="S4.SS3.p2.5.m5.1.1.3.6.cmml" xref="S4.SS3.p2.5.m5.1.1.3.6">𝑖</ci><ci id="S4.SS3.p2.5.m5.1.1.3.7.cmml" xref="S4.SS3.p2.5.m5.1.1.3.7">𝑠</ci><ci id="S4.SS3.p2.5.m5.1.1.3.8.cmml" xref="S4.SS3.p2.5.m5.1.1.3.8">𝑖</ci><ci id="S4.SS3.p2.5.m5.1.1.3.9.cmml" xref="S4.SS3.p2.5.m5.1.1.3.9">𝑜</ci><ci id="S4.SS3.p2.5.m5.1.1.3.10.cmml" xref="S4.SS3.p2.5.m5.1.1.3.10">𝑛</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.5.m5.1c">T_{collision}</annotation></semantics></math> = <math id="S4.SS3.p2.6.m6.3" class="ltx_Math" alttext="5\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S4.SS3.p2.6.m6.3a"><mrow id="S4.SS3.p2.6.m6.3.3" xref="S4.SS3.p2.6.m6.3.3.cmml"><mn id="S4.SS3.p2.6.m6.1.1.1.1.1.1" xref="S4.SS3.p2.6.m6.1.1.1.1.1.1.cmml">5</mn><mtext id="S4.SS3.p2.6.m6.2.2.2.2.2.2" xref="S4.SS3.p2.6.m6.2.2.2.2.2.2.cmml"> </mtext><mrow id="S4.SS3.p2.6.m6.3.3.3.3.3.3" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S4.SS3.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S4.SS3.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S4.SS3.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.6.m6.3b"><apply id="S4.SS3.p2.6.m6.3.3.cmml" xref="S4.SS3.p2.6.m6.3.3"><csymbol cd="latexml" id="S4.SS3.p2.6.m6.2.2.2.2.2.2.cmml" xref="S4.SS3.p2.6.m6.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S4.SS3.p2.6.m6.1.1.1.1.1.1.cmml" xref="S4.SS3.p2.6.m6.1.1.1.1.1.1">5</cn><apply id="S4.SS3.p2.6.m6.3.3.3.3.3.3.cmml" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3"><csymbol cd="latexml" id="S4.SS3.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S4.SS3.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S4.SS3.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S4.SS3.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.6.m6.3c">5\text{\,}\mathrm{s}\text{/}</annotation></semantics></math> to allow for enough deceleration when a conflict is detected, <math id="S4.SS3.p2.7.m7.1" class="ltx_Math" alttext="T_{free}" display="inline"><semantics id="S4.SS3.p2.7.m7.1a"><msub id="S4.SS3.p2.7.m7.1.1" xref="S4.SS3.p2.7.m7.1.1.cmml"><mi id="S4.SS3.p2.7.m7.1.1.2" xref="S4.SS3.p2.7.m7.1.1.2.cmml">T</mi><mrow id="S4.SS3.p2.7.m7.1.1.3" xref="S4.SS3.p2.7.m7.1.1.3.cmml"><mi id="S4.SS3.p2.7.m7.1.1.3.2" xref="S4.SS3.p2.7.m7.1.1.3.2.cmml">f</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.7.m7.1.1.3.1" xref="S4.SS3.p2.7.m7.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.7.m7.1.1.3.3" xref="S4.SS3.p2.7.m7.1.1.3.3.cmml">r</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.7.m7.1.1.3.1a" xref="S4.SS3.p2.7.m7.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.7.m7.1.1.3.4" xref="S4.SS3.p2.7.m7.1.1.3.4.cmml">e</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.7.m7.1.1.3.1b" xref="S4.SS3.p2.7.m7.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.7.m7.1.1.3.5" xref="S4.SS3.p2.7.m7.1.1.3.5.cmml">e</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.7.m7.1b"><apply id="S4.SS3.p2.7.m7.1.1.cmml" xref="S4.SS3.p2.7.m7.1.1"><csymbol cd="ambiguous" id="S4.SS3.p2.7.m7.1.1.1.cmml" xref="S4.SS3.p2.7.m7.1.1">subscript</csymbol><ci id="S4.SS3.p2.7.m7.1.1.2.cmml" xref="S4.SS3.p2.7.m7.1.1.2">𝑇</ci><apply id="S4.SS3.p2.7.m7.1.1.3.cmml" xref="S4.SS3.p2.7.m7.1.1.3"><times id="S4.SS3.p2.7.m7.1.1.3.1.cmml" xref="S4.SS3.p2.7.m7.1.1.3.1"></times><ci id="S4.SS3.p2.7.m7.1.1.3.2.cmml" xref="S4.SS3.p2.7.m7.1.1.3.2">𝑓</ci><ci id="S4.SS3.p2.7.m7.1.1.3.3.cmml" xref="S4.SS3.p2.7.m7.1.1.3.3">𝑟</ci><ci id="S4.SS3.p2.7.m7.1.1.3.4.cmml" xref="S4.SS3.p2.7.m7.1.1.3.4">𝑒</ci><ci id="S4.SS3.p2.7.m7.1.1.3.5.cmml" xref="S4.SS3.p2.7.m7.1.1.3.5">𝑒</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.7.m7.1c">T_{free}</annotation></semantics></math> = <math id="S4.SS3.p2.8.m8.3" class="ltx_Math" alttext="10\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S4.SS3.p2.8.m8.3a"><mrow id="S4.SS3.p2.8.m8.3.3" xref="S4.SS3.p2.8.m8.3.3.cmml"><mn id="S4.SS3.p2.8.m8.1.1.1.1.1.1" xref="S4.SS3.p2.8.m8.1.1.1.1.1.1.cmml">10</mn><mtext id="S4.SS3.p2.8.m8.2.2.2.2.2.2" xref="S4.SS3.p2.8.m8.2.2.2.2.2.2.cmml"> </mtext><mrow id="S4.SS3.p2.8.m8.3.3.3.3.3.3" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S4.SS3.p2.8.m8.3.3.3.3.3.3.1.1.1.1.1.1" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S4.SS3.p2.8.m8.3.3.3.3.3.3.2.2.2.2.2.2" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S4.SS3.p2.8.m8.3.3.3.3.3.3.3.3.3.3.3.3" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.8.m8.3b"><apply id="S4.SS3.p2.8.m8.3.3.cmml" xref="S4.SS3.p2.8.m8.3.3"><csymbol cd="latexml" id="S4.SS3.p2.8.m8.2.2.2.2.2.2.cmml" xref="S4.SS3.p2.8.m8.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S4.SS3.p2.8.m8.1.1.1.1.1.1.cmml" xref="S4.SS3.p2.8.m8.1.1.1.1.1.1">10</cn><apply id="S4.SS3.p2.8.m8.3.3.3.3.3.3.cmml" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3"><csymbol cd="latexml" id="S4.SS3.p2.8.m8.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S4.SS3.p2.8.m8.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S4.SS3.p2.8.m8.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S4.SS3.p2.8.m8.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.8.m8.3c">10\text{\,}\mathrm{s}\text{/}</annotation></semantics></math> to allow for acceleration until exiting the intersection, and <math id="S4.SS3.p2.9.m9.1" class="ltx_Math" alttext="D_{margin}" display="inline"><semantics id="S4.SS3.p2.9.m9.1a"><msub id="S4.SS3.p2.9.m9.1.1" xref="S4.SS3.p2.9.m9.1.1.cmml"><mi id="S4.SS3.p2.9.m9.1.1.2" xref="S4.SS3.p2.9.m9.1.1.2.cmml">D</mi><mrow id="S4.SS3.p2.9.m9.1.1.3" xref="S4.SS3.p2.9.m9.1.1.3.cmml"><mi id="S4.SS3.p2.9.m9.1.1.3.2" xref="S4.SS3.p2.9.m9.1.1.3.2.cmml">m</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.9.m9.1.1.3.1" xref="S4.SS3.p2.9.m9.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.9.m9.1.1.3.3" xref="S4.SS3.p2.9.m9.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.9.m9.1.1.3.1a" xref="S4.SS3.p2.9.m9.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.9.m9.1.1.3.4" xref="S4.SS3.p2.9.m9.1.1.3.4.cmml">r</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.9.m9.1.1.3.1b" xref="S4.SS3.p2.9.m9.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.9.m9.1.1.3.5" xref="S4.SS3.p2.9.m9.1.1.3.5.cmml">g</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.9.m9.1.1.3.1c" xref="S4.SS3.p2.9.m9.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.9.m9.1.1.3.6" xref="S4.SS3.p2.9.m9.1.1.3.6.cmml">i</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p2.9.m9.1.1.3.1d" xref="S4.SS3.p2.9.m9.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p2.9.m9.1.1.3.7" xref="S4.SS3.p2.9.m9.1.1.3.7.cmml">n</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.9.m9.1b"><apply id="S4.SS3.p2.9.m9.1.1.cmml" xref="S4.SS3.p2.9.m9.1.1"><csymbol cd="ambiguous" id="S4.SS3.p2.9.m9.1.1.1.cmml" xref="S4.SS3.p2.9.m9.1.1">subscript</csymbol><ci id="S4.SS3.p2.9.m9.1.1.2.cmml" xref="S4.SS3.p2.9.m9.1.1.2">𝐷</ci><apply id="S4.SS3.p2.9.m9.1.1.3.cmml" xref="S4.SS3.p2.9.m9.1.1.3"><times id="S4.SS3.p2.9.m9.1.1.3.1.cmml" xref="S4.SS3.p2.9.m9.1.1.3.1"></times><ci id="S4.SS3.p2.9.m9.1.1.3.2.cmml" xref="S4.SS3.p2.9.m9.1.1.3.2">𝑚</ci><ci id="S4.SS3.p2.9.m9.1.1.3.3.cmml" xref="S4.SS3.p2.9.m9.1.1.3.3">𝑎</ci><ci id="S4.SS3.p2.9.m9.1.1.3.4.cmml" xref="S4.SS3.p2.9.m9.1.1.3.4">𝑟</ci><ci id="S4.SS3.p2.9.m9.1.1.3.5.cmml" xref="S4.SS3.p2.9.m9.1.1.3.5">𝑔</ci><ci id="S4.SS3.p2.9.m9.1.1.3.6.cmml" xref="S4.SS3.p2.9.m9.1.1.3.6">𝑖</ci><ci id="S4.SS3.p2.9.m9.1.1.3.7.cmml" xref="S4.SS3.p2.9.m9.1.1.3.7">𝑛</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.9.m9.1c">D_{margin}</annotation></semantics></math> = <math id="S4.SS3.p2.10.m10.3" class="ltx_Math" alttext="2.8\text{\,}\mathrm{m}\text{/}" display="inline"><semantics id="S4.SS3.p2.10.m10.3a"><mrow id="S4.SS3.p2.10.m10.3.3" xref="S4.SS3.p2.10.m10.3.3.cmml"><mn id="S4.SS3.p2.10.m10.1.1.1.1.1.1" xref="S4.SS3.p2.10.m10.1.1.1.1.1.1.cmml">2.8</mn><mtext id="S4.SS3.p2.10.m10.2.2.2.2.2.2" xref="S4.SS3.p2.10.m10.2.2.2.2.2.2.cmml"> </mtext><mrow id="S4.SS3.p2.10.m10.3.3.3.3.3.3" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S4.SS3.p2.10.m10.3.3.3.3.3.3.1.1.1.1.1.1" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3.1.1.1.1.1.1.cmml">m</mi><mtext id="S4.SS3.p2.10.m10.3.3.3.3.3.3.2.2.2.2.2.2" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S4.SS3.p2.10.m10.3.3.3.3.3.3.3.3.3.3.3.3" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p2.10.m10.3b"><apply id="S4.SS3.p2.10.m10.3.3.cmml" xref="S4.SS3.p2.10.m10.3.3"><csymbol cd="latexml" id="S4.SS3.p2.10.m10.2.2.2.2.2.2.cmml" xref="S4.SS3.p2.10.m10.2.2.2.2.2.2">times</csymbol><cn type="float" id="S4.SS3.p2.10.m10.1.1.1.1.1.1.cmml" xref="S4.SS3.p2.10.m10.1.1.1.1.1.1">2.8</cn><apply id="S4.SS3.p2.10.m10.3.3.3.3.3.3.cmml" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3"><csymbol cd="latexml" id="S4.SS3.p2.10.m10.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S4.SS3.p2.10.m10.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3.1.1.1.1.1.1">meter</csymbol><csymbol cd="latexml" id="S4.SS3.p2.10.m10.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S4.SS3.p2.10.m10.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p2.10.m10.3c">2.8\text{\,}\mathrm{m}\text{/}</annotation></semantics></math> the width of the car.</p>
+</div>
+<div id="S4.SS3.p3" class="ltx_para">
+<p id="S4.SS3.p3.6" class="ltx_p">If there is room for acceleration, the RSU changes the vehicle’s mode from <math id="S4.SS3.p3.1.m1.1" class="ltx_Math" alttext="Auto" display="inline"><semantics id="S4.SS3.p3.1.m1.1a"><mrow id="S4.SS3.p3.1.m1.1.1" xref="S4.SS3.p3.1.m1.1.1.cmml"><mi id="S4.SS3.p3.1.m1.1.1.2" xref="S4.SS3.p3.1.m1.1.1.2.cmml">A</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.1.m1.1.1.1" xref="S4.SS3.p3.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p3.1.m1.1.1.3" xref="S4.SS3.p3.1.m1.1.1.3.cmml">u</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.1.m1.1.1.1a" xref="S4.SS3.p3.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p3.1.m1.1.1.4" xref="S4.SS3.p3.1.m1.1.1.4.cmml">t</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.1.m1.1.1.1b" xref="S4.SS3.p3.1.m1.1.1.1.cmml">​</mo><mi id="S4.SS3.p3.1.m1.1.1.5" xref="S4.SS3.p3.1.m1.1.1.5.cmml">o</mi></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p3.1.m1.1b"><apply id="S4.SS3.p3.1.m1.1.1.cmml" xref="S4.SS3.p3.1.m1.1.1"><times id="S4.SS3.p3.1.m1.1.1.1.cmml" xref="S4.SS3.p3.1.m1.1.1.1"></times><ci id="S4.SS3.p3.1.m1.1.1.2.cmml" xref="S4.SS3.p3.1.m1.1.1.2">𝐴</ci><ci id="S4.SS3.p3.1.m1.1.1.3.cmml" xref="S4.SS3.p3.1.m1.1.1.3">𝑢</ci><ci id="S4.SS3.p3.1.m1.1.1.4.cmml" xref="S4.SS3.p3.1.m1.1.1.4">𝑡</ci><ci id="S4.SS3.p3.1.m1.1.1.5.cmml" xref="S4.SS3.p3.1.m1.1.1.5">𝑜</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p3.1.m1.1c">Auto</annotation></semantics></math> to <math id="S4.SS3.p3.2.m2.1" class="ltx_Math" alttext="C_{fast}" display="inline"><semantics id="S4.SS3.p3.2.m2.1a"><msub id="S4.SS3.p3.2.m2.1.1" xref="S4.SS3.p3.2.m2.1.1.cmml"><mi id="S4.SS3.p3.2.m2.1.1.2" xref="S4.SS3.p3.2.m2.1.1.2.cmml">C</mi><mrow id="S4.SS3.p3.2.m2.1.1.3" xref="S4.SS3.p3.2.m2.1.1.3.cmml"><mi id="S4.SS3.p3.2.m2.1.1.3.2" xref="S4.SS3.p3.2.m2.1.1.3.2.cmml">f</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.2.m2.1.1.3.1" xref="S4.SS3.p3.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.2.m2.1.1.3.3" xref="S4.SS3.p3.2.m2.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.2.m2.1.1.3.1a" xref="S4.SS3.p3.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.2.m2.1.1.3.4" xref="S4.SS3.p3.2.m2.1.1.3.4.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.2.m2.1.1.3.1b" xref="S4.SS3.p3.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.2.m2.1.1.3.5" xref="S4.SS3.p3.2.m2.1.1.3.5.cmml">t</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p3.2.m2.1b"><apply id="S4.SS3.p3.2.m2.1.1.cmml" xref="S4.SS3.p3.2.m2.1.1"><csymbol cd="ambiguous" id="S4.SS3.p3.2.m2.1.1.1.cmml" xref="S4.SS3.p3.2.m2.1.1">subscript</csymbol><ci id="S4.SS3.p3.2.m2.1.1.2.cmml" xref="S4.SS3.p3.2.m2.1.1.2">𝐶</ci><apply id="S4.SS3.p3.2.m2.1.1.3.cmml" xref="S4.SS3.p3.2.m2.1.1.3"><times id="S4.SS3.p3.2.m2.1.1.3.1.cmml" xref="S4.SS3.p3.2.m2.1.1.3.1"></times><ci id="S4.SS3.p3.2.m2.1.1.3.2.cmml" xref="S4.SS3.p3.2.m2.1.1.3.2">𝑓</ci><ci id="S4.SS3.p3.2.m2.1.1.3.3.cmml" xref="S4.SS3.p3.2.m2.1.1.3.3">𝑎</ci><ci id="S4.SS3.p3.2.m2.1.1.3.4.cmml" xref="S4.SS3.p3.2.m2.1.1.3.4">𝑠</ci><ci id="S4.SS3.p3.2.m2.1.1.3.5.cmml" xref="S4.SS3.p3.2.m2.1.1.3.5">𝑡</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p3.2.m2.1c">C_{fast}</annotation></semantics></math>.
+To force the mode change, the RSU sends an initiation message to the vehicle to switch to <math id="S4.SS3.p3.3.m3.1" class="ltx_Math" alttext="C_{fast}" display="inline"><semantics id="S4.SS3.p3.3.m3.1a"><msub id="S4.SS3.p3.3.m3.1.1" xref="S4.SS3.p3.3.m3.1.1.cmml"><mi id="S4.SS3.p3.3.m3.1.1.2" xref="S4.SS3.p3.3.m3.1.1.2.cmml">C</mi><mrow id="S4.SS3.p3.3.m3.1.1.3" xref="S4.SS3.p3.3.m3.1.1.3.cmml"><mi id="S4.SS3.p3.3.m3.1.1.3.2" xref="S4.SS3.p3.3.m3.1.1.3.2.cmml">f</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.3.m3.1.1.3.1" xref="S4.SS3.p3.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.3.m3.1.1.3.3" xref="S4.SS3.p3.3.m3.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.3.m3.1.1.3.1a" xref="S4.SS3.p3.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.3.m3.1.1.3.4" xref="S4.SS3.p3.3.m3.1.1.3.4.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.3.m3.1.1.3.1b" xref="S4.SS3.p3.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.3.m3.1.1.3.5" xref="S4.SS3.p3.3.m3.1.1.3.5.cmml">t</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p3.3.m3.1b"><apply id="S4.SS3.p3.3.m3.1.1.cmml" xref="S4.SS3.p3.3.m3.1.1"><csymbol cd="ambiguous" id="S4.SS3.p3.3.m3.1.1.1.cmml" xref="S4.SS3.p3.3.m3.1.1">subscript</csymbol><ci id="S4.SS3.p3.3.m3.1.1.2.cmml" xref="S4.SS3.p3.3.m3.1.1.2">𝐶</ci><apply id="S4.SS3.p3.3.m3.1.1.3.cmml" xref="S4.SS3.p3.3.m3.1.1.3"><times id="S4.SS3.p3.3.m3.1.1.3.1.cmml" xref="S4.SS3.p3.3.m3.1.1.3.1"></times><ci id="S4.SS3.p3.3.m3.1.1.3.2.cmml" xref="S4.SS3.p3.3.m3.1.1.3.2">𝑓</ci><ci id="S4.SS3.p3.3.m3.1.1.3.3.cmml" xref="S4.SS3.p3.3.m3.1.1.3.3">𝑎</ci><ci id="S4.SS3.p3.3.m3.1.1.3.4.cmml" xref="S4.SS3.p3.3.m3.1.1.3.4">𝑠</ci><ci id="S4.SS3.p3.3.m3.1.1.3.5.cmml" xref="S4.SS3.p3.3.m3.1.1.3.5">𝑡</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p3.3.m3.1c">C_{fast}</annotation></semantics></math>.
+Then, the RSU and the vehicle generate a coordinated path that changes the speed of the autonomous vehicle to the maximum speed of the road (<math id="S4.SS3.p3.4.m4.1" class="ltx_Math" alttext="V_{max}" display="inline"><semantics id="S4.SS3.p3.4.m4.1a"><msub id="S4.SS3.p3.4.m4.1.1" xref="S4.SS3.p3.4.m4.1.1.cmml"><mi id="S4.SS3.p3.4.m4.1.1.2" xref="S4.SS3.p3.4.m4.1.1.2.cmml">V</mi><mrow id="S4.SS3.p3.4.m4.1.1.3" xref="S4.SS3.p3.4.m4.1.1.3.cmml"><mi id="S4.SS3.p3.4.m4.1.1.3.2" xref="S4.SS3.p3.4.m4.1.1.3.2.cmml">m</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.4.m4.1.1.3.1" xref="S4.SS3.p3.4.m4.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.4.m4.1.1.3.3" xref="S4.SS3.p3.4.m4.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.4.m4.1.1.3.1a" xref="S4.SS3.p3.4.m4.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.4.m4.1.1.3.4" xref="S4.SS3.p3.4.m4.1.1.3.4.cmml">x</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p3.4.m4.1b"><apply id="S4.SS3.p3.4.m4.1.1.cmml" xref="S4.SS3.p3.4.m4.1.1"><csymbol cd="ambiguous" id="S4.SS3.p3.4.m4.1.1.1.cmml" xref="S4.SS3.p3.4.m4.1.1">subscript</csymbol><ci id="S4.SS3.p3.4.m4.1.1.2.cmml" xref="S4.SS3.p3.4.m4.1.1.2">𝑉</ci><apply id="S4.SS3.p3.4.m4.1.1.3.cmml" xref="S4.SS3.p3.4.m4.1.1.3"><times id="S4.SS3.p3.4.m4.1.1.3.1.cmml" xref="S4.SS3.p3.4.m4.1.1.3.1"></times><ci id="S4.SS3.p3.4.m4.1.1.3.2.cmml" xref="S4.SS3.p3.4.m4.1.1.3.2">𝑚</ci><ci id="S4.SS3.p3.4.m4.1.1.3.3.cmml" xref="S4.SS3.p3.4.m4.1.1.3.3">𝑎</ci><ci id="S4.SS3.p3.4.m4.1.1.3.4.cmml" xref="S4.SS3.p3.4.m4.1.1.3.4">𝑥</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p3.4.m4.1c">V_{max}</annotation></semantics></math>) through the intersection as long as there is no conflict within <math id="S4.SS3.p3.5.m5.1" class="ltx_Math" alttext="T_{free}" display="inline"><semantics id="S4.SS3.p3.5.m5.1a"><msub id="S4.SS3.p3.5.m5.1.1" xref="S4.SS3.p3.5.m5.1.1.cmml"><mi id="S4.SS3.p3.5.m5.1.1.2" xref="S4.SS3.p3.5.m5.1.1.2.cmml">T</mi><mrow id="S4.SS3.p3.5.m5.1.1.3" xref="S4.SS3.p3.5.m5.1.1.3.cmml"><mi id="S4.SS3.p3.5.m5.1.1.3.2" xref="S4.SS3.p3.5.m5.1.1.3.2.cmml">f</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.5.m5.1.1.3.1" xref="S4.SS3.p3.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.5.m5.1.1.3.3" xref="S4.SS3.p3.5.m5.1.1.3.3.cmml">r</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.5.m5.1.1.3.1a" xref="S4.SS3.p3.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.5.m5.1.1.3.4" xref="S4.SS3.p3.5.m5.1.1.3.4.cmml">e</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.5.m5.1.1.3.1b" xref="S4.SS3.p3.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p3.5.m5.1.1.3.5" xref="S4.SS3.p3.5.m5.1.1.3.5.cmml">e</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p3.5.m5.1b"><apply id="S4.SS3.p3.5.m5.1.1.cmml" xref="S4.SS3.p3.5.m5.1.1"><csymbol cd="ambiguous" id="S4.SS3.p3.5.m5.1.1.1.cmml" xref="S4.SS3.p3.5.m5.1.1">subscript</csymbol><ci id="S4.SS3.p3.5.m5.1.1.2.cmml" xref="S4.SS3.p3.5.m5.1.1.2">𝑇</ci><apply id="S4.SS3.p3.5.m5.1.1.3.cmml" xref="S4.SS3.p3.5.m5.1.1.3"><times id="S4.SS3.p3.5.m5.1.1.3.1.cmml" xref="S4.SS3.p3.5.m5.1.1.3.1"></times><ci id="S4.SS3.p3.5.m5.1.1.3.2.cmml" xref="S4.SS3.p3.5.m5.1.1.3.2">𝑓</ci><ci id="S4.SS3.p3.5.m5.1.1.3.3.cmml" xref="S4.SS3.p3.5.m5.1.1.3.3">𝑟</ci><ci id="S4.SS3.p3.5.m5.1.1.3.4.cmml" xref="S4.SS3.p3.5.m5.1.1.3.4">𝑒</ci><ci id="S4.SS3.p3.5.m5.1.1.3.5.cmml" xref="S4.SS3.p3.5.m5.1.1.3.5">𝑒</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p3.5.m5.1c">T_{free}</annotation></semantics></math> second.
+The vehicle then follows the coordinated path and accelerates. Although the coordinated path’s speed is faster than the vehicle’s current speed, the control module of the Autoware accelerates smoothly until called off.
+When the vehicle passes through the intersection, the RSU changes its mode back to <math id="S4.SS3.p3.6.m6.1" class="ltx_Math" alttext="Auto" display="inline"><semantics id="S4.SS3.p3.6.m6.1a"><mrow id="S4.SS3.p3.6.m6.1.1" xref="S4.SS3.p3.6.m6.1.1.cmml"><mi id="S4.SS3.p3.6.m6.1.1.2" xref="S4.SS3.p3.6.m6.1.1.2.cmml">A</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.6.m6.1.1.1" xref="S4.SS3.p3.6.m6.1.1.1.cmml">​</mo><mi id="S4.SS3.p3.6.m6.1.1.3" xref="S4.SS3.p3.6.m6.1.1.3.cmml">u</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.6.m6.1.1.1a" xref="S4.SS3.p3.6.m6.1.1.1.cmml">​</mo><mi id="S4.SS3.p3.6.m6.1.1.4" xref="S4.SS3.p3.6.m6.1.1.4.cmml">t</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p3.6.m6.1.1.1b" xref="S4.SS3.p3.6.m6.1.1.1.cmml">​</mo><mi id="S4.SS3.p3.6.m6.1.1.5" xref="S4.SS3.p3.6.m6.1.1.5.cmml">o</mi></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p3.6.m6.1b"><apply id="S4.SS3.p3.6.m6.1.1.cmml" xref="S4.SS3.p3.6.m6.1.1"><times id="S4.SS3.p3.6.m6.1.1.1.cmml" xref="S4.SS3.p3.6.m6.1.1.1"></times><ci id="S4.SS3.p3.6.m6.1.1.2.cmml" xref="S4.SS3.p3.6.m6.1.1.2">𝐴</ci><ci id="S4.SS3.p3.6.m6.1.1.3.cmml" xref="S4.SS3.p3.6.m6.1.1.3">𝑢</ci><ci id="S4.SS3.p3.6.m6.1.1.4.cmml" xref="S4.SS3.p3.6.m6.1.1.4">𝑡</ci><ci id="S4.SS3.p3.6.m6.1.1.5.cmml" xref="S4.SS3.p3.6.m6.1.1.5">𝑜</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p3.6.m6.1c">Auto</annotation></semantics></math> and sends a termination message to the vehicle. Thus, the acceleration and deceleration follow a smooth curve.</p>
+</div>
+<div id="S4.SS3.p4" class="ltx_para">
+<p id="S4.SS3.p4.5" class="ltx_p">Alternatively, if the received future path conflicts with other paths in the reservation table, the RSU switches to <math id="S4.SS3.p4.1.m1.1" class="ltx_Math" alttext="C_{slow}" display="inline"><semantics id="S4.SS3.p4.1.m1.1a"><msub id="S4.SS3.p4.1.m1.1.1" xref="S4.SS3.p4.1.m1.1.1.cmml"><mi id="S4.SS3.p4.1.m1.1.1.2" xref="S4.SS3.p4.1.m1.1.1.2.cmml">C</mi><mrow id="S4.SS3.p4.1.m1.1.1.3" xref="S4.SS3.p4.1.m1.1.1.3.cmml"><mi id="S4.SS3.p4.1.m1.1.1.3.2" xref="S4.SS3.p4.1.m1.1.1.3.2.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.1.m1.1.1.3.1" xref="S4.SS3.p4.1.m1.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.1.m1.1.1.3.3" xref="S4.SS3.p4.1.m1.1.1.3.3.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.1.m1.1.1.3.1a" xref="S4.SS3.p4.1.m1.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.1.m1.1.1.3.4" xref="S4.SS3.p4.1.m1.1.1.3.4.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.1.m1.1.1.3.1b" xref="S4.SS3.p4.1.m1.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.1.m1.1.1.3.5" xref="S4.SS3.p4.1.m1.1.1.3.5.cmml">w</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p4.1.m1.1b"><apply id="S4.SS3.p4.1.m1.1.1.cmml" xref="S4.SS3.p4.1.m1.1.1"><csymbol cd="ambiguous" id="S4.SS3.p4.1.m1.1.1.1.cmml" xref="S4.SS3.p4.1.m1.1.1">subscript</csymbol><ci id="S4.SS3.p4.1.m1.1.1.2.cmml" xref="S4.SS3.p4.1.m1.1.1.2">𝐶</ci><apply id="S4.SS3.p4.1.m1.1.1.3.cmml" xref="S4.SS3.p4.1.m1.1.1.3"><times id="S4.SS3.p4.1.m1.1.1.3.1.cmml" xref="S4.SS3.p4.1.m1.1.1.3.1"></times><ci id="S4.SS3.p4.1.m1.1.1.3.2.cmml" xref="S4.SS3.p4.1.m1.1.1.3.2">𝑠</ci><ci id="S4.SS3.p4.1.m1.1.1.3.3.cmml" xref="S4.SS3.p4.1.m1.1.1.3.3">𝑙</ci><ci id="S4.SS3.p4.1.m1.1.1.3.4.cmml" xref="S4.SS3.p4.1.m1.1.1.3.4">𝑜</ci><ci id="S4.SS3.p4.1.m1.1.1.3.5.cmml" xref="S4.SS3.p4.1.m1.1.1.3.5">𝑤</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p4.1.m1.1c">C_{slow}</annotation></semantics></math>.
+During this mode change, an initiation message is sent to the vehicle to switch to the <math id="S4.SS3.p4.2.m2.1" class="ltx_Math" alttext="C_{slow}" display="inline"><semantics id="S4.SS3.p4.2.m2.1a"><msub id="S4.SS3.p4.2.m2.1.1" xref="S4.SS3.p4.2.m2.1.1.cmml"><mi id="S4.SS3.p4.2.m2.1.1.2" xref="S4.SS3.p4.2.m2.1.1.2.cmml">C</mi><mrow id="S4.SS3.p4.2.m2.1.1.3" xref="S4.SS3.p4.2.m2.1.1.3.cmml"><mi id="S4.SS3.p4.2.m2.1.1.3.2" xref="S4.SS3.p4.2.m2.1.1.3.2.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.2.m2.1.1.3.1" xref="S4.SS3.p4.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.2.m2.1.1.3.3" xref="S4.SS3.p4.2.m2.1.1.3.3.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.2.m2.1.1.3.1a" xref="S4.SS3.p4.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.2.m2.1.1.3.4" xref="S4.SS3.p4.2.m2.1.1.3.4.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.2.m2.1.1.3.1b" xref="S4.SS3.p4.2.m2.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.2.m2.1.1.3.5" xref="S4.SS3.p4.2.m2.1.1.3.5.cmml">w</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p4.2.m2.1b"><apply id="S4.SS3.p4.2.m2.1.1.cmml" xref="S4.SS3.p4.2.m2.1.1"><csymbol cd="ambiguous" id="S4.SS3.p4.2.m2.1.1.1.cmml" xref="S4.SS3.p4.2.m2.1.1">subscript</csymbol><ci id="S4.SS3.p4.2.m2.1.1.2.cmml" xref="S4.SS3.p4.2.m2.1.1.2">𝐶</ci><apply id="S4.SS3.p4.2.m2.1.1.3.cmml" xref="S4.SS3.p4.2.m2.1.1.3"><times id="S4.SS3.p4.2.m2.1.1.3.1.cmml" xref="S4.SS3.p4.2.m2.1.1.3.1"></times><ci id="S4.SS3.p4.2.m2.1.1.3.2.cmml" xref="S4.SS3.p4.2.m2.1.1.3.2">𝑠</ci><ci id="S4.SS3.p4.2.m2.1.1.3.3.cmml" xref="S4.SS3.p4.2.m2.1.1.3.3">𝑙</ci><ci id="S4.SS3.p4.2.m2.1.1.3.4.cmml" xref="S4.SS3.p4.2.m2.1.1.3.4">𝑜</ci><ci id="S4.SS3.p4.2.m2.1.1.3.5.cmml" xref="S4.SS3.p4.2.m2.1.1.3.5">𝑤</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p4.2.m2.1c">C_{slow}</annotation></semantics></math> mode. After receiving the autonomous path, the RSU sends back the coordinated speed of zero.
+In the vehicle, Autoware’s control module decelerates smoothly according to the current speed until the autonomous path no longer conflicts with the other paths in the reservation table (perhaps until stopping).
+During the <math id="S4.SS3.p4.3.m3.1" class="ltx_Math" alttext="C_{slow}" display="inline"><semantics id="S4.SS3.p4.3.m3.1a"><msub id="S4.SS3.p4.3.m3.1.1" xref="S4.SS3.p4.3.m3.1.1.cmml"><mi id="S4.SS3.p4.3.m3.1.1.2" xref="S4.SS3.p4.3.m3.1.1.2.cmml">C</mi><mrow id="S4.SS3.p4.3.m3.1.1.3" xref="S4.SS3.p4.3.m3.1.1.3.cmml"><mi id="S4.SS3.p4.3.m3.1.1.3.2" xref="S4.SS3.p4.3.m3.1.1.3.2.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.3.m3.1.1.3.1" xref="S4.SS3.p4.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.3.m3.1.1.3.3" xref="S4.SS3.p4.3.m3.1.1.3.3.cmml">l</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.3.m3.1.1.3.1a" xref="S4.SS3.p4.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.3.m3.1.1.3.4" xref="S4.SS3.p4.3.m3.1.1.3.4.cmml">o</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.3.m3.1.1.3.1b" xref="S4.SS3.p4.3.m3.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.3.m3.1.1.3.5" xref="S4.SS3.p4.3.m3.1.1.3.5.cmml">w</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p4.3.m3.1b"><apply id="S4.SS3.p4.3.m3.1.1.cmml" xref="S4.SS3.p4.3.m3.1.1"><csymbol cd="ambiguous" id="S4.SS3.p4.3.m3.1.1.1.cmml" xref="S4.SS3.p4.3.m3.1.1">subscript</csymbol><ci id="S4.SS3.p4.3.m3.1.1.2.cmml" xref="S4.SS3.p4.3.m3.1.1.2">𝐶</ci><apply id="S4.SS3.p4.3.m3.1.1.3.cmml" xref="S4.SS3.p4.3.m3.1.1.3"><times id="S4.SS3.p4.3.m3.1.1.3.1.cmml" xref="S4.SS3.p4.3.m3.1.1.3.1"></times><ci id="S4.SS3.p4.3.m3.1.1.3.2.cmml" xref="S4.SS3.p4.3.m3.1.1.3.2">𝑠</ci><ci id="S4.SS3.p4.3.m3.1.1.3.3.cmml" xref="S4.SS3.p4.3.m3.1.1.3.3">𝑙</ci><ci id="S4.SS3.p4.3.m3.1.1.3.4.cmml" xref="S4.SS3.p4.3.m3.1.1.3.4">𝑜</ci><ci id="S4.SS3.p4.3.m3.1.1.3.5.cmml" xref="S4.SS3.p4.3.m3.1.1.3.5">𝑤</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p4.3.m3.1c">C_{slow}</annotation></semantics></math> mode, RSU discards the vehicle’s future path.
+When the vehicle path no longer conflicts with others, it calculates its room for acceleration and switches to one of the other modes (i.e., <math id="S4.SS3.p4.4.m4.1" class="ltx_Math" alttext="Auto" display="inline"><semantics id="S4.SS3.p4.4.m4.1a"><mrow id="S4.SS3.p4.4.m4.1.1" xref="S4.SS3.p4.4.m4.1.1.cmml"><mi id="S4.SS3.p4.4.m4.1.1.2" xref="S4.SS3.p4.4.m4.1.1.2.cmml">A</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.4.m4.1.1.1" xref="S4.SS3.p4.4.m4.1.1.1.cmml">​</mo><mi id="S4.SS3.p4.4.m4.1.1.3" xref="S4.SS3.p4.4.m4.1.1.3.cmml">u</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.4.m4.1.1.1a" xref="S4.SS3.p4.4.m4.1.1.1.cmml">​</mo><mi id="S4.SS3.p4.4.m4.1.1.4" xref="S4.SS3.p4.4.m4.1.1.4.cmml">t</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.4.m4.1.1.1b" xref="S4.SS3.p4.4.m4.1.1.1.cmml">​</mo><mi id="S4.SS3.p4.4.m4.1.1.5" xref="S4.SS3.p4.4.m4.1.1.5.cmml">o</mi></mrow><annotation-xml encoding="MathML-Content" id="S4.SS3.p4.4.m4.1b"><apply id="S4.SS3.p4.4.m4.1.1.cmml" xref="S4.SS3.p4.4.m4.1.1"><times id="S4.SS3.p4.4.m4.1.1.1.cmml" xref="S4.SS3.p4.4.m4.1.1.1"></times><ci id="S4.SS3.p4.4.m4.1.1.2.cmml" xref="S4.SS3.p4.4.m4.1.1.2">𝐴</ci><ci id="S4.SS3.p4.4.m4.1.1.3.cmml" xref="S4.SS3.p4.4.m4.1.1.3">𝑢</ci><ci id="S4.SS3.p4.4.m4.1.1.4.cmml" xref="S4.SS3.p4.4.m4.1.1.4">𝑡</ci><ci id="S4.SS3.p4.4.m4.1.1.5.cmml" xref="S4.SS3.p4.4.m4.1.1.5">𝑜</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p4.4.m4.1c">Auto</annotation></semantics></math> or <math id="S4.SS3.p4.5.m5.1" class="ltx_Math" alttext="C_{fast}" display="inline"><semantics id="S4.SS3.p4.5.m5.1a"><msub id="S4.SS3.p4.5.m5.1.1" xref="S4.SS3.p4.5.m5.1.1.cmml"><mi id="S4.SS3.p4.5.m5.1.1.2" xref="S4.SS3.p4.5.m5.1.1.2.cmml">C</mi><mrow id="S4.SS3.p4.5.m5.1.1.3" xref="S4.SS3.p4.5.m5.1.1.3.cmml"><mi id="S4.SS3.p4.5.m5.1.1.3.2" xref="S4.SS3.p4.5.m5.1.1.3.2.cmml">f</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.5.m5.1.1.3.1" xref="S4.SS3.p4.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.5.m5.1.1.3.3" xref="S4.SS3.p4.5.m5.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.5.m5.1.1.3.1a" xref="S4.SS3.p4.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.5.m5.1.1.3.4" xref="S4.SS3.p4.5.m5.1.1.3.4.cmml">s</mi><mo lspace="0em" rspace="0em" id="S4.SS3.p4.5.m5.1.1.3.1b" xref="S4.SS3.p4.5.m5.1.1.3.1.cmml">​</mo><mi id="S4.SS3.p4.5.m5.1.1.3.5" xref="S4.SS3.p4.5.m5.1.1.3.5.cmml">t</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S4.SS3.p4.5.m5.1b"><apply id="S4.SS3.p4.5.m5.1.1.cmml" xref="S4.SS3.p4.5.m5.1.1"><csymbol cd="ambiguous" id="S4.SS3.p4.5.m5.1.1.1.cmml" xref="S4.SS3.p4.5.m5.1.1">subscript</csymbol><ci id="S4.SS3.p4.5.m5.1.1.2.cmml" xref="S4.SS3.p4.5.m5.1.1.2">𝐶</ci><apply id="S4.SS3.p4.5.m5.1.1.3.cmml" xref="S4.SS3.p4.5.m5.1.1.3"><times id="S4.SS3.p4.5.m5.1.1.3.1.cmml" xref="S4.SS3.p4.5.m5.1.1.3.1"></times><ci id="S4.SS3.p4.5.m5.1.1.3.2.cmml" xref="S4.SS3.p4.5.m5.1.1.3.2">𝑓</ci><ci id="S4.SS3.p4.5.m5.1.1.3.3.cmml" xref="S4.SS3.p4.5.m5.1.1.3.3">𝑎</ci><ci id="S4.SS3.p4.5.m5.1.1.3.4.cmml" xref="S4.SS3.p4.5.m5.1.1.3.4">𝑠</ci><ci id="S4.SS3.p4.5.m5.1.1.3.5.cmml" xref="S4.SS3.p4.5.m5.1.1.3.5">𝑡</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p4.5.m5.1c">C_{fast}</annotation></semantics></math>).</p>
+</div>
+</section>
+</section>
+<section id="S5" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">V </span><span id="S5.1.1" class="ltx_text ltx_font_smallcaps">Evaluation</span>
+</h2>
+
+<div id="S5.p1" class="ltx_para">
+<p id="S5.p1.1" class="ltx_p">We evaluated our implementation using the LGSVL autonomous driving simulator v.2020.06 <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib15" title="" class="ltx_ref">15</a>]</cite>.
+In evaluation, we verified that the RSU intervention effectively reduced the vehicle transverse time through the intersection.</p>
+</div>
+<section id="S5.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S5.SS1.4.1.1" class="ltx_text">V-A</span> </span><span id="S5.SS1.5.2" class="ltx_text ltx_font_italic">Experimental setup and scenarios</span>
+</h3>
+
+<div id="S5.SS1.p1" class="ltx_para">
+<p id="S5.SS1.p1.1" class="ltx_p">Three personal computers (PCs) representing <em id="S5.SS1.p1.1.1" class="ltx_emph ltx_font_italic">Car A</em>, <em id="S5.SS1.p1.1.2" class="ltx_emph ltx_font_italic">Car B</em>, and the <em id="S5.SS1.p1.1.3" class="ltx_emph ltx_font_italic">RSU</em> were connected to the LGSVL simulator.
+The implementations included perception, planning, and controlling within the virtual world.
+We chose the Shalun map (Taiwan Car Lab Testing Facility) for a blind intersection preinstalled with LGSVL.
+A wired network connected the three PCs to the LGSVL simulator.</p>
+</div>
+<div id="S5.SS1.p2" class="ltx_para">
+<p id="S5.SS1.p2.2" class="ltx_p">The simulation experiment was conducted at a virtual intersection having poor visibility wherein two cars (<em id="S5.SS1.p2.2.1" class="ltx_emph ltx_font_italic">Car A</em> and <em id="S5.SS1.p2.2.2" class="ltx_emph ltx_font_italic">Car B</em>) passed one another.
+We set the starting and destination points so that <em id="S5.SS1.p2.2.3" class="ltx_emph ltx_font_italic">Car A</em> would pass through the intersection before <em id="S5.SS1.p2.2.4" class="ltx_emph ltx_font_italic">Car B</em> in stand-alone mode, as shown in Fig. <a href="#S5.F5" title="Figure 5 ‣ V-A Experimental setup and scenarios ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">5</span></a>).
+We set the maximum speed of the road <math id="S5.SS1.p2.1.m1.1" class="ltx_Math" alttext="V_{max}" display="inline"><semantics id="S5.SS1.p2.1.m1.1a"><msub id="S5.SS1.p2.1.m1.1.1" xref="S5.SS1.p2.1.m1.1.1.cmml"><mi id="S5.SS1.p2.1.m1.1.1.2" xref="S5.SS1.p2.1.m1.1.1.2.cmml">V</mi><mrow id="S5.SS1.p2.1.m1.1.1.3" xref="S5.SS1.p2.1.m1.1.1.3.cmml"><mi id="S5.SS1.p2.1.m1.1.1.3.2" xref="S5.SS1.p2.1.m1.1.1.3.2.cmml">m</mi><mo lspace="0em" rspace="0em" id="S5.SS1.p2.1.m1.1.1.3.1" xref="S5.SS1.p2.1.m1.1.1.3.1.cmml">​</mo><mi id="S5.SS1.p2.1.m1.1.1.3.3" xref="S5.SS1.p2.1.m1.1.1.3.3.cmml">a</mi><mo lspace="0em" rspace="0em" id="S5.SS1.p2.1.m1.1.1.3.1a" xref="S5.SS1.p2.1.m1.1.1.3.1.cmml">​</mo><mi id="S5.SS1.p2.1.m1.1.1.3.4" xref="S5.SS1.p2.1.m1.1.1.3.4.cmml">x</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S5.SS1.p2.1.m1.1b"><apply id="S5.SS1.p2.1.m1.1.1.cmml" xref="S5.SS1.p2.1.m1.1.1"><csymbol cd="ambiguous" id="S5.SS1.p2.1.m1.1.1.1.cmml" xref="S5.SS1.p2.1.m1.1.1">subscript</csymbol><ci id="S5.SS1.p2.1.m1.1.1.2.cmml" xref="S5.SS1.p2.1.m1.1.1.2">𝑉</ci><apply id="S5.SS1.p2.1.m1.1.1.3.cmml" xref="S5.SS1.p2.1.m1.1.1.3"><times id="S5.SS1.p2.1.m1.1.1.3.1.cmml" xref="S5.SS1.p2.1.m1.1.1.3.1"></times><ci id="S5.SS1.p2.1.m1.1.1.3.2.cmml" xref="S5.SS1.p2.1.m1.1.1.3.2">𝑚</ci><ci id="S5.SS1.p2.1.m1.1.1.3.3.cmml" xref="S5.SS1.p2.1.m1.1.1.3.3">𝑎</ci><ci id="S5.SS1.p2.1.m1.1.1.3.4.cmml" xref="S5.SS1.p2.1.m1.1.1.3.4">𝑥</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS1.p2.1.m1.1c">V_{max}</annotation></semantics></math> = <math id="S5.SS1.p2.2.m2.3" class="ltx_Math" alttext="50\text{\,}\mathrm{km}\text{/}\mathrm{h}" display="inline"><semantics id="S5.SS1.p2.2.m2.3a"><mrow id="S5.SS1.p2.2.m2.3.3" xref="S5.SS1.p2.2.m2.3.3.cmml"><mn id="S5.SS1.p2.2.m2.1.1.1.1.1.1" xref="S5.SS1.p2.2.m2.1.1.1.1.1.1.cmml">50</mn><mtext id="S5.SS1.p2.2.m2.2.2.2.2.2.2" xref="S5.SS1.p2.2.m2.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS1.p2.2.m2.3.3.3.3.3.3" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3.cmml"><mi class="ltx_unit" id="S5.SS1.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml">km</mi><mtext id="S5.SS1.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi class="ltx_unit" mathvariant="normal" id="S5.SS1.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml">h</mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS1.p2.2.m2.3b"><apply id="S5.SS1.p2.2.m2.3.3.cmml" xref="S5.SS1.p2.2.m2.3.3"><csymbol cd="latexml" id="S5.SS1.p2.2.m2.2.2.2.2.2.2.cmml" xref="S5.SS1.p2.2.m2.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S5.SS1.p2.2.m2.1.1.1.1.1.1.cmml" xref="S5.SS1.p2.2.m2.1.1.1.1.1.1">50</cn><apply id="S5.SS1.p2.2.m2.3.3.3.3.3.3.cmml" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS1.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS1.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1">kilometer</csymbol><csymbol cd="latexml" id="S5.SS1.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS1.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3">hour</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS1.p2.2.m2.3c">50\text{\,}\mathrm{km}\text{/}\mathrm{h}</annotation></semantics></math>.
+We set a stationary vehicle as RSU in the simulator because it had full functionality apart from the control module.</p>
+</div>
+<div id="S5.SS1.p3" class="ltx_para">
+<p id="S5.SS1.p3.1" class="ltx_p">We evaluated the following scenarios:</p>
+<ul id="S5.I1" class="ltx_itemize">
+<li id="S5.I1.i1" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S5.I1.i1.p1" class="ltx_para">
+<p id="S5.I1.i1.p1.1" class="ltx_p"><em id="S5.I1.i1.p1.1.1" class="ltx_emph ltx_font_italic">Stand-alone</em>: autonomous cars without communication.</p>
+</div>
+</li>
+<li id="S5.I1.i2" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S5.I1.i2.p1" class="ltx_para">
+<p id="S5.I1.i2.p1.1" class="ltx_p"><em id="S5.I1.i2.p1.1.1" class="ltx_emph ltx_font_italic">Future path only</em>: autonomous vehicles broadcast the future path by V2V.</p>
+</div>
+</li>
+<li id="S5.I1.i3" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S5.I1.i3.p1" class="ltx_para">
+<p id="S5.I1.i3.p1.1" class="ltx_p"><em id="S5.I1.i3.p1.1.1" class="ltx_emph ltx_font_italic">Future path with RSU</em>: coordinated autonomous driving with the RSU including future path sharing.</p>
+</div>
+</li>
+</ul>
+</div>
+<div id="S5.SS1.p4" class="ltx_para">
+<p id="S5.SS1.p4.1" class="ltx_p">We conducted 10 simulation experiments for each of the three scenarios using the same starting points and destinations.</p>
+</div>
+<figure id="S5.F5" class="ltx_figure"><img src="/html/2108.04629/assets/x5.png" id="S5.F5.1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="415" height="233" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 5: </span>Screenshot of the experiment. <em id="S5.F5.3.1" class="ltx_emph ltx_font_italic">Car A</em> arrives first in stand-alone mode. Left is the view of the LGSVL simulator. Right is the Rviz view.</figcaption>
+</figure>
+</section>
+<section id="S5.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S5.SS2.4.1.1" class="ltx_text">V-B</span> </span><span id="S5.SS2.5.2" class="ltx_text ltx_font_italic">Measurement of passing time in the intersection</span>
+</h3>
+
+<div id="S5.SS2.p1" class="ltx_para">
+<p id="S5.SS2.p1.1" class="ltx_p">Table <a href="#S5.T1" title="TABLE I ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">I</span></a> shows all results and passing times.
+In the stand-alone case, <em id="S5.SS2.p1.1.1" class="ltx_emph ltx_font_italic">Car A</em> traversed the intersection first in all trials, as designed.
+On the other hand, <em id="S5.SS2.p1.1.2" class="ltx_emph ltx_font_italic">Car A</em> traversed the first six times in the future-path-only scenario and four times in the future path with RSU. Each time, the result varied because we launched the experimental setup using a graphical user interface at slightly different timing.</p>
+</div>
+<div id="S5.SS2.p2" class="ltx_para">
+<p id="S5.SS2.p2.6" class="ltx_p">Table <a href="#S5.T1" title="TABLE I ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">I</span></a> shows that the future-path-only scenario slightly increased the average passing time from <math id="S5.SS2.p2.1.m1.3" class="ltx_Math" alttext="36.51\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S5.SS2.p2.1.m1.3a"><mrow id="S5.SS2.p2.1.m1.3.3" xref="S5.SS2.p2.1.m1.3.3.cmml"><mn id="S5.SS2.p2.1.m1.1.1.1.1.1.1" xref="S5.SS2.p2.1.m1.1.1.1.1.1.1.cmml">36.51</mn><mtext id="S5.SS2.p2.1.m1.2.2.2.2.2.2" xref="S5.SS2.p2.1.m1.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p2.1.m1.3.3.3.3.3.3" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p2.1.m1.3b"><apply id="S5.SS2.p2.1.m1.3.3.cmml" xref="S5.SS2.p2.1.m1.3.3"><csymbol cd="latexml" id="S5.SS2.p2.1.m1.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.1.m1.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p2.1.m1.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.1.m1.1.1.1.1.1.1">36.51</cn><apply id="S5.SS2.p2.1.m1.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.1.m1.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p2.1.m1.3c">36.51\text{\,}\mathrm{s}\text{/}</annotation></semantics></math> to <math id="S5.SS2.p2.2.m2.3" class="ltx_Math" alttext="37.17\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S5.SS2.p2.2.m2.3a"><mrow id="S5.SS2.p2.2.m2.3.3" xref="S5.SS2.p2.2.m2.3.3.cmml"><mn id="S5.SS2.p2.2.m2.1.1.1.1.1.1" xref="S5.SS2.p2.2.m2.1.1.1.1.1.1.cmml">37.17</mn><mtext id="S5.SS2.p2.2.m2.2.2.2.2.2.2" xref="S5.SS2.p2.2.m2.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p2.2.m2.3.3.3.3.3.3" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p2.2.m2.3b"><apply id="S5.SS2.p2.2.m2.3.3.cmml" xref="S5.SS2.p2.2.m2.3.3"><csymbol cd="latexml" id="S5.SS2.p2.2.m2.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.2.m2.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p2.2.m2.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.2.m2.1.1.1.1.1.1">37.17</cn><apply id="S5.SS2.p2.2.m2.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.2.m2.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p2.2.m2.3c">37.17\text{\,}\mathrm{s}\text{/}</annotation></semantics></math>, which represents <math id="S5.SS2.p2.3.m3.3" class="ltx_Math" alttext="2\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S5.SS2.p2.3.m3.3a"><mrow id="S5.SS2.p2.3.m3.3.3" xref="S5.SS2.p2.3.m3.3.3.cmml"><mn id="S5.SS2.p2.3.m3.1.1.1.1.1.1" xref="S5.SS2.p2.3.m3.1.1.1.1.1.1.cmml">2</mn><mtext id="S5.SS2.p2.3.m3.2.2.2.2.2.2" xref="S5.SS2.p2.3.m3.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p2.3.m3.3.3.3.3.3.3" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p2.3.m3.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S5.SS2.p2.3.m3.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p2.3.m3.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p2.3.m3.3b"><apply id="S5.SS2.p2.3.m3.3.3.cmml" xref="S5.SS2.p2.3.m3.3.3"><csymbol cd="latexml" id="S5.SS2.p2.3.m3.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.3.m3.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S5.SS2.p2.3.m3.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.3.m3.1.1.1.1.1.1">2</cn><apply id="S5.SS2.p2.3.m3.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p2.3.m3.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p2.3.m3.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S5.SS2.p2.3.m3.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.3.m3.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p2.3.m3.3c">2\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math>.
+The reason for the worse results in the future-path-only scenario becomes apparent later by analyzing the speed of cars passing through the intersection in Figure <a href="#S5.F7" title="Figure 7 ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">7</span></a>.
+Our proposal (the future path with RSU) successfully reduced the average passing time from <math id="S5.SS2.p2.4.m4.3" class="ltx_Math" alttext="36.51\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S5.SS2.p2.4.m4.3a"><mrow id="S5.SS2.p2.4.m4.3.3" xref="S5.SS2.p2.4.m4.3.3.cmml"><mn id="S5.SS2.p2.4.m4.1.1.1.1.1.1" xref="S5.SS2.p2.4.m4.1.1.1.1.1.1.cmml">36.51</mn><mtext id="S5.SS2.p2.4.m4.2.2.2.2.2.2" xref="S5.SS2.p2.4.m4.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p2.4.m4.3.3.3.3.3.3" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p2.4.m4.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.SS2.p2.4.m4.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p2.4.m4.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p2.4.m4.3b"><apply id="S5.SS2.p2.4.m4.3.3.cmml" xref="S5.SS2.p2.4.m4.3.3"><csymbol cd="latexml" id="S5.SS2.p2.4.m4.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.4.m4.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p2.4.m4.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.4.m4.1.1.1.1.1.1">36.51</cn><apply id="S5.SS2.p2.4.m4.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p2.4.m4.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p2.4.m4.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.SS2.p2.4.m4.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.4.m4.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p2.4.m4.3c">36.51\text{\,}\mathrm{s}\text{/}</annotation></semantics></math> to <math id="S5.SS2.p2.5.m5.3" class="ltx_Math" alttext="27.05\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S5.SS2.p2.5.m5.3a"><mrow id="S5.SS2.p2.5.m5.3.3" xref="S5.SS2.p2.5.m5.3.3.cmml"><mn id="S5.SS2.p2.5.m5.1.1.1.1.1.1" xref="S5.SS2.p2.5.m5.1.1.1.1.1.1.cmml">27.05</mn><mtext id="S5.SS2.p2.5.m5.2.2.2.2.2.2" xref="S5.SS2.p2.5.m5.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p2.5.m5.3.3.3.3.3.3" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p2.5.m5.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.SS2.p2.5.m5.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p2.5.m5.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p2.5.m5.3b"><apply id="S5.SS2.p2.5.m5.3.3.cmml" xref="S5.SS2.p2.5.m5.3.3"><csymbol cd="latexml" id="S5.SS2.p2.5.m5.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.5.m5.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p2.5.m5.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.5.m5.1.1.1.1.1.1">27.05</cn><apply id="S5.SS2.p2.5.m5.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p2.5.m5.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p2.5.m5.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.SS2.p2.5.m5.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.5.m5.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p2.5.m5.3c">27.05\text{\,}\mathrm{s}\text{/}</annotation></semantics></math>, representing a <math id="S5.SS2.p2.6.m6.3" class="ltx_Math" alttext="26\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S5.SS2.p2.6.m6.3a"><mrow id="S5.SS2.p2.6.m6.3.3" xref="S5.SS2.p2.6.m6.3.3.cmml"><mn id="S5.SS2.p2.6.m6.1.1.1.1.1.1" xref="S5.SS2.p2.6.m6.1.1.1.1.1.1.cmml">26</mn><mtext id="S5.SS2.p2.6.m6.2.2.2.2.2.2" xref="S5.SS2.p2.6.m6.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p2.6.m6.3.3.3.3.3.3" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S5.SS2.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p2.6.m6.3b"><apply id="S5.SS2.p2.6.m6.3.3.cmml" xref="S5.SS2.p2.6.m6.3.3"><csymbol cd="latexml" id="S5.SS2.p2.6.m6.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.6.m6.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S5.SS2.p2.6.m6.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.6.m6.1.1.1.1.1.1">26</cn><apply id="S5.SS2.p2.6.m6.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S5.SS2.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p2.6.m6.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p2.6.m6.3c">26\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> improvement. This result shows that the future paths of other vehicles were perceived as future obstacles that would otherwise degrade traffic flow. The coordinated path of the RSU effectively avoided conflict and improved flow.</p>
+</div>
+<figure id="S5.T1" class="ltx_table">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table">TABLE I: </span>Passing time in the experimental evaluation</figcaption>
+<table id="S5.T1.9.9" class="ltx_tabular ltx_centering ltx_guessed_headers ltx_align_middle">
+<tbody class="ltx_tbody">
+<tr id="S5.T1.9.9.10.1" class="ltx_tr">
+<th id="S5.T1.9.9.10.1.1" class="ltx_td ltx_th ltx_th_row ltx_border_r ltx_border_t"></th>
+<td id="S5.T1.9.9.10.1.2" class="ltx_td ltx_align_center ltx_border_t" rowspan="2"><span id="S5.T1.9.9.10.1.2.1" class="ltx_text">Stand-alone</span></td>
+<td id="S5.T1.9.9.10.1.3" class="ltx_td ltx_align_center ltx_border_t">Future</td>
+<td id="S5.T1.9.9.10.1.4" class="ltx_td ltx_align_center ltx_border_t">Future path</td>
+</tr>
+<tr id="S5.T1.9.9.11.2" class="ltx_tr">
+<th id="S5.T1.9.9.11.2.1" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<td id="S5.T1.9.9.11.2.2" class="ltx_td ltx_align_center">Paths only</td>
+<td id="S5.T1.9.9.11.2.3" class="ltx_td ltx_align_center">with RSU</td>
+</tr>
+<tr id="S5.T1.9.9.12.3" class="ltx_tr">
+<th id="S5.T1.9.9.12.3.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_tt">
+<em id="S5.T1.9.9.12.3.1.1" class="ltx_emph ltx_font_italic">Car A</em> passes first</th>
+<td id="S5.T1.9.9.12.3.2" class="ltx_td ltx_align_center ltx_border_tt">10</td>
+<td id="S5.T1.9.9.12.3.3" class="ltx_td ltx_align_center ltx_border_tt">6</td>
+<td id="S5.T1.9.9.12.3.4" class="ltx_td ltx_align_center ltx_border_tt">6</td>
+</tr>
+<tr id="S5.T1.9.9.13.4" class="ltx_tr">
+<th id="S5.T1.9.9.13.4.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r">
+<em id="S5.T1.9.9.13.4.1.1" class="ltx_emph ltx_font_italic">Car B</em> passes first</th>
+<td id="S5.T1.9.9.13.4.2" class="ltx_td ltx_align_center">0</td>
+<td id="S5.T1.9.9.13.4.3" class="ltx_td ltx_align_center">4</td>
+<td id="S5.T1.9.9.13.4.4" class="ltx_td ltx_align_center">4</td>
+</tr>
+<tr id="S5.T1.3.3.3" class="ltx_tr">
+<th id="S5.T1.3.3.3.4" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_t">
+<em id="S5.T1.3.3.3.4.1" class="ltx_emph ltx_font_italic">Car A</em> passing time</th>
+<td id="S5.T1.1.1.1.1" class="ltx_td ltx_align_center ltx_border_t">31.04 <math id="S5.T1.1.1.1.1.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.1.1.1.1.m1.3a"><mrow id="S5.T1.1.1.1.1.m1.3.3" xref="S5.T1.1.1.1.1.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.1.1.1.1.m1.1.1.1.1.1.1" xref="S5.T1.1.1.1.1.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.1.1.1.1.m1.2.2.2.2.2.2" xref="S5.T1.1.1.1.1.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.1.1.1.1.m1.3.3.3.3.3.3" xref="S5.T1.1.1.1.1.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.1.1.1.1.m1.3b"><apply id="S5.T1.1.1.1.1.m1.3.3.cmml" xref="S5.T1.1.1.1.1.m1.3.3"><csymbol cd="latexml" id="S5.T1.1.1.1.1.m1.2.2.2.2.2.2.cmml" xref="S5.T1.1.1.1.1.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.1.1.1.1.m1.1.1.1.1.1.1.cmml" xref="S5.T1.1.1.1.1.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.1.1.1.1.m1.3.3.3.3.3.3.cmml" xref="S5.T1.1.1.1.1.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.1.1.1.1.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+<td id="S5.T1.2.2.2.2" class="ltx_td ltx_align_center ltx_border_t">38.03 <math id="S5.T1.2.2.2.2.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.2.2.2.2.m1.3a"><mrow id="S5.T1.2.2.2.2.m1.3.3" xref="S5.T1.2.2.2.2.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.2.2.2.2.m1.1.1.1.1.1.1" xref="S5.T1.2.2.2.2.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.2.2.2.2.m1.2.2.2.2.2.2" xref="S5.T1.2.2.2.2.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.2.2.2.2.m1.3.3.3.3.3.3" xref="S5.T1.2.2.2.2.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.2.2.2.2.m1.3b"><apply id="S5.T1.2.2.2.2.m1.3.3.cmml" xref="S5.T1.2.2.2.2.m1.3.3"><csymbol cd="latexml" id="S5.T1.2.2.2.2.m1.2.2.2.2.2.2.cmml" xref="S5.T1.2.2.2.2.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.2.2.2.2.m1.1.1.1.1.1.1.cmml" xref="S5.T1.2.2.2.2.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.2.2.2.2.m1.3.3.3.3.3.3.cmml" xref="S5.T1.2.2.2.2.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.2.2.2.2.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+<td id="S5.T1.3.3.3.3" class="ltx_td ltx_align_center ltx_border_t">23.93 <math id="S5.T1.3.3.3.3.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.3.3.3.3.m1.3a"><mrow id="S5.T1.3.3.3.3.m1.3.3" xref="S5.T1.3.3.3.3.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.3.3.3.3.m1.1.1.1.1.1.1" xref="S5.T1.3.3.3.3.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.3.3.3.3.m1.2.2.2.2.2.2" xref="S5.T1.3.3.3.3.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.3.3.3.3.m1.3.3.3.3.3.3" xref="S5.T1.3.3.3.3.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.3.3.3.3.m1.3b"><apply id="S5.T1.3.3.3.3.m1.3.3.cmml" xref="S5.T1.3.3.3.3.m1.3.3"><csymbol cd="latexml" id="S5.T1.3.3.3.3.m1.2.2.2.2.2.2.cmml" xref="S5.T1.3.3.3.3.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.3.3.3.3.m1.1.1.1.1.1.1.cmml" xref="S5.T1.3.3.3.3.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.3.3.3.3.m1.3.3.3.3.3.3.cmml" xref="S5.T1.3.3.3.3.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.3.3.3.3.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+</tr>
+<tr id="S5.T1.6.6.6" class="ltx_tr">
+<th id="S5.T1.6.6.6.4" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r">
+<em id="S5.T1.6.6.6.4.1" class="ltx_emph ltx_font_italic">Car B</em> passing time</th>
+<td id="S5.T1.4.4.4.1" class="ltx_td ltx_align_center">41.97 <math id="S5.T1.4.4.4.1.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.4.4.4.1.m1.3a"><mrow id="S5.T1.4.4.4.1.m1.3.3" xref="S5.T1.4.4.4.1.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.4.4.4.1.m1.1.1.1.1.1.1" xref="S5.T1.4.4.4.1.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.4.4.4.1.m1.2.2.2.2.2.2" xref="S5.T1.4.4.4.1.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.4.4.4.1.m1.3.3.3.3.3.3" xref="S5.T1.4.4.4.1.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.4.4.4.1.m1.3b"><apply id="S5.T1.4.4.4.1.m1.3.3.cmml" xref="S5.T1.4.4.4.1.m1.3.3"><csymbol cd="latexml" id="S5.T1.4.4.4.1.m1.2.2.2.2.2.2.cmml" xref="S5.T1.4.4.4.1.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.4.4.4.1.m1.1.1.1.1.1.1.cmml" xref="S5.T1.4.4.4.1.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.4.4.4.1.m1.3.3.3.3.3.3.cmml" xref="S5.T1.4.4.4.1.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.4.4.4.1.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+<td id="S5.T1.5.5.5.2" class="ltx_td ltx_align_center">36.32 <math id="S5.T1.5.5.5.2.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.5.5.5.2.m1.3a"><mrow id="S5.T1.5.5.5.2.m1.3.3" xref="S5.T1.5.5.5.2.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.5.5.5.2.m1.1.1.1.1.1.1" xref="S5.T1.5.5.5.2.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.5.5.5.2.m1.2.2.2.2.2.2" xref="S5.T1.5.5.5.2.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.5.5.5.2.m1.3.3.3.3.3.3" xref="S5.T1.5.5.5.2.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.5.5.5.2.m1.3b"><apply id="S5.T1.5.5.5.2.m1.3.3.cmml" xref="S5.T1.5.5.5.2.m1.3.3"><csymbol cd="latexml" id="S5.T1.5.5.5.2.m1.2.2.2.2.2.2.cmml" xref="S5.T1.5.5.5.2.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.5.5.5.2.m1.1.1.1.1.1.1.cmml" xref="S5.T1.5.5.5.2.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.5.5.5.2.m1.3.3.3.3.3.3.cmml" xref="S5.T1.5.5.5.2.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.5.5.5.2.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+<td id="S5.T1.6.6.6.3" class="ltx_td ltx_align_center">30.18 <math id="S5.T1.6.6.6.3.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.6.6.6.3.m1.3a"><mrow id="S5.T1.6.6.6.3.m1.3.3" xref="S5.T1.6.6.6.3.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.6.6.6.3.m1.1.1.1.1.1.1" xref="S5.T1.6.6.6.3.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.6.6.6.3.m1.2.2.2.2.2.2" xref="S5.T1.6.6.6.3.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.6.6.6.3.m1.3.3.3.3.3.3" xref="S5.T1.6.6.6.3.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.6.6.6.3.m1.3b"><apply id="S5.T1.6.6.6.3.m1.3.3.cmml" xref="S5.T1.6.6.6.3.m1.3.3"><csymbol cd="latexml" id="S5.T1.6.6.6.3.m1.2.2.2.2.2.2.cmml" xref="S5.T1.6.6.6.3.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.6.6.6.3.m1.1.1.1.1.1.1.cmml" xref="S5.T1.6.6.6.3.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.6.6.6.3.m1.3.3.3.3.3.3.cmml" xref="S5.T1.6.6.6.3.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.6.6.6.3.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+</tr>
+<tr id="S5.T1.9.9.9" class="ltx_tr">
+<th id="S5.T1.9.9.9.4" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_b ltx_border_r">Average passing time</th>
+<td id="S5.T1.7.7.7.1" class="ltx_td ltx_align_center ltx_border_b">36.51 <math id="S5.T1.7.7.7.1.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.7.7.7.1.m1.3a"><mrow id="S5.T1.7.7.7.1.m1.3.3" xref="S5.T1.7.7.7.1.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.7.7.7.1.m1.1.1.1.1.1.1" xref="S5.T1.7.7.7.1.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.7.7.7.1.m1.2.2.2.2.2.2" xref="S5.T1.7.7.7.1.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.7.7.7.1.m1.3.3.3.3.3.3" xref="S5.T1.7.7.7.1.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.7.7.7.1.m1.3b"><apply id="S5.T1.7.7.7.1.m1.3.3.cmml" xref="S5.T1.7.7.7.1.m1.3.3"><csymbol cd="latexml" id="S5.T1.7.7.7.1.m1.2.2.2.2.2.2.cmml" xref="S5.T1.7.7.7.1.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.7.7.7.1.m1.1.1.1.1.1.1.cmml" xref="S5.T1.7.7.7.1.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.7.7.7.1.m1.3.3.3.3.3.3.cmml" xref="S5.T1.7.7.7.1.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.7.7.7.1.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+<td id="S5.T1.8.8.8.2" class="ltx_td ltx_align_center ltx_border_b">37.17 <math id="S5.T1.8.8.8.2.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.8.8.8.2.m1.3a"><mrow id="S5.T1.8.8.8.2.m1.3.3" xref="S5.T1.8.8.8.2.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.8.8.8.2.m1.1.1.1.1.1.1" xref="S5.T1.8.8.8.2.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.8.8.8.2.m1.2.2.2.2.2.2" xref="S5.T1.8.8.8.2.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.8.8.8.2.m1.3.3.3.3.3.3" xref="S5.T1.8.8.8.2.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.8.8.8.2.m1.3b"><apply id="S5.T1.8.8.8.2.m1.3.3.cmml" xref="S5.T1.8.8.8.2.m1.3.3"><csymbol cd="latexml" id="S5.T1.8.8.8.2.m1.2.2.2.2.2.2.cmml" xref="S5.T1.8.8.8.2.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.8.8.8.2.m1.1.1.1.1.1.1.cmml" xref="S5.T1.8.8.8.2.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.8.8.8.2.m1.3.3.3.3.3.3.cmml" xref="S5.T1.8.8.8.2.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.8.8.8.2.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+<td id="S5.T1.9.9.9.3" class="ltx_td ltx_align_center ltx_border_b">27.05 <math id="S5.T1.9.9.9.3.m1.3" class="ltx_Math" alttext="\mathrm{s}\text{/}" display="inline"><semantics id="S5.T1.9.9.9.3.m1.3a"><mrow id="S5.T1.9.9.9.3.m1.3.3" xref="S5.T1.9.9.9.3.m1.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.T1.9.9.9.3.m1.1.1.1.1.1.1" xref="S5.T1.9.9.9.3.m1.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.T1.9.9.9.3.m1.2.2.2.2.2.2" xref="S5.T1.9.9.9.3.m1.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.T1.9.9.9.3.m1.3.3.3.3.3.3" xref="S5.T1.9.9.9.3.m1.3.3.3.3.3.3.cmml"></mi></mrow><annotation-xml encoding="MathML-Content" id="S5.T1.9.9.9.3.m1.3b"><apply id="S5.T1.9.9.9.3.m1.3.3.cmml" xref="S5.T1.9.9.9.3.m1.3.3"><csymbol cd="latexml" id="S5.T1.9.9.9.3.m1.2.2.2.2.2.2.cmml" xref="S5.T1.9.9.9.3.m1.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.T1.9.9.9.3.m1.1.1.1.1.1.1.cmml" xref="S5.T1.9.9.9.3.m1.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.T1.9.9.9.3.m1.3.3.3.3.3.3.cmml" xref="S5.T1.9.9.9.3.m1.3.3.3.3.3.3">absent</csymbol></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.T1.9.9.9.3.m1.3c">\mathrm{s}\text{/}</annotation></semantics></math>
+</td>
+</tr>
+</tbody>
+</table>
+</figure>
+<div id="S5.SS2.p3" class="ltx_para">
+<p id="S5.SS2.p3.7" class="ltx_p">Figure <a href="#S5.F6" title="Figure 6 ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">6</span></a> shows the passing times of the 10 trials and their variations.
+In the stand-alone case, the results showed only a few variations because <em id="S5.SS2.p3.7.1" class="ltx_emph ltx_font_italic">Car A</em> always passed first.
+When the vehicles exchanged future paths, the passing times varied because <em id="S5.SS2.p3.7.2" class="ltx_emph ltx_font_italic">Car A</em> traversed the first six times and <em id="S5.SS2.p3.7.3" class="ltx_emph ltx_font_italic">Car B</em> four.
+As a result, <em id="S5.SS2.p3.7.4" class="ltx_emph ltx_font_italic">Car A</em> took <math id="S5.SS2.p3.1.m1.3" class="ltx_Math" alttext="6.99\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S5.SS2.p3.1.m1.3a"><mrow id="S5.SS2.p3.1.m1.3.3" xref="S5.SS2.p3.1.m1.3.3.cmml"><mn id="S5.SS2.p3.1.m1.1.1.1.1.1.1" xref="S5.SS2.p3.1.m1.1.1.1.1.1.1.cmml">6.99</mn><mtext id="S5.SS2.p3.1.m1.2.2.2.2.2.2" xref="S5.SS2.p3.1.m1.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p3.1.m1.3.3.3.3.3.3" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p3.1.m1.3b"><apply id="S5.SS2.p3.1.m1.3.3.cmml" xref="S5.SS2.p3.1.m1.3.3"><csymbol cd="latexml" id="S5.SS2.p3.1.m1.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.1.m1.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p3.1.m1.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.1.m1.1.1.1.1.1.1">6.99</cn><apply id="S5.SS2.p3.1.m1.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.1.m1.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p3.1.m1.3c">6.99\text{\,}\mathrm{s}\text{/}</annotation></semantics></math> longer to traverse than in the stand-alone case (<math id="S5.SS2.p3.2.m2.3" class="ltx_Math" alttext="22\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S5.SS2.p3.2.m2.3a"><mrow id="S5.SS2.p3.2.m2.3.3" xref="S5.SS2.p3.2.m2.3.3.cmml"><mn id="S5.SS2.p3.2.m2.1.1.1.1.1.1" xref="S5.SS2.p3.2.m2.1.1.1.1.1.1.cmml">22</mn><mtext id="S5.SS2.p3.2.m2.2.2.2.2.2.2" xref="S5.SS2.p3.2.m2.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p3.2.m2.3.3.3.3.3.3" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p3.2.m2.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S5.SS2.p3.2.m2.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p3.2.m2.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p3.2.m2.3b"><apply id="S5.SS2.p3.2.m2.3.3.cmml" xref="S5.SS2.p3.2.m2.3.3"><csymbol cd="latexml" id="S5.SS2.p3.2.m2.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.2.m2.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S5.SS2.p3.2.m2.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.2.m2.1.1.1.1.1.1">22</cn><apply id="S5.SS2.p3.2.m2.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p3.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S5.SS2.p3.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.2.m2.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p3.2.m2.3c">22\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> slower), whereas <em id="S5.SS2.p3.7.5" class="ltx_emph ltx_font_italic">Car B</em> arrived <math id="S5.SS2.p3.3.m3.3" class="ltx_Math" alttext="5.65\text{\,}\mathrm{s}\text{/}" display="inline"><semantics id="S5.SS2.p3.3.m3.3a"><mrow id="S5.SS2.p3.3.m3.3.3" xref="S5.SS2.p3.3.m3.3.3.cmml"><mn id="S5.SS2.p3.3.m3.1.1.1.1.1.1" xref="S5.SS2.p3.3.m3.1.1.1.1.1.1.cmml">5.65</mn><mtext id="S5.SS2.p3.3.m3.2.2.2.2.2.2" xref="S5.SS2.p3.3.m3.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p3.3.m3.3.3.3.3.3.3" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p3.3.m3.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3.1.1.1.1.1.1.cmml">s</mi><mtext id="S5.SS2.p3.3.m3.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p3.3.m3.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p3.3.m3.3b"><apply id="S5.SS2.p3.3.m3.3.3.cmml" xref="S5.SS2.p3.3.m3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.3.m3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.3.m3.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p3.3.m3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.3.m3.1.1.1.1.1.1">5.65</cn><apply id="S5.SS2.p3.3.m3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.3.m3.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p3.3.m3.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3.1.1.1.1.1.1">second</csymbol><csymbol cd="latexml" id="S5.SS2.p3.3.m3.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.3.m3.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p3.3.m3.3c">5.65\text{\,}\mathrm{s}\text{/}</annotation></semantics></math> earlier (<math id="S5.SS2.p3.4.m4.3" class="ltx_Math" alttext="13\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S5.SS2.p3.4.m4.3a"><mrow id="S5.SS2.p3.4.m4.3.3" xref="S5.SS2.p3.4.m4.3.3.cmml"><mn id="S5.SS2.p3.4.m4.1.1.1.1.1.1" xref="S5.SS2.p3.4.m4.1.1.1.1.1.1.cmml">13</mn><mtext id="S5.SS2.p3.4.m4.2.2.2.2.2.2" xref="S5.SS2.p3.4.m4.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p3.4.m4.3.3.3.3.3.3" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p3.4.m4.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S5.SS2.p3.4.m4.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p3.4.m4.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p3.4.m4.3b"><apply id="S5.SS2.p3.4.m4.3.3.cmml" xref="S5.SS2.p3.4.m4.3.3"><csymbol cd="latexml" id="S5.SS2.p3.4.m4.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.4.m4.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S5.SS2.p3.4.m4.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.4.m4.1.1.1.1.1.1">13</cn><apply id="S5.SS2.p3.4.m4.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.4.m4.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p3.4.m4.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S5.SS2.p3.4.m4.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.4.m4.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p3.4.m4.3c">13\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> faster).
+Our proposed method improved the passing times <math id="S5.SS2.p3.5.m5.3" class="ltx_Math" alttext="23.0\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S5.SS2.p3.5.m5.3a"><mrow id="S5.SS2.p3.5.m5.3.3" xref="S5.SS2.p3.5.m5.3.3.cmml"><mn id="S5.SS2.p3.5.m5.1.1.1.1.1.1" xref="S5.SS2.p3.5.m5.1.1.1.1.1.1.cmml">23.0</mn><mtext id="S5.SS2.p3.5.m5.2.2.2.2.2.2" xref="S5.SS2.p3.5.m5.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p3.5.m5.3.3.3.3.3.3" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p3.5.m5.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S5.SS2.p3.5.m5.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p3.5.m5.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p3.5.m5.3b"><apply id="S5.SS2.p3.5.m5.3.3.cmml" xref="S5.SS2.p3.5.m5.3.3"><csymbol cd="latexml" id="S5.SS2.p3.5.m5.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.5.m5.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p3.5.m5.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.5.m5.1.1.1.1.1.1">23.0</cn><apply id="S5.SS2.p3.5.m5.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.5.m5.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p3.5.m5.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S5.SS2.p3.5.m5.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.5.m5.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p3.5.m5.3c">23.0\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> and <math id="S5.SS2.p3.6.m6.3" class="ltx_Math" alttext="28.1\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S5.SS2.p3.6.m6.3a"><mrow id="S5.SS2.p3.6.m6.3.3" xref="S5.SS2.p3.6.m6.3.3.cmml"><mn id="S5.SS2.p3.6.m6.1.1.1.1.1.1" xref="S5.SS2.p3.6.m6.1.1.1.1.1.1.cmml">28.1</mn><mtext id="S5.SS2.p3.6.m6.2.2.2.2.2.2" xref="S5.SS2.p3.6.m6.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p3.6.m6.3.3.3.3.3.3" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p3.6.m6.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S5.SS2.p3.6.m6.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p3.6.m6.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p3.6.m6.3b"><apply id="S5.SS2.p3.6.m6.3.3.cmml" xref="S5.SS2.p3.6.m6.3.3"><csymbol cd="latexml" id="S5.SS2.p3.6.m6.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.6.m6.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p3.6.m6.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.6.m6.1.1.1.1.1.1">28.1</cn><apply id="S5.SS2.p3.6.m6.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.6.m6.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p3.6.m6.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S5.SS2.p3.6.m6.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.6.m6.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p3.6.m6.3c">28.1\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> for <em id="S5.SS2.p3.7.6" class="ltx_emph ltx_font_italic">Car A</em> and <em id="S5.SS2.p3.7.7" class="ltx_emph ltx_font_italic">Car B</em>, respectively. The proposed method reduces traversal times by <math id="S5.SS2.p3.7.m7.3" class="ltx_Math" alttext="25.9\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S5.SS2.p3.7.m7.3a"><mrow id="S5.SS2.p3.7.m7.3.3" xref="S5.SS2.p3.7.m7.3.3.cmml"><mn id="S5.SS2.p3.7.m7.1.1.1.1.1.1" xref="S5.SS2.p3.7.m7.1.1.1.1.1.1.cmml">25.9</mn><mtext id="S5.SS2.p3.7.m7.2.2.2.2.2.2" xref="S5.SS2.p3.7.m7.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p3.7.m7.3.3.3.3.3.3" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p3.7.m7.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S5.SS2.p3.7.m7.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p3.7.m7.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p3.7.m7.3b"><apply id="S5.SS2.p3.7.m7.3.3.cmml" xref="S5.SS2.p3.7.m7.3.3"><csymbol cd="latexml" id="S5.SS2.p3.7.m7.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.7.m7.2.2.2.2.2.2">times</csymbol><cn type="float" id="S5.SS2.p3.7.m7.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.7.m7.1.1.1.1.1.1">25.9</cn><apply id="S5.SS2.p3.7.m7.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p3.7.m7.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p3.7.m7.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S5.SS2.p3.7.m7.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p3.7.m7.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p3.7.m7.3c">25.9\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> with a few variations.</p>
+</div>
+<figure id="S5.F6" class="ltx_figure"><img src="/html/2108.04629/assets/x6.png" id="S5.F6.1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="369" height="270" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 6: </span>Passing times of 10 results</figcaption>
+</figure>
+<div id="S5.SS2.p4" class="ltx_para">
+<p id="S5.SS2.p4.1" class="ltx_p">Figure <a href="#S5.F7" title="Figure 7 ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">7</span></a> shows the speed of the two vehicles near the intersection.
+Green is the result for <em id="S5.SS2.p4.1.1" class="ltx_emph ltx_font_italic">Car A</em> and orange for <em id="S5.SS2.p4.1.2" class="ltx_emph ltx_font_italic">Car B</em>, and the larger value indicates the direction of travel.
+The transparent colored line shows the speed of each trial, and the solid line shows the average speed.
+<math id="S5.SS2.p4.1.m1.4" class="ltx_Math" alttext="(x,y)=(0,0)" display="inline"><semantics id="S5.SS2.p4.1.m1.4a"><mrow id="S5.SS2.p4.1.m1.4.5" xref="S5.SS2.p4.1.m1.4.5.cmml"><mrow id="S5.SS2.p4.1.m1.4.5.2.2" xref="S5.SS2.p4.1.m1.4.5.2.1.cmml"><mo stretchy="false" id="S5.SS2.p4.1.m1.4.5.2.2.1" xref="S5.SS2.p4.1.m1.4.5.2.1.cmml">(</mo><mi id="S5.SS2.p4.1.m1.1.1" xref="S5.SS2.p4.1.m1.1.1.cmml">x</mi><mo id="S5.SS2.p4.1.m1.4.5.2.2.2" xref="S5.SS2.p4.1.m1.4.5.2.1.cmml">,</mo><mi id="S5.SS2.p4.1.m1.2.2" xref="S5.SS2.p4.1.m1.2.2.cmml">y</mi><mo stretchy="false" id="S5.SS2.p4.1.m1.4.5.2.2.3" xref="S5.SS2.p4.1.m1.4.5.2.1.cmml">)</mo></mrow><mo id="S5.SS2.p4.1.m1.4.5.1" xref="S5.SS2.p4.1.m1.4.5.1.cmml">=</mo><mrow id="S5.SS2.p4.1.m1.4.5.3.2" xref="S5.SS2.p4.1.m1.4.5.3.1.cmml"><mo stretchy="false" id="S5.SS2.p4.1.m1.4.5.3.2.1" xref="S5.SS2.p4.1.m1.4.5.3.1.cmml">(</mo><mn id="S5.SS2.p4.1.m1.3.3" xref="S5.SS2.p4.1.m1.3.3.cmml">0</mn><mo id="S5.SS2.p4.1.m1.4.5.3.2.2" xref="S5.SS2.p4.1.m1.4.5.3.1.cmml">,</mo><mn id="S5.SS2.p4.1.m1.4.4" xref="S5.SS2.p4.1.m1.4.4.cmml">0</mn><mo stretchy="false" id="S5.SS2.p4.1.m1.4.5.3.2.3" xref="S5.SS2.p4.1.m1.4.5.3.1.cmml">)</mo></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p4.1.m1.4b"><apply id="S5.SS2.p4.1.m1.4.5.cmml" xref="S5.SS2.p4.1.m1.4.5"><eq id="S5.SS2.p4.1.m1.4.5.1.cmml" xref="S5.SS2.p4.1.m1.4.5.1"></eq><interval closure="open" id="S5.SS2.p4.1.m1.4.5.2.1.cmml" xref="S5.SS2.p4.1.m1.4.5.2.2"><ci id="S5.SS2.p4.1.m1.1.1.cmml" xref="S5.SS2.p4.1.m1.1.1">𝑥</ci><ci id="S5.SS2.p4.1.m1.2.2.cmml" xref="S5.SS2.p4.1.m1.2.2">𝑦</ci></interval><interval closure="open" id="S5.SS2.p4.1.m1.4.5.3.1.cmml" xref="S5.SS2.p4.1.m1.4.5.3.2"><cn type="integer" id="S5.SS2.p4.1.m1.3.3.cmml" xref="S5.SS2.p4.1.m1.3.3">0</cn><cn type="integer" id="S5.SS2.p4.1.m1.4.4.cmml" xref="S5.SS2.p4.1.m1.4.4">0</cn></interval></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p4.1.m1.4c">(x,y)=(0,0)</annotation></semantics></math> represents the intersection.</p>
+</div>
+<div id="S5.SS2.p5" class="ltx_para">
+<p id="S5.SS2.p5.2" class="ltx_p">As depicted in Fig. <a href="#S5.F7.sf1" title="In Figure 7 ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">7(a)</span></a>, in the stand-alone scenario, <em id="S5.SS2.p5.2.1" class="ltx_emph ltx_font_italic">Car B</em> always stopped at <math id="S5.SS2.p5.1.m1.3" class="ltx_Math" alttext="5\text{\,}\mathrm{m}\text{/}" display="inline"><semantics id="S5.SS2.p5.1.m1.3a"><mrow id="S5.SS2.p5.1.m1.3.3" xref="S5.SS2.p5.1.m1.3.3.cmml"><mn id="S5.SS2.p5.1.m1.1.1.1.1.1.1" xref="S5.SS2.p5.1.m1.1.1.1.1.1.1.cmml">5</mn><mtext id="S5.SS2.p5.1.m1.2.2.2.2.2.2" xref="S5.SS2.p5.1.m1.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p5.1.m1.3.3.3.3.3.3" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p5.1.m1.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml">m</mi><mtext id="S5.SS2.p5.1.m1.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p5.1.m1.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p5.1.m1.3b"><apply id="S5.SS2.p5.1.m1.3.3.cmml" xref="S5.SS2.p5.1.m1.3.3"><csymbol cd="latexml" id="S5.SS2.p5.1.m1.2.2.2.2.2.2.cmml" xref="S5.SS2.p5.1.m1.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S5.SS2.p5.1.m1.1.1.1.1.1.1.cmml" xref="S5.SS2.p5.1.m1.1.1.1.1.1.1">5</cn><apply id="S5.SS2.p5.1.m1.3.3.3.3.3.3.cmml" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p5.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p5.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3.1.1.1.1.1.1">meter</csymbol><csymbol cd="latexml" id="S5.SS2.p5.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p5.1.m1.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p5.1.m1.3c">5\text{\,}\mathrm{m}\text{/}</annotation></semantics></math> before the intersection for <em id="S5.SS2.p5.2.2" class="ltx_emph ltx_font_italic">Car A</em> passing first.
+As shown in Fig. <a href="#S5.F7.sf2" title="In Figure 7 ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">7(b)</span></a>, in the future path-only scenario, <em id="S5.SS2.p5.2.3" class="ltx_emph ltx_font_italic">Car A</em> and <em id="S5.SS2.p5.2.4" class="ltx_emph ltx_font_italic">Car B</em> recognized each other. They slowed sooner (within <math id="S5.SS2.p5.2.m2.3" class="ltx_Math" alttext="20\text{\,}\mathrm{m}\text{/}" display="inline"><semantics id="S5.SS2.p5.2.m2.3a"><mrow id="S5.SS2.p5.2.m2.3.3" xref="S5.SS2.p5.2.m2.3.3.cmml"><mn id="S5.SS2.p5.2.m2.1.1.1.1.1.1" xref="S5.SS2.p5.2.m2.1.1.1.1.1.1.cmml">20</mn><mtext id="S5.SS2.p5.2.m2.2.2.2.2.2.2" xref="S5.SS2.p5.2.m2.2.2.2.2.2.2.cmml"> </mtext><mrow id="S5.SS2.p5.2.m2.3.3.3.3.3.3" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S5.SS2.p5.2.m2.3.3.3.3.3.3.1.1.1.1.1.1" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml">m</mi><mtext id="S5.SS2.p5.2.m2.3.3.3.3.3.3.2.2.2.2.2.2" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S5.SS2.p5.2.m2.3.3.3.3.3.3.3.3.3.3.3.3" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S5.SS2.p5.2.m2.3b"><apply id="S5.SS2.p5.2.m2.3.3.cmml" xref="S5.SS2.p5.2.m2.3.3"><csymbol cd="latexml" id="S5.SS2.p5.2.m2.2.2.2.2.2.2.cmml" xref="S5.SS2.p5.2.m2.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S5.SS2.p5.2.m2.1.1.1.1.1.1.cmml" xref="S5.SS2.p5.2.m2.1.1.1.1.1.1">20</cn><apply id="S5.SS2.p5.2.m2.3.3.3.3.3.3.cmml" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3"><csymbol cd="latexml" id="S5.SS2.p5.2.m2.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S5.SS2.p5.2.m2.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3.1.1.1.1.1.1">meter</csymbol><csymbol cd="latexml" id="S5.SS2.p5.2.m2.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S5.SS2.p5.2.m2.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S5.SS2.p5.2.m2.3c">20\text{\,}\mathrm{m}\text{/}</annotation></semantics></math> from the intersection) than in the stand-alone case, which explains why the future path exchange degrades the passing time.
+Figure <a href="#S5.F7.sf3" title="In Figure 7 ‣ V-B Measurement of passing time in the intersection ‣ V Evaluation ‣ Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving" class="ltx_ref"><span class="ltx_text ltx_ref_tag">7(c)</span></a> shows that both <em id="S5.SS2.p5.2.5" class="ltx_emph ltx_font_italic">Car A</em> and <em id="S5.SS2.p5.2.6" class="ltx_emph ltx_font_italic">Car B</em> did not stop before the intersection using our proposal.
+The first vehicle that sent its future path to the RSU accelerated along the coordinated path, and the other vehicle decelerated sooner than in the stand-alone case.</p>
+</div>
+<figure id="S5.F7" class="ltx_figure">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_3">
+<figure id="S5.F7.sf1" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="/html/2108.04629/assets/x7.png" id="S5.F7.sf1.g1" class="ltx_graphics ltx_img_square" width="138" height="127" alt="Refer to caption">
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_figure"><span id="S5.F7.sf1.2.1.1" class="ltx_text" style="font-size:80%;">(a)</span> </span><span id="S5.F7.sf1.3.2" class="ltx_text" style="font-size:80%;">Stand-alone</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_3">
+<figure id="S5.F7.sf2" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="/html/2108.04629/assets/x8.png" id="S5.F7.sf2.g1" class="ltx_graphics ltx_img_square" width="138" height="126" alt="Refer to caption">
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_figure"><span id="S5.F7.sf2.2.1.1" class="ltx_text" style="font-size:80%;">(b)</span> </span><span id="S5.F7.sf2.3.2" class="ltx_text" style="font-size:80%;">Future path only</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_3">
+<figure id="S5.F7.sf3" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="/html/2108.04629/assets/x9.png" id="S5.F7.sf3.g1" class="ltx_graphics ltx_img_square" width="138" height="127" alt="Refer to caption">
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_figure"><span id="S5.F7.sf3.2.1.1" class="ltx_text" style="font-size:80%;">(c)</span> </span><span id="S5.F7.sf3.3.2" class="ltx_text" style="font-size:80%;">Future path with RSU</span></figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 7: </span>Speed of two vehicles near the intersection</figcaption>
+</figure>
+</section>
+<section id="S5.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S5.SS3.4.1.1" class="ltx_text">V-C</span> </span><span id="S5.SS3.5.2" class="ltx_text ltx_font_italic">Discussion</span>
+</h3>
+
+<div id="S5.SS3.p1" class="ltx_para">
+<p id="S5.SS3.p1.1" class="ltx_p">Unlike this experiment, actual cars would communicate via wireless networks.
+Therefore, the network resources are limited, and we need to consider the network load.
+First of all, vehicles and RSUs can send a maximum of 120 trajectory points, theoretically limited by the maximum UDP packet size (1460 Bytes), assuming that the latitude, longitude, and time are 32bits <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib41" title="" class="ltx_ref">41</a>]</cite>.
+It consumes the network bandwidth equivalent to 116 Kbps when the maximum UDP packet is sent at 10 Hz.
+In the proposed method, future paths, autonomous paths, and coordinated paths are sent at 10 Hz, which requires 350 Kbps of network traffic per car.
+The proposed method can control up to 17 cars when the data rate of wireless media is 6.0 Mbps (i.e., DSRC).
+Some optimizations are necessary to coordinate more cars, such as reducing the number of trajectory points, transmission rate, etc.
+According to <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib42" title="" class="ltx_ref">42</a>]</cite>, fully automated, where all maneuvers are performed cooperatively, is classified as Day 4 (to be deployed by 2040-2045).
+Thus, the wireless media available at that time may solve the problem.</p>
+</div>
+<div id="S5.SS3.p2" class="ltx_para">
+<p id="S5.SS3.p2.1" class="ltx_p">In addition, our proposal is a method for RSUs to take over the control of automobiles. It may be challenging to obtain the consent of current manufacturers of autonomous self-driving cars.
+Therefore, our method may be adapted in the situation where the same manager controls both cars and RSUs, such as factories.</p>
+</div>
+</section>
+</section>
+<section id="S6" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VI </span><span id="S6.1.1" class="ltx_text ltx_font_smallcaps">Conclusion and future work</span>
+</h2>
+
+<div id="S6.p1" class="ltx_para">
+<p id="S6.p1.1" class="ltx_p">In cooperative ITS, autonomous vehicles use V2X to exchange real-time information.
+However, real-time path planning becomes inefficient when driving paths conflict.
+This study proposed a method for cooperative path planning using future path sharing that considers future planning information.
+We placed an RSU at the intersection to coordinate path planning among two autonomous vehicles and implemented our proposition by extending Autoware, an open-source autonomous driving software, to simulate the traversal times of two vehicles at a blind intersection using the LGSVL autonomous driving simulator.
+The results show that future-path broadcasts improve traversal times because the autonomous vehicles adjust their speeds based on their combined future paths, governed by the RSU. Our proposal effectively coordinates vehicle speeds and achieves a <math id="S6.p1.1.m1.3" class="ltx_Math" alttext="26\text{\,}\mathrm{\char 37\relax}\text{/}" display="inline"><semantics id="S6.p1.1.m1.3a"><mrow id="S6.p1.1.m1.3.3" xref="S6.p1.1.m1.3.3.cmml"><mn id="S6.p1.1.m1.1.1.1.1.1.1" xref="S6.p1.1.m1.1.1.1.1.1.1.cmml">26</mn><mtext id="S6.p1.1.m1.2.2.2.2.2.2" xref="S6.p1.1.m1.2.2.2.2.2.2.cmml"> </mtext><mrow id="S6.p1.1.m1.3.3.3.3.3.3" xref="S6.p1.1.m1.3.3.3.3.3.3.cmml"><mi class="ltx_unit" mathvariant="normal" id="S6.p1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1" xref="S6.p1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml">%</mi><mtext id="S6.p1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2" xref="S6.p1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml">/</mtext><mi id="S6.p1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3" xref="S6.p1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml"></mi></mrow></mrow><annotation-xml encoding="MathML-Content" id="S6.p1.1.m1.3b"><apply id="S6.p1.1.m1.3.3.cmml" xref="S6.p1.1.m1.3.3"><csymbol cd="latexml" id="S6.p1.1.m1.2.2.2.2.2.2.cmml" xref="S6.p1.1.m1.2.2.2.2.2.2">times</csymbol><cn type="integer" id="S6.p1.1.m1.1.1.1.1.1.1.cmml" xref="S6.p1.1.m1.1.1.1.1.1.1">26</cn><apply id="S6.p1.1.m1.3.3.3.3.3.3.cmml" xref="S6.p1.1.m1.3.3.3.3.3.3"><csymbol cd="latexml" id="S6.p1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2.cmml" xref="S6.p1.1.m1.3.3.3.3.3.3.2.2.2.2.2.2">divide</csymbol><csymbol cd="latexml" id="S6.p1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1.cmml" xref="S6.p1.1.m1.3.3.3.3.3.3.1.1.1.1.1.1">percent</csymbol><csymbol cd="latexml" id="S6.p1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3.cmml" xref="S6.p1.1.m1.3.3.3.3.3.3.3.3.3.3.3.3">absent</csymbol></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S6.p1.1.m1.3c">26\text{\,}\mathrm{\char 37\relax}\text{/}</annotation></semantics></math> faster traversal time for both vehicles through the intersection.</p>
+</div>
+<div id="S6.p2" class="ltx_para">
+<p id="S6.p2.1" class="ltx_p">Future work will include a large-scale simulation involving many cars and pedestrians. We used a wired network in this study. However, we plan to use a wireless network or a network simulator in the future. Furthermore, field experiments would provide a more realistic environment for evaluation. Furthermore, it is necessary to manage vehicles’ priority at intersections and compare the performance with related works.
+The proposed scheme can be extended to mixed traffic stream non-connected cars and vulnerable road users (e.g., cyclists and pedestrians). RSU’s prediction module can add the predicted paths of the dynamic objects to the reservation table and generate the conflict-free coordinated path for autonomous vehicles. The evaluation for the scenario is future work.</p>
+</div>
+</section>
+<section id="Sx1" class="ltx_section">
+<h2 class="ltx_title ltx_font_smallcaps ltx_title_section">Acknowledgment</h2>
+
+<div id="Sx1.p1" class="ltx_para">
+<p id="Sx1.p1.1" class="ltx_p">This work was partly supported by JSPS KAKENHI (grant number: 19KK0281 and 21H03423).</p>
+</div>
+</section>
+<section id="bib" class="ltx_bibliography">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+
+<ul class="ltx_biblist">
+<li id="bib.bib1" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[1]</span>
+<span class="ltx_bibblock">
+Honda, “Honda receives type designation for level 3 automated driving in
+japan,” https://global.honda/newsroom/news/2020/4201111eng.html, 11
+2020, (Accessed on 02/04/2021).
+
+</span>
+</li>
+<li id="bib.bib2" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[2]</span>
+<span class="ltx_bibblock">
+“Toyota bringing advanced its technology to mass-market models — toyota motor
+corporation official global website,”
+https://global.toyota/en/detail/9676551, (Accessed on 02/04/2021).
+
+</span>
+</li>
+<li id="bib.bib3" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[3]</span>
+<span class="ltx_bibblock">
+S. Kato, E. Takeuchi, Y. Ishiguro, Y. Ninomiya, K. Takeda, and
+T. Hamada, “An open approach to autonomous vehicles,” <em id="bib.bib3.1.1" class="ltx_emph ltx_font_italic">IEEE Micro</em>,
+vol. 35, no. 6, pp. 60–68, Nov 2015.
+
+</span>
+</li>
+<li id="bib.bib4" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[4]</span>
+<span class="ltx_bibblock">
+“Apolloauto/apollo: An open autonomous driving platform,”
+https://github.com/ApolloAuto/apollo, (Accessed on 2021/07/24).
+
+</span>
+</li>
+<li id="bib.bib5" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[5]</span>
+<span class="ltx_bibblock">
+“ISO 21217:2020 Intelligent transport systems — Station and communication
+architecture.”   ISO/TC 204
+Intelligent transport systems, December 2020.
+
+</span>
+</li>
+<li id="bib.bib6" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[6]</span>
+<span class="ltx_bibblock">
+“Intelligent Transport Systems (ITS); Communications Architecture.”   ETSI EN, September 2010, ETSI EN 302 665
+V1.1.1 (2010-09).
+
+</span>
+</li>
+<li id="bib.bib7" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[7]</span>
+<span class="ltx_bibblock">
+“ITS; Vehicular Communications; Basic Set of Applications; Part 2:
+Specification of Cooperative Awareness Basic Service,” Dec. 2014, ETSI EN
+302 637-2 V1.3.2 (2014-11).
+
+</span>
+</li>
+<li id="bib.bib8" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[8]</span>
+<span class="ltx_bibblock">
+<em id="bib.bib8.1.1" class="ltx_emph ltx_font_italic">ITS; Cooperative Perception Services (CPS)</em>, ETSI Std., Dec. 2019,
+ETSI TS 103 324 V0.0.14 (2019-10).
+
+</span>
+</li>
+<li id="bib.bib9" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[9]</span>
+<span class="ltx_bibblock">
+<em id="bib.bib9.1.1" class="ltx_emph ltx_font_italic">ITS;Vehicular Communications; Basic Set of Applications; Analysis of the
+Collective Perception Service (CPS); Release 2 </em>, ETSI Std., Dec. 2019,
+ETSI TR 103 562 V2.1.1 (2019-12).
+
+</span>
+</li>
+<li id="bib.bib10" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[10]</span>
+<span class="ltx_bibblock">
+<em id="bib.bib10.1.1" class="ltx_emph ltx_font_italic">ITS; Vehicular Communications; Informative report for the Maneuver
+Coordination Service</em>, ETSI Std., May 2020, ETSI TR 103 578 (Early draft).
+
+</span>
+</li>
+<li id="bib.bib11" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[11]</span>
+<span class="ltx_bibblock">
+B. Lehmann, H. Günther, and L. Wolf, “A generic approach towards maneuver
+coordination for automated vehicles,” in <em id="bib.bib11.1.1" class="ltx_emph ltx_font_italic">2018 21st International
+Conference on Intelligent Transportation Systems (ITSC)</em>, Nov. 2018, pp.
+3333–3339.
+
+</span>
+</li>
+<li id="bib.bib12" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[12]</span>
+<span class="ltx_bibblock">
+L. Wang, R. F. Iida, and A. M. Wyglinski, “Coordinated lane changing using
+V2V communications,” in <em id="bib.bib12.1.1" class="ltx_emph ltx_font_italic">2018 IEEE 88th Vehicular Technology
+Conference (VTC-Fall)</em>, Aug. 2018, pp. 1–5.
+
+</span>
+</li>
+<li id="bib.bib13" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[13]</span>
+<span class="ltx_bibblock">
+M. Shan, K. Narula, Y. F. Wong, S. Worrall, M. Khan, P. Alexander, and
+E. Nebot, “Demonstrations of cooperative perception:
+Safety and robustness in connected and automated vehicle operations,”
+<em id="bib.bib13.1.1" class="ltx_emph ltx_font_italic">Sensors</em>, vol. 21, no. 1, p. 200, Dec. 2020.
+
+</span>
+</li>
+<li id="bib.bib14" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[14]</span>
+<span class="ltx_bibblock">
+M. Tsukada, T. Oi, A. Ito, M. Hirata, and H. Esaki, “Autoc2x: Open-source
+software to realize v2x cooperative perception among autonomous vehicles,”
+in <em id="bib.bib14.1.1" class="ltx_emph ltx_font_italic">The 2020 IEEE 92nd Vehicular Technology Conference (VTC2020-Fall)</em>,
+Victoria, B.C., Canada, 2020.
+
+</span>
+</li>
+<li id="bib.bib15" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[15]</span>
+<span class="ltx_bibblock">
+G. Rong <em id="bib.bib15.1.1" class="ltx_emph ltx_font_italic">et al.</em>, “LGSVL simulator: A high fidelity simulator for
+autonomous driving,” in <em id="bib.bib15.2.2" class="ltx_emph ltx_font_italic">2020 IEEE 23rd International Conference on
+Intelligent Transportation Systems (ITSC)</em>, Sep. 2020, pp. 1–6.
+
+</span>
+</li>
+<li id="bib.bib16" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[16]</span>
+<span class="ltx_bibblock">
+T. Renzler, M. Stolz, and D. Watzenig, “Looking into the path future:
+Extending cams for cooperative event handling,” in <em id="bib.bib16.1.1" class="ltx_emph ltx_font_italic">2020 IEEE 92nd
+Vehicular Technology Conference (VTC2020-Fall)</em>, Nov 2020, pp. 1–5.
+
+</span>
+</li>
+<li id="bib.bib17" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[17]</span>
+<span class="ltx_bibblock">
+M. Aeberhard and N. Kaempchen, “High-level sensor data fusion architecture for
+vehicle surround environment perception,” in <em id="bib.bib17.1.1" class="ltx_emph ltx_font_italic">Proc. 8th Int. Workshop
+Intell. Transp</em>, vol. 665, 2011.
+
+</span>
+</li>
+<li id="bib.bib18" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[18]</span>
+<span class="ltx_bibblock">
+M. Gabb, H. Digel, T. Müller, and R. Henn, “Infrastructure-supported
+perception and track-level fusion using edge computing,” in <em id="bib.bib18.1.1" class="ltx_emph ltx_font_italic">2019 IEEE
+Intelligent Vehicles Symposium (IV)</em>, June 2019, pp. 1739–1745.
+
+</span>
+</li>
+<li id="bib.bib19" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[19]</span>
+<span class="ltx_bibblock">
+M. Tsukada, T. Oi, M. Kitazawa, and H. Esaki, “Networked roadside perception
+units for autonomous driving,” <em id="bib.bib19.1.1" class="ltx_emph ltx_font_italic">MDPI Sensors</em>, vol. 20, no. 18, 2020.
+
+</span>
+</li>
+<li id="bib.bib20" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[20]</span>
+<span class="ltx_bibblock">
+R. Azimi, G. Bhatia, R. R. Rajkumar, and P. Mudalige, “Stip:
+Spatio-temporal intersection protocols for autonomous vehicles,” in
+<em id="bib.bib20.1.1" class="ltx_emph ltx_font_italic">2014 ACM/IEEE International Conference on Cyber-Physical Systems
+(ICCPS)</em>, 2014, pp. 1–12.
+
+</span>
+</li>
+<li id="bib.bib21" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[21]</span>
+<span class="ltx_bibblock">
+S. Aoki and R. Rajkumar, “Dynamic intersections and self-driving
+vehicles,” in <em id="bib.bib21.1.1" class="ltx_emph ltx_font_italic">2018 ACM/IEEE 9th International Conference on
+Cyber-Physical Systems (ICCPS)</em>, 2018, pp. 320–330.
+
+</span>
+</li>
+<li id="bib.bib22" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[22]</span>
+<span class="ltx_bibblock">
+K. Dresner and P. Stone, “A multiagent approach to autonomous intersection
+management,” <em id="bib.bib22.1.1" class="ltx_emph ltx_font_italic">Journal of artificial intelligence research</em>, vol. 31,
+pp. 591–656, 2008.
+
+</span>
+</li>
+<li id="bib.bib23" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[23]</span>
+<span class="ltx_bibblock">
+B. Liu, Q. Shi, Z. Song, and A. El Kamel, “Trajectory planning for
+autonomous intersection management of connected vehicles,” <em id="bib.bib23.1.1" class="ltx_emph ltx_font_italic">Simulation
+Modelling Practice and Theory</em>, vol. 90, pp. 16 – 30, 2019.
+
+</span>
+</li>
+<li id="bib.bib24" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[24]</span>
+<span class="ltx_bibblock">
+M. Bashiri and C. H. Fleming, “A platoon-based intersection management
+system for autonomous vehicles,” in <em id="bib.bib24.1.1" class="ltx_emph ltx_font_italic">2017 IEEE Intelligent Vehicles
+Symposium (IV)</em>, 2017, pp. 667–672.
+
+</span>
+</li>
+<li id="bib.bib25" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[25]</span>
+<span class="ltx_bibblock">
+C. Englund, L. Chen, J. Ploeg, E. Semsar-Kazerooni, A. Voronov, H. H.
+Bengtsson, and J. Didoff, “The grand cooperative driving challenge 2016:
+boosting the introduction of cooperative automated vehicles,” <em id="bib.bib25.1.1" class="ltx_emph ltx_font_italic">IEEE
+Wireless Communications</em>, vol. 23, no. 4, pp. 146–152, 2016.
+
+</span>
+</li>
+<li id="bib.bib26" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[26]</span>
+<span class="ltx_bibblock">
+O. Sawade, M. Schulze, and I. Radusch, “Robust communication for cooperative
+driving maneuvers,” <em id="bib.bib26.1.1" class="ltx_emph ltx_font_italic">IEEE Intell. Transp. Syst. Mag.</em>, vol. 10, no. 3,
+pp. 159–169, 2018.
+
+</span>
+</li>
+<li id="bib.bib27" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[27]</span>
+<span class="ltx_bibblock">
+V. Milanes, J. Godoy, J. Villagra, and J. Perez, “Automated On-Ramp merging
+system for congested traffic situations,” <em id="bib.bib27.1.1" class="ltx_emph ltx_font_italic">IEEE Trans. Intell. Transp.
+Syst.</em>, vol. 12, no. 2, pp. 500–508, Jun. 2011.
+
+</span>
+</li>
+<li id="bib.bib28" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[28]</span>
+<span class="ltx_bibblock">
+L. Eiermann, O. Sawade, S. Bunk, G. Breuel, and I. Radusch, “Cooperative
+automated lane merge with role-based negotiation,” <em id="bib.bib28.1.1" class="ltx_emph ltx_font_italic">2020 IEEE
+Intelligent Vehicles Symposium (IV)</em>, Oct. 2020.
+
+</span>
+</li>
+<li id="bib.bib29" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[29]</span>
+<span class="ltx_bibblock">
+D. Heb, R. Lattarulo, J. Perez, J. Schindler, T. Hesse, and F. Koster, “Fast
+maneuver planning for cooperative automated vehicles,” <em id="bib.bib29.1.1" class="ltx_emph ltx_font_italic">2018 21st
+International Conference on Intelligent Transportation Systems (ITSC)</em>, 2018.
+
+</span>
+</li>
+<li id="bib.bib30" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[30]</span>
+<span class="ltx_bibblock">
+M. Nichting, D. Hess, J. Schindler, T. Hesse, and F. Koster, “Space time
+reservation procedure (STRP) for V2X-Based maneuver coordination of
+cooperative automated vehicles in diverse conflict scenarios,” <em id="bib.bib30.1.1" class="ltx_emph ltx_font_italic">2020
+IEEE Intelligent Vehicles Symposium (IV)</em>, Oct. 2020.
+
+</span>
+</li>
+<li id="bib.bib31" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[31]</span>
+<span class="ltx_bibblock">
+J. Schindler, R. Markowski, D. Heß, D. Wesemeyer, C. Böker,
+B. Coll Perales, G. Thandavarayan, M. Sepulcre, J. Gozalvez, M. Rondinone,
+D. Matheis, and X. Zhang, “TransAID deliverable
+7.2: System prototype demonstration (iteration 2),” Feb. 2021.
+
+</span>
+</li>
+<li id="bib.bib32" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[32]</span>
+<span class="ltx_bibblock">
+A. Correa, R. Alms, J. Gozalvez, M. Sepulcre, M. Rondinone, R. Blokpoel,
+L. Lücken, and G. Thandavarayan, “Infrastructure support for cooperative
+maneuvers in connected and automated driving,” in <em id="bib.bib32.1.1" class="ltx_emph ltx_font_italic">2019 IEEE
+Intelligent Vehicles Symposium (IV)</em>.   IEEE, 2019, pp. 20–25.
+
+</span>
+</li>
+<li id="bib.bib33" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[33]</span>
+<span class="ltx_bibblock">
+A. Correa, F. Andert, R. Blokpoel, N. Wojke, G. Thandavarayan, B. Coll Perales,
+M. Sepulcre, J. Gozalvez, A. Wijbenga, J. Schindler, S. Maerivoet, X. Zhang,
+A. Leich, and C. Böker, “TransAID deliverable
+5.2: V2X-based cooperative sensing and driving in transition areas (second
+iteration),” Mar. 2020.
+
+</span>
+</li>
+<li id="bib.bib34" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[34]</span>
+<span class="ltx_bibblock">
+R. Jacob, M. Gay, M. Dod, S. Lorenz, A. Jungmann, L. Franke, M. Philipp,
+M. Kloeppel-Gersdorf, M. Haberjahn, E. Gruschka, and G. Fettweis,
+“IVS-KOM: A reference platform for heterogeneous ITS communications,”
+in <em id="bib.bib34.1.1" class="ltx_emph ltx_font_italic">2020 IEEE 92th Vehicular Technology Conference (VTC2020-Fall)</em>,
+2020.
+
+</span>
+</li>
+<li id="bib.bib35" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[35]</span>
+<span class="ltx_bibblock">
+R. Auerswald, R. Busse, M. Dod, R. Fritzsche, A. Jungmann,
+M. Klöppel-Gersdorf, J. F. Krems, S. Lorenz, F. Schmalfuß,
+S. Springer <em id="bib.bib35.1.1" class="ltx_emph ltx_font_italic">et al.</em>, “Cooperative driving in mixed traffic with
+heterogeneous communications and cloud infrastructure.” in <em id="bib.bib35.2.2" class="ltx_emph ltx_font_italic">VEHITS</em>,
+2019, pp. 95–105.
+
+</span>
+</li>
+<li id="bib.bib36" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[36]</span>
+<span class="ltx_bibblock">
+B. Hafner, J. Jiru, K. Roscher, J. Ott, G. A. Schmitt, and Y. Sevilmis,
+“CVIP: A protocol for complex interactions among connected vehicles,”
+<em id="bib.bib36.1.1" class="ltx_emph ltx_font_italic">2020 IEEE Intelligent Vehicles Symposium (IV)</em>, Oct. 2020.
+
+</span>
+</li>
+<li id="bib.bib37" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[37]</span>
+<span class="ltx_bibblock">
+C. W. Daniele Bellan, “Decentralized cooperative collision avoidance for
+automated vehicles: a real-world implementation,” <em id="bib.bib37.1.1" class="ltx_emph ltx_font_italic">2020 IEEE
+Intelligent Vehicles Symposium (IV)</em>, Oct. 2020.
+
+</span>
+</li>
+<li id="bib.bib38" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[38]</span>
+<span class="ltx_bibblock">
+M. Mizutani, M. Tsukada, and H. Esaki, “AutoMCM: Maneuver Coordination
+Service with Abstracted Functions for Autonomous Driving,” in <em id="bib.bib38.1.1" class="ltx_emph ltx_font_italic">24th
+IEEE International Conference on Intelligent Transportation (ITSC)</em>,
+Indianapolis, IN, United States, 2021.
+
+</span>
+</li>
+<li id="bib.bib39" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[39]</span>
+<span class="ltx_bibblock">
+M. Quigley, K. Conley, B. Gerkey, J. Faust, T. Foote, J. Leibs, R. Wheeler, and
+A. Y. Ng, “Ros: an open-source robot operating system,” in <em id="bib.bib39.1.1" class="ltx_emph ltx_font_italic">ICRA
+workshop on open source software</em>, vol. 3, no. 3.2.   Kobe, Japan, 2009, p. 5.
+
+</span>
+</li>
+<li id="bib.bib40" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[40]</span>
+<span class="ltx_bibblock">
+T. Bray, “The JavaScript Object Notation (JSON) Data Interchange Format,”
+RFC 7159 (Proposed Standard), Internet Engineering Task Force, Mar. 2014.
+[Online]. Available: http://www.ietf.org/rfc/rfc7159.txt
+
+</span>
+</li>
+<li id="bib.bib41" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[41]</span>
+<span class="ltx_bibblock">
+<em id="bib.bib41.1.1" class="ltx_emph ltx_font_italic">ITS; Vehicular Communications; GeoNetworking; Part 4: Geographical
+addressing and forwarding for point-to-point and point-to-multipoint
+communications;</em>, Std., Jul. 2014, ETSI EN 302 636-4-1 V1.2.1.
+
+</span>
+</li>
+<li id="bib.bib42" class="ltx_bibitem">
+<span class="ltx_tag ltx_tag_bibitem">[42]</span>
+<span class="ltx_bibblock">
+A. d. S. S. da CML, “C-ROADS platform for C-ITS in europe,” C-ROADS
+PORTUGAL STAKEHOLDER WORKSHOP, Nov. 2017.
+
+</span>
+</li>
+</ul>
+</section>
+</article>
+</div>
+<div class="ar5iv-footer"><a href="/html/2108.04628" class="ar5iv-nav-button ar5iv-nav-button-prev">◄</a>
+    <a class="ar5iv-home-button" href="/"><img height="40" alt="ar5iv homepage" src="/assets/ar5iv.png"></a>
+    <a href="/feeling_lucky" class="ar5iv-text-button">Feeling<br>lucky?</a>
+    <a href="/land_of_honey_and_milk" rel="nofollow" aria-hidden="true" tabindex="-1"></a>
+    <a href="/log/2108.04629" class="ar5iv-text-button ar5iv-severity-ok">Conversion<br>report</a>
+    <a class="ar5iv-text-button" target="_blank" href="https://github.com/dginev/ar5iv/issues/new?template=improve-article--arxiv-id-.md&title=Improve+article+2108.04629">Report<br>an issue</a>
+    <a href="https://arxiv.org/abs/2108.04629" class="ar5iv-text-button arxiv-ui-theme">View&nbsp;original<br>on&nbsp;arXiv</a><a href="/html/2108.04630" class="ar5iv-nav-button ar5iv-nav-button-next">►</a>
+</div><footer class="ltx_page_footer">
+<a class="ar5iv-toggle-color-scheme" href="javascript:toggleColorScheme()" title="Toggle ar5iv color scheme"><span class="color-scheme-icon"></span></a>
+<a class="ar5iv-footer-button" href="https://arxiv.org/help/license" target="_blank">Copyright</a>
+<a class="ar5iv-footer-button" href="https://arxiv.org/help/policies/privacy_policy" target="_blank">Privacy Policy</a>
+
+<div class="ltx_page_logo">Generated  on Tue Mar 19 10:21:15 2024 by <a target="_blank" href="http://dlmf.nist.gov/LaTeXML/" class="ltx_LaTeXML_logo"><span style="letter-spacing:-0.2em; margin-right:0.1em;">L<span class="ltx_font_smallcaps" style="position:relative; bottom:2.2pt;">a</span>T<span class="ltx_font_smallcaps" style="font-size:120%;position:relative; bottom:-0.2ex;">e</span></span><span style="font-size:90%; position:relative; bottom:-0.2ex;">XML</span><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg==" alt="Mascot Sammy"></a>
+</div></footer>
+</div>
+
+    <script>
+      var canMathML = typeof(MathMLElement) == "function";
+      if (!canMathML) {
+        var body = document.querySelector("body");
+        body.firstElementChild.setAttribute('style', 'opacity: 0;');
+        var loading = document.createElement("div");
+        loading.setAttribute("id", "mathjax-loading-spinner");
+        var message = document.createElement("div");
+        message.setAttribute("id", "mathjax-loading-message");
+        message.innerText = "Typesetting Equations...";
+        body.prepend(loading);
+        body.prepend(message);
+
+        var el = document.createElement("script");
+        el.src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
+        document.querySelector("head").appendChild(el);
+
+        window.MathJax = {
+          startup: {
+            pageReady: () => {
+              return MathJax.startup.defaultPageReady().then(() => {
+                body.removeChild(loading);
+                body.removeChild(message);
+                body.firstElementChild.removeAttribute('style');
+              }); } } };
+      }
+    </script>
+    <script>
+    // Auxiliary function, building the preview feature when
+    // an inline citation is clicked
+    function clicked_cite(e) {
+      e.preventDefault();
+      let cite = this.closest('.ltx_cite');
+      let next = cite.nextSibling;
+      if (next && next.nodeType == Node.ELEMENT_NODE && next.getAttribute('class') == "ar5iv-bibitem-preview") {
+        next.remove();
+        return; }
+      // Before adding a preview modal,
+      // cleanup older previews, in case they're still open
+      document.querySelectorAll('span.ar5iv-bibitem-preview').forEach(function(node) {
+        node.remove();
+      })
+
+      // Create the preview
+      preview = document.createElement('span');
+      preview.setAttribute('class','ar5iv-bibitem-preview');
+      let target = document.getElementById(this.getAttribute('href').slice(1));
+      target.childNodes.forEach(function (child) {
+        preview.append(child.cloneNode(true));
+      });
+      let close_x = document.createElement('button');
+      close_x.setAttribute("aria-label","Close modal for bibliography item preview");
+      close_x.textContent = "×";
+      close_x.setAttribute('class', 'ar5iv-button-close-preview');
+      close_x.setAttribute('onclick','this.parentNode.remove()');
+      preview.append(close_x);
+      preview.querySelectorAll('.ltx_tag_bibitem').forEach(function(node) {
+        node.remove();
+      });
+      cite.parentNode.insertBefore(preview, cite.nextSibling);
+      return;
+    }
+    // Global Document initialization:
+    // - assign the preview feature to all inline citation links
+    document.querySelectorAll(".ltx_cite .ltx_ref").forEach(function (link) {
+      link.addEventListener("click", clicked_cite);
+    });
+    </script>
+    </body>
+</html>

@@ -1,0 +1,445 @@
+# Paper Library
+
+Start paper search from [README.md](README.md), then open the relevant
+`briefs/*.md` summary, and only then read the linked original paper when details
+are needed. This file is the complete download/metadata record, not the primary
+idea-discovery entry point.
+
+Sources:
+- Keisuke Okumura: https://kei18.github.io/
+- ARCS Group: https://arcs-group.github.io/publications/
+
+arXiv entries are stored as HTML from `arxiv.org/html/<id>` or `ar5iv.labs.arxiv.org/html/<id>` when available. Non-arXiv direct PDFs/preprints remain as PDF files.
+
+## kei18
+
+Available: 28/28; HTML: 28; PDF: 0
+
+- [OK] html 1905.10149 - winPIBT: Extend
+  - URL: https://arxiv.org/abs/1905.10149
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/1905.10149
+  - File: `kei18/1905.10149_winPIBT_Extend.html`
+  - Note: downloaded from ar5iv 1136328 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2102.12331 - Iterative Refinement for Real-Time Multi-Robot Path Planning
+  - URL: https://arxiv.org/abs/2102.12331
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2102.12331
+  - File: `kei18/2102.12331_Iterative_Refinement_for_Real-Time_Multi-Robot_Path_Planning.html`
+  - Note: downloaded from ar5iv 575848 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2102.12748 - Active Modular Environment for Robot Navig
+  - URL: https://arxiv.org/abs/2102.12748
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2102.12748
+  - File: `kei18/2102.12748_Active_Modular_Environment_for_Robot_Navig.html`
+  - Note: downloaded from ar5iv 220230 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2105.07132 - Offline Time-Independent Multi-Agent Path Planning
+  - URL: https://arxiv.org/abs/2105.07132
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2105.07132
+  - File: `kei18/2105.07132_Offline_Time-Independent_Multi-Agent_Path_Planning.html`
+  - Note: downloaded from ar5iv 1712343 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2108.04629 - Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving
+  - URL: https://arxiv.org/abs/2108.04629
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2108.04629
+  - File: `kei18/2108.04629_Roadside-assisted_Cooperative_Planning_using_Future_Path_Sharing_for_Autonomous_Driving.html`
+  - Note: downloaded from ar5iv 192596 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2109.04264 - Roadside-assisted Cooperative Planning using Future Path Sharing for Autonomous Driving
+  - URL: https://arxiv.org/abs/2109.04264
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2109.04264
+  - File: `kei18/2109.04264_Roadside-assisted_Cooperative_Planning_using_Future_Path_Sharing_for_Autonomous_Driving.html`
+  - Note: downloaded from ar5iv 1215081 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2201.09467 - 2201.09467
+  - URL: https://arxiv.org/abs/2201.09467
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2201.09467
+  - File: `kei18/2201.09467_2201.09467.html`
+  - Note: downloaded from ar5iv 1017505 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2203.00315 - Quick Multi-Robot Motion Planning by Combining Sampling and Search
+  - URL: https://arxiv.org/abs/2203.00315
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2203.00315
+  - File: `kei18/2203.00315_Quick_Multi-Robot_Motion_Planning_by_Combining_Sampling_and_Search.html`
+  - Note: downloaded from ar5iv 841940 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2211.13432 - LaCAM: Search-Based Algorithm for Quick Multi-Agent Pathfinding\n
+  - URL: https://arxiv.org/abs/2211.13432
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2211.13432
+  - File: `kei18/2211.13432_LaCAM_Search-Based_Algorithm_for_Quick_Multi-Agent_Pathfinding_n.html`
+  - Note: downloaded from ar5iv 419606 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2211.13908 - Fault-Tolerant Offline Multi-Agent Path Planning
+  - URL: https://arxiv.org/abs/2211.13908
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2211.13908
+  - File: `kei18/2211.13908_Fault-Tolerant_Offline_Multi-Agent_Path_Planning.html`
+  - Note: downloaded from ar5iv 1071334 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2305.03632 - Improving LaCAM for Scalable Eventually Optimal Multi-Agent Pathfinding
+  - URL: https://arxiv.org/abs/2305.03632
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2305.03632
+  - File: `kei18/2305.03632_Improving_LaCAM_for_Scalable_Eventually_Optimal_Multi-Agent_Pathfinding.html`
+  - Note: downloaded from ar5iv 1559937 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2308.04292 - Lightweight and Effective Preference Construction in PIBT for Large-Scale Multi-Agent Pathfinding\n
+  - URL: https://arxiv.org/abs/2308.04292
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2308.04292
+  - File: `kei18/2308.04292_Lightweight_and_Effective_Preference_Construction_in_PIBT_for_Large-Scale_Multi-Agent_Path.html`
+  - Note: downloaded from ar5iv 1210287 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2408.15443 - Pathfinding with Lazy Successor Generation
+  - URL: https://arxiv.org/abs/2408.15443
+  - HTML URL: https://arxiv.org/html/2408.15443
+  - File: `kei18/2408.15443_Pathfinding_with_Lazy_Successor_Generation.html`
+  - Note: downloaded 762193 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2503.12204 - D4orm: Multi-Robot Trajectories with Dynamics-aware Diffusion Denoised Deformations
+  - URL: https://arxiv.org/abs/2503.12204
+  - HTML URL: https://arxiv.org/html/2503.12204
+  - File: `kei18/2503.12204_D4orm_Multi-Robot_Trajectories_with_Dynamics-aware_Diffusion_Denoised_Deformations.html`
+  - Note: downloaded 496486 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2505.12623 - Lightweight and Effective Preference Construction in PIBT for Large-Scale Multi-Agent Pathfinding\n
+  - URL: https://arxiv.org/abs/2505.12623
+  - HTML URL: https://arxiv.org/html/2505.12623
+  - File: `kei18/2505.12623_Lightweight_and_Effective_Preference_Construction_in_PIBT_for_Large-Scale_Multi-Agent_Path.html`
+  - Note: downloaded 593478 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2507.11464 - LF: Online Multi-Robot Path Planning Meets Optimal Trajectory Control
+  - URL: https://arxiv.org/abs/2507.11464
+  - HTML URL: https://arxiv.org/html/2507.11464
+  - File: `kei18/2507.11464_LF_Online_Multi-Robot_Path_Planning_Meets_Optimal_Trajectory_Control.html`
+  - Note: downloaded 362874 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2507.19151 - ReCoDe: Reinforcement Learning-based Dynamic Constraint Design for Multi-Agent Coordination\n
+  - URL: https://arxiv.org/abs/2507.19151
+  - HTML URL: https://arxiv.org/html/2507.19151
+  - File: `kei18/2507.19151_ReCoDe_Reinforcement_Learning-based_Dynamic_Constraint_Design_for_Multi-Agent_Coordination.html`
+  - Note: downloaded 355175 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2508.05253 - ReCoDe: Reinforcement Learning-based Dynamic Constraint Design for Multi-Agent Coordination
+  - URL: https://arxiv.org/abs/2508.05253
+  - HTML URL: https://arxiv.org/html/2508.05253
+  - File: `kei18/2508.05253_ReCoDe_Reinforcement_Learning-based_Dynamic_Constraint_Design_for_Multi-Agent_Coordination.html`
+  - Note: downloaded 268647 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2510.17382 - Graph Attention-Guided Search for Dense Multi-Agent Pathfinding
+  - URL: https://arxiv.org/abs/2510.17382
+  - HTML URL: https://arxiv.org/html/2510.17382
+  - File: `kei18/2510.17382_Graph_Attention-Guided_Search_for_Dense_Multi-Agent_Pathfinding.html`
+  - Note: downloaded 338577 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2510.19072 - Graph Attention-Guided Search for Dense Multi-Agent Pathfinding
+  - URL: https://arxiv.org/abs/2510.19072
+  - HTML URL: https://arxiv.org/html/2510.19072
+  - File: `kei18/2510.19072_Graph_Attention-Guided_Search_for_Dense_Multi-Agent_Pathfinding.html`
+  - Note: downloaded 304797 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2510.19567 - Local Guidance for Configuration-Based Multi-Agent Pathfinding
+  - URL: https://arxiv.org/abs/2510.19567
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2510.19567
+  - File: `kei18/2510.19567_Local_Guidance_for_Configuration-Based_Multi-Agent_Pathfinding.html`
+  - Note: downloaded from ar5iv 655419 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2512.06796 - db-LaCAM: Fast and Scalable Multi-Robot Kinodynamic Motion Planning with Discontinuity-Bounded Search and Lightweight MAPF
+  - URL: https://arxiv.org/abs/2512.06796
+  - HTML URL: https://arxiv.org/html/2512.06796
+  - File: `kei18/2512.06796_db-LaCAM_Fast_and_Scalable_Multi-Robot_Kinodynamic_Motion_Planning_with_Discontinuity-Boun.html`
+  - Note: downloaded 325739 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2602.06733 - Local Guidance
+  - URL: https://arxiv.org/abs/2602.06733
+  - HTML URL: https://arxiv.org/html/2602.06733
+  - File: `kei18/2602.06733_Local_Guidance.html`
+  - Note: downloaded 541248 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2605.07744 - Alternating Target–Path Planning for Scalable Multi-Agent Coordination
+  - URL: https://arxiv.org/abs/2605.07744
+  - HTML URL: https://arxiv.org/html/2605.07744
+  - File: `kei18/2605.07744_Alternating_Target_Path_Planning_for_Scalable_Multi-Agent_Coordination.html`
+  - Note: downloaded 275844 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2605.11503 - Alternating Target–Path Planning for Scalable Multi-Agent Coordination
+  - URL: https://arxiv.org/abs/2605.11503
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2605.11503
+  - File: `kei18/2605.11503_Alternating_Target_Path_Planning_for_Scalable_Multi-Agent_Coordination.html`
+  - Note: downloaded from ar5iv 1104818 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2605.13035 - Distance-Constrained Unlabeled Multi-Agent Pathfinding
+  - URL: https://arxiv.org/abs/2605.13035
+  - HTML URL: https://arxiv.org/html/2605.13035
+  - File: `kei18/2605.13035_Distance-Constrained_Unlabeled_Multi-Agent_Pathfinding.html`
+  - Note: downloaded 391147 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2605.15799 - From Gridworlds to Warehouses: Adapting Lightweight One-shot Multi-Agent Pathfinding for AGVs
+  - URL: https://arxiv.org/abs/2605.15799
+  - HTML URL: https://arxiv.org/html/2605.15799
+  - File: `kei18/2605.15799_From_Gridworlds_to_Warehouses_Adapting_Lightweight_One-shot_Multi-Agent_Pathfinding_for_AG.html`
+  - Note: downloaded 261083 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2605.16855 - From Gridworlds to Warehouses: Adapting Lightweight One-shot Multi-Agent Pathfinding for AGVs
+  - URL: https://arxiv.org/abs/2605.16855
+  - HTML URL: https://arxiv.org/html/2605.16855
+  - File: `kei18/2605.16855_From_Gridworlds_to_Warehouses_Adapting_Lightweight_One-shot_Multi-Agent_Pathfinding_for_AG.html`
+  - Note: downloaded 408831 bytes; content-type=text/html; charset=utf-8
+
+## arcs-group
+
+Available: 48/60; HTML: 43; PDF: 5
+
+- [OK] html 2103.08835 - Multi-Robot Routing with Time Windows: A Column Generation Approach
+  - URL: https://arxiv.org/abs/2103.08835
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2103.08835
+  - File: `arcs-group/2103.08835_Multi-Robot_Routing_with_Time_Windows_A_Column_Generation_Approach.html`
+  - Note: downloaded from ar5iv 1128446 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2203.02475 - 2203.02475
+  - URL: https://arxiv.org/abs/2203.02475
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2203.02475
+  - File: `arcs-group/2203.02475_2203.02475.html`
+  - Note: downloaded from ar5iv 486195 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2305.06436 - 2305.06436
+  - URL: https://arxiv.org/abs/2305.06436
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2305.06436
+  - File: `arcs-group/2305.06436_2305.06436.html`
+  - Note: downloaded from ar5iv 589474 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2307.00663 - 2307.00663
+  - URL: https://arxiv.org/abs/2307.00663
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2307.00663
+  - File: `arcs-group/2307.00663_2307.00663.html`
+  - Note: downloaded from ar5iv 381722 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2308.11234 - 2308.11234
+  - URL: https://arxiv.org/abs/2308.11234
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2308.11234
+  - File: `arcs-group/2308.11234_2308.11234.html`
+  - Note: downloaded from ar5iv 456811 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2310.18622 - 2310.18622
+  - URL: https://arxiv.org/abs/2310.18622
+  - HTML URL: https://ar5iv.labs.arxiv.org/html/2310.18622
+  - File: `arcs-group/2310.18622_2310.18622.html`
+  - Note: downloaded from ar5iv 772416 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2311.14145 - 2311.14145
+  - URL: https://arxiv.org/abs/2311.14145
+  - HTML URL: https://arxiv.org/html/2311.14145
+  - File: `arcs-group/2311.14145_2311.14145.html`
+  - Note: downloaded 838981 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2401.00315 - 2401.00315
+  - URL: https://arxiv.org/abs/2401.00315
+  - HTML URL: https://arxiv.org/html/2401.00315
+  - File: `arcs-group/2401.00315_2401.00315.html`
+  - Note: downloaded 517406 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2401.17044 - 2401.17044
+  - URL: https://arxiv.org/abs/2401.17044
+  - HTML URL: https://arxiv.org/html/2401.17044
+  - File: `arcs-group/2401.17044_2401.17044.html`
+  - Note: downloaded 821486 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2402.01446 - 2402.01446
+  - URL: https://arxiv.org/abs/2402.01446
+  - HTML URL: https://arxiv.org/html/2402.01446
+  - File: `arcs-group/2402.01446_2402.01446.html`
+  - Note: downloaded 194599 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2403.18145 - 2403.18145
+  - URL: https://arxiv.org/abs/2403.18145
+  - HTML URL: https://arxiv.org/html/2403.18145
+  - File: `arcs-group/2403.18145_2403.18145.html`
+  - Note: downloaded 1160444 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2403.20300 - 2403.20300
+  - URL: https://arxiv.org/abs/2403.20300
+  - HTML URL: https://arxiv.org/html/2403.20300
+  - File: `arcs-group/2403.20300_2403.20300.html`
+  - Note: downloaded 424097 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2404.00143 - 2404.00143
+  - URL: https://arxiv.org/abs/2404.00143
+  - HTML URL: https://arxiv.org/html/2404.00143
+  - File: `arcs-group/2404.00143_2404.00143.html`
+  - Note: downloaded 732509 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2404.05223 - 2404.05223
+  - URL: https://arxiv.org/abs/2404.05223
+  - HTML URL: https://arxiv.org/html/2404.05223
+  - File: `arcs-group/2404.05223_2404.05223.html`
+  - Note: downloaded 798988 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2404.16162 - 2404.16162
+  - URL: https://arxiv.org/abs/2404.16162
+  - HTML URL: https://arxiv.org/html/2404.16162
+  - File: `arcs-group/2404.16162_2404.16162.html`
+  - Note: downloaded 162250 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2405.01772 - 2405.01772
+  - URL: https://arxiv.org/abs/2405.01772
+  - HTML URL: https://arxiv.org/html/2405.01772
+  - File: `arcs-group/2405.01772_2405.01772.html`
+  - Note: downloaded 615689 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2405.17794 - 2405.17794
+  - URL: https://arxiv.org/abs/2405.17794
+  - HTML URL: https://arxiv.org/html/2405.17794
+  - File: `arcs-group/2405.17794_2405.17794.html`
+  - Note: downloaded 588406 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2407.09451 - 2407.09451
+  - URL: https://arxiv.org/abs/2407.09451
+  - HTML URL: https://arxiv.org/html/2407.09451
+  - File: `arcs-group/2407.09451_2407.09451.html`
+  - Note: downloaded 1376617 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2409.06888 - 2409.06888
+  - URL: https://arxiv.org/abs/2409.06888
+  - HTML URL: https://arxiv.org/html/2409.06888
+  - File: `arcs-group/2409.06888_2409.06888.html`
+  - Note: downloaded 221459 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2409.14491 - 2409.14491
+  - URL: https://arxiv.org/abs/2409.14491
+  - HTML URL: https://arxiv.org/html/2409.14491
+  - File: `arcs-group/2409.14491_2409.14491.html`
+  - Note: downloaded 207242 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2410.01798 - 2410.01798
+  - URL: https://arxiv.org/abs/2410.01798
+  - HTML URL: https://arxiv.org/html/2410.01798
+  - File: `arcs-group/2410.01798_2410.01798.html`
+  - Note: downloaded 790729 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2410.03072 - 2410.03072
+  - URL: https://arxiv.org/abs/2410.03072
+  - HTML URL: https://arxiv.org/html/2410.03072
+  - File: `arcs-group/2410.03072_2410.03072.html`
+  - Note: downloaded 790665 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2410.21415 - 2410.21415
+  - URL: https://arxiv.org/abs/2410.21415
+  - HTML URL: https://arxiv.org/html/2410.21415
+  - File: `arcs-group/2410.21415_2410.21415.html`
+  - Note: downloaded 441921 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2411.16506 - 2411.16506
+  - URL: https://arxiv.org/abs/2411.16506
+  - HTML URL: https://arxiv.org/html/2411.16506
+  - File: `arcs-group/2411.16506_2411.16506.html`
+  - Note: downloaded 443276 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2412.13359 - 2412.13359
+  - URL: https://arxiv.org/abs/2412.13359
+  - HTML URL: https://arxiv.org/html/2412.13359
+  - File: `arcs-group/2412.13359_2412.13359.html`
+  - Note: downloaded 788251 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2412.15908 - 2412.15908
+  - URL: https://arxiv.org/abs/2412.15908
+  - HTML URL: https://arxiv.org/html/2412.15908
+  - File: `arcs-group/2412.15908_2412.15908.html`
+  - Note: downloaded 1691556 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2503.02992 - 2503.02992
+  - URL: https://arxiv.org/abs/2503.02992
+  - HTML URL: https://arxiv.org/html/2503.02992
+  - File: `arcs-group/2503.02992_2503.02992.html`
+  - Note: downloaded 140535 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2503.03779 - 2503.03779
+  - URL: https://arxiv.org/abs/2503.03779
+  - HTML URL: https://arxiv.org/html/2503.03779
+  - File: `arcs-group/2503.03779_2503.03779.html`
+  - Note: downloaded 146469 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2503.04798 - 2503.04798
+  - URL: https://arxiv.org/abs/2503.04798
+  - HTML URL: https://arxiv.org/html/2503.04798
+  - File: `arcs-group/2503.04798_2503.04798.html`
+  - Note: downloaded 191788 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2503.15836 - 2503.15836
+  - URL: https://arxiv.org/abs/2503.15836
+  - HTML URL: https://arxiv.org/html/2503.15836
+  - File: `arcs-group/2503.15836_2503.15836.html`
+  - Note: downloaded 282320 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2504.06091 - 2504.06091
+  - URL: https://arxiv.org/abs/2504.06091
+  - HTML URL: https://arxiv.org/html/2504.06091
+  - File: `arcs-group/2504.06091_2504.06091.html`
+  - Note: downloaded 68186 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2507.17054 - 2507.17054
+  - URL: https://arxiv.org/abs/2507.17054
+  - HTML URL: https://arxiv.org/html/2507.17054
+  - File: `arcs-group/2507.17054_2507.17054.html`
+  - Note: downloaded 751847 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2508.01495 - 2508.01495
+  - URL: https://arxiv.org/abs/2508.01495
+  - HTML URL: https://arxiv.org/html/2508.01495
+  - File: `arcs-group/2508.01495_2508.01495.html`
+  - Note: downloaded 338530 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2508.04849 - 2508.04849
+  - URL: https://arxiv.org/abs/2508.04849
+  - HTML URL: https://arxiv.org/html/2508.04849
+  - File: `arcs-group/2508.04849_2508.04849.html`
+  - Note: downloaded 179170 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2508.05027 - 2508.05027
+  - URL: https://arxiv.org/abs/2508.05027
+  - HTML URL: https://arxiv.org/html/2508.05027
+  - File: `arcs-group/2508.05027_2508.05027.html`
+  - Note: downloaded 191703 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2509.15381 - 2509.15381
+  - URL: https://arxiv.org/abs/2509.15381
+  - HTML URL: https://arxiv.org/html/2509.15381
+  - File: `arcs-group/2509.15381_2509.15381.html`
+  - Note: downloaded 248057 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2510.00425 - 2510.00425
+  - URL: https://arxiv.org/abs/2510.00425
+  - HTML URL: https://arxiv.org/html/2510.00425
+  - File: `arcs-group/2510.00425_2510.00425.html`
+  - Note: downloaded 195611 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2510.03472 - 2510.03472
+  - URL: https://arxiv.org/abs/2510.03472
+  - HTML URL: https://arxiv.org/html/2510.03472
+  - File: `arcs-group/2510.03472_2510.03472.html`
+  - Note: downloaded 188934 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2512.09736 - 2512.09736
+  - URL: https://arxiv.org/abs/2512.09736
+  - HTML URL: https://arxiv.org/html/2512.09736
+  - File: `arcs-group/2512.09736_2512.09736.html`
+  - Note: downloaded 98516 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2602.15721 - 2602.15721
+  - URL: https://arxiv.org/abs/2602.15721
+  - HTML URL: https://arxiv.org/html/2602.15721
+  - File: `arcs-group/2602.15721_2602.15721.html`
+  - Note: downloaded 240218 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2602.23468 - 2602.23468
+  - URL: https://arxiv.org/abs/2602.23468
+  - HTML URL: https://arxiv.org/html/2602.23468
+  - File: `arcs-group/2602.23468_2602.23468.html`
+  - Note: downloaded 380128 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2603.23405 - 2603.23405
+  - URL: https://arxiv.org/abs/2603.23405
+  - HTML URL: https://arxiv.org/html/2603.23405
+  - File: `arcs-group/2603.23405_2603.23405.html`
+  - Note: downloaded 486963 bytes; content-type=text/html; charset=utf-8
+- [OK] html 2604.15610 - 2604.15610
+  - URL: https://arxiv.org/abs/2604.15610
+  - HTML URL: https://arxiv.org/html/2604.15610
+  - File: `arcs-group/2604.15610_2604.15610.html`
+  - Note: downloaded 318021 bytes; content-type=text/html; charset=utf-8
+- [FAILED] pdf pdf - Poster
+  - URL: https://arcs-group.github.io/files/posters/MAPF-LNS-poster.pdf
+  - File: `arcs-group/Poster_MAPF-LNS-poster.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Slides
+  - URL: https://arcs-group.github.io/files/slides/AAMAS20-lifelongMAPF.pdf
+  - File: `arcs-group/Slides_AAMAS20-lifelongMAPF.pdf`
+  - Note: HTTP 404
+- [OK] pdf pdf - Preprint
+  - URL: https://jiaoyang-li.github.io/files/2021-HPLAN.pdf
+  - File: `arcs-group/Preprint_2021-HPLAN.pdf`
+  - Note: downloaded 8591807 bytes
+- [OK] pdf pdf - Preprint
+  - URL: https://jiaoyang-li.github.io/files/ChanWoMAPF20.pdf
+  - File: `arcs-group/Preprint_ChanWoMAPF20.pdf`
+  - Note: downloaded 6948176 bytes
+- [FAILED] pdf pdf - Poster
+  - URL: https://arcs-group.github.io/files/posters/corridor-poster.pdf
+  - File: `arcs-group/Poster_corridor-poster.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Slides
+  - URL: https://arcs-group.github.io/files/slides/ICAPS20-corridor.pdf
+  - File: `arcs-group/Slides_ICAPS20-corridor.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Slides
+  - URL: https://arcs-group.github.io/files/slides/AAMAS20-MAiF.pdf
+  - File: `arcs-group/Slides_AAMAS20-MAiF.pdf`
+  - Note: HTTP 404
+- [OK] pdf pdf - Poster
+  - URL: https://jiaoyang-li.github.io/files/posters/cbsh2-poster.pdf
+  - File: `arcs-group/Poster_cbsh2-poster.pdf`
+  - Note: downloaded 806423 bytes
+- [OK] pdf pdf - Slides
+  - URL: https://jiaoyang-li.github.io/files/slides/cbsh2.pdf
+  - File: `arcs-group/Slides_cbsh2.pdf`
+  - Note: downloaded 1006185 bytes
+- [FAILED] pdf pdf - Slides
+  - URL: https://arcs-group.github.io/files/slides/ICAPS19-FastMap.pdf
+  - File: `arcs-group/Slides_ICAPS19-FastMap.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Poster
+  - URL: https://arcs-group.github.io/files/posters/disjoint-poster.pdf
+  - File: `arcs-group/Poster_disjoint-poster.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Slides
+  - URL: https://arcs-group.github.io/files/slides/ICAPS19-Disjoint-CBS.pdf
+  - File: `arcs-group/Slides_ICAPS19-Disjoint-CBS.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Poster
+  - URL: https://arcs-group.github.io/files/posters/rectangle-poster.pdf
+  - File: `arcs-group/Poster_rectangle-poster.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Slides
+  - URL: https://arcs-group.github.io/files/slides/rectangle-slides.pdf
+  - File: `arcs-group/Slides_rectangle-slides.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Poster
+  - URL: https://arcs-group.github.io/files/posters/large-agent-poster.pdf
+  - File: `arcs-group/Poster_large-agent-poster.pdf`
+  - Note: HTTP 404
+- [FAILED] pdf pdf - Slides
+  - URL: https://arcs-group.github.io/files/slides/large-agent-slides.pdf
+  - File: `arcs-group/Slides_large-agent-slides.pdf`
+  - Note: HTTP 404
+- [OK] pdf pdf - pdf
+  - URL: https://arcs-group.github.io/files/jiaoyangli/phd-thesis-final.pdf
+  - File: `arcs-group/pdf_phd-thesis-final.pdf`
+  - Note: downloaded 53231705 bytes

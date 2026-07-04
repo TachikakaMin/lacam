@@ -19,6 +19,28 @@
 
 本轮禁止只围绕上一轮 `loaded_distance_since_last_delivery = 0.75x` 做机械微调。可以继续研究 loaded batching，但只有当新的 trajectory diagnostics 给出新的根因证据时才允许沿这个方向继续。不要把本任务理解成某个预设方向的参数搜索。
 
+鼓励你加入自己认为合理的辅助 metrics 来观察算法改动对程序行为的影响，例如拥堵、等待、goal churn、service dwell、assignment churn、局部冲突、cache 命中、runtime 分布或任何能解释 throughput 浪费的指标。不要因为某个 candidate 的 quick throughput 暂时下降就急着回退代码；先确认下降是否来自实现 bug、诊断 metric 暴露的新瓶颈、随机 seed 方差、运行时 tradeoff 或尚未配套调整的机制。只要不违反固定评测场景和语义约束，可以多探索几步，用 trace / trajectory evidence 判断方向，而不是只根据单次 aggregate throughput 立即放弃。
+
+如果本 prompt 被 CORAL task 调用，则 CORAL 规则优先于下面的 standalone
+budget 和停止规则：
+
+- 官方分数只通过 `coral eval` 产生，本地 `build/lifelong_benchmark` 结果只作诊断。
+- 开始后先在未修改代码上运行一次 `coral eval -m "baseline"`，确保 run 早期有可见 score。
+- 不要等待 `PRE_FINAL_RUN_MIN = 80` 才提交分数；该门槛只适用于独立 hl_agent 长程实验。
+- 每个有效 candidate 可以先用 `coral eval --tune -m "..."` 做 seeds 0..2 筛选。
+- 当 candidate 通过构建、基本测试且 quick/tune evidence 合理时，运行 `coral eval -m "..."`
+  注册官方 attempts；如果 `run.stop.max_real_attempts` 很小，优先少量高质量 attempts。
+- 仍然保留 trajectory diagnostics、same-seed 对比、辅助 metrics 和语义安全约束。
+
+论文库强制规则：
+
+- 所有 throughput idea、candidate hypothesis、pivot 方向和非平凡实现任务都必须出自本地论文库；
+- 进行论文检索时必须先读 `coral_tasks/lacam_throughput/papers/README.md`；
+- 然后定位并阅读相关 `coral_tasks/lacam_throughput/papers/briefs/*.md` 简介页；
+- 只有在需要章节、算法、设计模式、定理或实验观察细节时，才继续打开简介页链接的原论文 HTML/PDF；
+- 每个 candidate 记录必须引用至少一个 `papers/briefs/*.md` 简介页，并在需要时记录原论文文件和具体 anchor；
+- 不允许提出没有论文库来源的 throughput idea。论文只能启发通用 MAPF/TAPF/lifelong 机制，不能作为 hard-code 固定场景、seed、task stream 或坐标的理由。
+
 项目已经有对应的 env 和算法实现；评测必须通过仓库内已有的：
 
   build/lifelong_benchmark

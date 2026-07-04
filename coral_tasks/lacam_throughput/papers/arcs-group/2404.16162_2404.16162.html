@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+<title>Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities</title>
+<!--Generated on Tue Apr 30 19:19:09 2024 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv.0.7.9.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv-fonts.0.7.9.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/latexml_styles.css" rel="stylesheet" type="text/css"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.3/html2canvas.min.js"></script>
+<script src="/static/browse/0.3.4/js/addons_new.js"></script>
+<script src="/static/browse/0.3.4/js/feedbackOverlay.js"></script>
+<base href="/html/2404.16162v1/"/></head>
+<body>
+<nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S1" title="In Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">1 </span>Introduction</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S2" title="In Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2 </span>Problem Definition</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S2.SS0.SSS0.Px1" title="In 2 Problem Definition ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title">Competition and Experiment Setup</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3" title="In Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3 </span>Challenge 1: Limited Planning Time</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3.SS1" title="In 3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.1 </span>The Challenge and Related Works</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3.SS2" title="In 3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.2 </span>Our Solution: WPPL</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3.SS3" title="In 3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.3 </span>Future Directions</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4" title="In Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4 </span>Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.SS1" title="In 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.1 </span>The Challenge and Related Work</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.SS2" title="In 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.2 </span>Designing Guidance and Disabling Agents</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.SS3" title="In 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.3 </span>Future Directions</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S5" title="In Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5 </span>Challenge 3: Gaps between LAMPF Models and Real-World Applications</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S5.SS1" title="In 5 Challenge 3: Gaps between LAMPF Models and Real-World Applications ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.1 </span>Dealing with the LMAPF-R Model</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S5.SS2" title="In 5 Challenge 3: Gaps between LAMPF Models and Real-World Applications ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2 </span>Unrealistic Modeling</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S6" title="In Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6 </span>Conclusion</span></a></li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_title_document">Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: 
+<br class="ltx_break"/>Research Challenges and Opportunities</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">
+He Jiang,
+Yulun Zhang,
+Rishi Veerapaneni,
+Jiaoyang Li
+</span></span>
+</div>
+<div class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p" id="id1.id1">Multi-Agent Path Finding (MAPF) is the problem of moving multiple agents from starts to goals without collisions. Lifelong MAPF (LMAPF) extends MAPF by continuously assigning new goals to agents. We present our winning approach to the 2023 League of Robot Runners LMAPF competition, which leads us to several interesting research challenges and future directions. In this paper, we outline three main research challenges. The first challenge is to search for high-quality LMAPF solutions within a limited planning time (e.g., 1s per step) for a large number of agents (e.g., 10,000) or extremely high agent density (e.g., 97.7%). We present future directions such as developing more competitive rule-based and anytime MAPF algorithms and parallelizing state-of-the-art MAPF algorithms. The second challenge is to alleviate congestion and the effect of myopic behaviors in LMAPF algorithms. We present future directions, such as developing moving guidance and traffic rules to reduce congestion, incorporating future prediction and real-time search, and determining the optimal agent number. The third challenge is to bridge the gaps between the LMAPF models used in the literature and real-world applications. We present future directions, such as dealing with more realistic kinodynamic models, execution uncertainty, and evolving systems.</p>
+</div>
+<section class="ltx_section" id="S1">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">1 </span>Introduction</h2>
+<div class="ltx_para" id="S1.p1">
+<p class="ltx_p" id="S1.p1.1">In Multi-Agent Path Finding (MAPF) <cite class="ltx_cite ltx_citemacro_citep">(Stern et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib33" title="">2019</a>)</cite>, agents are each assigned a pair of start and goal locations, and algorithms attempt to find collision-free paths for them. MAPF has been widely studied due to its valuable applications in automated warehouses, traffic systems, advanced manufacturing, etc. However, many real-world systems continuously run for a very long time, where agents will be assigned new tasks. Such scenarios are better modeled by an extension of the MAPF problem, called Lifelong Multi-Agent Path Finding (LMAPF) <cite class="ltx_cite ltx_citemacro_citep">(Ma, Kumar, and Koenig <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib25" title="">2017</a>)</cite>. In recent years, many researchers have studied LMAPF and its variants <cite class="ltx_cite ltx_citemacro_citep">(Liu et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib23" title="">2019</a>; Salzman and Stern <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib30" title="">2020</a>; Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib21" title="">2021c</a>; Damani et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib6" title="">2021</a>; Varambally, Li, and Koenig <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib35" title="">2022</a>; Zhang et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib41" title="">2023b</a>)</cite>, especially on its application in coordinating mobile robots in warehouses, which is nowadays a multi-billion industry.</p>
+</div>
+<figure class="ltx_figure" id="S1.F1">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_3">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S1.F1.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_missing ltx_missing_image" id="S1.F1.sf1.g1" src=""/>
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_figure">(a) </span>Random 800</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_3">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S1.F1.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_img_landscape" height="365" id="S1.F1.sf2.g1" src="extracted/2404.16162v1/figs/front-fig-sortation.png" width="598"/>
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_figure">(b) </span>Sortation</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_3">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S1.F1.sf3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="598" id="S1.F1.sf3.g1" src="extracted/2404.16162v1/maps/Paris_1_256.png" width="598"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(c) </span>City</figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 1: </span>Three challenging maps in the LRR competition with white vertices and black obstacles. (a) is a random map of size 32 by 32 with very high agent density (800 agents out of 819 vertices
+). The colorful triangles are agents, with short black lines indicating orientations. (b) is a large sortation center map of size 140 by 500 with 54,230 vertices and 10,000 agents. (c) is a city map representing a part of Paris. </figcaption>
+</figure>
+<div class="ltx_para" id="S1.p2">
+<p class="ltx_p" id="S1.p2.4">However, most MAPF problem instances studied in previous work are relatively simple. For example, in the widely used MAPF benchmark <cite class="ltx_cite ltx_citemacro_citep">(Stern et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib33" title="">2019</a>)</cite>, the agent density is no more than <math alttext="50\%" class="ltx_Math" display="inline" id="S1.p2.1.m1.1"><semantics id="S1.p2.1.m1.1a"><mrow id="S1.p2.1.m1.1.1" xref="S1.p2.1.m1.1.1.cmml"><mn id="S1.p2.1.m1.1.1.2" xref="S1.p2.1.m1.1.1.2.cmml">50</mn><mo id="S1.p2.1.m1.1.1.1" xref="S1.p2.1.m1.1.1.1.cmml">%</mo></mrow><annotation-xml encoding="MathML-Content" id="S1.p2.1.m1.1b"><apply id="S1.p2.1.m1.1.1.cmml" xref="S1.p2.1.m1.1.1"><csymbol cd="latexml" id="S1.p2.1.m1.1.1.1.cmml" xref="S1.p2.1.m1.1.1.1">percent</csymbol><cn id="S1.p2.1.m1.1.1.2.cmml" type="integer" xref="S1.p2.1.m1.1.1.2">50</cn></apply></annotation-xml><annotation encoding="application/x-tex" id="S1.p2.1.m1.1c">50\%</annotation><annotation encoding="application/x-llamapun" id="S1.p2.1.m1.1d">50 %</annotation></semantics></math>, the number of agents is no more than <math alttext="1,000" class="ltx_Math" display="inline" id="S1.p2.2.m2.2"><semantics id="S1.p2.2.m2.2a"><mrow id="S1.p2.2.m2.2.3.2" xref="S1.p2.2.m2.2.3.1.cmml"><mn id="S1.p2.2.m2.1.1" xref="S1.p2.2.m2.1.1.cmml">1</mn><mo id="S1.p2.2.m2.2.3.2.1" xref="S1.p2.2.m2.2.3.1.cmml">,</mo><mn id="S1.p2.2.m2.2.2" xref="S1.p2.2.m2.2.2.cmml">000</mn></mrow><annotation-xml encoding="MathML-Content" id="S1.p2.2.m2.2b"><list id="S1.p2.2.m2.2.3.1.cmml" xref="S1.p2.2.m2.2.3.2"><cn id="S1.p2.2.m2.1.1.cmml" type="integer" xref="S1.p2.2.m2.1.1">1</cn><cn id="S1.p2.2.m2.2.2.cmml" type="integer" xref="S1.p2.2.m2.2.2">000</cn></list></annotation-xml><annotation encoding="application/x-tex" id="S1.p2.2.m2.2c">1,000</annotation><annotation encoding="application/x-llamapun" id="S1.p2.2.m2.2d">1 , 000</annotation></semantics></math>, and the planning time limit is usually set to 1-5 minutes. However, in real-world applications, automatic garage <cite class="ltx_cite ltx_citemacro_citep">(Guo and Yu <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib8" title="">2023</a>)</cite> could have a near-100% agent density, Amazon fulfillment centers could have more than 4,000 robots <cite class="ltx_cite ltx_citemacro_citep">(Brown <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib2" title="">2022</a>)</cite>, and cooperative autonomous driving requires real-time response. Only a few MAPF research, such as LNS2 <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib18" title="">2022</a>)</cite> and LaCAM <cite class="ltx_cite ltx_citemacro_citep">(Okumura <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib28" title="">2023</a>)</cite>, have tested with the more challenging instances. Similarly for LMAPF, only a few studies <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib21" title="">2021c</a>; Damani et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib6" title="">2021</a>)</cite> test with up to <math alttext="1,000" class="ltx_Math" display="inline" id="S1.p2.3.m3.2"><semantics id="S1.p2.3.m3.2a"><mrow id="S1.p2.3.m3.2.3.2" xref="S1.p2.3.m3.2.3.1.cmml"><mn id="S1.p2.3.m3.1.1" xref="S1.p2.3.m3.1.1.cmml">1</mn><mo id="S1.p2.3.m3.2.3.2.1" xref="S1.p2.3.m3.2.3.1.cmml">,</mo><mn id="S1.p2.3.m3.2.2" xref="S1.p2.3.m3.2.2.cmml">000</mn></mrow><annotation-xml encoding="MathML-Content" id="S1.p2.3.m3.2b"><list id="S1.p2.3.m3.2.3.1.cmml" xref="S1.p2.3.m3.2.3.2"><cn id="S1.p2.3.m3.1.1.cmml" type="integer" xref="S1.p2.3.m3.1.1">1</cn><cn id="S1.p2.3.m3.2.2.cmml" type="integer" xref="S1.p2.3.m3.2.2">000</cn></list></annotation-xml><annotation encoding="application/x-tex" id="S1.p2.3.m3.2c">1,000</annotation><annotation encoding="application/x-llamapun" id="S1.p2.3.m3.2d">1 , 000</annotation></semantics></math> agents. One recent work <cite class="ltx_cite ltx_citemacro_citep">(Chen et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib4" title="">2024</a>)</cite> scales the agent number to more than <math alttext="10,000" class="ltx_Math" display="inline" id="S1.p2.4.m4.2"><semantics id="S1.p2.4.m4.2a"><mrow id="S1.p2.4.m4.2.3.2" xref="S1.p2.4.m4.2.3.1.cmml"><mn id="S1.p2.4.m4.1.1" xref="S1.p2.4.m4.1.1.cmml">10</mn><mo id="S1.p2.4.m4.2.3.2.1" xref="S1.p2.4.m4.2.3.1.cmml">,</mo><mn id="S1.p2.4.m4.2.2" xref="S1.p2.4.m4.2.2.cmml">000</mn></mrow><annotation-xml encoding="MathML-Content" id="S1.p2.4.m4.2b"><list id="S1.p2.4.m4.2.3.1.cmml" xref="S1.p2.4.m4.2.3.2"><cn id="S1.p2.4.m4.1.1.cmml" type="integer" xref="S1.p2.4.m4.1.1">10</cn><cn id="S1.p2.4.m4.2.2.cmml" type="integer" xref="S1.p2.4.m4.2.2">000</cn></list></annotation-xml><annotation encoding="application/x-tex" id="S1.p2.4.m4.2c">10,000</annotation><annotation encoding="application/x-llamapun" id="S1.p2.4.m4.2d">10 , 000</annotation></semantics></math> on large maps.</p>
+</div>
+<div class="ltx_para" id="S1.p3">
+<p class="ltx_p" id="S1.p3.3">Thus, an LMAPF competition, The League of Robot Runners (LRR),<span class="ltx_note ltx_role_footnote" id="footnote1"><sup class="ltx_note_mark">1</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">1</sup><span class="ltx_tag ltx_tag_note">1</span><span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://www.leagueofrobotrunners.org/</span></span></span></span> sponsored by Amazon Robotics, was organized online in 2023 to examine more challenging LMAPF settings, including:
+(1) a large number of agents of up to <math alttext="10,000" class="ltx_Math" display="inline" id="S1.p3.1.m1.2"><semantics id="S1.p3.1.m1.2a"><mrow id="S1.p3.1.m1.2.3.2" xref="S1.p3.1.m1.2.3.1.cmml"><mn id="S1.p3.1.m1.1.1" xref="S1.p3.1.m1.1.1.cmml">10</mn><mo id="S1.p3.1.m1.2.3.2.1" xref="S1.p3.1.m1.2.3.1.cmml">,</mo><mn id="S1.p3.1.m1.2.2" xref="S1.p3.1.m1.2.2.cmml">000</mn></mrow><annotation-xml encoding="MathML-Content" id="S1.p3.1.m1.2b"><list id="S1.p3.1.m1.2.3.1.cmml" xref="S1.p3.1.m1.2.3.2"><cn id="S1.p3.1.m1.1.1.cmml" type="integer" xref="S1.p3.1.m1.1.1">10</cn><cn id="S1.p3.1.m1.2.2.cmml" type="integer" xref="S1.p3.1.m1.2.2">000</cn></list></annotation-xml><annotation encoding="application/x-tex" id="S1.p3.1.m1.2c">10,000</annotation><annotation encoding="application/x-llamapun" id="S1.p3.1.m1.2d">10 , 000</annotation></semantics></math>,
+(2) extreme agent density (i.e., the ratio of the number of agents to the number of vertices on the map) of up to <math alttext="97.7\%" class="ltx_Math" display="inline" id="S1.p3.2.m2.1"><semantics id="S1.p3.2.m2.1a"><mrow id="S1.p3.2.m2.1.1" xref="S1.p3.2.m2.1.1.cmml"><mn id="S1.p3.2.m2.1.1.2" xref="S1.p3.2.m2.1.1.2.cmml">97.7</mn><mo id="S1.p3.2.m2.1.1.1" xref="S1.p3.2.m2.1.1.1.cmml">%</mo></mrow><annotation-xml encoding="MathML-Content" id="S1.p3.2.m2.1b"><apply id="S1.p3.2.m2.1.1.cmml" xref="S1.p3.2.m2.1.1"><csymbol cd="latexml" id="S1.p3.2.m2.1.1.1.cmml" xref="S1.p3.2.m2.1.1.1">percent</csymbol><cn id="S1.p3.2.m2.1.1.2.cmml" type="float" xref="S1.p3.2.m2.1.1.2">97.7</cn></apply></annotation-xml><annotation encoding="application/x-tex" id="S1.p3.2.m2.1c">97.7\%</annotation><annotation encoding="application/x-llamapun" id="S1.p3.2.m2.1d">97.7 %</annotation></semantics></math> (as shown in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S1.F1.sf1" title="In Figure 1 ‣ 1 Introduction ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1(a)</span></a>),
+(3) a large map of up to <math alttext="54,320" class="ltx_Math" display="inline" id="S1.p3.3.m3.2"><semantics id="S1.p3.3.m3.2a"><mrow id="S1.p3.3.m3.2.3.2" xref="S1.p3.3.m3.2.3.1.cmml"><mn id="S1.p3.3.m3.1.1" xref="S1.p3.3.m3.1.1.cmml">54</mn><mo id="S1.p3.3.m3.2.3.2.1" xref="S1.p3.3.m3.2.3.1.cmml">,</mo><mn id="S1.p3.3.m3.2.2" xref="S1.p3.3.m3.2.2.cmml">320</mn></mrow><annotation-xml encoding="MathML-Content" id="S1.p3.3.m3.2b"><list id="S1.p3.3.m3.2.3.1.cmml" xref="S1.p3.3.m3.2.3.2"><cn id="S1.p3.3.m3.1.1.cmml" type="integer" xref="S1.p3.3.m3.1.1">54</cn><cn id="S1.p3.3.m3.2.2.cmml" type="integer" xref="S1.p3.3.m3.2.2">320</cn></list></annotation-xml><annotation encoding="application/x-tex" id="S1.p3.3.m3.2c">54,320</annotation><annotation encoding="application/x-llamapun" id="S1.p3.3.m3.2d">54 , 320</annotation></semantics></math> vertices (as shown in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S1.F1.sf2" title="In Figure 1 ‣ 1 Introduction ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1(b)</span></a>),
+(4) limited planning time of 1 second per step, and
+(5) a more realistic action model that considers the heading and rotation of the agents.</p>
+</div>
+<figure class="ltx_table" id="S1.T1">
+<table class="ltx_tabular ltx_centering ltx_guessed_headers ltx_align_middle" id="S1.T1.5">
+<thead class="ltx_thead">
+<tr class="ltx_tr" id="S1.T1.5.6.1">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S1.T1.5.6.1.1">Map Name</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S1.T1.5.6.1.2">Map Size</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S1.T1.5.6.1.3">Vertices</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S1.T1.5.6.1.4">Map Illustration</th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr class="ltx_tr" id="S1.T1.1.1">
+<td class="ltx_td ltx_align_center ltx_border_t" id="S1.T1.1.1.2">Random</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S1.T1.1.1.1">
+<span class="ltx_text ltx_phantom" id="S1.T1.1.1.1.1"><span style="visibility:hidden">1</span></span><span class="ltx_text ltx_phantom" id="S1.T1.1.1.1.2"><span style="visibility:hidden">1</span></span>32<math alttext="\times" class="ltx_Math" display="inline" id="S1.T1.1.1.1.m1.1"><semantics id="S1.T1.1.1.1.m1.1a"><mo id="S1.T1.1.1.1.m1.1.1" xref="S1.T1.1.1.1.m1.1.1.cmml">×</mo><annotation-xml encoding="MathML-Content" id="S1.T1.1.1.1.m1.1b"><times id="S1.T1.1.1.1.m1.1.1.cmml" xref="S1.T1.1.1.1.m1.1.1"></times></annotation-xml><annotation encoding="application/x-tex" id="S1.T1.1.1.1.m1.1c">\times</annotation><annotation encoding="application/x-llamapun" id="S1.T1.1.1.1.m1.1d">×</annotation></semantics></math>32</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S1.T1.1.1.3">
+<span class="ltx_text ltx_phantom" id="S1.T1.1.1.3.1"><span style="visibility:hidden">1</span></span><span class="ltx_text ltx_phantom" id="S1.T1.1.1.3.2"><span style="visibility:hidden">1</span></span> 819</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S1.T1.1.1.4"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S1.F1.sf1" title="In Figure 1 ‣ 1 Introduction ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1(a)</span></a></td>
+</tr>
+<tr class="ltx_tr" id="S1.T1.2.2">
+<td class="ltx_td ltx_align_center" id="S1.T1.2.2.2">City</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.2.2.1">256<math alttext="\times" class="ltx_Math" display="inline" id="S1.T1.2.2.1.m1.1"><semantics id="S1.T1.2.2.1.m1.1a"><mo id="S1.T1.2.2.1.m1.1.1" xref="S1.T1.2.2.1.m1.1.1.cmml">×</mo><annotation-xml encoding="MathML-Content" id="S1.T1.2.2.1.m1.1b"><times id="S1.T1.2.2.1.m1.1.1.cmml" xref="S1.T1.2.2.1.m1.1.1"></times></annotation-xml><annotation encoding="application/x-tex" id="S1.T1.2.2.1.m1.1c">\times</annotation><annotation encoding="application/x-llamapun" id="S1.T1.2.2.1.m1.1d">×</annotation></semantics></math>256</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.2.2.3">47,240</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.2.2.4"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S1.F1.sf3" title="In Figure 1 ‣ 1 Introduction ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1(c)</span></a></td>
+</tr>
+<tr class="ltx_tr" id="S1.T1.3.3">
+<td class="ltx_td ltx_align_center" id="S1.T1.3.3.2">Game</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.3.3.1">481<math alttext="\times" class="ltx_Math" display="inline" id="S1.T1.3.3.1.m1.1"><semantics id="S1.T1.3.3.1.m1.1a"><mo id="S1.T1.3.3.1.m1.1.1" xref="S1.T1.3.3.1.m1.1.1.cmml">×</mo><annotation-xml encoding="MathML-Content" id="S1.T1.3.3.1.m1.1b"><times id="S1.T1.3.3.1.m1.1.1.cmml" xref="S1.T1.3.3.1.m1.1.1"></times></annotation-xml><annotation encoding="application/x-tex" id="S1.T1.3.3.1.m1.1c">\times</annotation><annotation encoding="application/x-llamapun" id="S1.T1.3.3.1.m1.1d">×</annotation></semantics></math>530</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.3.3.3">43,151</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.3.3.4"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F8" title="In 4.2 Designing Guidance and Disabling Agents ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">8</span></a></td>
+</tr>
+<tr class="ltx_tr" id="S1.T1.4.4">
+<td class="ltx_td ltx_align_center" id="S1.T1.4.4.2">Warehouse</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.4.4.1">140<math alttext="\times" class="ltx_Math" display="inline" id="S1.T1.4.4.1.m1.1"><semantics id="S1.T1.4.4.1.m1.1a"><mo id="S1.T1.4.4.1.m1.1.1" xref="S1.T1.4.4.1.m1.1.1.cmml">×</mo><annotation-xml encoding="MathML-Content" id="S1.T1.4.4.1.m1.1b"><times id="S1.T1.4.4.1.m1.1.1.cmml" xref="S1.T1.4.4.1.m1.1.1"></times></annotation-xml><annotation encoding="application/x-tex" id="S1.T1.4.4.1.m1.1c">\times</annotation><annotation encoding="application/x-llamapun" id="S1.T1.4.4.1.m1.1d">×</annotation></semantics></math>500</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.4.4.3">38,586</td>
+<td class="ltx_td ltx_align_center" id="S1.T1.4.4.4"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F5" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">5</span></a></td>
+</tr>
+<tr class="ltx_tr" id="S1.T1.5.5">
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S1.T1.5.5.2">Sortation</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S1.T1.5.5.1">140<math alttext="\times" class="ltx_Math" display="inline" id="S1.T1.5.5.1.m1.1"><semantics id="S1.T1.5.5.1.m1.1a"><mo id="S1.T1.5.5.1.m1.1.1" xref="S1.T1.5.5.1.m1.1.1.cmml">×</mo><annotation-xml encoding="MathML-Content" id="S1.T1.5.5.1.m1.1b"><times id="S1.T1.5.5.1.m1.1.1.cmml" xref="S1.T1.5.5.1.m1.1.1"></times></annotation-xml><annotation encoding="application/x-tex" id="S1.T1.5.5.1.m1.1c">\times</annotation><annotation encoding="application/x-llamapun" id="S1.T1.5.5.1.m1.1d">×</annotation></semantics></math>500</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S1.T1.5.5.3">54,320</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S1.T1.5.5.4"><a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S1.F1.sf2" title="In Figure 1 ‣ 1 Introduction ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1(b)</span></a></td>
+</tr>
+</tbody>
+</table>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table">Table 1: </span>The basic information for each map. Map sizes are given in the format of height <math alttext="\times" class="ltx_Math" display="inline" id="S1.T1.7.m1.1"><semantics id="S1.T1.7.m1.1b"><mo id="S1.T1.7.m1.1.1" xref="S1.T1.7.m1.1.1.cmml">×</mo><annotation-xml encoding="MathML-Content" id="S1.T1.7.m1.1c"><times id="S1.T1.7.m1.1.1.cmml" xref="S1.T1.7.m1.1.1"></times></annotation-xml><annotation encoding="application/x-tex" id="S1.T1.7.m1.1d">\times</annotation><annotation encoding="application/x-llamapun" id="S1.T1.7.m1.1e">×</annotation></semantics></math> weight.</figcaption>
+</figure>
+<div class="ltx_para" id="S1.p4">
+<p class="ltx_p" id="S1.p4.1">The LRR competition leads us to discuss three critical research challenges less explored in the previous LMAPF literature: the limited planning time constraint, the congestion and myopic behaviors in LMAPF algorithms, and the gaps between modeled and real-world LMAPF. Inspired by these challenges, we point out several future directions, such as developing more competitive anytime algorithms, exploiting multi-CPUs and GPUs for parallelism, alleviating congestion and myopia of windowed planning by developing guidance
+and traffic rules, incorporating future traffic prediction and real-time search, and determining the optimal agent number. We also advocate for studying more realistic LMAPF models taking into account motion constraints, execution uncertainty, and evolving systems. <cite class="ltx_cite ltx_citemacro_citet">Salzman and Stern (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib30" title="">2020</a>)</cite> also discuss several LMAPF challenges, such as lifelong learning and distributed planning, which are orthogonal to this work.</p>
+</div>
+<div class="ltx_para" id="S1.p5">
+<p class="ltx_p" id="S1.p5.1">We first formulate the LMAPF problem given in the LRR competition in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S2" title="2 Problem Definition ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">2</span></a>. Then, in each of <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3" title="3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Sections</span> <span class="ltx_text ltx_ref_tag">3</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4" title="4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">4</span></a>, we first discuss a challenge underexplored in existing work, then our solution to the challenge, and finally future directions inspired by the challenge and our solution. In <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S5" title="5 Challenge 3: Gaps between LAMPF Models and Real-World Applications ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">5</span></a> we discuss an additional challenge regarding the gaps between LMAPF models in the literature and the real world. Our solution ranked first in two out of three tracks, including the overall best track, and second in another one. The code and experiment settings are publicly available.<span class="ltx_note ltx_role_footnote" id="footnote2"><sup class="ltx_note_mark">2</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">2</sup><span class="ltx_tag ltx_tag_note">2</span>https://github.com/DiligentPanda/MAPF-LRR2023.git</span></span></span></p>
+</div>
+</section>
+<section class="ltx_section" id="S2">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">2 </span>Problem Definition</h2>
+<div class="ltx_theorem ltx_theorem_definition" id="Thmdefinition1">
+<h6 class="ltx_title ltx_runin ltx_title_theorem">
+<span class="ltx_tag ltx_tag_theorem"><span class="ltx_text ltx_font_bold" id="Thmdefinition1.1.1.1">Definition 1</span></span><span class="ltx_text ltx_font_bold" id="Thmdefinition1.2.2"> (MAPF)</span>
+</h6>
+<div class="ltx_para" id="Thmdefinition1.p1">
+<p class="ltx_p" id="Thmdefinition1.p1.4"><span class="ltx_text ltx_font_italic" id="Thmdefinition1.p1.4.4">MAPF takes in a graph <math alttext="G=(V,E)" class="ltx_Math" display="inline" id="Thmdefinition1.p1.1.1.m1.2"><semantics id="Thmdefinition1.p1.1.1.m1.2a"><mrow id="Thmdefinition1.p1.1.1.m1.2.3" xref="Thmdefinition1.p1.1.1.m1.2.3.cmml"><mi id="Thmdefinition1.p1.1.1.m1.2.3.2" xref="Thmdefinition1.p1.1.1.m1.2.3.2.cmml">G</mi><mo id="Thmdefinition1.p1.1.1.m1.2.3.1" xref="Thmdefinition1.p1.1.1.m1.2.3.1.cmml">=</mo><mrow id="Thmdefinition1.p1.1.1.m1.2.3.3.2" xref="Thmdefinition1.p1.1.1.m1.2.3.3.1.cmml"><mo id="Thmdefinition1.p1.1.1.m1.2.3.3.2.1" stretchy="false" xref="Thmdefinition1.p1.1.1.m1.2.3.3.1.cmml">(</mo><mi id="Thmdefinition1.p1.1.1.m1.1.1" xref="Thmdefinition1.p1.1.1.m1.1.1.cmml">V</mi><mo id="Thmdefinition1.p1.1.1.m1.2.3.3.2.2" xref="Thmdefinition1.p1.1.1.m1.2.3.3.1.cmml">,</mo><mi id="Thmdefinition1.p1.1.1.m1.2.2" xref="Thmdefinition1.p1.1.1.m1.2.2.cmml">E</mi><mo id="Thmdefinition1.p1.1.1.m1.2.3.3.2.3" stretchy="false" xref="Thmdefinition1.p1.1.1.m1.2.3.3.1.cmml">)</mo></mrow></mrow><annotation-xml encoding="MathML-Content" id="Thmdefinition1.p1.1.1.m1.2b"><apply id="Thmdefinition1.p1.1.1.m1.2.3.cmml" xref="Thmdefinition1.p1.1.1.m1.2.3"><eq id="Thmdefinition1.p1.1.1.m1.2.3.1.cmml" xref="Thmdefinition1.p1.1.1.m1.2.3.1"></eq><ci id="Thmdefinition1.p1.1.1.m1.2.3.2.cmml" xref="Thmdefinition1.p1.1.1.m1.2.3.2">𝐺</ci><interval closure="open" id="Thmdefinition1.p1.1.1.m1.2.3.3.1.cmml" xref="Thmdefinition1.p1.1.1.m1.2.3.3.2"><ci id="Thmdefinition1.p1.1.1.m1.1.1.cmml" xref="Thmdefinition1.p1.1.1.m1.1.1">𝑉</ci><ci id="Thmdefinition1.p1.1.1.m1.2.2.cmml" xref="Thmdefinition1.p1.1.1.m1.2.2">𝐸</ci></interval></apply></annotation-xml><annotation encoding="application/x-tex" id="Thmdefinition1.p1.1.1.m1.2c">G=(V,E)</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition1.p1.1.1.m1.2d">italic_G = ( italic_V , italic_E )</annotation></semantics></math>, where <math alttext="V" class="ltx_Math" display="inline" id="Thmdefinition1.p1.2.2.m2.1"><semantics id="Thmdefinition1.p1.2.2.m2.1a"><mi id="Thmdefinition1.p1.2.2.m2.1.1" xref="Thmdefinition1.p1.2.2.m2.1.1.cmml">V</mi><annotation-xml encoding="MathML-Content" id="Thmdefinition1.p1.2.2.m2.1b"><ci id="Thmdefinition1.p1.2.2.m2.1.1.cmml" xref="Thmdefinition1.p1.2.2.m2.1.1">𝑉</ci></annotation-xml><annotation encoding="application/x-tex" id="Thmdefinition1.p1.2.2.m2.1c">V</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition1.p1.2.2.m2.1d">italic_V</annotation></semantics></math> are vertices and <math alttext="E" class="ltx_Math" display="inline" id="Thmdefinition1.p1.3.3.m3.1"><semantics id="Thmdefinition1.p1.3.3.m3.1a"><mi id="Thmdefinition1.p1.3.3.m3.1.1" xref="Thmdefinition1.p1.3.3.m3.1.1.cmml">E</mi><annotation-xml encoding="MathML-Content" id="Thmdefinition1.p1.3.3.m3.1b"><ci id="Thmdefinition1.p1.3.3.m3.1.1.cmml" xref="Thmdefinition1.p1.3.3.m3.1.1">𝐸</ci></annotation-xml><annotation encoding="application/x-tex" id="Thmdefinition1.p1.3.3.m3.1c">E</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition1.p1.3.3.m3.1d">italic_E</annotation></semantics></math> are edges, and <math alttext="n" class="ltx_Math" display="inline" id="Thmdefinition1.p1.4.4.m4.1"><semantics id="Thmdefinition1.p1.4.4.m4.1a"><mi id="Thmdefinition1.p1.4.4.m4.1.1" xref="Thmdefinition1.p1.4.4.m4.1.1.cmml">n</mi><annotation-xml encoding="MathML-Content" id="Thmdefinition1.p1.4.4.m4.1b"><ci id="Thmdefinition1.p1.4.4.m4.1.1.cmml" xref="Thmdefinition1.p1.4.4.m4.1.1">𝑛</ci></annotation-xml><annotation encoding="application/x-tex" id="Thmdefinition1.p1.4.4.m4.1c">n</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition1.p1.4.4.m4.1d">italic_n</annotation></semantics></math> agents with their start and goal vertices. At each step, an agent can move to an adjacent vertex or wait at its current vertex. Collisions occur when two agents move to the same vertex or traverse the same edge at the same step. The target is to find collision-free paths for all agents to their goals while minimizing the sum-of-costs, namely the total number of actions taken.</span></p>
+</div>
+</div>
+<div class="ltx_theorem ltx_theorem_definition" id="Thmdefinition2">
+<h6 class="ltx_title ltx_runin ltx_title_theorem">
+<span class="ltx_tag ltx_tag_theorem"><span class="ltx_text ltx_font_bold" id="Thmdefinition2.1.1.1">Definition 2</span></span><span class="ltx_text ltx_font_bold" id="Thmdefinition2.2.2"> (LMAPF)</span>
+</h6>
+<div class="ltx_para" id="Thmdefinition2.p1">
+<p class="ltx_p" id="Thmdefinition2.p1.1"><span class="ltx_text ltx_font_italic" id="Thmdefinition2.p1.1.1">LMAPF extends MAPF by constantly assigning new goals to agents via a (external) task assigner. The target is to find collision-free paths for all agents while maximizing throughput, namely the average number of goals reached by all agents per step.</span></p>
+</div>
+</div>
+<div class="ltx_theorem ltx_theorem_definition" id="Thmdefinition3">
+<h6 class="ltx_title ltx_runin ltx_title_theorem">
+<span class="ltx_tag ltx_tag_theorem"><span class="ltx_text ltx_font_bold" id="Thmdefinition3.1.1.1">Definition 3</span></span><span class="ltx_text ltx_font_bold" id="Thmdefinition3.2.2"> (MAPF with Rotations (MAPF-R))</span>
+</h6>
+<div class="ltx_para" id="Thmdefinition3.p1">
+<p class="ltx_p" id="Thmdefinition3.p1.4"><span class="ltx_text ltx_font_italic" id="Thmdefinition3.p1.4.4">MAPF-R
+is a variant of MAPF with different agent states and actions. It models a four-neighbor grid map as graph <math alttext="G" class="ltx_Math" display="inline" id="Thmdefinition3.p1.1.1.m1.1"><semantics id="Thmdefinition3.p1.1.1.m1.1a"><mi id="Thmdefinition3.p1.1.1.m1.1.1" xref="Thmdefinition3.p1.1.1.m1.1.1.cmml">G</mi><annotation-xml encoding="MathML-Content" id="Thmdefinition3.p1.1.1.m1.1b"><ci id="Thmdefinition3.p1.1.1.m1.1.1.cmml" xref="Thmdefinition3.p1.1.1.m1.1.1">𝐺</ci></annotation-xml><annotation encoding="application/x-tex" id="Thmdefinition3.p1.1.1.m1.1c">G</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition3.p1.1.1.m1.1d">italic_G</annotation></semantics></math> and the state of an agent as a location <math alttext="v\in V" class="ltx_Math" display="inline" id="Thmdefinition3.p1.2.2.m2.1"><semantics id="Thmdefinition3.p1.2.2.m2.1a"><mrow id="Thmdefinition3.p1.2.2.m2.1.1" xref="Thmdefinition3.p1.2.2.m2.1.1.cmml"><mi id="Thmdefinition3.p1.2.2.m2.1.1.2" xref="Thmdefinition3.p1.2.2.m2.1.1.2.cmml">v</mi><mo id="Thmdefinition3.p1.2.2.m2.1.1.1" xref="Thmdefinition3.p1.2.2.m2.1.1.1.cmml">∈</mo><mi id="Thmdefinition3.p1.2.2.m2.1.1.3" xref="Thmdefinition3.p1.2.2.m2.1.1.3.cmml">V</mi></mrow><annotation-xml encoding="MathML-Content" id="Thmdefinition3.p1.2.2.m2.1b"><apply id="Thmdefinition3.p1.2.2.m2.1.1.cmml" xref="Thmdefinition3.p1.2.2.m2.1.1"><in id="Thmdefinition3.p1.2.2.m2.1.1.1.cmml" xref="Thmdefinition3.p1.2.2.m2.1.1.1"></in><ci id="Thmdefinition3.p1.2.2.m2.1.1.2.cmml" xref="Thmdefinition3.p1.2.2.m2.1.1.2">𝑣</ci><ci id="Thmdefinition3.p1.2.2.m2.1.1.3.cmml" xref="Thmdefinition3.p1.2.2.m2.1.1.3">𝑉</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="Thmdefinition3.p1.2.2.m2.1c">v\in V</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition3.p1.2.2.m2.1d">italic_v ∈ italic_V</annotation></semantics></math> plus an orientation <math alttext="o\in\{" class="ltx_math_unparsed" display="inline" id="Thmdefinition3.p1.3.3.m3.1"><semantics id="Thmdefinition3.p1.3.3.m3.1a"><mrow id="Thmdefinition3.p1.3.3.m3.1b"><mi id="Thmdefinition3.p1.3.3.m3.1.1">o</mi><mo id="Thmdefinition3.p1.3.3.m3.1.2">∈</mo><mo id="Thmdefinition3.p1.3.3.m3.1.3" stretchy="false">{</mo></mrow><annotation encoding="application/x-tex" id="Thmdefinition3.p1.3.3.m3.1c">o\in\{</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition3.p1.3.3.m3.1d">italic_o ∈ {</annotation></semantics></math>East, South, West, North<math alttext="\}" class="ltx_Math" display="inline" id="Thmdefinition3.p1.4.4.m4.1"><semantics id="Thmdefinition3.p1.4.4.m4.1a"><mo id="Thmdefinition3.p1.4.4.m4.1.1" stretchy="false" xref="Thmdefinition3.p1.4.4.m4.1.1.cmml">}</mo><annotation-xml encoding="MathML-Content" id="Thmdefinition3.p1.4.4.m4.1b"><ci id="Thmdefinition3.p1.4.4.m4.1.1.cmml" xref="Thmdefinition3.p1.4.4.m4.1.1">}</ci></annotation-xml><annotation encoding="application/x-tex" id="Thmdefinition3.p1.4.4.m4.1c">\}</annotation><annotation encoding="application/x-llamapun" id="Thmdefinition3.p1.4.4.m4.1d">}</annotation></semantics></math>. At each step, an agent can forward to an adjacent vertex, rotate 90 degrees clockwise or counterclockwise, or wait at its current vertex.</span></p>
+</div>
+</div>
+<div class="ltx_para" id="S2.p1">
+<p class="ltx_p" id="S2.p1.1">The problem given in the LRR competition is a combination of <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#Thmdefinition2" title="Definition 2 (LMAPF) ‣ 2 Problem Definition ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Definitions</span> <span class="ltx_text ltx_ref_tag">2</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#Thmdefinition3" title="Definition 3 (MAPF with Rotations (MAPF-R)) ‣ 2 Problem Definition ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">3</span></a>, named LMAPF-R. Further, the task assigner is external to our planner and assigns exactly one new goal to an agent if the agent reaches its current one.</p>
+</div>
+<figure class="ltx_table" id="S2.T2">
+<div class="ltx_inline-block ltx_align_center ltx_transformed_outer" id="S2.T2.2" style="width:433.6pt;height:304.4pt;vertical-align:-0.0pt;"><span class="ltx_transformed_inner" style="transform:translate(75.8pt,-53.2pt) scale(1.53759424675022,1.53759424675022) ;">
+<table class="ltx_tabular ltx_guessed_headers ltx_align_middle" id="S2.T2.2.2">
+<thead class="ltx_thead">
+<tr class="ltx_tr" id="S2.T2.2.2.2">
+<th class="ltx_td ltx_nopad_r ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S2.T2.2.2.2.3">Instance</th>
+<th class="ltx_td ltx_nopad_l ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S2.T2.2.2.2.4">Algorithm</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S2.T2.1.1.1.1"><math alttext="w" class="ltx_Math" display="inline" id="S2.T2.1.1.1.1.m1.1"><semantics id="S2.T2.1.1.1.1.m1.1a"><mi id="S2.T2.1.1.1.1.m1.1.1" xref="S2.T2.1.1.1.1.m1.1.1.cmml">w</mi><annotation-xml encoding="MathML-Content" id="S2.T2.1.1.1.1.m1.1b"><ci id="S2.T2.1.1.1.1.m1.1.1.cmml" xref="S2.T2.1.1.1.1.m1.1.1">𝑤</ci></annotation-xml><annotation encoding="application/x-tex" id="S2.T2.1.1.1.1.m1.1c">w</annotation><annotation encoding="application/x-llamapun" id="S2.T2.1.1.1.1.m1.1d">italic_w</annotation></semantics></math></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S2.T2.2.2.2.2"><math alttext="h" class="ltx_Math" display="inline" id="S2.T2.2.2.2.2.m1.1"><semantics id="S2.T2.2.2.2.2.m1.1a"><mi id="S2.T2.2.2.2.2.m1.1.1" xref="S2.T2.2.2.2.2.m1.1.1.cmml">h</mi><annotation-xml encoding="MathML-Content" id="S2.T2.2.2.2.2.m1.1b"><ci id="S2.T2.2.2.2.2.m1.1.1.cmml" xref="S2.T2.2.2.2.2.m1.1.1">ℎ</ci></annotation-xml><annotation encoding="application/x-tex" id="S2.T2.2.2.2.2.m1.1c">h</annotation><annotation encoding="application/x-llamapun" id="S2.T2.2.2.2.2.m1.1d">italic_h</annotation></semantics></math></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S2.T2.2.2.2.5">GG</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S2.T2.2.2.2.6">DA</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" id="S2.T2.2.2.2.7">Score</th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr class="ltx_tr" id="S2.T2.2.2.3.1">
+<td class="ltx_td ltx_nopad_r ltx_align_center ltx_border_t" id="S2.T2.2.2.3.1.1">Random 100</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" id="S2.T2.2.2.3.1.2">WPPL</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S2.T2.2.2.3.1.3">20</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S2.T2.2.2.3.1.4">1</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S2.T2.2.2.3.1.5">No</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S2.T2.2.2.3.1.6">No</td>
+<td class="ltx_td ltx_align_center ltx_border_t" id="S2.T2.2.2.3.1.7">0.994</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.4.2">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.4.2.1">Random 200</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.4.2.2">WPPL</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.4.2.3">15</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.4.2.4">1</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.4.2.5">Manual</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.4.2.6">No</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.4.2.7">0.975</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.5.3">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.5.3.1">Random 400</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.5.3.2">WPPL</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.5.3.3">15</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.5.3.4">1</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.5.3.5">Manual</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.5.3.6">No</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.5.3.7">0.992</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.6.4">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.6.4.1">Random 600</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.6.4.2">WPPL</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.6.4.3">15</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.6.4.4">1</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.6.4.5">Manual</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.6.4.6">Yes</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.6.4.7">1.000</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.7.5">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.7.5.1">Random 800</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.7.5.2">PIBT</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.7.5.3">1</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.7.5.4">1</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.7.5.5">GGO</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.7.5.6">Yes</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.7.5.7">0.806</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.8.6">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.8.6.1">City 1000</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.8.6.2">WPPL</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.8.6.3">20</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.8.6.4">1</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.8.6.5">No</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.8.6.6">No</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.8.6.7">0.996</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.9.7">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.9.7.1">City 3000</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.9.7.2">WPPL</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.9.7.3">20</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.9.7.4">1</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.9.7.5">Manual</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.9.7.6">No</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.9.7.7">1.000</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.10.8">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.10.8.1">Game 4000</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.10.8.2">WPPL</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.10.8.3">15</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.10.8.4">3</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.10.8.5">Manual</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.10.8.6">Yes</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.10.8.7">1.000</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.11.9">
+<td class="ltx_td ltx_nopad_r ltx_align_center" id="S2.T2.2.2.11.9.1">Warehouse 8000</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" id="S2.T2.2.2.11.9.2">WPPL</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.11.9.3">10</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.11.9.4">3</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.11.9.5">Manual</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.11.9.6">No</td>
+<td class="ltx_td ltx_align_center" id="S2.T2.2.2.11.9.7">0.996</td>
+</tr>
+<tr class="ltx_tr" id="S2.T2.2.2.12.10">
+<td class="ltx_td ltx_nopad_r ltx_align_center ltx_border_bb" id="S2.T2.2.2.12.10.1">Sortation 10000</td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" id="S2.T2.2.2.12.10.2">WPPL</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S2.T2.2.2.12.10.3">10</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S2.T2.2.2.12.10.4">3</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S2.T2.2.2.12.10.5">Manual</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S2.T2.2.2.12.10.6">No</td>
+<td class="ltx_td ltx_align_center ltx_border_bb" id="S2.T2.2.2.12.10.7">0.997</td>
+</tr>
+</tbody>
+</table>
+</span></div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table">Table 2: </span>The best hyperparameters for each instance and the best scores of similar-setting online instances. Each instance is named as its map with its number of agents. An algorithm replans length-<math alttext="w" class="ltx_Math" display="inline" id="S2.T2.5.m1.1"><semantics id="S2.T2.5.m1.1b"><mi id="S2.T2.5.m1.1.1" xref="S2.T2.5.m1.1.1.cmml">w</mi><annotation-xml encoding="MathML-Content" id="S2.T2.5.m1.1c"><ci id="S2.T2.5.m1.1.1.cmml" xref="S2.T2.5.m1.1.1">𝑤</ci></annotation-xml><annotation encoding="application/x-tex" id="S2.T2.5.m1.1d">w</annotation><annotation encoding="application/x-llamapun" id="S2.T2.5.m1.1e">italic_w</annotation></semantics></math> paths every <math alttext="h" class="ltx_Math" display="inline" id="S2.T2.6.m2.1"><semantics id="S2.T2.6.m2.1b"><mi id="S2.T2.6.m2.1.1" xref="S2.T2.6.m2.1.1.cmml">h</mi><annotation-xml encoding="MathML-Content" id="S2.T2.6.m2.1c"><ci id="S2.T2.6.m2.1.1.cmml" xref="S2.T2.6.m2.1.1">ℎ</ci></annotation-xml><annotation encoding="application/x-tex" id="S2.T2.6.m2.1d">h</annotation><annotation encoding="application/x-llamapun" id="S2.T2.6.m2.1e">italic_h</annotation></semantics></math> step. GG and DA refer to Guidance Graph and Disabling Agents respectively. Details are explained in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3" title="3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Sections</span> <span class="ltx_text ltx_ref_tag">3</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4" title="4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">4</span></a>. </figcaption>
+</figure>
+<section class="ltx_paragraph" id="S2.SS0.SSS0.Px1">
+<h4 class="ltx_title ltx_title_paragraph">Competition and Experiment Setup</h4>
+<div class="ltx_para" id="S2.SS0.SSS0.Px1.p1">
+<p class="ltx_p" id="S2.SS0.SSS0.Px1.p1.1">All results are evaluated on a server with 32 AMD EPYC 7R13 Processor vCPUs and 128G Memory in the LRR competition. For simplicity, in this paper, we evaluate all the results on a local machine with 32 Intel(R) Xeon(R) Platinum 8350C vCPUs and 84G Memory. Since the online data was not publicly available when this paper was written,<span class="ltx_note ltx_role_footnote" id="footnote3"><sup class="ltx_note_mark">3</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">3</sup><span class="ltx_tag ltx_tag_note">3</span>The online data is now available at https://github.com/MAPF-Competition/Benchmark-Archive.git</span></span></span> we conducted our experiments with offline data that share similar settings to the online data. The map of each instance is known before simulation and given 30 minutes for preprocessing. We list all maps in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S1.T1" title="In 1 Introduction ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">1</span></a> and problem instances in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.T3" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">3</span></a>. The best hyperparameters are shown in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S2.T2" title="In 2 Problem Definition ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">2</span></a>.</p>
+</div>
+<div class="ltx_para" id="S2.SS0.SSS0.Px1.p2">
+<p class="ltx_p" id="S2.SS0.SSS0.Px1.p2.1">The competition ranks teams with 10 hidden instances in three tracks: Overall Best, Fast Mover, and Line Honours. For each instance, a normalized score between 0 and 1, defined as the throughput of a solution over the best throughput among all solutions submitted by all participants, is calculated. The Overall Best track ranks teams by the total score of all instances in one submission but allows the planner to exceed the 1-second limit. However, the system will lose the chance of moving for several steps until the current planning is finished. The Fast Mover track further restricts all actions to be planned within the time limit. The Line Honours track ranks teams by the total number of best solutions to individual instances but allows these best solutions to come from different submissions. Our final submission has close-to-1 scores on 9 out of 10 instances (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S2.T2" title="In 2 Problem Definition ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">2</span></a>) with a total score of 9.755, compared to 9.502 of the second-place team. Our solution won the Overall Best and Fast Mover tracks and ranked second in the Line Honours track. According to what we know, the second-place and third-place teams mainly used independent A* and CBS-based algorithms <cite class="ltx_cite ltx_citemacro_citep">(Sharon et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib31" title="">2015</a>)</cite>, which are very different from ours.</p>
+</div>
+<figure class="ltx_figure" id="S2.F2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S2.F2.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 2: </span>Windowed Parallel PIBT-LNS (WPPL). For each windowed MAPF instance, we run PIBT <math alttext="w" class="ltx_Math" display="inline" id="S2.F2.6.m1.1"><semantics id="S2.F2.6.m1.1b"><mi id="S2.F2.6.m1.1.1" xref="S2.F2.6.m1.1.1.cmml">w</mi><annotation-xml encoding="MathML-Content" id="S2.F2.6.m1.1c"><ci id="S2.F2.6.m1.1.1.cmml" xref="S2.F2.6.m1.1.1">𝑤</ci></annotation-xml><annotation encoding="application/x-tex" id="S2.F2.6.m1.1d">w</annotation><annotation encoding="application/x-llamapun" id="S2.F2.6.m1.1e">italic_w</annotation></semantics></math> steps to get an initial plan <math alttext="a_{1:w}" class="ltx_Math" display="inline" id="S2.F2.7.m2.1"><semantics id="S2.F2.7.m2.1b"><msub id="S2.F2.7.m2.1.1" xref="S2.F2.7.m2.1.1.cmml"><mi id="S2.F2.7.m2.1.1.2" xref="S2.F2.7.m2.1.1.2.cmml">a</mi><mrow id="S2.F2.7.m2.1.1.3" xref="S2.F2.7.m2.1.1.3.cmml"><mn id="S2.F2.7.m2.1.1.3.2" xref="S2.F2.7.m2.1.1.3.2.cmml">1</mn><mo id="S2.F2.7.m2.1.1.3.1" lspace="0.278em" rspace="0.278em" xref="S2.F2.7.m2.1.1.3.1.cmml">:</mo><mi id="S2.F2.7.m2.1.1.3.3" xref="S2.F2.7.m2.1.1.3.3.cmml">w</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S2.F2.7.m2.1c"><apply id="S2.F2.7.m2.1.1.cmml" xref="S2.F2.7.m2.1.1"><csymbol cd="ambiguous" id="S2.F2.7.m2.1.1.1.cmml" xref="S2.F2.7.m2.1.1">subscript</csymbol><ci id="S2.F2.7.m2.1.1.2.cmml" xref="S2.F2.7.m2.1.1.2">𝑎</ci><apply id="S2.F2.7.m2.1.1.3.cmml" xref="S2.F2.7.m2.1.1.3"><ci id="S2.F2.7.m2.1.1.3.1.cmml" xref="S2.F2.7.m2.1.1.3.1">:</ci><cn id="S2.F2.7.m2.1.1.3.2.cmml" type="integer" xref="S2.F2.7.m2.1.1.3.2">1</cn><ci id="S2.F2.7.m2.1.1.3.3.cmml" xref="S2.F2.7.m2.1.1.3.3">𝑤</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S2.F2.7.m2.1d">a_{1:w}</annotation><annotation encoding="application/x-llamapun" id="S2.F2.7.m2.1e">italic_a start_POSTSUBSCRIPT 1 : italic_w end_POSTSUBSCRIPT</annotation></semantics></math> and use Parallel MAPF-LNS to refine it. We then execute the first <math alttext="h" class="ltx_Math" display="inline" id="S2.F2.8.m3.1"><semantics id="S2.F2.8.m3.1b"><mi id="S2.F2.8.m3.1.1" xref="S2.F2.8.m3.1.1.cmml">h</mi><annotation-xml encoding="MathML-Content" id="S2.F2.8.m3.1c"><ci id="S2.F2.8.m3.1.1.cmml" xref="S2.F2.8.m3.1.1">ℎ</ci></annotation-xml><annotation encoding="application/x-tex" id="S2.F2.8.m3.1d">h</annotation><annotation encoding="application/x-llamapun" id="S2.F2.8.m3.1e">italic_h</annotation></semantics></math> actions of the refined plan <math alttext="a_{1:h}" class="ltx_Math" display="inline" id="S2.F2.9.m4.1"><semantics id="S2.F2.9.m4.1b"><msub id="S2.F2.9.m4.1.1" xref="S2.F2.9.m4.1.1.cmml"><mi id="S2.F2.9.m4.1.1.2" xref="S2.F2.9.m4.1.1.2.cmml">a</mi><mrow id="S2.F2.9.m4.1.1.3" xref="S2.F2.9.m4.1.1.3.cmml"><mn id="S2.F2.9.m4.1.1.3.2" xref="S2.F2.9.m4.1.1.3.2.cmml">1</mn><mo id="S2.F2.9.m4.1.1.3.1" lspace="0.278em" rspace="0.278em" xref="S2.F2.9.m4.1.1.3.1.cmml">:</mo><mi id="S2.F2.9.m4.1.1.3.3" xref="S2.F2.9.m4.1.1.3.3.cmml">h</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S2.F2.9.m4.1c"><apply id="S2.F2.9.m4.1.1.cmml" xref="S2.F2.9.m4.1.1"><csymbol cd="ambiguous" id="S2.F2.9.m4.1.1.1.cmml" xref="S2.F2.9.m4.1.1">subscript</csymbol><ci id="S2.F2.9.m4.1.1.2.cmml" xref="S2.F2.9.m4.1.1.2">𝑎</ci><apply id="S2.F2.9.m4.1.1.3.cmml" xref="S2.F2.9.m4.1.1.3"><ci id="S2.F2.9.m4.1.1.3.1.cmml" xref="S2.F2.9.m4.1.1.3.1">:</ci><cn id="S2.F2.9.m4.1.1.3.2.cmml" type="integer" xref="S2.F2.9.m4.1.1.3.2">1</cn><ci id="S2.F2.9.m4.1.1.3.3.cmml" xref="S2.F2.9.m4.1.1.3.3">ℎ</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S2.F2.9.m4.1d">a_{1:h}</annotation><annotation encoding="application/x-llamapun" id="S2.F2.9.m4.1e">italic_a start_POSTSUBSCRIPT 1 : italic_h end_POSTSUBSCRIPT</annotation></semantics></math>, updating the MAPF instance and reusing the rest of actions <math alttext="a_{h+1:w}" class="ltx_Math" display="inline" id="S2.F2.10.m5.1"><semantics id="S2.F2.10.m5.1b"><msub id="S2.F2.10.m5.1.1" xref="S2.F2.10.m5.1.1.cmml"><mi id="S2.F2.10.m5.1.1.2" xref="S2.F2.10.m5.1.1.2.cmml">a</mi><mrow id="S2.F2.10.m5.1.1.3" xref="S2.F2.10.m5.1.1.3.cmml"><mrow id="S2.F2.10.m5.1.1.3.2" xref="S2.F2.10.m5.1.1.3.2.cmml"><mi id="S2.F2.10.m5.1.1.3.2.2" xref="S2.F2.10.m5.1.1.3.2.2.cmml">h</mi><mo id="S2.F2.10.m5.1.1.3.2.1" xref="S2.F2.10.m5.1.1.3.2.1.cmml">+</mo><mn id="S2.F2.10.m5.1.1.3.2.3" xref="S2.F2.10.m5.1.1.3.2.3.cmml">1</mn></mrow><mo id="S2.F2.10.m5.1.1.3.1" lspace="0.278em" rspace="0.278em" xref="S2.F2.10.m5.1.1.3.1.cmml">:</mo><mi id="S2.F2.10.m5.1.1.3.3" xref="S2.F2.10.m5.1.1.3.3.cmml">w</mi></mrow></msub><annotation-xml encoding="MathML-Content" id="S2.F2.10.m5.1c"><apply id="S2.F2.10.m5.1.1.cmml" xref="S2.F2.10.m5.1.1"><csymbol cd="ambiguous" id="S2.F2.10.m5.1.1.1.cmml" xref="S2.F2.10.m5.1.1">subscript</csymbol><ci id="S2.F2.10.m5.1.1.2.cmml" xref="S2.F2.10.m5.1.1.2">𝑎</ci><apply id="S2.F2.10.m5.1.1.3.cmml" xref="S2.F2.10.m5.1.1.3"><ci id="S2.F2.10.m5.1.1.3.1.cmml" xref="S2.F2.10.m5.1.1.3.1">:</ci><apply id="S2.F2.10.m5.1.1.3.2.cmml" xref="S2.F2.10.m5.1.1.3.2"><plus id="S2.F2.10.m5.1.1.3.2.1.cmml" xref="S2.F2.10.m5.1.1.3.2.1"></plus><ci id="S2.F2.10.m5.1.1.3.2.2.cmml" xref="S2.F2.10.m5.1.1.3.2.2">ℎ</ci><cn id="S2.F2.10.m5.1.1.3.2.3.cmml" type="integer" xref="S2.F2.10.m5.1.1.3.2.3">1</cn></apply><ci id="S2.F2.10.m5.1.1.3.3.cmml" xref="S2.F2.10.m5.1.1.3.3">𝑤</ci></apply></apply></annotation-xml><annotation encoding="application/x-tex" id="S2.F2.10.m5.1d">a_{h+1:w}</annotation><annotation encoding="application/x-llamapun" id="S2.F2.10.m5.1e">italic_a start_POSTSUBSCRIPT italic_h + 1 : italic_w end_POSTSUBSCRIPT</annotation></semantics></math> in the next iteration of PIBT. </figcaption>
+</figure>
+</section>
+</section>
+<section class="ltx_section" id="S3">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">3 </span>Challenge 1: Limited Planning Time</h2>
+<div class="ltx_para" id="S3.p1">
+<p class="ltx_p" id="S3.p1.1">In this section, we discuss the first challenge of <em class="ltx_emph ltx_font_italic" id="S3.p1.1.1">how to obtain high-quality LMAPF solutions within a limited planning time</em>. Many real-world applications have such a requirement. For example, smart manufacturing and automated warehouses require efficient execution while autonomous driving and video games need real-time response. The LRR competition poses this challenge by giving only 1 second to plan actions for all agents at each step. This time limit is significantly shorter than the limits used in most existing work. We first analyze the existing work and then present our algorithm choices in the competition. Lastly, we discuss the related future directions.</p>
+</div>
+<section class="ltx_subsection" id="S3.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">3.1 </span>The Challenge and Related Works</h3>
+<div class="ltx_para" id="S3.SS1.p1">
+<p class="ltx_p" id="S3.SS1.p1.1">The challenging online LMAPF instance is generally decomposed into a sequence of MAPF instances solved by MAPF solvers. However, repeatedly replanning paths for all agents is extremely time-consuming. Several approaches have been proposed to reduce the computational effort and increase the scalarbility. For example, <cite class="ltx_cite ltx_citemacro_citet">Wan et al. (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib37" title="">2018</a>)</cite> propose an incremental variant of CBS to reuse the previous search effort. <cite class="ltx_cite ltx_citemacro_citet">Svancara et al. (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib34" title="">2019</a>)</cite> propose to only replan for the agents who receive new goals and the agents whose paths are affected by the former agents. However, the scalability of these methods is still very limited as indicated in the state-of-art work <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib21" title="">2021c</a>)</cite>, which proposes the RHCR framework. RHCR largely reduces computation time by adopting the idea of windowed planning which does not reason about conflicts beyond a fixed window. However, only an efficient framework is not enough. Indeed, when applying RHCR with PBS <cite class="ltx_cite ltx_citemacro_citep">(Ma et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib24" title="">2019</a>)</cite> and ECBS <cite class="ltx_cite ltx_citemacro_citep">(Barer et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib1" title="">2014</a>)</cite>, we can solve instances at most with hundreds of agents within the 1-second limit. Therefore, we need a faster MAPF solver that still provides good solutions.</p>
+</div>
+<div class="ltx_para" id="S3.SS1.p2">
+<p class="ltx_p" id="S3.SS1.p2.1">There are various MAPF algorithms, most of which can be categorized as follows. <span class="ltx_text ltx_font_bold" id="S3.SS1.p2.1.1">Optimal algorithms</span>, such as CBS <cite class="ltx_cite ltx_citemacro_citep">(Sharon et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib31" title="">2015</a>)</cite> and BCP <cite class="ltx_cite ltx_citemacro_citep">(Lam and Le Bodic <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib14" title="">2020</a>)</cite>, can return optimal solutions but have an exponential increase in runtime.
+<span class="ltx_text ltx_font_bold" id="S3.SS1.p2.1.2">Bounded-suboptimal algorithms</span>, such as
+ECBS <cite class="ltx_cite ltx_citemacro_citep">(Barer et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib1" title="">2014</a>)</cite> and
+EECBS <cite class="ltx_cite ltx_citemacro_citep">(Li, Ruml, and Koenig <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib20" title="">2021</a>)</cite>,
+guarantee solutions within a given bound and scale to hundreds of agents, but fail to tackle more challenging problems. <span class="ltx_text ltx_font_bold" id="S3.SS1.p2.1.3">Prioritized algorithms</span> <cite class="ltx_cite ltx_citemacro_citep">(Erdmann and Lozano-Pérez <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib7" title="">1987</a>)</cite> and <span class="ltx_text ltx_font_bold" id="S3.SS1.p2.1.4">rule-based algorithms</span> <cite class="ltx_cite ltx_citemacro_citep">(Okumura et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib29" title="">2019</a>; Wang and Rubenstein <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib38" title="">2020</a>)</cite> run much faster, but are incomplete and lack guarantee on their solution quality. These algorithms fall on the two extremes of a spectrum, either provide high-quality solutions but do not scale to challenging scenarios (such as 10k agents, 97% density, etc.) (most MAPF algorithms), or scale to them but with poor solution quality (such as PIBT).</p>
+</div>
+<div class="ltx_para" id="S3.SS1.p3">
+<p class="ltx_p" id="S3.SS1.p3.1">In the competition, we found two other types of algorithms, namely anytime and parallel algorithms, very useful when facing a limited planning time. However, both categories are underexplored compared to the previous ones.</p>
+</div>
+<div class="ltx_para" id="S3.SS1.p4">
+<p class="ltx_p" id="S3.SS1.p4.1"><span class="ltx_text ltx_font_bold" id="S3.SS1.p4.1.1">Anytime algorithms</span> offer a better trade-off between solution quality and runtime due to the anytime behavior, which refers to first generating an initial solution and then improving it over time. However, most existing works either cannot scale to a large number of agents <cite class="ltx_cite ltx_citemacro_citep">(Vedder and Biswas <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib36" title="">2021</a>)</cite>
+or have very weak anytime behaviors  <cite class="ltx_cite ltx_citemacro_citep">(Lam and Le Bodic <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib14" title="">2020</a>; Okumura <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib28" title="">2023</a>)</cite>.
+The state-of-the-art anytime algorithm for MAPF is MAPF-LNS <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib17" title="">2021a</a>)</cite>. Starting with an initial solution, MAPF-LNS continuously selects a group of agents and replans their paths.</p>
+</div>
+<div class="ltx_para" id="S3.SS1.p5">
+<p class="ltx_p" id="S3.SS1.p5.1"><span class="ltx_text ltx_font_bold" id="S3.SS1.p5.1.1">Parallel algorithms</span> are designed to exploit multi-core CPUs or GPUs. <cite class="ltx_cite ltx_citemacro_citet">Lee et al. (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib15" title="">2021</a>)</cite> parallelize CBS by solving subproblems in parallel, then merging the search trees of subproblems.
+<cite class="ltx_cite ltx_citemacro_citet">Li et al. (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib19" title="">2021b</a>)</cite> run multiple MAPF-LNS on independent threads and select the best solution among them. <cite class="ltx_cite ltx_citemacro_citet">Leet, Li, and Koenig (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib16" title="">2022</a>)</cite> divide the map into multiple regions and solve MAPF in each region in parallel.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S3.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">3.2 </span>Our Solution: WPPL</h3>
+<div class="ltx_para" id="S3.SS2.p1">
+<p class="ltx_p" id="S3.SS2.p1.1">We present Windowed Parallel PIBT-LNS (WPPL) as our solution to address the challenging LMAPF instances in the LRR competition. We give an overview of WPPL in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S2.F2" title="In Competition and Experiment Setup ‣ 2 Problem Definition ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">2</span></a> and introduce the design choices of each component below.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S3.SS2.p2">
+<p class="ltx_p" id="S3.SS2.p2.12"><span class="ltx_text ltx_font_bold" id="S3.SS2.p2.12.1">Windowed Planning.</span> With large agent numbers and map sizes, even planning the full shortest paths individually for all agents is computationally challenging within 1 second. Therefore, we apply the idea of a planning window in RHCR <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib21" title="">2021c</a>)</cite> to replan all agents every <math alttext="h" class="ltx_Math" display="inline" id="S3.SS2.p2.1.m1.1"><semantics id="S3.SS2.p2.1.m1.1a"><mi id="S3.SS2.p2.1.m1.1.1" xref="S3.SS2.p2.1.m1.1.1.cmml">h</mi><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.1.m1.1b"><ci id="S3.SS2.p2.1.m1.1.1.cmml" xref="S3.SS2.p2.1.m1.1.1">ℎ</ci></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.1.m1.1c">h</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.1.m1.1d">italic_h</annotation></semantics></math> steps with a planning window of length <math alttext="w" class="ltx_Math" display="inline" id="S3.SS2.p2.2.m2.1"><semantics id="S3.SS2.p2.2.m2.1a"><mi id="S3.SS2.p2.2.m2.1.1" xref="S3.SS2.p2.2.m2.1.1.cmml">w</mi><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.2.m2.1b"><ci id="S3.SS2.p2.2.m2.1.1.cmml" xref="S3.SS2.p2.2.m2.1.1">𝑤</ci></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.2.m2.1c">w</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.2.m2.1d">italic_w</annotation></semantics></math> (<math alttext="w\geq h" class="ltx_Math" display="inline" id="S3.SS2.p2.3.m3.1"><semantics id="S3.SS2.p2.3.m3.1a"><mrow id="S3.SS2.p2.3.m3.1.1" xref="S3.SS2.p2.3.m3.1.1.cmml"><mi id="S3.SS2.p2.3.m3.1.1.2" xref="S3.SS2.p2.3.m3.1.1.2.cmml">w</mi><mo id="S3.SS2.p2.3.m3.1.1.1" xref="S3.SS2.p2.3.m3.1.1.1.cmml">≥</mo><mi id="S3.SS2.p2.3.m3.1.1.3" xref="S3.SS2.p2.3.m3.1.1.3.cmml">h</mi></mrow><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.3.m3.1b"><apply id="S3.SS2.p2.3.m3.1.1.cmml" xref="S3.SS2.p2.3.m3.1.1"><geq id="S3.SS2.p2.3.m3.1.1.1.cmml" xref="S3.SS2.p2.3.m3.1.1.1"></geq><ci id="S3.SS2.p2.3.m3.1.1.2.cmml" xref="S3.SS2.p2.3.m3.1.1.2">𝑤</ci><ci id="S3.SS2.p2.3.m3.1.1.3.cmml" xref="S3.SS2.p2.3.m3.1.1.3">ℎ</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.3.m3.1c">w\geq h</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.3.m3.1d">italic_w ≥ italic_h</annotation></semantics></math>). Specifically, at step <math alttext="0" class="ltx_Math" display="inline" id="S3.SS2.p2.4.m4.1"><semantics id="S3.SS2.p2.4.m4.1a"><mn id="S3.SS2.p2.4.m4.1.1" xref="S3.SS2.p2.4.m4.1.1.cmml">0</mn><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.4.m4.1b"><cn id="S3.SS2.p2.4.m4.1.1.cmml" type="integer" xref="S3.SS2.p2.4.m4.1.1">0</cn></annotation-xml></semantics></math>, we use the initial <math alttext="1" class="ltx_Math" display="inline" id="S3.SS2.p2.5.m5.1"><semantics id="S3.SS2.p2.5.m5.1a"><mn id="S3.SS2.p2.5.m5.1.1" xref="S3.SS2.p2.5.m5.1.1.cmml">1</mn><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.5.m5.1b"><cn id="S3.SS2.p2.5.m5.1.1.cmml" type="integer" xref="S3.SS2.p2.5.m5.1.1">1</cn></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.5.m5.1c">1</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.5.m5.1d">1</annotation></semantics></math> second to plan a path of length <math alttext="w" class="ltx_Math" display="inline" id="S3.SS2.p2.6.m6.1"><semantics id="S3.SS2.p2.6.m6.1a"><mi id="S3.SS2.p2.6.m6.1.1" xref="S3.SS2.p2.6.m6.1.1.cmml">w</mi><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.6.m6.1b"><ci id="S3.SS2.p2.6.m6.1.1.cmml" xref="S3.SS2.p2.6.m6.1.1">𝑤</ci></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.6.m6.1c">w</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.6.m6.1d">italic_w</annotation></semantics></math> for each agent. Later, we always use the <math alttext="h" class="ltx_Math" display="inline" id="S3.SS2.p2.7.m7.1"><semantics id="S3.SS2.p2.7.m7.1a"><mi id="S3.SS2.p2.7.m7.1.1" xref="S3.SS2.p2.7.m7.1.1.cmml">h</mi><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.7.m7.1b"><ci id="S3.SS2.p2.7.m7.1.1.cmml" xref="S3.SS2.p2.7.m7.1.1">ℎ</ci></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.7.m7.1c">h</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.7.m7.1d">italic_h</annotation></semantics></math> seconds from step <math alttext="kh+1" class="ltx_Math" display="inline" id="S3.SS2.p2.8.m8.1"><semantics id="S3.SS2.p2.8.m8.1a"><mrow id="S3.SS2.p2.8.m8.1.1" xref="S3.SS2.p2.8.m8.1.1.cmml"><mrow id="S3.SS2.p2.8.m8.1.1.2" xref="S3.SS2.p2.8.m8.1.1.2.cmml"><mi id="S3.SS2.p2.8.m8.1.1.2.2" xref="S3.SS2.p2.8.m8.1.1.2.2.cmml">k</mi><mo id="S3.SS2.p2.8.m8.1.1.2.1" xref="S3.SS2.p2.8.m8.1.1.2.1.cmml">⁢</mo><mi id="S3.SS2.p2.8.m8.1.1.2.3" xref="S3.SS2.p2.8.m8.1.1.2.3.cmml">h</mi></mrow><mo id="S3.SS2.p2.8.m8.1.1.1" xref="S3.SS2.p2.8.m8.1.1.1.cmml">+</mo><mn id="S3.SS2.p2.8.m8.1.1.3" xref="S3.SS2.p2.8.m8.1.1.3.cmml">1</mn></mrow><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.8.m8.1b"><apply id="S3.SS2.p2.8.m8.1.1.cmml" xref="S3.SS2.p2.8.m8.1.1"><plus id="S3.SS2.p2.8.m8.1.1.1.cmml" xref="S3.SS2.p2.8.m8.1.1.1"></plus><apply id="S3.SS2.p2.8.m8.1.1.2.cmml" xref="S3.SS2.p2.8.m8.1.1.2"><times id="S3.SS2.p2.8.m8.1.1.2.1.cmml" xref="S3.SS2.p2.8.m8.1.1.2.1"></times><ci id="S3.SS2.p2.8.m8.1.1.2.2.cmml" xref="S3.SS2.p2.8.m8.1.1.2.2">𝑘</ci><ci id="S3.SS2.p2.8.m8.1.1.2.3.cmml" xref="S3.SS2.p2.8.m8.1.1.2.3">ℎ</ci></apply><cn id="S3.SS2.p2.8.m8.1.1.3.cmml" type="integer" xref="S3.SS2.p2.8.m8.1.1.3">1</cn></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.8.m8.1c">kh+1</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.8.m8.1d">italic_k italic_h + 1</annotation></semantics></math> to <math alttext="(k+1)h" class="ltx_Math" display="inline" id="S3.SS2.p2.9.m9.1"><semantics id="S3.SS2.p2.9.m9.1a"><mrow id="S3.SS2.p2.9.m9.1.1" xref="S3.SS2.p2.9.m9.1.1.cmml"><mrow id="S3.SS2.p2.9.m9.1.1.1.1" xref="S3.SS2.p2.9.m9.1.1.1.1.1.cmml"><mo id="S3.SS2.p2.9.m9.1.1.1.1.2" stretchy="false" xref="S3.SS2.p2.9.m9.1.1.1.1.1.cmml">(</mo><mrow id="S3.SS2.p2.9.m9.1.1.1.1.1" xref="S3.SS2.p2.9.m9.1.1.1.1.1.cmml"><mi id="S3.SS2.p2.9.m9.1.1.1.1.1.2" xref="S3.SS2.p2.9.m9.1.1.1.1.1.2.cmml">k</mi><mo id="S3.SS2.p2.9.m9.1.1.1.1.1.1" xref="S3.SS2.p2.9.m9.1.1.1.1.1.1.cmml">+</mo><mn id="S3.SS2.p2.9.m9.1.1.1.1.1.3" xref="S3.SS2.p2.9.m9.1.1.1.1.1.3.cmml">1</mn></mrow><mo id="S3.SS2.p2.9.m9.1.1.1.1.3" stretchy="false" xref="S3.SS2.p2.9.m9.1.1.1.1.1.cmml">)</mo></mrow><mo id="S3.SS2.p2.9.m9.1.1.2" xref="S3.SS2.p2.9.m9.1.1.2.cmml">⁢</mo><mi id="S3.SS2.p2.9.m9.1.1.3" xref="S3.SS2.p2.9.m9.1.1.3.cmml">h</mi></mrow><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.9.m9.1b"><apply id="S3.SS2.p2.9.m9.1.1.cmml" xref="S3.SS2.p2.9.m9.1.1"><times id="S3.SS2.p2.9.m9.1.1.2.cmml" xref="S3.SS2.p2.9.m9.1.1.2"></times><apply id="S3.SS2.p2.9.m9.1.1.1.1.1.cmml" xref="S3.SS2.p2.9.m9.1.1.1.1"><plus id="S3.SS2.p2.9.m9.1.1.1.1.1.1.cmml" xref="S3.SS2.p2.9.m9.1.1.1.1.1.1"></plus><ci id="S3.SS2.p2.9.m9.1.1.1.1.1.2.cmml" xref="S3.SS2.p2.9.m9.1.1.1.1.1.2">𝑘</ci><cn id="S3.SS2.p2.9.m9.1.1.1.1.1.3.cmml" type="integer" xref="S3.SS2.p2.9.m9.1.1.1.1.1.3">1</cn></apply><ci id="S3.SS2.p2.9.m9.1.1.3.cmml" xref="S3.SS2.p2.9.m9.1.1.3">ℎ</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.9.m9.1c">(k+1)h</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.9.m9.1d">( italic_k + 1 ) italic_h</annotation></semantics></math>, <math alttext="k\in\mathbb{N}" class="ltx_Math" display="inline" id="S3.SS2.p2.10.m10.1"><semantics id="S3.SS2.p2.10.m10.1a"><mrow id="S3.SS2.p2.10.m10.1.1" xref="S3.SS2.p2.10.m10.1.1.cmml"><mi id="S3.SS2.p2.10.m10.1.1.2" xref="S3.SS2.p2.10.m10.1.1.2.cmml">k</mi><mo id="S3.SS2.p2.10.m10.1.1.1" xref="S3.SS2.p2.10.m10.1.1.1.cmml">∈</mo><mi id="S3.SS2.p2.10.m10.1.1.3" xref="S3.SS2.p2.10.m10.1.1.3.cmml">ℕ</mi></mrow><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.10.m10.1b"><apply id="S3.SS2.p2.10.m10.1.1.cmml" xref="S3.SS2.p2.10.m10.1.1"><in id="S3.SS2.p2.10.m10.1.1.1.cmml" xref="S3.SS2.p2.10.m10.1.1.1"></in><ci id="S3.SS2.p2.10.m10.1.1.2.cmml" xref="S3.SS2.p2.10.m10.1.1.2">𝑘</ci><ci id="S3.SS2.p2.10.m10.1.1.3.cmml" xref="S3.SS2.p2.10.m10.1.1.3">ℕ</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.10.m10.1c">k\in\mathbb{N}</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.10.m10.1d">italic_k ∈ blackboard_N</annotation></semantics></math>, to plan the path of length <math alttext="w" class="ltx_Math" display="inline" id="S3.SS2.p2.11.m11.1"><semantics id="S3.SS2.p2.11.m11.1a"><mi id="S3.SS2.p2.11.m11.1.1" xref="S3.SS2.p2.11.m11.1.1.cmml">w</mi><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.11.m11.1b"><ci id="S3.SS2.p2.11.m11.1.1.cmml" xref="S3.SS2.p2.11.m11.1.1">𝑤</ci></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.11.m11.1c">w</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.11.m11.1d">italic_w</annotation></semantics></math> starting from the state at step <math alttext="(k+1)h" class="ltx_Math" display="inline" id="S3.SS2.p2.12.m12.1"><semantics id="S3.SS2.p2.12.m12.1a"><mrow id="S3.SS2.p2.12.m12.1.1" xref="S3.SS2.p2.12.m12.1.1.cmml"><mrow id="S3.SS2.p2.12.m12.1.1.1.1" xref="S3.SS2.p2.12.m12.1.1.1.1.1.cmml"><mo id="S3.SS2.p2.12.m12.1.1.1.1.2" stretchy="false" xref="S3.SS2.p2.12.m12.1.1.1.1.1.cmml">(</mo><mrow id="S3.SS2.p2.12.m12.1.1.1.1.1" xref="S3.SS2.p2.12.m12.1.1.1.1.1.cmml"><mi id="S3.SS2.p2.12.m12.1.1.1.1.1.2" xref="S3.SS2.p2.12.m12.1.1.1.1.1.2.cmml">k</mi><mo id="S3.SS2.p2.12.m12.1.1.1.1.1.1" xref="S3.SS2.p2.12.m12.1.1.1.1.1.1.cmml">+</mo><mn id="S3.SS2.p2.12.m12.1.1.1.1.1.3" xref="S3.SS2.p2.12.m12.1.1.1.1.1.3.cmml">1</mn></mrow><mo id="S3.SS2.p2.12.m12.1.1.1.1.3" stretchy="false" xref="S3.SS2.p2.12.m12.1.1.1.1.1.cmml">)</mo></mrow><mo id="S3.SS2.p2.12.m12.1.1.2" xref="S3.SS2.p2.12.m12.1.1.2.cmml">⁢</mo><mi id="S3.SS2.p2.12.m12.1.1.3" xref="S3.SS2.p2.12.m12.1.1.3.cmml">h</mi></mrow><annotation-xml encoding="MathML-Content" id="S3.SS2.p2.12.m12.1b"><apply id="S3.SS2.p2.12.m12.1.1.cmml" xref="S3.SS2.p2.12.m12.1.1"><times id="S3.SS2.p2.12.m12.1.1.2.cmml" xref="S3.SS2.p2.12.m12.1.1.2"></times><apply id="S3.SS2.p2.12.m12.1.1.1.1.1.cmml" xref="S3.SS2.p2.12.m12.1.1.1.1"><plus id="S3.SS2.p2.12.m12.1.1.1.1.1.1.cmml" xref="S3.SS2.p2.12.m12.1.1.1.1.1.1"></plus><ci id="S3.SS2.p2.12.m12.1.1.1.1.1.2.cmml" xref="S3.SS2.p2.12.m12.1.1.1.1.1.2">𝑘</ci><cn id="S3.SS2.p2.12.m12.1.1.1.1.1.3.cmml" type="integer" xref="S3.SS2.p2.12.m12.1.1.1.1.1.3">1</cn></apply><ci id="S3.SS2.p2.12.m12.1.1.3.cmml" xref="S3.SS2.p2.12.m12.1.1.3">ℎ</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p2.12.m12.1c">(k+1)h</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p2.12.m12.1d">( italic_k + 1 ) italic_h</annotation></semantics></math>.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S3.SS2.p3">
+<p class="ltx_p" id="S3.SS2.p3.1"><span class="ltx_text ltx_font_bold" id="S3.SS2.p3.1.1">PIBT-LNS.</span> Our windowed MAPF solver is PIBT-LNS, which obtains an initial solution using PIBT <cite class="ltx_cite ltx_citemacro_citep">(Okumura et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib29" title="">2019</a>)</cite>
+and then applies MAPF-LNS <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib17" title="">2021a</a>)</cite> to improve it.
+We select PIBT because it is an extremely fast algorithm and the only algorithm we know that can handle very large and dense problem instances.
+In our experiments, PIBT returns a solution within 250 ms in the large-scale Sortation 10000 instance and within 20 ms in the dense Random 800 instance, leaving ample remaining runtime. Therefore, we use the anytime algorithm MAPF-LNS to improve the solution and fully exploit the given planning time.
+To illustrate the effectiveness of MAPF-LNS, we run experiments with different planning time limits in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3.F3" title="In 3.2 Our Solution: WPPL ‣ 3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">3</span></a> and observe progressive improvements in throughput for all instances except for Random 800 and Game 4000 at 0.5 seconds. We will discuss this abnormal behavior in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4" title="4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">4</span></a>.</p>
+</div>
+<figure class="ltx_figure" id="S3.F3">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_figure_panel ltx_missing ltx_missing_image" id="S3.F3.g1" src=""/></div>
+<div class="ltx_flex_break"></div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F3.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F3.sf1.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(a) </span>Random</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F3.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F3.sf2.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(b) </span>City</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F3.sf3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F3.sf3.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(c) </span>Game</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F3.sf4"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F3.sf4.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(d) </span>Warehouse</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F3.sf5"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F3.sf5.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(e) </span>Sortation</figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 3: </span>The anytime behavior of WPPL. For better illustration, we apply guidance graphs (introduced later in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4" title="4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">4</span></a>), use only a single thread, and normalize throughput by the number of agents in this experiment.
+</figcaption>
+</figure>
+<figure class="ltx_figure" id="S3.F4">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F4.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F4.sf1.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(a) </span>Random</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F4.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F4.sf2.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(b) </span>City</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F4.sf3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F4.sf3.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(c) </span>Game</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F4.sf4"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F4.sf4.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(d) </span>Warehouse</figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S3.F4.sf5"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S3.F4.sf5.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">(e) </span>Sortation</figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 4: </span>The effect of Parallelizing LNS. For better illustration, we apply guidance graphs (introduced later in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4" title="4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">4</span></a>) and normalize throughput by the number of agents in this experiment. This figure uses the same legend as <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3.F3" title="In 3.2 Our Solution: WPPL ‣ 3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">3</span></a>.
+</figcaption>
+</figure>
+<div class="ltx_para ltx_noindent" id="S3.SS2.p4">
+<p class="ltx_p" id="S3.SS2.p4.1"><span class="ltx_text ltx_font_bold" id="S3.SS2.p4.1.1">Parallel PIBT-LNS.</span> We further parallelize PIBT-LNS to exploit multi-cores on the evaluation server. The parallelization strategy that we applied shares a great similarity with a concurrent work, DROP-LNS <cite class="ltx_cite ltx_citemacro_citep">(Chan et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib3" title="">2024</a>)</cite>. We asynchronously select groups of agents and replan paths for each group in parallel, but sequentially check each new sub-plan and update better ones to the global plan. We show the effectiveness of parallelization in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S3.F4" title="In 3.2 Our Solution: WPPL ‣ 3 Challenge 1: Limited Planning Time ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">4</span></a>.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S3.SS2.p5">
+<p class="ltx_p" id="S3.SS2.p5.1"><span class="ltx_text ltx_font_bold" id="S3.SS2.p5.1.1">Reuse Previous Search Effort.</span> Since we repeatedly solve overlapping windowed MAPF instances, it is natural to think of reusing search efforts from the previous planning. <cite class="ltx_cite ltx_citemacro_citet">Wan et al. (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib37" title="">2018</a>)</cite> and <cite class="ltx_cite ltx_citemacro_citet">Madar, Solovey, and Salzman (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib26" title="">2022</a>)</cite> successfully apply this idea to reduce the search time of CBS and PBS respectively in the lifelong setting. However, in our case, we hope that a partial plan refined by the previous search could provide hints for PIBT to obtain a better-quality initial solution. In our ablation study, reusing the past <math alttext="w-h" class="ltx_Math" display="inline" id="S3.SS2.p5.1.m1.1"><semantics id="S3.SS2.p5.1.m1.1a"><mrow id="S3.SS2.p5.1.m1.1.1" xref="S3.SS2.p5.1.m1.1.1.cmml"><mi id="S3.SS2.p5.1.m1.1.1.2" xref="S3.SS2.p5.1.m1.1.1.2.cmml">w</mi><mo id="S3.SS2.p5.1.m1.1.1.1" xref="S3.SS2.p5.1.m1.1.1.1.cmml">−</mo><mi id="S3.SS2.p5.1.m1.1.1.3" xref="S3.SS2.p5.1.m1.1.1.3.cmml">h</mi></mrow><annotation-xml encoding="MathML-Content" id="S3.SS2.p5.1.m1.1b"><apply id="S3.SS2.p5.1.m1.1.1.cmml" xref="S3.SS2.p5.1.m1.1.1"><minus id="S3.SS2.p5.1.m1.1.1.1.cmml" xref="S3.SS2.p5.1.m1.1.1.1"></minus><ci id="S3.SS2.p5.1.m1.1.1.2.cmml" xref="S3.SS2.p5.1.m1.1.1.2">𝑤</ci><ci id="S3.SS2.p5.1.m1.1.1.3.cmml" xref="S3.SS2.p5.1.m1.1.1.3">ℎ</ci></apply></annotation-xml><annotation encoding="application/x-tex" id="S3.SS2.p5.1.m1.1c">w-h</annotation><annotation encoding="application/x-llamapun" id="S3.SS2.p5.1.m1.1d">italic_w - italic_h</annotation></semantics></math> planned steps improves the throughput of Random 400, Random 600, and Random 800 by 4.2%, 29.9%, and 4.9%, respectively. For other maps, the improvement is below 2%. We conjecture it is because PIBT tends to find bad initial solutions in unstructured maps and crowded scenarios.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S3.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">3.3 </span>Future Directions</h3>
+<div class="ltx_para" id="S3.SS3.p1">
+<p class="ltx_p" id="S3.SS3.p1.1">When designing WPPL to solve the LMAPF instances in the LRR competition, we discover several directions worth further study.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S3.SS3.p2">
+<p class="ltx_p" id="S3.SS3.p2.1"><span class="ltx_text ltx_font_bold" id="S3.SS3.p2.1.1">Better Rule-based Algorithms.</span>
+We use PIBT to find an initial solution to a given MAPF instance. As a rule-based algorithm, PIBT has a faster speed but significantly lower solution quality than optimal and bounded-suboptimal MAPF algorithms <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib18" title="">2022</a>)</cite>. Thus, one direction is to develop rule-based algorithms with better solution quality. In addition, Multi-Agent Reinforcement Learning (MARL) is an emerging and promising alternative to rule-based algorithms. PRIMAL<sub class="ltx_sub" id="S3.SS3.p2.1.2">2</sub> <cite class="ltx_cite ltx_citemacro_citep">(Damani et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib6" title="">2021</a>)</cite>, a state-of-the-art MARL framework for LMAPF, has demonstrated a faster runtime but lower solution quality than RHCR. Therefore, we can also focus on improving the solution quality and addressing the incompleteness issue of MARL methods.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S3.SS3.p3">
+<p class="ltx_p" id="S3.SS3.p3.1"><span class="ltx_text ltx_font_bold" id="S3.SS3.p3.1.1">Better Anytime Algorithms.</span>
+Anytime algorithms are desirable in practice because they can make full use of the planning time budget. One straightforward idea is to improve MAPF-LNS, for example, by developing better ways to select groups of agents <cite class="ltx_cite ltx_citemacro_citep">(Huang et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib10" title="">2022</a>)</cite>. Another possibility is to improve the ability of other existing anytime algorithms like anytime ECBS <cite class="ltx_cite ltx_citemacro_citep">(Ivanashev, Andreychuk, and Yakovlev <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib11" title="">2022</a>)</cite> to rapidly improve performance within a short amount of time. Meanwhile, future studies can also work on extending other single-agent anytime algorithms, such as ARA* <cite class="ltx_cite ltx_citemacro_citep">(Likhachev, Gordon, and Thrun <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib22" title="">2003</a>)</cite>, to multi-agent scenarios.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S3.SS3.p4">
+<p class="ltx_p" id="S3.SS3.p4.1"><span class="ltx_text ltx_font_bold" id="S3.SS3.p4.1.1">Parallelism for MAPF.</span>
+With the rapid development of technologies, multi-CPUs and GPUs become cheaper, faster, and more prevalent. Other fields like deep learning and evolutionary computation have developed efficient software to leverage them. However, the MAPF community has fallen behind in exploiting parallelism due to the natural challenge of parallelizing centralized search algorithms. While some works have explored parallelizing CBS <cite class="ltx_cite ltx_citemacro_citep">(Lee et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib15" title="">2021</a>)</cite> or LNS <cite class="ltx_cite ltx_citemacro_citep">(Chan et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib3" title="">2024</a>)</cite> on multi-CPUs,
+the problem of efficiently parallelizing state-of-the-art MAPF algorithms stays underexplored.
+Therefore, future work can also study how to parallelize these search-based methods.
+</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S4">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">4 </span>Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms</h2>
+<div class="ltx_para" id="S4.p1">
+<p class="ltx_p" id="S4.p1.1">In this section, we discuss the second challenge of <em class="ltx_emph ltx_font_italic" id="S4.p1.1.1">how to alleviate traffic congestion and the effect of myopic planning</em>. We start by discussing the myopic behavior of LMAPF algorithms and analyze its relation to congestion. Then we present our methods, using guidance graphs <cite class="ltx_cite ltx_citemacro_citep">(Zhang et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib43" title="">2024</a>)</cite> and disabling agents to address these issues. Finally, we discuss the future work.</p>
+</div>
+<section class="ltx_subsection" id="S4.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">4.1 </span>The Challenge and Related Work</h3>
+<figure class="ltx_table" id="S4.T3">
+<table class="ltx_tabular ltx_centering ltx_guessed_headers ltx_align_middle" id="S4.T3.1">
+<thead class="ltx_thead">
+<tr class="ltx_tr" id="S4.T3.1.1.1">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_tt" id="S4.T3.1.1.1.1" rowspan="2"><span class="ltx_text" id="S4.T3.1.1.1.1.1">Instance</span></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_tt" id="S4.T3.1.1.1.2" rowspan="2"><span class="ltx_text" id="S4.T3.1.1.1.2.1">Total Steps</span></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_tt" id="S4.T3.1.1.1.3" rowspan="2"><span class="ltx_text" id="S4.T3.1.1.1.3.1">Agent Density</span></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" colspan="2" id="S4.T3.1.1.1.4">No GG</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" colspan="2" id="S4.T3.1.1.1.5">Manual GG</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt" colspan="2" id="S4.T3.1.1.1.6">Auto GG</th>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.2.2">
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_t" id="S4.T3.1.2.2.1">PIBT</th>
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_t" id="S4.T3.1.2.2.2">WPPL</th>
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_t" id="S4.T3.1.2.2.3">PIBT</th>
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_t" id="S4.T3.1.2.2.4">WPPL</th>
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_t" id="S4.T3.1.2.2.5">PIBT</th>
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_t" id="S4.T3.1.2.2.6">WPPL</th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr class="ltx_tr" id="S4.T3.1.3.1">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t" id="S4.T3.1.3.1.1">Random 100</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t" id="S4.T3.1.3.1.2">
+<span class="ltx_text ltx_phantom" id="S4.T3.1.3.1.2.1"><span style="visibility:hidden">1</span></span> 500</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t" id="S4.T3.1.3.1.3">12.2%</th>
+<td class="ltx_td ltx_align_right ltx_border_t" id="S4.T3.1.3.1.4">2.21</td>
+<td class="ltx_td ltx_align_right ltx_border_t" id="S4.T3.1.3.1.5"><span class="ltx_text ltx_font_bold" id="S4.T3.1.3.1.5.1">3.20</span></td>
+<td class="ltx_td ltx_align_right ltx_border_t" id="S4.T3.1.3.1.6">1.83</td>
+<td class="ltx_td ltx_align_right ltx_border_t" id="S4.T3.1.3.1.7">3.08</td>
+<td class="ltx_td ltx_align_right ltx_border_t" id="S4.T3.1.3.1.8">2.64</td>
+<td class="ltx_td ltx_align_right ltx_border_t" id="S4.T3.1.3.1.9">3.11</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.4.2">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.4.2.1">Random 200</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.4.2.2">
+<span class="ltx_text ltx_phantom" id="S4.T3.1.4.2.2.1"><span style="visibility:hidden">1</span></span> 500</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.4.2.3">24.4%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.4.2.4">2.55</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.4.2.5">5.69</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.4.2.6">2.35</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.4.2.7"><span class="ltx_text ltx_font_bold" id="S4.T3.1.4.2.7.1">5.72</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.4.2.8">2.74</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.4.2.9">5.56</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.5.3">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.5.3.1">Random 400</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.5.3.2">1,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.5.3.3">48.9%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.5.3.4">1.58</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.5.3.5">4.79</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.5.3.6">1.73</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.5.3.7"><span class="ltx_text ltx_font_bold" id="S4.T3.1.5.3.7.1">7.04</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.5.3.8">1.77</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.5.3.9">4.86</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.6.4">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.6.4.1">Random 600</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.6.4.2">1,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.6.4.3">73.4%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.6.4.4">1.81</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.6.4.5">2.44</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.6.4.6">2.46</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.6.4.7"><span class="ltx_text ltx_font_bold" id="S4.T3.1.6.4.7.1">5.26</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.6.4.8">2.53</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.6.4.9">2.57</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.7.5">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.7.5.1">Random 800</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.7.5.2">2,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.7.5.3">97.7%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.7.5.4">1.34</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.7.5.5">1.04</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.7.5.6">1.56</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.7.5.7">1.47</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.7.5.8"><span class="ltx_text ltx_font_bold" id="S4.T3.1.7.5.8.1">1.72</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.7.5.9">1.23</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.8.6">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.8.6.1">City 1000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.8.6.2">2,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.8.6.3">
+<span class="ltx_text ltx_phantom" id="S4.T3.1.8.6.3.1"><span style="visibility:hidden">1</span></span>2.1%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.8.6.4">4.39</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.8.6.5"><span class="ltx_text ltx_font_bold" id="S4.T3.1.8.6.5.1">4.72</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.8.6.6">4.61</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.8.6.7">4.70</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.8.6.8">-</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.8.6.9">-</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.9.7">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.9.7.1">City 3000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.9.7.2">4,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.9.7.3">
+<span class="ltx_text ltx_phantom" id="S4.T3.1.9.7.3.1"><span style="visibility:hidden">1</span></span>6.4%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.9.7.4">5.95</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.9.7.5">6.13</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.9.7.6">9.57</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.9.7.7"><span class="ltx_text ltx_font_bold" id="S4.T3.1.9.7.7.1">14.10</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.9.7.8">-</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.9.7.9">-</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.10.8">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.10.8.1">Game 4000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.10.8.2">5,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.10.8.3">
+<span class="ltx_text ltx_phantom" id="S4.T3.1.10.8.3.1"><span style="visibility:hidden">1</span></span>9.3%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.10.8.4">2.01</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.10.8.5">1.18</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.10.8.6">3.54</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.10.8.7"><span class="ltx_text ltx_font_bold" id="S4.T3.1.10.8.7.1">5.45</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.10.8.8">-</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.10.8.9">-</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.11.9">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.11.9.1">Warehouse 8000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.11.9.2">5,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row" id="S4.T3.1.11.9.3">20.7%</th>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.11.9.4">10.37</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.11.9.5">5.89</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.11.9.6">30.07</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.11.9.7"><span class="ltx_text ltx_font_bold" id="S4.T3.1.11.9.7.1">31.34</span></td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.11.9.8">-</td>
+<td class="ltx_td ltx_align_right" id="S4.T3.1.11.9.9">-</td>
+</tr>
+<tr class="ltx_tr" id="S4.T3.1.12.10">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb" id="S4.T3.1.12.10.1">Sortation 10000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb" id="S4.T3.1.12.10.2">5,000</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb" id="S4.T3.1.12.10.3">18.4%</th>
+<td class="ltx_td ltx_align_right ltx_border_bb" id="S4.T3.1.12.10.4">10.20</td>
+<td class="ltx_td ltx_align_right ltx_border_bb" id="S4.T3.1.12.10.5">10.19</td>
+<td class="ltx_td ltx_align_right ltx_border_bb" id="S4.T3.1.12.10.6">29.99</td>
+<td class="ltx_td ltx_align_right ltx_border_bb" id="S4.T3.1.12.10.7"><span class="ltx_text ltx_font_bold" id="S4.T3.1.12.10.7.1">39.34</span></td>
+<td class="ltx_td ltx_align_right ltx_border_bb" id="S4.T3.1.12.10.8">-</td>
+<td class="ltx_td ltx_align_right ltx_border_bb" id="S4.T3.1.12.10.9">-</td>
+</tr>
+</tbody>
+</table>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table">Table 3: </span>
+The table’s first three columns show each instance’s basic information.
+Agent density is the agent number divided by the vertex number. The rest of the table shows the throughput of PIBT and WPPL on each instance with different guidance graphs (edge weights) and algorithms. No GG, Manual GG, and Auto GG refer to no guidance graph, manually defined graph, and guidance graph found by GGO algorithm with PIBT respectively. The best throughput is marked in bold. The empty values in Auto GG are due to the large computational demand making GGO unable to run on those maps. </figcaption>
+</figure>
+<div class="ltx_para" id="S4.SS1.p1">
+<p class="ltx_p" id="S4.SS1.p1.1">Congestion is a challenging problem in many lifelong applications, such as traffic and communication systems. Without a proper coordination mechanism, the situation will generally deteriorate over time. We also observed such a phenomenon in the LRR competition. While WPPL obtains competitive throughput on several maps, we find severe congestion on others. The first and second graphs of <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F5" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">5</span></a> highlight severe congestion with both PIBT and WPPL in the Warehouse 8000 instance. In addition, while WPPL is expected to refine solutions of PIBT, we observe that WPPL causes more congestion than PIBT and has lower throughput in Random 800, Game 4000, Warehouse 8000, and Sortation 10000, as shown in the no Guidance Graph (GG) column of <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.T3" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">3</span></a>. In the second graph (WPPL) of <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F5" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">5</span></a>, we can also identify more severe congestion in the center of the warehouse, compared to the first graph (PIBT), where the congestion is less severe and more uniform.</p>
+</div>
+<figure class="ltx_figure" id="S4.F5"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S4.F5.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 5: </span>Comparison of with and without guidance graph in the Warehouse 8000 instance. The heatmap shows the wait action usage (the number of steps agents wait in each vertex). Red denotes areas of high congestion.</figcaption>
+</figure>
+<div class="ltx_para" id="S4.SS1.p2">
+<p class="ltx_p" id="S4.SS1.p2.1">We believe that the myopic behavior of LMAPF algorithms is one cause of the congestion. In particular, most LMAPF algorithms, including WPPL, split the LMAPF problem into a sequence of MAPF instances and solve each one with a limited horizon by ignoring future collisions and congestion. Eventually, an optimal solution to the current MAPF instance may form or worsen congestion in the future and may not lead to global optimality.</p>
+</div>
+<div class="ltx_para" id="S4.SS1.p3">
+<p class="ltx_p" id="S4.SS1.p3.2">In the case of WPPL, we solve a sequence of windowed MAPF instances by minimizing the approximated sum-of-costs objective, computed as the sum of the actual costs in the window and the approximated costs beyond the window (estimated by the costs of agents’ individual shortest paths to their current goals). The approximated objective could be inaccurate if the actual future path costs are much larger than the shortest path approximations. As a result, even though WPPL improves its approximated sum-of-costs objective in the earlier MAPF instances, the movement of agents might cause more severe congestion, and the overall throughput is not guaranteed to improve. Meanwhile, if there is more congestion, the approximated objective could potentially become more inaccurate, making the myopic effect more severe. Namely, the effect of myopia and the congestion may mutually enhance each other. To demonstrate the effect of windowed planning in WPPL, we measure throughput in the Sortation 10,000 instance by running WPPL with various window sizes but fixed LNS refinement iterations to roughly 25,000 in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F6" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">6</span></a>. We observe that both the throughput and runtime of WPPL increase with a larger window size <math alttext="w" class="ltx_Math" display="inline" id="S4.SS1.p3.1.m1.1"><semantics id="S4.SS1.p3.1.m1.1a"><mi id="S4.SS1.p3.1.m1.1.1" xref="S4.SS1.p3.1.m1.1.1.cmml">w</mi><annotation-xml encoding="MathML-Content" id="S4.SS1.p3.1.m1.1b"><ci id="S4.SS1.p3.1.m1.1.1.cmml" xref="S4.SS1.p3.1.m1.1.1">𝑤</ci></annotation-xml><annotation encoding="application/x-tex" id="S4.SS1.p3.1.m1.1c">w</annotation><annotation encoding="application/x-llamapun" id="S4.SS1.p3.1.m1.1d">italic_w</annotation></semantics></math>. Yet, WPPL does not outperform PIBT until <math alttext="w&gt;15" class="ltx_Math" display="inline" id="S4.SS1.p3.2.m2.1"><semantics id="S4.SS1.p3.2.m2.1a"><mrow id="S4.SS1.p3.2.m2.1.1" xref="S4.SS1.p3.2.m2.1.1.cmml"><mi id="S4.SS1.p3.2.m2.1.1.2" xref="S4.SS1.p3.2.m2.1.1.2.cmml">w</mi><mo id="S4.SS1.p3.2.m2.1.1.1" xref="S4.SS1.p3.2.m2.1.1.1.cmml">&gt;</mo><mn id="S4.SS1.p3.2.m2.1.1.3" xref="S4.SS1.p3.2.m2.1.1.3.cmml">15</mn></mrow><annotation-xml encoding="MathML-Content" id="S4.SS1.p3.2.m2.1b"><apply id="S4.SS1.p3.2.m2.1.1.cmml" xref="S4.SS1.p3.2.m2.1.1"><gt id="S4.SS1.p3.2.m2.1.1.1.cmml" xref="S4.SS1.p3.2.m2.1.1.1"></gt><ci id="S4.SS1.p3.2.m2.1.1.2.cmml" xref="S4.SS1.p3.2.m2.1.1.2">𝑤</ci><cn id="S4.SS1.p3.2.m2.1.1.3.cmml" type="integer" xref="S4.SS1.p3.2.m2.1.1.3">15</cn></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS1.p3.2.m2.1c">w&gt;15</annotation><annotation encoding="application/x-llamapun" id="S4.SS1.p3.2.m2.1d">italic_w &gt; 15</annotation></semantics></math>.</p>
+</div>
+<figure class="ltx_figure" id="S4.F6"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S4.F6.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 6: </span>The throughput (red) and the average planning time per step (blue) of WPPL with different window sizes and PIBT in the Warehouse 8000 instance.</figcaption>
+</figure>
+<div class="ltx_para" id="S4.SS1.p4">
+<p class="ltx_p" id="S4.SS1.p4.1">Some methods have been proposed to estimate the future cost better. <cite class="ltx_cite ltx_citemacro_citet">Yu and Wolf (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib39" title="">2023</a>)</cite> apply a deep learning method to predict congestion delays at all vertices for multiple future time windows. <cite class="ltx_cite ltx_citemacro_citet">Chen et al. (<a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib4" title="">2024</a>)</cite> adopt an online estimation approach by hand-crafting heuristics of vertex and contraflow congestion, and iteratively replanning paths.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S4.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">4.2 </span>Designing Guidance and Disabling Agents</h3>
+<div class="ltx_para" id="S4.SS2.p1">
+<p class="ltx_p" id="S4.SS2.p1.1">As shown in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.SS1" title="4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">4.1</span></a>, while increasing the window size of WPPL can alleviate its myopic behavior, solving the MAPF instance in a larger window takes more time.
+Therefore, instead of trying to design less myopic LMAPF algorithms, we intend to directly alleviate congestion by applying the guidance graph <cite class="ltx_cite ltx_citemacro_citep">(Zhang et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib43" title="">2024</a>)</cite> and disabling agents. Intuitively, these methods do not change the myopic nature of WPPL. However, they make the myopic behavior of WPPL less harmful to overall throughput.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.SS2.p2">
+<p class="ltx_p" id="S4.SS2.p2.1"><span class="ltx_text ltx_font_bold" id="S4.SS2.p2.1.1">Design Guidance.</span>
+We use both manually designed and automatically optimized guidance graphs that are essentially edge weights encoding the costs of moving from one vertex to another (including staying at the original vertex). To manually design the guidance graphs, we start with the crisscross highway <cite class="ltx_cite ltx_citemacro_citep">(Cohen <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib5" title="">2020</a>)</cite> and fine-tune the edge weights. We slightly increase the weights in congested regions and decrease the weights in idle regions by observing the wait action usage map (e.g., <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F5" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">5</span></a>) obtained from the simulation. If throughput increases, we keep the new weight; otherwise, we try different weight modifications. However, such manual fine-tuning is very challenging for the Random map with irregular layouts and almost impossible for the instance Random 800 with an extremely high agent density, where every location seems very congested. Thus, we additionally use the guidance graph optimization (GGO) methods <cite class="ltx_cite ltx_citemacro_citep">(Zhang et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib43" title="">2024</a>)</cite> to optimize the edge weights automatically. Due to the large computational demand of GGO methods, we cannot run GGO directly with WPPL or on large maps. Therefore, we only experiment GGO with PIBT for instances on the Random map and evaluate the same optimized guidance graph with WPPL in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.T3" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">3</span></a>.</p>
+</div>
+<figure class="ltx_figure" id="S4.F7"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S4.F7.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 7: </span>The blue line shows the throughput on the Game 4000 instance with different numbers of agents not disabled (out of 4000 agents). The orange line shows the throughput on the Game map with different total numbers of agents (no agent is disabled). The red dashed line indicates the maximum throughput and the corresponding number of agents.</figcaption>
+</figure>
+<figure class="ltx_figure" id="S4.F8"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_missing ltx_missing_image" id="S4.F8.g1" src=""/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 8: </span>Comparison of with and without disabling agents for the Game 4000 instance. The heatmap shows the wait action usage (the number of times agents wait in each vertex).</figcaption>
+</figure>
+<div class="ltx_para ltx_noindent" id="S4.SS2.p3">
+<p class="ltx_p" id="S4.SS2.p3.1"><span class="ltx_text ltx_font_bold" id="S4.SS2.p3.1.1">Disabling Agents.</span>
+Even after we add guidance graphs, we still observe congestion in specific maps, for example,
+at deadends (vertices with only one neighbor) and narrow corridors, especially when there are exceedingly many agents in a local region. However, dealing with geometrically difficult structures remains an open problem. We naively use an ad-hoc trick that disables some agents from going to these regions by setting their goals to their current locations and their priorities to the lowest in both PIBT and the Prioritized Planning algorithm used by MAPF-LNS. As a result, when blocking other higher-priority agents that are not disabled, these disabled agents will be pushed away. For Random 600 and 800, we disable agents whose goals are at the deadends. For Game 4000, we search for the most suitable agent number by evaluating various numbers of agents on the map. As shown in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F7" title="In 4.2 Designing Guidance and Disabling Agents ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">7</span></a>, we observe the highest throughput with 2,500 agents, so we randomly disable 1,500 agents. In addition, the coincidence of the blue and orange lines indicates that these disabled agents did not block others due to our changes to their goals and priorities. In the ablation study, the algorithm without disabling agents experiences 15.7%, 51.8%, and 47.0% throughput drops on Random 600, Random 800, and Game 4000, respectively. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F8" title="In 4.2 Designing Guidance and Disabling Agents ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">8</span></a> compares the wait action usage before and after disabling agents for the Game 4000 instance, indicating the alleviation of congestion.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S4.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">4.3 </span>Future Directions</h3>
+<div class="ltx_para" id="S4.SS3.p1">
+<p class="ltx_p" id="S4.SS3.p1.1">Unfortunately, it is impossible to eliminate the myopic behavior of LMAPF algorithms, since it is impractical to know all future tasks. But we can still alleviate it, for example, by traffic predictions, or make its effect less harmful, for example, by reducing congestion. We list several potential solutions in the following.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.SS3.p2">
+<p class="ltx_p" id="S4.SS3.p2.1"><span class="ltx_text ltx_font_bold" id="S4.SS3.p2.1.1">Better Guidance Graphs and System Designs.</span>
+Since it is challenging or even impractical to manually design guidance for LMAPF instances with arbitrary map size and number of agents, automatic guidance design is appealing. However, GGO still suffers from large computation currently. Therefore, future work can focus on scaling GGO methods to larger-scale problems. In addition, the guidance graphs are optimized offline in GGO, while previous works have explored updating the guidance online during the execution of the LMAPF algorithm <cite class="ltx_cite ltx_citemacro_citep">(Chen et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib4" title="">2024</a>)</cite>. Future works can incorporate the online update mechanism into guidance graphs. Furthermore, future work can also focus more broadly on better system design, for example, exploring layout optimization to improve throughput <cite class="ltx_cite ltx_citemacro_citep">(Zhang et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib41" title="">2023b</a>, <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib40" title="">a</a>)</cite>. Another idea is to design traffic rules in the system as in the real world. A preliminary study has been applied to MAPF by requiring agents to move in a first-come-first-served manner <cite class="ltx_cite ltx_citemacro_citep">(Jansen and Sturtevant <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib12" title="">2008</a>)</cite>. Future work can focus on developing more systematic rules to guide the movement of agents.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.SS3.p3">
+<p class="ltx_p" id="S4.SS3.p3.1"><span class="ltx_text ltx_font_bold" id="S4.SS3.p3.1.1">Data-Driven Future Prediction.</span>
+Previous works have explored using data-driven methods to predict future congestion and incorporate the prediction in planning <cite class="ltx_cite ltx_citemacro_citep">(Yu and Wolf <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib39" title="">2023</a>)</cite>, but it is only applied to simple reactive planning algorithms with <math alttext="A^{*}" class="ltx_Math" display="inline" id="S4.SS3.p3.1.m1.1"><semantics id="S4.SS3.p3.1.m1.1a"><msup id="S4.SS3.p3.1.m1.1.1" xref="S4.SS3.p3.1.m1.1.1.cmml"><mi id="S4.SS3.p3.1.m1.1.1.2" xref="S4.SS3.p3.1.m1.1.1.2.cmml">A</mi><mo id="S4.SS3.p3.1.m1.1.1.3" xref="S4.SS3.p3.1.m1.1.1.3.cmml">∗</mo></msup><annotation-xml encoding="MathML-Content" id="S4.SS3.p3.1.m1.1b"><apply id="S4.SS3.p3.1.m1.1.1.cmml" xref="S4.SS3.p3.1.m1.1.1"><csymbol cd="ambiguous" id="S4.SS3.p3.1.m1.1.1.1.cmml" xref="S4.SS3.p3.1.m1.1.1">superscript</csymbol><ci id="S4.SS3.p3.1.m1.1.1.2.cmml" xref="S4.SS3.p3.1.m1.1.1.2">𝐴</ci><times id="S4.SS3.p3.1.m1.1.1.3.cmml" xref="S4.SS3.p3.1.m1.1.1.3"></times></apply></annotation-xml><annotation encoding="application/x-tex" id="S4.SS3.p3.1.m1.1c">A^{*}</annotation><annotation encoding="application/x-llamapun" id="S4.SS3.p3.1.m1.1d">italic_A start_POSTSUPERSCRIPT ∗ end_POSTSUPERSCRIPT</annotation></semantics></math> search. Future works can explore incorporating predicted traffic information into more recent LMAPF algorithms. Furthermore, we can also consider future congestion when assigning tasks to agents.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.SS3.p4">
+<p class="ltx_p" id="S4.SS3.p4.1"><span class="ltx_text ltx_font_bold" id="S4.SS3.p4.1.1">Applying Real-time Search.</span>
+The key insight of real-time search is that the agent can escape the local minima by updating the heuristic <cite class="ltx_cite ltx_citemacro_citep">(Korf <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib13" title="">1990</a>)</cite> during execution with a constant amount of search around the space of this agent.
+The heuristic penalizes previously visited states and encourages the agent to explore other areas of the map. In the 2D MAPF context, we have a perfect single-agent Backward Dijkstra heuristic, so agents getting stuck is not due to obstacles but instead, congestion. Thus, updating agents’ heuristics based on congestion could mitigate congestion caused by limited-horizon planning. Initial attempts <cite class="ltx_cite ltx_citemacro_citep">(Sigurdson et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib32" title="">2018</a>)</cite> have not dealt with inter-agent interactions, but this area is ripe for advancement.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.SS3.p5">
+<p class="ltx_p" id="S4.SS3.p5.1"><span class="ltx_text ltx_font_bold" id="S4.SS3.p5.1.1">Searching for the Optimal Number of Agents.</span>
+The fact that disabling agents improves throughput indicates that we can search for an optimal number of agents for a given LMAPF instance. As shown in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.F7" title="In 4.2 Designing Guidance and Disabling Agents ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">7</span></a>, 2,500 agents are enough to achieve the best throughput.
+Future work could attempt to determine the optimal number of agents to maximize the throughput. More interestingly, we can identify such a number similarly for a local region to more formally study the concept of congestion.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S5">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">5 </span>Challenge 3: Gaps between LAMPF Models and Real-World Applications</h2>
+<div class="ltx_para" id="S5.p1">
+<p class="ltx_p" id="S5.p1.1">In this section, we discuss the third challenge of <em class="ltx_emph ltx_font_italic" id="S5.p1.1.1">bridging the gaps between commonly used LMAPF models in the literature and real-world LMAPF applications.</em>
+We conjecture that this challenge can also deteriorate the former two challenges. Therefore, we should be aware of the existence and influence of these gaps and study more realistic LMAPF models in future research.</p>
+</div>
+<section class="ltx_subsection" id="S5.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">5.1 </span>Dealing with the LMAPF-R Model</h3>
+<div class="ltx_para" id="S5.SS1.p1">
+<p class="ltx_p" id="S5.SS1.p1.1">Rather than using a four-way movement action model, which allows an agent to move to one of its neighboring vertices on a four-neighbor grid map, the competition adopts the more realistic LMAPF-R model, where the motion of agents is based on moving forward, rotating, and waiting, to close the gap between our study and the real world. There are two possible ways to approach rotations in LMAPF-R. One is to plan with the original action model without rotations and then map the solution to the new one with rotations, for example, using global synchronization or temporal plan graphs <cite class="ltx_cite ltx_citemacro_citep">(Hönig et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib9" title="">2016</a>)</cite>. Another way is to directly include rotations in the planning algorithms.</p>
+</div>
+<div class="ltx_para" id="S5.SS1.p2">
+<p class="ltx_p" id="S5.SS1.p2.1">We adopt the second solution because direct consideration of rotation in the planning algorithms could lead to better throughput <cite class="ltx_cite ltx_citemacro_citep">(Varambally, Li, and Koenig <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib35" title="">2022</a>)</cite>. Adapting LNS for rotations is simple because we only need to modify the single-agent planner used in the prioritized replanning. But it is tricky for PIBT if we want our search to be based on rotations. Because PIBT needs to reason collisions based on the next locations of agents, while rotations do not directly imply the next locations. For example, if an agent rotates 90 degrees clockwise, it is not immediately clear if the agent wants to move right or backward. Without clear information about the next locations, PIBT cannot determine if a collision will happen in the next step. So, in our solution, we still resolve collisions at each step of the search, by planning the next location first with the original PIBT. Since we have rotations, moving to the next location may correspond to multiple actions and different agents may need different steps to their next location. We ask an agent to take only the first action that leads to its next location and discard the remaining ones. In this way, our search incorporates rotations directly in the current step (as the first actions to the next locations). A recent paper <cite class="ltx_cite ltx_citemacro_citep">(Zhang et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib42" title="">2023c</a>)</cite> also studies the difference between the two action models and shows how to adapt CBS to the rotation action model.</p>
+</div>
+<div class="ltx_para" id="S5.SS1.p3">
+<p class="ltx_p" id="S5.SS1.p3.1">The rotation action model could more easily lead to congestion because, intuitively, it takes more steps for agents to avoid collisions when agents need to change moving directions. To verify this, we test the four-way movement action model on Random 800, Game 4000, Warehouse 8000, and Sortation 10000, namely the 4 instances on which WPPL underperforms PIBT without guidance graphs in <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#S4.T3" title="In 4.1 The Challenge and Related Work ‣ 4 Challenge 2: Traffic Congestion and the Myopic Behavior of LMAPF Algorithms ‣ Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">3</span></a>. We observe that WPPL performs much better than PIBT in Game 4000, Warehouse 8000, and Sortation 10000 with relative throughput improvements of 185.0%, 192.5%, and 189.0%, respectively. For Random 800 with an extreme agent density, WPPL still performs worse, but only with a gap of 11. 0%, compared to the original 22.5%. Such results demonstrate that the rotation action model is more prone to congestion than the four-way movement action model.</p>
+</div>
+<div class="ltx_para" id="S5.SS1.p4">
+<p class="ltx_p" id="S5.SS1.p4.1">Thus, we argue that even trying to close a small gap, such as adding rotation actions, still requires a certain amount of reasoning and engineering. It may also lead to different results in the experiment and requires careful investigation.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S5.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">5.2 </span>Unrealistic Modeling</h3>
+<div class="ltx_para" id="S5.SS2.p1">
+<p class="ltx_p" id="S5.SS2.p1.1">There are several other gaps beyond the competition, which we believe are worth further studying. These gaps may be studied for MAPF, but are less explored in LMAPF.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S5.SS2.p2">
+<p class="ltx_p" id="S5.SS2.p2.1"><span class="ltx_text ltx_font_bold" id="S5.SS2.p2.1.1">Planning with Kinematics and Dynamics</span>.
+Even though this competition adopts a more realistic kinematic model with rotations as separate actions, it is still far simpler than many real-world scenarios. Complex kinematics and dynamics inevitably require more computational time, even for the motion planning of a single agent. In addition, complex kinematics and dynamics could also lead to more severe traffic congestion or deadlocks, since avoiding a collision involves more complex movement.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S5.SS2.p3">
+<p class="ltx_p" id="S5.SS2.p3.1"><span class="ltx_text ltx_font_bold" id="S5.SS2.p3.1.1">Uncertainty during Execution</span>.
+We also need to be aware of the uncertainty during execution. Both planning with uncertainty and replanning frequently would require large computations. Adopting an execution framework like Temporal Planning Graph (TPG) <cite class="ltx_cite ltx_citemacro_citep">(Hönig et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib9" title="">2016</a>)</cite> might be a favorable solution when facing limited planning time, but at the potential cost of less efficient execution due to the overly constrained coordination.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S5.SS2.p4">
+<p class="ltx_p" id="S5.SS2.p4.1"><span class="ltx_text ltx_font_bold" id="S5.SS2.p4.1.1">Non-Uniform Task Distribution</span>.
+We usually assume tasks are uniformly sampled from certain locations or even all traversable locations on maps in the literature. However, in LMAPF, imbalanced task distribution could lead to very different local agent densities in different regions, which may need to be addressed by different algorithms or allocated different amounts of computational resources.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S5.SS2.p5">
+<p class="ltx_p" id="S5.SS2.p5.1"><span class="ltx_text ltx_font_bold" id="S5.SS2.p5.1.1">Evolving Systems</span>.
+We often overlook the system evolution in some applications, for example, the dynamic changing of map layouts or agent numbers <cite class="ltx_cite ltx_citemacro_citep">(Morag et al. <a class="ltx_ref" href="https://arxiv.org/html/2404.16162v1#bib.bib27" title="">2022</a>)</cite>.
+For example, roads might be shut down due to accidents or maintenance in a traffic system; vehicles move in and out of a road intersection. These dynamic changes also require us to design more adaptive algorithms for different situations.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S6">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">6 </span>Conclusion</h2>
+<div class="ltx_para" id="S6.p1">
+<p class="ltx_p" id="S6.p1.1">With the growing number of real-world LMAPF applications, it is natural to consider scaling LMAPF algorithms to more challenging problem instances. We outline in this paper three challenges identified during our participation in the 2023 League of Robot Runners competition. Firstly, we address the limited planning time constraint, proposing WPPL as a solution and suggesting future directions in rule-based, anytime, and parallel algorithms. Secondly, we alleviate the congestion issue by applying guidance graphs and disabling agents. We propose future directions, such as designing better guidance and traffic rules, incorporating future traffic prediction and real-time search, and determining the optimal agent quantity. Last, we discuss the need to reconcile the gap between simplified LMAPF models in the literature and the more complex real-world applications, considering kinodynamic models, execution uncertainty, and evolving systems.</p>
+</div>
+</section>
+<section class="ltx_section" id="Sx1">
+<h2 class="ltx_title ltx_title_section">Acknowledgements</h2>
+<div class="ltx_para" id="Sx1.p1">
+<p class="ltx_p" id="Sx1.p1.1">The work was supported by NSF Grant 2328671.</p>
+</div>
+</section>
+<section class="ltx_bibliography" id="bib">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+<ul class="ltx_biblist">
+<li class="ltx_bibitem" id="bib.bib1">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Barer et al. (2014)</span>
+<span class="ltx_bibblock">
+Barer, M.; Sharon, G.; Stern, R.; and Felner, A. 2014.
+
+</span>
+<span class="ltx_bibblock">Suboptimal Variants of the Conflict-Based Search Algorithm for the Multi-Agent Pathfinding Problem.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib1.1.1">SoCS</em>, 19–27.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib2">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Brown (2022)</span>
+<span class="ltx_bibblock">
+Brown, A. S. 2022.
+
+</span>
+<span class="ltx_bibblock">How Amazon Robots Navigate Congestion.
+
+</span>
+<span class="ltx_bibblock"><span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://www.amazon.science/latest-news/how-amazon-robots-navigate-congestion</span>.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib3">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Chan et al. (2024)</span>
+<span class="ltx_bibblock">
+Chan, S.-H.; Chen, Z.; Lin, D.-L.; Zhang, Y.; Harabor, D.; Huang, T.-W.; Koenig, S.; and Phan, T. 2024.
+
+</span>
+<span class="ltx_bibblock">Anytime Multi-Agent Path Finding using Operation Parallelism in Large Neighborhood Search.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib3.1.1">arXiv preprint arXiv:2402.01961</em>.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib4">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Chen et al. (2024)</span>
+<span class="ltx_bibblock">
+Chen, Z.; Harabor, D.; Li, J.; and Stuckey, P. 2024.
+
+</span>
+<span class="ltx_bibblock">Traffic Flow Optimisation for Lifelong Multi-Agent Path Finding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib4.1.1">AAAI</em>.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib5">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Cohen (2020)</span>
+<span class="ltx_bibblock">
+Cohen, L. 2020.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib5.1.1">Efficient Bounded-Suboptimal Multi-Agent Path Finding and Motion Planning via Improvements to Focal Search</em>.
+
+</span>
+<span class="ltx_bibblock">Ph.D. thesis, University of Southern California.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib6">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Damani et al. (2021)</span>
+<span class="ltx_bibblock">
+Damani, M.; Luo, Z.; Wenzel, E.; and Sartoretti, G. 2021.
+
+</span>
+<span class="ltx_bibblock">PRIMAL<sub class="ltx_sub" id="bib.bib6.2.1">2</sub>: Pathfinding Via Reinforcement and Imitation Multi-Agent Learning - Lifelong.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib6.3.1">IEEE RA-L</em>, 2666–2673.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib7">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Erdmann and Lozano-Pérez (1987)</span>
+<span class="ltx_bibblock">
+Erdmann, M. A.; and Lozano-Pérez, T. 1987.
+
+</span>
+<span class="ltx_bibblock">On Multiple Moving Objects.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib7.1.1">Algorithmica</em>, 2: 477–521.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib8">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Guo and Yu (2023)</span>
+<span class="ltx_bibblock">
+Guo, T.; and Yu, J. 2023.
+
+</span>
+<span class="ltx_bibblock">Toward Efficient Physical and Algorithmic Design of Automated Garages.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib8.1.1">ICRA</em>, 1364–1370.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib9">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Hönig et al. (2016)</span>
+<span class="ltx_bibblock">
+Hönig, W.; Kumar, T. K. S.; Cohen, L.; Ma, H.; Xu, H.; Ayanian, N.; and Koenig, S. 2016.
+
+</span>
+<span class="ltx_bibblock">Multi-Agent Path Finding with Kinematic Constraints.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib9.1.1">ICAPS</em>, 477–485.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib10">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Huang et al. (2022)</span>
+<span class="ltx_bibblock">
+Huang, T.; Li, J.; Koenig, S.; and Dilkina, B. 2022.
+
+</span>
+<span class="ltx_bibblock">Anytime multi-agent path finding via machine learning-guided large neighborhood search.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib10.1.1">AAAI</em>, 9368–9376.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib11">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Ivanashev, Andreychuk, and Yakovlev (2022)</span>
+<span class="ltx_bibblock">
+Ivanashev, I.; Andreychuk, A.; and Yakovlev, K. 2022.
+
+</span>
+<span class="ltx_bibblock">Analysis of the Anytime MAPF Solvers Based on the Combination of Conflict-Based Search (CBS) and Focal Search (FS).
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib11.1.1">MICAI</em>, 368–382.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib12">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Jansen and Sturtevant (2008)</span>
+<span class="ltx_bibblock">
+Jansen, M. R.; and Sturtevant, N. R. 2008.
+
+</span>
+<span class="ltx_bibblock">Direction Maps for Cooperative Pathfinding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib12.1.1">AIIDE</em>, 185–190.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib13">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Korf (1990)</span>
+<span class="ltx_bibblock">
+Korf, R. E. 1990.
+
+</span>
+<span class="ltx_bibblock">Real-time heuristic search.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib13.1.1">Artificial Intelligence</em>, 42(2): 189–211.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib14">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Lam and Le Bodic (2020)</span>
+<span class="ltx_bibblock">
+Lam, E.; and Le Bodic, P. 2020.
+
+</span>
+<span class="ltx_bibblock">New valid inequalities in branch-and-cut-and-price for multi-agent path finding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib14.1.1">ICAPS</em>, 184–192.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib15">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Lee et al. (2021)</span>
+<span class="ltx_bibblock">
+Lee, H.; Motes, J.; Morales, M.; and Amato, N. M. 2021.
+
+</span>
+<span class="ltx_bibblock">Parallel hierarchical composition conflict-based search for optimal multi-agent pathfinding.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib15.1.1">IEEE RA-L</em>, 7001–7008.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib16">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Leet, Li, and Koenig (2022)</span>
+<span class="ltx_bibblock">
+Leet, C.; Li, J.; and Koenig, S. 2022.
+
+</span>
+<span class="ltx_bibblock">Shard systems: Scalable, robust and persistent multi-agent path finding with performance guarantees.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib16.1.1">AAAI</em>, 9386–9395.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib17">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li et al. (2021a)</span>
+<span class="ltx_bibblock">
+Li, J.; Chen, Z.; Harabor, D.; Stuckey, P. J.; and Koenig, S. 2021a.
+
+</span>
+<span class="ltx_bibblock">Anytime multi-agent path finding via large neighborhood search.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib17.1.1">IJCAI</em>, 4127–4135.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib18">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li et al. (2022)</span>
+<span class="ltx_bibblock">
+Li, J.; Chen, Z.; Harabor, D.; Stuckey, P. J.; and Koenig, S. 2022.
+
+</span>
+<span class="ltx_bibblock">MAPF-LNS2: fast repairing for multi-agent path finding via large neighborhood search.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib18.1.1">AAAI</em>, 10256–10265.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib19">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li et al. (2021b)</span>
+<span class="ltx_bibblock">
+Li, J.; Chen, Z.; Zheng, Y.; Chan, S.-H.; Harabor, D.; Stuckey, P. J.; Ma, H.; and Koenig, S. 2021b.
+
+</span>
+<span class="ltx_bibblock">Scalable rail planning and replanning: Winning the 2020 flatland challenge.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib19.1.1">ICAPS</em>, 477–485.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib20">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li, Ruml, and Koenig (2021)</span>
+<span class="ltx_bibblock">
+Li, J.; Ruml, W.; and Koenig, S. 2021.
+
+</span>
+<span class="ltx_bibblock">EECBS: A bounded-suboptimal search for multi-agent path finding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib20.1.1">AAAI</em>, 12353–12362.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib21">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li et al. (2021c)</span>
+<span class="ltx_bibblock">
+Li, J.; Tinka, A.; Kiesel, S.; Durham, J. W.; Kumar, T. K. S.; and Koenig, S. 2021c.
+
+</span>
+<span class="ltx_bibblock">Lifelong Multi-Agent Path Finding in Large-Scale Warehouses.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib21.1.1">AAAI</em>, 11272–11281.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib22">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Likhachev, Gordon, and Thrun (2003)</span>
+<span class="ltx_bibblock">
+Likhachev, M.; Gordon, G. J.; and Thrun, S. 2003.
+
+</span>
+<span class="ltx_bibblock">ARA*: Anytime A* with Provable Bounds on Sub-Optimality.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib22.1.1">NeurIPS</em>.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib23">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Liu et al. (2019)</span>
+<span class="ltx_bibblock">
+Liu, M.; Ma, H.; Li, J.; and Koenig, S. 2019.
+
+</span>
+<span class="ltx_bibblock">Task and Path Planning for Multi-Agent Pickup and Delivery.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib23.1.1">AAMAS</em>, 1152–1160.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib24">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Ma et al. (2019)</span>
+<span class="ltx_bibblock">
+Ma, H.; Harabor, D.; Stuckey, P. J.; Li, J.; and Koenig, S. 2019.
+
+</span>
+<span class="ltx_bibblock">Searching with Consistent Prioritization for Multi-Agent Path Finding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib24.1.1">AAAI</em>, 7643–7650.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib25">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Ma, Kumar, and Koenig (2017)</span>
+<span class="ltx_bibblock">
+Ma, H.; Kumar, T. K. S.; and Koenig, S. 2017.
+
+</span>
+<span class="ltx_bibblock">Multi-Agent Path Finding with Delay Probabilities.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib25.1.1">AAAI</em>, 3605–3612.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib26">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Madar, Solovey, and Salzman (2022)</span>
+<span class="ltx_bibblock">
+Madar, N.; Solovey, K.; and Salzman, O. 2022.
+
+</span>
+<span class="ltx_bibblock">Leveraging experience in lifelong multi-agent pathfinding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib26.1.1">SoCS</em>, 118–126.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib27">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Morag et al. (2022)</span>
+<span class="ltx_bibblock">
+Morag, J.; Felner, A.; Stern, R.; Atzmon, D.; and Boyarski, E. 2022.
+
+</span>
+<span class="ltx_bibblock">Online Multi-Agent Path Finding: New Results.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib27.1.1">SoCS</em>, 229–233.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib28">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Okumura (2023)</span>
+<span class="ltx_bibblock">
+Okumura, K. 2023.
+
+</span>
+<span class="ltx_bibblock">LaCAM: Search-Based Algorithm for Quick Multi-Agent Pathfinding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib28.1.1">AAAI</em>, 11655–11662.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib29">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Okumura et al. (2019)</span>
+<span class="ltx_bibblock">
+Okumura, K.; Machida, M.; Défago, X.; and Tamura, Y. 2019.
+
+</span>
+<span class="ltx_bibblock">Priority Inheritance with Backtracking for Iterative Multi-agent Path Finding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib29.1.1">IJCAI</em>, 535–542.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib30">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Salzman and Stern (2020)</span>
+<span class="ltx_bibblock">
+Salzman, O.; and Stern, R. 2020.
+
+</span>
+<span class="ltx_bibblock">Research challenges and opportunities in multi-agent path finding and multi-agent pickup and delivery problems.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib30.1.1">AAMAS</em>, 1711–1715.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib31">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Sharon et al. (2015)</span>
+<span class="ltx_bibblock">
+Sharon, G.; Stern, R.; Felner, A.; and Sturtevant, N. R. 2015.
+
+</span>
+<span class="ltx_bibblock">Conflict-Based Search for Optimal Multi-Agent Pathfinding.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib31.1.1">Artificial Intelligence</em>, 219: 40–66.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib32">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Sigurdson et al. (2018)</span>
+<span class="ltx_bibblock">
+Sigurdson, D.; Bulitko, V.; Yeoh, W. G. S.; Hernández, C.; and Koenig, S. 2018.
+
+</span>
+<span class="ltx_bibblock">Multi-Agent Pathfinding with Real-Time Heuristic Search.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib32.1.1">CIG</em>, 1–8.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib33">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Stern et al. (2019)</span>
+<span class="ltx_bibblock">
+Stern, R.; Sturtevant, N. R.; Felner, A.; Koenig, S.; Ma, H.; Walker, T. T.; Li, J.; Atzmon, D.; Cohen, L.; Kumar, T. K. S.; Barták, R.; and Boyarski, E. 2019.
+
+</span>
+<span class="ltx_bibblock">Multi-Agent Pathfinding: Definitions, Variants, and Benchmarks.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib33.1.1">SoCS</em>, 151–159.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib34">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Svancara et al. (2019)</span>
+<span class="ltx_bibblock">
+Svancara, J.; Vlk, M.; Stern, R.; Atzmon, D.; and Barták, R. 2019.
+
+</span>
+<span class="ltx_bibblock">Online Multi-Agent Pathfinding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib34.1.1">AAAI</em>, 7732–7739.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib35">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Varambally, Li, and Koenig (2022)</span>
+<span class="ltx_bibblock">
+Varambally, S.; Li, J.; and Koenig, S. 2022.
+
+</span>
+<span class="ltx_bibblock">Which MAPF Model Works Best for Automated Warehousing?
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib35.1.1">SoCS</em>, 190–198.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib36">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Vedder and Biswas (2021)</span>
+<span class="ltx_bibblock">
+Vedder, K.; and Biswas, J. 2021.
+
+</span>
+<span class="ltx_bibblock">X*: Anytime multi-agent path finding for sparse domains using window-based iterative repairs.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib36.1.1">Artificial Intelligence</em>, 291: 103417.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib37">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Wan et al. (2018)</span>
+<span class="ltx_bibblock">
+Wan, Q.; Gu, C.; Sun, S.; Chen, M.; Huang, H.; and Jia, X. 2018.
+
+</span>
+<span class="ltx_bibblock">Lifelong Multi-Agent Path Finding in a Dynamic Environment.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib37.1.1">ICARCV</em>, 875–882.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib38">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Wang and Rubenstein (2020)</span>
+<span class="ltx_bibblock">
+Wang, H.; and Rubenstein, M. 2020.
+
+</span>
+<span class="ltx_bibblock">Walk, stop, count, and swap: decentralized multi-agent path finding with theoretical guarantees.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib38.1.1">IEEE RA-L</em>, 5(2): 1119–1126.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib39">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Yu and Wolf (2023)</span>
+<span class="ltx_bibblock">
+Yu, G.; and Wolf, M. 2023.
+
+</span>
+<span class="ltx_bibblock">Congestion prediction for large fleets of mobile robots.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib39.1.1">ICRA</em>, 7642–7649.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib40">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Zhang et al. (2023a)</span>
+<span class="ltx_bibblock">
+Zhang, Y.; Fontaine, M. C.; Bhatt, V.; Nikolaidis, S.; and Li, J. 2023a.
+
+</span>
+<span class="ltx_bibblock">Arbitrarily Scalable Environment Generators via Neural Cellular Automata.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib40.1.1">NeurIPS</em>, 57212–57225.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib41">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Zhang et al. (2023b)</span>
+<span class="ltx_bibblock">
+Zhang, Y.; Fontaine, M. C.; Bhatt, V.; Nikolaidis, S.; and Li, J. 2023b.
+
+</span>
+<span class="ltx_bibblock">Multi-Robot Coordination and Layout Design for Automated Warehousing.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib41.1.1">IJCAI</em>, 5503–5511.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib42">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Zhang et al. (2023c)</span>
+<span class="ltx_bibblock">
+Zhang, Y.; Harabor, D.; Le Bodic, P.; and Stuckey, P. J. 2023c.
+
+</span>
+<span class="ltx_bibblock">Efficient Multi Agent Path Finding with Turn Actions.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic" id="bib.bib42.1.1">SoCS</em>, 119–127.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib43">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Zhang et al. (2024)</span>
+<span class="ltx_bibblock">
+Zhang, Y.; Jiang, H.; Bhatt, V.; Nikolaidis, S.; and Li, J. 2024.
+
+</span>
+<span class="ltx_bibblock">Guidance Graph Optimization for Lifelong Multi-Agent Path Finding.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic" id="bib.bib43.1.1">ArXiv</em>, abs/2402.01446.
+
+</span>
+</li>
+</ul>
+</section>
+<div class="ltx_pagination ltx_role_newpage"></div>
+</article>
+</div>
+<footer class="ltx_page_footer">
+<div class="ltx_page_logo">Generated  on Tue Apr 30 19:19:09 2024 by <a class="ltx_LaTeXML_logo" href="http://dlmf.nist.gov/LaTeXML/"><span style="letter-spacing:-0.2em; margin-right:0.1em;">L<span class="ltx_font_smallcaps" style="position:relative; bottom:2.2pt;">a</span>T<span class="ltx_font_smallcaps" style="font-size:120%;position:relative; bottom:-0.2ex;">e</span></span><span style="font-size:90%; position:relative; bottom:-0.2ex;">XML</span><img alt="Mascot Sammy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg=="/></a>
+</div></footer>
+</div>
+</body>
+</html>

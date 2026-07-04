@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+<title>Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning</title>
+<!--Generated on Thu Aug  7 03:38:13 2025 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv.0.8.2.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv-fonts.0.8.2.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/latexml_styles.0.8.2.css" rel="stylesheet" type="text/css"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.3/html2canvas.min.js"></script>
+<script src="/static/browse/0.3.4/js/addons_new.js"></script>
+<script src="/static/browse/0.3.4/js/feedbackOverlay.js"></script>
+<base href="/html/2508.05027v1/"/></head>
+<body>
+<nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S1" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S2" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">II </span><span class="ltx_text ltx_font_smallcaps">Background</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S2.SS1" title="In II Background ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">II-A </span><span class="ltx_text ltx_font_italic">Multi-Robot-Arm Motion Planning</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S2.SS2" title="In II Background ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">II-B </span><span class="ltx_text ltx_font_italic">Trajectory Post-Processing</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III </span><span class="ltx_text ltx_font_smallcaps">Multi-Robot Shortcutting Algorithms</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.SS1" title="In III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-A </span><span class="ltx_text ltx_font_italic">Single-Robot Shortcutting</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.SS2" title="In III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-B </span><span class="ltx_text ltx_font_italic">Multi-Robot Shortcutting</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.SS3" title="In III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-C </span><span class="ltx_text ltx_font_italic">Comparison</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.SS3.SSS1" title="In III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-C1 </span>Single-Robot Shortcutting: Randomized vs Iterative</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.SS3.SSS2" title="In III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-C2 </span>Multi-Robot Shortcutting: Computational Speed</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.SS3.SSS3" title="In III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-C3 </span>Multi-Robot Shortcutting: Effectiveness</span></a></li>
+</ol>
+</li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S4" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV </span><span class="ltx_text ltx_font_smallcaps">Multi-Strategy Methods</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S4.SS0.SSS1" title="In IV Multi-Strategy Methods ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV-1 </span>Round Robin (RR)</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S4.SS0.SSS2" title="In IV Multi-Strategy Methods ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV-2 </span>Thompson Sampling</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V </span><span class="ltx_text ltx_font_smallcaps">Experiments</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS1" title="In V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-A </span><span class="ltx_text ltx_font_italic">Evaluation environment</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS2" title="In V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-B </span><span class="ltx_text ltx_font_italic">Evaluation Metrics</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS3" title="In V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-C </span><span class="ltx_text ltx_font_italic">Motion Planning Algorithms</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS3.SSS1" title="In V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-C1 </span>Sampling-Based Motion Planner</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS3.SSS2" title="In V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-C2 </span>Search-Based Motion Planner</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS4" title="In V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-D </span><span class="ltx_text ltx_font_italic">Implementation Detail</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS5" title="In V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-E </span><span class="ltx_text ltx_font_italic">Results</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS5.SSS1" title="In V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-E1 </span>Single-Robot Shortcutting Methods</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS5.SSS2" title="In V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-E2 </span>Multi-Robot Shortcutting Methods</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS5.SSS3" title="In V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-E3 </span>Multi-Strategy Method</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS6" title="In V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-F </span><span class="ltx_text ltx_font_italic">Real Robot Experiment</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S6" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VI </span><span class="ltx_text ltx_font_smallcaps">Conclusion</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#A0.SS1" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">-A </span><span class="ltx_text ltx_font_italic">Details of Thompson Sampling</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#A0.SS2" title="In Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">-B </span><span class="ltx_text ltx_font_italic">Details of Real Robot Setup</span></span></a></li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_font_bold ltx_title_document" style="font-size:173%;">Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning </h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">Philip Huang<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>, Yorai Shaoul<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>, and Jiaoyang Li<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>
+</span><span class="ltx_author_notes"><sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>Authors are with the Robotics Institute, Carnegie Mellon University, Pittsburgh, PA 15213, USA.
+<span class="ltx_text ltx_font_typewriter" style="font-size:90%;">philiphuang@cmu.edu</span></span></span>
+</div>
+<div class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p">Generating high-quality motion plans for multiple robot arms is challenging due to the high dimensionality of the system and the potential for inter-arm collisions. Traditional motion planning methods often produce motions that are suboptimal in terms of smoothness and execution time for multi-arm systems. Post-processing via shortcutting is a common approach to improve motion quality for efficient and smooth execution. However, in multi-arm scenarios, optimizing one arm’s motion must not introduce collisions with other arms. Although existing multi-arm planning works often use some form of shortcutting techniques, their exact methodology and impact on performance are often vaguely described. In this work, we present a comprehensive study quantitatively comparing existing shortcutting methods for multi-arm trajectories across diverse simulated scenarios. We carefully analyze the pros and cons of each shortcutting method and propose two simple strategies for combining these methods to achieve the best performance-runtime tradeoff. Video, code, and dataset are available at <a class="ltx_ref ltx_url ltx_font_typewriter" href="https://philip-huang.github.io/mr-shortcut/" title="">https://philip-huang.github.io/mr-shortcut/</a>.</p>
+</div>
+<section class="ltx_section" id="S1">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span>
+</h2>
+<div class="ltx_para" id="S1.p1">
+<p class="ltx_p">Multi-robot-arm motion planning (M-RAMP) has recently seen an increased research interest, especially with the rise of bimanual manipulation systems. This trend is partly driven by the crucial role M-RAMP plays in multi-arm manipulation. The simultaneous use of multiple robot arms facilitates the automation of complex tasks infeasible with a single arm, such as collaborative robotic assembly, while also improving the efficiency of tasks typically performed by a single arm, such as pick-and-place operations. Among recent approaches to M-RAMP, robot-arm trajectories are often computed with sampling-based algorithms derived from RRT <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib1" title="">1</a>]</cite> (e.g., <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib2" title="">2</a>]</cite>), or variants of A* search <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib3" title="">3</a>]</cite> (e.g., <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib4" title="">4</a>]</cite> and <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib5" title="">5</a>]</cite>).</p>
+</div>
+<div class="ltx_para" id="S1.p2">
+<p class="ltx_p">A critical, yet rarely discussed, post-processing step in M-RAMP is <span class="ltx_text ltx_font_italic">shortcutting</span>. As shown in Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S1.F1" title="Figure 1 ‣ I Introduction ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">1</span></a>, trajectories generated by sampling-based algorithms can be surprisingly long due to insufficient sampling under a tight time limit. Similarly, trajectories from search-based planner may appear choppy due to confined movement resolution on a possibly coarse graph. Shortcutting takes a trajectory as input and improves motion time, geometric length, and smoothness, making it better suited for real robot execution. In both single- and multi-arm cases, shortcutting offers significant improvements. However, in the multi-robot case, shortcutting trajectories requires more care to prevent collisions or deadlocks. Naively shortcutting individual trajectories can introduce new robot-robot collisions, highlighting the need for multi-robot shortcutting techniques.</p>
+</div>
+<figure class="ltx_figure" id="S1.F1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="261" id="S1.F1.g1" src="figs/shortcutting_teaser_try2.png" width="598"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 1</span>: </span><span class="ltx_text" style="font-size:90%;">Dual-arm motion planned with RRT-Connect before (left) and after (right) shortcutting. Effective multi-robot shortcutting ensures smooth, collision-free robot motion.</span></figcaption>
+</figure>
+<div class="ltx_para" id="S1.p3">
+<p class="ltx_p">In stark contrast to the empirical importance of shortcutting in robotics, existing work usually only briefly mentions the multi-robot shortcutting algorithms used and often omits the impact of such shortcutting. To the best of our knowledge, multi-robot shortcutting has not been thoroughly examined in the literature before, leaving room for a better understanding of this important post-processing step.</p>
+</div>
+<div class="ltx_para" id="S1.p4">
+<p class="ltx_p">Our contributions can be summarized as follows. First, we comprehensively survey the shortcutting methods in the existing literature that can be used for post-processing multi-robot-arm motion plans. Second, we propose two simple strategies that can adaptively combine various randomized shortcutting strategies with improved anytime performance. Third, we curate (and open-sourced) a dataset of single-task, multi-robot motion planning instances across environments with different robot configurations.
+Finally, we benchmark and analyze each method using our new dataset and show how our proposed combination strategy can combine the strengths of different algorithms.</p>
+</div>
+</section>
+<section class="ltx_section" id="S2">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">II </span><span class="ltx_text ltx_font_smallcaps">Background</span>
+</h2>
+<div class="ltx_para" id="S2.p1">
+<p class="ltx_p">In this section, we formally introduce the multi-robot-arm motion planning problem and cover relevant work in motion planning and trajectory post-processing.</p>
+</div>
+<section class="ltx_subsection" id="S2.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">II-A </span><span class="ltx_text ltx_font_italic">Multi-Robot-Arm Motion Planning</span>
+</h3>
+<div class="ltx_para" id="S2.SS1.p1">
+<p class="ltx_p">Given <math alttext="N" class="ltx_Math" display="inline" id="S2.SS1.p1.m1"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> robots sharing a workspace <math alttext="\mathcal{W}\subset\mathbb{R}^{3}" class="ltx_Math" display="inline" id="S2.SS1.p1.m2"><semantics><mrow><mi class="ltx_font_mathcaligraphic">𝒲</mi><mo>⊂</mo><msup><mi>ℝ</mi><mn>3</mn></msup></mrow><annotation encoding="application/x-tex">\mathcal{W}\subset\mathbb{R}^{3}</annotation></semantics></math>, let <math alttext="\mathcal{C}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m3"><semantics><msup><mi class="ltx_font_mathcaligraphic">𝒞</mi><mi>i</mi></msup><annotation encoding="application/x-tex">\mathcal{C}^{i}</annotation></semantics></math> be the configuration space of each robot <math alttext="i" class="ltx_Math" display="inline" id="S2.SS1.p1.m4"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> with <math alttext="\text{DoF}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m5"><semantics><msup><mtext>DoF</mtext><mi>i</mi></msup><annotation encoding="application/x-tex">\text{DoF}^{i}</annotation></semantics></math> degrees of freedom (DoF). For robot arms with <math alttext="{\text{DoF}^{i}}" class="ltx_Math" display="inline" id="S2.SS1.p1.m6"><semantics><msup><mtext>DoF</mtext><mi>i</mi></msup><annotation encoding="application/x-tex">{\text{DoF}^{i}}</annotation></semantics></math> joints, a configuration <math alttext="C^{i}\in\mathcal{C}^{i}\subseteq\mathbb{R}^{\text{DoF}^{i}}" class="ltx_Math" display="inline" id="S2.SS1.p1.m7"><semantics><mrow><msup><mi>C</mi><mi>i</mi></msup><mo>∈</mo><msup><mi class="ltx_font_mathcaligraphic">𝒞</mi><mi>i</mi></msup><mo>⊆</mo><msup><mi>ℝ</mi><msup><mtext>DoF</mtext><mi>i</mi></msup></msup></mrow><annotation encoding="application/x-tex">C^{i}\in\mathcal{C}^{i}\subseteq\mathbb{R}^{\text{DoF}^{i}}</annotation></semantics></math> defines a selection of joint angles. Given a pair of start and goal configurations for each robot <math alttext="i" class="ltx_Math" display="inline" id="S2.SS1.p1.m8"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>, M-RAMP focuses on finding a set of collision-free <span class="ltx_text ltx_font_italic">trajectories</span> <math alttext="\tau:=\left\{\tau^{1},\cdots\tau^{N}\right\}" class="ltx_Math" display="inline" id="S2.SS1.p1.m9"><semantics><mrow><mi>τ</mi><mo>:=</mo><mrow><mo>{</mo><msup><mi>τ</mi><mn>1</mn></msup><mo>,</mo><mrow><mi mathvariant="normal">⋯</mi><mo lspace="0em" rspace="0em">​</mo><msup><mi>τ</mi><mi>N</mi></msup></mrow><mo>}</mo></mrow></mrow><annotation encoding="application/x-tex">\tau:=\left\{\tau^{1},\cdots\tau^{N}\right\}</annotation></semantics></math>, one for each robot. We represent a single-robot trajectory with a sequence of <math alttext="H^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m10"><semantics><msup><mi>H</mi><mi>i</mi></msup><annotation encoding="application/x-tex">H^{i}</annotation></semantics></math> timestamped configurations
+<math alttext="\tau^{i}=\{\tau^{i}_{n}\}_{n=1}^{H^{i}}=\{(C_{n}^{i},t_{n}^{i})\}_{j=1}^{H^{i}}" class="ltx_Math" display="inline" id="S2.SS1.p1.m11"><semantics><mrow><msup><mi>τ</mi><mi>i</mi></msup><mo>=</mo><msubsup><mrow><mo stretchy="false">{</mo><msubsup><mi>τ</mi><mi>n</mi><mi>i</mi></msubsup><mo stretchy="false">}</mo></mrow><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><msup><mi>H</mi><mi>i</mi></msup></msubsup><mo>=</mo><msubsup><mrow><mo stretchy="false">{</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>t</mi><mi>n</mi><mi>i</mi></msubsup><mo stretchy="false">)</mo></mrow><mo stretchy="false">}</mo></mrow><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><msup><mi>H</mi><mi>i</mi></msup></msubsup></mrow><annotation encoding="application/x-tex">\tau^{i}=\{\tau^{i}_{n}\}_{n=1}^{H^{i}}=\{(C_{n}^{i},t_{n}^{i})\}_{j=1}^{H^{i}}</annotation></semantics></math>, with <math alttext="C_{n}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m12"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{i}</annotation></semantics></math> being the configuration of robot <math alttext="i" class="ltx_Math" display="inline" id="S2.SS1.p1.m13"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> at time <math alttext="t_{n}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m14"><semantics><msubsup><mi>t</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">t_{n}^{i}</annotation></semantics></math>. In this paper, each step (<math alttext="C_{n}^{i},t_{n}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m15"><semantics><mrow><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>t</mi><mi>n</mi><mi>i</mi></msubsup></mrow><annotation encoding="application/x-tex">C_{n}^{i},t_{n}^{i}</annotation></semantics></math>) to (<math alttext="C_{n+1}^{i},t_{n+1}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m16"><semantics><mrow><msubsup><mi>C</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>t</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup></mrow><annotation encoding="application/x-tex">C_{n+1}^{i},t_{n+1}^{i}</annotation></semantics></math>) is over a constant time interval <math alttext="\Delta t" class="ltx_Math" display="inline" id="S2.SS1.p1.m17"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow><annotation encoding="application/x-tex">\Delta t</annotation></semantics></math> and spatially defined as a linear interpolation between the two configurations, and <math alttext="t_{n}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m18"><semantics><msubsup><mi>t</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">t_{n}^{i}</annotation></semantics></math> at each step <math alttext="n" class="ltx_Math" display="inline" id="S2.SS1.p1.m19"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math> is the same for all robots, i.e., <math alttext="t_{n}^{i}=t_{n}^{j}\;\forall\;i\neq j" class="ltx_Math" display="inline" id="S2.SS1.p1.m20"><semantics><mrow><msubsup><mi>t</mi><mi>n</mi><mi>i</mi></msubsup><mo>=</mo><mrow><msubsup><mi>t</mi><mi>n</mi><mi>j</mi></msubsup><mo lspace="0.167em" rspace="0em">​</mo><mrow><mo rspace="0.447em">∀</mo><mi>i</mi></mrow></mrow><mo>≠</mo><mi>j</mi></mrow><annotation encoding="application/x-tex">t_{n}^{i}=t_{n}^{j}\;\forall\;i\neq j</annotation></semantics></math>. M-RAMP seeks low-cost trajectories, minimizing travel time or cumulative motion, while satisfying collision constraints (i.e., no robot-robot or robot-world collisions) and velocity constraints (i.e., <math alttext="d(C^{i}_{j},C^{i}_{j+1})\leq\Delta t\cdot v_{\max}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m21"><semantics><mrow><mrow><mi>d</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>C</mi><mi>j</mi><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>C</mi><mrow><mi>j</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo stretchy="false">)</mo></mrow></mrow><mo>≤</mo><mrow><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow><mo lspace="0.222em" rspace="0.222em">⋅</mo><msubsup><mi>v</mi><mi>max</mi><mi>i</mi></msubsup></mrow></mrow><annotation encoding="application/x-tex">d(C^{i}_{j},C^{i}_{j+1})\leq\Delta t\cdot v_{\max}^{i}</annotation></semantics></math> for each step, with <math alttext="d(\cdot,\cdot)" class="ltx_Math" display="inline" id="S2.SS1.p1.m22"><semantics><mrow><mi>d</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mo lspace="0em" rspace="0em">⋅</mo><mo rspace="0em">,</mo><mo lspace="0em" rspace="0em">⋅</mo><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">d(\cdot,\cdot)</annotation></semantics></math> being an <math alttext="L_{1}" class="ltx_Math" display="inline" id="S2.SS1.p1.m23"><semantics><msub><mi>L</mi><mn>1</mn></msub><annotation encoding="application/x-tex">L_{1}</annotation></semantics></math> distance (radians) and <math alttext="v_{\max}^{i}" class="ltx_Math" display="inline" id="S2.SS1.p1.m24"><semantics><msubsup><mi>v</mi><mi>max</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{\max}^{i}</annotation></semantics></math> a cumulative speed limit).</p>
+</div>
+<div class="ltx_para" id="S2.SS1.p2">
+<p class="ltx_p">Researchers have proposed various approaches to multi-robot motion planning and applied them to M-RAMP, including directly using single-robot planners, such as RRT-Connect <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib6" title="">6</a>]</cite>, BIT* <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib7" title="">7</a>]</cite>, or graphs of convex sets <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib8" title="">8</a>]</cite>, in the composite configuration space <math alttext="\mathcal{C}:=\mathcal{C}^{1}\times\cdots\times\mathcal{C}^{N}" class="ltx_Math" display="inline" id="S2.SS1.p2.m1"><semantics><mrow><mi class="ltx_font_mathcaligraphic">𝒞</mi><mo>:=</mo><mrow><msup><mi class="ltx_font_mathcaligraphic">𝒞</mi><mn>1</mn></msup><mo lspace="0.222em" rspace="0.222em">×</mo><mi mathvariant="normal">⋯</mi><mo lspace="0.222em" rspace="0.222em">×</mo><msup><mi class="ltx_font_mathcaligraphic">𝒞</mi><mi>N</mi></msup></mrow></mrow><annotation encoding="application/x-tex">\mathcal{C}:=\mathcal{C}^{1}\times\cdots\times\mathcal{C}^{N}</annotation></semantics></math>. Other approaches more tailored towards M-RAMP include building composite roadmaps from the Cartesian product of individual roadmaps <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib9" title="">9</a>]</cite>, coordinating the speed of individually planned motions <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib10" title="">10</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib11" title="">11</a>]</cite>, or using Conflict-Based-Search (CBS) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib12" title="">12</a>]</cite> on roadmaps <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib13" title="">13</a>]</cite> or configuration space lattices <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib4" title="">4</a>]</cite>. Researchers have also studied more long-horizon manipulation tasks with multiple robot arms, such as object pick and place <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib14" title="">14</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib15" title="">15</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib16" title="">16</a>]</cite> and object rearrangement and assembly <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib17" title="">17</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib18" title="">18</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib19" title="">19</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib5" title="">5</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib20" title="">20</a>]</cite>.
+Many of the multi-robot motion plans also use post-processing to improve their motion plans obtained.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S2.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">II-B </span><span class="ltx_text ltx_font_italic">Trajectory Post-Processing</span>
+</h3>
+<div class="ltx_para" id="S2.SS2.p1">
+<p class="ltx_p">Algorithms used to post-process single-robot trajectories can be classified as shortcutting, gradient-based, or retiming. Gradient-based trajectory optimization methods such as CHOMP <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib21" title="">21</a>]</cite> and KOMO <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib22" title="">22</a>]</cite> can be used to post-process a planned trajectory, but do not guarantee that the solution remains collision-free. Methods like Toppra <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib23" title="">23</a>]</cite> tune the velocity of a trajectory to reduce execution time, not considering any further gains that could be made by altering the robot’s path. Shortcutting iteratively or randomly finds a collision-free linear interpolation between points on a trajectory <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib24" title="">24</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib25" title="">25</a>]</cite>, guaranteeing that the solutions remain collision-free, and reduces execution time.</p>
+</div>
+<div class="ltx_para" id="S2.SS2.p2">
+<p class="ltx_p">In multi-robot systems, the main post-processing objective is to reduce the <span class="ltx_text ltx_font_italic">makespan</span> of the set of trajectories <math alttext="\tau" class="ltx_Math" display="inline" id="S2.SS2.p2.m1"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math>. That is, finding a new collision-free trajectory <math alttext="\tau^{\prime}" class="ltx_Math" display="inline" id="S2.SS2.p2.m2"><semantics><msup><mi>τ</mi><mo>′</mo></msup><annotation encoding="application/x-tex">\tau^{\prime}</annotation></semantics></math> between the same starts and goals of <math alttext="\tau" class="ltx_Math" display="inline" id="S2.SS2.p2.m3"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math> that minimizes <math alttext="\max_{i}t_{H^{i}}^{i}" class="ltx_Math" display="inline" id="S2.SS2.p2.m4"><semantics><mrow><msub><mi>max</mi><mi>i</mi></msub><mo lspace="0.167em">⁡</mo><msubsup><mi>t</mi><msup><mi>H</mi><mi>i</mi></msup><mi>i</mi></msubsup></mrow><annotation encoding="application/x-tex">\max_{i}t_{H^{i}}^{i}</annotation></semantics></math>.<span class="ltx_note ltx_role_footnote" id="footnote1"><sup class="ltx_note_mark">1</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">1</sup><span class="ltx_tag ltx_tag_note">1</span>In multi-robot settings, optimizing for time may be more appropriate than optimizing for path length. When multiple robots are coordinated, one robot may wait in place to avoid collisions with others, yielding a spatially short path but a long execution time.</span></span></span>
+A challenge specific to multi-robot motion post-processing is that altering the trajectory of one robot could affect others through new robot-robot collisions. <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib16" title="">16</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib17" title="">17</a>]</cite> circumvent this challenge by retiming the trajectories of all robots jointly in a centralized fashion, reducing the makespan but with limited improvement. Other approaches like <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib4" title="">4</a>]</cite> use iterative shortcutting to smooth each robot’s motion while treating other robots as obstacles. <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib18" title="">18</a>]</cite> uses both randomized shortcutting and single-robot trajectory optimization to post-process each robot’s motion segment individually during planning. <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib26" title="">26</a>]</cite> and <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib19" title="">19</a>]</cite> randomly find shortcuts on a Temporal Plan Graph (TPG) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib27" title="">27</a>]</cite> representation of multi-robot trajectories.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S3">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">III </span><span class="ltx_text ltx_font_smallcaps">Multi-Robot Shortcutting Algorithms</span>
+</h2>
+<div class="ltx_para" id="S3.p1">
+<p class="ltx_p">In this section, we present three common shortcutting methods for single robots, followed by four different methods that generalize these to multi-robot setups. We then compare the advantages and limitations with examples and analysis.</p>
+</div>
+<section class="ltx_subsection" id="S3.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">III-A </span><span class="ltx_text ltx_font_italic">Single-Robot Shortcutting</span>
+</h3>
+<div class="ltx_para" id="S3.SS1.p1">
+<p class="ltx_p">Given a single-robot trajectory <math alttext="\tau=\{\tau_{j}\}_{j=1}^{H}" class="ltx_Math" display="inline" id="S3.SS1.p1.m1"><semantics><mrow><mi>τ</mi><mo>=</mo><msubsup><mrow><mo stretchy="false">{</mo><msub><mi>τ</mi><mi>j</mi></msub><mo stretchy="false">}</mo></mrow><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>H</mi></msubsup></mrow><annotation encoding="application/x-tex">\tau=\{\tau_{j}\}_{j=1}^{H}</annotation></semantics></math>, shortcutting methods find a pair of configurations <math alttext="C_{m}" class="ltx_Math" display="inline" id="S3.SS1.p1.m2"><semantics><msub><mi>C</mi><mi>m</mi></msub><annotation encoding="application/x-tex">C_{m}</annotation></semantics></math> and <math alttext="C_{n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m3"><semantics><msub><mi>C</mi><mi>n</mi></msub><annotation encoding="application/x-tex">C_{n}</annotation></semantics></math> on <math alttext="\tau" class="ltx_Math" display="inline" id="S3.SS1.p1.m4"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math> and try to connect them with a shortcut <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m5"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math>, computed via linear interpolation between <math alttext="C_{m}" class="ltx_Math" display="inline" id="S3.SS1.p1.m6"><semantics><msub><mi>C</mi><mi>m</mi></msub><annotation encoding="application/x-tex">C_{m}</annotation></semantics></math> and <math alttext="C_{n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m7"><semantics><msub><mi>C</mi><mi>n</mi></msub><annotation encoding="application/x-tex">C_{n}</annotation></semantics></math>. <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m8"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> is valid if it is shorter than the original trajectory segment <math alttext="\{\tau_{j}\}_{j=m}^{n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m9"><semantics><msubsup><mrow><mo stretchy="false">{</mo><msub><mi>τ</mi><mi>j</mi></msub><mo stretchy="false">}</mo></mrow><mrow><mi>j</mi><mo>=</mo><mi>m</mi></mrow><mi>n</mi></msubsup><annotation encoding="application/x-tex">\{\tau_{j}\}_{j=m}^{n}</annotation></semantics></math> and collision-free with the environment. To maintain consistency, <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m10"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> is discretized with the same granularity as <math alttext="\tau" class="ltx_Math" display="inline" id="S3.SS1.p1.m11"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math>.
+These methods iteratively test different pairs of <math alttext="C_{m}" class="ltx_Math" display="inline" id="S3.SS1.p1.m12"><semantics><msub><mi>C</mi><mi>m</mi></msub><annotation encoding="application/x-tex">C_{m}</annotation></semantics></math> and <math alttext="C_{n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m13"><semantics><msub><mi>C</mi><mi>n</mi></msub><annotation encoding="application/x-tex">C_{n}</annotation></semantics></math> and replace <math alttext="\{\tau_{j}\}_{j=m}^{n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m14"><semantics><msubsup><mrow><mo stretchy="false">{</mo><msub><mi>τ</mi><mi>j</mi></msub><mo stretchy="false">}</mo></mrow><mrow><mi>j</mi><mo>=</mo><mi>m</mi></mrow><mi>n</mi></msubsup><annotation encoding="application/x-tex">\{\tau_{j}\}_{j=m}^{n}</annotation></semantics></math> with <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m15"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> in <math alttext="\tau" class="ltx_Math" display="inline" id="S3.SS1.p1.m16"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math> when <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS1.p1.m17"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> is valid.
+There are three common ways of enumerating these pairs:</p>
+<ol class="ltx_enumerate" id="S3.I1">
+<li class="ltx_item" id="S3.I1.i1" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">1.</span>
+<div class="ltx_para" id="S3.I1.i1.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Randomized</span> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib28" title="">28</a>]</cite> samples the pairs uniformly random.</p>
+</div>
+</li>
+<li class="ltx_item" id="S3.I1.i2" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">2.</span>
+<div class="ltx_para" id="S3.I1.i2.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Forward Loop</span> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib29" title="">29</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib30" title="">30</a>]</cite> iterates over all pairs forward, using an outer loop incrementing <math alttext="m" class="ltx_Math" display="inline" id="S3.I1.i2.p1.m1"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math> from <math alttext="1" class="ltx_Math" display="inline" id="S3.I1.i2.p1.m2"><semantics><mn>1</mn><annotation encoding="application/x-tex">1</annotation></semantics></math> to <math alttext="H-1" class="ltx_Math" display="inline" id="S3.I1.i2.p1.m3"><semantics><mrow><mi>H</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">H-1</annotation></semantics></math> and an inner loop incrementing <math alttext="n" class="ltx_Math" display="inline" id="S3.I1.i2.p1.m4"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math> from <math alttext="m+2" class="ltx_Math" display="inline" id="S3.I1.i2.p1.m5"><semantics><mrow><mi>m</mi><mo>+</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">m+2</annotation></semantics></math> to <math alttext="H" class="ltx_Math" display="inline" id="S3.I1.i2.p1.m6"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>. It checks if <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.I1.i2.p1.m7"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> is a valid and accepts it if so.</p>
+</div>
+</li>
+<li class="ltx_item" id="S3.I1.i3" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">3.</span>
+<div class="ltx_para" id="S3.I1.i3.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Backward Loop</span> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib29" title="">29</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib30" title="">30</a>]</cite> modifies the forward loop method by decrementing <math alttext="n" class="ltx_Math" display="inline" id="S3.I1.i3.p1.m1"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math> from <math alttext="H" class="ltx_Math" display="inline" id="S3.I1.i3.p1.m2"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math> to <math alttext="m+1" class="ltx_Math" display="inline" id="S3.I1.i3.p1.m3"><semantics><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">m+1</annotation></semantics></math> backwards in the inner loop.</p>
+</div>
+</li>
+</ol>
+</div>
+</section>
+<section class="ltx_subsection" id="S3.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">III-B </span><span class="ltx_text ltx_font_italic">Multi-Robot Shortcutting</span>
+</h3>
+<div class="ltx_para" id="S3.SS2.p1">
+<p class="ltx_p">When dealing with multiple robots, single-robot shortcutting methods cannot be directly applied to each robot independently, as shortening the trajectory segment of one robot may lead to collisions with others. To address this challenge, four distinct multi-robot shortcutting methods are used in practice. Each method employs a different strategy to ensure multi-robot trajectories remain collision-free after shortcutting. Importantly, these strategies are orthogonal to the configuration pair selection strategies in single-robot shortcutting. This modularity means that any of the four multi-robot methods can be combined with any of the three single-robot shortcutting approaches mentioned above.</p>
+</div>
+<div class="ltx_para" id="S3.SS2.p2">
+<p class="ltx_p">1) <span class="ltx_text ltx_font_bold">Composite-space Shortcutting</span> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib31" title="">31</a>]</cite> treats all robots as a single agent by combining all degrees of freedom from all robots into a single composite space <math alttext="\mathcal{C}" class="ltx_Math" display="inline" id="S3.SS2.p2.m1"><semantics><mi class="ltx_font_mathcaligraphic">𝒞</mi><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math>.
+A shortcut <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p2.m2"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> comprises single-robot shortcuts that connect <math alttext="{C_{m}^{i}}" class="ltx_Math" display="inline" id="S3.SS2.p2.m3"><semantics><msubsup><mi>C</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">{C_{m}^{i}}</annotation></semantics></math> and <math alttext="{C_{n}^{i}}" class="ltx_Math" display="inline" id="S3.SS2.p2.m4"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">{C_{n}^{i}}</annotation></semantics></math> for each robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p2.m5"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>. It discretizes <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p2.m6"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> into a sequence of timestamped configurations in the composite space such that no robot exceeds its speed limit between two successive configurations.
+The shortcut is collision-free if all of its interpolated configurations are collision-free. If accepted, each robot’s trajectory is shortened by the same amount, preventing inter-robot collisions.</p>
+</div>
+<div class="ltx_para" id="S3.SS2.p3">
+<p class="ltx_p">2) <span class="ltx_text ltx_font_bold">Prioritized Shortcutting</span>
+finds a shortcut for one robot’s trajectory at a time, treating other robots as dynamic obstacles that it must avoid.
+It randomly selects a robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p3.m1"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> (or cycles through the robots in a round-robin fashion) and tries a shortcut between <math alttext="C_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p3.m2"><semantics><msubsup><mi>C</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{m}^{i}</annotation></semantics></math> and <math alttext="C_{n}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p3.m3"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{i}</annotation></semantics></math>. The shortcut <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p3.m4"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> is discretized into timestamped configurations, assuming that robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p3.m5"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> travels at maximum speed. Since <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p3.m6"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> reduces the time for robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p3.m7"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> to reach <math alttext="C_{n}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p3.m8"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{i}</annotation></semantics></math>, the timesteps of the remaining trajectory <math alttext="\{\tau^{i}_{j}\}_{j=n+1}^{H^{i}}" class="ltx_Math" display="inline" id="S3.SS2.p3.m9"><semantics><msubsup><mrow><mo stretchy="false">{</mo><msubsup><mi>τ</mi><mi>j</mi><mi>i</mi></msubsup><mo stretchy="false">}</mo></mrow><mrow><mi>j</mi><mo>=</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></mrow><msup><mi>H</mi><mi>i</mi></msup></msubsup><annotation encoding="application/x-tex">\{\tau^{i}_{j}\}_{j=n+1}^{H^{i}}</annotation></semantics></math> decrease by the same amount as <math alttext="t_{n}" class="ltx_Math" display="inline" id="S3.SS2.p3.m10"><semantics><msub><mi>t</mi><mi>n</mi></msub><annotation encoding="application/x-tex">t_{n}</annotation></semantics></math> has been reduced. To accept a shortcut, it checks both if <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p3.m11"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> is collision-free and if the remaining trajectory of robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p3.m12"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> with shortened timesteps collides with other robots.</p>
+</div>
+<div class="ltx_para" id="S3.SS2.p4">
+<p class="ltx_p">3) <span class="ltx_text ltx_font_bold">Path Shortcutting</span> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib18" title="">18</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib4" title="">4</a>]</cite> improves prioritized shortcut by eliminating collision checking for the trajectory after <math alttext="C_{n}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p4.m1"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{i}</annotation></semantics></math>. The key idea is to keep all timesteps unchanged and modify only the configurations between <math alttext="C_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p4.m2"><semantics><msubsup><mi>C</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{m}^{i}</annotation></semantics></math> and <math alttext="C_{n}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p4.m3"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{i}</annotation></semantics></math>. <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p4.m4"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> is uniformly discretized into the same number of configurations as in the original trajectory segment, indicating that the robot moves along a shorter trajectory but at a slower speed. After shortcutting, the method retimes the trajectory in the composite space to minimize the makespan, resetting the timesteps so that the fastest robot in each interval is traveling at its maximum velocity. Specifically, we set <math alttext="t_{n}=t_{n-1}+\max_{i}(d(C^{i}_{n},C^{i}_{n-1})/v_{max}^{i})" class="ltx_Math" display="inline" id="S3.SS2.p4.m5"><semantics><mrow><msub><mi>t</mi><mi>n</mi></msub><mo>=</mo><mrow><msub><mi>t</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><mrow><msub><mi>max</mi><mi>i</mi></msub><mo>⁡</mo><mrow><mo stretchy="false">(</mo><mrow><mrow><mi>d</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>C</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo stretchy="false">)</mo></mrow></mrow><mo>/</mo><msubsup><mi>v</mi><mrow><mi>m</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>x</mi></mrow><mi>i</mi></msubsup></mrow><mo stretchy="false">)</mo></mrow></mrow></mrow></mrow><annotation encoding="application/x-tex">t_{n}=t_{n-1}+\max_{i}(d(C^{i}_{n},C^{i}_{n-1})/v_{max}^{i})</annotation></semantics></math> iteratively from <math alttext="n=1" class="ltx_Math" display="inline" id="S3.SS2.p4.m6"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n=1</annotation></semantics></math>.</p>
+</div>
+<div class="ltx_para" id="S3.SS2.p5">
+<p class="ltx_p">4) <span class="ltx_text ltx_font_bold">TPG Shortcutting</span> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib26" title="">26</a>, <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib19" title="">19</a>]</cite> is motivated by Temporal Plan Graphs (TPG) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib27" title="">27</a>]</cite>, an execution framework from the Multi-Agent Path Finding (MAPF) community. TPG is a directed graph that captures the relative execution order of given multi-robot trajectories. Each node <math alttext="v_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m1"><semantics><msubsup><mi>v</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{m}^{i}</annotation></semantics></math> represents a discretized configuration <math alttext="C_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m2"><semantics><msubsup><mi>C</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{m}^{i}</annotation></semantics></math>, while directed edges <math alttext="(v_{m}^{i},v_{n}^{j})" class="ltx_Math" display="inline" id="S3.SS2.p5.m3"><semantics><mrow><mo stretchy="false">(</mo><msubsup><mi>v</mi><mi>m</mi><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>v</mi><mi>n</mi><mi>j</mi></msubsup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(v_{m}^{i},v_{n}^{j})</annotation></semantics></math> describe precedence constraints. Edges from <math alttext="v_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m4"><semantics><msubsup><mi>v</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{m}^{i}</annotation></semantics></math> to <math alttext="v_{m+1}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m5"><semantics><msubsup><mi>v</mi><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{m+1}^{i}</annotation></semantics></math> for all <math alttext="m" class="ltx_Math" display="inline" id="S3.SS2.p5.m6"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math> and <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p5.m7"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> preserve each robot’s configuration order. For every pair of colliding configurations <math alttext="C_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m8"><semantics><msubsup><mi>C</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{m}^{i}</annotation></semantics></math> and <math alttext="C_{n}^{j}" class="ltx_Math" display="inline" id="S3.SS2.p5.m9"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>j</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{j}</annotation></semantics></math> (<math alttext="i\neq j" class="ltx_Math" display="inline" id="S3.SS2.p5.m10"><semantics><mrow><mi>i</mi><mo>≠</mo><mi>j</mi></mrow><annotation encoding="application/x-tex">i\neq j</annotation></semantics></math> and <math alttext="t_{m}&lt;t_{n}" class="ltx_Math" display="inline" id="S3.SS2.p5.m11"><semantics><mrow><msub><mi>t</mi><mi>m</mi></msub><mo>&lt;</mo><msub><mi>t</mi><mi>n</mi></msub></mrow><annotation encoding="application/x-tex">t_{m}&lt;t_{n}</annotation></semantics></math>), an edge from <math alttext="v_{m+1}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m12"><semantics><msubsup><mi>v</mi><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{m+1}^{i}</annotation></semantics></math> to <math alttext="v_{n}^{j}" class="ltx_Math" display="inline" id="S3.SS2.p5.m13"><semantics><msubsup><mi>v</mi><mi>n</mi><mi>j</mi></msubsup><annotation encoding="application/x-tex">v_{n}^{j}</annotation></semantics></math> ensures robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p5.m14"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> needs to travel through <math alttext="C_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m15"><semantics><msubsup><mi>C</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{m}^{i}</annotation></semantics></math> and reach <math alttext="C_{m+1}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p5.m16"><semantics><msubsup><mi>C</mi><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{m+1}^{i}</annotation></semantics></math> before robot <math alttext="j" class="ltx_Math" display="inline" id="S3.SS2.p5.m17"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math> moves to <math alttext="C_{n}^{j}" class="ltx_Math" display="inline" id="S3.SS2.p5.m18"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>j</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{j}</annotation></semantics></math>. The TPG allows robots to move asynchronously as long as the precedence constraints are satisfied. Critically, shortening a robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p5.m19"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>’s trajectory segment requires no collision checking with trajectory segments of other robots that cannot be executed simultaneously due to precedence constraints.</p>
+</div>
+<div class="ltx_para" id="S3.SS2.p6">
+<p class="ltx_p">Therefore, recently, Okumura et al. <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib26" title="">26</a>]</cite> proposed using TPG to shortcut multi-robot trajectories. For a shortcut <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p6.m1"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> of robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p6.m2"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>, it discretizes <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p6.m3"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math> assuming robot <math alttext="i" class="ltx_Math" display="inline" id="S3.SS2.p6.m4"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> travels at maximum speed. For every discretized configuration in <math alttext="s_{m\rightarrow n}" class="ltx_Math" display="inline" id="S3.SS2.p6.m5"><semantics><msub><mi>s</mi><mrow><mi>m</mi><mo stretchy="false">→</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">s_{m\rightarrow n}</annotation></semantics></math>, it checks collisions with any other nodes from other robots that are neither a predecessor of <math alttext="v_{m}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p6.m6"><semantics><msubsup><mi>v</mi><mi>m</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{m}^{i}</annotation></semantics></math> or a successor of <math alttext="v_{n}^{i}" class="ltx_Math" display="inline" id="S3.SS2.p6.m7"><semantics><msubsup><mi>v</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{n}^{i}</annotation></semantics></math><span class="ltx_note ltx_role_footnote" id="footnote2"><sup class="ltx_note_mark">2</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">2</sup><span class="ltx_tag ltx_tag_note">2</span>We can skip collision checking with these nodes because they must have precedence constraints with the node being checked, so the corresponding configurations will never be reached by the robots simutenously.</span></span></span> and accepts the shortcut if no collisions are found.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S3.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">III-C </span><span class="ltx_text ltx_font_italic">Comparison</span>
+</h3>
+<div class="ltx_para" id="S3.SS3.p1">
+<p class="ltx_p">Below, we analyze the strengths and weaknesses of these single and multi-robot shortcutting methods by examining their computational speed and effectiveness.</p>
+</div>
+<section class="ltx_subsubsection" id="S3.SS3.SSS1">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">III-C1 </span>Single-Robot Shortcutting: Randomized vs Iterative</h4>
+<div class="ltx_para" id="S3.SS3.SSS1.p1">
+<p class="ltx_p">We first analyze whether the two endpoints of a shortcut <math alttext="C_{m}" class="ltx_Math" display="inline" id="S3.SS3.SSS1.p1.m1"><semantics><msub><mi>C</mi><mi>m</mi></msub><annotation encoding="application/x-tex">C_{m}</annotation></semantics></math> and <math alttext="C_{n}" class="ltx_Math" display="inline" id="S3.SS3.SSS1.p1.m2"><semantics><msub><mi>C</mi><mi>n</mi></msub><annotation encoding="application/x-tex">C_{n}</annotation></semantics></math> should be chosen iteratively or randomly. Forward iteration finds more shortcuts but improves less per valid shortcut. This is because candidate shortcuts are more likely to originate from nearby configurations with less potential for makespan reduction and requiring additional shortcuts, along with more collision checks, to converge. Searching for shortcuts iteratively backward is more greedy. The shortcut can yield more significant reductions on average, but a long shortcut between two distant configurations is much less likely to be collision-free. Randomized sampling has a uniform probability of selecting each possible shortcut, thus exploring all configurations on a robot trajectory much more efficiently. Empirically, we also find that randomized sampling reduces the path length and makespan more efficiently.</p>
+</div>
+<figure class="ltx_figure" id="S3.F2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="734" id="S3.F2.g1" src="figs/shortcut_exp.png" width="598"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 2</span>: </span><span class="ltx_text" style="font-size:90%;">Toy examples in 2D that highlight the strengths and weaknesses of composite, prioritized, and path shortcutting. In (a), composite shortcutting is more efficient than prioritized and path shortcutting. In (b), only prioritized shortcutting can find a collision-free shortcut. In (c), only path shortcutting can find a collision-free shortcut and reduce the path length for robot 1. Since we assume robot 2 was moving below max speed from <math alttext="t_{1}" class="ltx_Math" display="inline" id="S3.F2.m5"><semantics><msub><mi>t</mi><mn>1</mn></msub><annotation encoding="application/x-tex">t_{1}</annotation></semantics></math> to <math alttext="t_{3}" class="ltx_Math" display="inline" id="S3.F2.m6"><semantics><msub><mi>t</mi><mn>3</mn></msub><annotation encoding="application/x-tex">t_{3}</annotation></semantics></math>, both robots can move faster from <math alttext="t_{1}" class="ltx_Math" display="inline" id="S3.F2.m7"><semantics><msub><mi>t</mi><mn>1</mn></msub><annotation encoding="application/x-tex">t_{1}</annotation></semantics></math> to <math alttext="t_{3}" class="ltx_Math" display="inline" id="S3.F2.m8"><semantics><msub><mi>t</mi><mn>3</mn></msub><annotation encoding="application/x-tex">t_{3}</annotation></semantics></math> after retiming and reduce makespan.</span></figcaption>
+</figure>
+</section>
+<section class="ltx_subsubsection" id="S3.SS3.SSS2">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">III-C2 </span>Multi-Robot Shortcutting: Computational Speed</h4>
+<div class="ltx_para" id="S3.SS3.SSS2.p1">
+<p class="ltx_p">The speed of a shortcutting method is largely dominated by the amount of time spent on collision checking between robot configurations.
+Composite shortcuts modify all robots’ configurations simultaneously, whereas prioritized or path shortcuts modify one robot’s path at a time. This implies that composite shortcutting requires fewer shortcuts, and thus, fewer collision checks.
+Compared to prioritized shortcutting, path shortcutting is faster because it does not check for configurations after the shortcut endpoint <math alttext="C_{n}^{i}" class="ltx_Math" display="inline" id="S3.SS3.SSS2.p1.m1"><semantics><msubsup><mi>C</mi><mi>n</mi><mi>i</mi></msubsup><annotation encoding="application/x-tex">C_{n}^{i}</annotation></semantics></math>.</p>
+</div>
+<div class="ltx_para" id="S3.SS3.SSS2.p2">
+<p class="ltx_p">TPG shortcutting, however, is computationally expensive, requiring more collision checks, especially in graphs with few inter-robot edge dependencies. The worst-case complexity of collision checking each candidate shortcut grows quadratically with the number of robots and trajectory length. Also, the shortcut must be collision-free with more spatial configurations. For instance, if there is no inter-robot edge in the TPG, any shortcut must be collision-free with the entire path of all other robots to be valid, increasing runtime complexity and degrading final trajectory quality.</p>
+</div>
+</section>
+<section class="ltx_subsubsection" id="S3.SS3.SSS3">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">III-C3 </span>Multi-Robot Shortcutting: Effectiveness</h4>
+<div class="ltx_para" id="S3.SS3.SSS3.p1">
+<p class="ltx_p">We compare how different multi-robot shortcutting methods perform using three illustrative 2D multi-robot examples in Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.F2" title="Figure 2 ‣ III-C1 Single-Robot Shortcutting: Randomized vs Iterative ‣ III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">2</span></a>.</p>
+</div>
+<div class="ltx_para" id="S3.SS3.SSS3.p2">
+<p class="ltx_p">In Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.F2" title="Figure 2 ‣ III-C1 Single-Robot Shortcutting: Randomized vs Iterative ‣ III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">2</span></a>(a), composite shortcutting can produce valid shortcuts for any choice of two indices (<math alttext="n\rightarrow m" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p2.m1"><semantics><mrow><mi>n</mi><mo stretchy="false">→</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">n\rightarrow m</annotation></semantics></math>), efficiently reducing all robots’ path lengths simultaneously for makespan reduction. In contrast, the best possible prioritized and path shortcuts are either <math alttext="C^{1}_{3}\rightarrow C^{1}_{9}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p2.m2"><semantics><mrow><msubsup><mi>C</mi><mn>3</mn><mn>1</mn></msubsup><mo stretchy="false">→</mo><msubsup><mi>C</mi><mn>9</mn><mn>1</mn></msubsup></mrow><annotation encoding="application/x-tex">C^{1}_{3}\rightarrow C^{1}_{9}</annotation></semantics></math> or <math alttext="C^{3}_{1}\rightarrow C^{3}_{7}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p2.m3"><semantics><mrow><msubsup><mi>C</mi><mn>1</mn><mn>3</mn></msubsup><mo stretchy="false">→</mo><msubsup><mi>C</mi><mn>7</mn><mn>3</mn></msubsup></mrow><annotation encoding="application/x-tex">C^{3}_{1}\rightarrow C^{3}_{7}</annotation></semantics></math> in the first iteration. No shortcuts for robot 2 are valid until the path for robot 1 or 3 changes, requiring both methods to attempt many more shortcuts to reach the optimal solution.</p>
+</div>
+<div class="ltx_para" id="S3.SS3.SSS3.p3">
+<p class="ltx_p">In Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.F2" title="Figure 2 ‣ III-C1 Single-Robot Shortcutting: Randomized vs Iterative ‣ III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">2</span></a>(b), composite shortcutting fails because robot 2 is already traveling at max speed on the shortest path. By definition, it must interpolate all robots’ configurations at the same time while no robot exceeds its speed limit. Prioritized shortcutting allows robot 1 to pass through the spatially conflicting configuration earlier than robot 2 and reach the old <math alttext="C_{5}^{1}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p3.m1"><semantics><msubsup><mi>C</mi><mn>5</mn><mn>1</mn></msubsup><annotation encoding="application/x-tex">C_{5}^{1}</annotation></semantics></math> two steps earlier. For path shortcutting, robot 1 would still need four steps to reach <math alttext="C_{5}^{1}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p3.m2"><semantics><msubsup><mi>C</mi><mn>5</mn><mn>1</mn></msubsup><annotation encoding="application/x-tex">C_{5}^{1}</annotation></semantics></math>, which would result in a collision with robot 2 at <math alttext="t_{3}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p3.m3"><semantics><msub><mi>t</mi><mn>3</mn></msub><annotation encoding="application/x-tex">t_{3}</annotation></semantics></math>. Prioritized shortcutting allows robots to switch the order when passing a spatially conflicting configuration, while path shortcutting does not.</p>
+</div>
+<div class="ltx_para" id="S3.SS3.SSS3.p4">
+<p class="ltx_p">In Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.F2" title="Figure 2 ‣ III-C1 Single-Robot Shortcutting: Randomized vs Iterative ‣ III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">2</span></a>(c), composite shortcutting fails due to the static obstacle blocking robot 2’s shorter paths (e.g., a shortcut from <math alttext="C_{1}^{2}\rightarrow C_{3}^{2}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p4.m1"><semantics><mrow><msubsup><mi>C</mi><mn>1</mn><mn>2</mn></msubsup><mo stretchy="false">→</mo><msubsup><mi>C</mi><mn>3</mn><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">C_{1}^{2}\rightarrow C_{3}^{2}</annotation></semantics></math>). Prioritized shortcutting is infeasible because robot 1 would arrive one step earlier at the spatially conflicting <math alttext="C_{3}^{2}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p4.m2"><semantics><msubsup><mi>C</mi><mn>3</mn><mn>2</mn></msubsup><annotation encoding="application/x-tex">C_{3}^{2}</annotation></semantics></math> and collide with robot 2. A path shortcut is valid because robot 2 still passes through the conflicting pose first and thus avoids collisions. Since we assume that robot 2 is below its speed limit from <math alttext="t_{1}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p4.m3"><semantics><msub><mi>t</mi><mn>1</mn></msub><annotation encoding="application/x-tex">t_{1}</annotation></semantics></math> to <math alttext="t_{3}" class="ltx_Math" display="inline" id="S3.SS3.SSS3.p4.m4"><semantics><msub><mi>t</mi><mn>3</mn></msub><annotation encoding="application/x-tex">t_{3}</annotation></semantics></math>, the makespan can be reduced by retiming the trajectory and speeding up both robots after the path shortcutting. If robot 2 is at its maximum speed limit, then the path shortcut only reduces the path length but does not reduce the makespan.</p>
+</div>
+<div class="ltx_para" id="S3.SS3.SSS3.p5">
+<p class="ltx_p">Overall, the best shortcutting method is trajectory-dependent. Between path and prioritized shortcutting, one method may identify valid shortcuts while the other fails. Composite shortcutting uses the fewest shortcuts. We excluded the TPG shortcut from these examples due to its high computational cost, as its performance was consistently inferior to the other three methods in our experiments.</p>
+</div>
+</section>
+</section>
+</section>
+<section class="ltx_section" id="S4">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">IV </span><span class="ltx_text ltx_font_smallcaps">Multi-Strategy Methods</span>
+</h2>
+<div class="ltx_para" id="S4.p1">
+<p class="ltx_p">Since no single multi-robot shortcutting method performs best universally, we can mix different multi-robot shortcutting methods across iterations. Our multi-strategy methods combine composite, prioritized, and path shortcutting with randomized shortcutting. In each iteration, we select one shortcutting approach and use it to select one shortcut (e.g., prioritized shortcutting selects one robot’s path to shortcut). If successful, the shortcut updates the corresponding portion of the trajectory and repeats until the time limit is reached. We use randomized single-robot shortcutting because it performs best empirically, and we exclude TPG shortcutting due to its time-consuming construction and maintenance.</p>
+</div>
+<div class="ltx_para" id="S4.p2">
+<p class="ltx_p">We introduce two simple multi-strategy methods, both requiring no pre-processing and minimal runtime overhead.</p>
+</div>
+<section class="ltx_subsubsection" id="S4.SS0.SSS1">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">IV-1 </span>Round Robin (RR)</h4>
+<div class="ltx_para" id="S4.SS0.SSS1.p1">
+<p class="ltx_p">This simple strategy cycles through the shortcutting methods until an iteration limit. RR has also been used to select heuristics in suboptimal search <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib32" title="">32</a>]</cite>.</p>
+</div>
+</section>
+<section class="ltx_subsubsection" id="S4.SS0.SSS2">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">IV-2 </span>Thompson Sampling</h4>
+<div class="ltx_para" id="S4.SS0.SSS2.p1">
+<p class="ltx_p">Dynamic Thompson Sampling (DTS) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib33" title="">33</a>]</cite> models the shortcutting algorithm selection as a multi-arm bandit problem with a shifting underlying distribution. The runtime and shortcut improvement of each method determines the reward. We adapt the DTS from the multi-heuristic search in <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib34" title="">34</a>]</cite>.
+Mathematically, we initialize parameters <math alttext="\alpha_{i}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m1"><semantics><msub><mi>α</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\alpha_{i}</annotation></semantics></math> and <math alttext="\beta_{i}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m2"><semantics><msub><mi>β</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\beta_{i}</annotation></semantics></math> of the beta distribution used to model the probability of success for each shortcutting strategy <math alttext="i" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m3"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.
+At each iteration, we sample <math alttext="\theta_{i}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m4"><semantics><msub><mi>θ</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\theta_{i}</annotation></semantics></math> from beta distribution <math alttext="Beta(\alpha_{i},\beta_{i})" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m5"><semantics><mrow><mi>B</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>α</mi><mi>i</mi></msub><mo>,</mo><msub><mi>β</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">Beta(\alpha_{i},\beta_{i})</annotation></semantics></math> for each strategy <math alttext="i" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m6"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>, then select the strategy <math alttext="i^{*}=\operatorname*{arg\,max}_{i}\theta_{i}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m7"><semantics><mrow><msup><mi>i</mi><mo>∗</mo></msup><mo>=</mo><mrow><msub><mrow><mi>arg</mi><mo lspace="0.170em" rspace="0em">​</mo><mi>max</mi></mrow><mi>i</mi></msub><mo>⁡</mo><msub><mi>θ</mi><mi>i</mi></msub></mrow></mrow><annotation encoding="application/x-tex">i^{*}=\operatorname*{arg\,max}_{i}\theta_{i}</annotation></semantics></math> to attempt a shortcut.
+If the shortcut is accepted, we compute a reward as <math alttext="r=d+\gamma_{t}\max(0,1-t/\sigma)" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m8"><semantics><mrow><mi>r</mi><mo>=</mo><mrow><mi>d</mi><mo>+</mo><mrow><msub><mi>γ</mi><mi>t</mi></msub><mo lspace="0.167em" rspace="0em">​</mo><mrow><mi>max</mi><mo>⁡</mo><mrow><mo stretchy="false">(</mo><mn>0</mn><mo>,</mo><mrow><mn>1</mn><mo>−</mo><mrow><mi>t</mi><mo>/</mo><mi>σ</mi></mrow></mrow><mo stretchy="false">)</mo></mrow></mrow></mrow></mrow></mrow><annotation encoding="application/x-tex">r=d+\gamma_{t}\max(0,1-t/\sigma)</annotation></semantics></math>, where <math alttext="d" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m9"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math> is the relative path length reduction, <math alttext="t" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m10"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math> is the runtime for evaluating shortcuts, <math alttext="\sigma" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m11"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math> is the normalizing time scale, and <math alttext="\gamma_{t}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m12"><semantics><msub><mi>γ</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\gamma_{t}</annotation></semantics></math> is the relative weight to reward a shorter runtime. The reward prioritizes greater path length reduction in less time.
+If accepted, we update <math alttext="\alpha_{i^{*}}\leftarrow\alpha_{i^{*}}+\gamma_{\alpha}\cdot r" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m13"><semantics><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo stretchy="false">←</mo><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo>+</mo><mrow><msub><mi>γ</mi><mi>α</mi></msub><mo lspace="0.222em" rspace="0.222em">⋅</mo><mi>r</mi></mrow></mrow></mrow><annotation encoding="application/x-tex">\alpha_{i^{*}}\leftarrow\alpha_{i^{*}}+\gamma_{\alpha}\cdot r</annotation></semantics></math>, where <math alttext="\gamma_{\alpha}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m14"><semantics><msub><mi>γ</mi><mi>α</mi></msub><annotation encoding="application/x-tex">\gamma_{\alpha}</annotation></semantics></math> is the update weight for <math alttext="\alpha" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m15"><semantics><mi>α</mi><annotation encoding="application/x-tex">\alpha</annotation></semantics></math>.
+If the shortcut is rejected, we update <math alttext="\beta_{i^{*}}\leftarrow\beta_{i^{*}}+\gamma_{\beta}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m16"><semantics><mrow><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo stretchy="false">←</mo><mrow><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo>+</mo><msub><mi>γ</mi><mi>β</mi></msub></mrow></mrow><annotation encoding="application/x-tex">\beta_{i^{*}}\leftarrow\beta_{i^{*}}+\gamma_{\beta}</annotation></semantics></math>.
+The sum of <math alttext="\alpha_{i^{*}}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m17"><semantics><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><annotation encoding="application/x-tex">\alpha_{i^{*}}</annotation></semantics></math> and <math alttext="\beta_{i^{*}}" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m18"><semantics><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><annotation encoding="application/x-tex">\beta_{i^{*}}</annotation></semantics></math> is normalized to the normalization constant <math alttext="Z" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m19"><semantics><mi>Z</mi><annotation encoding="application/x-tex">Z</annotation></semantics></math> if it exceeds <math alttext="Z" class="ltx_Math" display="inline" id="S4.SS0.SSS2.p1.m20"><semantics><mi>Z</mi><annotation encoding="application/x-tex">Z</annotation></semantics></math>.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S5">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">V </span><span class="ltx_text ltx_font_smallcaps">Experiments</span>
+</h2>
+<div class="ltx_para" id="S5.p1">
+<p class="ltx_p">To assess the efficacy of each shortcutting method, we generated 1,034 multi-robot-arm trajectories with two motion planning algorithms in 6 environments and shortcutted them with each of our benchmarked methods. Specifically, we designed the benchmark to answer the following questions: 1) How do existing shortcutting methods compare across environments with different complexity? 2) Does the proposed algorithmic selector combine the strengths of each method?</p>
+</div>
+<section class="ltx_subsection" id="S5.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-A </span><span class="ltx_text ltx_font_italic">Evaluation environment</span>
+</h3>
+<div class="ltx_para" id="S5.SS1.p1">
+<p class="ltx_p">As shown in Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F3" title="Figure 3 ‣ V-A Evaluation environment ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">3</span></a> and Table <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS3.SSS2" title="V-C2 Search-Based Motion Planner ‣ V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">V-C2</span></a>, we create 6 evaluation environments in <span class="ltx_text ltx_font_italic">MoveIt!</span> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib35" title="">35</a>]</cite>, a popular software package for robot arm motion planning. We design problem instances with varying difficulties by adjusting the proximity among robots at start and goal configurations, attaching objects to their end effector, and changing the environment. Our setup includes two robot types: 6-DoF Yaskawa GP4 and 7-DoF Franka Panda. To make the evaluation more realistic, we attach long rods to the robot’s end effector in the Panda Two Rod and Panda Four Bins, significantly increasing planning complexity due to more collision avoidance requirements.</p>
+</div>
+<figure class="ltx_figure" id="S5.F3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="304" id="S5.F3.g1" src="figs/envs.png" width="598"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 3</span>: </span><span class="ltx_text" style="font-size:90%;">Visualization of the six multi-robot environments. </span></figcaption>
+</figure>
+</section>
+<section class="ltx_subsection" id="S5.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-B </span><span class="ltx_text ltx_font_italic">Evaluation Metrics</span>
+</h3>
+<div class="ltx_para" id="S5.SS2.p1">
+<p class="ltx_p">Motion planning literature has a variety of different optimization objectives, often tailored for specific objectives such as path length, clearance, motion cost, planning time, or higher-order derivatives such as jerk. Performance can vary depending on the metric chosen, but we focus on the kinematic path quality in multi-robot systems as this is the most fundamental aspect to robot motion planning. The quality of a kinematic trajectory includes the execution time (e.g., makespan), physical path length, and smoothness. The efficiency of the shortcutting algorithm is also important. Thus, we choose the following metrics to evaluate the performance of different shortcutting methods.</p>
+<ul class="ltx_itemize" id="S5.I1">
+<li class="ltx_item" id="S5.I1.i1" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span>
+<div class="ltx_para" id="S5.I1.i1.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Makespan</span>(s) <math alttext="\max_{i}t_{H^{i}}^{i}" class="ltx_Math" display="inline" id="S5.I1.i1.p1.m1"><semantics><mrow><msub><mi>max</mi><mi>i</mi></msub><mo lspace="0.167em">⁡</mo><msubsup><mi>t</mi><msup><mi>H</mi><mi>i</mi></msup><mi>i</mi></msubsup></mrow><annotation encoding="application/x-tex">\max_{i}t_{H^{i}}^{i}</annotation></semantics></math>: maximal time among robots.</p>
+</div>
+</li>
+<li class="ltx_item" id="S5.I1.i2" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span>
+<div class="ltx_para" id="S5.I1.i2.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Path Lengths</span>(rad) <math alttext="\sum_{i=1}^{N}\sum_{j=2}^{H_{i}}d(C_{j-1}^{i},C_{j}^{i})" class="ltx_Math" display="inline" id="S5.I1.i2.p1.m1"><semantics><mrow><msubsup><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></msubsup><mrow><msubsup><mo lspace="0.167em">∑</mo><mrow><mi>j</mi><mo>=</mo><mn>2</mn></mrow><msub><mi>H</mi><mi>i</mi></msub></msubsup><mrow><mi>d</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>C</mi><mrow><mi>j</mi><mo>−</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>C</mi><mi>j</mi><mi>i</mi></msubsup><mo stretchy="false">)</mo></mrow></mrow></mrow></mrow><annotation encoding="application/x-tex">\sum_{i=1}^{N}\sum_{j=2}^{H_{i}}d(C_{j-1}^{i},C_{j}^{i})</annotation></semantics></math>: The total length of the paths, excluding any wait actions.</p>
+</div>
+</li>
+<li class="ltx_item" id="S5.I1.i3" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span>
+<div class="ltx_para" id="S5.I1.i3.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Directional Consistency</span> <math alttext="\sum_{i=1}^{N}\sum_{j=2}^{H_{j}}(1-\frac{v_{j-1}^{i}\cdot v_{j}^{i}}{||v_{j-1}^{i}||\cdot||v_{j}^{i}||})" class="ltx_Math" display="inline" id="S5.I1.i3.p1.m1"><semantics><mrow><msubsup><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></msubsup><mrow><msubsup><mo lspace="0.167em" rspace="0em">∑</mo><mrow><mi>j</mi><mo>=</mo><mn>2</mn></mrow><msub><mi>H</mi><mi>j</mi></msub></msubsup><mrow><mo stretchy="false">(</mo><mrow><mn>1</mn><mo>−</mo><mfrac><mrow><msubsup><mi>v</mi><mrow><mi>j</mi><mo>−</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo lspace="0.222em" rspace="0.222em">⋅</mo><msubsup><mi>v</mi><mi>j</mi><mi>i</mi></msubsup></mrow><mrow><mrow><mo maxsize="1.420em" minsize="1.420em" stretchy="true">‖</mo><msubsup><mi>v</mi><mrow><mi>j</mi><mo>−</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo maxsize="1.420em" minsize="1.420em" rspace="0.055em" stretchy="true">‖</mo></mrow><mo rspace="0.222em">⋅</mo><mrow><mo maxsize="1.420em" minsize="1.420em" stretchy="true">‖</mo><msubsup><mi>v</mi><mi>j</mi><mi>i</mi></msubsup><mo maxsize="1.420em" minsize="1.420em" stretchy="true">‖</mo></mrow></mrow></mfrac></mrow><mo stretchy="false">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\sum_{i=1}^{N}\sum_{j=2}^{H_{j}}(1-\frac{v_{j-1}^{i}\cdot v_{j}^{i}}{||v_{j-1}^{i}||\cdot||v_{j}^{i}||})</annotation></semantics></math>, where <math alttext="v_{j}^{i}=C_{j+1}^{i}-C_{j}^{i}" class="ltx_Math" display="inline" id="S5.I1.i3.p1.m2"><semantics><mrow><msubsup><mi>v</mi><mi>j</mi><mi>i</mi></msubsup><mo>=</mo><mrow><msubsup><mi>C</mi><mrow><mi>j</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo>−</mo><msubsup><mi>C</mi><mi>j</mi><mi>i</mi></msubsup></mrow></mrow><annotation encoding="application/x-tex">v_{j}^{i}=C_{j+1}^{i}-C_{j}^{i}</annotation></semantics></math>. It measures the number and degree of “kinks” in the path with cosine similarity.</p>
+</div>
+</li>
+<li class="ltx_item" id="S5.I1.i4" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span>
+<div class="ltx_para" id="S5.I1.i4.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Runtime</span>: The time used by the shortcutting algorithm.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="ltx_para" id="S5.SS2.p2">
+<p class="ltx_p">We also report additional statistics, such as the number of evaluated and valid shortcuts, to highlight the difference in behavior and characteristics of different algorithms.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S5.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-C </span><span class="ltx_text ltx_font_italic">Motion Planning Algorithms</span>
+</h3>
+<div class="ltx_para" id="S5.SS3.p1">
+<p class="ltx_p">In our experiments, we generated multi-robot trajectories using two algorithms, each representing a different approach to motion planning.</p>
+</div>
+<section class="ltx_subsubsection" id="S5.SS3.SSS1">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">V-C1 </span>Sampling-Based Motion Planner</h4>
+<div class="ltx_para" id="S5.SS3.SSS1.p1">
+<p class="ltx_p">RRT-Connect <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib6" title="">6</a>]</cite>, a popular and effective motion planner for robotic manipulators, offers quick computation time but can produce occasional poor motion quality (see Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S1.F1" title="Figure 1 ‣ I Introduction ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">1</span></a>). Using RRT-Connect in multi-arm settings is straightforward. In multi-arm settings, we treat all arms as a single, higher-dimensional meta-robot, with its configuration space as the Cartesian product of individual arm configuration spaces. RRT-Connect samples this composite configuration space to find a trajectory between the composite start and goal configurations. We use the OMPL <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib36" title="">36</a>]</cite> implementation of RRT-Connect.</p>
+</div>
+</section>
+<section class="ltx_subsubsection" id="S5.SS3.SSS2">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">V-C2 </span>Search-Based Motion Planner</h4>
+<div class="ltx_para" id="S5.SS3.SSS2.p1">
+<p class="ltx_p">xECBS <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib4" title="">4</a>]</cite>, a state-of-the-art motion planner for multi-arm settings, builds on the CBS <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib12" title="">12</a>]</cite> algorithm. It begins by computing single-robot trajectories for all arms independently, usually using A* <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib37" title="">37</a>]</cite>. Then, CBS incrementally resolves robot-robot collisions by imposing constraints and replanning. To cast multi-arm motion planning as a MAPF problem, CBS embeds the configuration space of each arm into a graph, where vertices are configurations and edges are kinematically valid transitions between configurations.
+Our implementation is similar to the one outlined in <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib4" title="">4</a>]</cite>.</p>
+</div>
+<div class="ltx_para" id="S5.SS3.SSS2.p2">
+<p class="ltx_p">As shown in Table <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.SS3.SSS2" title="V-C2 Search-Based Motion Planner ‣ V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">V-C2</span></a>, RRT-Connect trajectories are often longer with unnecessary motions. CBS can find trajectories with shorter path length but are often less smooth, leaving room for improvement.</p>
+</div>
+<figure class="ltx_table ltx_figure_panel ltx_align_center" id="S5.T1">
+<figcaption class="ltx_caption" style="font-size:90%;"><span class="ltx_tag ltx_tag_table">TABLE I: </span>Summary of multi-arm environments characteristic and solution metrics for sampling-based RRT and search-based CBS. Average path length (PL), makespan (MK), and directional consistency (DC) are reported. </figcaption>
+<table class="ltx_tabular ltx_centering ltx_figure_panel ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_center ltx_border_tt" rowspan="2" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">
+<span class="ltx_tabular ltx_align_middle">
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Environment</span></span>
+</span> </span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_tt" rowspan="2" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">
+<span class="ltx_tabular ltx_align_middle">
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Static</span></span>
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Obstacles</span></span>
+</span> </span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_tt" rowspan="2" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">
+<span class="ltx_tabular ltx_align_middle">
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Attached</span></span>
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Objects</span></span>
+</span> </span></td>
+<td class="ltx_td ltx_align_center ltx_border_tt" colspan="2" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">PL</span></td>
+<td class="ltx_td ltx_align_center ltx_border_tt" colspan="2" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">MK</span></td>
+<td class="ltx_td ltx_align_center ltx_border_tt" colspan="2" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">DC</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">RRT</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">CBS</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">RRT</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">CBS</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">RRT</span></td>
+<td class="ltx_td ltx_nopad_l ltx_nopad_r ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">CBS</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">Dual GP4</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m1"><semantics><mo mathsize="0.900em">×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m2"><semantics><mo mathsize="0.900em">×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">8.6</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">7.4</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">5.0</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">4.9</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.00</span></td>
+<td class="ltx_td ltx_nopad_l ltx_nopad_r ltx_align_center ltx_border_t" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.21</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">Panda Two</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m3"><semantics><mo mathsize="0.900em">×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m4"><semantics><mo mathsize="0.900em">×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">15.9</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">7.7</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">9.3</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">5.0</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.01</span></td>
+<td class="ltx_td ltx_nopad_l ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.16</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">
+<span class="ltx_tabular ltx_align_middle">
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Panda Two</span></span>
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Rod</span></span>
+</span> </span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m5"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">✓</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">20.2</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">11.4</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">11.7</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">7.5</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.01</span></td>
+<td class="ltx_td ltx_nopad_l ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.17</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">Panda Three</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">✓</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m6"><semantics><mo mathsize="0.900em">×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">29.9</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">23.7</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">12.4</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">11.3</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.00</span></td>
+<td class="ltx_td ltx_nopad_l ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.17</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">Panda Four</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m7"><semantics><mo mathsize="0.900em">×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><math alttext="\times" class="ltx_Math" display="inline" id="S5.SS3.SSS2.m8"><semantics><mo mathsize="0.900em">×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">36.2</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">18.2</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">11.4</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">7.0</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.00</span></td>
+<td class="ltx_td ltx_nopad_l ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.16</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">
+<span class="ltx_tabular ltx_align_middle">
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Panda Four</span></span>
+<span class="ltx_tr">
+<span class="ltx_td ltx_nopad_r ltx_align_center" style="padding-left:2.0pt;padding-right:2.0pt;">Bins</span></span>
+</span> </span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">✓</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">✓</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">46.2</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">17.5</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">14.4</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">7.1</span></td>
+<td class="ltx_td ltx_nopad_l ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.01</span></td>
+<td class="ltx_td ltx_nopad_l ltx_nopad_r ltx_align_center ltx_border_bb" style="padding-left:2.0pt;padding-right:2.0pt;"><span class="ltx_text" style="font-size:90%;">0.14</span></td>
+</tr>
+</table>
+</figure>
+<figure class="ltx_figure" id="S5.F4">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_figure_panel ltx_img_landscape" height="36" id="S5.F4.g1" src="x1.png" width="830"/></div>
+<div class="ltx_flex_break"></div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S5.F4.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="970" id="S5.F4.sf1.g1" src="x2.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(a)</span> </span><span class="ltx_text" style="font-size:90%;">RRT-generated trajectories</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S5.F4.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="970" id="S5.F4.sf2.g1" src="x3.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(b)</span> </span><span class="ltx_text" style="font-size:90%;">CBS-generated trajectories</span></figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 4</span>: </span><span class="ltx_text" style="font-size:90%;">Comparison of average makespan improvement over time across different environments for benchmarked shortcut methods on both RRT- and CBS-generated trajectories. The two multi-strategy methods (RR and Thompson) outperform the others. Composite, Prioritized, Path, and TPG combine the respective multi-robot shortcutting strategy with randomized single-agent shortcutting. Fwd Loop (Forward Loop) and Bwd Loop (Backward Loop) combine the respective single-robot shortcutting strategy with path shortcutting to generalize to a multi-robot setting. </span></figcaption>
+</figure>
+</section>
+</section>
+<section class="ltx_subsection" id="S5.SS4">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-D </span><span class="ltx_text ltx_font_italic">Implementation Detail</span>
+</h3>
+<div class="ltx_para" id="S5.SS4.p1">
+<p class="ltx_p">The runtime limit for the shortcutting algorithm is 5 seconds for the GP4 Two, 10 seconds for both Panda Two, 120 seconds for the Panda Four Bins, and 60 seconds for other Panda arm environments. The runtimes are selected based on our estimates of the time required for randomized composite, prioritized, and path shortcutting methods to converge. Note that because shortcutting algorithms are anytime, it is unnecessary to run them for a long time in practice.</p>
+</div>
+<div class="ltx_para" id="S5.SS4.p2">
+<p class="ltx_p">If the initial planned trajectory uses non-uniform timesteps, we retime the trajectory to a uniform step size <math alttext="\Delta t" class="ltx_Math" display="inline" id="S5.SS4.p2.m1"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow><annotation encoding="application/x-tex">\Delta t</annotation></semantics></math> by linear interpolation. Collisions are checked between the geometry of each robot (including any attached objects) with other robots and the environment at each discretized timestep. Thus, picking a suitable <math alttext="\Delta t" class="ltx_Math" display="inline" id="S5.SS4.p2.m2"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow><annotation encoding="application/x-tex">\Delta t</annotation></semantics></math> is important as it directly affects the resolution and complexity of collision checking.
+We found that setting the uniform discretization step to be <math alttext="\Delta t=0.1s" class="ltx_Math" display="inline" id="S5.SS4.p2.m3"><semantics><mrow><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow><mo>=</mo><mrow><mn>0.1</mn><mo lspace="0em" rspace="0em">​</mo><mi>s</mi></mrow></mrow><annotation encoding="application/x-tex">\Delta t=0.1s</annotation></semantics></math> and the maximum <math alttext="L_{1}" class="ltx_Math" display="inline" id="S5.SS4.p2.m4"><semantics><msub><mi>L</mi><mn>1</mn></msub><annotation encoding="application/x-tex">L_{1}</annotation></semantics></math> velocity for each robot arm to be <math alttext="1rad/s" class="ltx_Math" display="inline" id="S5.SS4.p2.m5"><semantics><mrow><mrow><mn>1</mn><mo lspace="0em" rspace="0em">​</mo><mi>r</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>d</mi></mrow><mo>/</mo><mi>s</mi></mrow><annotation encoding="application/x-tex">1rad/s</annotation></semantics></math> achieves a good balance between runtime and accuracy.
+Detailed parameters of Thompson sampling are available in the appendix.
+We implemented all shortcutting algorithms in C++ and conducted our experiment on a server with an AMD Threadripper 3990X CPU.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S5.SS5">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-E </span><span class="ltx_text ltx_font_italic">Results</span>
+</h3>
+<div class="ltx_para" id="S5.SS5.p1">
+<p class="ltx_p">We summarize all performance metrics and the statistics of all benchmarked shortcutting methods in Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F4" title="Figure 4 ‣ V-C2 Search-Based Motion Planner ‣ V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">4</span></a> and Table <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.T2" title="TABLE II ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">II</span></a>.
+We report the results separately for robot trajectories planned by RRT and CBS because the planned trajectories have very different characteristics. Instead of evaluating all possible ways to generalize single-robot shortcutting to multi-robot, we evaluate two groups of representative combinations. The first group - Composite, Prioritized, Path, and TPG all use the randomized single-robot method with respective multi-robot methods. The second group - Fwd Loop (Forward Loop) and Bwd Loop (Backward Loop), uses path shortcutting with the respective single-robot iteration method. We report multi-strategy methods - RR and Thompson - in a third group.</p>
+</div>
+<div class="ltx_para" id="S5.SS5.p2">
+<p class="ltx_p">Across all settings, multi-strategy shortcutting methods outperform all other single-strategy methods regarding the final execution time, path length, and smoothness. The best shortcutting algorithm significantly improves the makespan of CBS-generated trajectories by around 14% and RRT-generated trajectories by 25%, which indicates the importance of shortcutting. Our earlier analysis of the different shortcutting strategies aligns with the empirical evaluations, as discussed below.</p>
+</div>
+<figure class="ltx_table" id="S5.T2">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table"><span class="ltx_text" style="font-size:90%;">TABLE II</span>: </span><span class="ltx_text" style="font-size:90%;">Average of selected metrics (% and standard deviation) measured across all trajectories from all six environments. The <span class="ltx_text ltx_font_bold">bold</span> entry indicates the best-performing algorithm in the main metrics.</span></figcaption>
+<table class="ltx_tabular ltx_centering ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_tt">Planner</td>
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_tt">Method</td>
+<td class="ltx_td ltx_align_center ltx_border_tt">
+<table class="ltx_tabular ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Makespan</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Improvement</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">(%)</td>
+</tr>
+</table></td>
+<td class="ltx_td ltx_align_center ltx_border_tt">
+<table class="ltx_tabular ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Path Length</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Improvement</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">(%)</td>
+</tr>
+</table></td>
+<td class="ltx_td ltx_align_right ltx_border_tt">
+<table class="ltx_tabular ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Directional</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Consistency</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Improvement (%)</td>
+</tr>
+</table>    <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_tt">
+<table class="ltx_tabular ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center"># Candidate</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Shortcuts</td>
+</tr>
+</table></td>
+<td class="ltx_td ltx_align_center ltx_border_tt">
+<table class="ltx_tabular ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center"># Valid</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Shortcuts</td>
+</tr>
+</table></td>
+<td class="ltx_td ltx_align_center ltx_border_tt">
+<table class="ltx_tabular ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Makespan</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Improvement per</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_nopad_r ltx_align_center">Valid Shortcuts (s)</td>
+</tr>
+</table></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_t" rowspan="8">CBS</td>
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t">Composite</td>
+<td class="ltx_td ltx_align_center ltx_border_t">12.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m1"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 7.7</td>
+<td class="ltx_td ltx_align_center ltx_border_t">2.4 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m2"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.2</td>
+<td class="ltx_td ltx_align_right ltx_border_t">58.7 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m3"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 30.6   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_t">2.0k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m4"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.0k</td>
+<td class="ltx_td ltx_align_center ltx_border_t">3 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m5"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3</td>
+<td class="ltx_td ltx_align_center ltx_border_t">0.260 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m6"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.216</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">Prioritized</td>
+<td class="ltx_td ltx_align_center">13.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m7"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 8.8</td>
+<td class="ltx_td ltx_align_center">3.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m8"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.9</td>
+<td class="ltx_td ltx_align_right">54.4 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m9"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 27.8   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">2.6k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m10"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.9k</td>
+<td class="ltx_td ltx_align_center">8 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m11"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 7</td>
+<td class="ltx_td ltx_align_center">0.137 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m12"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.122</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">Path</td>
+<td class="ltx_td ltx_align_center">6.2 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m13"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 6.2</td>
+<td class="ltx_td ltx_align_center">3.9 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m14"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 4.7</td>
+<td class="ltx_td ltx_align_right">34.8 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m15"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 28.3   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">2.3k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m16"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.3k</td>
+<td class="ltx_td ltx_align_center">11 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m17"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 15</td>
+<td class="ltx_td ltx_align_center">0.087 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m18"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.116</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">TPG</td>
+<td class="ltx_td ltx_align_center">7.8 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m19"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 8.4</td>
+<td class="ltx_td ltx_align_center">1.6 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m20"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 2.6</td>
+<td class="ltx_td ltx_align_right">37.4 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m21"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 33.8   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">1.6k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m22"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.6k</td>
+<td class="ltx_td ltx_align_center">11 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m23"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 7</td>
+<td class="ltx_td ltx_align_center">0.044 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m24"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.049</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t">Fwd Loop</td>
+<td class="ltx_td ltx_align_center ltx_border_t">4.5 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m25"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 5.2</td>
+<td class="ltx_td ltx_align_center ltx_border_t">3.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m26"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.9</td>
+<td class="ltx_td ltx_align_right ltx_border_t">34.3 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m27"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 31.1   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_t">1.6k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m28"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 2.1k</td>
+<td class="ltx_td ltx_align_center ltx_border_t">8 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m29"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 11</td>
+<td class="ltx_td ltx_align_center ltx_border_t">0.056 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m30"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.066</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">Bwd Loop</td>
+<td class="ltx_td ltx_align_center">5.6 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m31"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 6.0</td>
+<td class="ltx_td ltx_align_center">3.3 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m32"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 4.2</td>
+<td class="ltx_td ltx_align_right">37.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m33"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 31.9   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">2.4k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m34"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.3k</td>
+<td class="ltx_td ltx_align_center">3 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m35"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3</td>
+<td class="ltx_td ltx_align_center">0.174 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m36"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.169</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t">RR</td>
+<td class="ltx_td ltx_align_center ltx_border_t"><span class="ltx_text ltx_font_bold">14.3 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m37"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 8.5</span></td>
+<td class="ltx_td ltx_align_center ltx_border_t"><span class="ltx_text ltx_font_bold">4.2 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m38"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 4.8</span></td>
+<td class="ltx_td ltx_align_right ltx_border_t">70.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m39"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 24.4   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_t">2.4k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m40"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.2k</td>
+<td class="ltx_td ltx_align_center ltx_border_t">18 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m41"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 16</td>
+<td class="ltx_td ltx_align_center ltx_border_t">0.088 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m42"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.125</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">DTS</td>
+<td class="ltx_td ltx_align_center">14.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m43"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 8.4</td>
+<td class="ltx_td ltx_align_center">4.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m44"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 4.7</td>
+<td class="ltx_td ltx_align_right">
+<span class="ltx_text ltx_font_bold">72.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m45"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 23.5</span>   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">2.5k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m46"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.3k</td>
+<td class="ltx_td ltx_align_center">17 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m47"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 16</td>
+<td class="ltx_td ltx_align_center">0.089 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m48"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.105</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_bb ltx_border_t" rowspan="8">RRT</td>
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t">Composite</td>
+<td class="ltx_td ltx_align_center ltx_border_t">17.7 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m49"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 18.2</td>
+<td class="ltx_td ltx_align_center ltx_border_t">17.5 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m50"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 18.2</td>
+<td class="ltx_td ltx_align_right ltx_border_t">7.9 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m51"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 30.9   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_t">2.9k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m52"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.8k</td>
+<td class="ltx_td ltx_align_center ltx_border_t">5 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m53"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 4</td>
+<td class="ltx_td ltx_align_center ltx_border_t">0.359 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m54"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.278</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">Prioritized</td>
+<td class="ltx_td ltx_align_center">22.7 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m55"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 22.0</td>
+<td class="ltx_td ltx_align_center">23.6 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m56"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 22.5</td>
+<td class="ltx_td ltx_align_right">6.2 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m57"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 46.0   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">2.3k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m58"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 2.8k</td>
+<td class="ltx_td ltx_align_center">17 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m59"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 15</td>
+<td class="ltx_td ltx_align_center">0.129 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m60"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.145</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">Path</td>
+<td class="ltx_td ltx_align_center">23.4 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m61"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 20.7</td>
+<td class="ltx_td ltx_align_center">26.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m62"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 22.1</td>
+<td class="ltx_td ltx_align_right">
+<span class="ltx_text ltx_font_bold">46.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m63"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 35.9</span>   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">2.0k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m64"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 2.4k</td>
+<td class="ltx_td ltx_align_center">48 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m65"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 44</td>
+<td class="ltx_td ltx_align_center">0.063 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m66"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.047</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">TPG</td>
+<td class="ltx_td ltx_align_center">9.4 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m67"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 13.7</td>
+<td class="ltx_td ltx_align_center">12.3 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m68"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 14.7</td>
+<td class="ltx_td ltx_align_right">-6.5 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m69"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 31.2   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">0.6k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m70"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 1.1k</td>
+<td class="ltx_td ltx_align_center">12 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m71"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 6</td>
+<td class="ltx_td ltx_align_center">0.064 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m72"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.087</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t">Fwd Loop</td>
+<td class="ltx_td ltx_align_center ltx_border_t">14.7 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m73"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 16.8</td>
+<td class="ltx_td ltx_align_center ltx_border_t">18.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m74"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 18.2</td>
+<td class="ltx_td ltx_align_right ltx_border_t">23.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m75"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 34.5   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_t">1.1k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m76"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 1.6k</td>
+<td class="ltx_td ltx_align_center ltx_border_t">54 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m77"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 55</td>
+<td class="ltx_td ltx_align_center ltx_border_t">0.034 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m78"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.029</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r">Bwd Loop</td>
+<td class="ltx_td ltx_align_center">18.0 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m79"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 19.1</td>
+<td class="ltx_td ltx_align_center">21.8 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m80"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 20.7</td>
+<td class="ltx_td ltx_align_right">33.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m81"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 41.8   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center">2.3k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m82"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.2k</td>
+<td class="ltx_td ltx_align_center">6 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m83"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 6</td>
+<td class="ltx_td ltx_align_center">0.472 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m84"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.578</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t">RR</td>
+<td class="ltx_td ltx_align_center ltx_border_t"><span class="ltx_text ltx_font_bold">25.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m85"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 21.8</span></td>
+<td class="ltx_td ltx_align_center ltx_border_t"><span class="ltx_text ltx_font_bold">27.8 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m86"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 23.2</span></td>
+<td class="ltx_td ltx_align_right ltx_border_t">33.7 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m87"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 46.4   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_t">3.0k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m88"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.5k</td>
+<td class="ltx_td ltx_align_center ltx_border_t">46 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m89"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 39</td>
+<td class="ltx_td ltx_align_center ltx_border_t">0.055 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m90"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.057</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_bb ltx_border_r">DTS</td>
+<td class="ltx_td ltx_align_center ltx_border_bb">25.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m91"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 21.7</td>
+<td class="ltx_td ltx_align_center ltx_border_bb">27.6 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m92"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 23.0</td>
+<td class="ltx_td ltx_align_right ltx_border_bb">36.1 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m93"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 39.8   <span class="ltx_rule" style="width:1.0pt;background:black;display:inline-block;"> </span>
+</td>
+<td class="ltx_td ltx_align_center ltx_border_bb">3.1k <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m94"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 3.6k</td>
+<td class="ltx_td ltx_align_center ltx_border_bb">44 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m95"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 38</td>
+<td class="ltx_td ltx_align_center ltx_border_bb">0.060 <math alttext="\pm" class="ltx_Math" display="inline" id="S5.T2.m96"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.066</td>
+</tr>
+</table>
+</figure>
+<figure class="ltx_figure" id="S5.F5">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_figure_panel ltx_img_landscape" height="38" id="S5.F5.g1" src="x4.png" width="332"/></div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S5.F5.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="342" id="S5.F5.sf1.g1" src="x5.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(a)</span> </span><span class="ltx_text" style="font-size:90%;">Shortcut Sampled</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_break"></div>
+<div class="ltx_flex_cell ltx_flex_size_1">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S5.F5.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="342" id="S5.F5.sf2.g1" src="x6.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(b)</span> </span><span class="ltx_text" style="font-size:90%;">Shortcut Valid</span></figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 5</span>: </span><span class="ltx_text" style="font-size:90%;">Distribution of shortcut sampled and valid shortcuts found by each underlying method (Composite, Path, Prioritized) of the DTS sampling strategy. The plots show the average accumulated number of valid shortcuts by each underlying method across all CBS-generated trajectories in each environment.</span></figcaption>
+</figure>
+<section class="ltx_subsubsection" id="S5.SS5.SSS1">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">V-E1 </span>Single-Robot Shortcutting Methods</h4>
+<div class="ltx_para" id="S5.SS5.SSS1.p1">
+<p class="ltx_p">To compare how single-robot shortcutting performs, we examine Path, Fwd Loop, and Bwd Loop, all of which use path shortcutting but differ in how shortcut endpoints are sampled. In Table <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.T2" title="TABLE II ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">II</span></a>, the randomized strategy (Path) dominates both iterative strategies in makespan, path length, and smoothness. Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F4" title="Figure 4 ‣ V-C2 Search-Based Motion Planner ‣ V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">4</span></a> also shows that the randomized strategy converges significantly faster. The additional statistics support earlier analysis in Sec. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S3.SS3.SSS1" title="III-C1 Single-Robot Shortcutting: Randomized vs Iterative ‣ III-C Comparison ‣ III Multi-Robot Shortcutting Algorithms ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">III-C1</span></a>. Compared to randomized sampling, forward iteration has a smaller makespan improvement per valid shortcut, while backward iteration finds fewer valid shortcuts.</p>
+</div>
+</section>
+<section class="ltx_subsubsection" id="S5.SS5.SSS2">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">V-E2 </span>Multi-Robot Shortcutting Methods</h4>
+<div class="ltx_para" id="S5.SS5.SSS2.p1">
+<p class="ltx_p">From the anytime makespan-runtime curve in Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F4" title="Figure 4 ‣ V-C2 Search-Based Motion Planner ‣ V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">4</span></a> and final performance in Table <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.T2" title="TABLE II ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">II</span></a>, composite shortcutting reduces the makespan faster than prioritized and path shortcutting, but converges to less optimal trajectories. Prioritized shortcutting achieves an overall makespan improvement on par or better than path shortcutting, but path shortcutting converges faster than prioritized shortcutting for most RRT-generated trajectories. Path shortcutting reduces the final path length more than composite or prioritized shortcutting methods.
+The statistics in Table <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.T2" title="TABLE II ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">II</span></a> reveal an important detail. Composite shortcutting is much more greedy than prioritized or path shortcutting, as it finds fewer valid shortcuts but with greater makespan improvement per shortcut. Lastly, TPG shortcutting converges more slowly to worse final trajectories, and also evaluates less candidate shortcuts as each evaluation is more expensive.</p>
+</div>
+</section>
+<section class="ltx_subsubsection" id="S5.SS5.SSS3">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection">V-E3 </span>Multi-Strategy Method</h4>
+<div class="ltx_para" id="S5.SS5.SSS3.p1">
+<p class="ltx_p">From the runtime-performance curves in Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F4" title="Figure 4 ‣ V-C2 Search-Based Motion Planner ‣ V-C Motion Planning Algorithms ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">4</span></a>, the DTS method dominates all other methods throughout the runtime curve. DTS is as efficient as composite shortcutting early on and still converges to high-quality final trajectories compared to path or prioritized shortcutting. The round-robin (RR) method is less efficient but still converges to equally good trajectories in terms of makespan. DTS also generates smoother final trajectories than prioritized or composite shortcutting, except against path shortcutting for RRT-generated trajectories.</p>
+</div>
+<figure class="ltx_figure" id="S5.F6"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="287" id="S5.F6.g1" src="x7.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 6</span>: </span><span class="ltx_text" style="font-size:90%;">Makespan improvement for all trajectories generated by both planners in all six environments.
+</span></figcaption>
+</figure>
+<div class="ltx_para" id="S5.SS5.SSS3.p2">
+<p class="ltx_p">To help better illustrate the distribution of the final makespan between DTS and underlying methods beyond just the mean and standard deviation, we compare the results of all 1,034 trajectories in Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F6" title="Figure 6 ‣ V-E3 Multi-Strategy Method ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">6</span></a>. Each dot represents the final makespan improvement of DTS on the x-axis and one randomized shortcutting method on the y-axis. DTS almost always outperforms the composite shortcutting methods. The performance gap is not as significant for path and prioritized shortcuts, but still skews toward DTS, with many more outperforming cases than underperforming ones.</p>
+</div>
+<div class="ltx_para" id="S5.SS5.SSS3.p3">
+<p class="ltx_p">Lastly, we analyze how the multi-strategy method performs better than its components. As shown in Table <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.T2" title="TABLE II ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">II</span></a>, the average number of valid shortcuts found by multi-strategy methods exceeds that by underlying methods. The distribution of shortcuts sampled (Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F5.sf1" title="In Figure 5 ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">5(a)</span></a>) and valid shortcuts (Fig. <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#S5.F5.sf2" title="In Figure 5 ‣ V-E Results ‣ V Experiments ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">5(b)</span></a>) found by each method over time is often inconsistent depending on the domain. Also, DTS prefers path and composite shortcutting over prioritized shortcutting due to the prior and shorter runtime. These observations suggest that DTS can effectively adapt to different domains and converge quickly to high-quality final trajectories.</p>
+</div>
+</section>
+</section>
+<section class="ltx_subsection" id="S5.SS6">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-F </span><span class="ltx_text ltx_font_italic">Real Robot Experiment</span>
+</h3>
+<div class="ltx_para" id="S5.SS6.p1">
+<p class="ltx_p">We conduct real experiments in the Dual GP4 environment, qualitatively comparing RRT-generated trajectories before and after 0.1-second DTS shortcutting. With shortcutting, the robot motions are still collision-free in a more physically confined space, avoiding unnecessary movements. Shortcutting reduces makespan by 20% to 58% in the five examples tested. The results are available in our <a class="ltx_ref ltx_href" href="https://philip-huang.github.io/mr-shortcut/" title="">video</a>.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S6">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VI </span><span class="ltx_text ltx_font_smallcaps">Conclusion</span>
+</h2>
+<div class="ltx_para" id="S6.p1">
+<p class="ltx_p">In this work, we examine an overlooked but critical problem in the literature for M-RAMP – <span class="ltx_text ltx_font_italic">shortcutting</span>. To the best of our knowledge, this is the first work that analyzes existing shortcutting algorithms for M-RAMP. Most importantly, shortcutting can significantly improve the makespan by 14% and 25% on average for 1034 CBS- and RRT-generated trajectories, respectively. We find that randomly sampling shortcuts performs better compared to deterministic iteration. Comparing the four multi-robot shortcutting strategies, we show that composite shortcutting is more efficient but converges to less optimal trajectories. Prioritized and path shortcutting converge to final trajectories with shorter makespan and smoother paths, but the better-performing method often depends on the trajectory. TPG shortcutting is very computationally expensive. We then present two simple strategies that adaptively combine the strengths of these strategies. Our multi-strategy method achieves stronger anytime performance and can be used on a real dual GP4 environment. An exciting future work is shortcutting, long-horizon, multi-task trajectories for multi-arm manipulation.</p>
+</div>
+</section>
+<section class="ltx_section" id="Sx1">
+<h2 class="ltx_title ltx_font_smallcaps ltx_title_section">Acknowledgments</h2>
+<div class="ltx_para" id="Sx1.p1">
+<p class="ltx_p">This work is in part supported by the National Science Foundation (NSF) under grant number 2328671 and the Manufacturing Futures Institute, Carnegie Mellon University, through a grant from the Richard King Mellon Foundation, as well as a gift from Amazon.</p>
+</div>
+</section>
+<section class="ltx_bibliography" id="bib">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+<ul class="ltx_biblist">
+<li class="ltx_bibitem" id="bib.bib1">
+<span class="ltx_tag ltx_tag_bibitem">[1]</span>
+<span class="ltx_bibblock">
+S. LaValle, “Rapidly-exploring random trees: A new tool for path planning,” <em class="ltx_emph ltx_font_italic">Research Report 9811</em>, 1998.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib2">
+<span class="ltx_tag ltx_tag_bibitem">[2]</span>
+<span class="ltx_bibblock">
+V. N. Hartmann and M. Toussaint, “Towards computing low-makespan solutions for multi-arm multi-task planning problems,” <em class="ltx_emph ltx_font_italic">arXiv [cs.RO]</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib3">
+<span class="ltx_tag ltx_tag_bibitem">[3]</span>
+<span class="ltx_bibblock">
+N. J. Nilsson, <em class="ltx_emph ltx_font_italic">Principles of artificial intelligence</em>. Springer Science &amp; Business Media, 1982.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib4">
+<span class="ltx_tag ltx_tag_bibitem">[4]</span>
+<span class="ltx_bibblock">
+Y. Shaoul, I. Mishani, M. Likhachev, and J. Li, “Accelerating search-based planning for multi-robot manipulation by leveraging online-generated experiences,” in <em class="ltx_emph ltx_font_italic">Int. Conf. Autom. Plan. Sched. (ICAPS)</em>, 2024, pp. 523–531.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib5">
+<span class="ltx_tag ltx_tag_bibitem">[5]</span>
+<span class="ltx_bibblock">
+J. Chen, J. Li, Y. Huang, C. Garrett, D. Sun, C. Fan, A. Hofmann, C. Mueller, S. Koenig, and B. C. Williams, “Cooperative task and motion planning for multi-arm assembly systems,” <em class="ltx_emph ltx_font_italic">arXiv [cs.RO]</em>, 2022.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib6">
+<span class="ltx_tag ltx_tag_bibitem">[6]</span>
+<span class="ltx_bibblock">
+J. J. Kuffner and S. M. LaValle, “RRT-connect: An efficient approach to single-query path planning,” in <em class="ltx_emph ltx_font_italic">IEEE Int. Conf. Robot. Autom. (ICRA)</em>, 2000, pp. 995–1001.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib7">
+<span class="ltx_tag ltx_tag_bibitem">[7]</span>
+<span class="ltx_bibblock">
+J. D. Gammell, T. D. Barfoot, and S. S. Srinivasa, “Batch informed trees (BIT*): Informed asymptotically optimal anytime search,” <em class="ltx_emph ltx_font_italic">Int. J. Rob. Res. (IJRR)</em>, vol. 39, no. 5, pp. 543–567, 2020.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib8">
+<span class="ltx_tag ltx_tag_bibitem">[8]</span>
+<span class="ltx_bibblock">
+T. Marcucci, M. Petersen, D. von Wrangel, and R. Tedrake, “Motion planning around obstacles with convex optimization,” <em class="ltx_emph ltx_font_italic">Sci. Robot.</em>, vol. 8, no. 84, p. eadf7843, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib9">
+<span class="ltx_tag ltx_tag_bibitem">[9]</span>
+<span class="ltx_bibblock">
+M. Gharbi, J. Cortés, and T. Siméon, “Roadmap composition for multi-arm systems path planning,” in <em class="ltx_emph ltx_font_italic">IEEE/RSJ Int. Conf. Robot. Syst. (IROS)</em>, 2009, pp. 2471–2476.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib10">
+<span class="ltx_tag ltx_tag_bibitem">[10]</span>
+<span class="ltx_bibblock">
+Z. Bien and J. Lee, “A minimum-time trajectory planning method for two robots,” <em class="ltx_emph ltx_font_italic">IEEE Trans. Rob. Autom.</em>, vol. 8, no. 3, pp. 414–418, 1992.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib11">
+<span class="ltx_tag ltx_tag_bibitem">[11]</span>
+<span class="ltx_bibblock">
+S. Zhang and F. Pecora, “Online and scalable motion coordination for multiple robot manipulators in shared workspaces,” <em class="ltx_emph ltx_font_italic">IEEE Trans. Autom. Sci. Eng. (T-ASE)</em>, vol. PP, no. 99, pp. 1–20, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib12">
+<span class="ltx_tag ltx_tag_bibitem">[12]</span>
+<span class="ltx_bibblock">
+G. Sharon, R. Stern, A. Felner, and N. R. Sturtevant, “Conflict-based search for optimal multi-agent pathfinding,” <em class="ltx_emph ltx_font_italic">Artif. Intell.</em>, vol. 219, pp. 40–66, 2015.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib13">
+<span class="ltx_tag ltx_tag_bibitem">[13]</span>
+<span class="ltx_bibblock">
+I. Solis, J. Motes, R. Sandström, and N. M. Amato, “Representation-optimal multi-robot motion planning using conflict-based search,” <em class="ltx_emph ltx_font_italic">IEEE Robot. Autom. Lett. (R-AL)</em>, vol. 6, no. 3, pp. 4608–4615, 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib14">
+<span class="ltx_tag ltx_tag_bibitem">[14]</span>
+<span class="ltx_bibblock">
+K. Harada, T. Tsuji, and J.-P. Laumond, “A manipulation motion planner for dual-arm industrial manipulators,” in <em class="ltx_emph ltx_font_italic">IEEE Int. Conf. Robot. Autom. (ICRA)</em>, 2014, pp. 928–934.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib15">
+<span class="ltx_tag ltx_tag_bibitem">[15]</span>
+<span class="ltx_bibblock">
+K. Gao and J. Yu, “Toward efficient task planning for dual-arm tabletop object rearrangement,” in <em class="ltx_emph ltx_font_italic">IEEE/RSJ Int. Conf. Robot. Syst. (IROS)</em>, 2022, pp. 10 425–10 431.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib16">
+<span class="ltx_tag ltx_tag_bibitem">[16]</span>
+<span class="ltx_bibblock">
+K. Gao, Z. Ye, D. Zhang, B. Huang, and J. Yu, “Toward holistic planning and control optimization for dual-arm rearrangement,” <em class="ltx_emph ltx_font_italic">arXiv [cs.RO]</em>, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib17">
+<span class="ltx_tag ltx_tag_bibitem">[17]</span>
+<span class="ltx_bibblock">
+R. Shome and K. E. Bekris, “Synchronized multi-arm rearrangement guided by mode graphs with capacity constraints,” in <em class="ltx_emph ltx_font_italic">Int. Workshop Algorithmic Found. Robot. (WAFR)</em>, 2021, pp. 420–436.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib18">
+<span class="ltx_tag ltx_tag_bibitem">[18]</span>
+<span class="ltx_bibblock">
+V. N. Hartmann, A. Orthey, D. Driess, O. S. Oguz, and M. Toussaint, “Long-horizon multi-robot rearrangement planning for construction assembly,” <em class="ltx_emph ltx_font_italic">IEEE Trans. Robot. (T-RO)</em>, vol. 39, no. 1, pp. 239–252, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib19">
+<span class="ltx_tag ltx_tag_bibitem">[19]</span>
+<span class="ltx_bibblock">
+P. Huang, R. Liu, S. Aggarwal, C. Liu, and J. Li, “APEX-MR: Multi-robot asynchronous planning and execution for cooperative assembly,” in <em class="ltx_emph ltx_font_italic">Robotics: Science and Systems</em>, 2025.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib20">
+<span class="ltx_tag ltx_tag_bibitem">[20]</span>
+<span class="ltx_bibblock">
+T. Pan, A. M. Wells, R. Shome, and L. E. Kavraki, “A general task and motion planning framework for multiple manipulators,” in <em class="ltx_emph ltx_font_italic">IEEE/RSJ Int. Conf. Intell. Robot. Syst. (IROS)</em>, 2021, pp. 3168–3174.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib21">
+<span class="ltx_tag ltx_tag_bibitem">[21]</span>
+<span class="ltx_bibblock">
+N. Ratliff, M. Zucker, J. A. Bagnell, and S. Srinivasa, “CHOMP: Gradient optimization techniques for efficient motion planning,” in <em class="ltx_emph ltx_font_italic">IEEE Int. Conf. Robot. Autom. (ICRA)</em>, 2009, pp. 489–494.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib22">
+<span class="ltx_tag ltx_tag_bibitem">[22]</span>
+<span class="ltx_bibblock">
+M. Toussaint, “Newton methods for k-order markov constrained motion problems,” <em class="ltx_emph ltx_font_italic">arXiv [cs.RO]</em>, 2014.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib23">
+<span class="ltx_tag ltx_tag_bibitem">[23]</span>
+<span class="ltx_bibblock">
+H. Pham and Q.-C. Pham, “A new approach to time-optimal path parameterization based on reachability analysis,” <em class="ltx_emph ltx_font_italic">IEEE Trans. Robot. (T-RO)</em>, vol. 34, no. 3, pp. 645–659, 2018.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib24">
+<span class="ltx_tag ltx_tag_bibitem">[24]</span>
+<span class="ltx_bibblock">
+R. Geraerts and M. H. Overmars, “Creating high-quality paths for motion planning,” <em class="ltx_emph ltx_font_italic">Int. J. Rob. Res. (IJRR)</em>, vol. 26, no. 8, pp. 845–863, 2007.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib25">
+<span class="ltx_tag ltx_tag_bibitem">[25]</span>
+<span class="ltx_bibblock">
+H. Choset, K. M. Lynch, S. Hutchinson, G. A. Kantor, and W. Burgard, <em class="ltx_emph ltx_font_italic">Principles of Robot Motion: Theory, Algorithms, and Implementations</em>. MIT press, 2005.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib26">
+<span class="ltx_tag ltx_tag_bibitem">[26]</span>
+<span class="ltx_bibblock">
+K. Okumura and X. Défago, “Quick multi-robot motion planning by combining sampling and search,” in <em class="ltx_emph ltx_font_italic">Int. Joint Conf. Artif. Intell. (IJCAI)</em>, 2023, pp. 252–261.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib27">
+<span class="ltx_tag ltx_tag_bibitem">[27]</span>
+<span class="ltx_bibblock">
+W. Hönig, T. K. S. Kumar, L. Cohen, H. Ma, H. Xu, and S. K. Kumar, “Multi-agent path finding with kinematic constraints,” in <em class="ltx_emph ltx_font_italic">Int. Conf. Autom. Plan. Sched. (ICAPS)</em>, 2016, pp. 477–485.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib28">
+<span class="ltx_tag ltx_tag_bibitem">[28]</span>
+<span class="ltx_bibblock">
+S. Sekhavat, P. Svestka, J.-P. Laumond, and M. H. Overmars, “Multilevel path planning for nonholonomic robots using semiholonomic subsystems,” <em class="ltx_emph ltx_font_italic">Int. J. Rob. Res. (IJRR)</em>, vol. 17, no. 8, pp. 840–857, 1998.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib29">
+<span class="ltx_tag ltx_tag_bibitem">[29]</span>
+<span class="ltx_bibblock">
+D. Hsu, J.-C. Latcombe, and S. Sorkin, “Placing a robot manipulator amid obstacles for optimized execution,” in <em class="ltx_emph ltx_font_italic">IEEE Int. Symp. Assem. Task Plan. (ISATP)</em>, 1999, pp. 280–285.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib30">
+<span class="ltx_tag ltx_tag_bibitem">[30]</span>
+<span class="ltx_bibblock">
+P. C. Chen and Y. K. Hwang, “SANDROS: a dynamic graph search algorithm for motion planning,” <em class="ltx_emph ltx_font_italic">IEEE Trans. Rob. Autom.</em>, vol. 14, no. 3, pp. 390–403, 1998.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib31">
+<span class="ltx_tag ltx_tag_bibitem">[31]</span>
+<span class="ltx_bibblock">
+P. Švestka and M. H. Overmars, “Coordinated path planning for multiple robots,” <em class="ltx_emph ltx_font_italic">Rob. Auton. Syst.</em>, vol. 23, no. 3, pp. 125–152, 1998.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib32">
+<span class="ltx_tag ltx_tag_bibitem">[32]</span>
+<span class="ltx_bibblock">
+M. Fickert, T. Gu, and W. Ruml, “New results in bounded-suboptimal search,” in <em class="ltx_emph ltx_font_italic">AAAI Conf. Artif. Intell. (AAAI)</em>, 2022, pp. 10 166–10 173.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib33">
+<span class="ltx_tag ltx_tag_bibitem">[33]</span>
+<span class="ltx_bibblock">
+N. Gupta, O.-C. Granmo, and A. Agrawala, “Thompson sampling for dynamic multi-armed bandits,” in <em class="ltx_emph ltx_font_italic">Int. Conf. Mach. Learn. Appl. (ICMLA)</em>, 2011.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib34">
+<span class="ltx_tag ltx_tag_bibitem">[34]</span>
+<span class="ltx_bibblock">
+M. Phillips, V. Narayanan, S. Aine, and M. Likhachev, “Efficient search with an ensemble of heuristics,” in <em class="ltx_emph ltx_font_italic">Int. Joint Conf. Artif. Intell. (IJCAI)</em>, 2015, pp. 784–791.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib35">
+<span class="ltx_tag ltx_tag_bibitem">[35]</span>
+<span class="ltx_bibblock">
+D. Coleman, I. Sucan, S. Chitta, and N. Correll, “Reducing the barrier to entry of complex robotic software: A MoveIt! case study,” <em class="ltx_emph ltx_font_italic">arXiv [cs.RO]</em>, 2014.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib36">
+<span class="ltx_tag ltx_tag_bibitem">[36]</span>
+<span class="ltx_bibblock">
+I. A. Sucan, M. Moll, and L. E. Kavraki, “The open motion planning library,” <em class="ltx_emph ltx_font_italic">IEEE Robot. Autom. Mag. (R-AM)</em>, vol. 19, no. 4, pp. 72–82, 2012.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib37">
+<span class="ltx_tag ltx_tag_bibitem">[37]</span>
+<span class="ltx_bibblock">
+P. E. Hart, N. J. Nilsson, and B. Raphael, “A formal basis for the heuristic determination of minimum cost paths,” <em class="ltx_emph ltx_font_italic">IEEE Trans. Syst. Sci. Cybern.</em>, vol. 4, no. 2, pp. 100–107, 1968.
+
+</span>
+</li>
+</ul>
+</section>
+<div class="ltx_pagination ltx_role_newpage"></div>
+<section class="ltx_subsection" id="A0.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">-A </span><span class="ltx_text ltx_font_italic">Details of Thompson Sampling</span>
+</h3>
+<figure class="ltx_table" id="A0.T3">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table"><span class="ltx_text" style="font-size:90%;">TABLE III</span>: </span><span class="ltx_text" style="font-size:90%;">Thompson Sampling Parameters for Dynamic Shortcut Selection</span></figcaption>
+<table class="ltx_tabular ltx_centering ltx_align_middle">
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t"><span class="ltx_text ltx_font_bold">Parameter</span></td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t"><span class="ltx_text ltx_font_bold">Value</span></td>
+<td class="ltx_td ltx_align_left ltx_border_t"><span class="ltx_text ltx_font_bold">Description</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_t" colspan="3"><span class="ltx_text ltx_font_bold">Time and Reward Parameters</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t"><math alttext="\sigma" class="ltx_Math" display="inline" id="A0.T3.m1"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t">0.01</td>
+<td class="ltx_td ltx_align_left ltx_border_t">Normalizing time scale (second)</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r"><math alttext="\gamma_{t}" class="ltx_Math" display="inline" id="A0.T3.m2"><semantics><msub><mi>γ</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\gamma_{t}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r">1.0</td>
+<td class="ltx_td ltx_align_left">Relative weight to reward shorter runtime</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_t" colspan="3"><span class="ltx_text ltx_font_bold">Beta Distribution Parameters by Strategy</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t"><math alttext="\alpha_{\text{composite}}" class="ltx_Math" display="inline" id="A0.T3.m3"><semantics><msub><mi>α</mi><mtext>composite</mtext></msub><annotation encoding="application/x-tex">\alpha_{\text{composite}}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t">10</td>
+<td class="ltx_td ltx_align_left ltx_border_t">Initial alpha for composite shortcutting</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r"><math alttext="\beta_{\text{composite}}" class="ltx_Math" display="inline" id="A0.T3.m4"><semantics><msub><mi>β</mi><mtext>composite</mtext></msub><annotation encoding="application/x-tex">\beta_{\text{composite}}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r">1</td>
+<td class="ltx_td ltx_align_left">Initial beta for composite shortcutting</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t"><math alttext="\alpha_{\text{prioritized}}" class="ltx_Math" display="inline" id="A0.T3.m5"><semantics><msub><mi>α</mi><mtext>prioritized</mtext></msub><annotation encoding="application/x-tex">\alpha_{\text{prioritized}}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1</td>
+<td class="ltx_td ltx_align_left ltx_border_t">Initial alpha for prioritized shortcutting</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r"><math alttext="\beta_{\text{prioritized}}" class="ltx_Math" display="inline" id="A0.T3.m6"><semantics><msub><mi>β</mi><mtext>prioritized</mtext></msub><annotation encoding="application/x-tex">\beta_{\text{prioritized}}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r">1</td>
+<td class="ltx_td ltx_align_left">Initial beta for prioritized shortcutting</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t"><math alttext="\alpha_{\text{path}}" class="ltx_Math" display="inline" id="A0.T3.m7"><semantics><msub><mi>α</mi><mtext>path</mtext></msub><annotation encoding="application/x-tex">\alpha_{\text{path}}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1</td>
+<td class="ltx_td ltx_align_left ltx_border_t">Initial alpha for path shortcutting</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r"><math alttext="\beta_{\text{path}}" class="ltx_Math" display="inline" id="A0.T3.m8"><semantics><msub><mi>β</mi><mtext>path</mtext></msub><annotation encoding="application/x-tex">\beta_{\text{path}}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r">1</td>
+<td class="ltx_td ltx_align_left">Initial beta for path shortcutting</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_t" colspan="3"><span class="ltx_text ltx_font_bold">Update Parameters</span></td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r ltx_border_t"><math alttext="Z" class="ltx_Math" display="inline" id="A0.T3.m9"><semantics><mi>Z</mi><annotation encoding="application/x-tex">Z</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1000</td>
+<td class="ltx_td ltx_align_left ltx_border_t">Normalization constant</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_r"><math alttext="\gamma_{\alpha}" class="ltx_Math" display="inline" id="A0.T3.m10"><semantics><msub><mi>γ</mi><mi>α</mi></msub><annotation encoding="application/x-tex">\gamma_{\alpha}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_r">100.0</td>
+<td class="ltx_td ltx_align_left">Update weight for <math alttext="\alpha" class="ltx_Math" display="inline" id="A0.T3.m11"><semantics><mi>α</mi><annotation encoding="application/x-tex">\alpha</annotation></semantics></math> parameters</td>
+</tr>
+<tr class="ltx_tr">
+<td class="ltx_td ltx_align_left ltx_border_b ltx_border_r"><math alttext="\gamma_{\beta}" class="ltx_Math" display="inline" id="A0.T3.m12"><semantics><msub><mi>γ</mi><mi>β</mi></msub><annotation encoding="application/x-tex">\gamma_{\beta}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_center ltx_border_b ltx_border_r">0.1</td>
+<td class="ltx_td ltx_align_left ltx_border_b">Update weight for <math alttext="\beta" class="ltx_Math" display="inline" id="A0.T3.m13"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math> parameters</td>
+</tr>
+</table>
+</figure>
+<div class="ltx_para" id="A0.SS1.p1">
+<p class="ltx_p">These parameters were chosen to optimize the performance of our Thompson Sampling multi-strategy shortcutting method. By setting <math alttext="\alpha_{\text{composite}}=10" class="ltx_Math" display="inline" id="A0.SS1.p1.m1"><semantics><mrow><msub><mi>α</mi><mtext>composite</mtext></msub><mo>=</mo><mn>10</mn></mrow><annotation encoding="application/x-tex">\alpha_{\text{composite}}=10</annotation></semantics></math> in the prior distribution, this increases the likelihood of choosing a composite shortcut early on and leads to improved convergence speed similar to that of the composite shortcut. This is an advantage of the Thompson method compared to the Round-Robin method, which converges to similar results but often at a slower rate.</p>
+</div>
+<div class="ltx_para" id="A0.SS1.p2">
+<p class="ltx_p">Algorithm <a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#alg1" title="Algorithm 1 ‣ -A Details of Thompson Sampling ‣ Benchmarking Shortcutting Techniques for Multi-Robot-Arm Motion Planning"><span class="ltx_text ltx_ref_tag">1</span></a> shows the pseudocode of the Thompson sampling multi-strategy shortcutting method.</p>
+</div>
+<figure class="ltx_float ltx_float_algorithm ltx_framed ltx_framed_top" id="alg1">
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_float"><span class="ltx_text ltx_font_bold">Algorithm 1</span> </span> Dynamic Thompson Sampling</figcaption>
+<div class="ltx_listing ltx_listing">
+<div class="ltx_listingline" id="alg1.l1">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">1:</span></span>Initialize <math alttext="\alpha_{i}" class="ltx_Math" display="inline" id="alg1.l1.m1"><semantics><msub><mi>α</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\alpha_{i}</annotation></semantics></math> and <math alttext="\beta_{i}" class="ltx_Math" display="inline" id="alg1.l1.m2"><semantics><msub><mi>β</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\beta_{i}</annotation></semantics></math> for each strategy
+
+</div>
+<div class="ltx_listingline" id="alg1.l2">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">2:</span></span><span class="ltx_text ltx_font_bold">while</span> time limit not exceeded <span class="ltx_text ltx_font_bold">do</span>
+</div>
+<div class="ltx_listingline" id="alg1.l3">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">3:</span></span>  <span class="ltx_text ltx_font_bold">for</span> each strategy <math alttext="i" class="ltx_Math" display="inline" id="alg1.l3.m1"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> <span class="ltx_text ltx_font_bold">do</span>
+</div>
+<div class="ltx_listingline" id="alg1.l4">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">4:</span></span>   Sample <math alttext="\theta_{i}\sim\text{Beta}(\alpha_{i},\beta_{i})" class="ltx_Math" display="inline" id="alg1.l4.m1"><semantics><mrow><msub><mi>θ</mi><mi>i</mi></msub><mo>∼</mo><mrow><mtext>Beta</mtext><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>α</mi><mi>i</mi></msub><mo>,</mo><msub><mi>β</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\theta_{i}\sim\text{Beta}(\alpha_{i},\beta_{i})</annotation></semantics></math>
+</div>
+<div class="ltx_listingline" id="alg1.l5">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">5:</span></span>  <span class="ltx_text ltx_font_bold">end</span> <span class="ltx_text ltx_font_bold">for</span>
+</div>
+<div class="ltx_listingline" id="alg1.l6">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">6:</span></span>  Select strategy <math alttext="i^{*}=\operatorname*{arg\,max}_{i}\theta_{i}" class="ltx_Math" display="inline" id="alg1.l6.m1"><semantics><mrow><msup><mi>i</mi><mo>∗</mo></msup><mo>=</mo><mrow><msub><mrow><mi>arg</mi><mo lspace="0.170em" rspace="0em">​</mo><mi>max</mi></mrow><mi>i</mi></msub><mo>⁡</mo><msub><mi>θ</mi><mi>i</mi></msub></mrow></mrow><annotation encoding="application/x-tex">i^{*}=\operatorname*{arg\,max}_{i}\theta_{i}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline" id="alg1.l7">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">7:</span></span>  Run shortcut strategy <math alttext="i^{*}" class="ltx_Math" display="inline" id="alg1.l7.m1"><semantics><msup><mi>i</mi><mo>∗</mo></msup><annotation encoding="application/x-tex">i^{*}</annotation></semantics></math> and get reward <math alttext="r" class="ltx_Math" display="inline" id="alg1.l7.m2"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>
+</div>
+<div class="ltx_listingline" id="alg1.l8">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">8:</span></span>  <math alttext="\alpha_{i^{*}}\leftarrow\alpha_{i^{*}}+\gamma_{\alpha}\cdot r" class="ltx_Math" display="inline" id="alg1.l8.m1"><semantics><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo stretchy="false">←</mo><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo>+</mo><mrow><msub><mi>γ</mi><mi>α</mi></msub><mo lspace="0.222em" rspace="0.222em">⋅</mo><mi>r</mi></mrow></mrow></mrow><annotation encoding="application/x-tex">\alpha_{i^{*}}\leftarrow\alpha_{i^{*}}+\gamma_{\alpha}\cdot r</annotation></semantics></math> if shortcut is valid
+
+</div>
+<div class="ltx_listingline" id="alg1.l9">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">9:</span></span>  <math alttext="\beta_{i^{*}}\leftarrow\beta_{i^{*}}+\gamma_{\beta}" class="ltx_Math" display="inline" id="alg1.l9.m1"><semantics><mrow><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo stretchy="false">←</mo><mrow><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo>+</mo><msub><mi>γ</mi><mi>β</mi></msub></mrow></mrow><annotation encoding="application/x-tex">\beta_{i^{*}}\leftarrow\beta_{i^{*}}+\gamma_{\beta}</annotation></semantics></math> if shortcut is invalid
+
+</div>
+<div class="ltx_listingline" id="alg1.l10">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">10:</span></span>  <span class="ltx_text ltx_font_bold">if</span> <math alttext="(\alpha_{i^{*}}+\beta_{i^{*}})&gt;Z" class="ltx_Math" display="inline" id="alg1.l10.m1"><semantics><mrow><mrow><mo stretchy="false">(</mo><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo>+</mo><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub></mrow><mo stretchy="false">)</mo></mrow><mo>&gt;</mo><mi>Z</mi></mrow><annotation encoding="application/x-tex">(\alpha_{i^{*}}+\beta_{i^{*}})&gt;Z</annotation></semantics></math> <span class="ltx_text ltx_font_bold">then</span>
+</div>
+<div class="ltx_listingline" id="alg1.l11">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">11:</span></span>   <math alttext="\alpha_{i^{*}}\leftarrow\frac{\alpha_{i^{*}}}{\alpha_{i^{*}}+\beta_{i^{*}}}\cdot Z" class="ltx_Math" display="inline" id="alg1.l11.m1"><semantics><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo stretchy="false">←</mo><mrow><mfrac><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo>+</mo><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub></mrow></mfrac><mo lspace="0.222em" rspace="0.222em">⋅</mo><mi>Z</mi></mrow></mrow><annotation encoding="application/x-tex">\alpha_{i^{*}}\leftarrow\frac{\alpha_{i^{*}}}{\alpha_{i^{*}}+\beta_{i^{*}}}\cdot Z</annotation></semantics></math>
+</div>
+<div class="ltx_listingline" id="alg1.l12">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">12:</span></span>   <math alttext="\beta_{i^{*}}\leftarrow\frac{\beta_{i^{*}}}{\alpha_{i^{*}}+\beta_{i^{*}}}\cdot Z" class="ltx_Math" display="inline" id="alg1.l12.m1"><semantics><mrow><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo stretchy="false">←</mo><mrow><mfrac><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mrow><msub><mi>α</mi><msup><mi>i</mi><mo>∗</mo></msup></msub><mo>+</mo><msub><mi>β</mi><msup><mi>i</mi><mo>∗</mo></msup></msub></mrow></mfrac><mo lspace="0.222em" rspace="0.222em">⋅</mo><mi>Z</mi></mrow></mrow><annotation encoding="application/x-tex">\beta_{i^{*}}\leftarrow\frac{\beta_{i^{*}}}{\alpha_{i^{*}}+\beta_{i^{*}}}\cdot Z</annotation></semantics></math>
+</div>
+<div class="ltx_listingline" id="alg1.l13">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">13:</span></span>  <span class="ltx_text ltx_font_bold">end</span> <span class="ltx_text ltx_font_bold">if</span>
+</div>
+<div class="ltx_listingline" id="alg1.l14">
+<span class="ltx_tag ltx_tag_listingline"><span class="ltx_text" style="font-size:80%;">14:</span></span><span class="ltx_text ltx_font_bold">end</span> <span class="ltx_text ltx_font_bold">while</span>
+</div>
+</div>
+</figure>
+</section>
+<section class="ltx_subsection" id="A0.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">-B </span><span class="ltx_text ltx_font_italic">Details of Real Robot Setup</span>
+</h3>
+<div class="ltx_para" id="A0.SS2.p1">
+<p class="ltx_p">To enable the generated trajectories for real robot execution, we require a single-robot controller as well as a synchronization method to coordinate the execution of all robot arms according to the planned multi-robot trajectory. We follow the TPG-based execution pipeline in APEX-MR <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2508.05027v1#bib.bib19" title="">19</a>]</cite>. We use the position controller, and each robot has its own position controller that runs in a separate process. We build a TPG based on the multi-robot trajectory and host the TPG on a centralized server. During execution, the TPG sends actions that are safe to be executed to each robot’s action queue. Each robot executes all the enqueued actions and updates the status back to the central TPG server. The server then repeatedly enqueues new nodes that become safe to each robot’s action queue. Using TPG ensures no robot-robot collision even in the case of controller delay and allows the aggressive post-processed trajectories to be safely executed.</p>
+</div>
+</section>
+</article>
+</div>
+<footer class="ltx_page_footer">
+<div class="ltx_page_logo">Generated  on Thu Aug  7 03:38:13 2025 by <a class="ltx_LaTeXML_logo" href="http://dlmf.nist.gov/LaTeXML/"><span style="letter-spacing:-0.2em; margin-right:0.1em;">L<span class="ltx_font_smallcaps" style="position:relative; bottom:2.2pt;">a</span>T<span class="ltx_font_smallcaps" style="font-size:120%;position:relative; bottom:-0.2ex;">e</span></span><span style="font-size:90%; position:relative; bottom:-0.2ex;">XML</span><img alt="Mascot Sammy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg=="/></a>
+</div></footer>
+</div>
+</body>
+</html>

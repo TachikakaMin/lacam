@@ -1,0 +1,1612 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)</title>
+<!--Generated on Sun Apr 19 14:13:12 2026 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="/static/browse/0.3.4/css/arxiv-html-papers-20260131.css" type="text/css">
+<script src="/static/browse/0.3.4/js/arxiv-html-papers-20260131.js"></script>
+<script>
+  // Restore the saved color scheme preference, or
+  // enact the browser preference if "automatic", 
+  // without expecting DOM load to have completed.
+  //
+  // Also restore any saved readingmode and ToC display preferences.
+  function initializeReadingPreferences() {
+    let saved_theme = localStorage.getItem("ar5iv_theme") || "automatic";
+    if (saved_theme === "automatic") {
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        saved_theme = "dark";
+      }
+    }
+    if (saved_theme == "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+
+    const tocDisplay = localStorage.getItem('arxiv_html_paper_toc_display');
+    if (tocDisplay) {
+      document.documentElement.setAttribute("data-toc-display", tocDisplay);
+    }
+    const readingMode = localStorage.getItem('arxiv_html_paper_reading_mode');
+    if (readingMode) {
+      document.documentElement.setAttribute("data-reading-mode", readingMode);
+    }
+    // Pre-apply spinout-banner dismissal here, before the banner paints, so it
+    // never flashes in only to be hidden later by the deferred arxiv-header.js.
+    // Key matches arxiv-header.js: "arxiv-banner-dismissed:" + data-banner-name.
+    if (localStorage.getItem('arxiv-banner-dismissed:spinout-nonprofit')) {
+      document.documentElement.setAttribute("data-banner-dismissed", "");
+    }
+  }
+  // Run as soon as JS starts, to minimize repainting
+  initializeReadingPreferences();
+</script>
+<link rel="apple-touch-icon" sizes="180x180"
+  href="/static/browse/0.3.4/images/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32"
+  href="/static/browse/0.3.4/images/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16"
+  href="/static/browse/0.3.4/images/icons/favicon-16x16.png">
+<link rel="manifest" href="/static/browse/0.3.4/images/icons/site.webmanifest">
+<link rel="mask-icon" href="/static/browse/0.3.4/images/icons/safari-pinned-tab.svg" color="#5bbad5">
+<link rel="stylesheet" type="text/css" media="screen" href="https://use.typekit.net/utz6mli.css"><link rel="stylesheet" type="text/css" media="screen"
+  href="/static/base/1.0.1/css/arxiv-header-footer.css?v=20260626"><style>
+  /* Banner pre-dismissal (set above before paint -> no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</style>
+<script defer src="/static/base/1.0.1/js/arxiv-header.js?v=20260626"></script>
+</head>
+<body>
+<dialog id="modal-form" aria-labelledby="modal-title" closedby="any">
+  <form id="modal-form-content" method="dialog" enctype="multipart/form-data">
+    <header class="modal-header">
+      <h5 id="modal-title" class="modal-title">Report GitHub Issue</h5>
+      <button type="submit" formnovalidate class="modal-close" aria-label="Close">×</button>
+    </header>
+
+    <div class="modal-body">
+      <label for="form_title">Title:</label>
+      <input class="form-control" id="form_title" name="form_title" required placeholder="Enter title">
+
+      <p id="selectedTextModalDescription" hidden>Content selection saved. Describe the issue below:</p>
+
+      <label for="description">Description:</label>
+      <textarea class="form-control" id="description" name="description" required maxlength="500"
+        placeholder="500 characters maximum"></textarea>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="submit" value="internal-report" class="sr-only modal-submit">Submit without GitHub</button>
+      <button type="submit" value="github-report" class="modal-submit">Submit in GitHub</button>
+    </footer>
+  </form>
+</dialog><div class="ds-announcement" id="announcement-banner" role="region" aria-label="Announcement"
+    data-banner-name="spinout-nonprofit">
+    <img class="ds-announcement-glyph" src="/static/base/1.0.1/images/icons/smileybones-small.svg" alt="" aria-hidden="true">
+    <span class="ds-announcement-text">arXiv is now an independent nonprofit!</span>
+    <a class="ds-announcement-link" href="https://info.arxiv.org/about">Learn more</a>
+    <button type="button" class="ds-announcement-close" aria-label="Dismiss announcement">&times;</button>
+  </div>
+
+<header class="arxiv-html-header">
+  <div class="html-header-logo">
+    <a href="/"><img alt="arXiv logo" class="logo desktop-only" width="100"
+        src="/static/base/1.0.1/images/arxiv-logo-primary-light.svg">
+      <span class="sr-only">Back to arXiv</span>
+    </a>
+  </div>
+  <!--TOC, dark mode, links-->
+  <nav class="html-header-nav">
+    <a class="header-button hover-effect desktop-only" href="https://info.arxiv.org/about/accessible_HTML.html"
+      target="_blank">Why HTML?</a>
+    <a class="header-button" title="Report an Issue" href="#" title="Report an issue"
+      onclick="event.preventDefault(); showModalForm();">
+      <svg role="presentation" class="mobile-only toggle-icon" aria-hidden="true" height="1.25rem"
+        viewBox="0 0 640 640">
+        <path
+          d="M224 160C224 107 267 64 320 64C373 64 416 107 416 160L416 163.6C416 179.3 403.3 192 387.6 192L252.5 192C236.8 192 224.1 179.3 224.1 163.6L224.1 160zM569.6 172.8C580.2 186.9 577.3 207 563.2 217.6L465.4 290.9C470.7 299.8 474.7 309.6 477.2 320L576 320C593.7 320 608 334.3 608 352C608 369.7 593.7 384 576 384L480 384L480 416C480 418.6 479.9 421.3 479.8 423.9L563.2 486.4C577.3 497 580.2 517.1 569.6 531.2C559 545.3 538.9 548.2 524.8 537.6L461.7 490.3C438.5 534.5 395.2 566.5 344 574.2L344 344C344 330.7 333.3 320 320 320C306.7 320 296 330.7 296 344L296 574.2C244.8 566.5 201.5 534.5 178.3 490.3L115.2 537.6C101.1 548.2 81 545.3 70.4 531.2C59.8 517.1 62.7 497 76.8 486.4L160.2 423.9C160.1 421.3 160 418.7 160 416L160 384L64 384C46.3 384 32 369.7 32 352C32 334.3 46.3 320 64 320L162.8 320C165.3 309.6 169.3 299.8 174.6 290.9L76.8 217.6C62.7 207 59.8 186.9 70.4 172.8C81 158.7 101.1 155.8 115.2 166.4L224 248C236.3 242.9 249.8 240 264 240L376 240C390.2 240 403.7 242.8 416 248L524.8 166.4C538.9 155.8 559 158.7 569.6 172.8z" />
+      </svg>
+      <span class="desktop-only">Report Issue</span></a>
+    <!--back to abstract-->
+    <a class="header-button" title="Back to abstract page" aria-label="Back to abstract page"
+      href="/abs/2503.04798v3">
+      <svg class="mobile-only toggle-icon" role="presentation" height="1.25rem" viewBox="0 0 512 512" fill="#ffffff"
+        aria-hidden="true">
+        <path
+          d="M502.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L402.7 224 192 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l210.7 0-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128zM160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 32C43 32 0 75 0 128L0 384c0 53 43 96 96 96l64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0c-17.7 0-32-14.3-32-32l0-256c0-17.7 14.3-32 32-32l64 0z">
+        </path>
+      </svg>
+      <span class="desktop-only">Back to Abstract</span>
+    </a>
+    <!-- PDF download link -->
+    <a class="header-button" title="Download PDF" href="/pdf/2503.04798v3"
+      target="_blank">
+      <svg class="mobile-only toggle-icon" role="presentation" height="1.25rem" viewBox="0 0 576 542">
+        <path
+          d="M208 48L96 48c-8.8 0-16 7.2-16 16l0 384c0 8.8 7.2 16 16 16l80 0 0 48-80 0c-35.3 0-64-28.7-64-64L32 64C32 28.7 60.7 0 96 0L229.5 0c17 0 33.3 6.7 45.3 18.7L397.3 141.3c12 12 18.7 28.3 18.7 45.3l0 149.5-48 0 0-128-88 0c-39.8 0-72-32.2-72-72l0-88zM348.1 160L256 67.9 256 136c0 13.3 10.7 24 24 24l68.1 0zM240 380l32 0c33.1 0 60 26.9 60 60s-26.9 60-60 60l-12 0 0 28c0 11-9 20-20 20s-20-9-20-20l0-128c0-11 9-20 20-20zm32 80c11 0 20-9 20-20s-9-20-20-20l-12 0 0 40 12 0zm96-80l32 0c28.7 0 52 23.3 52 52l0 64c0 28.7-23.3 52-52 52l-32 0c-11 0-20-9-20-20l0-128c0-11 9-20 20-20zm32 128c6.6 0 12-5.4 12-12l0-64c0-6.6-5.4-12-12-12l-12 0 0 88 12 0zm76-108c0-11 9-20 20-20l48 0c11 0 20 9 20 20s-9 20-20 20l-28 0 0 24 28 0c11 0 20 9 20 20s-9 20-20 20l-28 0 0 44c0 11-9 20-20 20s-20-9-20-20l0-128z" />
+      </svg>
+      <span class="desktop-only">Download PDF</span></a>
+    <!-- navigational table of contents toggle -->
+    <a class="header-button toggle-icon" href="javascript:toggleNavTOC();" title="Toggle navigation"
+      aria-label="Toggle navigation">
+      <svg height="1.25rem" role="presentation" viewBox="0 0 512 512">
+        <path
+          d="M40 48C26.7 48 16 58.7 16 72v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V72c0-13.3-10.7-24-24-24H40zM192 64c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zM16 232v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V232c0-13.3-10.7-24-24-24H40c-13.3 0-24 10.7-24 24zM40 368c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V392c0-13.3-10.7-24-24-24H40z">
+        </path>
+      </svg>
+    </a>
+    <!--- collapsable header / reading mode toggle -->
+    <a class="header-button toggle-icon" href="javascript:toggleReadingMode();"
+      title="Disable reading mode, show header and footer">
+      <svg role="presentation" height="1.25rem"
+        viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+        <path
+          d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32S0 334.3 0 352l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z" />
+      </svg>
+    </a>
+    <!--- colored theme toggle -->
+    <button type="button" class="header-button color-tog" onclick="toggleColorScheme();" title="Toggle dark/light mode" aria-label="Toggle color scheme">
+      <span class="toggle-icon automatic-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9h-1.9M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69m-9.15 3.96h2.3L12 9l-1.15 3.65Z">
+          </path>
+        </svg>
+      </span>
+      <span class="toggle-icon light-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z">
+          </path>
+        </svg>
+      </span>
+      <span class="toggle-icon dark-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z">
+          </path>
+        </svg>
+      </span>
+    </button>
+  </nav>
+</header><nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_abstract"><a href="#abstract1" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title">Abstract</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="#S1" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S2" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">II </span><span class="ltx_text ltx_font_smallcaps">Background</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS1" title="In II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-A</span> </span><span class="ltx_text ltx_font_italic">MAPF Problem and MAPF Plan</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS2" title="In II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-B</span> </span><span class="ltx_text ltx_font_italic">Executing MAPF Plans</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS3" title="In II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-C</span> </span><span class="ltx_text ltx_font_italic">Evaluating MAPF Plans</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S3" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III </span><span class="ltx_text ltx_font_smallcaps">SMART Architecture</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S3.SS1" title="In III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-A</span> </span><span class="ltx_text ltx_font_italic">Simulator</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS1.SSS1" title="In III-A Simulator ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-A</span>1 </span>ARGoS3</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS1.SSS2" title="In III-A Simulator ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-A</span>2 </span>Isaac Sim</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S3.SS2" title="In III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-B</span> </span><span class="ltx_text ltx_font_italic">Execution Monitoring (EM) Server</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S3.SS2.SSS0.Px1" title="In III-B Execution Monitoring (EM) Server ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title">Server Initialization</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S3.SS2.SSS0.Px2" title="In III-B Execution Monitoring (EM) Server ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title">Execution Management</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S3.SS3" title="In III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-C</span> </span><span class="ltx_text ltx_font_italic">Executor</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S3.SS4" title="In III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-D</span> </span><span class="ltx_text ltx_font_italic">Performance Metrics</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S4" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV </span><span class="ltx_text ltx_font_smallcaps">System Usage</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S4.SS0.SSS0.Px1" title="In IV System Usage ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title">SMART as a Service</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S4.SS0.SSS0.Px2" title="In IV System Usage ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title">Installing SMART Locally</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S5" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V </span><span class="ltx_text ltx_font_smallcaps">System Evaluation</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S5.SS1" title="In V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">V-A</span> </span><span class="ltx_text ltx_font_italic">Scalability and Runtime Performance</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S5.SS2" title="In V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">V-B</span> </span><span class="ltx_text ltx_font_italic">Replicability</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S5.SS3" title="In V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">V-C</span> </span><span class="ltx_text ltx_font_italic">CPU and Memory Usage</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S5.SS4" title="In V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">V-D</span> </span><span class="ltx_text ltx_font_italic">Evaluation in Real World</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="#S6" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VI </span><span class="ltx_text ltx_font_smallcaps">Conclusion</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_bibliography"><a href="#bib" title="In Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_title">References</span></a></li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div id="infobox" class="infobox">
+  <a id="license-tr" href="https://info.arxiv.org/help/license/index.html#licenses-available">
+    License: CC BY-NC-ND 4.0
+  </a>
+  <div id="watermark-tr">
+arXiv:2503.04798v3 [cs.RO] 19 Apr 2026</div>
+</div><div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_title_document">Advancing MAPF Toward the Real World: 
+<br class="ltx_break">A Scalable Multi-Agent Realistic Testbed (SMART)</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">
+Jingtian Yan<sup id="id10.10.id1" class="ltx_sup">1</sup>,
+Zhifei Li<sup id="id11.11.id2" class="ltx_sup">1</sup>,
+William Kang<sup id="id12.12.id3" class="ltx_sup"><span id="id12.12.id3.1" class="ltx_text ltx_font_italic">1</span></sup>,
+Kevin Zheng<sup id="id13.13.id4" class="ltx_sup"><span id="id13.13.id4.1" class="ltx_text ltx_font_italic">2</span></sup>,
+Yulun Zhang<sup id="id14.14.id5" class="ltx_sup">1</sup>,
+Zhe Chen<sup id="id15.15.id6" class="ltx_sup">2</sup>,
+Yue Zhang<sup id="id16.16.id7" class="ltx_sup">2</sup>,
+<br class="ltx_break">Daniel Harabor<sup id="id17.17.id8" class="ltx_sup">2</sup>,
+Stephen F. Smith<sup id="id18.18.id9" class="ltx_sup">1</sup>,
+Jiaoyang Li<sup id="id19.19.id10" class="ltx_sup">1</sup>
+</span><span class="ltx_author_notes"><sup id="id20.20.id1" class="ltx_sup"><span id="id20.20.id1.1" class="ltx_text ltx_font_italic">1</span></sup>J. Yan, Z. Li, W. Kang, Y. Zhang, S. Smith, and J. Li are with Robotics Institute, Carnegie Mellon University, Pittsburgh, PA 15213, USA (email: {jingtianyan, zhifeil, williamkang, yulunzhang}@cmu.edu, ssmith@andrew.cmu.edu, jiaoyangli@cmu.edu).<sup id="id21.21.id1" class="ltx_sup"><span id="id21.21.id1.1" class="ltx_text ltx_font_italic">2</span></sup>K. Zheng, Z. Chen, Y. Zhang, and D. Harabor are with Monash University, Clayton, VIC 3800, Australia. (email: {kevin.zheng, zhe.chen, yue.zhang, daniel.harabor}@monash.edu).Digital Object Identifier (DOI): see top of this page.</span></span>
+</div>
+
+<div id="abstract1" class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p">We present <span class="ltx_text ltx_font_bold">S</span>calable <span class="ltx_text ltx_font_bold">M</span>ulti-<span class="ltx_text ltx_font_bold">A</span>gent <span class="ltx_text ltx_font_bold">R</span>ealistic <span class="ltx_text ltx_font_bold">T</span>estbed (SMART), a realistic and efficient software tool for evaluating Multi-Agent Path Finding (MAPF) algorithms.
+MAPF focuses on planning collision-free paths for a group of robots.
+While state-of-the-art MAPF planners can plan paths for hundreds of robots in seconds, they often rely on simplified robot models, making their real-world performance unclear.
+Researchers typically lack access to hundreds of physical robots in laboratory settings to evaluate the algorithms.
+Meanwhile, industrial professionals who lack expertise in MAPF require an easy-to-use simulator to efficiently test and understand the performance of MAPF planners in their specific settings.
+SMART fills this gap with several advantages:
+(1) SMART uses physics-engine-based simulators to create realistic simulation environments, accounting for complex real-world factors such as robot kinodynamics and execution uncertainties,
+(2) SMART uses an execution monitor framework based on the Action Dependency Graph, facilitating seamless integration with various MAPF planners and robot models, and
+(3) SMART scales to thousands of robots.
+The code is publicly available at <span class="ltx_ref ltx_nolink ltx_url ltx_font_typewriter ltx_ref_self">https://github.com/smart-mapf/smart</span>  with an online service available at <span class="ltx_ref ltx_nolink ltx_url ltx_font_typewriter ltx_ref_self">https://smart-mapf.github.io/demo/</span>.</p>
+</div>
+<section id="S1" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">I </span><span id="S1.1.1" class="ltx_text ltx_font_smallcaps">Introduction</span>
+</h2>
+
+<div id="S1.p1" class="ltx_para">
+<p id="S1.p1.1" class="ltx_p">The Multi-Agent Path Finding (MAPF) problem <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>]</cite> focuses on planning collision-free paths for a large group of robots within a known environment.
+This problem finds various real-world applications <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib65" title="Feasibility study: Moving non-homogeneous teams in congested video game environments" class="ltx_ref">18</a>, <a href="#bib.bib24" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">11</a>, <a href="#bib.bib64" title="Multi-agent path finding in unmanned aircraft system traffic management with scheduling and speed variation" class="ltx_ref">10</a>]</cite>, with warehouse automation being a prominent example, where hundreds of robots must be coordinated to perform daily operations.
+In recent years, MAPF has grown into a rapidly expanding research area <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib74" title="Graph-based multi-robot path finding and planning" class="ltx_ref">19</a>, <a href="#bib.bib78" title="Where paths collide: A comprehensive survey of classic and learning-based multi-agent pathfinding" class="ltx_ref">32</a>]</cite>.
+State-of-the-art MAPF planners can plan paths for hundreds of robots within seconds <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib7" title="Searching with consistent prioritization for multi-agent path finding" class="ltx_ref">16</a>, <a href="#bib.bib71" title="Multi-agent path finding with mutex propagation" class="ltx_ref">35</a>, <a href="#bib.bib56" title="MAPF-LNS2: Fast repairing for multi-agent path finding via large neighborhood search" class="ltx_ref">14</a>]</cite>.
+However, these algorithms make several simplifying assumptions.
+First, they rely on simplified robot models that ignore kinodynamic constraints while planning the robots’ paths.
+Second, they assume that robots can execute these paths perfectly, without accounting for uncertainties introduced by real-world factors.
+Therefore, while researchers have shown that MAPF planners have a wide range of applications, their performance in more realistic settings is unclear.</p>
+</div>
+<figure id="S1.F1" class="ltx_figure"><img src="2503.04798v3/x1.png" id="S1.F1.g1" class="ltx_graphics ltx_centering ltx_img_square" width="830" height="987" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 1: </span>(a) A simulation environment in SMART.
+(b) The original 2-D grid map from the MovingAI benchmark.
+(c, d) Robot models used in the environment.
+(e) A 3D view of the environment.</figcaption>
+</figure>
+<div id="S1.p2" class="ltx_para">
+<p id="S1.p2.1" class="ltx_p">MAPF researchers in both academia and industry require an efficient, realistic, and scalable software tool to evaluate MAPF planners in realistic settings.
+In this paper, we use the term <em id="S1.p2.1.1" class="ltx_emph ltx_font_italic">scalability</em> to refer to runtime capacity in terms of the maximum number of robots that the testbed can support in simulation.
+In academia, deploying hundreds of physical robots in a large environment to evaluate MAPF planners is impractical.
+Meanwhile, developing software that can evaluate large groups of robots is a non-trivial task for MAPF researchers.
+Researchers must create high-fidelity simulation environments and robot models to capture realistic factors, as well as develop essential software components such as controllers and execution frameworks to execute their plans.
+Moreover, since many researchers come from the AI community, learning such robotic simulation tools can require significant effort.
+While some software tools <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib62" title="A benchmark for multi-robot planning in realistic, complex and cluttered environments" class="ltx_ref">27</a>, <a href="#bib.bib61" title="Benchmarking multi-robot coordination in realistic, unstructured human-shared environments" class="ltx_ref">9</a>]</cite> have been developed to evaluate MAPF planners in realistic settings, they do not scale to hundreds of robots and require significant engineering efforts to integrate new MAPF planners and maps.
+In addition, industrial professionals possess realistic simulators for their applications of interest. However, they may not have the resources and expertise to implement state-of-the-art MAPF planners in their simulators. By having a realistic simulator that can easily interface with existing implementations of MAPF planners, industrial professionals can more easily understand and select a MAPF planner that fits their demands.
+</p>
+</div>
+<div id="S1.p3" class="ltx_para">
+<p id="S1.p3.1" class="ltx_p">In this paper, we present SMART, a <span id="S1.p3.1.1" class="ltx_text ltx_font_bold">S</span>calable <span id="S1.p3.1.2" class="ltx_text ltx_font_bold">M</span>ulti-<span id="S1.p3.1.3" class="ltx_text ltx_font_bold">A</span>gent <span id="S1.p3.1.4" class="ltx_text ltx_font_bold">R</span>ealistic <span id="S1.p3.1.5" class="ltx_text ltx_font_bold">T</span>estbed, a software tool used to evaluate MAPF planners in realistic scenarios.
+SMART comprises three main components: (1) a physics-engine-based simulator, (2) an execution monitoring (EM) server, and (3) robot-specific executors.
+The simulator generates realistic simulation environments based on user-defined configurations.
+<a href="#S1.F1" title="In I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">1</span></a> shows an example environment in SMART created from a 2-D grid map from the MovingAI benchmark <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>]</cite>.
+The EM server parses the user-provided MAPF paths, tracks the execution progress, and communicates with the executors.
+It leverages the Action Dependency Graph (ADG) <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib24" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">11</a>]</cite>, a MAPF execution framework, to ensure robust execution of the paths generated by MAPF planners using various simplified robot models.
+Each robot is assigned an individual executor that receives and executes actions from the server.
+SMART incorporates key real-world factors, including robot kinodynamics, collision dynamics, communication delays, execution imperfections, and temporal uncertainty during execution.</p>
+</div>
+<div id="S1.p4" class="ltx_para">
+<p id="S1.p4.1" class="ltx_p">Our contributions in this paper are as follows:
+1. We present SMART, an open-source software tool for evaluating MAPF planners in realistic scenarios. SMART directly accepts MAPF plans and problem instances from existing benchmarks.
+2. We integrate SMART with two simulators, ARGoS3 <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib55" title="ARGoS: A modular, parallel, multi-engine simulator for multi-robot systems" class="ltx_ref">25</a>]</cite> and Isaac Sim <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib51" title="Isaac Sim" class="ltx_ref">21</a>]</cite>, and empirically evaluate its scalability and replicability. SMART can scale to thousands of robots while maintaining consistent and reproducible results, whereas prior tools fail to handle a hundred robots.
+3. We develop an online interface with interactive visualization, allowing users to easily monitor execution progress and access detailed statistical data during simulation.
+4. We validate SMART on real-world mobile robots, demonstrating its robustness and effectiveness in physical environments.</p>
+</div>
+<figure id="S1.F2" class="ltx_figure"><img src="2503.04798v3/x2.png" id="S1.F2.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="830" height="419" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 2: </span>(a) MAPF problem. (b) Associated MAPF plan. (c) ADG from the MAPF plan. Green ovals are actions, with the first element as the reference time from the plan, the second as the action type (e.g., rotation or forward movement), and the last two as start and goal locations. Horizontal edges are Type-1, and vertical edges are Type-2. All robots initially face north.</figcaption>
+</figure>
+</section>
+<section id="S2" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">II </span><span id="S2.1.1" class="ltx_text ltx_font_smallcaps">Background</span>
+</h2>
+
+<div id="S2.p1" class="ltx_para">
+<p id="S2.p1.1" class="ltx_p">In this section, we first introduce the MAPF problem and related work. Next, we discuss existing execution frameworks for executing MAPF plans. Finally, we review benchmarks used to evaluate MAPF planners.</p>
+</div>
+<section id="S2.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S2.SS1.4.1.1" class="ltx_text">II-A</span> </span><span id="S2.SS1.5.2" class="ltx_text ltx_font_italic">MAPF Problem and MAPF Plan</span>
+</h3>
+
+<div id="S2.SS1.p1" class="ltx_para">
+<p id="S2.SS1.p1.3" class="ltx_p">A <em id="S2.SS1.p1.3.1" class="ltx_emph ltx_font_italic">MAPF instance</em> <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>]</cite> consists of an undirected graph <math id="S2.SS1.p1.1.m1" class="ltx_Math" alttext="\mathcal{G}_{M}=(\mathcal{V}_{M},\mathcal{E}_{M})" display="inline" intent=":literal"><semantics><mrow><msub><mi class="ltx_font_mathcaligraphic">𝒢</mi><mi>M</mi></msub><mo>=</mo><mrow><mo stretchy="false">(</mo><msub><mi class="ltx_font_mathcaligraphic">𝒱</mi><mi>M</mi></msub><mo>,</mo><msub><mi class="ltx_font_mathcaligraphic">ℰ</mi><mi>M</mi></msub><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{G}_{M}=(\mathcal{V}_{M},\mathcal{E}_{M})</annotation></semantics></math> constructed from a 2-D grid map and a set of <math id="S2.SS1.p1.2.m2" class="ltx_Math" alttext="I" display="inline" intent=":literal"><semantics><mi>I</mi><annotation encoding="application/x-tex">I</annotation></semantics></math> robots <math id="S2.SS1.p1.3.m3" class="ltx_Math" alttext="\mathcal{R}=\{r_{1},\dots,r_{I}\}" display="inline" intent=":literal"><semantics><mrow><mi class="ltx_font_mathcaligraphic">ℛ</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>r</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>r</mi><mi>I</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{R}=\{r_{1},\dots,r_{I}\}</annotation></semantics></math> with their corresponding start and goal locations.
+Given a MAPF instance, a MAPF planner aims to find a <em id="S2.SS1.p1.3.2" class="ltx_emph ltx_font_italic">MAPF plan</em>, consisting of collision-free paths for all robots from their start to goal locations. Standard MAPF uses a simplified robot model by discretizing the time into timesteps and assuming that, at each timestep, every robot either moves to an adjacent vertex or stays at its current vertex. Two robots collide if they are at the same vertex or swap vertices at the same timestep.
+An example MAPF instance and plan on a 2-D grid graph are shown in <a href="#S1.F2" title="In I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">2</span></a> (a) and (b), respectively.
+The typical objective of MAPF is to minimize the sum-of-cost, defined as the sum of travel time.</p>
+</div>
+<div id="S2.SS1.p2" class="ltx_para">
+<p id="S2.SS1.p2.1" class="ltx_p">Prior research has proposed many MAPF planners, most of which were implemented and tested on 2-D grid maps.
+Some methods focus on finding solutions with optimal or bounded-suboptimal guarantees <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib27" title="Conflict-based search for optimal multi-agent pathfinding" class="ltx_ref">28</a>, <a href="#bib.bib25" title="EECBS: a bounded-suboptimal search for multi-agent path finding" class="ltx_ref">15</a>]</cite>, while others focus on scalability, solving MAPF problems involving thousands of robots <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib40" title="Priority inheritance with backtracking for iterative multi-agent path finding" class="ltx_ref">22</a>, <a href="#bib.bib67" title="LaCAM: Search-based algorithm for quick multi-agent pathfinding" class="ltx_ref">23</a>]</cite>.
+Additionally, some methods incorporate complex real-world factors, such as kinodynamics and unexpected delays, into the planning process <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib10" title="Optimal and bounded-suboptimal multi-agent motion planning" class="ltx_ref">5</a>, <a href="#bib.bib43" title="Robust multi-agent path finding and executing" class="ltx_ref">1</a>, <a href="#bib.bib32" title="Multi-agent motion planning with bézier curve optimization under kinodynamic constraints" class="ltx_ref">33</a>, <a href="#bib.bib58" title="Multi-agent motion planning for differential drive robots through stationary state search" class="ltx_ref">34</a>]</cite>.
+They usually employ a two-level planner, where the high level employs MAPF-based methods to resolve collisions among robots, while the low level plans for each robot considering real-world factors.</p>
+</div>
+</section>
+<section id="S2.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S2.SS2.4.1.1" class="ltx_text">II-B</span> </span><span id="S2.SS2.5.2" class="ltx_text ltx_font_italic">Executing MAPF Plans</span>
+</h3>
+
+<div id="S2.SS2.p1" class="ltx_para">
+<p id="S2.SS2.p1.1" class="ltx_p">Given a MAPF plan, robots can remain collision-free if they strictly follow it spatially and temporally.
+While existing path-tracking techniques allow for reasonable spatial accuracy, precise temporal adherence is more challenging <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib53" title="Provably safe and deadlock-free execution of multi-robot plans under delaying disturbances" class="ltx_ref">3</a>]</cite>, especially since MAPF plans are typically generated using imperfect robot models.
+Thus, we need techniques to execute MAPF plans safely given the uncertainty in execution time.
+One naive way is synchronized execution, where robots need to wait for all robots to finish their current actions before starting the next. This ensures strict compliance with the MAPF plan but significantly reduces efficiency.
+Alternatively, one can replan whenever a robot is delayed, but this is computationally expensive and thus does not scale well.
+Therefore, executing MAPF plans using an execution framework is preferred <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib53" title="Provably safe and deadlock-free execution of multi-robot plans under delaying disturbances" class="ltx_ref">3</a>]</cite>. The state-of-the-art execution framework is Action Dependency Graph (ADG) <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib24" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">11</a>]</cite>, which enforces passing orders defined by MAPF plans while accounting for delays.
+ADG can execute plans generated by MAPF planners of various robot models <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib23" title="Which MAPF model works best for automated warehousing?" class="ltx_ref">31</a>]</cite>.</p>
+</div>
+<div id="S2.SS2.p2" class="ltx_para">
+<p id="S2.SS2.p2.20" class="ltx_p">An ADG, as shown in <a href="#S1.F2" title="In I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">2</span></a> (c), is a directed graph <math id="S2.SS2.p2.1.m1" class="ltx_Math" alttext="\mathcal{G}=(\mathcal{V},\mathcal{E}_{1},\mathcal{E}_{2})" display="inline" intent=":literal"><semantics><mrow><mi class="ltx_font_mathcaligraphic">𝒢</mi><mo>=</mo><mrow><mo stretchy="false">(</mo><mi class="ltx_font_mathcaligraphic">𝒱</mi><mo>,</mo><msub><mi class="ltx_font_mathcaligraphic">ℰ</mi><mn>1</mn></msub><mo>,</mo><msub><mi class="ltx_font_mathcaligraphic">ℰ</mi><mn>2</mn></msub><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{G}=(\mathcal{V},\mathcal{E}_{1},\mathcal{E}_{2})</annotation></semantics></math> that encodes dependencies between actions from a MAPF plan.
+The vertex set <math id="S2.SS2.p2.2.m2" class="ltx_Math" alttext="\mathcal{V}=\{v_{i}^{k}:k\in[1,n^{i}],r_{i}\in\mathcal{R}\}" display="inline" intent=":literal"><semantics><mrow><mi class="ltx_font_mathcaligraphic">𝒱</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msubsup><mi>v</mi><mi>i</mi><mi>k</mi></msubsup><mo lspace="0.278em" rspace="0.278em">:</mo><mrow><mrow><mi>k</mi><mo>∈</mo><mrow><mo stretchy="false">[</mo><mn>1</mn><mo>,</mo><msup><mi>n</mi><mi>i</mi></msup><mo stretchy="false">]</mo></mrow></mrow><mo>,</mo><mrow><msub><mi>r</mi><mi>i</mi></msub><mo>∈</mo><mi class="ltx_font_mathcaligraphic">ℛ</mi></mrow></mrow><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{V}=\{v_{i}^{k}:k\in[1,n^{i}],r_{i}\in\mathcal{R}\}</annotation></semantics></math> represents all actions performed by each robot <math id="S2.SS2.p2.3.m3" class="ltx_Math" alttext="r_{i}" display="inline" intent=":literal"><semantics><msub><mi>r</mi><mi>i</mi></msub><annotation encoding="application/x-tex">r_{i}</annotation></semantics></math>, where each vertex <math id="S2.SS2.p2.4.m4" class="ltx_Math" alttext="v_{i}^{k}" display="inline" intent=":literal"><semantics><msubsup><mi>v</mi><mi>i</mi><mi>k</mi></msubsup><annotation encoding="application/x-tex">v_{i}^{k}</annotation></semantics></math> corresponds to the <math id="S2.SS2.p2.5.m5" class="ltx_Math" alttext="k" display="inline" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-th action of <math id="S2.SS2.p2.6.m6" class="ltx_Math" alttext="r_{i}" display="inline" intent=":literal"><semantics><msub><mi>r</mi><mi>i</mi></msub><annotation encoding="application/x-tex">r_{i}</annotation></semantics></math>, and <math id="S2.SS2.p2.7.m7" class="ltx_Math" alttext="n^{i}" display="inline" intent=":literal"><semantics><msup><mi>n</mi><mi>i</mi></msup><annotation encoding="application/x-tex">n^{i}</annotation></semantics></math> is its number of actions.
+The edge set <math id="S2.SS2.p2.8.m8" class="ltx_Math" alttext="\mathcal{E}_{1}" display="inline" intent=":literal"><semantics><msub><mi class="ltx_font_mathcaligraphic">ℰ</mi><mn>1</mn></msub><annotation encoding="application/x-tex">\mathcal{E}_{1}</annotation></semantics></math> includes <em id="S2.SS2.p2.20.1" class="ltx_emph ltx_font_italic">Type-1 edges</em>, which enforce the sequential execution of actions by each robot. For a robot <math id="S2.SS2.p2.9.m9" class="ltx_Math" alttext="r_{i}" display="inline" intent=":literal"><semantics><msub><mi>r</mi><mi>i</mi></msub><annotation encoding="application/x-tex">r_{i}</annotation></semantics></math>, a Type-1 edge <math id="S2.SS2.p2.10.m10" class="ltx_Math" alttext="(v_{i}^{k},v_{i}^{k+1})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msubsup><mi>v</mi><mi>i</mi><mi>k</mi></msubsup><mo>,</mo><msubsup><mi>v</mi><mi>i</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(v_{i}^{k},v_{i}^{k+1})</annotation></semantics></math> ensures that action <math id="S2.SS2.p2.11.m11" class="ltx_Math" alttext="v_{i}^{k}" display="inline" intent=":literal"><semantics><msubsup><mi>v</mi><mi>i</mi><mi>k</mi></msubsup><annotation encoding="application/x-tex">v_{i}^{k}</annotation></semantics></math> is completed before action <math id="S2.SS2.p2.12.m12" class="ltx_Math" alttext="v_{i}^{k+1}" display="inline" intent=":literal"><semantics><msubsup><mi>v</mi><mi>i</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msubsup><annotation encoding="application/x-tex">v_{i}^{k+1}</annotation></semantics></math> starts.
+The edge set <math id="S2.SS2.p2.13.m13" class="ltx_Math" alttext="\mathcal{E}_{2}" display="inline" intent=":literal"><semantics><msub><mi class="ltx_font_mathcaligraphic">ℰ</mi><mn>2</mn></msub><annotation encoding="application/x-tex">\mathcal{E}_{2}</annotation></semantics></math> includes <em id="S2.SS2.p2.20.2" class="ltx_emph ltx_font_italic">Type-2 edges</em>, which enforce the inter-robot passing order at shared vertices.
+For any two vertices <math id="S2.SS2.p2.14.m14" class="ltx_Math" alttext="v_{i}^{k}" display="inline" intent=":literal"><semantics><msubsup><mi>v</mi><mi>i</mi><mi>k</mi></msubsup><annotation encoding="application/x-tex">v_{i}^{k}</annotation></semantics></math> and <math id="S2.SS2.p2.15.m15" class="ltx_Math" alttext="v_{j}^{s}" display="inline" intent=":literal"><semantics><msubsup><mi>v</mi><mi>j</mi><mi>s</mi></msubsup><annotation encoding="application/x-tex">v_{j}^{s}</annotation></semantics></math> from <math id="S2.SS2.p2.16.m16" class="ltx_Math" alttext="r_{i}" display="inline" intent=":literal"><semantics><msub><mi>r</mi><mi>i</mi></msub><annotation encoding="application/x-tex">r_{i}</annotation></semantics></math> and <math id="S2.SS2.p2.17.m17" class="ltx_Math" alttext="r_{j}" display="inline" intent=":literal"><semantics><msub><mi>r</mi><mi>j</mi></msub><annotation encoding="application/x-tex">r_{j}</annotation></semantics></math>, a Type-2 edge <math id="S2.SS2.p2.18.m18" class="ltx_Math" alttext="(v_{i}^{k},v_{j}^{s})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msubsup><mi>v</mi><mi>i</mi><mi>k</mi></msubsup><mo>,</mo><msubsup><mi>v</mi><mi>j</mi><mi>s</mi></msubsup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(v_{i}^{k},v_{j}^{s})</annotation></semantics></math> ensures that <math id="S2.SS2.p2.19.m19" class="ltx_Math" alttext="v_{i}^{k}" display="inline" intent=":literal"><semantics><msubsup><mi>v</mi><mi>i</mi><mi>k</mi></msubsup><annotation encoding="application/x-tex">v_{i}^{k}</annotation></semantics></math> must be completed before <math id="S2.SS2.p2.20.m20" class="ltx_Math" alttext="v_{j}^{s}" display="inline" intent=":literal"><semantics><msubsup><mi>v</mi><mi>j</mi><mi>s</mi></msubsup><annotation encoding="application/x-tex">v_{j}^{s}</annotation></semantics></math> can start.
+During execution, each action is performed according to these dependencies. The detailed execution procedure is described in <a href="#S3.SS2" title="III-B Execution Monitoring (EM) Server ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag"><span class="ltx_text">III-B</span></span></a>.</p>
+</div>
+<div id="S2.SS2.p3" class="ltx_para">
+<p id="S2.SS2.p3.1" class="ltx_p">Although modern MAPF solvers have become significantly faster, execution frameworks such as ADG remain essential due to inevitable real-world uncertainties. Some of them, such as communication delays, cannot be eliminated through faster planning alone. Moreover, by enforcing only necessary ordering constraints rather than strict timestep synchronization, ADG enables robots to execute multiple consecutive actions without stopping, supporting velocity optimization and smoother execution rather than requiring stop-and-go behavior at every timestep.</p>
+</div>
+<figure id="S2.T1" class="ltx_table">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table">TABLE I: </span>Comparison of SMART with existing multi-robot frameworks and evaluation tools. Interactive execution diagnostics refer to inspection of execution states during runtime, and benchmark support refers to compatibility with standard MAPF benchmarks.</figcaption>
+<table id="S2.T1.3" class="ltx_tabular ltx_centering ltx_guessed_headers ltx_align_middle">
+<thead class="ltx_thead">
+<tr id="S2.T1.3.4.1" class="ltx_tr">
+<th id="S2.T1.3.4.1.1" class="ltx_td ltx_align_left ltx_th ltx_th_column ltx_th_row ltx_border_tt"><span id="S2.T1.3.4.1.1.1" class="ltx_text ltx_font_bold">Tool</span></th>
+<th id="S2.T1.3.4.1.2" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S2.T1.3.4.1.2.1" class="ltx_text ltx_font_bold">Max Robots</span></th>
+<th id="S2.T1.3.4.1.3" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S2.T1.3.4.1.3.1" class="ltx_text ltx_font_bold">MAPF Planner</span></th>
+<th id="S2.T1.3.4.1.4" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S2.T1.3.4.1.4.1" class="ltx_text ltx_font_bold">General Execution</span></th>
+<th id="S2.T1.3.4.1.5" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S2.T1.3.4.1.5.1" class="ltx_text ltx_font_bold">Interactive Execution</span></th>
+<th id="S2.T1.3.4.1.6" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S2.T1.3.4.1.6.1" class="ltx_text ltx_font_bold">Benchmark</span></th>
+<th id="S2.T1.3.4.1.7" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S2.T1.3.4.1.7.1" class="ltx_text ltx_font_bold">Primary</span></th>
+</tr>
+<tr id="S2.T1.3.5.2" class="ltx_tr">
+<th id="S2.T1.3.5.2.1" class="ltx_td ltx_th ltx_th_row"></th>
+<th id="S2.T1.3.5.2.2" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S2.T1.3.5.2.2.1" class="ltx_text ltx_font_bold">(Tested)</span></th>
+<th id="S2.T1.3.5.2.3" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S2.T1.3.5.2.3.1" class="ltx_text ltx_font_bold">Integration</span></th>
+<th id="S2.T1.3.5.2.4" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S2.T1.3.5.2.4.1" class="ltx_text ltx_font_bold">Framework</span></th>
+<th id="S2.T1.3.5.2.5" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S2.T1.3.5.2.5.1" class="ltx_text ltx_font_bold">Diagnostics</span></th>
+<th id="S2.T1.3.5.2.6" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S2.T1.3.5.2.6.1" class="ltx_text ltx_font_bold">Support</span></th>
+<th id="S2.T1.3.5.2.7" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S2.T1.3.5.2.7.1" class="ltx_text ltx_font_bold">Purpose</span></th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr id="S2.T1.1.1" class="ltx_tr">
+<th id="S2.T1.1.1.2" class="ltx_td ltx_align_left ltx_th ltx_th_row ltx_border_t">Open-RMF <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib2" title="Open-RMF: Open Robotics Middleware Framework" class="ltx_ref">24</a>]</cite>
+</th>
+<td id="S2.T1.1.1.1" class="ltx_td ltx_align_center ltx_border_t">
+<math id="S2.T1.1.1.1.m1" class="ltx_Math" alttext="\sim" display="inline" intent=":literal"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>100</td>
+<td id="S2.T1.1.1.3" class="ltx_td ltx_align_center ltx_border_t">Manual</td>
+<td id="S2.T1.1.1.4" class="ltx_td ltx_align_center ltx_border_t">Yes</td>
+<td id="S2.T1.1.1.5" class="ltx_td ltx_align_center ltx_border_t">No</td>
+<td id="S2.T1.1.1.6" class="ltx_td ltx_align_center ltx_border_t">No</td>
+<td id="S2.T1.1.1.7" class="ltx_td ltx_align_center ltx_border_t">Fleet deployment</td>
+</tr>
+<tr id="S2.T1.2.2" class="ltx_tr">
+<th id="S2.T1.2.2.2" class="ltx_td ltx_align_left ltx_th ltx_th_row">MRP-Bench <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib62" title="A benchmark for multi-robot planning in realistic, complex and cluttered environments" class="ltx_ref">27</a>]</cite>
+</th>
+<td id="S2.T1.2.2.1" class="ltx_td ltx_align_center">
+<math id="S2.T1.2.2.1.m1" class="ltx_Math" alttext="&lt;" display="inline" intent=":literal"><semantics><mo>&lt;</mo><annotation encoding="application/x-tex">&lt;</annotation></semantics></math>10</td>
+<td id="S2.T1.2.2.3" class="ltx_td ltx_align_center">Manual</td>
+<td id="S2.T1.2.2.4" class="ltx_td ltx_align_center">No</td>
+<td id="S2.T1.2.2.5" class="ltx_td ltx_align_center">No</td>
+<td id="S2.T1.2.2.6" class="ltx_td ltx_align_center">Partial</td>
+<td id="S2.T1.2.2.7" class="ltx_td ltx_align_center">Small-scale MAPF evaluation</td>
+</tr>
+<tr id="S2.T1.3.3" class="ltx_tr">
+<th id="S2.T1.3.3.2" class="ltx_td ltx_align_left ltx_th ltx_th_row">REMROC <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib61" title="Benchmarking multi-robot coordination in realistic, unstructured human-shared environments" class="ltx_ref">9</a>]</cite>
+</th>
+<td id="S2.T1.3.3.1" class="ltx_td ltx_align_center">
+<math id="S2.T1.3.3.1.m1" class="ltx_Math" alttext="&lt;" display="inline" intent=":literal"><semantics><mo>&lt;</mo><annotation encoding="application/x-tex">&lt;</annotation></semantics></math>50</td>
+<td id="S2.T1.3.3.3" class="ltx_td ltx_align_center">Manual</td>
+<td id="S2.T1.3.3.4" class="ltx_td ltx_align_center">No</td>
+<td id="S2.T1.3.3.5" class="ltx_td ltx_align_center">No</td>
+<td id="S2.T1.3.3.6" class="ltx_td ltx_align_center">No</td>
+<td id="S2.T1.3.3.7" class="ltx_td ltx_align_center">Human-aware evaluation</td>
+</tr>
+<tr id="S2.T1.3.6.1" class="ltx_tr">
+<th id="S2.T1.3.6.1.1" class="ltx_td ltx_align_left ltx_th ltx_th_row ltx_border_bb">SMART (ours)</th>
+<td id="S2.T1.3.6.1.2" class="ltx_td ltx_align_center ltx_border_bb">2000</td>
+<td id="S2.T1.3.6.1.3" class="ltx_td ltx_align_center ltx_border_bb">Yes</td>
+<td id="S2.T1.3.6.1.4" class="ltx_td ltx_align_center ltx_border_bb">Yes</td>
+<td id="S2.T1.3.6.1.5" class="ltx_td ltx_align_center ltx_border_bb">Yes</td>
+<td id="S2.T1.3.6.1.6" class="ltx_td ltx_align_center ltx_border_bb">Yes</td>
+<td id="S2.T1.3.6.1.7" class="ltx_td ltx_align_center ltx_border_bb">MAPF research</td>
+</tr>
+</tbody>
+</table>
+</figure>
+</section>
+<section id="S2.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S2.SS3.4.1.1" class="ltx_text">II-C</span> </span><span id="S2.SS3.5.2" class="ltx_text ltx_font_italic">Evaluating MAPF Plans</span>
+</h3>
+
+<div id="S2.SS3.p1" class="ltx_para">
+<p id="S2.SS3.p1.1" class="ltx_p">To evaluate MAPF planners, researchers typically generate a plan for a given MAPF instance and then execute it.
+While many MAPF benchmarks with 2-D grid maps are proposed <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>, <a href="#bib.bib59" title="Experimenting with robotic intra-logistics domains" class="ltx_ref">8</a>, <a href="#bib.bib13" title="Benchmarks for grid-based pathfinding" class="ltx_ref">30</a>, <a href="#bib.bib75" title="QD-mapper: a quality diversity framework to automatically evaluate multi-agent path finding algorithms in diverse maps" class="ltx_ref">26</a>]</cite>, most prior MAPF works are evaluated on them using simplified robot models that assume no delays and discretized time and space.
+Some benchmarks have attempted to include realistic elements such as acceleration and rotation <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib76" title="Flatland-RL: Multi-agent reinforcement learning on trains" class="ltx_ref">20</a>, <a href="#bib.bib57" title="The league of robot runners competition: goals, designs, and implementation" class="ltx_ref">4</a>]</cite>. However, their models are still far from realistic, and they typically require the same robot models for planning and execution phases.</p>
+</div>
+<div id="S2.SS3.p2" class="ltx_para">
+<p id="S2.SS3.p2.1" class="ltx_p">Given the difficulty of modeling all real-world factors analytically, physics-engine-based simulators offer a promising approach for more accurate evaluation.
+Frameworks like Open-RMF <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib2" title="Open-RMF: Open Robotics Middleware Framework" class="ltx_ref">24</a>]</cite> provide middleware for deploying and coordinating robot fleets in production environments, handling task allocation, traffic management, and building infrastructure integration.
+However, such operational deployment frameworks are not specialized for MAPF evaluation. While centralized MAPF planners can be integrated, using them to benchmark and stress-test MAPF planners at large scale typically requires additional engineering effort beyond their core scope.
+To address the need for MAPF-specific evaluation, several simulation-based tools have been developed.
+MRP-Bench <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib62" title="A benchmark for multi-robot planning in realistic, complex and cluttered environments" class="ltx_ref">27</a>]</cite> leverages a high-fidelity, physics-based simulator Gazebo <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib63" title="Design and use paradigms for Gazebo, an open-source multi-robot simulator" class="ltx_ref">13</a>]</cite> to simulate multi-robot systems. It integrates low-level controllers to account for robots’ kinodynamic constraints and potential delays. REMROC <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib61" title="Benchmarking multi-robot coordination in realistic, unstructured human-shared environments" class="ltx_ref">9</a>]</cite> also uses Gazebo to realistically evaluate MAPF plans, with a particular focus on human-shared environments.
+However, as shown in <a href="#S2.T1" title="In II-B Executing MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">I</span></a>, these existing tools have two main limitations. First, they often require significant engineering effort to integrate user-defined maps and new MAPF planners, limiting their flexibility for different scenarios.
+In particular, they lack a general execution framework, making it difficult to directly evaluate MAPF planners across different robot models assumed during planning.
+Second, they have limited scalability: the largest number of robots tested in previous work is less than 100 robots. Most of these works rely on Gazebo, whose high computational overhead, resulting from modeling many factors not relevant to MAPF, significantly constrains scalability.
+MRP-Bench, for example, does not scale to more than 10 robots.</p>
+</div>
+<figure id="S2.F3" class="ltx_figure"><img src="2503.04798v3/x3.png" id="S2.F3.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="830" height="328" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 3: </span>System overview of SMART.</figcaption>
+</figure>
+</section>
+</section>
+<section id="S3" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">III </span><span id="S3.1.1" class="ltx_text ltx_font_smallcaps">SMART Architecture</span>
+</h2>
+
+<div id="S3.p1" class="ltx_para">
+<p id="S3.p1.1" class="ltx_p"><a href="#S2.F3" title="In II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">3</span></a> shows an overview of SMART. It comprises three main modules: a simulator, an execution monitoring (EM) server, and executors. All modules are implemented in C++.
+The simulator generates simulation environments based on the user-provided configurations.
+The EM server parses the MAPF plan and monitors the execution status of each action throughout the simulation. When an action is ready for execution, the server sends the action to the corresponding robot via the network.
+The executor of each robot receives actions from the server, executes them using a controller, and synchronizes the execution status with the server accordingly.</p>
+</div>
+<section id="S3.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS1.4.1.1" class="ltx_text">III-A</span> </span><span id="S3.SS1.5.2" class="ltx_text ltx_font_italic">Simulator</span>
+</h3>
+
+<div id="S3.SS1.p1" class="ltx_para">
+<p id="S3.SS1.p1.1" class="ltx_p">Given a user-provided configuration, the simulator creates a realistic simulation environment.
+The configuration specifies obstacle locations and shapes, robot start locations, and robot configurations (e.g., velocity and acceleration limits).
+To support the widely used MovingAI benchmark <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>]</cite>, SMART can convert its 2-D grid maps and corresponding MAPF instances into the configuration required by the simulator.
+During execution, the simulator uses a physics engine to update the states of the robots, including their poses, dynamics, and actuators, based on the received control commands from the executors.
+The simulator provides real-time robot state information (e.g., current pose) to other system components.
+To accommodate diverse user requirements and balance scalability with physical realism, SMART supports two simulation platforms: ARGoS3 <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib55" title="ARGoS: A modular, parallel, multi-engine simulator for multi-robot systems" class="ltx_ref">25</a>]</cite> for efficient large-scale experiments and Isaac Sim <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib51" title="Isaac Sim" class="ltx_ref">21</a>]</cite> for higher-fidelity simulation.</p>
+</div>
+<section id="S3.SS1.SSS1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S3.SS1.SSS1.4.1.1" class="ltx_text">III-A</span>1 </span>ARGoS3</h4>
+
+<div id="S3.SS1.SSS1.p1" class="ltx_para">
+<p id="S3.SS1.SSS1.p1.1" class="ltx_p">ARGoS3 is a multi-robot simulator with excellent scalability, advanced physics engines, and support for custom robot and environment models, making it suitable for our tasks.
+While users can specify any robot model, we use the foot-bot (shown in <a href="#S1.F1" title="In I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">1</span></a> (c)), a differential-drive robot, in our experiments. It closely resembles robots used in real-world warehouses and can move forward and rotate in place.</p>
+</div>
+</section>
+<section id="S3.SS1.SSS2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S3.SS1.SSS2.4.1.1" class="ltx_text">III-A</span>2 </span>Isaac Sim</h4>
+
+<div id="S3.SS1.SSS2.p1" class="ltx_para">
+<p id="S3.SS1.SSS2.p1.1" class="ltx_p">Isaac Sim is a high-fidelity robotics simulator developed by NVIDIA, featuring GPU-accelerated physics, photorealistic rendering, and seamless integration with ROS. It is well-suited for sim-to-real transfer and physically grounded perception and control tasks.
+We use the JetBot robot (shown in <a href="#S1.F1" title="In I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">1</span></a> (d)), a differential-drive robot commonly used in research and education.</p>
+</div>
+<figure id="S3.F4" class="ltx_figure"><img src="2503.04798v3/x4.png" id="S3.F4.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="830" height="301" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 4: </span>(a) Cycle in the ADG causing all robots to be stalled. (b) Adding safe stops between vertices to make the ADG acyclic. Robot diameter must be at most half the cell size to prevent collisions at safe stops between vertices.</figcaption>
+</figure>
+</section>
+</section>
+<section id="S3.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS2.4.1.1" class="ltx_text">III-B</span> </span><span id="S3.SS2.5.2" class="ltx_text ltx_font_italic">Execution Monitoring (EM) Server</span>
+</h3>
+
+<div id="S3.SS2.p1" class="ltx_para">
+<p id="S3.SS2.p1.1" class="ltx_p">The EM server parses the MAPF plan and encodes its passing order into an ADG. It then manages the execution of the MAPF plan and communicates with the executors.</p>
+</div>
+<section id="S3.SS2.SSS0.Px1" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">Server Initialization</h5>
+
+<div id="S3.SS2.SSS0.Px1.p1" class="ltx_para">
+<p id="S3.SS2.SSS0.Px1.p1.2" class="ltx_p">During initialization, we use the MAPF plan parser to convert it into a sequence of actions and then construct an ADG based on these actions.
+We define a lightweight, planner-agnostic standardized format to store the MAPF plan as a sequence of timed locations for each robot <math id="S3.SS2.SSS0.Px1.p1.1.m1" class="ltx_Math" alttext="r_{i}" display="inline" intent=":literal"><semantics><msub><mi>r</mi><mi>i</mi></msub><annotation encoding="application/x-tex">r_{i}</annotation></semantics></math>, i.e., <math id="S3.SS2.SSS0.Px1.p1.2.m2" class="ltx_Math" alttext="((x_{i}^{0},y_{i}^{0},t_{i}^{0}),...,(x_{i}^{T},y_{i}^{T},t_{i}^{T}))" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>x</mi><mi>i</mi><mn>0</mn></msubsup><mo>,</mo><msubsup><mi>y</mi><mi>i</mi><mn>0</mn></msubsup><mo>,</mo><msubsup><mi>t</mi><mi>i</mi><mn>0</mn></msubsup><mo stretchy="false">)</mo></mrow><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>x</mi><mi>i</mi><mi>T</mi></msubsup><mo>,</mo><msubsup><mi>y</mi><mi>i</mi><mi>T</mi></msubsup><mo>,</mo><msubsup><mi>t</mi><mi>i</mi><mi>T</mi></msubsup><mo stretchy="false">)</mo></mrow><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">((x_{i}^{0},y_{i}^{0},t_{i}^{0}),...,(x_{i}^{T},y_{i}^{T},t_{i}^{T}))</annotation></semantics></math>. This simple representation can be easily derived from any MAPF-generated path, making the parser compatible with any valid MAPF plan regardless of the underlying robot model or planner used to generate them. This design choice allows SMART to work seamlessly with planners using varying simplified robot models without requiring modifications to the planners themselves.
+The parser first converts the path of each robot into a sequence of actions.
+Specifically, for each transition between consecutive vertices, the parser infers the required robot orientation. If the orientation differs from the current orientation, an in-place rotation action is added. Subsequently, a forward movement action is added to move the robot to the next vertex.
+The ADG is then constructed based on this sequence of actions.
+ADG requires the MAPF plan to be cycle-conflict-free, i.e., it prohibits cyclic location exchanges among a set of robots within the same timestep. This is because ADG only allows movements into empty space to ensure delay safety, which cannot be satisfied under a cycle conflict <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib24" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">11</a>]</cite>.
+However, ensuring this is not standard in most MAPF models.
+As a result, if we directly build an ADG based on a plan with cycle conflicts, we may create deadlocks, such as the one illustrated in <a href="#S3.F4" title="In III-A2 Isaac Sim ‣ III-A Simulator ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">4</span></a> (a). While these robots are planned to rotate simultaneously in a cycle, with ADG, they will end up waiting indefinitely for others to complete their next actions.
+To accommodate a broader range of planners, motivated by <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib11" title="Multi-agent path finding with kinematic constraints" class="ltx_ref">12</a>]</cite>, we add an extra vertex between consecutive vertices in SMART as shown in <a href="#S3.F4" title="In III-A2 Isaac Sim ‣ III-A Simulator ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">4</span></a> (b), making the ADG compatible with these MAPF models.</p>
+</div>
+</section>
+<section id="S3.SS2.SSS0.Px2" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">Execution Management</h5>
+
+<div id="S3.SS2.SSS0.Px2.p1" class="ltx_para">
+<p id="S3.SS2.SSS0.Px2.p1.1" class="ltx_p">During execution, an execution monitor framework manages the progress of execution and communicates with robot executors.
+This framework follows the method described in ADG <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib24" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">11</a>]</cite> to track and manage execution.
+Each vertex in the ADG represents an action and can have one of three statuses: <em id="S3.SS2.SSS0.Px2.p1.1.1" class="ltx_emph ltx_font_italic">staged</em>, <em id="S3.SS2.SSS0.Px2.p1.1.2" class="ltx_emph ltx_font_italic">enqueued</em>, or <em id="S3.SS2.SSS0.Px2.p1.1.3" class="ltx_emph ltx_font_italic">finished</em>.
+At first, all vertices are <em id="S3.SS2.SSS0.Px2.p1.1.4" class="ltx_emph ltx_font_italic">staged</em>.
+A vertex transitions to <em id="S3.SS2.SSS0.Px2.p1.1.5" class="ltx_emph ltx_font_italic">enqueued</em> if (1) it has no preceding vertices, or (2) its preceding vertex connected by a Type-1 edge is <em id="S3.SS2.SSS0.Px2.p1.1.6" class="ltx_emph ltx_font_italic">enqueued</em> or <em id="S3.SS2.SSS0.Px2.p1.1.7" class="ltx_emph ltx_font_italic">finished</em>, and all its preceding vertices connected by Type-2 edges are <em id="S3.SS2.SSS0.Px2.p1.1.8" class="ltx_emph ltx_font_italic">finished</em>. Actions associated with <em id="S3.SS2.SSS0.Px2.p1.1.9" class="ltx_emph ltx_font_italic">enqueued</em> vertices are then sent to the executors for execution.
+A vertex is marked as <em id="S3.SS2.SSS0.Px2.p1.1.10" class="ltx_emph ltx_font_italic">finished</em> when the executor confirms the completion of its associated action with the server.
+Communication with executors is managed by a Remote Procedure Call (RPC) server built with rpclib.<span id="footnote1" class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">1</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">1</sup><span class="ltx_tag ltx_tag_note">1</span>Available at <span class="ltx_ref ltx_nolink ltx_url ltx_font_typewriter ltx_ref_self">http://rpclib.net</span>.</span></span></span></p>
+</div>
+</section>
+</section>
+<section id="S3.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS3.4.1.1" class="ltx_text">III-C</span> </span><span id="S3.SS3.5.2" class="ltx_text ltx_font_italic">Executor</span>
+</h3>
+
+<div id="S3.SS3.p1" class="ltx_para">
+<p id="S3.SS3.p1.1" class="ltx_p">Each robot is launched with an individual executor. As shown in <a href="#S2.F3" title="In II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">3</span></a>, each executor consists of an RPC client, an action queue, and a controller. The RPC client communicates with the server by receiving <em id="S3.SS3.p1.1.1" class="ltx_emph ltx_font_italic">enqueued</em> actions and sending confirmations for <em id="S3.SS3.p1.1.2" class="ltx_emph ltx_font_italic">finished</em> actions. The action queue stores <em id="S3.SS3.p1.1.3" class="ltx_emph ltx_font_italic">enqueued</em> actions and executes them in first-in-first-out order. A Proportional Integral Derivative (PID) controller executes these actions by sending control commands to the simulator, and a confirmation is sent to the server upon completion.
+To allow robots to operate at higher speeds, consecutive actions of the same type are merged into one action in the queue.
+For example, if a robot receives three consecutive forward movement actions, the executor merges them into a single longer forward action, reducing unnecessary stop-and-go behavior.
+This distributed executor design enables parallel operation, as each robot handles the above-mentioned operations independently, improving scalability.</p>
+</div>
+</section>
+<section id="S3.SS4" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS4.4.1.1" class="ltx_text">III-D</span> </span><span id="S3.SS4.5.2" class="ltx_text ltx_font_italic">Performance Metrics</span>
+</h3>
+
+<div id="S3.SS4.p1" class="ltx_para">
+<p id="S3.SS4.p1.1" class="ltx_p">SMART provides several built-in performance metrics, including
+(1) <em id="S3.SS4.p1.1.1" class="ltx_emph ltx_font_italic">Average execution time (AET):</em>
+The sum of the simulation times required by all robots to complete their assigned paths, divided by the number of robots,
+(2) <em id="S3.SS4.p1.1.2" class="ltx_emph ltx_font_italic">Maximum execution time:</em>
+The longest simulation time taken by any single robot to complete its path, and
+(3) <em id="S3.SS4.p1.1.3" class="ltx_emph ltx_font_italic">Robot state over time:</em> The state of each robot at different times, where the state includes the size of its action queue, its current position, and its current wheel velocity.
+Additionally, the open-source nature of our code allows researchers to easily derive custom metrics from SMART as needed.
+SMART also provides visualization for the MAPF plan executions, allowing researchers to better understand the behaviors of the robots.</p>
+</div>
+</section>
+</section>
+<section id="S4" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">IV </span><span id="S4.1.1" class="ltx_text ltx_font_smallcaps">System Usage</span>
+</h2>
+
+<div id="S4.p1" class="ltx_para">
+<p id="S4.p1.1" class="ltx_p">Users can evaluate their solutions using SMART in two ways: by uploading their MAPF problem instance and plan through a web interface or by deploying SMART locally.</p>
+</div>
+<figure id="S4.F5" class="ltx_figure"><img src="2503.04798v3/imgs/hero3.png" id="S4.F5.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="598" height="357" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 5: </span>The SMART web interface visualizing a multi-robot simulation on a grid map. In the viewport, users interact with individual robots to inspect paths and inter-robot constraints. On the side panel, users can configure the environment, robot kinematic limits, control playback, and see execution details.</figcaption>
+</figure>
+<section id="S4.SS0.SSS0.Px1" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">SMART as a Service</h5>
+
+<div id="S4.SS0.SSS0.Px1.p1" class="ltx_para">
+<p id="S4.SS0.SSS0.Px1.p1.1" class="ltx_p">SMART, with ARGoS3 and the 3D visualizer, is directly available as software-as-a-service.
+Specifically, we provide an intuitive web app for running and inspecting MAPF simulations. It features a 3D visualizer built with React and Three.js, allowing researchers to better understand how algorithms perform on physical robots (<a href="#S4.F5" title="In IV System Usage ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">5</span></a>). Users configure the environment by specifying a map and scenario file in the MovingAI Benchmark format.
+Within the online interface, after users upload the files and select the desired kinodynamic settings for the robots, users
+can initiate the simulation with a single click.
+After starting the simulation, they can control the simulation time step and adjust the playback speed. Users may select robots to view full paths, execution status, and Type-2 edges between robots.</p>
+</div>
+</section>
+<section id="S4.SS0.SSS0.Px2" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">Installing SMART Locally</h5>
+
+<div id="S4.SS0.SSS0.Px2.p1" class="ltx_para">
+<p id="S4.SS0.SSS0.Px2.p1.1" class="ltx_p">Since SMART provides flexible interfaces for customization, researchers may choose to compile it locally for advanced use cases, such as running it in headless mode, integrating it into custom pipelines, or interfacing with real robots. As an open-source tool, SMART includes documentation and examples to support these advanced configurations.</p>
+</div>
+</section>
+</section>
+<section id="S5" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">V </span><span id="S5.1.1" class="ltx_text ltx_font_smallcaps">System Evaluation</span>
+</h2>
+
+<div id="S5.p1" class="ltx_para">
+<p id="S5.p1.1" class="ltx_p">We test SMART on two machines. All experiments are conducted on machine (1), a high-performance server with a 64-core AMD 7980X processor, 256 GB of memory, and RTX 3090Ti GPU. In <a href="#S5.SS3" title="V-C CPU and Memory Usage ‣ V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag"><span class="ltx_text">V-C</span></span></a>, we additionally test SMART on machine (2), a low-end laptop with a 4-core Intel i7-6700HQ processor and 16 GB of memory, to demonstrate SMART’s performance on resource-constrained hardware. Both machines are equipped with Ubuntu 20.04.</p>
+</div>
+<figure id="S5.F6" class="ltx_figure"><img src="2503.04798v3/x5.png" id="S5.F6.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="830" height="566" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 6: </span>Simulation environments. (a) <span id="S5.F6.7.1" class="ltx_text ltx_font_typewriter">empty</span> (b) <span id="S5.F6.8.2" class="ltx_text ltx_font_typewriter">maze</span> (c) <span id="S5.F6.9.3" class="ltx_text ltx_font_typewriter">random</span> (d) <span id="S5.F6.10.4" class="ltx_text ltx_font_typewriter">game</span> (e) <span id="S5.F6.11.5" class="ltx_text ltx_font_typewriter">warehouse</span> (f) <span id="S5.F6.12.6" class="ltx_text ltx_font_typewriter">sortation-center</span>.</figcaption>
+</figure>
+<div id="S5.p2" class="ltx_para">
+<p id="S5.p2.6" class="ltx_p">As shown in <a href="#S5.F6" title="In V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">6</span></a>, we evaluate SMART in six environments converted from
+<span id="S5.p2.6.1" class="ltx_text ltx_font_typewriter">empty</span> (empty-32-32, size: 32<math id="S5.p2.1.m1" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>32), <span id="S5.p2.6.2" class="ltx_text ltx_font_typewriter">maze</span> (maze-32-32-4, size: 32<math id="S5.p2.2.m2" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>32), <span id="S5.p2.6.3" class="ltx_text ltx_font_typewriter">random</span> (random-64-64-10, size: 64<math id="S5.p2.3.m3" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>64), <span id="S5.p2.6.4" class="ltx_text ltx_font_typewriter">game</span> (den312d, size: 65<math id="S5.p2.4.m4" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>81), and
+<span id="S5.p2.6.5" class="ltx_text ltx_font_typewriter">warehouse</span> (warehouse-10-20-10-2-1, size: 161<math id="S5.p2.5.m5" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>63) from the MovingAI benchmark <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>]</cite> and <span id="S5.p2.6.6" class="ltx_text ltx_font_typewriter">sortation-center</span> (size: <math id="S5.p2.6.m6" class="ltx_Math" alttext="500\times 140" display="inline" intent=":literal"><semantics><mrow><mn>500</mn><mo lspace="0.222em" rspace="0.222em">×</mo><mn>140</mn></mrow><annotation encoding="application/x-tex">500\times 140</annotation></semantics></math>) from the League of Robot Runner MAPF competition <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib57" title="The league of robot runners competition: goals, designs, and implementation" class="ltx_ref">4</a>]</cite>.</p>
+</div>
+<div id="S5.p3" class="ltx_para">
+<p id="S5.p3.4" class="ltx_p">In all experiments, the simulation update period is set to 0.1 simulation seconds for both simulators. A simulation update refers to the periodic recalculation of the status of robots and the environment based on the input commands.
+In ARGoS3, each grid cell represents 1 meter. Each foot-bot robot is subject to speed limits of [0, 5] m/s, acceleration limits of [<math id="S5.p3.1.m1" class="ltx_Math" alttext="-" display="inline" intent=":literal"><semantics><mo>−</mo><annotation encoding="application/x-tex">-</annotation></semantics></math>0.4, 0.4] m/s<sup id="S5.p3.4.1" class="ltx_sup">2</sup>, and absolute angular velocity limits of 30<sup id="S5.p3.4.2" class="ltx_sup">∘</sup>/s.
+In Isaac Sim, each grid cell represents 0.5 meters. Each JetBot is limited to a speed limit of [0, 2.5] m/s, an acceleration limit of [<math id="S5.p3.3.m3" class="ltx_Math" alttext="-" display="inline" intent=":literal"><semantics><mo>−</mo><annotation encoding="application/x-tex">-</annotation></semantics></math>0.2, 0.2] m/s<sup id="S5.p3.4.3" class="ltx_sup">2</sup>, and the angular velocity limit of 30<sup id="S5.p3.4.4" class="ltx_sup">∘</sup>/s.</p>
+</div>
+<div id="S5.p4" class="ltx_para">
+<p id="S5.p4.1" class="ltx_p">We evaluate SMART using MAPF plans generated by MAPF-LNS2 <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib56" title="MAPF-LNS2: Fast repairing for multi-agent path finding via large neighborhood search" class="ltx_ref">14</a>]</cite>, which provides strong scalability and is representative of state-of-the-art MAPF solvers. Unless otherwise specified, all results in this section are based on MAPF-LNS2.
+To verify generality, we additionally conducted experiments using plans generated by other MAPF planners, including CBS <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib27" title="Conflict-based search for optimal multi-agent pathfinding" class="ltx_ref">28</a>]</cite> and PBS <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib7" title="Searching with consistent prioritization for multi-agent path finding" class="ltx_ref">16</a>]</cite>.
+These plans were created using four different robot models: the standard MAPF model <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>]</cite>, the <math id="S5.p4.1.m1" class="ltx_Math" alttext="k" display="inline" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-robust delay model <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib43" title="Robust multi-agent path finding and executing" class="ltx_ref">1</a>]</cite>, MAPF with rotation <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib52" title="Efficient multi agent path finding with turn actions" class="ltx_ref">36</a>]</cite>, and MAPF with kinodynamics <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib58" title="Multi-agent motion planning for differential drive robots through stationary state search" class="ltx_ref">34</a>]</cite>.
+Across all tested settings, SMART achieved a 100% execution success rate, demonstrating its compatibility with different MAPF planners.</p>
+</div>
+<section id="S5.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S5.SS1.4.1.1" class="ltx_text">V-A</span> </span><span id="S5.SS1.5.2" class="ltx_text ltx_font_italic">Scalability and Runtime Performance</span>
+</h3>
+
+<div id="S5.SS1.p1" class="ltx_para">
+<p id="S5.SS1.p1.1" class="ltx_p">This section evaluates the scalability and runtime performance of SMART by analyzing its simulation speed, which is defined as the ratio of the simulation time to the real-world time.
+A higher simulation speed means that more simulation updates can be finished within the same unit of time, indicating better scalability.
+For example, if the simulation speed is 10, the simulation world runs 10 times faster than in real time.
+MAPF plans are generated using MAPF-LNS2<span id="footnote2" class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">2</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">2</sup><span class="ltx_tag ltx_tag_note">2</span>Code at <span class="ltx_ref ltx_nolink ltx_url ltx_font_typewriter ltx_ref_self">https://github.com/Jiaoyang-Li/MAPF-LNS2</span></span></span></span> <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib56" title="MAPF-LNS2: Fast repairing for multi-agent path finding via large neighborhood search" class="ltx_ref">14</a>]</cite> with a progressively increasing number of robots and a time limit of 60 seconds. For each map, we randomly select 5 scenarios from the MovingAI Benchmark to generate plans, which are then executed in SMART without visualization.
+In ARGoS3, the maximum number of robots tested corresponds to the limit imposed by the MAPF instances from the MovingAI Benchmark for all maps except <span id="S5.SS1.p1.1.1" class="ltx_text ltx_font_typewriter">sortation-center</span>, which is set to 2,000 robots. In contrast, for Isaac Sim, the upper bound on the number of robots is determined by the point at which the simulation speed drops below real-time (i.e., simulation speed <math id="S5.SS1.p1.1.m1" class="ltx_Math" alttext="&lt;" display="inline" intent=":literal"><semantics><mo>&lt;</mo><annotation encoding="application/x-tex">&lt;</annotation></semantics></math> 1).</p>
+</div>
+<figure id="S5.F7" class="ltx_figure"><img src="2503.04798v3/x6.png" id="S5.F7.g1" class="ltx_graphics ltx_centering ltx_img_square" width="830" height="749" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 7: </span>Simulation speed in all environments.</figcaption>
+</figure>
+<figure id="S5.T2" class="ltx_table">
+<figcaption class="ltx_caption ltx_centering" style="font-size:90%;"><span class="ltx_tag ltx_tag_table">TABLE II: </span>Replicability using different numbers of robots.</figcaption>
+<div id="S5.T2.18" class="ltx_inline-block ltx_align_center ltx_transformed_outer" style="width:433.6pt;height:213.6pt;vertical-align:-103.2pt;"><span class="ltx_transformed_inner" style="transform:translate(80.8pt,-39.8pt) scale(1.59396421313718,1.59396421313718) ;">
+<table id="S5.T2.18.18" class="ltx_tabular ltx_guessed_headers ltx_align_middle">
+<tbody class="ltx_tbody">
+<tr id="S5.T2.18.18.19.1" class="ltx_tr">
+<th id="S5.T2.18.18.19.1.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_tt"><span id="S5.T2.18.18.19.1.1.1" class="ltx_text" style="font-size:90%;">Simulator</span></th>
+<th id="S5.T2.18.18.19.1.2" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_tt"><span id="S5.T2.18.18.19.1.2.1" class="ltx_text" style="font-size:90%;">Robots</span></th>
+<td id="S5.T2.18.18.19.1.3" class="ltx_td ltx_align_center ltx_border_tt"><span id="S5.T2.18.18.19.1.3.1" class="ltx_text" style="font-size:90%;">average execution</span></td>
+<td id="S5.T2.18.18.19.1.4" class="ltx_td ltx_align_center ltx_border_tt"><span id="S5.T2.18.18.19.1.4.1" class="ltx_text" style="font-size:90%;">maximum execution</span></td>
+</tr>
+<tr id="S5.T2.18.18.20.2" class="ltx_tr">
+<th id="S5.T2.18.18.20.2.1" class="ltx_td ltx_th ltx_th_row"></th>
+<th id="S5.T2.18.18.20.2.2" class="ltx_td ltx_align_right ltx_th ltx_th_row"><span id="S5.T2.18.18.20.2.2.1" class="ltx_text" style="font-size:90%;">(#)</span></th>
+<td id="S5.T2.18.18.20.2.3" class="ltx_td ltx_align_center"><span id="S5.T2.18.18.20.2.3.1" class="ltx_text" style="font-size:90%;">time</span></td>
+<td id="S5.T2.18.18.20.2.4" class="ltx_td ltx_align_center"><span id="S5.T2.18.18.20.2.4.1" class="ltx_text" style="font-size:90%;">time</span></td>
+</tr>
+<tr id="S5.T2.2.2.2" class="ltx_tr">
+<th id="S5.T2.2.2.2.3" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t" rowspan="5"><span id="S5.T2.2.2.2.3.1" class="ltx_text" style="font-size:90%;">ARGoS3</span></th>
+<th id="S5.T2.2.2.2.4" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_t"><span id="S5.T2.2.2.2.4.1" class="ltx_text" style="font-size:90%;">10</span></th>
+<td id="S5.T2.1.1.1.1" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T2.1.1.1.1.1" class="ltx_text" style="font-size:90%;">123.33 </span><math id="S5.T2.1.1.1.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.1.1.1.1.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+<td id="S5.T2.2.2.2.2" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T2.2.2.2.2.1" class="ltx_text" style="font-size:90%;">373.6 </span><math id="S5.T2.2.2.2.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.2.2.2.2.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+</tr>
+<tr id="S5.T2.4.4.4" class="ltx_tr">
+<th id="S5.T2.4.4.4.3" class="ltx_td ltx_align_right ltx_th ltx_th_row"><span id="S5.T2.4.4.4.3.1" class="ltx_text" style="font-size:90%;">50</span></th>
+<td id="S5.T2.3.3.3.1" class="ltx_td ltx_align_center">
+<span id="S5.T2.3.3.3.1.1" class="ltx_text" style="font-size:90%;">182.84 </span><math id="S5.T2.3.3.3.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.3.3.3.1.2" class="ltx_text" style="font-size:90%;"> 0.01</span>
+</td>
+<td id="S5.T2.4.4.4.2" class="ltx_td ltx_align_center">
+<span id="S5.T2.4.4.4.2.1" class="ltx_text" style="font-size:90%;">433.30 </span><math id="S5.T2.4.4.4.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.4.4.4.2.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+</tr>
+<tr id="S5.T2.6.6.6" class="ltx_tr">
+<th id="S5.T2.6.6.6.3" class="ltx_td ltx_align_right ltx_th ltx_th_row"><span id="S5.T2.6.6.6.3.1" class="ltx_text" style="font-size:90%;">100</span></th>
+<td id="S5.T2.5.5.5.1" class="ltx_td ltx_align_center">
+<span id="S5.T2.5.5.5.1.1" class="ltx_text" style="font-size:90%;">263.36 </span><math id="S5.T2.5.5.5.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.5.5.5.1.2" class="ltx_text" style="font-size:90%;"> 0.01</span>
+</td>
+<td id="S5.T2.6.6.6.2" class="ltx_td ltx_align_center">
+<span id="S5.T2.6.6.6.2.1" class="ltx_text" style="font-size:90%;">469.80 </span><math id="S5.T2.6.6.6.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.6.6.6.2.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+</tr>
+<tr id="S5.T2.8.8.8" class="ltx_tr">
+<th id="S5.T2.8.8.8.3" class="ltx_td ltx_align_right ltx_th ltx_th_row"><span id="S5.T2.8.8.8.3.1" class="ltx_text" style="font-size:90%;">200</span></th>
+<td id="S5.T2.7.7.7.1" class="ltx_td ltx_align_center">
+<span id="S5.T2.7.7.7.1.1" class="ltx_text" style="font-size:90%;">269.79 </span><math id="S5.T2.7.7.7.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.7.7.7.1.2" class="ltx_text" style="font-size:90%;"> 0.02</span>
+</td>
+<td id="S5.T2.8.8.8.2" class="ltx_td ltx_align_center">
+<span id="S5.T2.8.8.8.2.1" class="ltx_text" style="font-size:90%;">675.50 </span><math id="S5.T2.8.8.8.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.8.8.8.2.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+</tr>
+<tr id="S5.T2.10.10.10" class="ltx_tr">
+<th id="S5.T2.10.10.10.3" class="ltx_td ltx_align_right ltx_th ltx_th_row"><span id="S5.T2.10.10.10.3.1" class="ltx_text" style="font-size:90%;">400</span></th>
+<td id="S5.T2.9.9.9.1" class="ltx_td ltx_align_center">
+<span id="S5.T2.9.9.9.1.1" class="ltx_text" style="font-size:90%;">385.76 </span><math id="S5.T2.9.9.9.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.9.9.9.1.2" class="ltx_text" style="font-size:90%;"> 0.02</span>
+</td>
+<td id="S5.T2.10.10.10.2" class="ltx_td ltx_align_center">
+<span id="S5.T2.10.10.10.2.1" class="ltx_text" style="font-size:90%;">737.60 </span><math id="S5.T2.10.10.10.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.10.10.10.2.2" class="ltx_text" style="font-size:90%;"> 0.42</span>
+</td>
+</tr>
+<tr id="S5.T2.12.12.12" class="ltx_tr">
+<th id="S5.T2.12.12.12.3" class="ltx_td ltx_th ltx_th_row"></th>
+<th id="S5.T2.12.12.12.4" class="ltx_td ltx_align_right ltx_th ltx_th_row"><span id="S5.T2.12.12.12.4.1" class="ltx_text" style="font-size:90%;">600</span></th>
+<td id="S5.T2.11.11.11.1" class="ltx_td ltx_align_center">
+<span id="S5.T2.11.11.11.1.1" class="ltx_text" style="font-size:90%;">462.87 </span><math id="S5.T2.11.11.11.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.11.11.11.1.2" class="ltx_text" style="font-size:90%;"> 0.07</span>
+</td>
+<td id="S5.T2.12.12.12.2" class="ltx_td ltx_align_center">
+<span id="S5.T2.12.12.12.2.1" class="ltx_text" style="font-size:90%;">843.70 </span><math id="S5.T2.12.12.12.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.12.12.12.2.2" class="ltx_text" style="font-size:90%;"> 0.71</span>
+</td>
+</tr>
+<tr id="S5.T2.14.14.14" class="ltx_tr">
+<th id="S5.T2.14.14.14.3" class="ltx_td ltx_th ltx_th_row"></th>
+<th id="S5.T2.14.14.14.4" class="ltx_td ltx_align_right ltx_th ltx_th_row"><span id="S5.T2.14.14.14.4.1" class="ltx_text" style="font-size:90%;">1000</span></th>
+<td id="S5.T2.13.13.13.1" class="ltx_td ltx_align_center">
+<span id="S5.T2.13.13.13.1.1" class="ltx_text" style="font-size:90%;">612.04 </span><math id="S5.T2.13.13.13.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.13.13.13.1.2" class="ltx_text" style="font-size:90%;"> 0.07</span>
+</td>
+<td id="S5.T2.14.14.14.2" class="ltx_td ltx_align_center">
+<span id="S5.T2.14.14.14.2.1" class="ltx_text" style="font-size:90%;">1389.43 </span><math id="S5.T2.14.14.14.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.14.14.14.2.2" class="ltx_text" style="font-size:90%;"> 0.83</span>
+</td>
+</tr>
+<tr id="S5.T2.16.16.16" class="ltx_tr">
+<th id="S5.T2.16.16.16.3" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb ltx_border_t" rowspan="2"><span id="S5.T2.16.16.16.3.1" class="ltx_text" style="font-size:90%;">Isaac Sim</span></th>
+<th id="S5.T2.16.16.16.4" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_t"><span id="S5.T2.16.16.16.4.1" class="ltx_text" style="font-size:90%;">10</span></th>
+<td id="S5.T2.15.15.15.1" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T2.15.15.15.1.1" class="ltx_text" style="font-size:90%;">122.47 </span><math id="S5.T2.15.15.15.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.15.15.15.1.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+<td id="S5.T2.16.16.16.2" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T2.16.16.16.2.1" class="ltx_text" style="font-size:90%;">369.47 </span><math id="S5.T2.16.16.16.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.16.16.16.2.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+</tr>
+<tr id="S5.T2.18.18.18" class="ltx_tr">
+<th id="S5.T2.18.18.18.3" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_bb"><span id="S5.T2.18.18.18.3.1" class="ltx_text" style="font-size:90%;">50</span></th>
+<td id="S5.T2.17.17.17.1" class="ltx_td ltx_align_center ltx_border_bb">
+<span id="S5.T2.17.17.17.1.1" class="ltx_text" style="font-size:90%;">183.71 </span><math id="S5.T2.17.17.17.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.17.17.17.1.2" class="ltx_text" style="font-size:90%;"> 0.07</span>
+</td>
+<td id="S5.T2.18.18.18.2" class="ltx_td ltx_align_center ltx_border_bb">
+<span id="S5.T2.18.18.18.2.1" class="ltx_text" style="font-size:90%;">435.46 </span><math id="S5.T2.18.18.18.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T2.18.18.18.2.2" class="ltx_text" style="font-size:90%;"> 1.36</span>
+</td>
+</tr>
+</tbody>
+</table>
+</span></div>
+</figure>
+<div id="S5.SS1.p2" class="ltx_para">
+<p id="S5.SS1.p2.1" class="ltx_p">As shown in <a href="#S5.F7" title="In V-A Scalability and Runtime Performance ‣ V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">7</span></a>, SMART supports simulations with up to 2,000 robots.
+As the number of robots increases and the map becomes larger, the simulation speed decreases.
+Nevertheless, for ARGoS3, SMART maintains a simulation speed of around 10.0 with 1,000 robots in <span id="S5.SS1.p2.1.1" class="ltx_text ltx_font_typewriter">warehouse</span>. Even in the larger <span id="S5.SS1.p2.1.2" class="ltx_text ltx_font_typewriter">sortation-center</span>, the simulation speed is consistently greater than 1.0.
+In contrast, Isaac Sim provides the capability to model more complex real-world factors while also producing photorealistic visualizations, but it is significantly less scalable, particularly in large environments. It is therefore more suitable for experiments with a smaller number of robots.</p>
+</div>
+</section>
+<section id="S5.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S5.SS2.4.1.1" class="ltx_text">V-B</span> </span><span id="S5.SS2.5.2" class="ltx_text ltx_font_italic">Replicability</span>
+</h3>
+
+<div id="S5.SS2.p1" class="ltx_para">
+<p id="S5.SS2.p1.1" class="ltx_p">We evaluate the consistency of SMART by examining whether the same MAPF plans yield the same outcomes across multiple runs.
+Due to the realistic setting we used, uncertainty may arise from factors such as network communication delays or controller variability.
+Using the same <span id="S5.SS2.p1.1.1" class="ltx_text ltx_font_typewriter">warehouse</span> map and MAPF plans as in the previous section, we execute SMART 10 times for each MAPF plan.
+For each run, we record both the average and the maximum execution time.
+As shown in <a href="#S5.T2" title="In V-A Scalability and Runtime Performance ‣ V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">II</span></a>, SMART demonstrates strong replicability across runs, with minor execution time variations. While these variations increase slightly with more robots, they remain minimal even for up to a thousand robots.</p>
+</div>
+</section>
+<section id="S5.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S5.SS3.4.1.1" class="ltx_text">V-C</span> </span><span id="S5.SS3.5.2" class="ltx_text ltx_font_italic">CPU and Memory Usage</span>
+</h3>
+
+<div id="S5.SS3.p1" class="ltx_para">
+<p id="S5.SS3.p1.1" class="ltx_p">We evaluate the CPU and memory usage of SMART on both machines (1) and (2). We use machine (2) to demonstrate that SMART can run on resource-constrained machines. To evaluate usage, we generate MAPF plans with MAPF-LNS2 and run SMART on the <span id="S5.SS3.p1.1.1" class="ltx_text ltx_font_typewriter">warehouse</span> map with different numbers of robots, each with 5 random MAPF instances selected from the MovingAI Benchmark <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib14" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">29</a>]</cite>. All simulations are parallelized on all CPU cores on both machines. We record the peak CPU and memory usage while running the simulation and compute the average of all instances for each number of robots. <a href="#S5.T3" title="In V-C CPU and Memory Usage ‣ V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">III</span></a> shows the results. When using ARGoS3 as the simulator, we observe that SMART has reasonable CPU usage and low memory usage on both machines, making it possible to run on low-spec personal laptops. The simulation speed in machine (2) is slower than in machine (1) due to an inferior processor.
+In contrast, simulations with Isaac Sim result in significantly higher CPU and memory usage, indicating that Isaac Sim is better suited for scenarios with fewer robots but more powerful hardware.</p>
+</div>
+<figure id="S5.T3" class="ltx_table">
+<figcaption class="ltx_caption ltx_centering" style="font-size:90%;"><span class="ltx_tag ltx_tag_table">TABLE III: </span>Comparison of CPU usage, memory consumption, and simulation speed for ARGoS3 and Isaac Sim across two machines and various robot counts. Since Isaac Sim only supports recent GPUs with ray tracing capabilities, we conduct experiments with Isaac Sim only on Machine (1).</figcaption>
+<div id="S5.T3.36" class="ltx_inline-block ltx_align_center ltx_transformed_outer" style="width:433.6pt;height:281.2pt;vertical-align:-137.5pt;"><span class="ltx_transformed_inner" style="transform:translate(58.0pt,-37.6pt) scale(1.36508842034493,1.36508842034493) ;">
+<table id="S5.T3.36.36" class="ltx_tabular ltx_guessed_headers ltx_align_middle">
+<thead class="ltx_thead">
+<tr id="S5.T3.36.36.37.1" class="ltx_tr">
+<th id="S5.T3.36.36.37.1.1" class="ltx_td ltx_th ltx_th_column ltx_th_row ltx_border_r ltx_border_tt"></th>
+<th id="S5.T3.36.36.37.1.2" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_r ltx_border_tt"><span id="S5.T3.36.36.37.1.2.1" class="ltx_text" style="font-size:90%;">Sim</span></th>
+<th id="S5.T3.36.36.37.1.3" class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_th_row ltx_border_r ltx_border_tt"><span id="S5.T3.36.36.37.1.3.1" class="ltx_text" style="font-size:90%;">Robots</span></th>
+<th id="S5.T3.36.36.37.1.4" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S5.T3.36.36.37.1.4.1" class="ltx_text" style="font-size:90%;">CPU Usage</span></th>
+<th id="S5.T3.36.36.37.1.5" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S5.T3.36.36.37.1.5.1" class="ltx_text" style="font-size:90%;">Memory Usage</span></th>
+<th id="S5.T3.36.36.37.1.6" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><span id="S5.T3.36.36.37.1.6.1" class="ltx_text" style="font-size:90%;">Simulation Speed</span></th>
+</tr>
+<tr id="S5.T3.36.36.38.2" class="ltx_tr">
+<th id="S5.T3.36.36.38.2.1" class="ltx_td ltx_th ltx_th_column ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.36.36.38.2.2" class="ltx_td ltx_th ltx_th_column ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.36.36.38.2.3" class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_th_row ltx_border_r"><span id="S5.T3.36.36.38.2.3.1" class="ltx_text" style="font-size:90%;">(#)</span></th>
+<th id="S5.T3.36.36.38.2.4" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S5.T3.36.36.38.2.4.1" class="ltx_text" style="font-size:90%;">(%)</span></th>
+<th id="S5.T3.36.36.38.2.5" class="ltx_td ltx_align_center ltx_th ltx_th_column"><span id="S5.T3.36.36.38.2.5.1" class="ltx_text" style="font-size:90%;">(GB)</span></th>
+<th id="S5.T3.36.36.38.2.6" class="ltx_td ltx_th ltx_th_column"></th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr id="S5.T3.3.3.3" class="ltx_tr">
+<th id="S5.T3.3.3.3.4" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_t" rowspan="6"><span id="S5.T3.3.3.3.4.1" class="ltx_text" style="font-size:90%;">
+<span id="S5.T3.3.3.3.4.1.1" class="ltx_inline-block ltx_transformed_outer" style="width:9.0pt;height:48.8pt;vertical-align:-0.0pt;"><span class="ltx_transformed_inner" style="width:48.8pt;transform:translate(-19.9pt,-19.9pt) rotate(-90deg) ;">
+<span id="S5.T3.3.3.3.4.1.1.1" class="ltx_p">Machine (1)</span>
+</span></span></span></th>
+<th id="S5.T3.3.3.3.5" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_t" rowspan="3"><span id="S5.T3.3.3.3.5.1" class="ltx_text" style="font-size:90%;">
+<span id="S5.T3.3.3.3.5.1.1" class="ltx_inline-block ltx_transformed_outer" style="width:6.1pt;height:35.1pt;vertical-align:-0.0pt;"><span class="ltx_transformed_inner" style="width:35.1pt;transform:translate(-14.5pt,-14.5pt) rotate(-90deg) ;">
+<span id="S5.T3.3.3.3.5.1.1.1" class="ltx_p">ARGoS3</span>
+</span></span></span></th>
+<th id="S5.T3.3.3.3.6" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r ltx_border_t"><span id="S5.T3.3.3.3.6.1" class="ltx_text" style="font-size:90%;">10</span></th>
+<td id="S5.T3.1.1.1.1" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.1.1.1.1.1" class="ltx_text" style="font-size:90%;">2.99</span><math id="S5.T3.1.1.1.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.1.1.1.1.2" class="ltx_text" style="font-size:90%;">0.10</span>
+</td>
+<td id="S5.T3.2.2.2.2" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.2.2.2.2.1" class="ltx_text" style="font-size:90%;">0.03</span><math id="S5.T3.2.2.2.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.2.2.2.2.2" class="ltx_text" style="font-size:90%;">0.02</span>
+</td>
+<td id="S5.T3.3.3.3.3" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.3.3.3.3.1" class="ltx_text" style="font-size:90%;">107.93</span><math id="S5.T3.3.3.3.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.3.3.3.3.2" class="ltx_text" style="font-size:90%;">1.80</span>
+</td>
+</tr>
+<tr id="S5.T3.6.6.6" class="ltx_tr">
+<th id="S5.T3.6.6.6.4" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.6.6.6.4.1" class="ltx_text" style="font-size:90%;">50</span></th>
+<td id="S5.T3.4.4.4.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.4.4.4.1.1" class="ltx_text" style="font-size:90%;">8.03</span><math id="S5.T3.4.4.4.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.4.4.4.1.2" class="ltx_text" style="font-size:90%;">0.08</span>
+</td>
+<td id="S5.T3.5.5.5.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.5.5.5.2.1" class="ltx_text" style="font-size:90%;">0.07</span><math id="S5.T3.5.5.5.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.5.5.5.2.2" class="ltx_text" style="font-size:90%;">0.00</span>
+</td>
+<td id="S5.T3.6.6.6.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.6.6.6.3.1" class="ltx_text" style="font-size:90%;">62.35</span><math id="S5.T3.6.6.6.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.6.6.6.3.2" class="ltx_text" style="font-size:90%;">2.33</span>
+</td>
+</tr>
+<tr id="S5.T3.9.9.9" class="ltx_tr">
+<th id="S5.T3.9.9.9.4" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.9.9.9.4.1" class="ltx_text" style="font-size:90%;">100</span></th>
+<td id="S5.T3.7.7.7.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.7.7.7.1.1" class="ltx_text" style="font-size:90%;">16.48 </span><math id="S5.T3.7.7.7.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.7.7.7.1.2" class="ltx_text" style="font-size:90%;"> 0.58</span>
+</td>
+<td id="S5.T3.8.8.8.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.8.8.8.2.1" class="ltx_text" style="font-size:90%;">0.19 </span><math id="S5.T3.8.8.8.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.8.8.8.2.2" class="ltx_text" style="font-size:90%;"> 0.26</span>
+</td>
+<td id="S5.T3.9.9.9.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.9.9.9.3.1" class="ltx_text" style="font-size:90%;">33.49 </span><math id="S5.T3.9.9.9.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.9.9.9.3.2" class="ltx_text" style="font-size:90%;"> 0.15</span>
+</td>
+</tr>
+<tr id="S5.T3.12.12.12" class="ltx_tr">
+<th id="S5.T3.12.12.12.4" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.12.12.12.5" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.12.12.12.5.1" class="ltx_text" style="font-size:90%;">500</span></th>
+<td id="S5.T3.10.10.10.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.10.10.10.1.1" class="ltx_text" style="font-size:90%;">22.86 </span><math id="S5.T3.10.10.10.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.10.10.10.1.2" class="ltx_text" style="font-size:90%;"> 1.59</span>
+</td>
+<td id="S5.T3.11.11.11.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.11.11.11.2.1" class="ltx_text" style="font-size:90%;">0.24 </span><math id="S5.T3.11.11.11.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.11.11.11.2.2" class="ltx_text" style="font-size:90%;"> 0.01</span>
+</td>
+<td id="S5.T3.12.12.12.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.12.12.12.3.1" class="ltx_text" style="font-size:90%;">13.21 </span><math id="S5.T3.12.12.12.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.12.12.12.3.2" class="ltx_text" style="font-size:90%;"> 0.13</span>
+</td>
+</tr>
+<tr id="S5.T3.15.15.15" class="ltx_tr">
+<th id="S5.T3.15.15.15.4" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.15.15.15.5" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.15.15.15.5.1" class="ltx_text" style="font-size:90%;">1000</span></th>
+<td id="S5.T3.13.13.13.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.13.13.13.1.1" class="ltx_text" style="font-size:90%;">46.02 </span><math id="S5.T3.13.13.13.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.13.13.13.1.2" class="ltx_text" style="font-size:90%;"> 0.98</span>
+</td>
+<td id="S5.T3.14.14.14.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.14.14.14.2.1" class="ltx_text" style="font-size:90%;">0.65 </span><math id="S5.T3.14.14.14.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.14.14.14.2.2" class="ltx_text" style="font-size:90%;"> 0.03</span>
+</td>
+<td id="S5.T3.15.15.15.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.15.15.15.3.1" class="ltx_text" style="font-size:90%;">7.37 </span><math id="S5.T3.15.15.15.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.15.15.15.3.2" class="ltx_text" style="font-size:90%;"> 0.04</span>
+</td>
+</tr>
+<tr id="S5.T3.18.18.18" class="ltx_tr">
+<th id="S5.T3.18.18.18.4" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_t" rowspan="3"><span id="S5.T3.18.18.18.4.1" class="ltx_text" style="font-size:90%;">
+<span id="S5.T3.18.18.18.4.1.1" class="ltx_inline-block ltx_transformed_outer" style="width:6.1pt;height:38.8pt;vertical-align:-0.0pt;"><span class="ltx_transformed_inner" style="width:38.8pt;transform:translate(-16.3pt,-16.3pt) rotate(-90deg) ;">
+<span id="S5.T3.18.18.18.4.1.1.1" class="ltx_p">Isaac Sim</span>
+</span></span></span></th>
+<th id="S5.T3.18.18.18.5" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r ltx_border_t"><span id="S5.T3.18.18.18.5.1" class="ltx_text" style="font-size:90%;">10</span></th>
+<td id="S5.T3.16.16.16.1" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.16.16.16.1.1" class="ltx_text" style="font-size:90%;">25.53</span><math id="S5.T3.16.16.16.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.16.16.16.1.2" class="ltx_text" style="font-size:90%;">4.29</span>
+</td>
+<td id="S5.T3.17.17.17.2" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.17.17.17.2.1" class="ltx_text" style="font-size:90%;">10.16</span><math id="S5.T3.17.17.17.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.17.17.17.2.2" class="ltx_text" style="font-size:90%;">0.82</span>
+</td>
+<td id="S5.T3.18.18.18.3" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.18.18.18.3.1" class="ltx_text" style="font-size:90%;">1.35</span><math id="S5.T3.18.18.18.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.18.18.18.3.2" class="ltx_text" style="font-size:90%;">0.01</span>
+</td>
+</tr>
+<tr id="S5.T3.21.21.21" class="ltx_tr">
+<th id="S5.T3.21.21.21.4" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.21.21.21.5" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.21.21.21.5.1" class="ltx_text" style="font-size:90%;">50</span></th>
+<td id="S5.T3.19.19.19.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.19.19.19.1.1" class="ltx_text" style="font-size:90%;">27.18</span><math id="S5.T3.19.19.19.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.19.19.19.1.2" class="ltx_text" style="font-size:90%;">2.97</span>
+</td>
+<td id="S5.T3.20.20.20.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.20.20.20.2.1" class="ltx_text" style="font-size:90%;">10.94</span><math id="S5.T3.20.20.20.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.20.20.20.2.2" class="ltx_text" style="font-size:90%;">7.25</span>
+</td>
+<td id="S5.T3.21.21.21.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.21.21.21.3.1" class="ltx_text" style="font-size:90%;">0.54</span><math id="S5.T3.21.21.21.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.21.21.21.3.2" class="ltx_text" style="font-size:90%;">0.00</span>
+</td>
+</tr>
+<tr id="S5.T3.36.36.39.1" class="ltx_tr">
+<th id="S5.T3.36.36.39.1.1" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.36.36.39.1.2" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.36.36.39.1.2.1" class="ltx_text" style="font-size:90%;">100</span></th>
+<td id="S5.T3.36.36.39.1.3" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.39.1.3.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+<td id="S5.T3.36.36.39.1.4" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.39.1.4.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+<td id="S5.T3.36.36.39.1.5" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.39.1.5.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+</tr>
+<tr id="S5.T3.36.36.40.2" class="ltx_tr">
+<th id="S5.T3.36.36.40.2.1" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.36.36.40.2.2" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.36.36.40.2.3" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.36.36.40.2.3.1" class="ltx_text" style="font-size:90%;">500</span></th>
+<td id="S5.T3.36.36.40.2.4" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.40.2.4.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+<td id="S5.T3.36.36.40.2.5" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.40.2.5.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+<td id="S5.T3.36.36.40.2.6" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.40.2.6.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+</tr>
+<tr id="S5.T3.36.36.41.3" class="ltx_tr">
+<th id="S5.T3.36.36.41.3.1" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.36.36.41.3.2" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.36.36.41.3.3" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.36.36.41.3.3.1" class="ltx_text" style="font-size:90%;">1000</span></th>
+<td id="S5.T3.36.36.41.3.4" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.41.3.4.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+<td id="S5.T3.36.36.41.3.5" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.41.3.5.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+<td id="S5.T3.36.36.41.3.6" class="ltx_td ltx_align_center"><span id="S5.T3.36.36.41.3.6.1" class="ltx_text" style="font-size:90%;">N/A</span></td>
+</tr>
+<tr id="S5.T3.24.24.24" class="ltx_tr">
+<th id="S5.T3.24.24.24.4" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_t" rowspan="3"><span id="S5.T3.24.24.24.4.1" class="ltx_text" style="font-size:90%;">
+<span id="S5.T3.24.24.24.4.1.1" class="ltx_inline-block ltx_transformed_outer" style="width:9.0pt;height:48.8pt;vertical-align:-0.0pt;"><span class="ltx_transformed_inner" style="width:48.8pt;transform:translate(-19.9pt,-19.9pt) rotate(-90deg) ;">
+<span id="S5.T3.24.24.24.4.1.1.1" class="ltx_p">Machine (2)</span>
+</span></span></span></th>
+<th id="S5.T3.24.24.24.5" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_t" rowspan="3"><span id="S5.T3.24.24.24.5.1" class="ltx_text" style="font-size:90%;">
+<span id="S5.T3.24.24.24.5.1.1" class="ltx_inline-block ltx_transformed_outer" style="width:6.1pt;height:35.1pt;vertical-align:-0.0pt;"><span class="ltx_transformed_inner" style="width:35.1pt;transform:translate(-14.5pt,-14.5pt) rotate(-90deg) ;">
+<span id="S5.T3.24.24.24.5.1.1.1" class="ltx_p">ARGoS3</span>
+</span></span></span></th>
+<th id="S5.T3.24.24.24.6" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r ltx_border_t"><span id="S5.T3.24.24.24.6.1" class="ltx_text" style="font-size:90%;">10</span></th>
+<td id="S5.T3.22.22.22.1" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.22.22.22.1.1" class="ltx_text" style="font-size:90%;">18.54</span><math id="S5.T3.22.22.22.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.22.22.22.1.2" class="ltx_text" style="font-size:90%;">3.88</span>
+</td>
+<td id="S5.T3.23.23.23.2" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.23.23.23.2.1" class="ltx_text" style="font-size:90%;">0.01</span><math id="S5.T3.23.23.23.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.23.23.23.2.2" class="ltx_text" style="font-size:90%;">0.01</span>
+</td>
+<td id="S5.T3.24.24.24.3" class="ltx_td ltx_align_center ltx_border_t">
+<span id="S5.T3.24.24.24.3.1" class="ltx_text" style="font-size:90%;">37.67 </span><math id="S5.T3.24.24.24.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.24.24.24.3.2" class="ltx_text" style="font-size:90%;"> 1.02</span>
+</td>
+</tr>
+<tr id="S5.T3.27.27.27" class="ltx_tr">
+<th id="S5.T3.27.27.27.4" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.27.27.27.4.1" class="ltx_text" style="font-size:90%;">50</span></th>
+<td id="S5.T3.25.25.25.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.25.25.25.1.1" class="ltx_text" style="font-size:90%;">20.20 </span><math id="S5.T3.25.25.25.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.25.25.25.1.2" class="ltx_text" style="font-size:90%;"> 0.91</span>
+</td>
+<td id="S5.T3.26.26.26.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.26.26.26.2.1" class="ltx_text" style="font-size:90%;">0.05 </span><math id="S5.T3.26.26.26.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.26.26.26.2.2" class="ltx_text" style="font-size:90%;"> 0.03</span>
+</td>
+<td id="S5.T3.27.27.27.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.27.27.27.3.1" class="ltx_text" style="font-size:90%;">21.42 </span><math id="S5.T3.27.27.27.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.27.27.27.3.2" class="ltx_text" style="font-size:90%;"> 0.35</span>
+</td>
+</tr>
+<tr id="S5.T3.30.30.30" class="ltx_tr">
+<th id="S5.T3.30.30.30.4" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.30.30.30.4.1" class="ltx_text" style="font-size:90%;">100</span></th>
+<td id="S5.T3.28.28.28.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.28.28.28.1.1" class="ltx_text" style="font-size:90%;">27.96 </span><math id="S5.T3.28.28.28.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.28.28.28.1.2" class="ltx_text" style="font-size:90%;"> 0.39</span>
+</td>
+<td id="S5.T3.29.29.29.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.29.29.29.2.1" class="ltx_text" style="font-size:90%;">0.04 </span><math id="S5.T3.29.29.29.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.29.29.29.2.2" class="ltx_text" style="font-size:90%;"> 0.00</span>
+</td>
+<td id="S5.T3.30.30.30.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.30.30.30.3.1" class="ltx_text" style="font-size:90%;">14.37 </span><math id="S5.T3.30.30.30.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.30.30.30.3.2" class="ltx_text" style="font-size:90%;"> 0.10</span>
+</td>
+</tr>
+<tr id="S5.T3.33.33.33" class="ltx_tr">
+<th id="S5.T3.33.33.33.4" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.33.33.33.5" class="ltx_td ltx_th ltx_th_row ltx_border_r"></th>
+<th id="S5.T3.33.33.33.6" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_r"><span id="S5.T3.33.33.33.6.1" class="ltx_text" style="font-size:90%;">500</span></th>
+<td id="S5.T3.31.31.31.1" class="ltx_td ltx_align_center">
+<span id="S5.T3.31.31.31.1.1" class="ltx_text" style="font-size:90%;">68.74 </span><math id="S5.T3.31.31.31.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.31.31.31.1.2" class="ltx_text" style="font-size:90%;"> 17.24</span>
+</td>
+<td id="S5.T3.32.32.32.2" class="ltx_td ltx_align_center">
+<span id="S5.T3.32.32.32.2.1" class="ltx_text" style="font-size:90%;">0.22 </span><math id="S5.T3.32.32.32.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.32.32.32.2.2" class="ltx_text" style="font-size:90%;"> 0.01</span>
+</td>
+<td id="S5.T3.33.33.33.3" class="ltx_td ltx_align_center">
+<span id="S5.T3.33.33.33.3.1" class="ltx_text" style="font-size:90%;">3.89 </span><math id="S5.T3.33.33.33.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.33.33.33.3.2" class="ltx_text" style="font-size:90%;"> 0.02</span>
+</td>
+</tr>
+<tr id="S5.T3.36.36.36" class="ltx_tr">
+<th id="S5.T3.36.36.36.4" class="ltx_td ltx_th ltx_th_row ltx_border_bb ltx_border_r"></th>
+<th id="S5.T3.36.36.36.5" class="ltx_td ltx_th ltx_th_row ltx_border_bb ltx_border_r"></th>
+<th id="S5.T3.36.36.36.6" class="ltx_td ltx_align_right ltx_th ltx_th_row ltx_border_bb ltx_border_r"><span id="S5.T3.36.36.36.6.1" class="ltx_text" style="font-size:90%;">1000</span></th>
+<td id="S5.T3.34.34.34.1" class="ltx_td ltx_align_center ltx_border_bb">
+<span id="S5.T3.34.34.34.1.1" class="ltx_text" style="font-size:90%;">59.64 </span><math id="S5.T3.34.34.34.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.34.34.34.1.2" class="ltx_text" style="font-size:90%;"> 0.32</span>
+</td>
+<td id="S5.T3.35.35.35.2" class="ltx_td ltx_align_center ltx_border_bb">
+<span id="S5.T3.35.35.35.2.1" class="ltx_text" style="font-size:90%;">0.63 </span><math id="S5.T3.35.35.35.2.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.35.35.35.2.2" class="ltx_text" style="font-size:90%;"> 0.02</span>
+</td>
+<td id="S5.T3.36.36.36.3" class="ltx_td ltx_align_center ltx_border_bb">
+<span id="S5.T3.36.36.36.3.1" class="ltx_text" style="font-size:90%;">1.95 </span><math id="S5.T3.36.36.36.3.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo mathsize="0.900em">±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math><span id="S5.T3.36.36.36.3.2" class="ltx_text" style="font-size:90%;"> 0.01</span>
+</td>
+</tr>
+</tbody>
+</table>
+</span></div>
+</figure>
+<figure id="S5.F8" class="ltx_figure"><img src="2503.04798v3/x7.png" id="S5.F8.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="830" height="298" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 8: </span>(a) Experimental setup in Isaac Sim. (b) Experimental setup with real robots.</figcaption>
+</figure>
+</section>
+<section id="S5.SS4" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S5.SS4.4.1.1" class="ltx_text">V-D</span> </span><span id="S5.SS4.5.2" class="ltx_text ltx_font_italic">Evaluation in Real World</span>
+</h3>
+
+<div id="S5.SS4.p1" class="ltx_para">
+<p id="S5.SS4.p1.2" class="ltx_p">Finally, we demonstrate the execution of SMART on real-world mobile robots. Specifically, we deploy SMART on a team of seven JetBot differential-drive robots operating in a structured indoor environment, as illustrated in <a href="#S5.F8" title="In V-C CPU and Memory Usage ‣ V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">Fig.</span> <span class="ltx_text ltx_ref_tag">8</span></a>.
+While laboratory constraints limit our validation to 7 robots, this experiment demonstrates execution robustness under realistic sensing, actuation, and communication conditions rather than physical scalability.
+The environment is configured as a 4<math id="S5.SS4.p1.1.m1" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>6 grid, with each cell measuring 0.3<math id="S5.SS4.p1.2.m2" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>0.3 meters, and both obstacles and boundaries are physically defined. A Vicon motion capture system provides accurate real-time localization for the robots.</p>
+</div>
+<div id="S5.SS4.p2" class="ltx_para">
+<p id="S5.SS4.p2.1" class="ltx_p">Given a set of start and goal locations, MAPF-LNS2 is used on a central server to generate a MAPF plan. SMART then processes this plan and transmits control commands to each robot via a wireless network, with a control frequency of 40 Hz. Each JetBot follows its assigned commands accordingly.</p>
+</div>
+<div id="S5.SS4.p3" class="ltx_para">
+<p id="S5.SS4.p3.4" class="ltx_p">As shown in the accompanying multimedia material, SMART robustly executes the MAPF plan on physical robots, highlighting the practical feasibility and reliability of our planning framework in real-world scenarios.
+Across 10 trials, SMART achieved a 100% success rate, with an average execution time of 48.48 <math id="S5.SS4.p3.1.m1" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 8.79 seconds and a maximum execution time of 73.83 <math id="S5.SS4.p3.2.m2" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 9.81 seconds.
+For reference, in Isaac Sim, the average execution time is 45.66 <math id="S5.SS4.p3.3.m3" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.01 seconds, and the maximum execution time is 70.97 <math id="S5.SS4.p3.4.m4" class="ltx_Math" alttext="\pm" display="inline" intent=":literal"><semantics><mo>±</mo><annotation encoding="application/x-tex">\pm</annotation></semantics></math> 0.00 seconds.</p>
+</div>
+</section>
+</section>
+<section id="S6" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VI </span><span id="S6.1.1" class="ltx_text ltx_font_smallcaps">Conclusion</span>
+</h2>
+
+<div id="S6.p1" class="ltx_para">
+<p id="S6.p1.1" class="ltx_p">We introduce SMART, a scalable testbed for evaluating MAPF planners under realistic settings.
+SMART bridges the gap between methods that use simplified MAPF models and their real-world deployments.
+SMART is compatible with existing 2-D grid-based benchmarks, making it straightforward for researchers to evaluate their methods in more realistic environments.
+We integrate SMART with two simulators, ARGoS3 and Isaac Sim. Our experiments show that SMART can handle thousands of robots while maintaining high simulation speeds when using ARGoS3.
+SMART’s modular, planner-agnostic design supports diverse application-driven use cases across academic and industrial settings. Academic researchers can easily benchmark different algorithms without custom integration, while industrial users can evaluate algorithms in their specific warehouse or manufacturing environments without requiring specialized MAPF expertise.
+Future work includes: (1) extending to lifelong MAPF <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib1" title="Lifelong multi-agent path finding for online pickup and delivery tasks" class="ltx_ref">17</a>]</cite> where tasks arrive continuously and require dynamic replanning, (2) integrating sophisticated dynamic obstacle models for human-robot interaction scenarios, (3) supporting alternative execution frameworks <cite class="ltx_cite ltx_citemacro_cite">[<a href="#bib.bib69" title="Online plan repair in multi-robot coordination with disturbances" class="ltx_ref">6</a>, <a href="#bib.bib70" title="Receding horizon re-ordering of multi-agent execution schedules" class="ltx_ref">2</a>, <a href="#bib.bib46" title="A real-time rescheduling algorithm for multi-robot plan execution" class="ltx_ref">7</a>]</cite>.</p>
+</div>
+</section>
+<section id="Sx1" class="ltx_section">
+<h2 class="ltx_title ltx_font_smallcaps ltx_title_section">Acknowledgments</h2>
+
+<div id="Sx1.p1" class="ltx_para">
+<p id="Sx1.p1.1" class="ltx_p">The research was supported by the National Science Foundation (NSF) under grant numbers #2328671 and #2441629, as well as a gift from Amazon.
+The views and conclusions contained in this document are those of the authors and should not be interpreted as representing the official policies, either expressed or implied, of the sponsoring organizations, agencies, or the U.S. government.</p>
+</div>
+</section>
+<section id="bib" class="ltx_bibliography">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+
+<ul id="bib.L1" class="ltx_biblist">
+<li id="bib.bib43" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[1]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">D. Atzmon, R. Stern, A. Felner, G. Wagner, R. Barták, and N. Zhou</span><span class="ltx_text ltx_bib_year"> (2020)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Robust multi-agent path finding and executing</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Journal of Artificial Intelligence Research</span> <span class="ltx_text ltx_bib_volume">67</span>, <span class="ltx_text ltx_bib_pages"> pp. 549–579</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>,
+<a href="#S5.p4.1" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+<li id="bib.bib70" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[2]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">A. Berndt, N. Van Duijkeren, L. Palmieri, A. Kleiner, and T. Keviczky</span><span class="ltx_text ltx_bib_year"> (2024)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Receding horizon re-ordering of multi-agent execution schedules</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Transactions on Robotics</span> <span class="ltx_text ltx_bib_volume">40</span> (<span class="ltx_text ltx_bib_number"></span>), <span class="ltx_text ltx_bib_pages"> pp. 1356–1372</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S6.p1.1" title="VI Conclusion ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§VI</span></a>.
+</span>
+</li>
+<li id="bib.bib53" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[3]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">M. Čáp, J. Gregoire, and E. Frazzoli</span><span class="ltx_text ltx_bib_year"> (2016)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Provably safe and deadlock-free execution of multi-robot plans under delaying disturbances</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the IEEE International Conference on Intelligent Robots and Systems</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 5113–5118</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="II-B Executing MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-B</span></span></a>.
+</span>
+</li>
+<li id="bib.bib57" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[4]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">S. Chan, Z. Chen, T. Guo, H. Zhang, Y. Zhang, D. Harabor, S. Koenig, C. Wu, and J. Yu</span><span class="ltx_text ltx_bib_year"> (2024)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">The league of robot runners competition: goals, designs, and implementation</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">International Conference on Automated Planning and Scheduling – System Demonstrations Track</span>,
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p1.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>,
+<a href="#S5.p2.6" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+<li id="bib.bib10" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[5]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">L. Cohen, T. Uras, T. K. S. Kumar, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2019)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Optimal and bounded-suboptimal multi-agent motion planning</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">10</span>, <span class="ltx_text ltx_bib_pages"> pp. 44–51</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>.
+</span>
+</li>
+<li id="bib.bib69" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[6]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">A. Coskun and J. M. O’Kane</span><span class="ltx_text ltx_bib_year"> (2019)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Online plan repair in multi-robot coordination with disturbances</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the IEEE International Conference on Robotics and Automation</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 3333–3339</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S6.p1.1" title="VI Conclusion ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§VI</span></a>.
+</span>
+</li>
+<li id="bib.bib46" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[7]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">Y. Feng, A. Paul, Z. Chen, and J. Li</span><span class="ltx_text ltx_bib_year"> (2024)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">A real-time rescheduling algorithm for multi-robot plan execution</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Conference on Automated Planning and Scheduling</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">34</span>, <span class="ltx_text ltx_bib_pages"> pp. 201–209</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S6.p1.1" title="VI Conclusion ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§VI</span></a>.
+</span>
+</li>
+<li id="bib.bib59" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[8]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">M. Gebser, P. Obermeier, T. Otto, T. Schaub, O. Sabuncu, V. Nguyen, and T. C. Son</span><span class="ltx_text ltx_bib_year"> (2018)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Experimenting with robotic intra-logistics domains</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Theory and Practice of Logic Programming</span> <span class="ltx_text ltx_bib_volume">18</span> (<span class="ltx_text ltx_bib_number">3-4</span>), <span class="ltx_text ltx_bib_pages"> pp. 502–519</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p1.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>.
+</span>
+</li>
+<li id="bib.bib61" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[9]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">L. Heuer, L. Palmieri, A. Mannucci, S. Koenig, and M. Magnusson</span><span class="ltx_text ltx_bib_year"> (2024)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Benchmarking multi-robot coordination in realistic, unstructured human-shared environments</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the IEEE International Conference on Robotics and Automation</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 14541–14547</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p2.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S2.SS3.p2.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>,
+<a href="#S2.T1.3.3.2" title="In II-B Executing MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">TABLE I</span></a>.
+</span>
+</li>
+<li id="bib.bib64" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[10]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">F. Ho, A. Gonçalves, B. Rigault, R. Geraldes, A. Chicharo, M. Cavazza, and H. Prendinger</span><span class="ltx_text ltx_bib_year"> (2022)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent path finding in unmanned aircraft system traffic management with scheduling and speed variation</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Intelligent Transportation Systems Magazine</span> <span class="ltx_text ltx_bib_volume">14</span> (<span class="ltx_text ltx_bib_number">5</span>), <span class="ltx_text ltx_bib_pages"> pp. 8–21</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>.
+</span>
+</li>
+<li id="bib.bib24" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[11]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">W. Hönig, S. Kiesel, A. Tinka, J. W. Durham, and N. Ayanian</span><span class="ltx_text ltx_bib_year"> (2019)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Persistent and robust execution of MAPF schedules in warehouses</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Robotics and Automation Letters</span> <span class="ltx_text ltx_bib_volume">4</span> (<span class="ltx_text ltx_bib_number">2</span>), <span class="ltx_text ltx_bib_pages"> pp. 1125–1131</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S1.p3.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S2.SS2.p1.1" title="II-B Executing MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-B</span></span></a>,
+<a href="#S3.SS2.SSS0.Px1.p1.2" title="Server Initialization ‣ III-B Execution Monitoring (EM) Server ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">III-B</span></span></a>,
+<a href="#S3.SS2.SSS0.Px2.p1.1" title="Execution Management ‣ III-B Execution Monitoring (EM) Server ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">III-B</span></span></a>.
+</span>
+</li>
+<li id="bib.bib11" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[12]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">W. Hönig, T. K. S. Kumar, L. Cohen, H. Ma, H. Xu, N. Ayanian, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2016)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent path finding with kinematic constraints</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Conference on Automated Planning and Scheduling</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">26</span>, <span class="ltx_text ltx_bib_pages"> pp. 477–485</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S3.SS2.SSS0.Px1.p1.2" title="Server Initialization ‣ III-B Execution Monitoring (EM) Server ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">III-B</span></span></a>.
+</span>
+</li>
+<li id="bib.bib63" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[13]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">N. Koenig and A. Howard</span><span class="ltx_text ltx_bib_year"> (2004)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Design and use paradigms for Gazebo, an open-source multi-robot simulator</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the IEEE International Conference on Intelligent Robots and Systems</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">3</span>, <span class="ltx_text ltx_bib_pages"> pp. 2149–2154</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p2.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>.
+</span>
+</li>
+<li id="bib.bib56" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[14]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">J. Li, Z. Chen, D. Harabor, P. J. Stuckey, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2022)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">MAPF-LNS2: Fast repairing for multi-agent path finding via large neighborhood search</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">36</span>, <span class="ltx_text ltx_bib_pages"> pp. 10256–10265</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S5.SS1.p1.1" title="V-A Scalability and Runtime Performance ‣ V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">V-A</span></span></a>,
+<a href="#S5.p4.1" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+<li id="bib.bib25" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[15]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">J. Li, W. Ruml, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2021)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">EECBS: a bounded-suboptimal search for multi-agent path finding</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">35</span>, <span class="ltx_text ltx_bib_pages"> pp. 12353–12362</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>.
+</span>
+</li>
+<li id="bib.bib7" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[16]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">H. Ma, D. Harabor, P. J. Stuckey, J. Li, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2019)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Searching with consistent prioritization for multi-agent path finding</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">33</span>, <span class="ltx_text ltx_bib_pages"> pp. 7643–7650</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S5.p4.1" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+<li id="bib.bib1" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[17]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">H. Ma, J. Li, T.K. S. Kumar, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2017)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Lifelong multi-agent path finding for online pickup and delivery tasks</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Conference on Autonomous Agents and Multi-agent Systems</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 837–845</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S6.p1.1" title="VI Conclusion ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§VI</span></a>.
+</span>
+</li>
+<li id="bib.bib65" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[18]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">H. Ma, J. Yang, L. Cohen, T. Kumar, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2017)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Feasibility study: Moving non-homogeneous teams in congested video game environments</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">13</span>, <span class="ltx_text ltx_bib_pages"> pp. 270–272</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>.
+</span>
+</li>
+<li id="bib.bib74" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[19]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">H. Ma</span><span class="ltx_text ltx_bib_year"> (2022)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Graph-based multi-robot path finding and planning</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Current Robotics Reports</span> <span class="ltx_text ltx_bib_volume">3</span> (<span class="ltx_text ltx_bib_number">3</span>), <span class="ltx_text ltx_bib_pages"> pp. 77–84</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>.
+</span>
+</li>
+<li id="bib.bib76" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[20]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">S. Mohanty, E. Nygren, F. Laurent, M. Schneider, C. Scheller, N. Bhattacharya, J. Watson, A. Egli, C. Eichenberger, C. Baumberger, G. Vienken, I. Sturm, G. Sartoretti, and G. Spigler</span><span class="ltx_text ltx_bib_year"> (2020)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Flatland-RL: Multi-agent reinforcement learning on trains</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">arXiv preprint</span> <span class="ltx_text ltx_bib_volume">arXiv:2012.05893</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p1.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>.
+</span>
+</li>
+<li id="bib.bib51" class="ltx_bibitem ltx_bib_misc">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[21]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">NVIDIA</span><span class="ltx_text ltx_bib_year"> (2023)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Isaac Sim</span>.
+</span>
+<span class="ltx_bibblock">Note: <span class="ltx_text ltx_bib_note"><span class="ltx_ref ltx_nolink ltx_url ltx_font_typewriter ltx_ref_self">https://developer.nvidia.com/isaac-sim</span>Accessed: 2025-07-10</span>
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p4.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S3.SS1.p1.1" title="III-A Simulator ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">III-A</span></span></a>.
+</span>
+</li>
+<li id="bib.bib40" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[22]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">K. Okumura, M. Machida, X. Défago, and Y. Tamura</span><span class="ltx_text ltx_bib_year"> (2022)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Priority inheritance with backtracking for iterative multi-agent path finding</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Artificial Intelligence</span> <span class="ltx_text ltx_bib_volume">310</span>, <span class="ltx_text ltx_bib_pages"> pp. 103752</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>.
+</span>
+</li>
+<li id="bib.bib67" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[23]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">K. Okumura</span><span class="ltx_text ltx_bib_year"> (2023)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">LaCAM: Search-based algorithm for quick multi-agent pathfinding</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">37</span>, <span class="ltx_text ltx_bib_pages"> pp. 11655–11662</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>.
+</span>
+</li>
+<li id="bib.bib2" class="ltx_bibitem ltx_bib_misc">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[24]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Open-RMF: Open Robotics Middleware Framework</span>.
+</span>
+<span class="ltx_bibblock">Note: <span class="ltx_text ltx_bib_note"><span class="ltx_ref ltx_nolink ltx_url ltx_font_typewriter ltx_ref_self">https://www.open-rmf.org</span>Accessed: 2025-10-30</span>
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p2.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>,
+<a href="#S2.T1.1.1.2" title="In II-B Executing MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">TABLE I</span></a>.
+</span>
+</li>
+<li id="bib.bib55" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[25]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">C. Pinciroli, V. Trianni, R. O’Grady, G. Pini, A. Brutschy, M. Brambilla, N. Mathews, E. Ferrante, G. Di Caro, F. Ducatelle, <span class="ltx_text ltx_bib_etal">et al.</span></span><span class="ltx_text ltx_bib_year"> (2012)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">ARGoS: A modular, parallel, multi-engine simulator for multi-robot systems</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Swarm intelligence</span> <span class="ltx_text ltx_bib_volume">6</span>, <span class="ltx_text ltx_bib_pages"> pp. 271–295</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p4.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S3.SS1.p1.1" title="III-A Simulator ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">III-A</span></span></a>.
+</span>
+</li>
+<li id="bib.bib75" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[26]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">C. Qian, Y. Zhang, V. Bhatt, M. C. Fontaine, S. Nikolaidis, and J. Li</span><span class="ltx_text ltx_bib_year"> (2026)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">QD-mapper: a quality diversity framework to automatically evaluate multi-agent path finding algorithms in diverse maps</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Proceedings of the International Conference on Autonomous Agents and Multi-agent Systems</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p1.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>.
+</span>
+</li>
+<li id="bib.bib62" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[27]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">S. Schaefer, L. Palmieri, L. Heuer, R. Dillmann, S. Koenig, and A. Kleiner</span><span class="ltx_text ltx_bib_year"> (2023)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">A benchmark for multi-robot planning in realistic, complex and cluttered environments</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the IEEE International Conference on Robotics and Automation</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 9231–9237</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p2.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S2.SS3.p2.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>,
+<a href="#S2.T1.2.2.2" title="In II-B Executing MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">TABLE I</span></a>.
+</span>
+</li>
+<li id="bib.bib27" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[28]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">G. Sharon, R. Stern, A. Felner, and N. R. Sturtevant</span><span class="ltx_text ltx_bib_year"> (2015)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Conflict-based search for optimal multi-agent pathfinding</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Artificial Intelligence</span> <span class="ltx_text ltx_bib_volume">219</span>, <span class="ltx_text ltx_bib_pages"> pp. 40–66</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>,
+<a href="#S5.p4.1" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+<li id="bib.bib14" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[29]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">R. Stern, N. R. Sturtevant, A. Felner, S. Koenig, H. Ma, T. T. Walker, J. Li, D. Atzmon, L. Cohen, T. K. S. Kumar, E. Boyarski, and R. Barták</span><span class="ltx_text ltx_bib_year"> (2019)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent pathfinding: definitions, variants, and benchmarks</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 151–159</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S1.p3.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>,
+<a href="#S2.SS1.p1.3" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>,
+<a href="#S2.SS3.p1.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>,
+<a href="#S3.SS1.p1.1" title="III-A Simulator ‣ III SMART Architecture ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">III-A</span></span></a>,
+<a href="#S5.SS3.p1.1" title="V-C CPU and Memory Usage ‣ V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">V-C</span></span></a>,
+<a href="#S5.p2.6" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>,
+<a href="#S5.p4.1" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+<li id="bib.bib13" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[30]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">N. R. Sturtevant</span><span class="ltx_text ltx_bib_year"> (2012)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Benchmarks for grid-based pathfinding</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Transactions on Computational Intelligence and AI in Games</span> <span class="ltx_text ltx_bib_volume">4</span> (<span class="ltx_text ltx_bib_number">2</span>), <span class="ltx_text ltx_bib_pages"> pp. 144–148</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p1.1" title="II-C Evaluating MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-C</span></span></a>.
+</span>
+</li>
+<li id="bib.bib23" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[31]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">S. Varambally, J. Li, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2022)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Which MAPF model works best for automated warehousing?</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">15</span>, <span class="ltx_text ltx_bib_pages"> pp. 190–198</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="II-B Executing MAPF Plans ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-B</span></span></a>.
+</span>
+</li>
+<li id="bib.bib78" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[32]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">S. Wang, H. Xu, Y. Zhang, J. Lin, C. Lu, X. Wang, and W. Li</span><span class="ltx_text ltx_bib_year"> (2025)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Where paths collide: A comprehensive survey of classic and learning-based multi-agent pathfinding</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">arXiv preprint</span> <span class="ltx_text ltx_bib_volume">arXiv:2505.19219</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>.
+</span>
+</li>
+<li id="bib.bib32" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[33]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">J. Yan and J. Li</span><span class="ltx_text ltx_bib_year"> (2024)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent motion planning with bézier curve optimization under kinodynamic constraints</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Robotics and Automation Letters</span> <span class="ltx_text ltx_bib_volume">9</span> (<span class="ltx_text ltx_bib_number">3</span>), <span class="ltx_text ltx_bib_pages"> pp. 3021–3028</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>.
+</span>
+</li>
+<li id="bib.bib58" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[34]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">J. Yan and J. Li</span><span class="ltx_text ltx_bib_year"> (2025)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent motion planning for differential drive robots through stationary state search</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">39</span>, <span class="ltx_text ltx_bib_pages"> pp. 23360–23368</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p2.1" title="II-A MAPF Problem and MAPF Plan ‣ II Background ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§<span class="ltx_text">II-A</span></span></a>,
+<a href="#S5.p4.1" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+<li id="bib.bib71" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[35]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">H. Zhang, J. Li, P. Surynek, T. K. S. Kumar, and S. Koenig</span><span class="ltx_text ltx_bib_year"> (2022)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent path finding with mutex propagation</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Artificial Intelligence</span> <span class="ltx_text ltx_bib_volume">311</span> (<span class="ltx_text ltx_bib_number"></span>), <span class="ltx_text ltx_bib_pages"> pp. 1034766</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="I Introduction ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§I</span></a>.
+</span>
+</li>
+<li id="bib.bib52" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_key ltx_role_refnum ltx_tag_bibitem">[36]</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_author">Y. Zhang, D. Harabor, P. Le Bodic, and P. J. Stuckey</span><span class="ltx_text ltx_bib_year"> (2023)</span>
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Efficient multi agent path finding with turn actions</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">16</span>, <span class="ltx_text ltx_bib_pages"> pp. 119–127</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S5.p4.1" title="V System Evaluation ‣ Advancing MAPF Toward the Real World: A Scalable Multi-Agent Realistic Testbed (SMART)" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§V</span></a>.
+</span>
+</li>
+</ul>
+</section>
+</article>
+</div>
+</div>
+<footer class="arxiv-html-footer">
+  <div class="ltx_page_logo">
+    Experimental support, please
+    <a href="./2503.04798v3/__stdout.txt" class="ltx_ref"
+    target="_blank" rel="nofollow">view the build logs</a>
+    for errors. Generated by
+    <a href="https://math.nist.gov/~BMiller/LaTeXML/" target="_blank" class="ltx_ref ltx_LaTeXML_logo">
+      <span style="letter-spacing: -0.2em; margin-right: 0.1em;">
+        L
+        <span style="font-size: 70%; position: relative; bottom: 2.2pt;">A</span>
+        T
+        <span style="position: relative; bottom: -0.4ex;">E</span>
+      </span>
+      <span class="ltx_font_smallcaps">xml</span>
+      <img alt="[LOGO]"
+        src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg==">
+    </a>.
+  </div>
+  <div class="keyboard-glossary">
+    <h2>Instructions for reporting errors</h2>
+    <p>We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:</p>
+    <ul>
+      <li>Click the "Report Issue" <span class="mobile-only">(<svg role="presentation"
+            style="display: inline-block; vertical-align: middle; fill: var(--text-color);" aria-hidden="true"
+            height="1em" viewBox="0 0 640 640">
+            <path
+              d="M224 160C224 107 267 64 320 64C373 64 416 107 416 160L416 163.6C416 179.3 403.3 192 387.6 192L252.5 192C236.8 192 224.1 179.3 224.1 163.6L224.1 160zM569.6 172.8C580.2 186.9 577.3 207 563.2 217.6L465.4 290.9C470.7 299.8 474.7 309.6 477.2 320L576 320C593.7 320 608 334.3 608 352C608 369.7 593.7 384 576 384L480 384L480 416C480 418.6 479.9 421.3 479.8 423.9L563.2 486.4C577.3 497 580.2 517.1 569.6 531.2C559 545.3 538.9 548.2 524.8 537.6L461.7 490.3C438.5 534.5 395.2 566.5 344 574.2L344 344C344 330.7 333.3 320 320 320C306.7 320 296 330.7 296 344L296 574.2C244.8 566.5 201.5 534.5 178.3 490.3L115.2 537.6C101.1 548.2 81 545.3 70.4 531.2C59.8 517.1 62.7 497 76.8 486.4L160.2 423.9C160.1 421.3 160 418.7 160 416L160 384L64 384C46.3 384 32 369.7 32 352C32 334.3 46.3 320 64 320L162.8 320C165.3 309.6 169.3 299.8 174.6 290.9L76.8 217.6C62.7 207 59.8 186.9 70.4 172.8C81 158.7 101.1 155.8 115.2 166.4L224 248C236.3 242.9 249.8 240 264 240L376 240C390.2 240 403.7 242.8 416 248L524.8 166.4C538.9 155.8 559 158.7 569.6 172.8z" />
+          </svg>)</span> button, located in the page header.</li>
+    </ul>
+    <p><strong>Tip:</strong> You can select the relevant text first, to include it in your report.</p>
+    <p>Our team has already identified <a class="ltx_ref" href="https://github.com/arXiv/html_feedback/issues"
+        target="_blank">the following issues</a>. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.</p>
+    <p>Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a <a
+        class="ltx_ref" href="https://github.com/brucemiller/LaTeXML/wiki/Porting-LaTeX-packages-for-LaTeXML"
+        target="_blank">list of packages that need conversion</a>, and welcome <a class="ltx_ref"
+        href="https://github.com/brucemiller/LaTeXML/issues" target="_blank">developer contributions</a>.</p>
+  </div>
+</footer><footer class="ds-site-footer">
+  <div class="ds-site-footer-grid">
+    <div class="ds-site-footer-main">
+      <div class="ds-site-footer-ack">
+        We gratefully acknowledge support from
+        our <strong>major funders</strong>,
+        <a href="https://info.arxiv.org/about/ourmembers.html"><strong>member institutions</strong></a><span class="ack-member-inline" hidden>, <strong></strong></span>,
+        and all contributors.
+      </div>
+      <nav class="ds-site-footer-links" aria-label="Site navigation">
+        <a href="https://info.arxiv.org/about">About</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help">Help</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/contact.html">Contact</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/subscribe">Subscribe</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/license/index.html">Copyright</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/policies/privacy_policy.html">Privacy</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/web_accessibility.html">Accessibility</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://status.arxiv.org" target="_blank" rel="noopener noreferrer">Operational Status<span class="is-sr-only"> (opens in new tab)</span></a>
+      </nav>
+    </div>
+
+    <div class="ds-site-footer-funders" aria-label="Major funders">
+      <div class="ds-site-footer-funders-label">Major funding support from</div>
+      <div class="ds-site-footer-funders-logos">
+        <img class="ds-funder-logo" src="/static/base/1.0.1/images/funders/simons-foundation.png" alt="Simons Foundation">
+        <img class="ds-funder-logo" src="/static/base/1.0.1/images/funders/schmidt-sciences.png" alt="Schmidt Sciences">
+      </div>
+    </div>
+  </div>
+</footer><div id="fixed-buttons-container">
+  <a id="disable-reading-mode-btn" class="header-button" href="javascript:toggleReadingMode();"
+    title="Disable reading mode, show header and footer">
+    <svg role="presentation" height="1.25rem"
+      viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+      <path
+        d="M0 96C0 78.3 14.3 64 32 64l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 128C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32L32 448c-17.7 0-32-14.3-32-32s14.3-32 32-32l384 0c17.7 0 32 14.3 32 32z" />
+    </svg>
+  </a>
+</div></body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Seed 10 Baseline vs Best</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #111827;
+      color: #f9fafb;
+    }
+    header {
+      padding: 10px 16px;
+      border-bottom: 1px solid #374151;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      height: calc(100vh - 54px);
+    }
+    .pane {
+      min-width: 0;
+      border-right: 1px solid #374151;
+    }
+    .pane:last-child {
+      border-right: 0;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Seed 10 comparison</strong>:
+    baseline 6b572 throughput 0.7475 vs best 03d7 throughput 1.33
+  </header>
+  <main class="grid">
+    <section class="pane">
+      <iframe src="seed10_baseline_6b572.html" title="Seed 10 baseline"></iframe>
+    </section>
+    <section class="pane">
+      <iframe src="seed10_best_03d7.html" title="Seed 10 best"></iframe>
+    </section>
+  </main>
+</body>
+</html>

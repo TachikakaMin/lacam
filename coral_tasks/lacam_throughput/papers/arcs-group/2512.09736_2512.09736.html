@@ -1,0 +1,905 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution</title>
+<!--Generated on Tue Mar 17 15:59:13 2026 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="/static/browse/0.3.4/css/arxiv-html-papers-20260131.css" type="text/css">
+<script src="/static/browse/0.3.4/js/arxiv-html-papers-20260131.js"></script>
+<script>
+  // Restore the saved color scheme preference, or
+  // enact the browser preference if "automatic", 
+  // without expecting DOM load to have completed.
+  //
+  // Also restore any saved readingmode and ToC display preferences.
+  function initializeReadingPreferences() {
+    let saved_theme = localStorage.getItem("ar5iv_theme") || "automatic";
+    if (saved_theme === "automatic") {
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        saved_theme = "dark";
+      }
+    }
+    if (saved_theme == "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+
+    const tocDisplay = localStorage.getItem('arxiv_html_paper_toc_display');
+    if (tocDisplay) {
+      document.documentElement.setAttribute("data-toc-display", tocDisplay);
+    }
+    const readingMode = localStorage.getItem('arxiv_html_paper_reading_mode');
+    if (readingMode) {
+      document.documentElement.setAttribute("data-reading-mode", readingMode);
+    }
+    // Pre-apply spinout-banner dismissal here, before the banner paints, so it
+    // never flashes in only to be hidden later by the deferred arxiv-header.js.
+    // Key matches arxiv-header.js: "arxiv-banner-dismissed:" + data-banner-name.
+    if (localStorage.getItem('arxiv-banner-dismissed:spinout-nonprofit')) {
+      document.documentElement.setAttribute("data-banner-dismissed", "");
+    }
+  }
+  // Run as soon as JS starts, to minimize repainting
+  initializeReadingPreferences();
+</script>
+<link rel="apple-touch-icon" sizes="180x180"
+  href="/static/browse/0.3.4/images/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32"
+  href="/static/browse/0.3.4/images/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16"
+  href="/static/browse/0.3.4/images/icons/favicon-16x16.png">
+<link rel="manifest" href="/static/browse/0.3.4/images/icons/site.webmanifest">
+<link rel="mask-icon" href="/static/browse/0.3.4/images/icons/safari-pinned-tab.svg" color="#5bbad5">
+<link rel="stylesheet" type="text/css" media="screen" href="https://use.typekit.net/utz6mli.css"><link rel="stylesheet" type="text/css" media="screen"
+  href="/static/base/1.0.1/css/arxiv-header-footer.css?v=20260626"><style>
+  /* Banner pre-dismissal (set above before paint -> no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</style>
+<script defer src="/static/base/1.0.1/js/arxiv-header.js?v=20260626"></script>
+</head>
+<body>
+<dialog id="modal-form" aria-labelledby="modal-title" closedby="any">
+  <form id="modal-form-content" method="dialog" enctype="multipart/form-data">
+    <header class="modal-header">
+      <h5 id="modal-title" class="modal-title">Report GitHub Issue</h5>
+      <button type="submit" formnovalidate class="modal-close" aria-label="Close">×</button>
+    </header>
+
+    <div class="modal-body">
+      <label for="form_title">Title:</label>
+      <input class="form-control" id="form_title" name="form_title" required placeholder="Enter title">
+
+      <p id="selectedTextModalDescription" hidden>Content selection saved. Describe the issue below:</p>
+
+      <label for="description">Description:</label>
+      <textarea class="form-control" id="description" name="description" required maxlength="500"
+        placeholder="500 characters maximum"></textarea>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="submit" value="internal-report" class="sr-only modal-submit">Submit without GitHub</button>
+      <button type="submit" value="github-report" class="modal-submit">Submit in GitHub</button>
+    </footer>
+  </form>
+</dialog><div class="ds-announcement" id="announcement-banner" role="region" aria-label="Announcement"
+    data-banner-name="spinout-nonprofit">
+    <img class="ds-announcement-glyph" src="/static/base/1.0.1/images/icons/smileybones-small.svg" alt="" aria-hidden="true">
+    <span class="ds-announcement-text">arXiv is now an independent nonprofit!</span>
+    <a class="ds-announcement-link" href="https://info.arxiv.org/about">Learn more</a>
+    <button type="button" class="ds-announcement-close" aria-label="Dismiss announcement">&times;</button>
+  </div>
+
+<header class="arxiv-html-header">
+  <div class="html-header-logo">
+    <a href="/"><img alt="arXiv logo" class="logo desktop-only" width="100"
+        src="/static/base/1.0.1/images/arxiv-logo-primary-light.svg">
+      <span class="sr-only">Back to arXiv</span>
+    </a>
+  </div>
+  <!--TOC, dark mode, links-->
+  <nav class="html-header-nav">
+    <a class="header-button hover-effect desktop-only" href="https://info.arxiv.org/about/accessible_HTML.html"
+      target="_blank">Why HTML?</a>
+    <a class="header-button" title="Report an Issue" href="#" title="Report an issue"
+      onclick="event.preventDefault(); showModalForm();">
+      <svg role="presentation" class="mobile-only toggle-icon" aria-hidden="true" height="1.25rem"
+        viewBox="0 0 640 640">
+        <path
+          d="M224 160C224 107 267 64 320 64C373 64 416 107 416 160L416 163.6C416 179.3 403.3 192 387.6 192L252.5 192C236.8 192 224.1 179.3 224.1 163.6L224.1 160zM569.6 172.8C580.2 186.9 577.3 207 563.2 217.6L465.4 290.9C470.7 299.8 474.7 309.6 477.2 320L576 320C593.7 320 608 334.3 608 352C608 369.7 593.7 384 576 384L480 384L480 416C480 418.6 479.9 421.3 479.8 423.9L563.2 486.4C577.3 497 580.2 517.1 569.6 531.2C559 545.3 538.9 548.2 524.8 537.6L461.7 490.3C438.5 534.5 395.2 566.5 344 574.2L344 344C344 330.7 333.3 320 320 320C306.7 320 296 330.7 296 344L296 574.2C244.8 566.5 201.5 534.5 178.3 490.3L115.2 537.6C101.1 548.2 81 545.3 70.4 531.2C59.8 517.1 62.7 497 76.8 486.4L160.2 423.9C160.1 421.3 160 418.7 160 416L160 384L64 384C46.3 384 32 369.7 32 352C32 334.3 46.3 320 64 320L162.8 320C165.3 309.6 169.3 299.8 174.6 290.9L76.8 217.6C62.7 207 59.8 186.9 70.4 172.8C81 158.7 101.1 155.8 115.2 166.4L224 248C236.3 242.9 249.8 240 264 240L376 240C390.2 240 403.7 242.8 416 248L524.8 166.4C538.9 155.8 559 158.7 569.6 172.8z" />
+      </svg>
+      <span class="desktop-only">Report Issue</span></a>
+    <!--back to abstract-->
+    <a class="header-button" title="Back to abstract page" aria-label="Back to abstract page"
+      href="/abs/2512.09736v2">
+      <svg class="mobile-only toggle-icon" role="presentation" height="1.25rem" viewBox="0 0 512 512" fill="#ffffff"
+        aria-hidden="true">
+        <path
+          d="M502.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L402.7 224 192 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l210.7 0-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128zM160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 32C43 32 0 75 0 128L0 384c0 53 43 96 96 96l64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0c-17.7 0-32-14.3-32-32l0-256c0-17.7 14.3-32 32-32l64 0z">
+        </path>
+      </svg>
+      <span class="desktop-only">Back to Abstract</span>
+    </a>
+    <!-- PDF download link -->
+    <a class="header-button" title="Download PDF" href="/pdf/2512.09736v2"
+      target="_blank">
+      <svg class="mobile-only toggle-icon" role="presentation" height="1.25rem" viewBox="0 0 576 542">
+        <path
+          d="M208 48L96 48c-8.8 0-16 7.2-16 16l0 384c0 8.8 7.2 16 16 16l80 0 0 48-80 0c-35.3 0-64-28.7-64-64L32 64C32 28.7 60.7 0 96 0L229.5 0c17 0 33.3 6.7 45.3 18.7L397.3 141.3c12 12 18.7 28.3 18.7 45.3l0 149.5-48 0 0-128-88 0c-39.8 0-72-32.2-72-72l0-88zM348.1 160L256 67.9 256 136c0 13.3 10.7 24 24 24l68.1 0zM240 380l32 0c33.1 0 60 26.9 60 60s-26.9 60-60 60l-12 0 0 28c0 11-9 20-20 20s-20-9-20-20l0-128c0-11 9-20 20-20zm32 80c11 0 20-9 20-20s-9-20-20-20l-12 0 0 40 12 0zm96-80l32 0c28.7 0 52 23.3 52 52l0 64c0 28.7-23.3 52-52 52l-32 0c-11 0-20-9-20-20l0-128c0-11 9-20 20-20zm32 128c6.6 0 12-5.4 12-12l0-64c0-6.6-5.4-12-12-12l-12 0 0 88 12 0zm76-108c0-11 9-20 20-20l48 0c11 0 20 9 20 20s-9 20-20 20l-28 0 0 24 28 0c11 0 20 9 20 20s-9 20-20 20l-28 0 0 44c0 11-9 20-20 20s-20-9-20-20l0-128z" />
+      </svg>
+      <span class="desktop-only">Download PDF</span></a>
+    <!-- navigational table of contents toggle -->
+    <a class="header-button toggle-icon" href="javascript:toggleNavTOC();" title="Toggle navigation"
+      aria-label="Toggle navigation">
+      <svg height="1.25rem" role="presentation" viewBox="0 0 512 512">
+        <path
+          d="M40 48C26.7 48 16 58.7 16 72v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V72c0-13.3-10.7-24-24-24H40zM192 64c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zM16 232v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V232c0-13.3-10.7-24-24-24H40c-13.3 0-24 10.7-24 24zM40 368c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V392c0-13.3-10.7-24-24-24H40z">
+        </path>
+      </svg>
+    </a>
+    <!--- collapsable header / reading mode toggle -->
+    <a class="header-button toggle-icon" href="javascript:toggleReadingMode();"
+      title="Disable reading mode, show header and footer">
+      <svg role="presentation" height="1.25rem"
+        viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+        <path
+          d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32S0 334.3 0 352l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z" />
+      </svg>
+    </a>
+    <!--- colored theme toggle -->
+    <button type="button" class="header-button color-tog" onclick="toggleColorScheme();" title="Toggle dark/light mode" aria-label="Toggle color scheme">
+      <span class="toggle-icon automatic-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9h-1.9M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69m-9.15 3.96h2.3L12 9l-1.15 3.65Z">
+          </path>
+        </svg>
+      </span>
+      <span class="toggle-icon light-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z">
+          </path>
+        </svg>
+      </span>
+      <span class="toggle-icon dark-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z">
+          </path>
+        </svg>
+      </span>
+    </button>
+  </nav>
+</header><nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_abstract"><a href="#abstract1" title="In Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Abstract</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="#S1" title="In Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">1 </span>Introduction</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S2" title="In Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2 </span>Background</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS1" title="In 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.1 </span>MAPF Problem</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS2" title="In 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.2 </span>MAPF Planners and Design Choices</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS3" title="In 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.3 </span>Evaluating MAPF in Realistic Scenarios</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S3" title="In Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3 </span>From MAPF to Realistic Scenarios</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S3.SS1" title="In 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.1 </span>Impact of Optimality</span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS1.SSSx1" title="In 3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Experiment Setup</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS1.SSSx2" title="In 3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Results and Analysis</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S3.SS2" title="In 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.2 </span>Impact of Different MAPF models</span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS2.SSSx1" title="In 3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Experiment Setup</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS2.SSSx2" title="In 3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Results and Analysis</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S3.SS3" title="In 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.3 </span>Optimality and MAPF Models</span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS3.SSSx1" title="In 3.3 Optimality and MAPF Models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Experiment Setup</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S3.SS3.SSSx2" title="In 3.3 Optimality and MAPF Models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Results and Analysis</span></a></li>
+</ol>
+</li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S4" title="In Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4 </span>Challenges and Future Directions</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S4.SS0.SSS0.Px1" title="In 4 Challenges and Future Directions ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Using Execution-Aware Objectives</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S4.SS0.SSS0.Px2" title="In 4 Challenges and Future Directions ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Developing Efficient Planners for More Accurate MAPF Models</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S4.SS0.SSS0.Px3" title="In 4 Challenges and Future Directions ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Balancing Planner Optimality and Model Accuracy</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_paragraph"><a href="#S4.SS0.SSS0.Px4" title="In 4 Challenges and Future Directions ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">Enhancing Execution Frameworks</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_bibliography"><a href="#bib" title="In Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_title">References</span></a></li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div id="infobox" class="infobox">
+  <a id="license-tr" href="https://info.arxiv.org/help/license/index.html#licenses-available">
+    License: arXiv.org perpetual non-exclusive license
+  </a>
+  <div id="watermark-tr">
+arXiv:2512.09736v2 [cs.AI] 17 Mar 2026</div>
+</div><div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_title_document">Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">
+Jingtian Yan<sup id="id1.1.id1" class="ltx_sup">1</sup>,
+Zhifei Li<sup id="id2.2.id2" class="ltx_sup">2</sup>,
+William Kang<sup id="id3.3.id3" class="ltx_sup">1</sup>,
+Stephen F. Smith<sup id="id4.4.id4" class="ltx_sup">1</sup>,
+Jiaoyang Li<sup id="id5.5.id5" class="ltx_sup">1</sup>
+</span></span>
+</div>
+
+<div id="abstract1" class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p">Multi-Agent Path Finding (MAPF) algorithms are increasingly deployed in industrial warehouses and automated manufacturing facilities, where robots must operate reliably under real-world physical constraints. However, existing MAPF evaluation frameworks typically rely on simplified robot models, leaving a substantial gap between algorithmic benchmarks and practical performance.
+Recent frameworks such as SMART combine kinodynamic modeling with execution based on the Action Dependency Graph (ADG), enabling realistic, large-scale MAPF evaluation.
+Building on this capability, this work investigates how key planner design choices influence performance under realistic execution settings. We systematically study three fundamental factors: (1) the relationship between solution optimality and execution performance, (2) the sensitivity of system performance to inaccuracies in kinodynamic modeling, and (3) the tradeoff between model accuracy and plan optimality.
+Empirically, we examine these factors to understand how these design choices affect performance in realistic scenarios.
+We highlight open challenges and research directions to steer the community toward practical, real-world deployment.</p>
+</div>
+<section id="S1" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">1 </span>Introduction</h2>
+
+<div id="S1.p1" class="ltx_para">
+<p id="S1.p1.1" class="ltx_p">Multi-Agent Path Finding (MAPF) has emerged as a critical challenge for coordinating robot fleets in automated warehouses, manufacturing facilities, and logistics centers <cite class="ltx_cite ltx_citemacro_citep">(Ma<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib67" title="Feasibility study: Moving non-homogeneous teams in congested video game environments" class="ltx_ref">2017</a>; Hönig<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib26" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">2019</a>; Ho<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib66" title="Multi-agent path finding in unmanned aircraft system traffic management with scheduling and speed variation" class="ltx_ref">2022</a>)</cite>.
+As these systems continue to grow in scale and complexity, the demand for reliable and high-performance MAPF planners has intensified. Despite significant progress in algorithm design, a persistent challenge remains: most existing MAPF evaluation frameworks rely on overly simplified robot models, neglecting realistic kinodynamic constraints, execution-time variability, and other physical characteristics inherent to robotics systems. This gap limits the ability of researchers and practitioners to accurately assess how planner design choices translate into performance in realistic settings.</p>
+</div>
+<div id="S1.p2" class="ltx_para">
+<p id="S1.p2.1" class="ltx_p">Some evaluation tools <cite class="ltx_cite ltx_citemacro_citep">(Heuer<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib63" title="Benchmarking multi-robot coordination in realistic, unstructured human-shared environments" class="ltx_ref">2024</a>; Yan<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib2" title="Advancing MAPF towards the real world: A scalable multi-agent realistic testbed (SMART)" class="ltx_ref">2025</a>)</cite> are proposed to evaluate the performance of MAPF methods in realistic settings.
+However, only limited work has studied how planner design choices translate into execution performance in realistic scenarios. To the best of our knowledge, <cite class="ltx_cite ltx_citemacro_citet">Varambally<span class="ltx_text ltx_bib_etal"> et al.</span> (<a href="#bib.bib25" title="Which MAPF model works best for automated warehousing?" class="ltx_ref">2022</a>)</cite> present the only study in this direction. Their work compares different MAPF models used during planning in automated warehousing environments, providing valuable initial insights.
+Nevertheless, their evaluation is limited to less than 50 robots, focuses solely on a warehouse layout, and does not systematically analyze how different planner design factors interact and collectively affect execution outcomes.</p>
+</div>
+<div id="S1.p3" class="ltx_para">
+<p id="S1.p3.1" class="ltx_p">In this work, we investigate how key planner design choices influence MAPF performance under realistic settings using SMART <cite class="ltx_cite ltx_citemacro_citep">(Yan<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib2" title="Advancing MAPF towards the real world: A scalable multi-agent realistic testbed (SMART)" class="ltx_ref">2025</a>)</cite>, a state-of-the-art testbed.
+Built on the Action Dependency Graph (ADG) <cite class="ltx_cite ltx_citemacro_citep">(Hönig<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib26" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">2019</a>)</cite>, SMART is a physics-based simulation framework that enables execution-aware evaluation of MAPF planners in realistic settings and supports large-scale experiments with thousands of robots.
+Leveraging this capability, we systematically study the impact of three fundamental factors on execution performance:
+(1) the plan optimality,
+(2) the accuracy of the kinodynamic model used during planning, and
+(3) the trade-off between model accuracy and plan optimality.
+Through controlled experiments in SMART, we show how these factors influence execution behavior in practice.
+Our analysis uncovers key planner design trade-offs and outlines open challenges and research directions for advancing MAPF toward real-world deployment.</p>
+</div>
+</section>
+<section id="S2" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">2 </span>Background</h2>
+
+<div id="S2.p1" class="ltx_para">
+<p id="S2.p1.1" class="ltx_p">In this section, we first introduce the MAPF problem and related work. Next, we discuss existing evaluation tools.</p>
+</div>
+<section id="S2.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">2.1 </span>MAPF Problem</h3>
+
+<div id="S2.SS1.p1" class="ltx_para">
+<p id="S2.SS1.p1.2" class="ltx_p">A <em id="S2.SS1.p1.2.1" class="ltx_emph ltx_font_italic">MAPF problem</em> <cite class="ltx_cite ltx_citemacro_citep">(Stern<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib16" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">2019</a>)</cite> is typically defined on a discrete undirected graph <math id="S2.SS1.p1.1.m1" class="ltx_Math" alttext="\mathcal{G}_{M}=(\mathcal{V}_{M},\mathcal{E}_{M})" display="inline" intent=":literal"><semantics><mrow><msub><mi class="ltx_font_mathcaligraphic">𝒢</mi><mi>M</mi></msub><mo>=</mo><mrow><mo stretchy="false">(</mo><msub><mi class="ltx_font_mathcaligraphic">𝒱</mi><mi>M</mi></msub><mo>,</mo><msub><mi class="ltx_font_mathcaligraphic">ℰ</mi><mi>M</mi></msub><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{G}_{M}=(\mathcal{V}_{M},\mathcal{E}_{M})</annotation></semantics></math>, with a set of robots <math id="S2.SS1.p1.2.m2" class="ltx_Math" alttext="\mathcal{R}=\{r_{1},\dots,r_{I}\}" display="inline" intent=":literal"><semantics><mrow><mi class="ltx_font_mathcaligraphic">ℛ</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>r</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>r</mi><mi>I</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{R}=\{r_{1},\dots,r_{I}\}</annotation></semantics></math> where each robot has a start and a goal location. A <em id="S2.SS1.p1.2.2" class="ltx_emph ltx_font_italic">MAPF plan</em> consists of collision-free paths for all robots to reach their goals. In the standard formulation, time is discretized into timesteps, and each robot can either move to an adjacent vertex or wait. Collisions occur if two robots occupy the same vertex or traverse the same edge in opposite directions at the same timestep.</p>
+</div>
+</section>
+<section id="S2.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">2.2 </span>MAPF Planners and Design Choices</h3>
+
+<div id="S2.SS2.p1" class="ltx_para">
+<p id="S2.SS2.p1.1" class="ltx_p">Many MAPF methods have been proposed.
+Some methods focus on finding solutions with optimal or bounded-suboptimal guarantees <cite class="ltx_cite ltx_citemacro_citep">(Sharon<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib29" title="Conflict-based search for optimal multi-agent path finding" class="ltx_ref">2015</a>; Barer<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib68" title="Suboptimal variants of the conflict-based search algorithm for the multi-agent pathfinding problem" class="ltx_ref">2014</a>; Li<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib27" title="EECBS: a bounded-suboptimal search for multi-agent path finding" class="ltx_ref">2021c</a>)</cite>, while others focus on scalability, solving MAPF problems involving thousands of robots <cite class="ltx_cite ltx_citemacro_citep">(Okumura<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib42" title="Priority inheritance with backtracking for iterative multi-agent path finding" class="ltx_ref">2022</a>)</cite>.
+Anytime algorithms quickly find an initial solution and then iteratively refine it as time progresses, balancing solution quality with computational efficiency <cite class="ltx_cite ltx_citemacro_citep">(Li<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib70" title="Anytime multi-agent path finding via large neighborhood search" class="ltx_ref">2021a</a>; Huang<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib74" title="Anytime multi-agent path finding via machine learning-guided large neighborhood search" class="ltx_ref">2022</a>)</cite>.
+Additionally, some methods incorporate complex real-world factors, such as kinodynamics and unexpected delays, into the planning process <cite class="ltx_cite ltx_citemacro_citep">(Cohen<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib12" title="Optimal and bounded-suboptimal multi-agent motion planning" class="ltx_ref">2019</a>; Atzmon<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib45" title="Robust multi-agent path finding and executing" class="ltx_ref">2020</a>; Yan and Li <a href="#bib.bib34" title="Multi-agent motion planning with bézier curve optimization under kinodynamic constraints" class="ltx_ref">2024</a>)</cite>.
+Despite these advances, it remains unclear how such planner design decisions actually impact performance in realistic execution settings.
+<cite class="ltx_cite ltx_citemacro_citet">Varambally<span class="ltx_text ltx_bib_etal"> et al.</span> (<a href="#bib.bib25" title="Which MAPF model works best for automated warehousing?" class="ltx_ref">2022</a>)</cite> investigate how different assumptions in MAPF modeling affect practical performance in automated warehousing.
+However, its evaluation explores only a small set of MAPF modeling assumptions, focuses solely on warehouse layouts, and is limited to less than 50 robots.</p>
+</div>
+</section>
+<section id="S2.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">2.3 </span>Evaluating MAPF in Realistic Scenarios</h3>
+
+<div id="S2.SS3.p1" class="ltx_para">
+<p id="S2.SS3.p1.1" class="ltx_p">Evaluating MAPF performance requires executing planned paths in settings that reflect real robotic behavior. Some tools have been developed to enable such assessment. MRP-Bench <cite class="ltx_cite ltx_citemacro_citep">(Schaefer<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib64" title="A benchmark for multi-robot planning in realistic, complex and cluttered environments" class="ltx_ref">2023</a>)</cite> utilizes Gazebo with integrated low-level controllers to account for kinodynamics and motion delays.
+The recently introduced SMART testbed <cite class="ltx_cite ltx_citemacro_citep">(Yan<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib2" title="Advancing MAPF towards the real world: A scalable multi-agent realistic testbed (SMART)" class="ltx_ref">2025</a>)</cite> explicitly models robot kinodynamics, execution uncertainties, and communication delays.
+SMART scales to thousands of robots, making it well suited for evaluating modern MAPF planners.</p>
+</div>
+<div id="S2.SS3.p2" class="ltx_para">
+<p id="S2.SS3.p2.1" class="ltx_p">The architecture of SMART integrates a physics-engine-based simulator, an execution monitoring server based on the Action Dependency Graph (ADG) <cite class="ltx_cite ltx_citemacro_citep">(Hönig<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib26" title="Persistent and robust execution of MAPF schedules in warehouses" class="ltx_ref">2019</a>)</cite>, and robot-specific executors.
+Given a MAPF plan, SMART first uses the execution monitoring server to convert the plan into an ADG, a directed graph consisting of two types of edges: (i) Type-1 (intra-robot) edges, which encode the temporal order of actions executed by the same robot, and (ii) Type-2 (inter-robot) edges, which encode precedence constraints between actions of different robots to prevent collisions.
+Then, the robot executors follow the ADG to issue motion commands to each robot while accounting for kinematic limits, delays, and disturbances. Finally, the simulator executes these commands in a physics-based simulation and returns realistic execution outcomes for evaluation.</p>
+</div>
+</section>
+</section>
+<section id="S3" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">3 </span>From MAPF to Realistic Scenarios</h2>
+
+<div id="S3.p1" class="ltx_para">
+<p id="S3.p1.9" class="ltx_p">In this section, we study research problems focusing on the gap between MAPF planning and robot execution.
+We use six simulation environments derived from the MovingAI benchmark <cite class="ltx_cite ltx_citemacro_citep">(Stern<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib16" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">2019</a>)</cite> maps:
+<span id="S3.p1.9.1" class="ltx_text ltx_font_typewriter">empty</span> (empty-32-32, size: 32<math id="S3.p1.1.m1" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>32), <span id="S3.p1.9.2" class="ltx_text ltx_font_typewriter">random</span> (random-64-64-10, size: 64<math id="S3.p1.2.m2" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>64), <span id="S3.p1.9.3" class="ltx_text ltx_font_typewriter">room</span> (room-64-64-16, size: 64<math id="S3.p1.3.m3" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>64), <span id="S3.p1.9.4" class="ltx_text ltx_font_typewriter">den312d</span> (den312d, size: 65<math id="S3.p1.4.m4" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>81), <span id="S3.p1.9.5" class="ltx_text ltx_font_typewriter">maze</span> (maze-32-32-4, size: 32<math id="S3.p1.5.m5" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>32), and <span id="S3.p1.9.6" class="ltx_text ltx_font_typewriter">warehouse</span> (warehouse-10-20-10-2-1, size: 161<math id="S3.p1.6.m6" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>63).
+We use the Average Execution Time (AET) to measure the execution performance of a MAPF plan, which is the total simulated time that all robots take to complete their assigned paths divided by the number of robots.
+We adopt the same robot configuration as used in the SMART paper: all robots are modeled as differential-drive platforms with circular footprints of 0.35 m in diameter and are driven by PID controllers for action execution. They can move forward and perform in-place rotations, with translational and rotational velocities constrained to [0, 0.5] m/s and 30<sup id="S3.p1.9.7" class="ltx_sup">∘</sup>/s, respectively, and acceleration limited to [<math id="S3.p1.8.m8" class="ltx_Math" alttext="-" display="inline" intent=":literal"><semantics><mo>−</mo><annotation encoding="application/x-tex">-</annotation></semantics></math>0.4, 0.4] m/s<sup id="S3.p1.9.8" class="ltx_sup">2</sup>.
+We leave generalization across different robot kinodynamics to future work.
+The grid cell is standardized to 1.0<math id="S3.p1.9.m9" class="ltx_Math" alttext="\times" display="inline" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>1.0 m.
+All experiments are conducted on an Ubuntu 20.04 server with a 64-core AMD 7980X CPU and 256 GB RAM.</p>
+</div>
+<figure id="S3.T1" class="ltx_table">
+<div id="S3.T1.1" class="ltx_inline-block ltx_align_center ltx_transformed_outer" style="width:433.6pt;height:14pt;vertical-align:-5.6pt;"><span class="ltx_transformed_inner" style="transform:translate(-174.1pt,5.6pt) scale(0.554672991304911,0.554672991304911) ;">
+<table id="S3.T1.1.1" class="ltx_tabular ltx_guessed_headers ltx_align_middle">
+<tbody class="ltx_tbody">
+<tr id="S3.T1.1.1.1.1" class="ltx_tr">
+<th id="S3.T1.1.1.1.1.1" class="ltx_td ltx_align_left ltx_th ltx_th_row ltx_border_tt"><span id="S3.T1.1.1.1.1.1.1" class="ltx_text ltx_font_bold">Feature</span></th>
+<td id="S3.T1.1.1.1.1.2" class="ltx_td ltx_align_center ltx_border_tt">All Features</td>
+<td id="S3.T1.1.1.1.1.3" class="ltx_td ltx_align_center ltx_border_tt">SoC + Rotations</td>
+<td id="S3.T1.1.1.1.1.4" class="ltx_td ltx_align_center ltx_border_tt">SoC + Conflict pairs</td>
+<td id="S3.T1.1.1.1.1.5" class="ltx_td ltx_align_center ltx_border_tt">Rotations + Conflict pairs</td>
+<td id="S3.T1.1.1.1.1.6" class="ltx_td ltx_align_center ltx_border_tt">SoC</td>
+<td id="S3.T1.1.1.1.1.7" class="ltx_td ltx_align_center ltx_border_tt">Type-1 edges</td>
+<td id="S3.T1.1.1.1.1.8" class="ltx_td ltx_align_center ltx_border_tt">Type-2 edges</td>
+<td id="S3.T1.1.1.1.1.9" class="ltx_td ltx_align_center ltx_border_tt">Rotations</td>
+<td id="S3.T1.1.1.1.1.10" class="ltx_td ltx_align_center ltx_border_tt">Conflict pairs</td>
+<td id="S3.T1.1.1.1.1.11" class="ltx_td ltx_nopad_r ltx_align_center ltx_border_tt">Robots</td>
+</tr>
+<tr id="S3.T1.1.1.2.2" class="ltx_tr">
+<th id="S3.T1.1.1.2.2.1" class="ltx_td ltx_align_left ltx_th ltx_th_row ltx_border_bb ltx_border_t"><span id="S3.T1.1.1.2.2.1.1" class="ltx_text ltx_font_bold">MAPE</span></th>
+<td id="S3.T1.1.1.2.2.2" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t"><span id="S3.T1.1.1.2.2.2.1" class="ltx_text ltx_font_bold">0.0342</span></td>
+<td id="S3.T1.1.1.2.2.3" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.070</td>
+<td id="S3.T1.1.1.2.2.4" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.162</td>
+<td id="S3.T1.1.1.2.2.5" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.164</td>
+<td id="S3.T1.1.1.2.2.6" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.1778</td>
+<td id="S3.T1.1.1.2.2.7" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.2414</td>
+<td id="S3.T1.1.1.2.2.8" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.2826</td>
+<td id="S3.T1.1.1.2.2.9" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.1793</td>
+<td id="S3.T1.1.1.2.2.10" class="ltx_td ltx_align_center ltx_border_bb ltx_border_t">0.3175</td>
+<td id="S3.T1.1.1.2.2.11" class="ltx_td ltx_nopad_r ltx_align_center ltx_border_bb ltx_border_t">0.4317</td>
+</tr>
+</tbody>
+</table>
+</span></div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table">Table 1: </span>Quadratic regression results. “All Features” uses the full feature set, the next three columns use two-feature combinations, and the remaining columns use single features.</figcaption>
+</figure>
+<section id="S3.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">3.1 </span>Impact of Optimality</h3>
+
+<div id="S3.SS1.p1" class="ltx_para">
+<p id="S3.SS1.p1.1" class="ltx_p">We first study the practical effectiveness of the objective used by MAPF algorithms.
+One of the most widely used objectives in MAPF research is the <em id="S3.SS1.p1.1.1" class="ltx_emph ltx_font_italic">Sum of Costs</em> (SoC), which measures the total number of timesteps for all robots to reach their goals.
+While extensive efforts have been made to develop algorithms that optimize SoC optimally or sub-optimally, it is unclear, for example, whether reducing SoC by 1% translates to a similar degree of improvement in AET in a realistic simulation.
+In this section, we assess the correlation between improvements in SoC and AET.
+We also explore the possibility that there might be better objectives than SoC for evaluating the MAPF plan in realistic settings.</p>
+</div>
+<section id="S3.SS1.SSSx1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">Experiment Setup</h4>
+
+<div id="S3.SS1.SSSx1.p1" class="ltx_para">
+<p id="S3.SS1.SSSx1.p1.1" class="ltx_p">We generate MAPF plans with varying SoC for a MAPF instance by using MAPF-LNS<span id="footnote1" class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">1</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">1</sup><span class="ltx_tag ltx_tag_note">1</span>Code at <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://github.com/Jiaoyang-Li/MAPF-LNS</span></span></span></span> <cite class="ltx_cite ltx_citemacro_citep">(Li<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib70" title="Anytime multi-agent path finding via large neighborhood search" class="ltx_ref">2021a</a>)</cite>, an anytime method that iteratively refines MAPF plans to improve SoC within a predefined runtime limit.
+For each map, we select three different numbers of robots and five sets of different start and goal locations for robots.
+For each MAPF instance, we record all plans generated in each iteration of MAPF-LNS within the runtime limit of 60 seconds.
+We then execute these plans in SMART.</p>
+</div>
+<figure id="S3.F1" class="ltx_figure"><img src="2512.09736v2/x1.png" id="S3.F1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="830" height="470" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 1: </span>Relationship between SoC and AET. Each dot represents the SoC and AET of a single MAPF plan.</figcaption>
+</figure>
+</section>
+<section id="S3.SS1.SSSx2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">Results and Analysis</h4>
+
+<div id="S3.SS1.SSSx2.p1" class="ltx_para">
+<p id="S3.SS1.SSSx2.p1.1" class="ltx_p">We first study how well the SoC objective measures the execution time of robots.
+As shown in <a href="#S3.F1" title="In Experiment Setup ‣ 3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">fig.</span> <span class="ltx_text ltx_ref_tag">1</span></a>, SoC and AET show a strong positive linear correlation across all maps and all numbers of robots, indicating that SoC captures the trend of AET.
+However, the correlation is not perfectly monotonic.
+For the same SoC value, there are noticeable variations in AET, suggesting that SoC alone cannot account for all factors influencing execution time.</p>
+</div>
+<div id="S3.SS1.SSSx2.p2" class="ltx_para">
+<p id="S3.SS1.SSSx2.p2.1" class="ltx_p">To explore other factors that influence execution time, we extract additional features from the ADG, including (1) <em id="S3.SS1.SSSx2.p2.1.1" class="ltx_emph ltx_font_italic">Type-1 edges</em>, the number of type-1 edges, (2) <em id="S3.SS1.SSSx2.p2.1.2" class="ltx_emph ltx_font_italic">Type-2 edges</em>, the number of type-2 edges, (3) <em id="S3.SS1.SSSx2.p2.1.3" class="ltx_emph ltx_font_italic">Rotations</em>, the number of rotation actions, (4) <em id="S3.SS1.SSSx2.p2.1.4" class="ltx_emph ltx_font_italic">Conflict pairs</em>, the number of robot pairs connected by type-2 edges, and (5) <em id="S3.SS1.SSSx2.p2.1.5" class="ltx_emph ltx_font_italic">Robots</em>, the number of robots.
+We analyze the relationship between these features and AET using a quadratic regression model and measure prediction accuracy with mean absolute percentage error (MAPE). As shown in <a href="#S3.T1" title="In 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">tab.</span> <span class="ltx_text ltx_ref_tag">1</span></a>, SoC has the strongest predictive power among individual features, while other features also show correlation with AET.
+Among the tested feature pairs, <em id="S3.SS1.SSSx2.p2.1.6" class="ltx_emph ltx_font_italic">SoC + Rotations</em> performs best.
+Notably, the model using all features achieves a much lower MAPE than any single feature or feature combination, indicating that execution time is influenced by multiple factors.</p>
+</div>
+<figure id="S3.F2" class="ltx_figure"><img src="2512.09736v2/x2.png" id="S3.F2.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="830" height="534" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 2: </span>AET using different MAPF models.</figcaption>
+</figure>
+<figure id="S3.F3" class="ltx_figure"><img src="2512.09736v2/imgs/exp2_paths.png" id="S3.F3.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="598" height="403" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 3: </span>Paths generated on different maps.</figcaption>
+</figure>
+</section>
+</section>
+<section id="S3.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">3.2 </span>Impact of Different MAPF models</h3>
+
+<div id="S3.SS2.p1" class="ltx_para">
+<p id="S3.SS2.p1.1" class="ltx_p">The standard MAPF problem uses a simplified model that ignores execution factors such as kinodynamics and potential delays, creating a gap between planning and execution. Thus, recent research has introduced more realistic MAPF models.
+An ideal MAPF model should capture the essential aspects of robot kinodynamics while omitting unnecessary details. Thus, we conduct an empirical comparison of different MAPF models to identify the most effective one.</p>
+</div>
+<section id="S3.SS2.SSSx1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">Experiment Setup</h4>
+
+<div id="S3.SS2.SSSx1.p1" class="ltx_para">
+<p id="S3.SS2.SSSx1.p1.4" class="ltx_p">We consider the following MAPF models: (1) the standard MAPF model, (2) the MAPF model with rotation <cite class="ltx_cite ltx_citemacro_citep">(Zhang<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib54" title="Efficient multi agent path finding with turn actions" class="ltx_ref">2023</a>)</cite>, and (3) the MAPF model that accounts for the full kinodynamics of robots, including rotation, speed, and acceleration <cite class="ltx_cite ltx_citemacro_citep">(Yan and Li <a href="#bib.bib60" title="Multi-agent motion planning for differential drive robots through stationary state search" class="ltx_ref">2025</a>)</cite>.
+To account for execution delays, we apply the <math id="S3.SS2.SSSx1.p1.1.m1" class="ltx_Math" alttext="k" display="inline" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-robust delay model <cite class="ltx_cite ltx_citemacro_citep">(Atzmon<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib45" title="Robust multi-agent path finding and executing" class="ltx_ref">2020</a>)</cite>. This model introduces bounded temporal slack of up to <math id="S3.SS2.SSSx1.p1.2.m2" class="ltx_Math" alttext="k" display="inline" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> time steps during planning to tolerate potential execution delays. Combining these factors produces three variants: <em id="S3.SS2.SSSx1.p1.3.1" class="ltx_emph ltx_font_italic">MAPF, <math id="S3.SS2.SSSx1.p1.3.1.m1" class="ltx_Math" alttext="k=i" display="inline" intent=":literal"><semantics><mrow><mi>k</mi><mo>=</mo><mi>i</mi></mrow><annotation encoding="application/x-tex">k=i</annotation></semantics></math></em>, <em id="S3.SS2.SSSx1.p1.4.2" class="ltx_emph ltx_font_italic">MAPF+rotation, <math id="S3.SS2.SSSx1.p1.4.2.m1" class="ltx_Math" alttext="k=i" display="inline" intent=":literal"><semantics><mrow><mi>k</mi><mo>=</mo><mi>i</mi></mrow><annotation encoding="application/x-tex">k=i</annotation></semantics></math></em>, and <em id="S3.SS2.SSSx1.p1.4.3" class="ltx_emph ltx_font_italic">MAPF+kinodynamics</em>.
+We use PBS<span id="footnote2" class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">2</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">2</sup><span class="ltx_tag ltx_tag_note">2</span>Code at <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://github.com/Jiaoyang-Li/PBS</span></span></span></span> <cite class="ltx_cite ltx_citemacro_citep">(Ma<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib9" title="Searching with consistent prioritization for multi-agent path finding" class="ltx_ref">2019</a>)</cite> to handle conflicts between robots with a runtime limit of 60 seconds.
+We run these methods to generate MAPF plans for all maps using 25 “random scenarios” from the MAPF benchmark <cite class="ltx_cite ltx_citemacro_citep">(Stern<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib16" title="Multi-agent pathfinding: definitions, variants, and benchmarks" class="ltx_ref">2019</a>)</cite> with a progressive number of robots until the success rate is lower than 20%.
+Finally, these plans are executed in SMART.</p>
+</div>
+</section>
+<section id="S3.SS2.SSSx2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">Results and Analysis</h4>
+
+<div id="S3.SS2.SSSx2.p1" class="ltx_para">
+<p id="S3.SS2.SSSx2.p1.3" class="ltx_p">As shown in <a href="#S3.F2" title="In Results and Analysis ‣ 3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">fig.</span> <span class="ltx_text ltx_ref_tag">2</span></a>, the method incorporating the full kinodynamics of robots achieves the best AET among all the models. Additionally, the planner considering robot rotations demonstrates much better AET than the standard MAPF model.
+These results indicate that incorporating more accurate MAPF models into planning can improve execution time.
+However, we also observe trade-offs associated with these models.
+Incorporating more accurate MAPF models often reduces scalability. For example, modeling rotations during planning can reduce the maximum number of solvable agents by up to 40%.
+Meanwhile, the <math id="S3.SS2.SSSx2.p1.1.m1" class="ltx_Math" alttext="k" display="inline" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-robust model performs comparably across different <math id="S3.SS2.SSSx2.p1.2.m2" class="ltx_Math" alttext="k" display="inline" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> values with fewer agents; however, its performance declines significantly as the number of robots increases, resulting in lower solution quality and reduced scalability.
+Interestingly, in the <span id="S3.SS2.SSSx2.p1.3.1" class="ltx_text ltx_font_typewriter">warehouse</span> map, MAPF+kinodynamics does not provide significant improvements over MAPF+rotation. To better understand this, we visualize the MAPF plans in <a href="#S3.F3" title="In Results and Analysis ‣ 3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">fig.</span> <span class="ltx_text ltx_ref_tag">3</span></a>.
+The results show that the paths in <span id="S3.SS2.SSSx2.p1.3.2" class="ltx_text ltx_font_typewriter">warehouse</span> have fewer shared vertices than in the other two maps.
+We hypothesize that this minimizes the potential benefits of accounting for kinodynamics.
+In summary, while more accurate MAPF models generally improve execution time in realistic settings, their increased computational complexity can limit scalability. Additionally, the <math id="S3.SS2.SSSx2.p1.3.m3" class="ltx_Math" alttext="k" display="inline" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-robust model is less efficient and may even harm performance, particularly in more congested scenarios.</p>
+</div>
+</section>
+</section>
+<section id="S3.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">3.3 </span>Optimality and MAPF Models</h3>
+
+<div id="S3.SS3.p1" class="ltx_para">
+<p id="S3.SS3.p1.1" class="ltx_p">From <a href="#S3.SS1" title="3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">secs.</span> <span class="ltx_text ltx_ref_tag">3.1</span></a> and <a href="#S3.SS2" title="3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">3.2</span></a>, we show that both improving SoC and incorporating a more accurate MAPF model during planning can lead to better AET during execution.
+However, both of them require longer computation time.
+Considering the limited planning time available in real-world applications, this section explores the balance between these factors to provide practical insights.</p>
+</div>
+<section id="S3.SS3.SSSx1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">Experiment Setup</h4>
+
+<div id="S3.SS3.SSSx1.p1" class="ltx_para">
+<p id="S3.SS3.SSSx1.p1.1" class="ltx_p">We generate MAPF plans with varying SoC for three MAPF models: (1) standard MAPF, (2) MAPF with rotation, and (3) MAPF with kinodynamics.
+To obtain optimal solutions, we use CBS<span id="footnote3" class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">3</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">3</sup><span class="ltx_tag ltx_tag_note">3</span>Code at <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://github.com/Jiaoyang-Li/CBSH2-RTC</span></span></span></span> <cite class="ltx_cite ltx_citemacro_citep">(Li<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib28" title="Pairwise symmetry reasoning for multi-agent path finding search" class="ltx_ref">2021b</a>)</cite> for the standard MAPF model and CBS with rotation<span id="footnote4" class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">4</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">4</sup><span class="ltx_tag ltx_tag_note">4</span>Code at <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://github.com/YueZhang-studyuse/MAPF˙T</span></span></span></span> <cite class="ltx_cite ltx_citemacro_citep">(Zhang<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib54" title="Efficient multi agent path finding with turn actions" class="ltx_ref">2023</a>)</cite> for the rotation model.
+For suboptimal plans, we combine PBS with all three models, as described in <a href="#S3.SS2" title="3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">sec.</span> <span class="ltx_text ltx_ref_tag">3.2</span></a>.
+To analyze the relationship between AET and SoC, we create a naive anytime planner by running Prioritized Planning (PP) <cite class="ltx_cite ltx_citemacro_citep">(Erdmann and Lozano-Perez <a href="#bib.bib39" title="On multiple moving objects" class="ltx_ref">1987</a>)</cite> with random restarts and recording the MAPF plan with the lowest SoC until reaching a runtime limit of 60 seconds.
+We do not use existing anytime solvers, such as MAPF-LNS, because, to our best knowledge, no available implementation considers MAPF models with kinodynamic constraints.</p>
+</div>
+<figure id="S3.F4" class="ltx_figure"><img src="2512.09736v2/x3.png" id="S3.F4.g1" class="ltx_graphics ltx_centering ltx_img_square" width="830" height="679" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 4: </span>AET using different MAPF models and planners.</figcaption>
+</figure>
+</section>
+<section id="S3.SS3.SSSx2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">Results and Analysis</h4>
+
+<div id="S3.SS3.SSSx2.p1" class="ltx_para">
+<p id="S3.SS3.SSSx2.p1.1" class="ltx_p">As shown in <a href="#S3.F4" title="In Experiment Setup ‣ 3.3 Optimality and MAPF Models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">fig.</span> <span class="ltx_text ltx_ref_tag">4</span></a>, planners that use more accurate MAPF models consistently achieve better AET, even when less accurate models produce optimal solutions.
+Concretely, adding rotation reduces AET by 27–33% compared to the standard MAPF model, and adding full kinodynamic constraints provides an additional 17–20% improvement.
+This indicates that incorporating more accurate MAPF models into planning may be more important than obtaining optimal solutions with less accurate models.
+Notably, as discussed in <a href="#S3.SS1" title="3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">sec.</span> <span class="ltx_text ltx_ref_tag">3.1</span></a>, since SoC is not a perfect metric, the optimal planner does not always achieve the best AET.
+Meanwhile, execution frameworks may also become a bottleneck. Since ADG adopts a conservative strategy, assuming robots can be delayed indefinitely, it compromises the solution quality of the MAPF plan in certain cases.
+Overall, achieving better AET depends on both more accurate MAPF models and more effective execution frameworks.</p>
+</div>
+</section>
+</section>
+</section>
+<section id="S4" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">4 </span>Challenges and Future Directions</h2>
+
+<div id="S4.p1" class="ltx_para">
+<p id="S4.p1.1" class="ltx_p">Our study highlights several challenges that motivate future directions for the deployment of MAPF in realistic settings.</p>
+</div>
+<section id="S4.SS0.SSS0.Px1" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">Using Execution-Aware Objectives</h5>
+
+<div id="S4.SS0.SSS0.Px1.p1" class="ltx_para">
+<p id="S4.SS0.SSS0.Px1.p1.1" class="ltx_p">Although SoC, the most widely used objective, is a good approximation of execution performance, our results show that incorporating additional execution-related features can yield more accurate estimates of execution time. Thus, designing execution-aware objective functions and MAPF planners that optimize them represents an important research opportunity.</p>
+</div>
+</section>
+<section id="S4.SS0.SSS0.Px2" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">Developing Efficient Planners for More Accurate MAPF Models</h5>
+
+<div id="S4.SS0.SSS0.Px2.p1" class="ltx_para">
+<p id="S4.SS0.SSS0.Px2.p1.1" class="ltx_p">Our results show that using even slightly more accurate MAPF models during planning can significantly improve execution performance. However, this comes at the cost of substantially reduced scalability. Over the past decade, the MAPF community has made remarkable progress in scaling up planners for the standard MAPF model, yet planners that consider kinodynamics still struggle to scale. This underscores the need for better MAPF models and more efficient planners to solve them while maintaining the scalability required for industrial deployment.</p>
+</div>
+</section>
+<section id="S4.SS0.SSS0.Px3" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">Balancing Planner Optimality and Model Accuracy</h5>
+
+<div id="S4.SS0.SSS0.Px3.p1" class="ltx_para">
+<p id="S4.SS0.SSS0.Px3.p1.1" class="ltx_p">When computation time is limited, our results show that model accuracy often improves execution performance more than aggressive refinement of SoC. This highlights an underexplored trade-off between planner optimality and model accuracy. Moreover, it suggests the need for planners that can adaptively balance these factors based on time budgets.</p>
+</div>
+</section>
+<section id="S4.SS0.SSS0.Px4" class="ltx_paragraph">
+<h5 class="ltx_title ltx_title_paragraph">Enhancing Execution Frameworks</h5>
+
+<div id="S4.SS0.SSS0.Px4.p1" class="ltx_para">
+<p id="S4.SS0.SSS0.Px4.p1.1" class="ltx_p">Another direction is to develop execution frameworks that operate less conservatively than ADG.
+Even when planning with accurate robot models, execution errors, like communication delays and controller variability, can accumulate and degrade execution performance.
+Recent methods, such as Switchable TPG <cite class="ltx_cite ltx_citemacro_citep">(Berndt<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib72" title="Receding horizon re-ordering of multi-agent execution schedules" class="ltx_ref">2024</a>; Jiang<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib56" title="Speedup techniques for switchable Temporal Plan Graph optimization" class="ltx_ref">2025</a>)</cite> and Bidirectional TPG <cite class="ltx_cite ltx_citemacro_citep">(Su<span class="ltx_text ltx_bib_etal"> et al.</span> <a href="#bib.bib1" title="Bidirectional temporal plan graph: Enabling switchable passing orders for more efficient multi-agent path finding plan execution" class="ltx_ref">2024</a>)</cite>, dynamically adjust passing orders between robots to mitigate such execution errors. Adapting these ideas to our execution framework and further advancing this direction could enhance execution performance while maintaining robustness in large-scale industrial deployments.</p>
+</div>
+<div class="ltx_pagination ltx_role_newpage"></div>
+</section>
+</section>
+<section id="Sx1" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">Acknowledgments</h2>
+
+<div id="Sx1.p1" class="ltx_para">
+<p id="Sx1.p1.2" class="ltx_p">This work is in part supported by the National Science Foundation (NSF) under grant numbers #<math id="Sx1.p1.1.m1" class="ltx_Math" alttext="2328671" display="inline" intent=":literal"><semantics><mn>2328671</mn><annotation encoding="application/x-tex">2328671</annotation></semantics></math> and #<math id="Sx1.p1.2.m2" class="ltx_Math" alttext="2441629" display="inline" intent=":literal"><semantics><mn>2441629</mn><annotation encoding="application/x-tex">2441629</annotation></semantics></math>, as well as a gift from Amazon.</p>
+</div>
+</section>
+<section id="bib" class="ltx_bibliography">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+
+<ul id="bib.L1" class="ltx_biblist">
+<li id="bib.bib45" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">D. Atzmon, R. Stern, A. Felner, G. Wagner, R. Barták, and N. Zhou (2020)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Robust multi-agent path finding and executing</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Journal of Artificial Intelligence Research</span> <span class="ltx_text ltx_bib_volume">67</span>, <span class="ltx_text ltx_bib_pages"> pp. 549–579</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>,
+<a href="#S3.SS2.SSSx1.p1.4" title="Experiment Setup ‣ 3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.2</span></a>.
+</span>
+</li>
+<li id="bib.bib68" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">M. Barer, G. Sharon, R. Stern, and A. Felner (2014)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Suboptimal variants of the conflict-based search algorithm for the multi-agent pathfinding problem</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">5</span>, <span class="ltx_text ltx_bib_pages"> pp. 19–27</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib72" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">A. Berndt, N. Van Duijkeren, L. Palmieri, A. Kleiner, and T. Keviczky (2024)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Receding horizon re-ordering of multi-agent execution schedules</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Transactions on Robotics</span> <span class="ltx_text ltx_bib_volume">40</span> (<span class="ltx_text ltx_bib_number"></span>), <span class="ltx_text ltx_bib_pages"> pp. 1356–1372</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S4.SS0.SSS0.Px4.p1.1" title="Enhancing Execution Frameworks ‣ 4 Challenges and Future Directions ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§4</span></a>.
+</span>
+</li>
+<li id="bib.bib12" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">L. Cohen, T. Uras, T. K. S. Kumar, and S. Koenig (2019)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Optimal and bounded-suboptimal multi-agent motion planning</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">10</span>, <span class="ltx_text ltx_bib_pages"> pp. 44–51</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib39" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">M. Erdmann and T. Lozano-Perez (1987)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">On multiple moving objects</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Algorithmica</span> <span class="ltx_text ltx_bib_volume">2</span>, <span class="ltx_text ltx_bib_pages"> pp. 477–521</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S3.SS3.SSSx1.p1.1" title="Experiment Setup ‣ 3.3 Optimality and MAPF Models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.3</span></a>.
+</span>
+</li>
+<li id="bib.bib63" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">L. Heuer, L. Palmieri, A. Mannucci, S. Koenig, and M. Magnusson (2024)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Benchmarking multi-robot coordination in realistic, unstructured human-shared environments</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the IEEE International Conference on Robotics and Automation</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 14541–14547</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p2.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>.
+</span>
+</li>
+<li id="bib.bib66" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">F. Ho, A. Gonçalves, B. Rigault, R. Geraldes, A. Chicharo, M. Cavazza, and H. Prendinger (2022)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent path finding in unmanned aircraft system traffic management with scheduling and speed variation</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Intelligent Transportation Systems Magazine</span> <span class="ltx_text ltx_bib_volume">14</span> (<span class="ltx_text ltx_bib_number">5</span>), <span class="ltx_text ltx_bib_pages"> pp. 8–21</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>.
+</span>
+</li>
+<li id="bib.bib26" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">W. Hönig, S. Kiesel, A. Tinka, J. W. Durham, and N. Ayanian (2019)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Persistent and robust execution of MAPF schedules in warehouses</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Robotics and Automation Letters</span> <span class="ltx_text ltx_bib_volume">4</span> (<span class="ltx_text ltx_bib_number">2</span>), <span class="ltx_text ltx_bib_pages"> pp. 1125–1131</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>,
+<a href="#S1.p3.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>,
+<a href="#S2.SS3.p2.1" title="2.3 Evaluating MAPF in Realistic Scenarios ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.3</span></a>.
+</span>
+</li>
+<li id="bib.bib74" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">T. Huang, J. Li, S. Koenig, and B. Dilkina (2022)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Anytime multi-agent path finding via machine learning-guided large neighborhood search</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 9368–9376</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib56" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">H. Jiang, M. Lin, and J. Li (2025)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Speedup techniques for switchable Temporal Plan Graph optimization</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 23212–23221</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S4.SS0.SSS0.Px4.p1.1" title="Enhancing Execution Frameworks ‣ 4 Challenges and Future Directions ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§4</span></a>.
+</span>
+</li>
+<li id="bib.bib70" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">J. Li, Z. Chen, D. Harabor, P. J. Stuckey, and S. Koenig (2021a)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Anytime multi-agent path finding via large neighborhood search</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Joint Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 4127–4135</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>,
+<a href="#S3.SS1.SSSx1.p1.1" title="Experiment Setup ‣ 3.1 Impact of Optimality ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.1</span></a>.
+</span>
+</li>
+<li id="bib.bib28" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">J. Li, D. Harabor, P. J. Stuckey, H. Ma, G. Gange, and S. Koenig (2021b)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Pairwise symmetry reasoning for multi-agent path finding search</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Artificial Intelligence</span> <span class="ltx_text ltx_bib_volume">301</span>, <span class="ltx_text ltx_bib_pages"> pp. 103574</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S3.SS3.SSSx1.p1.1" title="Experiment Setup ‣ 3.3 Optimality and MAPF Models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.3</span></a>.
+</span>
+</li>
+<li id="bib.bib27" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">J. Li, W. Ruml, and S. Koenig (2021c)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">EECBS: a bounded-suboptimal search for multi-agent path finding</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">35</span>, <span class="ltx_text ltx_bib_pages"> pp. 12353–12362</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib9" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">H. Ma, D. Harabor, P. J. Stuckey, J. Li, and S. Koenig (2019)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Searching with consistent prioritization for multi-agent path finding</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">33</span>, <span class="ltx_text ltx_bib_pages"> pp. 7643–7650</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S3.SS2.SSSx1.p1.4" title="Experiment Setup ‣ 3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.2</span></a>.
+</span>
+</li>
+<li id="bib.bib67" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">H. Ma, J. Yang, L. Cohen, T. Kumar, and S. Koenig (2017)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Feasibility study: Moving non-homogeneous teams in congested video game environments</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">13</span>, <span class="ltx_text ltx_bib_pages"> pp. 270–272</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p1.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>.
+</span>
+</li>
+<li id="bib.bib42" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">K. Okumura, M. Machida, X. Défago, and Y. Tamura (2022)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Priority inheritance with backtracking for iterative multi-agent path finding</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Artificial Intelligence</span> <span class="ltx_text ltx_bib_volume">310</span>, <span class="ltx_text ltx_bib_pages"> pp. 103752</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib64" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">S. Schaefer, L. Palmieri, L. Heuer, R. Dillmann, S. Koenig, and A. Kleiner (2023)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">A benchmark for multi-robot planning in realistic, complex and cluttered environments</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the IEEE International Conference on Robotics and Automation</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 9231–9237</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS3.p1.1" title="2.3 Evaluating MAPF in Realistic Scenarios ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.3</span></a>.
+</span>
+</li>
+<li id="bib.bib29" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">G. Sharon, R. Stern, A. Felner, and N. R. Sturtevant (2015)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Conflict-based search for optimal multi-agent path finding</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">Artificial Intelligence</span> <span class="ltx_text ltx_bib_volume">219</span>, <span class="ltx_text ltx_bib_pages"> pp. 40–66</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib16" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">R. Stern, N. R. Sturtevant, A. Felner, S. Koenig, H. Ma, T. T. Walker, J. Li, D. Atzmon, L. Cohen, T. K. S. Kumar, E. Boyarski, and R. Barták (2019)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent pathfinding: definitions, variants, and benchmarks</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_pages"> pp. 151–159</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS1.p1.2" title="2.1 MAPF Problem ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.1</span></a>,
+<a href="#S3.SS2.SSSx1.p1.4" title="Experiment Setup ‣ 3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.2</span></a>,
+<a href="#S3.p1.9" title="3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3</span></a>.
+</span>
+</li>
+<li id="bib.bib1" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">Y. Su, R. Veerapaneni, and J. Li (2024)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Bidirectional temporal plan graph: Enabling switchable passing orders for more efficient multi-agent path finding plan execution</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">38</span>, <span class="ltx_text ltx_bib_pages"> pp. 17559–17566</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S4.SS0.SSS0.Px4.p1.1" title="Enhancing Execution Frameworks ‣ 4 Challenges and Future Directions ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§4</span></a>.
+</span>
+</li>
+<li id="bib.bib25" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">S. Varambally, J. Li, and S. Koenig (2022)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Which MAPF model works best for automated warehousing?</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">15</span>, <span class="ltx_text ltx_bib_pages"> pp. 190–198</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p2.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>,
+<a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib34" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">J. Yan and J. Li (2024)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent motion planning with bézier curve optimization under kinodynamic constraints</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">IEEE Robotics and Automation Letters</span> <span class="ltx_text ltx_bib_volume">9</span> (<span class="ltx_text ltx_bib_number">3</span>), <span class="ltx_text ltx_bib_pages"> pp. 3021–3028</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S2.SS2.p1.1" title="2.2 MAPF Planners and Design Choices ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.2</span></a>.
+</span>
+</li>
+<li id="bib.bib60" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">J. Yan and J. Li (2025)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Multi-agent motion planning for differential drive robots through stationary state search</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the AAAI Conference on Artificial Intelligence</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">39</span>, <span class="ltx_text ltx_bib_pages"> pp. 23360–23368</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S3.SS2.SSSx1.p1.4" title="Experiment Setup ‣ 3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.2</span></a>.
+</span>
+</li>
+<li id="bib.bib2" class="ltx_bibitem ltx_bib_article">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">J. Yan, Z. Li, W. Kang, K. Zheng, Y. Zhang, Z. Chen, Y. Zhang, D. Harabor, S. F. Smith, and J. Li (2025)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Advancing MAPF towards the real world: A scalable multi-agent realistic testbed (SMART)</span>.
+</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_journal">arXiv preprint arXiv:2503.04798</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S1.p2.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>,
+<a href="#S1.p3.1" title="1 Introduction ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§1</span></a>,
+<a href="#S2.SS3.p1.1" title="2.3 Evaluating MAPF in Realistic Scenarios ‣ 2 Background ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§2.3</span></a>.
+</span>
+</li>
+<li id="bib.bib54" class="ltx_bibitem ltx_bib_inproceedings">
+<span class="ltx_tag ltx_bib_author-year ltx_role_refnum ltx_tag_bibitem">Y. Zhang, D. Harabor, P. Le Bodic, and P. J. Stuckey (2023)</span>
+<span class="ltx_bibblock"><span class="ltx_text ltx_bib_title">Efficient multi agent path finding with turn actions</span>.
+</span>
+<span class="ltx_bibblock">In <span class="ltx_text ltx_bib_inbook">Proceedings of the International Symposium on Combinatorial Search</span>,
+</span>
+<span class="ltx_bibblock">Vol. <span class="ltx_text ltx_bib_volume">16</span>, <span class="ltx_text ltx_bib_pages"> pp. 119–127</span>.
+</span>
+<span class="ltx_bibblock ltx_bib_cited">Cited by: <a href="#S3.SS2.SSSx1.p1.4" title="Experiment Setup ‣ 3.2 Impact of Different MAPF models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.2</span></a>,
+<a href="#S3.SS3.SSSx1.p1.1" title="Experiment Setup ‣ 3.3 Optimality and MAPF Models ‣ 3 From MAPF to Realistic Scenarios ‣ Analyzing Planner Design Trade-offs for MAPF under ADG-based Realistic Execution" class="ltx_ref"><span class="ltx_text ltx_ref_tag">§3.3</span></a>.
+</span>
+</li>
+</ul>
+</section>
+</article>
+</div>
+</div>
+<footer class="arxiv-html-footer">
+  <div class="ltx_page_logo">
+    Experimental support, please
+    <a href="./2512.09736v2/__stdout.txt" class="ltx_ref"
+    target="_blank" rel="nofollow">view the build logs</a>
+    for errors. Generated by
+    <a href="https://math.nist.gov/~BMiller/LaTeXML/" target="_blank" class="ltx_ref ltx_LaTeXML_logo">
+      <span style="letter-spacing: -0.2em; margin-right: 0.1em;">
+        L
+        <span style="font-size: 70%; position: relative; bottom: 2.2pt;">A</span>
+        T
+        <span style="position: relative; bottom: -0.4ex;">E</span>
+      </span>
+      <span class="ltx_font_smallcaps">xml</span>
+      <img alt="[LOGO]"
+        src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg==">
+    </a>.
+  </div>
+  <div class="keyboard-glossary">
+    <h2>Instructions for reporting errors</h2>
+    <p>We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:</p>
+    <ul>
+      <li>Click the "Report Issue" <span class="mobile-only">(<svg role="presentation"
+            style="display: inline-block; vertical-align: middle; fill: var(--text-color);" aria-hidden="true"
+            height="1em" viewBox="0 0 640 640">
+            <path
+              d="M224 160C224 107 267 64 320 64C373 64 416 107 416 160L416 163.6C416 179.3 403.3 192 387.6 192L252.5 192C236.8 192 224.1 179.3 224.1 163.6L224.1 160zM569.6 172.8C580.2 186.9 577.3 207 563.2 217.6L465.4 290.9C470.7 299.8 474.7 309.6 477.2 320L576 320C593.7 320 608 334.3 608 352C608 369.7 593.7 384 576 384L480 384L480 416C480 418.6 479.9 421.3 479.8 423.9L563.2 486.4C577.3 497 580.2 517.1 569.6 531.2C559 545.3 538.9 548.2 524.8 537.6L461.7 490.3C438.5 534.5 395.2 566.5 344 574.2L344 344C344 330.7 333.3 320 320 320C306.7 320 296 330.7 296 344L296 574.2C244.8 566.5 201.5 534.5 178.3 490.3L115.2 537.6C101.1 548.2 81 545.3 70.4 531.2C59.8 517.1 62.7 497 76.8 486.4L160.2 423.9C160.1 421.3 160 418.7 160 416L160 384L64 384C46.3 384 32 369.7 32 352C32 334.3 46.3 320 64 320L162.8 320C165.3 309.6 169.3 299.8 174.6 290.9L76.8 217.6C62.7 207 59.8 186.9 70.4 172.8C81 158.7 101.1 155.8 115.2 166.4L224 248C236.3 242.9 249.8 240 264 240L376 240C390.2 240 403.7 242.8 416 248L524.8 166.4C538.9 155.8 559 158.7 569.6 172.8z" />
+          </svg>)</span> button, located in the page header.</li>
+    </ul>
+    <p><strong>Tip:</strong> You can select the relevant text first, to include it in your report.</p>
+    <p>Our team has already identified <a class="ltx_ref" href="https://github.com/arXiv/html_feedback/issues"
+        target="_blank">the following issues</a>. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.</p>
+    <p>Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a <a
+        class="ltx_ref" href="https://github.com/brucemiller/LaTeXML/wiki/Porting-LaTeX-packages-for-LaTeXML"
+        target="_blank">list of packages that need conversion</a>, and welcome <a class="ltx_ref"
+        href="https://github.com/brucemiller/LaTeXML/issues" target="_blank">developer contributions</a>.</p>
+  </div>
+</footer><footer class="ds-site-footer">
+  <div class="ds-site-footer-grid">
+    <div class="ds-site-footer-main">
+      <div class="ds-site-footer-ack">
+        We gratefully acknowledge support from
+        our <strong>major funders</strong>,
+        <a href="https://info.arxiv.org/about/ourmembers.html"><strong>member institutions</strong></a><span class="ack-member-inline" hidden>, <strong></strong></span>,
+        and all contributors.
+      </div>
+      <nav class="ds-site-footer-links" aria-label="Site navigation">
+        <a href="https://info.arxiv.org/about">About</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help">Help</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/contact.html">Contact</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/subscribe">Subscribe</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/license/index.html">Copyright</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/policies/privacy_policy.html">Privacy</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/web_accessibility.html">Accessibility</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://status.arxiv.org" target="_blank" rel="noopener noreferrer">Operational Status<span class="is-sr-only"> (opens in new tab)</span></a>
+      </nav>
+    </div>
+
+    <div class="ds-site-footer-funders" aria-label="Major funders">
+      <div class="ds-site-footer-funders-label">Major funding support from</div>
+      <div class="ds-site-footer-funders-logos">
+        <img class="ds-funder-logo" src="/static/base/1.0.1/images/funders/simons-foundation.png" alt="Simons Foundation">
+        <img class="ds-funder-logo" src="/static/base/1.0.1/images/funders/schmidt-sciences.png" alt="Schmidt Sciences">
+      </div>
+    </div>
+  </div>
+</footer><div id="fixed-buttons-container">
+  <a id="disable-reading-mode-btn" class="header-button" href="javascript:toggleReadingMode();"
+    title="Disable reading mode, show header and footer">
+    <svg role="presentation" height="1.25rem"
+      viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+      <path
+        d="M0 96C0 78.3 14.3 64 32 64l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 128C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32L32 448c-17.7 0-32-14.3-32-32s14.3-32 32-32l384 0c17.7 0 32 14.3 32 32z" />
+    </svg>
+  </a>
+</div></body>
+</html>

@@ -1,0 +1,151 @@
+task:
+  name: "LaCAM Lifelong Throughput"
+  description: |
+    Optimize the current lacam_agent repository for lifelong TAPF throughput.
+
+    Fixed official target:
+      - map: tests/assets/symbotic_star.map
+      - agents: 100
+      - K / multi-carry capacity: 2
+      - horizon: 400
+      - time limit: 1.0s
+      - goal set size: 3
+      - release interval: 10
+      - outbound probability: 0.5
+      - pickup service duration: 4
+      - delivery service duration: 4
+
+    Baseline planner defaults, not fixed environment semantics:
+      - planner anytime: 1
+      - force full assignment: 0
+      - service commit agents: 0
+      - max shared drop goal agents: 5
+      - assignment cost mode: 0
+    These are algorithm-side defaults. Agents may change planner, assignment, or
+    goal-candidate behavior generally, but must not change the fixed official
+    target above, hard-code seed/task/map shortcuts, fake CSV/trace/schedule
+    outputs, or optimize only output formatting.
+
+    Normal `coral eval` scores the mean throughput over a hidden held-out set of
+    10 real-mode seeds selected inside the grader. `coral eval --tune` scores
+    the mean throughput over public tune seeds 0..9 for diagnostic screening.
+    Higher is better. All rows must be valid.
+
+    Before changing code, read `hl_agent/lacam_throughput_prompt_template.txt`,
+    but use it as experimental guidance rather than a standalone run controller.
+    All throughput ideas, candidate hypotheses, and pivot directions must
+    originate from the local paper library. Search the paper library with
+    progressive disclosure:
+
+      - First read `coral_tasks/lacam_throughput/papers/README.md`.
+      - Then open the relevant `coral_tasks/lacam_throughput/papers/briefs/*.md`
+        summary.
+      - Only then read the linked original HTML/PDF paper if you need section,
+        algorithm, design-pattern, theorem, or empirical-observation detail.
+      - Use `coral_tasks/lacam_throughput/papers/index.md` and
+        `coral_tasks/lacam_throughput/papers/manifest.json` only as complete
+        metadata/download records.
+      - `coral_tasks/lacam_throughput/papers/unresolved.md`
+
+    Before proposing a candidate, identify at least one local `papers/briefs/*.md`
+    summary plus the linked local paper file, and when needed the section,
+    algorithm, theorem, design pattern, or empirical observation that motivates
+    the idea. Treat the papers as inspiration for general MAPF/TAPF/lifelong
+    planning mechanisms, not as permission to hard-code this benchmark. Record
+    the paper grounding in notes and in the `coral eval -m` message when
+    practical. If a paper-grounded idea fails, record the failure mode so
+    teammates do not repeat the same dead end.
+
+    To keep the main agent context clean, use the `paper-grounded-subagent`
+    skill for implementation and command execution. For any non-trivial code
+    edit, build, test, benchmark, diagnostic script, official `coral eval`, or
+    long-running shell command, delegate the work to a Codex subagent launched
+    through that skill's helper. The helper must use model
+    `gpt-5.3-codex-spark` with `model_reasoning_effort=high`. The main CORAL
+    agent should stay in the
+    controller role: choose paper-grounded hypotheses, launch subagents, review
+    their reports/diffs, and write concise experiment notes. Direct main-agent
+    shell usage should be limited to short controller queries such as reading
+    notes, inspecting reports, or checking `coral log`.
+
+    In this CORAL task, `coral eval` is the only official scoring path. Do not
+    wait for the template's old 80-local-run pre-final gate before registering a
+    score. First run a normal `coral eval -m "baseline"` on the unmodified
+    workspace so the leaderboard has an initial score, then iterate with local
+    diagnostics plus delegated `coral eval --tune -m "..."` for screening on
+    public tune seeds. Run delegated normal
+    `coral eval -m "..."` whenever a candidate is valid and plausibly worth
+    counting. Still follow the protocol's core discipline: observe real
+    trajectories, form a root-cause hypothesis, make the minimum code change,
+    quick-verify, inspect trace signals, and use same-seed comparisons on local
+    diagnostics or tune evals.
+
+    Add any auxiliary metrics you believe will explain how an algorithm change
+    affects behavior: congestion, waiting, goal churn, service dwell,
+    assignment churn, local conflicts, cache hit rates, runtime distribution, or
+    other trace-derived signals. Do not immediately revert a candidate only
+    because quick throughput drops; first check whether the drop comes from a
+    fixable bug, a newly exposed bottleneck, seed variance, runtime tradeoff, or
+    an incomplete paired mechanism. Explore with evidence as long as fixed
+    scenario semantics and validity are preserved.
+
+    Allowed code changes are general algorithm, environment-semantics-safe, or
+    engineering optimizations in the lacam_agent source/tests/tools. Put
+    one-off experiment artifacts under `hl_agent/runs/`, not in source dirs.
+  tips: |
+    - Use this task description and tune feedback as the public scoring contract;
+      real-mode seed identities are intentionally hidden by the grader.
+    - Run `coral eval -m "baseline"` before code changes to register the first
+      official score.
+    - Run `coral eval --tune -m "..."` for exploratory sweeps.
+    - Run normal `coral eval -m "..."` when you have a candidate that should
+      count on the leaderboard.
+    - Tune eval logs contain `rows.csv`, seed stdout/stderr, and summary JSON;
+      real eval logs expose aggregate summary only so held-out seeds do not leak.
+    - Every throughput idea must cite a local `papers/briefs/*.md` summary and,
+      when needed, its linked paper source. Use the paper-grounded-subagent
+      skill for implementation and command execution.
+
+grader:
+  entrypoint: "lacam_throughput_grader.grader:Grader"
+  setup:
+    - "uv pip install -e ./grader"
+  timeout: 1800
+  direction: maximize
+  args:
+    tune_seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+agents:
+  count: 1
+  runtime: codex
+  model: gpt-5.5
+  runtime_options:
+    model_reasoning_effort: high
+  research: false
+  skills:
+    - "./skills/paper-grounded-subagent"
+  timeout: 1800
+  heartbeat:
+    - name: reflect
+      every: 2
+    - name: consolidate
+      every: 8
+      global: true
+    - name: pivot
+      every: 4
+      trigger: plateau
+
+workspace:
+  results_dir: "./results"
+  repo_path: "../.."
+  setup:
+    - "git submodule update --init third_party/argparse third_party/googletest"
+    - "mkdir -p .codex/notes && test -f .codex/notes/index.md || printf '# Notes Index\n\n## Research\n- (none yet)\n\n## Experiments\n- (none yet)\n\n## Open Questions\n- (none yet)\n' > .codex/notes/index.md"
+    - "cmake -B build -DCMAKE_BUILD_TYPE=Release"
+    - "cmake --build build --target lifelong_benchmark -j 8"
+
+run:
+  session: local
+  verbose: true
+  stop:
+    max_real_attempts: 100

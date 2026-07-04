@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+<title>Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems</title>
+<!--Generated on Fri Oct  3 19:49:29 2025 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="/static/browse/0.3.4/css/arxiv-html-papers-20250916.css" rel="stylesheet" type="text/css"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.3/html2canvas.min.js"></script>
+<script src="/static/browse/0.3.4/js/addons_new.js"></script>
+<script src="/static/browse/0.3.4/js/feedbackOverlay.js"></script>
+<base href="/html/2510.03472v1/"/></head>
+<body>
+<nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S1" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S2" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">II </span><span class="ltx_text ltx_font_smallcaps">Existing Research in RSS</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S3" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III </span><span class="ltx_text ltx_font_smallcaps">Problem Definition</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S4" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV </span><span class="ltx_text ltx_font_smallcaps">Robotic Sorting System</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V </span><span class="ltx_text ltx_font_smallcaps">Task Mapping Optimization</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.SS1" title="In V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-A </span><span class="ltx_text ltx_font_italic">Initialization</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.SS2" title="In V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-B </span><span class="ltx_text ltx_font_italic">Mutation</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.SS3" title="In V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-C </span><span class="ltx_text ltx_font_italic">MILP</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VI </span><span class="ltx_text ltx_font_smallcaps">Experimental Evaluation</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.SS1" title="In VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VI-A </span><span class="ltx_text ltx_font_italic">Experiment Setup</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.SS2" title="In VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VI-B </span><span class="ltx_text ltx_font_italic">Results</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S7" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VII </span><span class="ltx_text ltx_font_smallcaps">Empirical Analysis via QD Optimization</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S7.SS1" title="In VII Empirical Analysis via QD Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VII-A </span><span class="ltx_text ltx_font_italic">Quality Diversity Algorithms</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S7.SS2" title="In VII Empirical Analysis via QD Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VII-B </span><span class="ltx_text ltx_font_italic">Experiment Setup and Results</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S8" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VIII </span><span class="ltx_text ltx_font_smallcaps">Conclusion</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_appendix"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#A1" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">A </span>EA Initialization</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_appendix">
+<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#A2" title="In Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">B </span>Implementation and Compute Resource</span></a>
+<ol class="ltx_toclist ltx_toclist_appendix">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#A2.SS1" title="In Appendix B Implementation and Compute Resource ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">B-A </span><span class="ltx_text ltx_font_italic">Implementation</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#A2.SS2" title="In Appendix B Implementation and Compute Resource ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">B-B </span><span class="ltx_text ltx_font_italic">Compute Resource</span></span></a></li>
+</ol>
+</li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_font_bold ltx_title_document" style="font-size:173%;">Destination-to-Chutes Task Mapping Optimization for
+<br class="ltx_break"/>Multi-Robot Coordination in Robotic Sorting Systems</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">
+Yulun Zhang<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>, Alexandre O. G. Barbosa<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">2</span></sup>, Federico Pecora<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">2</span></sup>, Jiaoyang Li<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>
+</span><span class="ltx_author_notes"><sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>Yulun Zhang and Jiaoyang Li are with the Robotics Institute, Carnegie Mellon University.
+<span class="ltx_text ltx_font_typewriter" style="font-size:90%;">{yulunzhang,jiaoyangli}@cmu.edu</span><sup class="ltx_sup"><span class="ltx_text ltx_font_italic">2</span></sup>Alexandre O. G. Barbosa and Federico Pecora are with Amazon Robotics.
+<span class="ltx_text ltx_font_typewriter" style="font-size:90%;">{aormiga,fpecora}@amazon.com</span>This work is done during Yulun’s internship at Amazon Robotics.</span></span>
+</div>
+<div class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p">We study optimizing a <em class="ltx_emph ltx_font_italic">destination-to-chutes task mapping</em> to improve throughput in Robotic Sorting Systems (RSS), where a team of robots sort packages on a sortation floor by transporting them from induct workstations to eject chutes based on their shipping destinations (e.g. Los Angeles or Pittsburgh).
+The destination-to-chutes task mapping is used to determine which chutes a robot can drop its package.
+Finding a high-quality task mapping is challenging because of the complexity of a real-world RSS. First, optimizing task mapping is interdependent with robot target assignment and path planning.
+Second, chutes will be <em class="ltx_emph ltx_font_italic">CLOSED</em> for a period of time once they receive sufficient packages to allow for downstream processing.
+Third, task mapping quality directly impacts the downstream processing, as scattered chutes for the same destination increase package handling time.
+In this paper, we first formally define task mappings and the problem of Task Mapping Optimization (TMO).
+We then present a simulator of RSS to evaluate task mappings.
+We then present a simple TMO method based on the Evolutionary Algorithm and Mixed Integer Linear Programming, demonstrating the advantage of our optimized task mappings over the greedily generated ones in various RSS setups with different map sizes, numbers of chutes, and destinations.
+Finally, we use Quality Diversity algorithms to analyze the throughput of a diverse set of task mappings.
+Our code is available online at <span class="ltx_ref ltx_nolink ltx_url ltx_font_typewriter ltx_ref_self">https://github.com/lunjohnzhang/tmo_public</span>.</p>
+</div>
+<section class="ltx_section" id="S1">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span>
+</h2>
+<div class="ltx_para" id="S1.p1">
+<p class="ltx_p">We study Task Mapping Optimization (TMO), the problem of optimizing the task mapping in Robotic Sorting Systems (RSS). With the flourishing of e-commerce and online shopping, the demand for more efficient supply chains for delivering packages as quickly as possible is growing rapidly. While preparing the packages for shipping, e-commerce stakeholders need to sort packages based on their shipping destinations.
+To fulfill the growing demand, major stakeholders such as Amazon <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib1" title="">1</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib2" title="">2</a>]</cite>, JD.com <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib3" title="">3</a>]</cite>, Deppon Express <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib4" title="">4</a>]</cite>, and Shentong Express <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib5" title="">5</a>]</cite> use RSS with hundreds and thousands of robots to sort packages. Compared to traditional sorting systems based on conveyor belts <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib6" title="">6</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib7" title="">7</a>]</cite> and Robotic Mobile Fulfillment Systems (RMFS) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib9" title="">9</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib10" title="">10</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib11" title="">11</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib12" title="">12</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib13" title="">13</a>]</cite> used for storing goods, RSS is relatively new with many unaddressed research questions.</p>
+</div>
+<div class="ltx_para" id="S1.p2">
+<p class="ltx_p"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S1.F1" title="In I Introduction ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1</span></a>(a) shows an example RSS map, where robots constantly move between workstations (pink) and endpoints (blue) to transport packages from workstations to chutes (black). When a robot picks up a package at a workstation, the RSS leverages a pre-defined <span class="ltx_text ltx_font_italic">destination-to-chutes</span> task mapping to map the destination of the package to a set of chutes. The robot selects a chute and an endpoint around it,
+moves to the endpoint, and drops the package into the chute. Finally, the robot moves to a workstation to pick up the next package.
+More details are explained in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S4" title="IV Robotic Sorting System ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">IV</span></a>.</p>
+</div>
+<figure class="ltx_figure" id="S1.F1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="775" id="S1.F1.g1" src="x1.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 1</span>: </span><span class="ltx_text" style="font-size:90%;">Overview of our RSS simulator. (a) Map of the sortation floor of the RSS.
+(b) At the workstations, each robot picks up a package and decides the target endpoint with a task mapping and a TA policy. (c) Status change of the chutes. Packages can be dropped into <em class="ltx_emph ltx_font_italic">OPEN</em> chutes. (d) At the endpoints, each robot drops off the package and decides the next target workstation with a TA policy.</span></figcaption>
+</figure>
+<div class="ltx_para" id="S1.p3">
+<p class="ltx_p">The quality of the task mapping significantly affects the movement patterns of the robots.
+Since the volume (i.e., number of packages) of different destinations varies, the chutes that are mapped to high-volume destinations can be visited more frequently.
+If chutes mapped to high-volume destinations are clustered together, robots would travel to endpoints around those chutes more frequently, potentially accumulating congestion and lowering throughput. Meanwhile, if high-volume destinations map to chutes that are close to the workstations, the travel distance of the robots can be reduced and thus improve throughput.</p>
+</div>
+<div class="ltx_para" id="S1.p4">
+<p class="ltx_p">However, TMO is a challenging problem because of the complex nature of an RSS. First, TMO is strongly correlated with other sub-problems in RSS, including (1) robot coordination, the problem of planning collision-free paths for the robots, and (2) target assignment (TA), the problem of selecting appropriate endpoints or workstations for robots to go to.
+TMO is correlated with these two problems because the movement of the robots is collectively determined by a task mapping, a robot coordination algorithm, and a TA policy.
+Second, the capacity of the chutes is limited. Once a sufficient number of packages are dropped into a chute, it undergoes a <em class="ltx_emph ltx_font_italic">status change</em>, transitioning status to be <em class="ltx_emph ltx_font_italic">CLOSED</em> for a certain amount of time, during which no packages can be dropped.
+Third, the operation of RSS depends not only on the <em class="ltx_emph ltx_font_italic">sortation floor</em> on which robots move, but also on the downstream process on a lower <em class="ltx_emph ltx_font_italic">shipping floor</em> where the dropped packages are collected for delivery. If chutes of the same destination are clustered together, it would alleviate the workload on the shipping floor, which decreases the amount of time chutes are <em class="ltx_emph ltx_font_italic">CLOSED</em> and improves throughput on the sortation floor. This trades off with the fact that clustered chutes of the same destination can impede the movement of the robots. These real-world factors make it challenging to not only solve TMO, but also to develop a simulator that can effectively evaluate a given task mapping.</p>
+</div>
+<div class="ltx_para" id="S1.p5">
+<p class="ltx_p">In this paper, we first formally define Task Mapping Optimization (TMO). To the best of our knowledge, very few prior works have studied TMO in the context of RSS.
+We then present a simulator that considers the real-world factors of an RSS to evaluate task mappings.
+We then present a simple optimization algorithm based on Evolutionary Algorithm (EA) and Mixed Integer Linear Programming (MILP) to solve TMO, showing that the optimized task mappings outperform greedily generated ones. Finally, we use Quality Diversity (QD) algorithms <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib14" title="">14</a>]</cite> to conduct empirical analysis on a diverse set of task mappings.</p>
+</div>
+</section>
+<section class="ltx_section" id="S2">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">II </span><span class="ltx_text ltx_font_smallcaps">Existing Research in RSS</span>
+</h2>
+<div class="ltx_para" id="S2.p1">
+<p class="ltx_p">Prior works in RSS mainly focus on (1) robot coordination <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>]</cite>, the problem of planning collision-free paths for multiple robots, (2) target assignment <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib15" title="">15</a>]</cite>, the problem of selecting a target for each robot from a set of candidate targets, (3) package assignment to workstations <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib16" title="">16</a>]</cite>, the problem of pre-sorting packages to different workstations based on their shipping destinations,
+(4) layout optimization <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib17" title="">17</a>]</cite>, the problem of optimizing the layout of the sortation floor of RSS to improve throughput,
+(5) RSS simulator development,
+and (6) Task Mapping Optimization (TMO). In this section, we provide literature reviews of problems (1), (2), and (6), as they are explicitly considered in our RSS simulator.
+We also discuss (5) because it is a challenging research problem orthogonal to the other sub-problems. Developing a simulator is necessary to either solve these problems or evaluate their solutions.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S2.p2">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Robot Coordination.</span>
+Many prior works have studied the coordination of robots in automated warehouses, especially in the underlying problem of lifelong Multi-Agent Path Finding (MAPF) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib18" title="">18</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>]</cite>. Lifelong MAPF aims at finding collision-free paths for a group of robots from their corresponding start to target locations. New targets are constantly assigned to robots. Previous studies in lifelong MAPF have improved throughput significantly by developing better lifelong MAPF algorithms <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib19" title="">19</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib20" title="">20</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib21" title="">21</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib22" title="">22</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib23" title="">23</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib15" title="">15</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib24" title="">24</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib25" title="">25</a>]</cite>, optimizing the physical layouts <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib26" title="">26</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib27" title="">27</a>]</cite>, or designing virtual guidance for robots <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib28" title="">28</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib29" title="">29</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib30" title="">30</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib31" title="">31</a>]</cite>. However, most prior works in MAPF assume that the targets of the robots are either directly given <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib25" title="">25</a>]</cite> or sampled from a known distribution of targets <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib26" title="">26</a>]</cite>, and most of these works focus on RMFS instead of RSS.
+The operation research community has also attempted to tackle the robot coordination problem in RSS. One work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib16" title="">16</a>]</cite> applies multi-commodity network flow to determine the expected number of robots that can travel across the sortation floor.
+Another work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib17" title="">17</a>]</cite> applies Rhythmic Control (RC), an autonomous vehicle management scheme, to coordinate robots in RSS.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S2.p3">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Target Assignment.</span>
+The target assignment (TA) problem aims at assigning each robot to a target among the available options. For example, while sorting a package, a robot can go to any endpoints adjacent to chutes corresponding to the destination of the package.
+An appropriately selected endpoint can potentially minimize traffic congestion or travel distance of the robot, improving throughput. Early works on classical assignment problems <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib32" title="">32</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib33" title="">33</a>]</cite> can be used to solve TA.
+In the MAPF community, one work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>]</cite> uses a simple greedy TA policy that selects a target based on distances to the available targets and numbers of robots traveling to the available targets.
+Another work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib15" title="">15</a>]</cite> proposes a min-cost max-flow framework to solve TA.
+Another branch of works <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib4" title="">4</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib34" title="">34</a>]</cite> in the operation research community compares different handcrafted TA policies by using Queueing Networks to model RSS and estimate the throughput.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S2.p4">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Sorting Systems Simulation.</span>
+Some early works <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib6" title="">6</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib7" title="">7</a>]</cite> have built simulators for traditional conveyor-based sorting systems. For RSS, recent works have modeled it using a queuing network <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib4" title="">4</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib34" title="">34</a>]</cite>, a traffic flow network <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib16" title="">16</a>]</cite>, or an estimation formula <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib17" title="">17</a>]</cite>.
+However, they do not explicitly model the movement and collision of the robots or the status change of the chutes.
+One work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib1" title="">1</a>]</cite> considers task mapping by modeling the maximum number of packages the sortation floor can handle, but it does not consider the movement and collision of the robots.
+The MAPF community has simulated the movement of the robots in RSS using state-of-the-art lifelong MAPF algorithms <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib15" title="">15</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib25" title="">25</a>]</cite>, but they do not consider the status change of the chutes or movement of the human workers on the shipping floor.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S2.p5">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Task Mapping Optimization.</span>
+To the best of the authors’ knowledge, very few works have attempted to develop automatic optimization methods to optimize task mappings.
+One related work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib1" title="">1</a>]</cite> optimizes a <em class="ltx_emph ltx_font_italic">dynamic</em> task mapping by training a Multi-Agent Reinforcement Learning (MARL) policy to dynamically determine the number of chutes that should be mapped to each destination.
+They then use a handcrafted rule to generate task mappings based on the determined numbers. The trained MARL policy dynamically adapts the number of chutes every hour during the execution of RSS, making the optimized task mapping dynamic. Our work is different in several ways.
+First, we optimize the task mappings directly, instead of indirectly by optimizing the numbers of chutes for each destination.
+Second, we consider all chutes while optimizing task mappings, while they keep the mapping of part of the chutes fixed.
+Third, we focus on optimizing <em class="ltx_emph ltx_font_italic">static</em>, instead of dynamic, task mappings. In real-world RSS, it is challenging to change the task mapping frequently because of the downstream dependencies on the shipping floor.
+Fourth, their simulator does not model the movement and collisions of the robots. In addition, we cannot compare with their approach because the handcrafted rule used to generate a task mapping based on the number of chutes assigned to each destination is not published.</p>
+</div>
+</section>
+<section class="ltx_section" id="S3">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">III </span><span class="ltx_text ltx_font_smallcaps">Problem Definition</span>
+</h2>
+<div class="ltx_para" id="S3.p1">
+<p class="ltx_p">We formally define task mappings and the problem of Task Mapping Optimization (TMO).
+</p>
+</div>
+<div class="ltx_theorem ltx_theorem_definition" id="Thmdefinition1">
+<h6 class="ltx_title ltx_runin ltx_title_theorem">
+<span class="ltx_tag ltx_tag_theorem"><span class="ltx_text ltx_font_bold">Definition 1</span></span><span class="ltx_text ltx_font_bold"> (Task Mapping and TMO)</span>
+</h6>
+<div class="ltx_para" id="Thmdefinition1.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_italic">Given <math alttext="M" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m1" intent=":literal"><semantics><mi>M</mi><annotation encoding="application/x-tex">M</annotation></semantics></math> chutes <math alttext="C=\{c_{1},...,c_{M}\}" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m2" intent=":literal"><semantics><mrow><mi>C</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>c</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>c</mi><mi>M</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">C=\{c_{1},...,c_{M}\}</annotation></semantics></math> and <math alttext="N" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m3" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> destinations <math alttext="D=\{d_{1},...,d_{N}\}" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m4" intent=":literal"><semantics><mrow><mi>D</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>d</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>d</mi><mi>N</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">D=\{d_{1},...,d_{N}\}</annotation></semantics></math> (<math alttext="M\geq N" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m5" intent=":literal"><semantics><mrow><mi>M</mi><mo>≥</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">M\geq N</annotation></semantics></math>), a task mapping is a function <math alttext="\theta:D\rightarrow\mathcal{P}(C)" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m6" intent=":literal"><semantics><mrow><mi>θ</mi><mo lspace="0.278em" rspace="0.278em">:</mo><mrow><mi>D</mi><mo stretchy="false">→</mo><mrow><mi class="ltx_font_mathcaligraphic">𝒫</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mi>C</mi><mo stretchy="false">)</mo></mrow></mrow></mrow></mrow><annotation encoding="application/x-tex">\theta:D\rightarrow\mathcal{P}(C)</annotation></semantics></math>, where
+<math alttext="\mathcal{P}" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m7" intent=":literal"><semantics><mi class="ltx_font_mathcaligraphic">𝒫</mi><annotation encoding="application/x-tex">\mathcal{P}</annotation></semantics></math> is the power set of <math alttext="C" class="ltx_Math" display="inline" id="Thmdefinition1.p1.m8" intent=":literal"><semantics><mi>C</mi><annotation encoding="application/x-tex">C</annotation></semantics></math>. A task mapping is <em class="ltx_emph ltx_font_upright">valid</em> if and only if (1) each destination is mapped to <em class="ltx_emph ltx_font_upright">at least</em> 1 chute, and (2) each chute is mapped to <em class="ltx_emph ltx_font_upright">exactly</em> 1 destination. A valid task mapping is <em class="ltx_emph ltx_font_upright">optimal</em> if it maximizes the <em class="ltx_emph ltx_font_upright">throughput</em> of the RSS, defined as the number of tasks finished by all robots per timestep. The problem of Task Mapping Optimization (TMO) attempts to search for the optimal task mapping.</span></p>
+</div>
+</div>
+<div class="ltx_para" id="S3.p2">
+<p class="ltx_p">We require <math alttext="M\geq N" class="ltx_Math" display="inline" id="S3.p2.m1" intent=":literal"><semantics><mrow><mi>M</mi><mo>≥</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">M\geq N</annotation></semantics></math> because a valid task mapping requires each chute to be mapped to exactly 1 destination. This constraint cannot be satisfied if there are fewer chutes than destinations. In fact, in real-world RSS, it is common to have more chutes than destinations, because one destination in RSS may map to a range of shipping locations.</p>
+</div>
+</section>
+<section class="ltx_section" id="S4">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">IV </span><span class="ltx_text ltx_font_smallcaps">Robotic Sorting System</span>
+</h2>
+<div class="ltx_para" id="S4.p1">
+<p class="ltx_p">We present our simulator used to evaluate the throughput of a given task mapping. <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S1.F1" title="In I Introduction ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1</span></a> shows the overview.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.p2">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Robot Coordination.</span>
+Our robot model follows the standard MAPF model <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib18" title="">18</a>]</cite>. Robots move on a 4-connected grid graph <math alttext="G(V,E)" class="ltx_Math" display="inline" id="S4.p2.m1" intent=":literal"><semantics><mrow><mi>G</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mi>V</mi><mo>,</mo><mi>E</mi><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">G(V,E)</annotation></semantics></math> exemplified in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S1.F1" title="In I Introduction ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1</span></a>(a), where each cell represents a vertex. We discretize time into timesteps, and each robot can either move to an adjacent vertex or wait at the current vertex at each timestep. Two robots collide if they move to the same vertex or swap vertices at the same timestep. We use PIBT <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib21" title="">21</a>]</cite> as the robot coordination algorithm in our RSS simulator because it can coordinate thousands of robots within seconds <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib25" title="">25</a>]</cite>.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.p3">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Target Assignment.</span>
+We follow the previous work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>]</cite> to use a simple greedy TA policy.
+Specifically, given a set of available targets <math alttext="T\subseteq V" class="ltx_Math" display="inline" id="S4.p3.m1" intent=":literal"><semantics><mrow><mi>T</mi><mo>⊆</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">T\subseteq V</annotation></semantics></math>, a robot selects the target <math alttext="g\in T" class="ltx_Math" display="inline" id="S4.p3.m2" intent=":literal"><semantics><mrow><mi>g</mi><mo>∈</mo><mi>T</mi></mrow><annotation encoding="application/x-tex">g\in T</annotation></semantics></math> that minimizes <math alttext="L(v,g)+\alpha N_{r}(g)" class="ltx_Math" display="inline" id="S4.p3.m3" intent=":literal"><semantics><mrow><mrow><mi>L</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mi>v</mi><mo>,</mo><mi>g</mi><mo stretchy="false">)</mo></mrow></mrow><mo>+</mo><mrow><mi>α</mi><mo lspace="0em" rspace="0em">​</mo><msub><mi>N</mi><mi>r</mi></msub><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mi>g</mi><mo stretchy="false">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">L(v,g)+\alpha N_{r}(g)</annotation></semantics></math>, where
+<math alttext="v\in V" class="ltx_Math" display="inline" id="S4.p3.m4" intent=":literal"><semantics><mrow><mi>v</mi><mo>∈</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">v\in V</annotation></semantics></math> is the current vertex of the robot,
+<math alttext="L:V\times V\rightarrow\mathbb{R}" class="ltx_Math" display="inline" id="S4.p3.m5" intent=":literal"><semantics><mrow><mi>L</mi><mo lspace="0.278em" rspace="0.278em">:</mo><mrow><mrow><mi>V</mi><mo lspace="0.222em" rspace="0.222em">×</mo><mi>V</mi></mrow><mo stretchy="false">→</mo><mi>ℝ</mi></mrow></mrow><annotation encoding="application/x-tex">L:V\times V\rightarrow\mathbb{R}</annotation></semantics></math> computes the shortest path length between two vertices in <math alttext="G" class="ltx_Math" display="inline" id="S4.p3.m6" intent=":literal"><semantics><mi>G</mi><annotation encoding="application/x-tex">G</annotation></semantics></math>,
+<math alttext="N_{r}:T\rightarrow\mathbb{N}" class="ltx_Math" display="inline" id="S4.p3.m7" intent=":literal"><semantics><mrow><msub><mi>N</mi><mi>r</mi></msub><mo lspace="0.278em" rspace="0.278em">:</mo><mrow><mi>T</mi><mo stretchy="false">→</mo><mi>ℕ</mi></mrow></mrow><annotation encoding="application/x-tex">N_{r}:T\rightarrow\mathbb{N}</annotation></semantics></math> returns the number of robots traveling to each target in <math alttext="T" class="ltx_Math" display="inline" id="S4.p3.m8" intent=":literal"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>, and <math alttext="\alpha" class="ltx_Math" display="inline" id="S4.p3.m9" intent=":literal"><semantics><mi>α</mi><annotation encoding="application/x-tex">\alpha</annotation></semantics></math> is a hyperparameter. We consider the workstations and endpoints around the <em class="ltx_emph ltx_font_italic">OPEN</em> chutes as the targets. The function <math alttext="N_{r}" class="ltx_Math" display="inline" id="S4.p3.m10" intent=":literal"><semantics><msub><mi>N</mi><mi>r</mi></msub><annotation encoding="application/x-tex">N_{r}</annotation></semantics></math> is an estimate of the expected traffic congestion around each target. Intuitively, the greedy TA policy selects the target by balancing the travel distances of the robots and the traffic congestion around the available targets. In all our simulator, we follow the previous work <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib8" title="">8</a>]</cite> to use <math alttext="\alpha=8" class="ltx_Math" display="inline" id="S4.p3.m11" intent=":literal"><semantics><mrow><mi>α</mi><mo>=</mo><mn>8</mn></mrow><annotation encoding="application/x-tex">\alpha=8</annotation></semantics></math>.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.p4">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Picking and Dropping Packages.</span>
+As shown in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S1.F1" title="In I Introduction ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1</span></a>(b), each robot picks up a package at a workstation and decides on an endpoint to go to.
+Given a task mapping <math alttext="\theta" class="ltx_Math" display="inline" id="S4.p4.m1" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>, each robot picks up a package of destination <math alttext="d" class="ltx_Math" display="inline" id="S4.p4.m2" intent=":literal"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math> and maps <math alttext="d" class="ltx_Math" display="inline" id="S4.p4.m3" intent=":literal"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math> to a set of chutes <math alttext="C_{sub}=\theta(d)" class="ltx_Math" display="inline" id="S4.p4.m4" intent=":literal"><semantics><mrow><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi></mrow></msub><mo>=</mo><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">C_{sub}=\theta(d)</annotation></semantics></math>. If at least one chute in <math alttext="C_{sub}" class="ltx_Math" display="inline" id="S4.p4.m5" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi></mrow></msub><annotation encoding="application/x-tex">C_{sub}</annotation></semantics></math> is <em class="ltx_emph ltx_font_italic">OPEN</em>, the robot selects one of the endpoints around chutes in <math alttext="C_{sub}" class="ltx_Math" display="inline" id="S4.p4.m6" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi></mrow></msub><annotation encoding="application/x-tex">C_{sub}</annotation></semantics></math> based on the TA policy. If all chutes in <math alttext="C_{sub}" class="ltx_Math" display="inline" id="S4.p4.m7" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi></mrow></msub><annotation encoding="application/x-tex">C_{sub}</annotation></semantics></math> are <em class="ltx_emph ltx_font_italic">CLOSED</em>, robots must travel to a set of <em class="ltx_emph ltx_font_italic">recirculation chutes</em> <math alttext="C_{rec}" class="ltx_Math" display="inline" id="S4.p4.m8" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>r</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{rec}</annotation></semantics></math>. Packages that go to <math alttext="C_{rec}" class="ltx_Math" display="inline" id="S4.p4.m9" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>r</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{rec}</annotation></semantics></math> will be redirected to the workstations to be sorted again. A package is <em class="ltx_emph ltx_font_italic">sorted</em> if it is correctly dropped into a non-recirculation chute. Otherwise, it is <em class="ltx_emph ltx_font_italic">recirculated</em>.
+While computing throughput, we ignore the recirculated packages.
+After moving to the selected endpoint and dropping the package, the robot uses the TA policy to select the next target workstation, as shown in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S1.F1" title="In I Introduction ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1</span></a>(d). We optimize which chutes are assigned to <math alttext="C_{rec}" class="ltx_Math" display="inline" id="S4.p4.m10" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>r</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{rec}</annotation></semantics></math> by considering “recirculation” as an additional destination.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.p5">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Chute Status Change.</span>
+<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S1.F1" title="In I Introduction ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">1</span></a>(c) shows the status change of the chutes. Initially, all chutes are <em class="ltx_emph ltx_font_italic">OPEN</em>. After <math alttext="N_{p}" class="ltx_Math" display="inline" id="S4.p5.m1" intent=":literal"><semantics><msub><mi>N</mi><mi>p</mi></msub><annotation encoding="application/x-tex">N_{p}</annotation></semantics></math> packages are dropped into a chute <math alttext="c" class="ltx_Math" display="inline" id="S4.p5.m2" intent=":literal"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>, it is <em class="ltx_emph ltx_font_italic">CLOSED</em> as workers on the lower shipping floor need to process the packages. <math alttext="c" class="ltx_Math" display="inline" id="S4.p5.m3" intent=":literal"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math> must remain <em class="ltx_emph ltx_font_italic">CLOSED</em> for <math alttext="S_{c}" class="ltx_Math" display="inline" id="S4.p5.m4" intent=":literal"><semantics><msub><mi>S</mi><mi>c</mi></msub><annotation encoding="application/x-tex">S_{c}</annotation></semantics></math> timesteps.
+Since modeling the movement of human workers explicitly on the shipping floor overkills the simulator, we greedily estimate <math alttext="S_{c}" class="ltx_Math" display="inline" id="S4.p5.m5" intent=":literal"><semantics><msub><mi>S</mi><mi>c</mi></msub><annotation encoding="application/x-tex">S_{c}</annotation></semantics></math> using a handcrafted equation.
+We compute <math alttext="S_{c}" class="ltx_Math" display="inline" id="S4.p5.m6" intent=":literal"><semantics><msub><mi>S</mi><mi>c</mi></msub><annotation encoding="application/x-tex">S_{c}</annotation></semantics></math> based on how clustered chutes of the same destination are on the sortation floor. Specifically, suppose <math alttext="d_{c}" class="ltx_Math" display="inline" id="S4.p5.m7" intent=":literal"><semantics><msub><mi>d</mi><mi>c</mi></msub><annotation encoding="application/x-tex">d_{c}</annotation></semantics></math> is the destination of <math alttext="c" class="ltx_Math" display="inline" id="S4.p5.m8" intent=":literal"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>, we first obtain <math alttext="C_{sub\_c}=\theta(d_{c})" class="ltx_Math" display="inline" id="S4.p5.m9" intent=":literal"><semantics><mrow><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi mathvariant="normal">_</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><mo>=</mo><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>c</mi></msub><mo stretchy="false">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">C_{sub\_c}=\theta(d_{c})</annotation></semantics></math>, the set of chutes mapped to <math alttext="d_{c}" class="ltx_Math" display="inline" id="S4.p5.m10" intent=":literal"><semantics><msub><mi>d</mi><mi>c</mi></msub><annotation encoding="application/x-tex">d_{c}</annotation></semantics></math>. To quantify how clustered chutes in <math alttext="C_{sub\_c}" class="ltx_Math" display="inline" id="S4.p5.m11" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi mathvariant="normal">_</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{sub\_c}</annotation></semantics></math> are, we compute the <em class="ltx_emph ltx_font_italic">centroid</em> of <math alttext="C_{sub\_c}" class="ltx_Math" display="inline" id="S4.p5.m12" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi mathvariant="normal">_</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{sub\_c}</annotation></semantics></math> by averaging their coordinates. We then compute the <em class="ltx_emph ltx_font_italic">centroid distance</em> <math alttext="x_{c}" class="ltx_Math" display="inline" id="S4.p5.m13" intent=":literal"><semantics><msub><mi>x</mi><mi>c</mi></msub><annotation encoding="application/x-tex">x_{c}</annotation></semantics></math> as the average Euclidean distance between every chute in <math alttext="C_{sub\_c}" class="ltx_Math" display="inline" id="S4.p5.m14" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi mathvariant="normal">_</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{sub\_c}</annotation></semantics></math> and the centroid.
+To compute <math alttext="S_{c}" class="ltx_Math" display="inline" id="S4.p5.m15" intent=":literal"><semantics><msub><mi>S</mi><mi>c</mi></msub><annotation encoding="application/x-tex">S_{c}</annotation></semantics></math>, we first use a monotonically increasing function <math alttext="s:\mathbb{R}\rightarrow\mathbb{R}" class="ltx_Math" display="inline" id="S4.p5.m16" intent=":literal"><semantics><mrow><mi>s</mi><mo lspace="0.278em" rspace="0.278em">:</mo><mrow><mi>ℝ</mi><mo stretchy="false">→</mo><mi>ℝ</mi></mrow></mrow><annotation encoding="application/x-tex">s:\mathbb{R}\rightarrow\mathbb{R}</annotation></semantics></math> to compute the <em class="ltx_emph ltx_font_italic">minimal</em> time the chute must be <em class="ltx_emph ltx_font_italic">CLOSED</em>.
+The more scattered the chutes in <math alttext="C_{sub\_c}" class="ltx_Math" display="inline" id="S4.p5.m17" intent=":literal"><semantics><msub><mi>C</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi mathvariant="normal">_</mi><mo lspace="0em" rspace="0em">​</mo><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{sub\_c}</annotation></semantics></math> are, the more time workers on the shipping floor need to process the packages, the longer the chutes must remain <em class="ltx_emph ltx_font_italic">CLOSED</em>. Furthermore, the process time of the packages incurs stochasticity, so we sample from an exponential distribution <math alttext="\epsilon\sim Exp(\beta)" class="ltx_Math" display="inline" id="S4.p5.m18" intent=":literal"><semantics><mrow><mi>ϵ</mi><mo>∼</mo><mrow><mi>E</mi><mo lspace="0em" rspace="0em">​</mo><mi>x</mi><mo lspace="0em" rspace="0em">​</mo><mi>p</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\epsilon\sim Exp(\beta)</annotation></semantics></math> for an <em class="ltx_emph ltx_font_italic">additional</em> amount of package processing time, resulting in a total <em class="ltx_emph ltx_font_italic">CLOSED</em> time of <math alttext="S_{c}=\lfloor s(x_{c})+\epsilon\rfloor" class="ltx_Math" display="inline" id="S4.p5.m19" intent=":literal"><semantics><mrow><msub><mi>S</mi><mi>c</mi></msub><mo>=</mo><mrow><mo stretchy="false">⌊</mo><mrow><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>x</mi><mi>c</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo>+</mo><mi>ϵ</mi></mrow><mo stretchy="false">⌋</mo></mrow></mrow><annotation encoding="application/x-tex">S_{c}=\lfloor s(x_{c})+\epsilon\rfloor</annotation></semantics></math>. We use <math alttext="N_{p}=50" class="ltx_Math" display="inline" id="S4.p5.m20" intent=":literal"><semantics><mrow><msub><mi>N</mi><mi>p</mi></msub><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">N_{p}=50</annotation></semantics></math>, <math alttext="s=2x_{c}^{2}+50" class="ltx_Math" display="inline" id="S4.p5.m21" intent=":literal"><semantics><mrow><mi>s</mi><mo>=</mo><mrow><mrow><mn>2</mn><mo lspace="0em" rspace="0em">​</mo><msubsup><mi>x</mi><mi>c</mi><mn>2</mn></msubsup></mrow><mo>+</mo><mn>50</mn></mrow></mrow><annotation encoding="application/x-tex">s=2x_{c}^{2}+50</annotation></semantics></math>, and <math alttext="\beta=100" class="ltx_Math" display="inline" id="S4.p5.m22" intent=":literal"><semantics><mrow><mi>β</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">\beta=100</annotation></semantics></math>, modeling a minimal package processing time of 50 timesteps, and an average additional time of 100 timesteps.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S4.p6">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Distribution of Destinations.</span>
+The distribution of the destination of the packages significantly affects the resulting task mappings. For example, high-volume destinations (e.g., Los Angeles) should be mapped to more chutes than low-volume ones (e.g., Pittsburgh). Usually, packages of a small number of high-volume destinations consist of a large portion of all packages.
+Therefore, we adapt the 7:2:1 distribution used in RMFS from the previous works <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib35" title="">35</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib36" title="">36</a>]</cite> to RSS, where 70%, 20%, and 10% of the destinations are sampled 10%, 20%, and 70% of the times, respectively.</p>
+</div>
+</section>
+<section class="ltx_section" id="S5">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">V </span><span class="ltx_text ltx_font_smallcaps">Task Mapping Optimization</span>
+</h2>
+<div class="ltx_para" id="S5.p1">
+<p class="ltx_p">Given that the RSS simulator is a non-differentiable black-box function,
+we present an automatic task mapping optimization method based on the <math alttext="(1+\lambda)" class="ltx_Math" display="inline" id="S5.p1.m1" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><mrow><mn>1</mn><mo>+</mo><mi>λ</mi></mrow><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(1+\lambda)</annotation></semantics></math> Evolutionary Algorithm (EA) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib37" title="">37</a>]</cite>.
+After initializing a population of <math alttext="\lambda" class="ltx_Math" display="inline" id="S5.p1.m2" intent=":literal"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math> task mappings (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.SS1" title="V-A Initialization ‣ V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">V-A</span></a>), EA maintains the population by iteratively undergoing selection, mutation, and evaluation to search for high-throughput task mappings. In each iteration, the one task mapping with the highest throughput is selected for mutation (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.SS2" title="V-B Mutation ‣ V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">V-B</span></a>). We evaluate a given task mapping by running <math alttext="N_{e}" class="ltx_Math" display="inline" id="S5.p1.m3" intent=":literal"><semantics><msub><mi>N</mi><mi>e</mi></msub><annotation encoding="application/x-tex">N_{e}</annotation></semantics></math> simulation in our RSS simulator for <math alttext="N_{T}" class="ltx_Math" display="inline" id="S5.p1.m4" intent=":literal"><semantics><msub><mi>N</mi><mi>T</mi></msub><annotation encoding="application/x-tex">N_{T}</annotation></semantics></math> timesteps and compute the average throughput as the objective.
+We use a MILP solver to enforce validity constraints on the mutated task mappings (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.SS3" title="V-C MILP ‣ V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">V-C</span></a>). We stop EA when we have evaluated <math alttext="N_{eval}" class="ltx_Math" display="inline" id="S5.p1.m5" intent=":literal"><semantics><msub><mi>N</mi><mrow><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>v</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>l</mi></mrow></msub><annotation encoding="application/x-tex">N_{eval}</annotation></semantics></math> task mappings.</p>
+</div>
+<section class="ltx_subsection" id="S5.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-A </span><span class="ltx_text ltx_font_italic">Initialization</span>
+</h3>
+<div class="ltx_para" id="S5.SS1.p1">
+<p class="ltx_p">Having a good initial set of solutions is critical for EA to search for high-throughput task mappings.
+Our EA utilizes three initialization strategies based on different approximate objectives that are correlated to throughput.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S5.SS1.p2">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Sampling from the Distribution of Destinations.</span> Intuitively, the more packages a destination is expected to have, the more chutes are required to absorb those packages. Therefore, a basic initialization technique is sampling a destination from the distribution of destinations for each chute. This method ensures the number of chutes assigned to each destination is proportional to the volume of the destination, but it does not explicitly optimize the mapping between chutes and destinations.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S5.SS1.p3">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Min-dist Greedy Initialization.</span>
+This technique generates a task mapping by greedily assigning high-volume destinations to chutes closer to workstations. Chutes with high-volume destinations are more frequently visited by the robots. Therefore, placing such chutes closer to the workstations allows more robots to travel shorter distances, thereby potentially improving throughput. This optimizer focuses on optimizing the movement of the robots on the sortation floor.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S5.SS1.p4">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Cluster Greedy Initialization.</span>
+This technique assigns chutes of the same destination closer to each other. This reduces the movement time of the human workers on the lower shipping floor, which in turn reduces the CLOSED time of chutes.
+The sooner the <em class="ltx_emph ltx_font_italic">CLOSED</em> chutes can be <em class="ltx_emph ltx_font_italic">OPEN</em> again to accept packages, the more candidate targets the robots have, thereby balancing the traffic on the sortation floor.</p>
+</div>
+<div class="ltx_para" id="S5.SS1.p5">
+<p class="ltx_p">We design the above initialization methods such that the generated task mappings are guaranteed to be valid. With a population size of <math alttext="\lambda" class="ltx_Math" display="inline" id="S5.SS1.p5.m1" intent=":literal"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>, our initial population consists of <math alttext="\lambda-2" class="ltx_Math" display="inline" id="S5.SS1.p5.m2" intent=":literal"><semantics><mrow><mi>λ</mi><mo>−</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">\lambda-2</annotation></semantics></math> task mappings randomly sampled from the distribution of destinations as well as 2 task mappings from the min-dist and cluster greedy initializations, respectively. The pseudocode and detailed discussion of the initialization methods are included in Appendix <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#A1" title="Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">A</span></a>.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S5.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-B </span><span class="ltx_text ltx_font_italic">Mutation</span>
+</h3>
+<div class="ltx_para" id="S5.SS2.p1">
+<p class="ltx_p">Inspired by prior works <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib38" title="">38</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib39" title="">39</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib26" title="">26</a>]</cite>, we mutate a selected task mapping by randomly replacing the destination mapped to each chute. Specifically, we randomly select <math alttext="k" class="ltx_Math" display="inline" id="S5.SS2.p1.m1" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> chutes <math alttext="\{c^{(1)},...,c^{(k)}\}\subseteq C" class="ltx_Math" display="inline" id="S5.SS2.p1.m2" intent=":literal"><semantics><mrow><mrow><mo stretchy="false">{</mo><msup><mi>c</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msup><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msup><mi>c</mi><mrow><mo stretchy="false">(</mo><mi>k</mi><mo stretchy="false">)</mo></mrow></msup><mo stretchy="false">}</mo></mrow><mo>⊆</mo><mi>C</mi></mrow><annotation encoding="application/x-tex">\{c^{(1)},...,c^{(k)}\}\subseteq C</annotation></semantics></math>, where <math alttext="k" class="ltx_Math" display="inline" id="S5.SS2.p1.m3" intent=":literal"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> is sampled from a geometric distribution <math alttext="P(X=k)=(1-p)^{k-1}p" class="ltx_Math" display="inline" id="S5.SS2.p1.m4" intent=":literal"><semantics><mrow><mrow><mi>P</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mrow><mi>X</mi><mo>=</mo><mi>k</mi></mrow><mo stretchy="false">)</mo></mrow></mrow><mo>=</mo><mrow><msup><mrow><mo stretchy="false">(</mo><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow><mo stretchy="false">)</mo></mrow><mrow><mi>k</mi><mo>−</mo><mn>1</mn></mrow></msup><mo lspace="0em" rspace="0em">​</mo><mi>p</mi></mrow></mrow><annotation encoding="application/x-tex">P(X=k)=(1-p)^{k-1}p</annotation></semantics></math> with <math alttext="p=\frac{1}{2}" class="ltx_Math" display="inline" id="S5.SS2.p1.m5" intent=":literal"><semantics><mrow><mi>p</mi><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tex">p=\frac{1}{2}</annotation></semantics></math>. For each selected chute <math alttext="c^{(j)},1\leq j\leq k" class="ltx_Math" display="inline" id="S5.SS2.p1.m6" intent=":literal"><semantics><mrow><mrow><msup><mi>c</mi><mrow><mo stretchy="false">(</mo><mi>j</mi><mo stretchy="false">)</mo></mrow></msup><mo>,</mo><mn>1</mn></mrow><mo>≤</mo><mi>j</mi><mo>≤</mo><mi>k</mi></mrow><annotation encoding="application/x-tex">c^{(j)},1\leq j\leq k</annotation></semantics></math>, we replace the destination originally mapped to <math alttext="c^{(j)}" class="ltx_Math" display="inline" id="S5.SS2.p1.m7" intent=":literal"><semantics><msup><mi>c</mi><mrow><mo stretchy="false">(</mo><mi>j</mi><mo stretchy="false">)</mo></mrow></msup><annotation encoding="application/x-tex">c^{(j)}</annotation></semantics></math> with a random one. If the mutated task mappings are invalid, we use the following MILP solver to repair them.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S5.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-C </span><span class="ltx_text ltx_font_italic">MILP</span>
+</h3>
+<div class="ltx_para" id="S5.SS3.p1">
+<p class="ltx_p">Inspired by prior works <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib40" title="">40</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib39" title="">39</a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib26" title="">26</a>]</cite>, the MILP solver maps an arbitrary task mapping <math alttext="\theta" class="ltx_Math" display="inline" id="S5.SS3.p1.m1" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math> to a valid task mapping <math alttext="\theta^{\prime}" class="ltx_Math" display="inline" id="S5.SS3.p1.m2" intent=":literal"><semantics><msup><mi>θ</mi><mo>′</mo></msup><annotation encoding="application/x-tex">\theta^{\prime}</annotation></semantics></math> with minimal modifications to <math alttext="\theta" class="ltx_Math" display="inline" id="S5.SS3.p1.m3" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>.
+Given <math alttext="M" class="ltx_Math" display="inline" id="S5.SS3.p1.m4" intent=":literal"><semantics><mi>M</mi><annotation encoding="application/x-tex">M</annotation></semantics></math> chutes <math alttext="\{c_{1},...,c_{M}\}" class="ltx_Math" display="inline" id="S5.SS3.p1.m5" intent=":literal"><semantics><mrow><mo stretchy="false">{</mo><msub><mi>c</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>c</mi><mi>M</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{c_{1},...,c_{M}\}</annotation></semantics></math> and <math alttext="N" class="ltx_Math" display="inline" id="S5.SS3.p1.m6" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> destinations <math alttext="\{d_{1},...,d_{N}\}" class="ltx_Math" display="inline" id="S5.SS3.p1.m7" intent=":literal"><semantics><mrow><mo stretchy="false">{</mo><msub><mi>d</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>d</mi><mi>N</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{d_{1},...,d_{N}\}</annotation></semantics></math> with their volumes <math alttext="V=\{v_{1},...,v_{N}\}" class="ltx_Math" display="inline" id="S5.SS3.p1.m8" intent=":literal"><semantics><mrow><mi>V</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>v</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>v</mi><mi>N</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">V=\{v_{1},...,v_{N}\}</annotation></semantics></math>, we define <math alttext="M\times N" class="ltx_Math" display="inline" id="S5.SS3.p1.m9" intent=":literal"><semantics><mrow><mi>M</mi><mo lspace="0.222em" rspace="0.222em">×</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">M\times N</annotation></semantics></math> integer variables <math alttext="e_{ij}\in\{0,1\},\forall i\in\{1,...,M\},j\in\{1,...,N\}" class="ltx_Math" display="inline" id="S5.SS3.p1.m10" intent=":literal"><semantics><mrow><mrow><msub><mi>e</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false">}</mo></mrow></mrow><mo>,</mo><mrow><mrow><mrow><mo rspace="0.167em">∀</mo><mi>i</mi></mrow><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><mi>M</mi><mo stretchy="false">}</mo></mrow></mrow><mo>,</mo><mrow><mi>j</mi><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><mi>N</mi><mo stretchy="false">}</mo></mrow></mrow></mrow></mrow><annotation encoding="application/x-tex">e_{ij}\in\{0,1\},\forall i\in\{1,...,M\},j\in\{1,...,N\}</annotation></semantics></math>, s.t. each variable <math alttext="e_{ij}" class="ltx_Math" display="inline" id="S5.SS3.p1.m11" intent=":literal"><semantics><msub><mi>e</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">e_{ij}</annotation></semantics></math> corresponds to whether we include the mapping from chute <math alttext="i" class="ltx_Math" display="inline" id="S5.SS3.p1.m12" intent=":literal"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> to destination <math alttext="j" class="ltx_Math" display="inline" id="S5.SS3.p1.m13" intent=":literal"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>.
+Suppose <math alttext="\theta" class="ltx_Math" display="inline" id="S5.SS3.p1.m14" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math> is represented as <math alttext="\{e_{ij}^{(0)}|i\in\{1,...,M\},j\in\{1,...,N\}\}" class="ltx_Math" display="inline" id="S5.SS3.p1.m15" intent=":literal"><semantics><mrow><mo stretchy="false">{</mo><msubsup><mi>e</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow><mrow><mo stretchy="false">(</mo><mn>0</mn><mo stretchy="false">)</mo></mrow></msubsup><mo lspace="0em" rspace="0em">|</mo><mrow><mrow><mi>i</mi><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><mi>M</mi><mo stretchy="false">}</mo></mrow></mrow><mo>,</mo><mrow><mi>j</mi><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><mi>N</mi><mo stretchy="false">}</mo></mrow></mrow></mrow><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{e_{ij}^{(0)}|i\in\{1,...,M\},j\in\{1,...,N\}\}</annotation></semantics></math>, the objective minimizes the Hamming distance between <math alttext="\theta" class="ltx_Math" display="inline" id="S5.SS3.p1.m16" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math> and <math alttext="\theta^{\prime}" class="ltx_Math" display="inline" id="S5.SS3.p1.m17" intent=":literal"><semantics><msup><mi>θ</mi><mo>′</mo></msup><annotation encoding="application/x-tex">\theta^{\prime}</annotation></semantics></math>:</p>
+</div>
+<div class="ltx_para" id="S5.SS3.p2">
+<table class="ltx_equation ltx_eqn_table" id="S5.E1">
+<tbody><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_eqn_cell ltx_align_center"><math alttext="\min\sum_{i=1}^{M}\sum_{j=1}^{N}|e_{ij}-e_{ij}^{(0)}|." class="ltx_Math" display="block" id="S5.E1.m1" intent=":literal"><semantics><mrow><mrow><mi>min</mi><mo lspace="0em" rspace="0em">​</mo><mrow><munderover><mo movablelimits="false" rspace="0em">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>M</mi></munderover><mrow><munderover><mo movablelimits="false" rspace="0em">∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mrow><mo stretchy="false">|</mo><mrow><msub><mi>e</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub><mo>−</mo><msubsup><mi>e</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow><mrow><mo stretchy="false">(</mo><mn>0</mn><mo stretchy="false">)</mo></mrow></msubsup></mrow><mo stretchy="false">|</mo></mrow></mrow></mrow></mrow><mo lspace="0em">.</mo></mrow><annotation encoding="application/x-tex">\min\sum_{i=1}^{M}\sum_{j=1}^{N}|e_{ij}-e_{ij}^{(0)}|.</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+<td class="ltx_eqn_cell ltx_eqn_eqno ltx_align_middle ltx_align_right" rowspan="1"><span class="ltx_tag ltx_tag_equation ltx_align_right">(1)</span></td>
+</tr></tbody>
+</table>
+</div>
+<div class="ltx_para" id="S5.SS3.p3">
+<p class="ltx_p">To ensure <math alttext="\theta^{\prime}" class="ltx_Math" display="inline" id="S5.SS3.p3.m1" intent=":literal"><semantics><msup><mi>θ</mi><mo>′</mo></msup><annotation encoding="application/x-tex">\theta^{\prime}</annotation></semantics></math> is valid, we include the following constraints:</p>
+</div>
+<div class="ltx_para" id="S5.SS3.p4">
+<table class="ltx_equationgroup ltx_eqn_align ltx_eqn_table" id="A2.EGx1">
+<tbody id="S5.E2"><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_td ltx_align_right ltx_eqn_cell"><math alttext="\displaystyle\forall i\in\{1,\cdots,M\},\sum_{j=1}^{N}e_{ij}=1." class="ltx_Math" display="inline" id="S5.E2.m1" intent=":literal"><semantics><mrow><mrow><mrow><mrow><mo rspace="0.167em">∀</mo><mi>i</mi></mrow><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">⋯</mi><mo>,</mo><mi>M</mi><mo stretchy="false">}</mo></mrow></mrow><mo>,</mo><mrow><mrow><mstyle displaystyle="true"><munderover><mo movablelimits="false">∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover></mstyle><msub><mi>e</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub></mrow><mo>=</mo><mn>1</mn></mrow></mrow><mo lspace="0em">.</mo></mrow><annotation encoding="application/x-tex">\displaystyle\forall i\in\{1,\cdots,M\},\sum_{j=1}^{N}e_{ij}=1.</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+<td class="ltx_eqn_cell ltx_eqn_eqno ltx_align_middle ltx_align_right" rowspan="1"><span class="ltx_tag ltx_tag_equation ltx_align_right">(2)</span></td>
+</tr></tbody>
+<tbody id="S5.E3"><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_td ltx_align_right ltx_eqn_cell"><math alttext="\displaystyle\forall j\in\{1,\cdots,N\},1\leq\sum_{i=1}^{M}e_{ij}\leq U_{j}" class="ltx_Math" display="inline" id="S5.E3.m1" intent=":literal"><semantics><mrow><mrow><mrow><mo rspace="0.167em">∀</mo><mi>j</mi></mrow><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">⋯</mi><mo>,</mo><mi>N</mi><mo stretchy="false">}</mo></mrow></mrow><mo>,</mo><mrow><mn>1</mn><mo>≤</mo><mrow><mstyle displaystyle="true"><munderover><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>M</mi></munderover></mstyle><msub><mi>e</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub></mrow><mo>≤</mo><msub><mi>U</mi><mi>j</mi></msub></mrow></mrow><annotation encoding="application/x-tex">\displaystyle\forall j\in\{1,\cdots,N\},1\leq\sum_{i=1}^{M}e_{ij}\leq U_{j}</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+<td class="ltx_eqn_cell ltx_eqn_eqno ltx_align_middle ltx_align_right" rowspan="1"><span class="ltx_tag ltx_tag_equation ltx_align_right">(3)</span></td>
+</tr></tbody>
+<tbody id="S5.E4"><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_td ltx_align_right ltx_eqn_cell"><math alttext="\displaystyle\forall j\in\{1,\cdots,N\},U_{j}=\max(1,\delta\cdot M\cdot\frac{v_{j}}{\sum_{j^{\prime}=1}^{N}v_{j^{\prime}}})." class="ltx_Math" display="inline" id="S5.E4.m1" intent=":literal"><semantics><mrow><mrow><mrow><mrow><mo rspace="0.167em">∀</mo><mi>j</mi></mrow><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">⋯</mi><mo>,</mo><mi>N</mi><mo stretchy="false">}</mo></mrow></mrow><mo>,</mo><mrow><msub><mi>U</mi><mi>j</mi></msub><mo>=</mo><mrow><mi>max</mi><mo>⁡</mo><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>,</mo><mrow><mi>δ</mi><mo lspace="0.222em" rspace="0.222em">⋅</mo><mi>M</mi><mo lspace="0.222em" rspace="0.222em">⋅</mo><mstyle displaystyle="true"><mfrac><msub><mi>v</mi><mi>j</mi></msub><mrow><msubsup><mo>∑</mo><mrow><msup><mi>j</mi><mo>′</mo></msup><mo>=</mo><mn>1</mn></mrow><mi>N</mi></msubsup><msub><mi>v</mi><msup><mi>j</mi><mo>′</mo></msup></msub></mrow></mfrac></mstyle></mrow><mo stretchy="false">)</mo></mrow></mrow></mrow></mrow><mo lspace="0em">.</mo></mrow><annotation encoding="application/x-tex">\displaystyle\forall j\in\{1,\cdots,N\},U_{j}=\max(1,\delta\cdot M\cdot\frac{v_{j}}{\sum_{j^{\prime}=1}^{N}v_{j^{\prime}}}).</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+<td class="ltx_eqn_cell ltx_eqn_eqno ltx_align_middle ltx_align_right" rowspan="1"><span class="ltx_tag ltx_tag_equation ltx_align_right">(4)</span></td>
+</tr></tbody>
+</table>
+</div>
+<div class="ltx_para" id="S5.SS3.p5">
+<p class="ltx_p"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.E2" title="In V-C MILP ‣ V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Equation</span> <span class="ltx_text ltx_ref_tag">2</span></a> ensures that each chute is assigned exactly one destination. <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.E3" title="In V-C MILP ‣ V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Equation</span> <span class="ltx_text ltx_ref_tag">3</span></a> ensures that each destination is assigned to <math alttext="[1,U_{j}]" class="ltx_Math" display="inline" id="S5.SS3.p5.m1" intent=":literal"><semantics><mrow><mo stretchy="false">[</mo><mn>1</mn><mo>,</mo><msub><mi>U</mi><mi>j</mi></msub><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">[1,U_{j}]</annotation></semantics></math> chutes, where the upper bound <math alttext="U_{j}" class="ltx_Math" display="inline" id="S5.SS3.p5.m2" intent=":literal"><semantics><msub><mi>U</mi><mi>j</mi></msub><annotation encoding="application/x-tex">U_{j}</annotation></semantics></math> is computed from <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S5.E4" title="In V-C MILP ‣ V Task Mapping Optimization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Equation</span> <span class="ltx_text ltx_ref_tag">4</span></a>. <math alttext="U_{j}" class="ltx_Math" display="inline" id="S5.SS3.p5.m3" intent=":literal"><semantics><msub><mi>U</mi><mi>j</mi></msub><annotation encoding="application/x-tex">U_{j}</annotation></semantics></math> ensures an upper-bounded number of chutes for <math alttext="d_{j}" class="ltx_Math" display="inline" id="S5.SS3.p5.m4" intent=":literal"><semantics><msub><mi>d</mi><mi>j</mi></msub><annotation encoding="application/x-tex">d_{j}</annotation></semantics></math> that is proportional to <math alttext="v_{j}" class="ltx_Math" display="inline" id="S5.SS3.p5.m5" intent=":literal"><semantics><msub><mi>v</mi><mi>j</mi></msub><annotation encoding="application/x-tex">v_{j}</annotation></semantics></math>.
+<math alttext="\delta" class="ltx_Math" display="inline" id="S5.SS3.p5.m6" intent=":literal"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math> is a hyperparameter that adjusts the upper bound. In our experiments, we set <math alttext="\delta=1.5" class="ltx_Math" display="inline" id="S5.SS3.p5.m7" intent=":literal"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>1.5</mn></mrow><annotation encoding="application/x-tex">\delta=1.5</annotation></semantics></math>.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S6">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VI </span><span class="ltx_text ltx_font_smallcaps">Experimental Evaluation</span>
+</h2>
+<figure class="ltx_figure" id="S6.F2">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_figure_panel ltx_img_landscape" height="25" id="S6.F2.g1" src="x2.png" width="746"/></div>
+<div class="ltx_flex_break"></div>
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F2.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="660" id="S6.F2.sf1.g1" src="x3.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(a)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 1</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F2.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="660" id="S6.F2.sf2.g1" src="x4.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(b)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 2</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F2.sf3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="660" id="S6.F2.sf3.g1" src="x5.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(c)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 3</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F2.sf4"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="660" id="S6.F2.sf4.g1" src="x6.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(d)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 4</span></figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 2</span>: </span><span class="ltx_text" style="font-size:90%;">Throughput with different numbers of robots. The task mappings are optimized with <math alttext="N_{a}" class="ltx_Math" display="inline" id="S6.F2.m2" intent=":literal"><semantics><msub><mi>N</mi><mi>a</mi></msub><annotation encoding="application/x-tex">N_{a}</annotation></semantics></math> robots shown in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.T1" title="In VI-A Experiment Setup ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">I</span></a>. The solid line shows the average and the shaded area shows the 95% confidence interval.</span></figcaption>
+</figure>
+<div class="ltx_para" id="S6.p1">
+<p class="ltx_p">In this section, we compare the optimized task mappings by our EA with various baselines.</p>
+</div>
+<section class="ltx_subsection" id="S6.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">VI-A </span><span class="ltx_text ltx_font_italic">Experiment Setup</span>
+</h3>
+<div class="ltx_para ltx_noindent" id="S6.SS1.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">General Setups.</span>
+<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.T1" title="In VI-A Experiment Setup ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">I</span></a> shows the experimental setup. Columns 2 and 3 show information of the maps with their visualizations shown in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.F2" title="In VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">2</span></a>. Notably, setups 1 and 2 and setups 3 and 4 have the same map sizes of 33 <math alttext="\times" class="ltx_Math" display="inline" id="S6.SS1.p1.m1" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math> 57 and 50 <math alttext="\times" class="ltx_Math" display="inline" id="S6.SS1.p1.m2" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math> 86, respectively, with different numbers of chutes. Column 4 shows the number of destinations for each map. We keep the ratio of <math alttext="\frac{M}{N}" class="ltx_Math" display="inline" id="S6.SS1.p1.m3" intent=":literal"><semantics><mfrac><mi>M</mi><mi>N</mi></mfrac><annotation encoding="application/x-tex">\frac{M}{N}</annotation></semantics></math> similar across all maps to maintain a consistent capability of package sorting in all maps. Column 5 shows the number of robots used to optimize the task mappings.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S6.SS1.p2">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">EA.</span> For all setups, we run EA with <math alttext="N_{eval}=10,000" class="ltx_Math" display="inline" id="S6.SS1.p2.m1" intent=":literal"><semantics><mrow><msub><mi>N</mi><mrow><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>v</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>l</mi></mrow></msub><mo>=</mo><mrow><mn>10</mn><mo>,</mo><mn>000</mn></mrow></mrow><annotation encoding="application/x-tex">N_{eval}=10,000</annotation></semantics></math>, <math alttext="\lambda=100" class="ltx_Math" display="inline" id="S6.SS1.p2.m2" intent=":literal"><semantics><mrow><mi>λ</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">\lambda=100</annotation></semantics></math>, and <math alttext="N_{e}=5" class="ltx_Math" display="inline" id="S6.SS1.p2.m3" intent=":literal"><semantics><mrow><msub><mi>N</mi><mi>e</mi></msub><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">N_{e}=5</annotation></semantics></math>, resulting in a total of <math alttext="50,000" class="ltx_Math" display="inline" id="S6.SS1.p2.m4" intent=":literal"><semantics><mrow><mn>50</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">50,000</annotation></semantics></math> simulations. We run each simulation for <math alttext="N_{T}=5,000" class="ltx_Math" display="inline" id="S6.SS1.p2.m5" intent=":literal"><semantics><mrow><msub><mi>N</mi><mi>T</mi></msub><mo>=</mo><mrow><mn>5</mn><mo>,</mo><mn>000</mn></mrow></mrow><annotation encoding="application/x-tex">N_{T}=5,000</annotation></semantics></math> timesteps. We keep the task mapping of the highest throughput as the final solution. To demonstrate the effect of initialization, we consider EA without the greedy initialization techniques (“EA”) and with the techniques (“EA w/ Greedy Initialization”).</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S6.SS1.p3">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Baselines.</span> Since no prior works exist for the problem of TMO, we compare optimized task mappings by EA with the two greedy initialization methods, namely (1) Cluster Greedy and (2) Min-dist Greedy. The implementation and compute resources are included in Appendix <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#A2" title="Appendix B Implementation and Compute Resource ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">B</span></a>.</p>
+</div>
+<figure class="ltx_table" id="S6.T1">
+<table class="ltx_tabular ltx_centering ltx_guessed_headers ltx_align_middle">
+<thead class="ltx_thead">
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_tt">Setup</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_tt">Map Size</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><math alttext="M" class="ltx_Math" display="inline" id="S6.T1.m1" intent=":literal"><semantics><mi>M</mi><annotation encoding="application/x-tex">M</annotation></semantics></math></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><math alttext="N" class="ltx_Math" display="inline" id="S6.T1.m2" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_tt"><math alttext="N_{a}" class="ltx_Math" display="inline" id="S6.T1.m3" intent=":literal"><semantics><msub><mi>N</mi><mi>a</mi></msub><annotation encoding="application/x-tex">N_{a}</annotation></semantics></math></th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t">1</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t">33 <math alttext="\times" class="ltx_Math" display="inline" id="S6.T1.m4" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math> 57</th>
+<td class="ltx_td ltx_align_center ltx_border_t">253</td>
+<td class="ltx_td ltx_align_center ltx_border_t">99</td>
+<td class="ltx_td ltx_align_center ltx_border_t" rowspan="2">600</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">2</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">33 <math alttext="\times" class="ltx_Math" display="inline" id="S6.T1.m5" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math> 57</th>
+<td class="ltx_td ltx_align_center">105</td>
+<td class="ltx_td ltx_align_center">41</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">3</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">50 <math alttext="\times" class="ltx_Math" display="inline" id="S6.T1.m6" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math> 86</th>
+<td class="ltx_td ltx_align_center">703</td>
+<td class="ltx_td ltx_align_center">299</td>
+<td class="ltx_td ltx_align_center ltx_border_bb ltx_border_t" rowspan="2">1200</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb">4</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb">50 <math alttext="\times" class="ltx_Math" display="inline" id="S6.T1.m7" intent=":literal"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math> 86</th>
+<td class="ltx_td ltx_align_center ltx_border_bb">325</td>
+<td class="ltx_td ltx_align_center ltx_border_bb">138</td>
+</tr>
+</tbody>
+</table>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table"><span class="ltx_text" style="font-size:90%;">TABLE I</span>: </span><span class="ltx_text" style="font-size:90%;">
+Summary of the experiment setup. <math alttext="M" class="ltx_Math" display="inline" id="S6.T1.m11" intent=":literal"><semantics><mi>M</mi><annotation encoding="application/x-tex">M</annotation></semantics></math> is the number of chutes, <math alttext="N" class="ltx_Math" display="inline" id="S6.T1.m12" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> is the number of destinations, excluding the additional destination for recirculation, and <math alttext="N_{a}" class="ltx_Math" display="inline" id="S6.T1.m13" intent=":literal"><semantics><msub><mi>N</mi><mi>a</mi></msub><annotation encoding="application/x-tex">N_{a}</annotation></semantics></math> is the number of robots used to optimize the task mappings.
+</span></figcaption>
+</figure>
+</section>
+<section class="ltx_subsection" id="S6.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">VI-B </span><span class="ltx_text ltx_font_italic">Results</span>
+</h3>
+<figure class="ltx_table" id="S6.T2">
+<div class="ltx_inline-block ltx_align_center ltx_transformed_outer" style="width:433.6pt;height:230.3pt;vertical-align:-112.4pt;"><span class="ltx_transformed_inner" style="transform:translate(22.1pt,-11.8pt) scale(1.11371141657156,1.11371141657156) ;">
+<table class="ltx_tabular ltx_guessed_headers ltx_align_middle">
+<thead class="ltx_thead">
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_tt">Setup</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_tt">TMO</th>
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_tt">Throughput (<math alttext="\uparrow" class="ltx_Math" display="inline" id="S6.T2.m1" intent=":literal"><semantics><mo stretchy="false">↑</mo><annotation encoding="application/x-tex">\uparrow</annotation></semantics></math>)</th>
+<th class="ltx_td ltx_align_right ltx_th ltx_th_column ltx_border_tt">Recirculation Rate (<math alttext="\downarrow" class="ltx_Math" display="inline" id="S6.T2.m2" intent=":literal"><semantics><mo stretchy="false">↓</mo><annotation encoding="application/x-tex">\downarrow</annotation></semantics></math>)</th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t" rowspan="4">1</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t">Cluster Greedy</th>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="11.81\pm 0.04" class="ltx_Math" display="inline" id="S6.T2.m3" intent=":literal"><semantics><mrow><mn>11.81</mn><mo>±</mo><mn>0.04</mn></mrow><annotation encoding="application/x-tex">11.81\pm 0.04</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="2.19\%\pm 0.03\%" class="ltx_Math" display="inline" id="S6.T2.m4" intent=":literal"><semantics><mrow><mrow><mn>2.19</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.03</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">2.19\%\pm 0.03\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">Min-dist Greedy</th>
+<td class="ltx_td ltx_align_right"><math alttext="14.59\pm 0.17" class="ltx_Math" display="inline" id="S6.T2.m5" intent=":literal"><semantics><mrow><mn>14.59</mn><mo>±</mo><mn>0.17</mn></mrow><annotation encoding="application/x-tex">14.59\pm 0.17</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="2.90\%\pm 0.10\%" class="ltx_Math" display="inline" id="S6.T2.m6" intent=":literal"><semantics><mrow><mrow><mn>2.90</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.10</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">2.90\%\pm 0.10\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row"><span class="ltx_text ltx_font_bold">EA</span></th>
+<td class="ltx_td ltx_align_right"><math alttext="\textbf{18.82}\pm\textbf{0.03}" class="ltx_Math" display="inline" id="S6.T2.m7" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">18.82</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.03</mtext></mrow><annotation encoding="application/x-tex">\textbf{18.82}\pm\textbf{0.03}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="1.50\%\pm 0.02\%" class="ltx_Math" display="inline" id="S6.T2.m8" intent=":literal"><semantics><mrow><mrow><mn>1.50</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.02</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">1.50\%\pm 0.02\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">EA w/ Greedy Initialization</th>
+<td class="ltx_td ltx_align_right"><math alttext="18.67\pm 0.03" class="ltx_Math" display="inline" id="S6.T2.m9" intent=":literal"><semantics><mrow><mn>18.67</mn><mo>±</mo><mn>0.03</mn></mrow><annotation encoding="application/x-tex">18.67\pm 0.03</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="\textbf{1.34\%}\pm\textbf{0.03\%}" class="ltx_Math" display="inline" id="S6.T2.m10" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">1.34%</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.03%</mtext></mrow><annotation encoding="application/x-tex">\textbf{1.34\%}\pm\textbf{0.03\%}</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t" rowspan="4">2</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t">Cluster Greedy</th>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="16.52\pm 0.09" class="ltx_Math" display="inline" id="S6.T2.m11" intent=":literal"><semantics><mrow><mn>16.52</mn><mo>±</mo><mn>0.09</mn></mrow><annotation encoding="application/x-tex">16.52\pm 0.09</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="4.87\%\pm 0.07\%" class="ltx_Math" display="inline" id="S6.T2.m12" intent=":literal"><semantics><mrow><mrow><mn>4.87</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.07</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">4.87\%\pm 0.07\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">Min-dist Greedy</th>
+<td class="ltx_td ltx_align_right"><math alttext="11.74\pm 0.07" class="ltx_Math" display="inline" id="S6.T2.m13" intent=":literal"><semantics><mrow><mn>11.74</mn><mo>±</mo><mn>0.07</mn></mrow><annotation encoding="application/x-tex">11.74\pm 0.07</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="10.20\%\pm 0.09\%" class="ltx_Math" display="inline" id="S6.T2.m14" intent=":literal"><semantics><mrow><mrow><mn>10.20</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.09</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">10.20\%\pm 0.09\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">EA</th>
+<td class="ltx_td ltx_align_right"><math alttext="16.32\pm 0.09" class="ltx_Math" display="inline" id="S6.T2.m15" intent=":literal"><semantics><mrow><mn>16.32</mn><mo>±</mo><mn>0.09</mn></mrow><annotation encoding="application/x-tex">16.32\pm 0.09</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="4.53\%\pm 0.18\%" class="ltx_Math" display="inline" id="S6.T2.m16" intent=":literal"><semantics><mrow><mrow><mn>4.53</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.18</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">4.53\%\pm 0.18\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row"><span class="ltx_text ltx_font_bold">EA w/ Greedy Initialization</span></th>
+<td class="ltx_td ltx_align_right"><math alttext="\textbf{17.86}\pm\textbf{0.05}" class="ltx_Math" display="inline" id="S6.T2.m17" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">17.86</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.05</mtext></mrow><annotation encoding="application/x-tex">\textbf{17.86}\pm\textbf{0.05}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="\textbf{3.16\%}\pm\textbf{0.11\%}" class="ltx_Math" display="inline" id="S6.T2.m18" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">3.16%</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.11%</mtext></mrow><annotation encoding="application/x-tex">\textbf{3.16\%}\pm\textbf{0.11\%}</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t" rowspan="4">3</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t">Cluster Greedy</th>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="18.12\pm 0.04" class="ltx_Math" display="inline" id="S6.T2.m19" intent=":literal"><semantics><mrow><mn>18.12</mn><mo>±</mo><mn>0.04</mn></mrow><annotation encoding="application/x-tex">18.12\pm 0.04</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="1.36\%\pm 0.03\%" class="ltx_Math" display="inline" id="S6.T2.m20" intent=":literal"><semantics><mrow><mrow><mn>1.36</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.03</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">1.36\%\pm 0.03\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">Min-dist Greedy</th>
+<td class="ltx_td ltx_align_right"><math alttext="21.51\pm 0.13" class="ltx_Math" display="inline" id="S6.T2.m21" intent=":literal"><semantics><mrow><mn>21.51</mn><mo>±</mo><mn>0.13</mn></mrow><annotation encoding="application/x-tex">21.51\pm 0.13</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="2.26\%\pm 0.05\%" class="ltx_Math" display="inline" id="S6.T2.m22" intent=":literal"><semantics><mrow><mrow><mn>2.26</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.05</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">2.26\%\pm 0.05\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row"><span class="ltx_text ltx_font_bold">EA</span></th>
+<td class="ltx_td ltx_align_right"><math alttext="\textbf{27.05}\pm\textbf{0.05}" class="ltx_Math" display="inline" id="S6.T2.m23" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">27.05</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.05</mtext></mrow><annotation encoding="application/x-tex">\textbf{27.05}\pm\textbf{0.05}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="\textbf{1.20\%}\pm\textbf{0.03\%}" class="ltx_Math" display="inline" id="S6.T2.m24" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">1.20%</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.03%</mtext></mrow><annotation encoding="application/x-tex">\textbf{1.20\%}\pm\textbf{0.03\%}</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">EA w/ Greedy Initialization</th>
+<td class="ltx_td ltx_align_right"><math alttext="26.39\pm 0.03" class="ltx_Math" display="inline" id="S6.T2.m25" intent=":literal"><semantics><mrow><mn>26.39</mn><mo>±</mo><mn>0.03</mn></mrow><annotation encoding="application/x-tex">26.39\pm 0.03</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="1.33\%\pm 0.02\%" class="ltx_Math" display="inline" id="S6.T2.m26" intent=":literal"><semantics><mrow><mrow><mn>1.33</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.02</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">1.33\%\pm 0.02\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb ltx_border_t" rowspan="4">4</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_t">Cluster Greedy</th>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="23.79\pm 0.03" class="ltx_Math" display="inline" id="S6.T2.m27" intent=":literal"><semantics><mrow><mn>23.79</mn><mo>±</mo><mn>0.03</mn></mrow><annotation encoding="application/x-tex">23.79\pm 0.03</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right ltx_border_t"><math alttext="3.21\%\pm 0.03\%" class="ltx_Math" display="inline" id="S6.T2.m28" intent=":literal"><semantics><mrow><mrow><mn>3.21</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.03</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">3.21\%\pm 0.03\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">Min-dist Greedy</th>
+<td class="ltx_td ltx_align_right"><math alttext="13.95\pm 0.13" class="ltx_Math" display="inline" id="S6.T2.m29" intent=":literal"><semantics><mrow><mn>13.95</mn><mo>±</mo><mn>0.13</mn></mrow><annotation encoding="application/x-tex">13.95\pm 0.13</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="8.89\%\pm 0.08\%" class="ltx_Math" display="inline" id="S6.T2.m30" intent=":literal"><semantics><mrow><mrow><mn>8.89</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.08</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">8.89\%\pm 0.08\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row">EA</th>
+<td class="ltx_td ltx_align_right"><math alttext="18.37\pm 0.07" class="ltx_Math" display="inline" id="S6.T2.m31" intent=":literal"><semantics><mrow><mn>18.37</mn><mo>±</mo><mn>0.07</mn></mrow><annotation encoding="application/x-tex">18.37\pm 0.07</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right"><math alttext="6.02\%\pm 0.06\%" class="ltx_Math" display="inline" id="S6.T2.m32" intent=":literal"><semantics><mrow><mrow><mn>6.02</mn><mo>%</mo></mrow><mo>±</mo><mrow><mn>0.06</mn><mo>%</mo></mrow></mrow><annotation encoding="application/x-tex">6.02\%\pm 0.06\%</annotation></semantics></math></td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_bb"><span class="ltx_text ltx_font_bold">EA w/ Greedy Initialization</span></th>
+<td class="ltx_td ltx_align_right ltx_border_bb"><math alttext="\textbf{26.34}\pm\textbf{0.06}" class="ltx_Math" display="inline" id="S6.T2.m33" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">26.34</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.06</mtext></mrow><annotation encoding="application/x-tex">\textbf{26.34}\pm\textbf{0.06}</annotation></semantics></math></td>
+<td class="ltx_td ltx_align_right ltx_border_bb"><math alttext="\textbf{2.98\%}\pm\textbf{0.05\%}" class="ltx_Math" display="inline" id="S6.T2.m34" intent=":literal"><semantics><mrow><mtext class="ltx_mathvariant_bold">2.98%</mtext><mo>±</mo><mtext class="ltx_mathvariant_bold">0.05%</mtext></mrow><annotation encoding="application/x-tex">\textbf{2.98\%}\pm\textbf{0.05\%}</annotation></semantics></math></td>
+</tr>
+</tbody>
+</table>
+</span></div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table"><span class="ltx_text" style="font-size:90%;">TABLE II</span>: </span><span class="ltx_text" style="font-size:90%;">Throughput and recirculation rate of the simulations with different task mappings. We report all results in the format of <math alttext="x\pm y" class="ltx_Math" display="inline" id="S6.T2.m38" intent=":literal"><semantics><mrow><mi>x</mi><mo>±</mo><mi>y</mi></mrow><annotation encoding="application/x-tex">x\pm y</annotation></semantics></math> where <math alttext="x" class="ltx_Math" display="inline" id="S6.T2.m39" intent=":literal"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math> is the average and <math alttext="y" class="ltx_Math" display="inline" id="S6.T2.m40" intent=":literal"><semantics><mi>y</mi><annotation encoding="application/x-tex">y</annotation></semantics></math> is the standard error.</span></figcaption>
+</figure>
+<figure class="ltx_figure" id="S6.F3">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F3.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="804" id="S6.F3.sf1.g1" src="x7.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(a)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 1</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F3.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="804" id="S6.F3.sf2.g1" src="x8.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(b)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 2</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F3.sf3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="804" id="S6.F3.sf3.g1" src="x9.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(c)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 3</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_4">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S6.F3.sf4"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="804" id="S6.F3.sf4.g1" src="x10.png" width="660"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(d)</span> </span><span class="ltx_text" style="font-size:90%;">Setup 4</span></figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 3</span>: </span><span class="ltx_text" style="font-size:90%;">The archives of MAP-Elites in all setups. The two axes show the diversity measures while the color indicates the throughput. Two representative task mappings are shown for each setup. Each square in the task mappings represents a chute and the color represents the destination the chute is assigned to. The color bars underneath the task mappings shows the indices of the destinations. Smaller indices indicate larger volumes. For simplicity, we only show the top 10 destinations.</span></figcaption>
+</figure>
+<div class="ltx_para" id="S6.SS2.p1">
+<p class="ltx_p">We first compare the variants of EA with the baselines. For each task mapping, we run 10 simulations with <math alttext="N_{a}" class="ltx_Math" display="inline" id="S6.SS2.p1.m1" intent=":literal"><semantics><msub><mi>N</mi><mi>a</mi></msub><annotation encoding="application/x-tex">N_{a}</annotation></semantics></math> robots and report the numerical results in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.T2" title="In VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">II</span></a>. We report throughput and <em class="ltx_emph ltx_font_italic">recirculation rate</em>, defined as the ratio of recirculated packages. A lower recirculation rate indicates fewer delays in delivering packages.
+In setups 1 and 3, the EA variants achieve higher throughput and lower recirculation rates. In setups 2 and 4, while EA w/ Greedy Initialization achieves the best throughput and recirculation rate, Cluster Greedy matches or outperforms EA. This is because setups 2 and 4 feature sortation floors with sparser chutes, giving robots more room to coordinate and alleviate traffic congestion. As a result, the bottleneck of throughput becomes the <em class="ltx_emph ltx_font_italic">CLOSED</em> time of chutes. By placing chutes of the same destination together, the Cluster Greedy task mappings achieves reasonably high throughput in setups 2 and 4. By exploiting the Cluster Greedy task mappings as the initial solutions, EA w/ Greedy Initialization further improves the throughput in these setups.</p>
+</div>
+<div class="ltx_para" id="S6.SS2.p2">
+<p class="ltx_p">The Min-dist Greedy task mappings outperform the Cluster Greedy ones in setups 1 and 3, where the traffic congestion is too severe because of dense chutes. Therefore, placing high-volume chutes close to workstations can take advantage of the empty space between chutes and workstations to coordinate the robots. However, surprisingly, using the Min-dist Greedy task mappings as the initial solutions does not allow EA w/ Greedy Initialization to yield better task mappings than EA in setups 1 and 3.
+Because Min-dist Greedy task mappings keep chutes <em class="ltx_emph ltx_font_italic">CLOSED</em> for too long, they incur the highest recirculation rates in all setups and are likely less optimal than destination-sampled mappings.
+We further demonstrate the performance of optimized task mappings by running simulations with various numbers of robots, each for 10 times, and show the results in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.F2" title="In VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">2</span></a>. Our task mappings, though optimized with a particular number of robots, can be used with different numbers of robots, and the trend of the results aligns with our observation in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.T2" title="In VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">II</span></a>.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S7">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VII </span><span class="ltx_text ltx_font_smallcaps">Empirical Analysis via QD Optimization</span>
+</h2>
+<div class="ltx_para" id="S7.p1">
+<p class="ltx_p">The comparison between the optimized task mappings from EA and the greedy initialization techniques sparks an interesting question: what is the relationship between throughput and the objectives implicitly optimized by the greedy initialization techniques? In this section, we attempt to answer this question by performing empirical analysis using Quality Diversity (QD) algorithms.</p>
+</div>
+<section class="ltx_subsection" id="S7.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">VII-A </span><span class="ltx_text ltx_font_italic">Quality Diversity Algorithms</span>
+</h3>
+<div class="ltx_para" id="S7.SS1.p1">
+<p class="ltx_p">QD algorithms are a class of stochastic black-box optimization algorithms capable of simultaneously optimizing an objective and diversifying a set of diversity measure functions.
+We conduct the analysis by using MAP-Elites <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib41" title="">41</a>]</cite> to optimize the task mappings. MAP-Elites is identical to EA w/ Greedy Initialization except that it organizes the optimized task mappings in a discretized measure space defined by the diversity measure functions, referred to as an <em class="ltx_emph ltx_font_italic">archive</em>. The goal of MAP-Elites is to search for the best task mapping in each cell of the archive.
+For the diversity measures, we formalize and use the objectives optimized by Min-dist Greedy and Cluster Greedy initialization as <em class="ltx_emph ltx_font_italic">avg min dist to workstation (AMDW)</em> and <em class="ltx_emph ltx_font_italic">avg centroid dist (ACD)</em>, respectively. To compute them, we first identify the top 5% of destinations ranked by volume as high-volume destinations. For AMDW, we calculate the average path length between chutes assigned to high-volume destinations and their nearest workstation. For ACD, we calculate the average centroid distance of the chutes assigned to these destinations.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S7.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">VII-B </span><span class="ltx_text ltx_font_italic">Experiment Setup and Results</span>
+</h3>
+<div class="ltx_para ltx_noindent" id="S7.SS2.p1">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Setup.</span>
+We use the same setups in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.T1" title="In VI-A Experiment Setup ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">I</span></a>. For setups 1 and 2, we run MAP-Elites with <math alttext="N_{eval}=100,000" class="ltx_Math" display="inline" id="S7.SS2.p1.m1" intent=":literal"><semantics><mrow><msub><mi>N</mi><mrow><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>v</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>l</mi></mrow></msub><mo>=</mo><mrow><mn>100</mn><mo>,</mo><mn>000</mn></mrow></mrow><annotation encoding="application/x-tex">N_{eval}=100,000</annotation></semantics></math>, <math alttext="\lambda=100" class="ltx_Math" display="inline" id="S7.SS2.p1.m2" intent=":literal"><semantics><mrow><mi>λ</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">\lambda=100</annotation></semantics></math>, <math alttext="N_{e}=5" class="ltx_Math" display="inline" id="S7.SS2.p1.m3" intent=":literal"><semantics><mrow><msub><mi>N</mi><mi>e</mi></msub><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">N_{e}=5</annotation></semantics></math>, and <math alttext="N_{T}=5,000" class="ltx_Math" display="inline" id="S7.SS2.p1.m4" intent=":literal"><semantics><mrow><msub><mi>N</mi><mi>T</mi></msub><mo>=</mo><mrow><mn>5</mn><mo>,</mo><mn>000</mn></mrow></mrow><annotation encoding="application/x-tex">N_{T}=5,000</annotation></semantics></math>. For setups 3 and 4, we use the same <math alttext="\lambda" class="ltx_Math" display="inline" id="S7.SS2.p1.m5" intent=":literal"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math> and <math alttext="N_{e}" class="ltx_Math" display="inline" id="S7.SS2.p1.m6" intent=":literal"><semantics><msub><mi>N</mi><mi>e</mi></msub><annotation encoding="application/x-tex">N_{e}</annotation></semantics></math> with a larger <math alttext="N_{eval}=200,000" class="ltx_Math" display="inline" id="S7.SS2.p1.m7" intent=":literal"><semantics><mrow><msub><mi>N</mi><mrow><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>v</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>l</mi></mrow></msub><mo>=</mo><mrow><mn>200</mn><mo>,</mo><mn>000</mn></mrow></mrow><annotation encoding="application/x-tex">N_{eval}=200,000</annotation></semantics></math>, because they have larger search spaces. We set the resolution of the archives to be <math alttext="25\times 25" class="ltx_Math" display="inline" id="S7.SS2.p1.m8" intent=":literal"><semantics><mrow><mn>25</mn><mo lspace="0.222em" rspace="0.222em">×</mo><mn>25</mn></mrow><annotation encoding="application/x-tex">25\times 25</annotation></semantics></math> in all setups.</p>
+</div>
+<div class="ltx_para ltx_noindent" id="S7.SS2.p2">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Results.</span>
+<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.F3" title="In VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figure</span> <span class="ltx_text ltx_ref_tag">3</span></a> shows the archives. The archives of setups 2 and 4 show similar trends with smaller ACD having higher throughput, aligning with our experimental results in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6" title="VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Section</span> <span class="ltx_text ltx_ref_tag">VI</span></a>. The task mappings on the left of <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.F3.sf2" title="In Figure 3 ‣ VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figures</span> <span class="ltx_text ltx_ref_tag">3(b)</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.F3.sf4" title="Figure 3(d) ‣ Figure 3 ‣ VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">3(d)</span></a> show the optimal task mapping in the archive, with an average throughput of 17.98 and 27.16 by running 5 simulations, respectively. Both task mappings cluster chutes of the same destination together.
+Since <math alttext="N_{eval}" class="ltx_Math" display="inline" id="S7.SS2.p2.m1" intent=":literal"><semantics><msub><mi>N</mi><mrow><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>v</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>l</mi></mrow></msub><annotation encoding="application/x-tex">N_{eval}</annotation></semantics></math> of QD is much larger than EA, we obtain better throughput than the EA variants in <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.T2" title="In VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Table</span> <span class="ltx_text ltx_ref_tag">II</span></a>.
+On the other hand, in setups 1 and 3, larger ACD indicates better throughput. We conjecture that clustering chutes assigned to high-volume destinations together makes traffic too congested. The right task mappings of <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.F3.sf1" title="In Figure 3 ‣ VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Figures</span> <span class="ltx_text ltx_ref_tag">3(a)</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#S6.F3.sf3" title="Figure 3(c) ‣ Figure 3 ‣ VI-B Results ‣ VI Experimental Evaluation ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">3(c)</span></a> show the optimal ones in the archive with an average throughput of 18.98 and 27.16. No clear patterns are shown in these task mappings, meaning that they are likely mutated from the initial task mappings being sampled from the distribution of destinations.
+Notably, no clear relationship is shown between throughput and AMDW in all setups. We conjecture that AMDW does not fully capture the traffic pattern of the robots on the sortation floors, which depends on other factors such as floor layouts, coordination algorithms, and target assignment policies.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S8">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VIII </span><span class="ltx_text ltx_font_smallcaps">Conclusion</span>
+</h2>
+<div class="ltx_para" id="S8.p1">
+<p class="ltx_p">We introduce the Task Mapping Optimization (TMO) problem and present the first TMO approach for RSS, presenting a RSS simulator and showing that a high-quality task mapping can improve the throughput of RSS.
+We use QD algorithms to conduct empirical analysis on the effect of different task mappings on throughput.
+Future works may attempt to make the RSS simulator more realistic or improve the sample efficiency of EA by using surrogate models <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib42" title="">42</a>]</cite>.</p>
+</div>
+</section>
+<section class="ltx_section" id="Sx1">
+<h2 class="ltx_title ltx_font_smallcaps ltx_title_section">Acknowledgment</h2>
+<div class="ltx_para" id="Sx1.p1">
+<p class="ltx_p">This work was partially supported by the National Science Foundation under grant #2441629.</p>
+</div>
+</section>
+<section class="ltx_bibliography" id="bib">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+<ul class="ltx_biblist">
+<li class="ltx_bibitem" id="bib.bib1">
+<span class="ltx_tag ltx_tag_bibitem">[1]</span>
+<span class="ltx_bibblock">
+Y. Shen, B. McClosky, J. W. Durham, and M. M. Zavlanos, “Multi-agent reinforcement learning for resource allocation in large-scale robotic warehouse sortation centers,” in <em class="ltx_emph ltx_font_italic">Proceedings of the IEEE Conference on Decision and Control (CDC)</em>, 2023, pp. 7137–7143.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib2">
+<span class="ltx_tag ltx_tag_bibitem">[2]</span>
+<span class="ltx_bibblock">
+F. Business, “Amazon employees struggle with ’nerve-racking’ robot co-workers,” <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://www.foxbusiness.com/markets/amazon-employees-struggle-with-nerve-racking-robot-co-workers</span>, 2019, accessed: 2025-02-19.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib3">
+<span class="ltx_tag ltx_tag_bibitem">[3]</span>
+<span class="ltx_bibblock">
+J. N. Center, “Jd.com’s JD logistics unveils world’s largest intelligent logistics park with integrated warehousing and sorting capabilities,” <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://www.jdl.com/en/news/3282/content01353</span>, 2023, accessed: 2024-09-03.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib4">
+<span class="ltx_tag ltx_tag_bibitem">[4]</span>
+<span class="ltx_bibblock">
+B. Zou, R. De Koster, Y. Gong, X. Xu, and G. Shen, “Robotic Sorting Systems: Performance Estimation and Operating Policies Analysis,” <em class="ltx_emph ltx_font_italic">Transportation Science</em>, vol. 55, no. 6, pp. 1430–1455, Nov. 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib5">
+<span class="ltx_tag ltx_tag_bibitem">[5]</span>
+<span class="ltx_bibblock">
+S. Zheng, “Chinese firm halves worker costs by hiring army of robots to sort out 200,000 packages a day,” <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://www.scmp.com/news/china/society/article/2086662/chinese-firm-cuts-costs-hiring-army-robots-sort-out-200000?module=perpetual˙scroll˙0&amp;pgtype=article</span>, 2017, accessed: 2024-09-03.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib6">
+<span class="ltx_tag ltx_tag_bibitem">[6]</span>
+<span class="ltx_bibblock">
+M. Rohrer, “Simulation and cross docking,” in <em class="ltx_emph ltx_font_italic">Proceedings of the Winter Simulation Conference (WSC)</em>, 1995, pp. 846–849.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib7">
+<span class="ltx_tag ltx_tag_bibitem">[7]</span>
+<span class="ltx_bibblock">
+D. L. McWilliams, P. M. Stanfield, and C. D. Geiger, “The parcel hub scheduling problem: A simulation-based solution approach,” <em class="ltx_emph ltx_font_italic">Computers &amp; Industrial Engineering</em>, vol. 49, no. 3, pp. 393–412, Nov. 2005.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib8">
+<span class="ltx_tag ltx_tag_bibitem">[8]</span>
+<span class="ltx_bibblock">
+J. Li, A. Tinka, S. Kiesel, J. W. Durham, T. K. S. Kumar, and S. Koenig, “Lifelong multi-agent path finding in large-scale warehouses,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)</em>, 2021, pp. 11 272–11 281.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib9">
+<span class="ltx_tag ltx_tag_bibitem">[9]</span>
+<span class="ltx_bibblock">
+R. Li, X. Deng, and Y. Ma, “Item storage assignment problem in robotic mobile fulfillment systems with nonempty pods,” <em class="ltx_emph ltx_font_italic">IEEE Access</em>, vol. 12, pp. 51 463–51 484, Apr. 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib10">
+<span class="ltx_tag ltx_tag_bibitem">[10]</span>
+<span class="ltx_bibblock">
+C. Barnhart, A. Jacquillat, and A. Schmid, “Robotic warehousing operations: A learn-then-optimize approach to large-scale neighborhood search,” <em class="ltx_emph ltx_font_italic">INFORMS Journal on Optimization</em>, vol. 7, no. 3, pp. 171–194, Nov. 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib11">
+<span class="ltx_tag ltx_tag_bibitem">[11]</span>
+<span class="ltx_bibblock">
+J. Cai, X. Li, Y. Liang, and S. Ouyang, “Collaborative optimization of storage location assignment and path planning in robotic mobile fulfillment systems,” <em class="ltx_emph ltx_font_italic">Sustainability</em>, vol. 13, no. 10, p. 5644, May 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib12">
+<span class="ltx_tag ltx_tag_bibitem">[12]</span>
+<span class="ltx_bibblock">
+H.-J. Kim, C. Pais, and Z.-J. M. Shen, “Item assignment problem in a robotic mobile fulfillment system,” <em class="ltx_emph ltx_font_italic">IEEE Transactions on Automation Science and Engineering</em>, vol. 17, no. 4, pp. 1854–1867, Oct 2020.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib13">
+<span class="ltx_tag ltx_tag_bibitem">[13]</span>
+<span class="ltx_bibblock">
+K. Azadeh, R. De Koster, and D. Roy, “Robotized and Automated Warehouse Systems: Review and Recent Developments,” <em class="ltx_emph ltx_font_italic">Transportation Science</em>, vol. 53, no. 4, pp. 917–945, July 2019.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib14">
+<span class="ltx_tag ltx_tag_bibitem">[14]</span>
+<span class="ltx_bibblock">
+J. Pugh, L. Soros, and K. Stanley, “Quality diversity: A new frontier for evolutionary computation,” <em class="ltx_emph ltx_font_italic">Frontiers in Robotics and AI</em>, vol. 3, 07 2016.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib15">
+<span class="ltx_tag ltx_tag_bibitem">[15]</span>
+<span class="ltx_bibblock">
+N. M. Kou, C. Peng, H. Ma, T. K. S. Kumar, and S. Koenig, “Idle time optimization for target assignment and path finding in sortation centers,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)</em>, 2020, pp. 9925–9932.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib16">
+<span class="ltx_tag ltx_tag_bibitem">[16]</span>
+<span class="ltx_bibblock">
+Y. Huang and Z. Shen, “Flow-based integrated assignment and path-finding for mobile robot sorting systems,” <em class="ltx_emph ltx_font_italic">ArXiv</em>, vol. 2303.04070, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib17">
+<span class="ltx_tag ltx_tag_bibitem">[17]</span>
+<span class="ltx_bibblock">
+T. Zhao, X. Lin, F. He, and H. Dai, “Robotic sorting systems: Robot management and layout design optimization,” <em class="ltx_emph ltx_font_italic">ArXiv</em>, vol. 2404.04832, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib18">
+<span class="ltx_tag ltx_tag_bibitem">[18]</span>
+<span class="ltx_bibblock">
+R. Stern, N. R. Sturtevant, A. Felner, S. Koenig, H. Ma, T. T. Walker, J. Li, D. Atzmon, L. Cohen, T. K. S. Kumar, R. Barták, and E. Boyarski, “Multi-agent pathfinding: Definitions, variants, and benchmarks,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Symposium on Combinatorial Search (SoCS)</em>, 2019, pp. 151–159.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib19">
+<span class="ltx_tag ltx_tag_bibitem">[19]</span>
+<span class="ltx_bibblock">
+K. C. Wang and A. Botea, “Fast and memory-efficient multi-agent pathfinding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS)</em>, 2008, pp. 380–387.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib20">
+<span class="ltx_tag ltx_tag_bibitem">[20]</span>
+<span class="ltx_bibblock">
+H. Ma, J. Li, T. K. S. Kumar, and S. Koenig, “Lifelong multi-agent path finding for online pickup and delivery tasks,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Conference on Autonomous Agents and Multiagent Systems (AAMAS)</em>, 2017, pp. 837–845.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib21">
+<span class="ltx_tag ltx_tag_bibitem">[21]</span>
+<span class="ltx_bibblock">
+K. Okumura, M. Machida, X. Défago, and Y. Tamura, “Priority inheritance with backtracking for iterative multi-agent path finding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI)</em>, 2019, pp. 535–542.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib22">
+<span class="ltx_tag ltx_tag_bibitem">[22]</span>
+<span class="ltx_bibblock">
+K. Okumura, “LaCAM: Search-based algorithm for quick multi-agent pathfinding,” in <em class="ltx_emph ltx_font_italic">Proceedings of AAAI Conference on Artificial Intelligence (AAAI)</em>, 2023, pp. 11 655–11 662.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib23">
+<span class="ltx_tag ltx_tag_bibitem">[23]</span>
+<span class="ltx_bibblock">
+J. Li, K. Sun, H. Ma, A. Felner, T. K. S. Kumar, and S. Koenig, “Moving agents in formation in congested environments,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Joint Conference on Autonomous Agents and Multiagent Systems (AAMAS)</em>, 2020, pp. 726–734.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib24">
+<span class="ltx_tag ltx_tag_bibitem">[24]</span>
+<span class="ltx_bibblock">
+M. Damani, Z. Luo, E. Wenzel, and G. Sartoretti, “PRIMAL<sub class="ltx_sub">2</sub>: Pathfinding via reinforcement and imitation multi-agent learning - lifelong,” <em class="ltx_emph ltx_font_italic">IEEE Robotics and Automation Letters</em>, vol. 6, no. 2, pp. 2666–2673, Mar. 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib25">
+<span class="ltx_tag ltx_tag_bibitem">[25]</span>
+<span class="ltx_bibblock">
+H. Jiang, Y. Zhang, R. Veerapaneni, and J. Li, “Scaling lifelong multi-agent path finding to more realistic settings: Research challenges and opportunities,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Symposium on Combinatorial Search (SoCS)</em>, 2024, pp. 234–242.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib26">
+<span class="ltx_tag ltx_tag_bibitem">[26]</span>
+<span class="ltx_bibblock">
+Y. Zhang, M. C. Fontaine, V. Bhatt, S. Nikolaidis, and J. Li, “Multi-robot coordination and layout design for automated warehousing,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI)</em>, 2023, pp. 5503–5511.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib27">
+<span class="ltx_tag ltx_tag_bibitem">[27]</span>
+<span class="ltx_bibblock">
+——, “Arbitrarily scalable environment generators via neural cellular automata,” in <em class="ltx_emph ltx_font_italic">Proceedings of the Advances in Neural Information Processing Systems (NeurIPS)</em>, 2023, pp. 57 212–57 225.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib28">
+<span class="ltx_tag ltx_tag_bibitem">[28]</span>
+<span class="ltx_bibblock">
+G. Yu and M. Wolf, “Congestion prediction for large fleets of mobile robots,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Conference on Robotics and Automation (ICRA)</em>, 2023, pp. 7642–7649.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib29">
+<span class="ltx_tag ltx_tag_bibitem">[29]</span>
+<span class="ltx_bibblock">
+Z. Chen, D. Harabor, J. Li, and P. Stuckey, “Traffic flow optimisation for lifelong multi-agent path finding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)</em>, 2024, pp. 20 674–20 682.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib30">
+<span class="ltx_tag ltx_tag_bibitem">[30]</span>
+<span class="ltx_bibblock">
+Y. Zhang, H. Jiang, V. Bhatt, S. Nikolaidis, and J. Li, “Guidance graph optimization for lifelong multi-agent path finding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI)</em>, 2024, pp. 311–320.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib31">
+<span class="ltx_tag ltx_tag_bibitem">[31]</span>
+<span class="ltx_bibblock">
+H. Zang, Y. Zhang, H. Jiang, Z. Chen, D. Harabor, P. J. Stuckey, and J. Li, “Online guidance graph optimization for lifelong multi-agent path finding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)</em>, 2025.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib32">
+<span class="ltx_tag ltx_tag_bibitem">[32]</span>
+<span class="ltx_bibblock">
+H. W. Kuhn, “The Hungarian method for the assignment problem,” <em class="ltx_emph ltx_font_italic">Naval Research Logistics Quarterly</em>, vol. 2, no. 1-2, pp. 83–97, Mar. 1955.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib33">
+<span class="ltx_tag ltx_tag_bibitem">[33]</span>
+<span class="ltx_bibblock">
+O. A. Gross, “The bottleneck assignment problem,” in <em class="ltx_emph ltx_font_italic">The Rand Corporation</em>, 1959.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib34">
+<span class="ltx_tag ltx_tag_bibitem">[34]</span>
+<span class="ltx_bibblock">
+X. Xu, Y. Chen, B. Zou, and Y. Gong, “Assignment of parcels to loading stations in robotic sorting systems,” <em class="ltx_emph ltx_font_italic">Transportation Research Part E: Logistics and Transportation Review</em>, vol. 164, p. 102808, Aug. 2022.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib35">
+<span class="ltx_tag ltx_tag_bibitem">[35]</span>
+<span class="ltx_bibblock">
+Y. Zhang, “Correlated storage assignment strategy to reduce travel distance in order picking.” in <em class="ltx_emph ltx_font_italic">Proceedings of IFAC Conference on Management and Control of Production and Logistics (MCPL)</em>, 2016, pp. 30–35.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib36">
+<span class="ltx_tag ltx_tag_bibitem">[36]</span>
+<span class="ltx_bibblock">
+Y. Tang, Z. Yu, Y. Zheng, T. K. S. Kumar, J. Li, and S. Koenig, “Caching-augmented lifelong multi-agent path finding,” <em class="ltx_emph ltx_font_italic">ArXiv</em>, vol. 2403.13421, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib37">
+<span class="ltx_tag ltx_tag_bibitem">[37]</span>
+<span class="ltx_bibblock">
+T. Back, D. B. Fogel, and Z. Michalewicz, <em class="ltx_emph ltx_font_italic">Handbook of Evolutionary Computation</em>, 1st ed. GBR: IOP Publishing Ltd., 1997.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib38">
+<span class="ltx_tag ltx_tag_bibitem">[38]</span>
+<span class="ltx_bibblock">
+M. C. Fontaine, S. Lee, L. B. Soros, F. de Mesentier Silva, J. Togelius, and A. K. Hoover, “Mapping hearthstone deck spaces through MAP-elites with sliding boundaries,” in <em class="ltx_emph ltx_font_italic">Proceedings of The Genetic and Evolutionary Computation Conference (GECCO)</em>, 2019, pp. 161–169.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib39">
+<span class="ltx_tag ltx_tag_bibitem">[39]</span>
+<span class="ltx_bibblock">
+M. C. Fontaine, Y.-C. Hsu, Y. Zhang, B. Tjanaka, and S. Nikolaidis, “On the importance of environments in human-robot coordination,” in <em class="ltx_emph ltx_font_italic">Proceedings of the Robotics: Science and Systems (RSS)</em>, 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib40">
+<span class="ltx_tag ltx_tag_bibitem">[40]</span>
+<span class="ltx_bibblock">
+H. Zhang, M. C. Fontaine, A. K. Hoover, J. Togelius, B. Dilkina, and S. Nikolaidis, “Video game level repair via mixed integer linear programming,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment (AIIDE)</em>, 2020, pp. 151–158.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib41">
+<span class="ltx_tag ltx_tag_bibitem">[41]</span>
+<span class="ltx_bibblock">
+J.-B. Mouret and J. Clune, “Illuminating search spaces by mapping elites,” <em class="ltx_emph ltx_font_italic">ArXiv</em>, vol. 1504.04909, 2015.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib42">
+<span class="ltx_tag ltx_tag_bibitem">[42]</span>
+<span class="ltx_bibblock">
+Y. Zhang, M. C. Fontaine, A. K. Hoover, and S. Nikolaidis, “Deep surrogate assisted map-elites for automated hearthstone deckbuilding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the Genetic and Evolutionary Computation Conference (GECCO)</em>, 2022, pp. 158–167.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib43">
+<span class="ltx_tag ltx_tag_bibitem">[43]</span>
+<span class="ltx_bibblock">
+B. Tjanaka, M. C. Fontaine, D. H. Lee, Y. Zhang, N. R. Balam, N. Dennler, S. S. Garlanka, N. D. Klapsis, and S. Nikolaidis, “pyribs: A bare-bones python library for quality diversity optimization,” in <em class="ltx_emph ltx_font_italic">Proceedings of the Genetic and Evolutionary Computation Conference (GECCO)</em>, 2023, pp. 220–229.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib44">
+<span class="ltx_tag ltx_tag_bibitem">[44]</span>
+<span class="ltx_bibblock">
+IBM Corp., “IBM ILOG CPLEX Optimization Studio,” <span class="ltx_ref ltx_nolink ltx_url ltx_ref_self">https://www.ibm.com/products/ilog-cplex-optimization-studio</span>, 2022.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib45">
+<span class="ltx_tag ltx_tag_bibitem">[45]</span>
+<span class="ltx_bibblock">
+S.-H. Chan, Z. Chen, T. Guo, H. Zhang, Y. Zhang, D. Harabor, S. Koenig, C. Wu, and J. Yu, “The league of robot runners competition: Goals, designs, and implementation,” in <em class="ltx_emph ltx_font_italic">ICAPS 2024 System’s Demonstration track</em>, 2024.
+
+</span>
+</li>
+</ul>
+</section>
+<div class="ltx_pagination ltx_role_newpage"></div>
+<section class="ltx_appendix" id="A1">
+<h2 class="ltx_title ltx_title_appendix">
+<span class="ltx_tag ltx_tag_appendix">Appendix A </span>EA Initialization</h2>
+<figure class="ltx_float ltx_algorithm" id="alg1">
+<div class="ltx_listing ltx_lst_numbers_left ltx_listing">
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">1</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_text ltx_font_bold">Input:</span>
+</div>
+<div class="ltx_listingline">
+<math alttext="C=\{c_{1},...,c_{M}\}" class="ltx_Math" display="inline" id="alg1.m1" intent=":literal"><semantics><mrow><mi>C</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>c</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>c</mi><mi>M</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">C=\{c_{1},...,c_{M}\}</annotation></semantics></math>: Chutes sorted in ascending order w.r.t. path lengths to their corresponding closest workstations.
+</div>
+<div class="ltx_listingline">
+<math alttext="D=\{d_{1},...,d_{N}\}" class="ltx_Math" display="inline" id="alg1.m2" intent=":literal"><semantics><mrow><mi>D</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>d</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>d</mi><mi>N</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">D=\{d_{1},...,d_{N}\}</annotation></semantics></math>, <math alttext="V=\{v_{1},...,v_{N}\}" class="ltx_Math" display="inline" id="alg1.m3" intent=":literal"><semantics><mrow><mi>V</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>v</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>v</mi><mi>N</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">V=\{v_{1},...,v_{N}\}</annotation></semantics></math>: Destinations and their volumes sorted in descending order w.r.t. volumes.
+</div>
+<div class="ltx_listingline">
+</div>
+<div class="ltx_listingline">
+<span class="ltx_text ltx_font_bold">Output:</span> Task mapping <math alttext="\theta" class="ltx_Math" display="inline" id="alg1.m4" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">2</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">3</span><math alttext="\forall d\in D,\theta(d)=\{\}" class="ltx_Math" display="inline" id="alg1.m5" intent=":literal"><semantics><mrow><mrow><mrow><mo rspace="0.167em">∀</mo><mi>d</mi></mrow><mo>∈</mo><mi>D</mi></mrow><mo>,</mo><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></mrow></mrow><mo>=</mo><mrow><mo stretchy="false">{</mo><mo stretchy="false">}</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\forall d\in D,\theta(d)=\{\}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">4</span><math alttext="i\leftarrow 1" class="ltx_Math" display="inline" id="alg1.m6" intent=":literal"><semantics><mrow><mi>i</mi><mo stretchy="false">←</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">i\leftarrow 1</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">5</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">6</span><span class="ltx_text ltx_font_bold">for</span> <em class="ltx_emph ltx_font_italic"><math alttext="k\leftarrow 1" class="ltx_Math" display="inline" id="alg1.m7" intent=":literal"><semantics><mrow><mi>k</mi><mo stretchy="false">←</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">k\leftarrow 1</annotation></semantics></math> <span class="ltx_text ltx_font_bold ltx_font_upright">to</span> <math alttext="N" class="ltx_Math" display="inline" id="alg1.m8" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math></em> <span class="ltx_text ltx_font_bold">do</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">7</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+<math alttext="m_{k}=\lfloor\frac{v_{k}}{\sum_{v\in V}v}\cdot M\rfloor+1" class="ltx_Math" display="inline" id="alg1.m9" intent=":literal"><semantics><mrow><msub><mi>m</mi><mi>k</mi></msub><mo>=</mo><mrow><mrow><mo stretchy="false">⌊</mo><mrow><mfrac><msub><mi>v</mi><mi>k</mi></msub><mrow><mstyle displaystyle="false"><msub><mo>∑</mo><mrow><mi>v</mi><mo>∈</mo><mi>V</mi></mrow></msub></mstyle><mi>v</mi></mrow></mfrac><mo lspace="0.222em" rspace="0.222em">⋅</mo><mi>M</mi></mrow><mo stretchy="false">⌋</mo></mrow><mo>+</mo><mn>1</mn></mrow></mrow><annotation encoding="application/x-tex">m_{k}=\lfloor\frac{v_{k}}{\sum_{v\in V}v}\cdot M\rfloor+1</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">8</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">9</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> <span class="ltx_text ltx_font_bold">while</span> <em class="ltx_emph ltx_font_italic"><math alttext="|\theta(d_{k})|&lt;m_{k}\And M-i+1&gt;N-k" class="ltx_Math" display="inline" id="alg1.m10" intent=":literal"><semantics><mrow><mrow><mrow><mo stretchy="false">|</mo><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo stretchy="false">|</mo></mrow><mo lspace="0em" rspace="0em">​</mo><mrow><mo fence="true" rspace="0em">&lt;</mo><mrow><mrow><mrow><msub><mi>m</mi><mi>k</mi></msub><mo lspace="0.222em" rspace="0.222em">&amp;</mo><mi>M</mi></mrow><mo>−</mo><mi>i</mi></mrow><mo>+</mo><mn>1</mn></mrow><mo fence="true" lspace="0em">&gt;</mo></mrow><mo lspace="0em" rspace="0em">​</mo><mi>N</mi></mrow><mo>−</mo><mi>k</mi></mrow><annotation encoding="application/x-tex">|\theta(d_{k})|&lt;m_{k}\And M-i+1&gt;N-k</annotation></semantics></math> </em> <span class="ltx_text ltx_font_bold">do</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">10</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+<math alttext="\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c_{i}\}" class="ltx_Math" display="inline" id="alg1.m11" intent=":literal"><semantics><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo stretchy="false">←</mo><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo>∪</mo><mrow><mo stretchy="false">{</mo><msub><mi>c</mi><mi>i</mi></msub><mo stretchy="false">}</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c_{i}\}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">11</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+<math alttext="i\leftarrow i+1" class="ltx_Math" display="inline" id="alg1.m12" intent=":literal"><semantics><mrow><mi>i</mi><mo stretchy="false">←</mo><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow></mrow><annotation encoding="application/x-tex">i\leftarrow i+1</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">12</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">13</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">14</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">15</span><span class="ltx_text ltx_font_bold">return</span> <math alttext="\theta" class="ltx_Math" display="inline" id="alg1.m13" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+</div>
+</div>
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_float"><span class="ltx_text ltx_font_bold">Algorithm 1</span> </span>Min-dist Greedy Initialization</figcaption>
+</figure>
+<figure class="ltx_float ltx_algorithm" id="alg2">
+<div class="ltx_listing ltx_lst_numbers_left ltx_listing">
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">1</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_text ltx_font_bold">Input:</span>
+</div>
+<div class="ltx_listingline">
+Chutes <math alttext="C=\{c_{1},...,c_{M}\}" class="ltx_Math" display="inline" id="alg2.m1" intent=":literal"><semantics><mrow><mi>C</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>c</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>c</mi><mi>M</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">C=\{c_{1},...,c_{M}\}</annotation></semantics></math>.
+</div>
+<div class="ltx_listingline">
+<math alttext="D=\{d_{1},...,d_{N}\}" class="ltx_Math" display="inline" id="alg2.m2" intent=":literal"><semantics><mrow><mi>D</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>d</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>d</mi><mi>N</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">D=\{d_{1},...,d_{N}\}</annotation></semantics></math>, <math alttext="V=\{v_{1},...,v_{N}\}" class="ltx_Math" display="inline" id="alg2.m3" intent=":literal"><semantics><mrow><mi>V</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><msub><mi>v</mi><mn>1</mn></msub><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msub><mi>v</mi><mi>N</mi></msub><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">V=\{v_{1},...,v_{N}\}</annotation></semantics></math>: Destinations and their volumes sorted in descending order w.r.t. volumes.
+</div>
+<div class="ltx_listingline">
+<span class="ltx_text ltx_font_typewriter">centroid</span> (<math alttext="\cdot" class="ltx_Math" display="inline" id="alg2.m4" intent=":literal"><semantics><mo>⋅</mo><annotation encoding="application/x-tex">\cdot</annotation></semantics></math>): Function to compute the centroid of a set of chutes 
+</div>
+<div class="ltx_listingline">
+<span class="ltx_text ltx_font_typewriter">furthest_free_chute</span> (<math alttext="\cdot" class="ltx_Math" display="inline" id="alg2.m5" intent=":literal"><semantics><mo>⋅</mo><annotation encoding="application/x-tex">\cdot</annotation></semantics></math>): Function to compute the furthest unassigned chute to the current centroids.
+</div>
+<div class="ltx_listingline">
+<span class="ltx_text ltx_font_typewriter">closest_free_chute</span> (<math alttext="\cdot" class="ltx_Math" display="inline" id="alg2.m6" intent=":literal"><semantics><mo>⋅</mo><annotation encoding="application/x-tex">\cdot</annotation></semantics></math>): Function to compute the closest unassigned chute to a given set of chutes.
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_text ltx_font_bold">Output:</span> Task mapping <math alttext="\theta" class="ltx_Math" display="inline" id="alg2.m7" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">2</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">3</span><math alttext="C_{c}\leftarrow\{\}" class="ltx_Math" display="inline" id="alg2.m8" intent=":literal"><semantics><mrow><msub><mi>C</mi><mi>c</mi></msub><mo stretchy="false">←</mo><mrow><mo stretchy="false">{</mo><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">C_{c}\leftarrow\{\}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">4</span> <math alttext="m_{r}\leftarrow M" class="ltx_Math" display="inline" id="alg2.m9" intent=":literal"><semantics><mrow><msub><mi>m</mi><mi>r</mi></msub><mo stretchy="false">←</mo><mi>M</mi></mrow><annotation encoding="application/x-tex">m_{r}\leftarrow M</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">5</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">6</span><span class="ltx_text ltx_font_bold">for</span> <em class="ltx_emph ltx_font_italic"><math alttext="k\leftarrow 1" class="ltx_Math" display="inline" id="alg2.m10" intent=":literal"><semantics><mrow><mi>k</mi><mo stretchy="false">←</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">k\leftarrow 1</annotation></semantics></math> <span class="ltx_text ltx_font_bold ltx_font_upright">to</span> <math alttext="N" class="ltx_Math" display="inline" id="alg2.m11" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math></em> <span class="ltx_text ltx_font_bold">do</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">7</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  
+<math alttext="m_{k}=\lfloor\frac{v_{k}}{\sum_{v\in V}v}\cdot M\rfloor+1" class="ltx_Math" display="inline" id="alg2.m12" intent=":literal"><semantics><mrow><msub><mi>m</mi><mi>k</mi></msub><mo>=</mo><mrow><mrow><mo stretchy="false">⌊</mo><mrow><mfrac><msub><mi>v</mi><mi>k</mi></msub><mrow><mstyle displaystyle="false"><msub><mo>∑</mo><mrow><mi>v</mi><mo>∈</mo><mi>V</mi></mrow></msub></mstyle><mi>v</mi></mrow></mfrac><mo lspace="0.222em" rspace="0.222em">⋅</mo><mi>M</mi></mrow><mo stretchy="false">⌋</mo></mrow><mo>+</mo><mn>1</mn></mrow></mrow><annotation encoding="application/x-tex">m_{k}=\lfloor\frac{v_{k}}{\sum_{v\in V}v}\cdot M\rfloor+1</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">8</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+<math alttext="m_{a}=\min(m_{k},\max(m_{r}-(N-k),0))" class="ltx_Math" display="inline" id="alg2.m13" intent=":literal"><semantics><mrow><msub><mi>m</mi><mi>a</mi></msub><mo>=</mo><mrow><mi>min</mi><mo>⁡</mo><mrow><mo stretchy="false">(</mo><msub><mi>m</mi><mi>k</mi></msub><mo>,</mo><mrow><mi>max</mi><mo>⁡</mo><mrow><mo stretchy="false">(</mo><mrow><msub><mi>m</mi><mi>r</mi></msub><mo>−</mo><mrow><mo stretchy="false">(</mo><mrow><mi>N</mi><mo>−</mo><mi>k</mi></mrow><mo stretchy="false">)</mo></mrow></mrow><mo>,</mo><mn>0</mn><mo stretchy="false">)</mo></mrow></mrow><mo stretchy="false">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">m_{a}=\min(m_{k},\max(m_{r}-(N-k),0))</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">9</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">10</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> <span class="ltx_text ltx_font_bold">if</span> <em class="ltx_emph ltx_font_italic"><math alttext="C_{c}" class="ltx_Math" display="inline" id="alg2.m14" intent=":literal"><semantics><msub><mi>C</mi><mi>c</mi></msub><annotation encoding="application/x-tex">C_{c}</annotation></semantics></math> is <math alttext="\emptyset" class="ltx_Math" display="inline" id="alg2.m15" intent=":literal"><semantics><mi mathvariant="normal">∅</mi><annotation encoding="application/x-tex">\emptyset</annotation></semantics></math></em> <span class="ltx_text ltx_font_bold">then</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">11</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  
+<math alttext="\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c_{1}\}" class="ltx_Math" display="inline" id="alg2.m16" intent=":literal"><semantics><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo stretchy="false">←</mo><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo>∪</mo><mrow><mo stretchy="false">{</mo><msub><mi>c</mi><mn>1</mn></msub><mo stretchy="false">}</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c_{1}\}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">12</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">13</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+<span class="ltx_text ltx_font_bold">else</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">14</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  
+<math alttext="c\leftarrow" class="ltx_Math" display="inline" id="alg2.m17" intent=":literal"><semantics><mrow><mi>c</mi><mo stretchy="false">←</mo><mi></mi></mrow><annotation encoding="application/x-tex">c\leftarrow</annotation></semantics></math> <span class="ltx_text ltx_font_typewriter">furthest_free_chute(<em class="ltx_emph ltx_font_serif ltx_font_italic"><math alttext="C_{c},\theta,C" class="ltx_Math" display="inline" id="alg2.m18" intent=":literal"><semantics><mrow><msub><mi>C</mi><mi>c</mi></msub><mo>,</mo><mi>θ</mi><mo>,</mo><mi>C</mi></mrow><annotation encoding="application/x-tex">C_{c},\theta,C</annotation></semantics></math></em>)</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">15</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+<math alttext="\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c\}" class="ltx_Math" display="inline" id="alg2.m19" intent=":literal"><semantics><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo stretchy="false">←</mo><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo>∪</mo><mrow><mo stretchy="false">{</mo><mi>c</mi><mo stretchy="false">}</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c\}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">16</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">17</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">18</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> <span class="ltx_text ltx_font_bold">for</span> <em class="ltx_emph ltx_font_italic"><math alttext="j\leftarrow 1" class="ltx_Math" display="inline" id="alg2.m20" intent=":literal"><semantics><mrow><mi>j</mi><mo stretchy="false">←</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">j\leftarrow 1</annotation></semantics></math> <span class="ltx_text ltx_font_bold ltx_font_upright">to</span> <math alttext="m_{a}-1" class="ltx_Math" display="inline" id="alg2.m21" intent=":literal"><semantics><mrow><msub><mi>m</mi><mi>a</mi></msub><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">m_{a}-1</annotation></semantics></math></em> <span class="ltx_text ltx_font_bold">do</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">19</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  
+<math alttext="c\leftarrow" class="ltx_Math" display="inline" id="alg2.m22" intent=":literal"><semantics><mrow><mi>c</mi><mo stretchy="false">←</mo><mi></mi></mrow><annotation encoding="application/x-tex">c\leftarrow</annotation></semantics></math> <span class="ltx_text ltx_font_typewriter">closest_free_chute(<em class="ltx_emph ltx_font_serif ltx_font_italic"><math alttext="d_{k},\theta,C" class="ltx_Math" display="inline" id="alg2.m23" intent=":literal"><semantics><mrow><msub><mi>d</mi><mi>k</mi></msub><mo>,</mo><mi>θ</mi><mo>,</mo><mi>C</mi></mrow><annotation encoding="application/x-tex">d_{k},\theta,C</annotation></semantics></math></em>)</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">20</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+<math alttext="\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c\}" class="ltx_Math" display="inline" id="alg2.m24" intent=":literal"><semantics><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo stretchy="false">←</mo><mrow><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><mo>∪</mo><mrow><mo stretchy="false">{</mo><mi>c</mi><mo stretchy="false">}</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">\theta(d_{k})\leftarrow\theta(d_{k})\cup\{c\}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">21</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span>  <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">22</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> <math alttext="m_{r}\leftarrow m_{r}-m_{a}" class="ltx_Math" display="inline" id="alg2.m25" intent=":literal"><semantics><mrow><msub><mi>m</mi><mi>r</mi></msub><mo stretchy="false">←</mo><mrow><msub><mi>m</mi><mi>r</mi></msub><mo>−</mo><msub><mi>m</mi><mi>a</mi></msub></mrow></mrow><annotation encoding="application/x-tex">m_{r}\leftarrow m_{r}-m_{a}</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">23</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">24</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> <math alttext="C_{c}\leftarrow C_{c}\cup\{" class="ltx_math_unparsed" display="inline" id="alg2.m26" intent=":literal"><semantics><mrow><msub><mi>C</mi><mi>c</mi></msub><mo stretchy="false">←</mo><msub><mi>C</mi><mi>c</mi></msub><mo>∪</mo><mo stretchy="false">{</mo></mrow><annotation encoding="application/x-tex">C_{c}\leftarrow C_{c}\cup\{</annotation></semantics></math><span class="ltx_text ltx_font_typewriter">centroid(<em class="ltx_emph ltx_font_serif ltx_font_italic"><math alttext="\theta(d_{k})" class="ltx_Math" display="inline" id="alg2.m27" intent=":literal"><semantics><mrow><mi>θ</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mi>d</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">\theta(d_{k})</annotation></semantics></math></em>)<math alttext="\}" class="ltx_Math" display="inline" id="alg2.m28" intent=":literal"><semantics><mo stretchy="false">}</mo><annotation encoding="application/x-tex">\}</annotation></semantics></math></span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">25</span> <span class="ltx_rule" style="width:1px;height:100%;--ltx-bg-color:black;display:inline-block;"> </span> 
+
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">26</span>
+</div>
+<div class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline">27</span><span class="ltx_text ltx_font_bold">return</span> <math alttext="\theta" class="ltx_Math" display="inline" id="alg2.m29" intent=":literal"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>
+</div>
+<div class="ltx_listingline">
+</div>
+</div>
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_float"><span class="ltx_text ltx_font_bold">Algorithm 2</span> </span>Cluster Greedy Initialization</figcaption>
+</figure>
+<div class="ltx_para" id="A1.p1">
+<p class="ltx_p"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">1</span></a> describes the procedure of Min-dist Greedy Initialization. Since we prioritize assigning chutes closer to workstations to higher-volume destinations, we sort the chutes in ascending order by their path length to the closest workstation and sort the destinations by their volumes in descending order.
+We initialize the task mapping (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">1</span></a>) and the index of the currently assigned chute (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">1</span></a>). Then for each destination <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p1.m1" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math>, we first compute <math alttext="m_{k}" class="ltx_Math" display="inline" id="A1.p1.m2" intent=":literal"><semantics><msub><mi>m</mi><mi>k</mi></msub><annotation encoding="application/x-tex">m_{k}</annotation></semantics></math> as the maximum number of chutes that can be assigned to <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p1.m3" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> in proportion to its volume, followed by the addition of 1 to ensure at least 1 chute is assigned to <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p1.m4" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">1</span></a>). We then keep assigning the next available chute to <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p1.m5" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> until we reach <math alttext="m_{k}" class="ltx_Math" display="inline" id="A1.p1.m6" intent=":literal"><semantics><msub><mi>m</mi><mi>k</mi></msub><annotation encoding="application/x-tex">m_{k}</annotation></semantics></math> or only one chute is left for each of the remaining destinations (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithms</span> <span class="ltx_text ltx_ref_tag">1</span></a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="Algorithm 1 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">1</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="Algorithm 1 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">1</span></a>).
+This algorithm guarantees to generate a valid task mapping.</p>
+</div>
+<div class="ltx_para" id="A1.p2">
+<p class="ltx_p"><a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">2</span></a> describes the procedure of Cluster Greedy Initialization. Similar to <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg1" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">1</span></a>, we sort destinations in descending order by their volumes. We first initialize the set of centroids of the chutes assigned to each destination (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">2</span></a>) and the number of remaining chutes (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">2</span></a>). Then for each destination <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p2.m1" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">2</span></a>), we compute <math alttext="m_{a}" class="ltx_Math" display="inline" id="A1.p2.m2" intent=":literal"><semantics><msub><mi>m</mi><mi>a</mi></msub><annotation encoding="application/x-tex">m_{a}</annotation></semantics></math> as the exact number of chutes that should be assigned to <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p2.m3" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithms</span> <span class="ltx_text ltx_ref_tag">2</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="Algorithm 2 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">2</span></a>).
+Intuitively, we try to assign as many chutes as possible while making sure that at least 1 chute is reserved for each remaining destination. We then start assigning chutes. We either assign a fixed chute <math alttext="c_{1}" class="ltx_Math" display="inline" id="A1.p2.m4" intent=":literal"><semantics><msub><mi>c</mi><mn>1</mn></msub><annotation encoding="application/x-tex">c_{1}</annotation></semantics></math> on the top-left corner if <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p2.m5" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> is the first destination (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithms</span> <span class="ltx_text ltx_ref_tag">2</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="Algorithm 2 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">2</span></a>), or we find the furthest unassigned chute from the current centroids (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithms</span> <span class="ltx_text ltx_ref_tag">2</span></a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="Algorithm 2 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">2</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="Algorithm 2 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">2</span></a>).
+The rationale is to keep the chutes assigned to high-volume destinations as far as possible from each other, balancing the traffic. We then assign the rest of the chutes of <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p2.m6" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> one by one by looking for the closest unassigned chute to the chutes assigned to <math alttext="d_{k}" class="ltx_Math" display="inline" id="A1.p2.m7" intent=":literal"><semantics><msub><mi>d</mi><mi>k</mi></msub><annotation encoding="application/x-tex">d_{k}</annotation></semantics></math> (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithms</span> <span class="ltx_text ltx_ref_tag">2</span></a>, <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="Algorithm 2 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">2</span></a> and <a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="Algorithm 2 ‣ Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">2</span></a>). This clusters chutes of the destination together, reducing the chute <em class="ltx_emph ltx_font_italic">CLOSED</em> time. Finally, we update the number of remaining chutes (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">2</span></a>) and the set of centroids (<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#alg2" title="In Appendix A EA Initialization ‣ Destination-to-Chutes Task Mapping Optimization for Multi-Robot Coordination in Robotic Sorting Systems"><span class="ltx_text ltx_ref_tag">Algorithm</span> <span class="ltx_text ltx_ref_tag">2</span></a>).</p>
+</div>
+</section>
+<section class="ltx_appendix" id="A2">
+<h2 class="ltx_title ltx_title_appendix">
+<span class="ltx_tag ltx_tag_appendix">Appendix B </span>Implementation and Compute Resource</h2>
+<section class="ltx_subsection" id="A2.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">B-A </span><span class="ltx_text ltx_font_italic">Implementation</span>
+</h3>
+<div class="ltx_para" id="A2.SS1.p1">
+<p class="ltx_p">We implement the EA and MAP-Elites in Pyribs <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib43" title="">43</a>]</cite>, the MILP with IBM’s CPLEX library <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib44" title="">44</a>]</cite>, and the RSS simulator based on the winning solution <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib25" title="">25</a>]</cite> of the 2023 League of Robot Runner Competition <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2510.03472v1#bib.bib45" title="">45</a>]</cite>, a lifelong MAPF competition focusing on coordinating a large fleet of robots in RMFS and RSS.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="A2.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">B-B </span><span class="ltx_text ltx_font_italic">Compute Resource</span>
+</h3>
+<div class="ltx_para" id="A2.SS2.p1">
+<p class="ltx_p">Our experiments are not sensitive to runtime, allowing us to conduct experiments on three different machines: (1) a local machine with a 64-core AMD Ryzen Threadripper 3990X CPU and 192 GB of RAM, (2) a local machine with a 64-core AMD Ryzen Threadripper 7980X CPU and 256 GB of RAM, and (3) a local machine with a 16-core AMD 5950X CPU and 64 GB of RAM.</p>
+</div>
+</section>
+</section>
+</article>
+</div>
+<footer class="ltx_page_footer">
+<div class="ltx_page_logo">Generated  on Fri Oct  3 19:49:29 2025 by <a class="ltx_LaTeXML_logo" href="http://dlmf.nist.gov/LaTeXML/"><span style="letter-spacing:-0.2em; margin-right:0.1em;">L<span class="ltx_font_smallcaps" style="position:relative; bottom:2.2pt;">a</span>T<span class="ltx_font_smallcaps" style="font-size:120%;position:relative; bottom:-0.2ex;">e</span></span><span style="font-size:90%; position:relative; bottom:-0.2ex;">XML</span><img alt="Mascot Sammy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg=="/></a>
+</div></footer>
+</div>
+</body>
+</html>

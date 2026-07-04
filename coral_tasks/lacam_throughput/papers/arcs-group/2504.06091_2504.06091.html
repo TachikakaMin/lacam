@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+<title>Real-Time LaCAM for Real-Time MAPF</title>
+<!--Generated on Sun Jul 27 22:09:40 2025 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv.0.8.2.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv-fonts.0.8.2.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/latexml_styles.0.8.2.css" rel="stylesheet" type="text/css"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.3/html2canvas.min.js"></script>
+<script src="/static/browse/0.3.4/js/addons_new.js"></script>
+<script src="/static/browse/0.3.4/js/feedbackOverlay.js"></script>
+<base href="/html/2504.06091v2/"/></head>
+<body>
+<nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S1" title="In Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">1 </span>Introduction</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S2" title="In Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2 </span>Related Works</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S2.SS1" title="In 2 Related Works ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.1 </span>Real-Time MAPF Formulation</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S2.SS2" title="In 2 Related Works ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.2 </span>Real-Time and Windowed MAPF Solvers</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S2.SS3" title="In 2 Related Works ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.3 </span>Real-Time Single-Agent Heuristic Search</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S2.SS4" title="In 2 Related Works ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.4 </span>LaCAM</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S3" title="In Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3 </span>Real-Time LaCAM</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S3.SS1" title="In 3 Real-Time LaCAM ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.1 </span>Theoretical Properties</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S4" title="In Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4 </span>Experimental Results</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S5" title="In Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5 </span>Future Work and Conclusion</span></a></li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_title_document">Real-Time LaCAM for Real-Time MAPF</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">
+Runzhe Liang<span class="ltx_ERROR undefined">\equalcontrib</span><sup class="ltx_sup">1</sup>, Rishi Veerapaneni<span class="ltx_ERROR undefined">\equalcontrib</span><sup class="ltx_sup">1</sup>, Daniel Harabor<sup class="ltx_sup">2</sup>, Jiaoyang Li<sup class="ltx_sup">1</sup>, Maxim Likhachev<sup class="ltx_sup">1</sup>
+</span></span>
+</div>
+<div class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p">The vast majority of Multi-Agent Path Finding (MAPF) methods with completeness guarantees require planning full-horizon paths. However, planning full-horizon paths can take too long and be impractical in real-world applications. Instead, real-time planning and execution, which only allows the planner a finite amount of time before executing and replanning, is more practical for real-world multi-agent systems.
+Several methods utilize real-time planning schemes but none are provably complete, which leads to livelock or deadlock. Our main contribution is Real-Time LaCAM, the first Real-Time MAPF method with provable completeness guarantees. We do this by leveraging LaCAM in an incremental fashion. Our results show how we can iteratively plan for congested environments with a cutoff time of milliseconds while still maintaining the same success rate as full-horizon LaCAM. We also show how it can be used with a single-step learned MAPF policy.</p>
+</div>
+<section class="ltx_section" id="S1">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">1 </span>Introduction</h2>
+<div class="ltx_para" id="S1.p1">
+<p class="ltx_p">Multi-Agent Path Finding (MAPF) is the problem of finding collision-free paths for a team of agents in a shared congested environment. MAPF is particularly relevant for warehouse automation, which requires dozens to hundreds of robotic agents to navigate effectively.</p>
+</div>
+<div class="ltx_para" id="S1.p2">
+<p class="ltx_p">The majority of MAPF methods focus on finding a full-horizon solution quickly. However, real-world applications have strict planning time limits. In these scenarios, real-time planning and execution is required. In this setup, the planner has a fixed (small) planning budget to compute the next action for all the agents to take. The agents then take this action and repeat the planning and execution process.</p>
+</div>
+<div class="ltx_para" id="S1.p3">
+<p class="ltx_p">The most prevalent framework for real-time planning and execution is to utilize windowed planning, where instead of computing an entire collision-free path, the planner computes a partial collision-free path for the next <math alttext="W" class="ltx_Math" display="inline" id="S1.p3.m1"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation><annotation encoding="application/x-llamapun">italic_W</annotation></semantics></math> time steps. Agents then move along this path to some extent and replan. Windowed planning decreases the planning time to fit within small realistic planning budgets.</p>
+</div>
+<div class="ltx_para" id="S1.p4">
+<p class="ltx_p">However, the vast majority of real-time and windowed MAPF methods are theoretically incomplete and, in practice, can suffer from deadlock or livelock. Recent work introduced the Windowed Complete MAPF (WinC-MAPF) framework that enables completeness using heuristic updates and agent groups, but can empirically take several seconds to plan a single step action for all agents and is hence not practically real-time <cite class="ltx_cite ltx_citemacro_citep">(Veerapaneni et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib19" title="">2024b</a>)</cite>.</p>
+</div>
+<div class="ltx_para" id="S1.p5">
+<p class="ltx_p">Thus, to our knowledge, there exists no theoretically complete real-time MAPF method. To that end, we design Real-Time LaCAM. Real-Time LaCAM incrementally builds the LaCAM depth-first search <cite class="ltx_cite ltx_citemacro_citep">(Okumura <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib11" title="">2023</a>)</cite> and is complete. We empirically show how Real-Time LaCAM can have an identical success rate and overall runtime of full-horizon LaCAM with a per-iteration cutoff time of milliseconds (or smaller). We additionally show how it can be used with a learned machine learning MAPF policy.</p>
+</div>
+</section>
+<section class="ltx_section" id="S2">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">2 </span>Related Works</h2>
+<section class="ltx_subsection" id="S2.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">2.1 </span>Real-Time MAPF Formulation</h3>
+<div class="ltx_para" id="S2.SS1.p1">
+<p class="ltx_p">Multi-Agent Path Finding (MAPF) involves finding collision-free paths for a set of <math alttext="N" class="ltx_Math" display="inline" id="S2.SS1.p1.m1"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation><annotation encoding="application/x-llamapun">italic_N</annotation></semantics></math> agents, denoted as <math alttext="{i=1,\dots,N}" class="ltx_Math" display="inline" id="S2.SS1.p1.m2"><semantics><mrow><mi>i</mi><mo>=</mo><mrow><mn>1</mn><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><mi>N</mi></mrow></mrow><annotation encoding="application/x-tex">{i=1,\dots,N}</annotation><annotation encoding="application/x-llamapun">italic_i = 1 , … , italic_N</annotation></semantics></math>, where each agent must travel from its start location <math alttext="s_{i}^{\text{start}}" class="ltx_Math" display="inline" id="S2.SS1.p1.m3"><semantics><msubsup><mi>s</mi><mi>i</mi><mtext>start</mtext></msubsup><annotation encoding="application/x-tex">s_{i}^{\text{start}}</annotation><annotation encoding="application/x-llamapun">italic_s start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT start end_POSTSUPERSCRIPT</annotation></semantics></math> to its goal location <math alttext="s_{i}^{\text{goal}}" class="ltx_Math" display="inline" id="S2.SS1.p1.m4"><semantics><msubsup><mi>s</mi><mi>i</mi><mtext>goal</mtext></msubsup><annotation encoding="application/x-tex">s_{i}^{\text{goal}}</annotation><annotation encoding="application/x-llamapun">italic_s start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT goal end_POSTSUPERSCRIPT</annotation></semantics></math>. In the standard 2D MAPF setup, the environment is discretized into grid cells and timesteps. Agents can move to adjacent cells in any cardinal direction or remain stationary in their current cell.</p>
+</div>
+<div class="ltx_para" id="S2.SS1.p2">
+<p class="ltx_p">We define the MAPF search problem in the joint configuration space. A joint configuration at timestep <math alttext="t" class="ltx_Math" display="inline" id="S2.SS1.p2.m1"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation><annotation encoding="application/x-llamapun">italic_t</annotation></semantics></math>, <math alttext="C^{t}" class="ltx_Math" display="inline" id="S2.SS1.p2.m2"><semantics><msup><mi>C</mi><mi>t</mi></msup><annotation encoding="application/x-tex">C^{t}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT</annotation></semantics></math>, is the location of all agents at timestep <math alttext="t" class="ltx_Math" display="inline" id="S2.SS1.p2.m3"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation><annotation encoding="application/x-llamapun">italic_t</annotation></semantics></math>, i.e. <math alttext="C^{t}=[s^{t}_{1},s^{t}_{2},...,s^{t}_{N}]" class="ltx_Math" display="inline" id="S2.SS1.p2.m4"><semantics><mrow><msup><mi>C</mi><mi>t</mi></msup><mo>=</mo><mrow><mo stretchy="false">[</mo><msubsup><mi>s</mi><mn>1</mn><mi>t</mi></msubsup><mo>,</mo><msubsup><mi>s</mi><mn>2</mn><mi>t</mi></msubsup><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msubsup><mi>s</mi><mi>N</mi><mi>t</mi></msubsup><mo stretchy="false">]</mo></mrow></mrow><annotation encoding="application/x-tex">C^{t}=[s^{t}_{1},s^{t}_{2},...,s^{t}_{N}]</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT = [ italic_s start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT start_POSTSUBSCRIPT 1 end_POSTSUBSCRIPT , italic_s start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT start_POSTSUBSCRIPT 2 end_POSTSUBSCRIPT , … , italic_s start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_N end_POSTSUBSCRIPT ]</annotation></semantics></math>. A valid MAPF solution is a sequence of joint configurations <math alttext="\Pi=C^{0},C^{1},...,C^{T}" class="ltx_Math" display="inline" id="S2.SS1.p2.m5"><semantics><mrow><mi mathvariant="normal">Π</mi><mo>=</mo><mrow><msup><mi>C</mi><mn>0</mn></msup><mo>,</mo><msup><mi>C</mi><mn>1</mn></msup><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msup><mi>C</mi><mi>T</mi></msup></mrow></mrow><annotation encoding="application/x-tex">\Pi=C^{0},C^{1},...,C^{T}</annotation><annotation encoding="application/x-llamapun">roman_Π = italic_C start_POSTSUPERSCRIPT 0 end_POSTSUPERSCRIPT , italic_C start_POSTSUPERSCRIPT 1 end_POSTSUPERSCRIPT , … , italic_C start_POSTSUPERSCRIPT italic_T end_POSTSUPERSCRIPT</annotation></semantics></math> where for all agents <math alttext="i" class="ltx_Math" display="inline" id="S2.SS1.p2.m6"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation><annotation encoding="application/x-llamapun">italic_i</annotation></semantics></math>, <math alttext="C^{0}_{i}=s_{i}^{start}" class="ltx_Math" display="inline" id="S2.SS1.p2.m7"><semantics><mrow><msubsup><mi>C</mi><mi>i</mi><mn>0</mn></msubsup><mo>=</mo><msubsup><mi>s</mi><mi>i</mi><mrow><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>r</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">C^{0}_{i}=s_{i}^{start}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT 0 end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT = italic_s start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_s italic_t italic_a italic_r italic_t end_POSTSUPERSCRIPT</annotation></semantics></math> and <math alttext="C^{T}_{i}=s_{i}^{goal}" class="ltx_Math" display="inline" id="S2.SS1.p2.m8"><semantics><mrow><msubsup><mi>C</mi><mi>i</mi><mi>T</mi></msubsup><mo>=</mo><msubsup><mi>s</mi><mi>i</mi><mrow><mi>g</mi><mo lspace="0em" rspace="0em">​</mo><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><mi>a</mi><mo lspace="0em" rspace="0em">​</mo><mi>l</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">C^{T}_{i}=s_{i}^{goal}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_T end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT = italic_s start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_g italic_o italic_a italic_l end_POSTSUPERSCRIPT</annotation></semantics></math>.
+To ensure validity, the solution must avoid vertex collisions (when two agents occupy the same cell at the same timestep i.e., <math alttext="C^{t}_{i}=C^{t}_{j}" class="ltx_Math" display="inline" id="S2.SS1.p2.m9"><semantics><mrow><msubsup><mi>C</mi><mi>i</mi><mi>t</mi></msubsup><mo>=</mo><msubsup><mi>C</mi><mi>j</mi><mi>t</mi></msubsup></mrow><annotation encoding="application/x-tex">C^{t}_{i}=C^{t}_{j}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT = italic_C start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_j end_POSTSUBSCRIPT</annotation></semantics></math> for <math alttext="i\neq j" class="ltx_Math" display="inline" id="S2.SS1.p2.m10"><semantics><mrow><mi>i</mi><mo>≠</mo><mi>j</mi></mrow><annotation encoding="application/x-tex">i\neq j</annotation><annotation encoding="application/x-llamapun">italic_i ≠ italic_j</annotation></semantics></math>) and edge collisions (when two agents swap positions between consecutive timesteps, i.e., <math alttext="C^{t}_{i}=C^{t+1}_{j}\wedge C^{t+1}_{i}=C^{t}_{j}" class="ltx_Math" display="inline" id="S2.SS1.p2.m11"><semantics><mrow><msubsup><mi>C</mi><mi>i</mi><mi>t</mi></msubsup><mo>=</mo><mrow><msubsup><mi>C</mi><mi>j</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mo>∧</mo><msubsup><mi>C</mi><mi>i</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup></mrow><mo>=</mo><msubsup><mi>C</mi><mi>j</mi><mi>t</mi></msubsup></mrow><annotation encoding="application/x-tex">C^{t}_{i}=C^{t+1}_{j}\wedge C^{t+1}_{i}=C^{t}_{j}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT = italic_C start_POSTSUPERSCRIPT italic_t + 1 end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_j end_POSTSUBSCRIPT ∧ italic_C start_POSTSUPERSCRIPT italic_t + 1 end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT = italic_C start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT start_POSTSUBSCRIPT italic_j end_POSTSUBSCRIPT</annotation></semantics></math>, for all timesteps <math alttext="t" class="ltx_Math" display="inline" id="S2.SS1.p2.m12"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation><annotation encoding="application/x-llamapun">italic_t</annotation></semantics></math>). The standard objective in MAPF is to find a solution <math alttext="\Pi" class="ltx_Math" display="inline" id="S2.SS1.p2.m13"><semantics><mi mathvariant="normal">Π</mi><annotation encoding="application/x-tex">\Pi</annotation><annotation encoding="application/x-llamapun">roman_Π</annotation></semantics></math> that minimizes the total cost <math alttext="|\Pi|=\sum_{i=1}^{N}\sum_{t=0}^{T-1}c(C_{i}^{t},C_{i}^{t+1})" class="ltx_Math" display="inline" id="S2.SS1.p2.m14"><semantics><mrow><mrow><mo stretchy="false">|</mo><mi mathvariant="normal">Π</mi><mo stretchy="false">|</mo></mrow><mo rspace="0.111em">=</mo><mrow><msubsup><mo rspace="0em">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></msubsup><mrow><msubsup><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>T</mi><mo>−</mo><mn>1</mn></mrow></msubsup><mrow><mi>c</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>C</mi><mi>i</mi><mi>t</mi></msubsup><mo>,</mo><msubsup><mi>C</mi><mi>i</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mo stretchy="false">)</mo></mrow></mrow></mrow></mrow></mrow><annotation encoding="application/x-tex">|\Pi|=\sum_{i=1}^{N}\sum_{t=0}^{T-1}c(C_{i}^{t},C_{i}^{t+1})</annotation><annotation encoding="application/x-llamapun">| roman_Π | = ∑ start_POSTSUBSCRIPT italic_i = 1 end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_N end_POSTSUPERSCRIPT ∑ start_POSTSUBSCRIPT italic_t = 0 end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_T - 1 end_POSTSUPERSCRIPT italic_c ( italic_C start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT , italic_C start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_t + 1 end_POSTSUPERSCRIPT )</annotation></semantics></math>. In this work, we assume that all actions are of unit cost, <math alttext="c(C_{i}^{t},C_{i}^{t+1})=1" class="ltx_Math" display="inline" id="S2.SS1.p2.m15"><semantics><mrow><mrow><mi>c</mi><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msubsup><mi>C</mi><mi>i</mi><mi>t</mi></msubsup><mo>,</mo><msubsup><mi>C</mi><mi>i</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mo stretchy="false">)</mo></mrow></mrow><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">c(C_{i}^{t},C_{i}^{t+1})=1</annotation><annotation encoding="application/x-llamapun">italic_c ( italic_C start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_t end_POSTSUPERSCRIPT , italic_C start_POSTSUBSCRIPT italic_i end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_t + 1 end_POSTSUPERSCRIPT ) = 1</annotation></semantics></math>, except when an agent remains at its goal (where the cost is 0).</p>
+</div>
+<div class="ltx_para" id="S2.SS1.p3">
+<p class="ltx_p">Although the above describes the standard formulation of the full-horizon MAPF problem, this work focuses on real-time planning where the planner does not have unlimited time to find a solution. Instead, agents iterate through planning and execution.
+At every planning iteration, the objective is to determine the next configuration <math alttext="C^{1}" class="ltx_Math" display="inline" id="S2.SS1.p3.m1"><semantics><msup><mi>C</mi><mn>1</mn></msup><annotation encoding="application/x-tex">C^{1}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT 1 end_POSTSUPERSCRIPT</annotation></semantics></math> to move to (where <math alttext="C^{0}" class="ltx_Math" display="inline" id="S2.SS1.p3.m2"><semantics><msup><mi>C</mi><mn>0</mn></msup><annotation encoding="application/x-tex">C^{0}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT 0 end_POSTSUPERSCRIPT</annotation></semantics></math> is the current configuration of the agents). This is done by employing a time-bounded search that finds the best <math alttext="\Pi^{0:W}=C^{0},C^{1},...,C^{W}" class="ltx_Math" display="inline" id="S2.SS1.p3.m3"><semantics><mrow><msup><mi mathvariant="normal">Π</mi><mrow><mn>0</mn><mo lspace="0.278em" rspace="0.278em">:</mo><mi>W</mi></mrow></msup><mo>=</mo><mrow><msup><mi>C</mi><mn>0</mn></msup><mo>,</mo><msup><mi>C</mi><mn>1</mn></msup><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msup><mi>C</mi><mi>W</mi></msup></mrow></mrow><annotation encoding="application/x-tex">\Pi^{0:W}=C^{0},C^{1},...,C^{W}</annotation><annotation encoding="application/x-llamapun">roman_Π start_POSTSUPERSCRIPT 0 : italic_W end_POSTSUPERSCRIPT = italic_C start_POSTSUPERSCRIPT 0 end_POSTSUPERSCRIPT , italic_C start_POSTSUPERSCRIPT 1 end_POSTSUPERSCRIPT , … , italic_C start_POSTSUPERSCRIPT italic_W end_POSTSUPERSCRIPT</annotation></semantics></math> collision-free partial path where <math alttext="W" class="ltx_Math" display="inline" id="S2.SS1.p3.m4"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation><annotation encoding="application/x-llamapun">italic_W</annotation></semantics></math> is the length of the partial path the search reached when reaching the timeout (and is not a fixed constant). Agents move to <math alttext="C^{1}" class="ltx_Math" display="inline" id="S2.SS1.p3.m5"><semantics><msup><mi>C</mi><mn>1</mn></msup><annotation encoding="application/x-tex">C^{1}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT 1 end_POSTSUPERSCRIPT</annotation></semantics></math> and then repeat.
+Real-Time planning is closely related to windowed planning but has an important subtle difference: windowed planning computes a partial path to a predefined fixed <math alttext="W" class="ltx_Math" display="inline" id="S2.SS1.p3.m6"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation><annotation encoding="application/x-llamapun">italic_W</annotation></semantics></math> and may not satisfy a fixed timeout. In practice, real-time methods usually adjust their window size so that it empirically runs within their target runtime limit.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S2.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">2.2 </span>Real-Time and Windowed MAPF Solvers</h3>
+<div class="ltx_para" id="S2.SS2.p1">
+<p class="ltx_p">There are a variety of MAPF solvers that utilize windowed planning. Windowed Hierarchical Cooperative A* <cite class="ltx_cite ltx_citemacro_citep">(Silver <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib16" title="">2005</a>)</cite> utilized a modified prioritized planner <cite class="ltx_cite ltx_citemacro_citep">(Erdmann and Lozano-Perez <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib3" title="">1987</a>)</cite> that planned collision-free paths for only <math alttext="W" class="ltx_Math" display="inline" id="S2.SS2.p1.m1"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation><annotation encoding="application/x-llamapun">italic_W</annotation></semantics></math> timesteps. Rolling-Horizon Collision Resolution <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib9" title="">2020</a>)</cite> generalizes this idea by modifying a variety of modern solvers (CBS <cite class="ltx_cite ltx_citemacro_citep">(Sharon et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib15" title="">2015</a>)</cite>, ECBS <cite class="ltx_cite ltx_citemacro_citep">(Barer et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib1" title="">2014</a>)</cite>, and PBS <cite class="ltx_cite ltx_citemacro_citep">(Ma et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib10" title="">2019</a>)</cite>) to plan partial paths.</p>
+</div>
+<div class="ltx_para" id="S2.SS2.p2">
+<p class="ltx_p">The introduction of the Robot Runners competition, which requires planning for 1000’s of agents in 1 seconds, empirically requires real-time windowed solvers. The 2023 winning solution Windowed Parallel PIBT-LNS (WPPL) <cite class="ltx_cite ltx_citemacro_citep">(Jiang et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib4" title="">2024</a>)</cite> planned an initial partial path using PIBT <cite class="ltx_cite ltx_citemacro_citep">(Okumura et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib13" title="">2022</a>)</cite> and then refined it with the remaining planning time using parallel LNS <cite class="ltx_cite ltx_citemacro_citep">(Li et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib7" title="">2021</a>, <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib8" title="">2022</a>)</cite>.</p>
+</div>
+<div class="ltx_para" id="S2.SS2.p3">
+<p class="ltx_p">All these prior real-time/windowed approaches are theoretically incomplete and mention deadlock/livelock as a problem. Recently, the Windowed Complete MAPF (WinC-MAPF) framework showed how to enable completeness for windowed planners <cite class="ltx_cite ltx_citemacro_citep">(Veerapaneni et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib19" title="">2024b</a>)</cite> by leveraging heuristic updates from single-agent real-time heuristic search <cite class="ltx_cite ltx_citemacro_citep">(Korf <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib6" title="">1990</a>)</cite>. However, they require an optimal windowed solver (which minimizes <math alttext="|\Pi^{0:W}|" class="ltx_Math" display="inline" id="S2.SS2.p3.m1"><semantics><mrow><mo stretchy="false">|</mo><msup><mi mathvariant="normal">Π</mi><mrow><mn>0</mn><mo lspace="0.278em" rspace="0.278em">:</mo><mi>W</mi></mrow></msup><mo stretchy="false">|</mo></mrow><annotation encoding="application/x-tex">|\Pi^{0:W}|</annotation><annotation encoding="application/x-llamapun">| roman_Π start_POSTSUPERSCRIPT 0 : italic_W end_POSTSUPERSCRIPT |</annotation></semantics></math> incorporating the heuristic updates), which in practice means it can take several seconds to find a one-step path.</p>
+</div>
+<div class="ltx_para" id="S2.SS2.p4">
+<p class="ltx_p">Our method shows an alternative method for real-time/windowed search with completeness by modifying LaCAM. Our method does not require optimal solvers and thus can use PIBT and plan for near arbitrarily small timeouts.</p>
+</div>
+<figure class="ltx_figure" id="S2.F1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="238" id="S2.F1.g1" src="x1.png" width="747"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 1: </span>Left: The full-horizon DFS required for LaCAM to find a solution. Letters denote joint configurations while arrows denote transitions (via PIBT and constraints). Right: Instead of needing to plan the entire horizon, Real-Time LaCAM incrementally builds up the DFS. T=0: First, there is an initial partial LaCAM search that terminates once it reaches the timeout. T=1: Then, the agents move to the next configuration (<math alttext="A\rightarrow B" class="ltx_Math" display="inline" id="S2.F1.m6"><semantics><mrow><mi>A</mi><mo stretchy="false">→</mo><mi>B</mi></mrow><annotation encoding="application/x-tex">A\rightarrow B</annotation><annotation encoding="application/x-llamapun">italic_A → italic_B</annotation></semantics></math>). Importantly, we re-root the tree by swapping the <math alttext="A\rightarrow B" class="ltx_Math" display="inline" id="S2.F1.m7"><semantics><mrow><mi>A</mi><mo stretchy="false">→</mo><mi>B</mi></mrow><annotation encoding="application/x-tex">A\rightarrow B</annotation><annotation encoding="application/x-llamapun">italic_A → italic_B</annotation></semantics></math> edge so that the DFS tree is now rooted at the new location <math alttext="B" class="ltx_Math" display="inline" id="S2.F1.m8"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation><annotation encoding="application/x-llamapun">italic_B</annotation></semantics></math>. We then plan the next iteration reusing the DFS tree, in this case starting at <math alttext="C" class="ltx_Math" display="inline" id="S2.F1.m9"><semantics><mi>C</mi><annotation encoding="application/x-tex">C</annotation><annotation encoding="application/x-llamapun">italic_C</annotation></semantics></math> (the end of initial DFS). If we revisit configurations from previous searches (<math alttext="B" class="ltx_Math" display="inline" id="S2.F1.m10"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation><annotation encoding="application/x-llamapun">italic_B</annotation></semantics></math> in this example), we add constraints. This prevents deadlock/livelock and ensure completeness, compared to naively re-searching from scratch which would enter a loop in this case. T=2+: This process repeats across timesteps until the goal is reached.</figcaption>
+</figure>
+</section>
+<section class="ltx_subsection" id="S2.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">2.3 </span>Real-Time Single-Agent Heuristic Search</h3>
+<div class="ltx_para" id="S2.SS3.p1">
+<p class="ltx_p">There are a variety of single-agent heuristic search algorithms specifically designed for real-time search and execution. In particular, Learning Real-Time A* (LRTA*) <cite class="ltx_cite ltx_citemacro_citep">(Korf <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib6" title="">1990</a>)</cite> showed how updating the heuristic of states that the agent visits can ensure completeness. This approach was popular and has been extended for better performance <cite class="ltx_cite ltx_citemacro_citep">(Koenig and Sun <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib5" title="">2009</a>; Rivera, Baier, and Hernandez <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib14" title="">2013</a>)</cite>.</p>
+</div>
+<div class="ltx_para" id="S2.SS3.p2">
+<p class="ltx_p">A different less popular approach for completeness is Time-Bounded A* (TBA*) <cite class="ltx_cite ltx_citemacro_citep">(Björnsson, Bulitko, and Sturtevant <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib2" title="">2009</a>)</cite> which builds a single A* search rooted at the start location across many iterations. At every planning step, the single A* search continues from before. The agent then moves towards the node with the best f-value. Importantly, this could mean moving forward (if that node is a child of the current location), or backwards (if the node is a child of an ancestor). In the worst case, an agent in TBA* could need to backtrack all the way to the start location, but is still eventually guaranteed to reach the goal as the single A* search is complete. Our Real-Time LaCAM method can be interpreted as a MAPF version of TBA* using LaCAM’s search tree instead of an A* search.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S2.SS4">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">2.4 </span>LaCAM</h3>
+<div class="ltx_para" id="S2.SS4.p1">
+<p class="ltx_p">LaCAM <cite class="ltx_cite ltx_citemacro_citep">(Okumura <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib11" title="">2023</a>)</cite> is an extremely fast MAPF solver that utilizes a <span class="ltx_text ltx_font_italic">lazy</span> Depth-First Search (DFS) over configurations. We note that a regular DFS is infeasible as it requires generating on the order of <math alttext="5^{N}" class="ltx_Math" display="inline" id="S2.SS4.p1.m1"><semantics><msup><mn>5</mn><mi>N</mi></msup><annotation encoding="application/x-tex">5^{N}</annotation><annotation encoding="application/x-llamapun">5 start_POSTSUPERSCRIPT italic_N end_POSTSUPERSCRIPT</annotation></semantics></math> possible successor configurations when expanding a configuration.</p>
+</div>
+<div class="ltx_para" id="S2.SS4.p2">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Lazy DFS:</span> LaCAM starts with a configuration <math alttext="C^{0}" class="ltx_Math" display="inline" id="S2.SS4.p2.m1"><semantics><msup><mi>C</mi><mn>0</mn></msup><annotation encoding="application/x-tex">C^{0}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT 0 end_POSTSUPERSCRIPT</annotation></semantics></math>, and instead of generating all valid successor configurations, it only generates one successor <math alttext="C^{1}" class="ltx_Math" display="inline" id="S2.SS4.p2.m2"><semantics><msup><mi>C</mi><mn>1</mn></msup><annotation encoding="application/x-tex">C^{1}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT 1 end_POSTSUPERSCRIPT</annotation></semantics></math>. It repeats this process of generating only one successor for each configuration. Unlike a regular DFS, LaCAM allows revisiting previously generated configurations. Crucially, if a <math alttext="C^{k}" class="ltx_Math" display="inline" id="S2.SS4.p2.m3"><semantics><msup><mi>C</mi><mi>k</mi></msup><annotation encoding="application/x-tex">C^{k}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_k end_POSTSUPERSCRIPT</annotation></semantics></math> is revisited from <math alttext="C^{k^{\prime}}" class="ltx_Math" display="inline" id="S2.SS4.p2.m4"><semantics><msup><mi>C</mi><msup><mi>k</mi><mo>′</mo></msup></msup><annotation encoding="application/x-tex">C^{k^{\prime}}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_k start_POSTSUPERSCRIPT ′ end_POSTSUPERSCRIPT end_POSTSUPERSCRIPT</annotation></semantics></math>, LaCAM adds a constraint to the success generation and requires <math alttext="C^{k}" class="ltx_Math" display="inline" id="S2.SS4.p2.m5"><semantics><msup><mi>C</mi><mi>k</mi></msup><annotation encoding="application/x-tex">C^{k}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_k end_POSTSUPERSCRIPT</annotation></semantics></math> to generate a new successor (i.e., different from <math alttext="C^{k+1}" class="ltx_Math" display="inline" id="S2.SS4.p2.m6"><semantics><msup><mi>C</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msup><annotation encoding="application/x-tex">C^{k+1}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_k + 1 end_POSTSUPERSCRIPT</annotation></semantics></math>). Thus, LaCAM’s DFS is a tree with <span class="ltx_text ltx_font_italic">backjumps</span> that enables the DFS to branch on previously visited configurations rather than a typical DFS which only revisits configurations when backtracking.</p>
+</div>
+<div class="ltx_para" id="S2.SS4.p3">
+<p class="ltx_p">LaCAM imposes constraints lazily as well by iteratively constraining agents’ actions. The first 5 times that a configuration <math alttext="C^{k}" class="ltx_Math" display="inline" id="S2.SS4.p3.m1"><semantics><msup><mi>C</mi><mi>k</mi></msup><annotation encoding="application/x-tex">C^{k}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_k end_POSTSUPERSCRIPT</annotation></semantics></math> is revisited, the first agent is constrained to each of its 5 different actions. The next <math alttext="5^{2}" class="ltx_Math" display="inline" id="S2.SS4.p3.m2"><semantics><msup><mn>5</mn><mn>2</mn></msup><annotation encoding="application/x-tex">5^{2}</annotation><annotation encoding="application/x-llamapun">5 start_POSTSUPERSCRIPT 2 end_POSTSUPERSCRIPT</annotation></semantics></math> times, the first two agents are constrained to the different combinations of their 5 actions. This logic repeats where, in the worst case, all <math alttext="5^{N}" class="ltx_Math" display="inline" id="S2.SS4.p3.m3"><semantics><msup><mn>5</mn><mi>N</mi></msup><annotation encoding="application/x-tex">5^{N}</annotation><annotation encoding="application/x-llamapun">5 start_POSTSUPERSCRIPT italic_N end_POSTSUPERSCRIPT</annotation></semantics></math> different neighboring configurations are explicitly generated.</p>
+</div>
+<div class="ltx_para" id="S2.SS4.p4">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Configuration Generator:</span> Although the “configuration generator” in LaCAM can be any one-step MAPF method, in practice it needs to be very fast, and thus Priority Inheritance with Backtracking (PIBT) is used <cite class="ltx_cite ltx_citemacro_citep">(Okumura et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib13" title="">2022</a>)</cite>. For this work, we do not need to know PIBT’s internals but only that it is a very fast one-step MAPF planner.</p>
+</div>
+<div class="ltx_para" id="S2.SS4.p5">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Completeness:</span> LaCAM has completeness guarantees if it is finding a full-horizon solution as it eventually searches the entire state-space. However, if LaCAM is iteratively run in a time-bounded or windowed fashion where it does not find a solution to the goal, it is not complete as the DFS’s between different iterations could search the same state-space and get stuck in deadlock/livelock.</p>
+</div>
+</section>
+</section>
+<section class="ltx_section" id="S3">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">3 </span>Real-Time LaCAM</h2>
+<div class="ltx_para" id="S3.p1">
+<p class="ltx_p">Our main insight is that instead of running a single full-horizon LaCAM DFS, we can incrementally build up (and execute) the LaCAM DFS through repeated calls that remember past history.
+Conceptually, we can imagine maintaining a “global” DFS tree that we build up across iterations. At every iteration of planning, we continue the DFS from where we left off. When we reach the per-iteration planning cutoff, we backtrack from the latest configuration in the DFS to the current configuration to find the current path and the next configuration to move to.</p>
+</div>
+<div class="ltx_para" id="S3.p2">
+<p class="ltx_p">The main problem with this description is that since we are moving along the DFS tree across iterations, it is possible that when backtracking to reconstruct the path, we will <span class="ltx_text ltx_font_italic">not</span> encounter the current configuration.
+Our solution is simple: reroot the global tree so that the current configuration is always the root. This ensures that backtracking from any configuration will always reach the current configuration. When moving from a configuration <math alttext="C^{A}\rightarrow C^{B}" class="ltx_Math" display="inline" id="S3.p2.m1"><semantics><mrow><msup><mi>C</mi><mi>A</mi></msup><mo stretchy="false">→</mo><msup><mi>C</mi><mi>B</mi></msup></mrow><annotation encoding="application/x-tex">C^{A}\rightarrow C^{B}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_A end_POSTSUPERSCRIPT → italic_C start_POSTSUPERSCRIPT italic_B end_POSTSUPERSCRIPT</annotation></semantics></math>, we just swap the parent pointer so that <math alttext="C^{A}" class="ltx_Math" display="inline" id="S3.p2.m2"><semantics><msup><mi>C</mi><mi>A</mi></msup><annotation encoding="application/x-tex">C^{A}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_A end_POSTSUPERSCRIPT</annotation></semantics></math>’s parent is now <math alttext="C^{B}" class="ltx_Math" display="inline" id="S3.p2.m3"><semantics><msup><mi>C</mi><mi>B</mi></msup><annotation encoding="application/x-tex">C^{B}</annotation><annotation encoding="application/x-llamapun">italic_C start_POSTSUPERSCRIPT italic_B end_POSTSUPERSCRIPT</annotation></semantics></math>. Note that this relies on the fact that MAPF graphs are bidirectional, which is true in current applications.</p>
+</div>
+<div class="ltx_para" id="S3.p3">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">Example:</span>
+Figure <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S2.F1" title="Figure 1 ‣ 2.2 Real-Time and Windowed MAPF Solvers ‣ 2 Related Works ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_tag">1</span></a> depicts the Real-Time process. We start at configuration <math alttext="A" class="ltx_Math" display="inline" id="S3.p3.m1"><semantics><mi>A</mi><annotation encoding="application/x-tex">A</annotation><annotation encoding="application/x-llamapun">italic_A</annotation></semantics></math> and initially plan up to <math alttext="C" class="ltx_Math" display="inline" id="S3.p3.m2"><semantics><mi>C</mi><annotation encoding="application/x-tex">C</annotation><annotation encoding="application/x-llamapun">italic_C</annotation></semantics></math> until our per-iteration timeout is reached. The next configuration according to this partial plan is <math alttext="B" class="ltx_Math" display="inline" id="S3.p3.m3"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation><annotation encoding="application/x-llamapun">italic_B</annotation></semantics></math>, so the agents move to <math alttext="B" class="ltx_Math" display="inline" id="S3.p3.m4"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation><annotation encoding="application/x-llamapun">italic_B</annotation></semantics></math> at the next timestep.</p>
+</div>
+<div class="ltx_para" id="S3.p4">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">T=1:</span> Since we moved to <math alttext="B" class="ltx_Math" display="inline" id="S3.p4.m1"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation><annotation encoding="application/x-llamapun">italic_B</annotation></semantics></math>, we need to reroot the current DFS tree to <math alttext="B" class="ltx_Math" display="inline" id="S3.p4.m2"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation><annotation encoding="application/x-llamapun">italic_B</annotation></semantics></math> by reversing the executed <math alttext="A\rightarrow B" class="ltx_Math" display="inline" id="S3.p4.m3"><semantics><mrow><mi>A</mi><mo stretchy="false">→</mo><mi>B</mi></mrow><annotation encoding="application/x-tex">A\rightarrow B</annotation><annotation encoding="application/x-llamapun">italic_A → italic_B</annotation></semantics></math> edge (highlighted in red). We then proceed to plan by continuing the DFS from where it left off, in this case starting at <math alttext="C" class="ltx_Math" display="inline" id="S3.p4.m4"><semantics><mi>C</mi><annotation encoding="application/x-tex">C</annotation><annotation encoding="application/x-llamapun">italic_C</annotation></semantics></math>. By maintaining the global DFS, the per-iteration planning can remember revisiting a configuration (<math alttext="B" class="ltx_Math" display="inline" id="S3.p4.m5"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation><annotation encoding="application/x-llamapun">italic_B</annotation></semantics></math> in this case) and generate a new successor (<math alttext="E" class="ltx_Math" display="inline" id="S3.p4.m6"><semantics><mi>E</mi><annotation encoding="application/x-tex">E</annotation><annotation encoding="application/x-llamapun">italic_E</annotation></semantics></math>). This contrasts with running LaCAM from scratch at each iteration, where it could get stuck revisiting the same configurations across different iterations. When planning reaches its timeout when reaching <math alttext="F" class="ltx_Math" display="inline" id="S3.p4.m7"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation><annotation encoding="application/x-llamapun">italic_F</annotation></semantics></math>, we backtrack <math alttext="F,E,B" class="ltx_Math" display="inline" id="S3.p4.m8"><semantics><mrow><mi>F</mi><mo>,</mo><mi>E</mi><mo>,</mo><mi>B</mi></mrow><annotation encoding="application/x-tex">F,E,B</annotation><annotation encoding="application/x-llamapun">italic_F , italic_E , italic_B</annotation></semantics></math> and accordingly move to <math alttext="E" class="ltx_Math" display="inline" id="S3.p4.m9"><semantics><mi>E</mi><annotation encoding="application/x-tex">E</annotation><annotation encoding="application/x-llamapun">italic_E</annotation></semantics></math>.</p>
+</div>
+<div class="ltx_para" id="S3.p5">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold">T=2:</span> We repeat the process, rerooting the tree at <math alttext="E" class="ltx_Math" display="inline" id="S3.p5.m1"><semantics><mi>E</mi><annotation encoding="application/x-tex">E</annotation><annotation encoding="application/x-llamapun">italic_E</annotation></semantics></math> and continuing the DFS from <math alttext="F" class="ltx_Math" display="inline" id="S3.p5.m2"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation><annotation encoding="application/x-llamapun">italic_F</annotation></semantics></math>. Again, if the DFS revisits a configuration, it adds constraints and generates a new configuration.</p>
+</div>
+<section class="ltx_subsection" id="S3.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">3.1 </span>Theoretical Properties</h3>
+<div class="ltx_para" id="S3.SS1.p1">
+<p class="ltx_p">The main observation is that Real-Time LaCAM builds up an identical search tree as LaCAM (across iterations instead of all at once) except for rerooting. However, rerooting does not change the search configurations or constraints.</p>
+</div>
+<div class="ltx_para" id="S3.SS1.p2">
+<p class="ltx_p">Thus, Real-Time LaCAM is complete as full-horizon LaCAM is complete (as it will eventually search the entire configuration space). Additionally, Real-Time LaCAM has a near identical overall planning time as the full-horizon planning time (i.e., the sum of planning time across all planning iterations will equal full-horizon LaCAM’s planning time) as it builds the same tree.
+The only differences are the rerooting and backtracking operations, which have negligible runtimes compared to other operations.</p>
+</div>
+<figure class="ltx_figure" id="S3.F2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="394" id="S3.F2.g1" src="x2.png" width="789"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 2: </span>Comparing Real-Time LaCAM (RT LaCAM) with Naive Real-Time LaCAM (Naive RT LaCAM) with different per-iteration cutoff times in milliseconds. All Real-Time LaCAM have identical success rates (middle row) and total planning time (top) as full-horizon LaCAM and thus perfectly overlap in those plots.
+Real-Time LaCAM, especially with small timeouts (orange, purple, green), has better success rates than Naive Real-Time LaCAM.</figcaption>
+</figure>
+</section>
+</section>
+<section class="ltx_section" id="S4">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">4 </span>Experimental Results</h2>
+<div class="ltx_para" id="S4.p1">
+<p class="ltx_p">We compare Real-Time LaCAM with naive Real-Time LaCAM (which replans from scratch at every iteration), PIBT, and full-horizon LaCAM on a subset of the standard benchmark <cite class="ltx_cite ltx_citemacro_citep">(Stern et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib17" title="">2019</a>)</cite>, with 25 scenes per map in Fig <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S3.F2" title="Figure 2 ‣ 3.1 Theoretical Properties ‣ 3 Real-Time LaCAM ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_tag">2</span></a>. Real-Time LaCAM (ours and naive) are run with per-iteration cutoffs of <math alttext="T=0.01,0.1,1,10,100" class="ltx_Math" display="inline" id="S4.p1.m1"><semantics><mrow><mi>T</mi><mo>=</mo><mrow><mn>0.01</mn><mo>,</mo><mn>0.1</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>10</mn><mo>,</mo><mn>100</mn></mrow></mrow><annotation encoding="application/x-tex">T=0.01,0.1,1,10,100</annotation><annotation encoding="application/x-llamapun">italic_T = 0.01 , 0.1 , 1 , 10 , 100</annotation></semantics></math> milliseconds. These methods and PIBT interleave planning and execution, while full-horizon LaCAM only plans once. Real-Time LaCAM methods execute the first action of their planned partial path at every iteration. Methods are run with a cumulative 60-second planning timeout. The second row is the sum of the planning time across all iterations of iterative planning and action execution (with timed-out runs included as 60 seconds). The third row plots the normalized solution cost (raw solution / sum of agent’s individual optimal path).</p>
+</div>
+<div class="ltx_para" id="S4.p2">
+<p class="ltx_p">We first see, or more precisely, struggle to visually see, Real-Time LaCAM in the success rate or runtime plots (first two rows). Upon close inspection, we see that all Real-Time LaCAM methods (independent of the timeout) perfectly overlap with full-horizon LaCAM. This verifies our theoretical properties (Sec <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S3.SS1" title="3.1 Theoretical Properties ‣ 3 Real-Time LaCAM ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_tag">3.1</span></a>) that Real-Time LaCAM builds an identical DFS tree to full-horizon LaCAM. The main effect of per-iteration cutoffs is on the solution quality. In particular, Real-Time LaCAM with small cutoffs (e.g. 0.01, 0.1 ms) in random-32-32-20 and warehouse has 10-100x worse solution quality due to their myopic planning.</p>
+</div>
+<div class="ltx_para" id="S4.p3">
+<p class="ltx_p">Naive Real-Time LaCAM has more varying results. First, we see that with small cutoffs (0.01, 0.1, 1 ms) its success rate on tough maps (random-32-32-20, warehouse) is extremely poor. Second, the cumulative planning time varies substantially between different iteration cut-offs.</p>
+</div>
+<div class="ltx_para" id="S4.p4">
+<p class="ltx_p">Additionally, Real-Time LaCAM can directly be used with learned MAPF policies. These policies predict a next action probability distribution per agent which can be post-processed using collision-shield PIBT (CS-PIBT) <cite class="ltx_cite ltx_citemacro_citep">(Veerapaneni et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib20" title="">2024c</a>)</cite>. Conceptually, the model’s predictions replace the backward Dijkstra heuristic of PIBT. Thus, we can directly use Real-Time LaCAM with a policy and CS-PIBT. Fig <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#S4.F3" title="Figure 3 ‣ 4 Experimental Results ‣ Real-Time LaCAM for Real-Time MAPF"><span class="ltx_text ltx_ref_tag">3</span></a> shows how post-processing a pretrained model SSIL <cite class="ltx_cite ltx_citemacro_citep">(Veerapaneni et al. <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib18" title="">2024a</a>)</cite> with Real-Time LaCAM improves performance compared to CS-PIBT.</p>
+</div>
+<figure class="ltx_figure" id="S4.F3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="297" id="S4.F3.g1" src="figs/success_rate.png" width="389"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure">Figure 3: </span>Running a pretrained single-step ML MAPF policy on random-32-32-20 with Real-Time LaCAM vs CS-PIBT.</figcaption>
+</figure>
+</section>
+<section class="ltx_section" id="S5">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">5 </span>Future Work and Conclusion</h2>
+<div class="ltx_para" id="S5.p1">
+<p class="ltx_p">Identical to regular LaCAM, Real-Time LaCAM works for any configuration generator that can incorporate constraints. We note that incorporating constraints in MAPF is trivial as it just forces the <math alttext="k" class="ltx_Math" display="inline" id="S5.p1.m1"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation><annotation encoding="application/x-llamapun">italic_k</annotation></semantics></math> constrained agents to move to specific positions and reduces the configuration generation problem from <math alttext="N" class="ltx_Math" display="inline" id="S5.p1.m2"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation><annotation encoding="application/x-llamapun">italic_N</annotation></semantics></math> agents to the <math alttext="N-k" class="ltx_Math" display="inline" id="S5.p1.m3"><semantics><mrow><mi>N</mi><mo>−</mo><mi>k</mi></mrow><annotation encoding="application/x-tex">N-k</annotation><annotation encoding="application/x-llamapun">italic_N - italic_k</annotation></semantics></math> unconstrained agents. Thus, Real-Time LaCAM can be viewed as a framework for taking any MAPF planner and making it complete in windowed planning.
+This broader perspective offers a different avenue for windowed completed MAPF planners compared to the WinC-MAPF framework. In particular, the WinC-MAPF framework requires an optimal solver, heuristic updates, and computing of disjoint agent groups. We solely require applying constraints. Conceptually, a heuristic update says that a configuration is expensive but does not specify which agents should move or that the search should avoid that configuration. On the flip side, constraints explicitly dictate which agents move and can explore new configurations faster.</p>
+</div>
+<div class="ltx_para" id="S5.p2">
+<p class="ltx_p">One promising future work is to try to merge the ideas of using constraints from LaCAM and heuristic updates from WinC-MAPF. This could enable fast solvers while maintaining better solution qualities.
+Additionally extending Real-Time LaCAM to Engineering LaCAM* <cite class="ltx_cite ltx_citemacro_citep">(Okumura <a class="ltx_ref" href="https://arxiv.org/html/2504.06091v2#bib.bib12" title="">2024</a>)</cite> could produce higher quality real-time results.</p>
+</div>
+<div class="ltx_para" id="S5.p3">
+<p class="ltx_p">Overall, we introduce Real-Time LaCAM, the first real-time MAPF method with completeness guarantees. We show how it has an impressive success rate with tiny (milliseconds) per-iteration cutoffs compared to existing methods that get stuck in deadlock/livelock, and can be used with a learnt policy.</p>
+</div>
+</section>
+<section class="ltx_section" id="Sx1">
+<h2 class="ltx_title ltx_title_section">Acknowledgments</h2>
+<div class="ltx_para" id="Sx1.p1">
+<p class="ltx_p">This work was partially supported by National Science Foundation (NSF) grant #2328671, NSF Graduate Research Fellowship Program grant #DGE2140739, and a gift from Amazon.</p>
+</div>
+</section>
+<section class="ltx_bibliography" id="bib">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+<ul class="ltx_biblist">
+<li class="ltx_bibitem" id="bib.bib1">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Barer et al. (2014)</span>
+<span class="ltx_bibblock">
+Barer, M.; Sharon, G.; Stern, R.; and Felner, A. 2014.
+
+</span>
+<span class="ltx_bibblock">Suboptimal variants of the conflict-based search algorithm for the multi-agent pathfinding problem.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">Seventh Annual Symposium on Combinatorial Search</em>.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib2">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Björnsson, Bulitko, and Sturtevant (2009)</span>
+<span class="ltx_bibblock">
+Björnsson, Y.; Bulitko, V.; and Sturtevant, N. R. 2009.
+
+</span>
+<span class="ltx_bibblock">TBA*: Time-Bounded A*.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">IJCAI 2009, Proceedings of the 21st International Joint Conference on Artificial Intelligence, Pasadena, California, USA, July 11-17, 2009</em>, 431–436.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib3">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Erdmann and Lozano-Perez (1987)</span>
+<span class="ltx_bibblock">
+Erdmann, M.; and Lozano-Perez, T. 1987.
+
+</span>
+<span class="ltx_bibblock">On multiple moving objects.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Algorithmica</em>, 2(1): 477–521.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib4">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Jiang et al. (2024)</span>
+<span class="ltx_bibblock">
+Jiang, H.; Zhang, Y.; Veerapaneni, R.; and Li, J. 2024.
+
+</span>
+<span class="ltx_bibblock">Scaling Lifelong Multi-Agent Path Finding to More Realistic Settings: Research Challenges and Opportunities.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">Proceedings of the International Symposium on Combinatorial Search</em>, volume 17, 234–242.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib5">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Koenig and Sun (2009)</span>
+<span class="ltx_bibblock">
+Koenig, S.; and Sun, X. 2009.
+
+</span>
+<span class="ltx_bibblock">Comparing real-time and incremental heuristic search for real-time situated agents.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Autonomous Agents and Multi-Agent Systems</em>, 18: 313–341.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib6">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Korf (1990)</span>
+<span class="ltx_bibblock">
+Korf, R. E. 1990.
+
+</span>
+<span class="ltx_bibblock">Real-time heuristic search.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Artificial Intelligence</em>, 42(2): 189–211.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib7">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li et al. (2021)</span>
+<span class="ltx_bibblock">
+Li, J.; Chen, Z.; Harabor, D.; Stuckey, P. J.; and Koenig, S. 2021.
+
+</span>
+<span class="ltx_bibblock">Anytime Multi-Agent Path Finding via Large Neighborhood Search.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">AAMAS ’21: 20th International Conference on Autonomous Agents and Multiagent Systems, Virtual Event, United Kingdom, May 3-7, 2021</em>, 1581–1583. ACM.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib8">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li et al. (2022)</span>
+<span class="ltx_bibblock">
+Li, J.; Chen, Z.; Harabor, D.; Stuckey, P. J.; and Koenig, S. 2022.
+
+</span>
+<span class="ltx_bibblock">MAPF-LNS2: Fast Repairing for Multi-Agent Path Finding via Large Neighborhood Search.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence</em>, 36(9): 10256–10265.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib9">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Li et al. (2020)</span>
+<span class="ltx_bibblock">
+Li, J.; Tinka, A.; Kiesel, S.; Durham, J. W.; Kumar, T. K. S.; and Koenig, S. 2020.
+
+</span>
+<span class="ltx_bibblock">Lifelong Multi-Agent Path Finding in Large-Scale Warehouses.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">Proceedings of the 19th International Conference on Autonomous Agents and MultiAgent Systems</em>, AAMAS ’20, 1898–1900.
+
+</span>
+<span class="ltx_bibblock">ISBN 9781450375184.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib10">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Ma et al. (2019)</span>
+<span class="ltx_bibblock">
+Ma, H.; Harabor, D.; Stuckey, P. J.; Li, J.; and Koenig, S. 2019.
+
+</span>
+<span class="ltx_bibblock">Searching with consistent prioritization for multi-agent path finding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI conference on artificial intelligence</em>, volume 33, 7643–7650.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib11">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Okumura (2023)</span>
+<span class="ltx_bibblock">
+Okumura, K. 2023.
+
+</span>
+<span class="ltx_bibblock">LaCAM: Search-Based Algorithm for Quick Multi-Agent Pathfinding.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence</em>, 37(10): 11655–11662.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib12">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Okumura (2024)</span>
+<span class="ltx_bibblock">
+Okumura, K. 2024.
+
+</span>
+<span class="ltx_bibblock">Engineering LaCAM*: Towards Real-time, Large-scale, and Near-optimal Multi-agent Pathfinding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems, AAMAS 2024, Auckland, New Zealand, May 6-10, 2024</em>, 1501–1509.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib13">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Okumura et al. (2022)</span>
+<span class="ltx_bibblock">
+Okumura, K.; Machida, M.; Défago, X.; and Tamura, Y. 2022.
+
+</span>
+<span class="ltx_bibblock">Priority inheritance with backtracking for iterative multi-agent path finding.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Artificial Intelligence</em>, 310: 103752.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib14">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Rivera, Baier, and Hernandez (2013)</span>
+<span class="ltx_bibblock">
+Rivera, N.; Baier, J. A.; and Hernandez, C. 2013.
+
+</span>
+<span class="ltx_bibblock">Weighted real-time heuristic search.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">Proceedings of the 2013 International Conference on Autonomous Agents and Multi-Agent Systems</em>, AAMAS ’13, 579–586.
+
+</span>
+<span class="ltx_bibblock">ISBN 9781450319935.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib15">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Sharon et al. (2015)</span>
+<span class="ltx_bibblock">
+Sharon, G.; Stern, R.; Felner, A.; and Sturtevant, N. R. 2015.
+
+</span>
+<span class="ltx_bibblock">Conflict-based search for optimal multi-agent pathfinding.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Artificial Intelligence</em>, 219: 40–66.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib16">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Silver (2005)</span>
+<span class="ltx_bibblock">
+Silver, D. 2005.
+
+</span>
+<span class="ltx_bibblock">Cooperative Pathfinding.
+
+</span>
+<span class="ltx_bibblock">In <em class="ltx_emph ltx_font_italic">Proceedings of the First AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment</em>, AIIDE’05, 117–122. AAAI Press.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib17">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Stern et al. (2019)</span>
+<span class="ltx_bibblock">
+Stern, R.; Sturtevant, N. R.; Felner, A.; Koenig, S.; Ma, H.; Walker, T. T.; Li, J.; Atzmon, D.; Cohen, L.; Kumar, T. K. S.; Boyarski, E.; and Bartak, R. 2019.
+
+</span>
+<span class="ltx_bibblock">Multi-Agent Pathfinding: Definitions, Variants, and Benchmarks.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">Symposium on Combinatorial Search (SoCS)</em>, 151–158.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib18">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Veerapaneni et al. (2024a)</span>
+<span class="ltx_bibblock">
+Veerapaneni, R.; Jakobsson, A.; Ren, K.; Kim, S.; Li, J.; and Likhachev, M. 2024a.
+
+</span>
+<span class="ltx_bibblock">Work Smarter Not Harder: Simple Imitation Learning with CS-PIBT Outperforms Large Scale Imitation Learning for MAPF.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">arXiv preprint arxiv:2409.14491</em>.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib19">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Veerapaneni et al. (2024b)</span>
+<span class="ltx_bibblock">
+Veerapaneni, R.; Saleem, M. S.; Li, J.; and Likhachev, M. 2024b.
+
+</span>
+<span class="ltx_bibblock">Windowed MAPF with Completeness Guarantees.
+
+</span>
+<span class="ltx_bibblock">arXiv:2410.01798.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib20">
+<span class="ltx_tag ltx_role_refnum ltx_tag_bibitem">Veerapaneni et al. (2024c)</span>
+<span class="ltx_bibblock">
+Veerapaneni, R.; Wang, Q.; Ren, K.; Jakobsson, A.; Li, J.; and Likhachev, M. 2024c.
+
+</span>
+<span class="ltx_bibblock">Improving Learnt Local MAPF Policies with Heuristic Search.
+
+</span>
+<span class="ltx_bibblock"><em class="ltx_emph ltx_font_italic">International Conference on Automated Planning and Scheduling</em>, 34(1): 597–606.
+
+</span>
+</li>
+</ul>
+</section>
+</article>
+</div>
+<footer class="ltx_page_footer">
+<div class="ltx_page_logo">Generated  on Sun Jul 27 22:09:40 2025 by <a class="ltx_LaTeXML_logo" href="http://dlmf.nist.gov/LaTeXML/"><span style="letter-spacing:-0.2em; margin-right:0.1em;">L<span class="ltx_font_smallcaps" style="position:relative; bottom:2.2pt;">a</span>T<span class="ltx_font_smallcaps" style="font-size:120%;position:relative; bottom:-0.2ex;">e</span></span><span style="font-size:90%; position:relative; bottom:-0.2ex;">XML</span><img alt="Mascot Sammy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg=="/></a>
+</div></footer>
+</div>
+</body>
+</html>

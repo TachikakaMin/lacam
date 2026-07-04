@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+<title>RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks</title>
+<!--Generated on Wed Aug  6 08:39:02 2025 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv.0.8.2.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/ar5iv-fonts.0.8.2.min.css" rel="stylesheet" type="text/css"/>
+<link href="/static/browse/0.3.4/css/latexml_styles.0.8.2.css" rel="stylesheet" type="text/css"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.3/html2canvas.min.js"></script>
+<script src="/static/browse/0.3.4/js/addons_new.js"></script>
+<script src="/static/browse/0.3.4/js/feedbackOverlay.js"></script>
+<base href="/html/2503.02992v2/"/></head>
+<body>
+<nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S1" title="In RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S2" title="In RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">II </span><span class="ltx_text ltx_font_smallcaps">Problem Definition</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3" title="In RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III </span><span class="ltx_text ltx_font_smallcaps">Related Work</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.SS1" title="In III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-A </span><span class="ltx_text ltx_font_italic">Multi-Agent Path Finding (MAPF)</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.SS2" title="In III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-B </span><span class="ltx_text ltx_font_italic">Lifelong MAPF</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.SS3" title="In III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III-C </span><span class="ltx_text ltx_font_italic">Learning-based MAPF</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S4" title="In RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV </span><span class="ltx_text ltx_font_smallcaps">Method</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S4.SS1" title="In IV Method ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV-A </span><span class="ltx_text ltx_font_italic">RAILGUN Overview</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S4.SS2" title="In IV Method ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV-B </span><span class="ltx_text ltx_font_italic">Model Architecture</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S4.SS3" title="In IV Method ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV-C </span><span class="ltx_text ltx_font_italic">Feature Selection</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5" title="In RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V </span><span class="ltx_text ltx_font_smallcaps">Experiments &amp; Results</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.SS1" title="In V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-A </span><span class="ltx_text ltx_font_italic">Training and Testing Settings</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.SS2" title="In V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V-B </span><span class="ltx_text ltx_font_italic">Testing Results</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S6" title="In RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VI </span><span class="ltx_text ltx_font_smallcaps">Conclusion and Future Work</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S7" title="In RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">VII </span><span class="ltx_text ltx_font_smallcaps">Acknowledgement</span></span></a></li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_font_bold ltx_title_document" style="font-size:173%;">RAILGUN: A Unified Convolutional Policy for
+<br class="ltx_break"/>Multi-Agent Path Finding Across Different Environments and Tasks
+</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">Yimin Tang<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1∗</span></sup>, Xiao Xiong<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">2∗</span></sup>, Jingyi Xi<sup class="ltx_sup">2</sup>, Jiaoyang Li<sup class="ltx_sup">3</sup>, Erdem Bıyık<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>, Sven Koenig<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">4</span></sup>
+</span><span class="ltx_author_notes"><sup class="ltx_sup"><span class="ltx_text ltx_font_italic">∗</span></sup>Equal contribution<sup class="ltx_sup"><span class="ltx_text ltx_font_italic">1</span></sup>Thomas Lord Department of Computer Science, University of Southern California, <span class="ltx_text ltx_font_typewriter" style="font-size:90%;">yimintan@usc.edu, biyik@usc.edu</span><sup class="ltx_sup"><span class="ltx_text ltx_font_italic">2</span></sup>Independent Researcher, <span class="ltx_text ltx_font_typewriter" style="font-size:90%;">xiaoxiong.xx21@gmail.com, flotherxi@gmail.com</span><sup class="ltx_sup"><span class="ltx_text ltx_font_italic">3</span></sup>Carnegie Mellon University, <span class="ltx_text ltx_font_typewriter" style="font-size:90%;">jiaoyanl@andrew.cmu.edu</span><sup class="ltx_sup"><span class="ltx_text ltx_font_italic">4</span></sup>University of California, Irvine, <span class="ltx_text ltx_font_typewriter" style="font-size:90%;">sven.koenig@uci.edu</span></span></span>
+</div>
+<div class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p">Multi-Agent Path Finding (MAPF), which focuses on finding collision-free paths for multiple robots, is crucial for applications ranging from aerial swarms to warehouse automation. Solving MAPF is NP-hard so learning-based approaches for MAPF have gained attention, particularly those leveraging deep neural networks. Nonetheless, despite the community’s continued efforts, all learning-based MAPF planners still rely on decentralized planning due to variability in the number of agents and map sizes.
+We have developed the first centralized learning-based policy for MAPF problem called RAILGUN. RAILGUN is not an agent-based policy but a map-based policy. By leveraging a CNN-based architecture, RAILGUN can generalize across different maps and handle any number of agents. We collect trajectories from rule-based methods to train our model in a supervised way. In experiments, RAILGUN outperforms most baseline methods and demonstrates great zero-shot generalization capabilities on various tasks, maps and agent numbers that were not seen in the training dataset.</p>
+</div>
+<section class="ltx_section" id="S1">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span>
+</h2>
+<div class="ltx_para" id="S1.p1">
+<p class="ltx_p">Multi-Agent Path Finding (MAPF) is an NP-hard problem <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib1" title="">1</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib2" title="">2</a>]</cite> which focuses on finding collision-free paths for multiple agents to move from start locations to their goal locations in a known environment while optimizing a specified cost function. This problem could be adapted to many realistic scenarios from aerial swarms to warehouse automation which are multi-billion dollar industries. Many algorithms have been proposed to solve this problem or its variants, such as Conflict-Based Search (CBS) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib3" title="">3</a>]</cite>, <math alttext="M^{*}" class="ltx_Math" display="inline" id="S1.p1.m1"><semantics><msup><mi>M</mi><mo>∗</mo></msup><annotation encoding="application/x-tex">M^{*}</annotation></semantics></math> <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib4" title="">4</a>]</cite>, LaCAM <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib5" title="">5</a>]</cite> and MAPF-LNS2 <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib6" title="">6</a>]</cite>.</p>
+</div>
+<div class="ltx_para" id="S1.p2">
+<p class="ltx_p">As neural networks demonstrate their powerful capabilities in various fields of computer science <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib7" title="">7</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib8" title="">8</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib9" title="">9</a>]</cite>, learning-based MAPF solvers have also garnered significant attention <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib10" title="">10</a>]</cite>. Currently, all learning-based MAPF solvers adopt decentralized approaches, where each agent takes surrounding local information as input, typically represented as a field-of-view (FOV). These decentralized policies determine each agent’s action, either simultaneously or sequentially, at the current timestep based on the agent’s FOV input.
+Many decentralized methods have been proposed, such as PRIMAL <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib11" title="">11</a>]</cite>, MAPPER <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib12" title="">12</a>]</cite>, MAGAT <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib13" title="">13</a>]</cite>, SCRIMP <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib14" title="">14</a>]</cite>, and MAPF-GPT <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib15" title="">15</a>]</cite>. These methods primarily rely on imitation learning (IL) and reinforcement learning (RL) and often incorporate additional components, such as inter-agent communication, to enhance performance. It is important to note these approaches focus on individual agents and attempt to generate actions based on agent-specific features, which typically do not include global state information.
+Furthermore, as features are based on the agent itself, these approaches inherently allow the number of agents to vary.</p>
+</div>
+<div class="ltx_para" id="S1.p3">
+<p class="ltx_p">On the other hand, centralized approaches bring several benefits, such as the ability to coordinate the movements of multiple agents. However, the literature lacks centralized MAPF algorithms that are <em class="ltx_emph ltx_font_italic">learning-based</em>, since it is challenging to train a centralized neural network that can handle variability in both the number of agents and map sizes.</p>
+</div>
+<div class="ltx_para" id="S1.p4">
+<p class="ltx_p">We present RAILGUN the first centralized learning-based method for MAPF which generates actions based on maps rather than individual agents. The core idea of RAILGUN is to generate a directed graph in which each node has exactly one outgoing edge at every timestep. This design enables our method to handle any number of agents on the map. Additionally, we use U-Net <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib16" title="">16</a>]</cite> as the model backbone which produces outputs of the same dimensions as the input features. This allows RAILGUN to accommodate maps of varying sizes.
+In summary, our contributions are as follows:</p>
+<ul class="ltx_itemize" id="S1.I1">
+<li class="ltx_item" id="S1.I1.i1" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span>
+<div class="ltx_para" id="S1.I1.i1.p1">
+<p class="ltx_p">We propose the first centralized learning-based MAPF algorithm, RAILGUN, which generates actions for map grid cells rather than for individual agents.</p>
+</div>
+</li>
+<li class="ltx_item" id="S1.I1.i2" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span>
+<div class="ltx_para" id="S1.I1.i2.p1">
+<p class="ltx_p">We design a CNN-based network enabling RAILGUN to handle maps of different sizes.</p>
+</div>
+</li>
+<li class="ltx_item" id="S1.I1.i3" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span>
+<div class="ltx_para" id="S1.I1.i3.p1">
+<p class="ltx_p">Through experiments in diverse test settings, we demonstrate that RAILGUN, trained on data from one map type, generalizes effectively to new types of maps and testing scenarios, and outperforms most baseline methods in POGEMA <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib17" title="">17</a>]</cite> benchmark.</p>
+</div>
+</li>
+</ul>
+</div>
+</section>
+<section class="ltx_section" id="S2">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">II </span><span class="ltx_text ltx_font_smallcaps">Problem Definition</span>
+</h2>
+<div class="ltx_para" id="S2.p1">
+<p class="ltx_p">The MAPF problem is defined as follows: Let <math alttext="I=\{1,2,\cdots,N\}" class="ltx_Math" display="inline" id="S2.p1.m1"><semantics><mrow><mi>I</mi><mo>=</mo><mrow><mo stretchy="false">{</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>,</mo><mi mathvariant="normal">⋯</mi><mo>,</mo><mi>N</mi><mo stretchy="false">}</mo></mrow></mrow><annotation encoding="application/x-tex">I=\{1,2,\cdots,N\}</annotation></semantics></math> denote a set of <math alttext="N" class="ltx_Math" display="inline" id="S2.p1.m2"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> agents. <math alttext="G=(V,E)" class="ltx_Math" display="inline" id="S2.p1.m3"><semantics><mrow><mi>G</mi><mo>=</mo><mrow><mo stretchy="false">(</mo><mi>V</mi><mo>,</mo><mi>E</mi><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">G=(V,E)</annotation></semantics></math> represents an undirected graph, where each vertex <math alttext="v\in V" class="ltx_Math" display="inline" id="S2.p1.m4"><semantics><mrow><mi>v</mi><mo>∈</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">v\in V</annotation></semantics></math> represents a possible location of an agent in the workspace, and each edge <math alttext="e\in E" class="ltx_Math" display="inline" id="S2.p1.m5"><semantics><mrow><mi>e</mi><mo>∈</mo><mi>E</mi></mrow><annotation encoding="application/x-tex">e\in E</annotation></semantics></math> is a unit-cost edge between two vertices that moves an agent from one vertex to the other. In this paper, we focus on 2D grid maps with connections in four directions. Self-loop edges are also allowed, which represent “wait-in-place” actions.
+Each agent <math alttext="i\in I" class="ltx_Math" display="inline" id="S2.p1.m6"><semantics><mrow><mi>i</mi><mo>∈</mo><mi>I</mi></mrow><annotation encoding="application/x-tex">i\in I</annotation></semantics></math> has a start location <math alttext="s_{i}\in V" class="ltx_Math" display="inline" id="S2.p1.m7"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>∈</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">s_{i}\in V</annotation></semantics></math> and a goal location <math alttext="g_{i}\in V" class="ltx_Math" display="inline" id="S2.p1.m8"><semantics><mrow><msub><mi>g</mi><mi>i</mi></msub><mo>∈</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">g_{i}\in V</annotation></semantics></math>. It also holds that <math alttext="s_{i}\neq s_{j}" class="ltx_Math" display="inline" id="S2.p1.m9"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>≠</mo><msub><mi>s</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">s_{i}\neq s_{j}</annotation></semantics></math> and <math alttext="g_{i}\neq g_{j}" class="ltx_Math" display="inline" id="S2.p1.m10"><semantics><mrow><msub><mi>g</mi><mi>i</mi></msub><mo>≠</mo><msub><mi>g</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">g_{i}\neq g_{j}</annotation></semantics></math> when <math alttext="i\neq j" class="ltx_Math" display="inline" id="S2.p1.m11"><semantics><mrow><mi>i</mi><mo>≠</mo><mi>j</mi></mrow><annotation encoding="application/x-tex">i\neq j</annotation></semantics></math> <math alttext="\forall i,j\in I" class="ltx_Math" display="inline" id="S2.p1.m12"><semantics><mrow><mrow><mrow><mo rspace="0.167em">∀</mo><mi>i</mi></mrow><mo>,</mo><mi>j</mi></mrow><mo>∈</mo><mi>I</mi></mrow><annotation encoding="application/x-tex">\forall i,j\in I</annotation></semantics></math>.
+Our task is to plan a collision-free path for each agent <math alttext="i" class="ltx_Math" display="inline" id="S2.p1.m13"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> from <math alttext="s_{i}" class="ltx_Math" display="inline" id="S2.p1.m14"><semantics><msub><mi>s</mi><mi>i</mi></msub><annotation encoding="application/x-tex">s_{i}</annotation></semantics></math> to <math alttext="g_{i}" class="ltx_Math" display="inline" id="S2.p1.m15"><semantics><msub><mi>g</mi><mi>i</mi></msub><annotation encoding="application/x-tex">g_{i}</annotation></semantics></math>.</p>
+</div>
+<div class="ltx_para" id="S2.p2">
+<p class="ltx_p">Each action of agents, either waiting in place or moving to an adjacent vertex, takes one time unit.
+Let <math alttext="v^{i}_{t}\in V" class="ltx_Math" display="inline" id="S2.p2.m1"><semantics><mrow><msubsup><mi>v</mi><mi>t</mi><mi>i</mi></msubsup><mo>∈</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">v^{i}_{t}\in V</annotation></semantics></math> be the location of agent <math alttext="i" class="ltx_Math" display="inline" id="S2.p2.m2"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> at timestep <math alttext="t" class="ltx_Math" display="inline" id="S2.p2.m3"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>.
+Let <math alttext="\pi_{i}=[v_{0}^{i},v_{1}^{i},...,v_{T^{i}}^{i}]" class="ltx_Math" display="inline" id="S2.p2.m4"><semantics><mrow><msub><mi>π</mi><mi>i</mi></msub><mo>=</mo><mrow><mo stretchy="false">[</mo><msubsup><mi>v</mi><mn>0</mn><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>v</mi><mn>1</mn><mi>i</mi></msubsup><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msubsup><mi>v</mi><msup><mi>T</mi><mi>i</mi></msup><mi>i</mi></msubsup><mo stretchy="false">]</mo></mrow></mrow><annotation encoding="application/x-tex">\pi_{i}=[v_{0}^{i},v_{1}^{i},...,v_{T^{i}}^{i}]</annotation></semantics></math> denote a path of agent <math alttext="i" class="ltx_Math" display="inline" id="S2.p2.m5"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> from its start location <math alttext="v_{0}^{i}" class="ltx_Math" display="inline" id="S2.p2.m6"><semantics><msubsup><mi>v</mi><mn>0</mn><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{0}^{i}</annotation></semantics></math> to its target <math alttext="v_{T^{i}}^{i}" class="ltx_Math" display="inline" id="S2.p2.m7"><semantics><msubsup><mi>v</mi><msup><mi>T</mi><mi>i</mi></msup><mi>i</mi></msubsup><annotation encoding="application/x-tex">v_{T^{i}}^{i}</annotation></semantics></math>.
+We assume that agents rest at their targets after completing their paths, i.e., <math alttext="v_{t}^{i}=v_{T^{i}}^{i},\forall t&gt;T^{i}" class="ltx_Math" display="inline" id="S2.p2.m8"><semantics><mrow><mrow><msubsup><mi>v</mi><mi>t</mi><mi>i</mi></msubsup><mo>=</mo><msubsup><mi>v</mi><msup><mi>T</mi><mi>i</mi></msup><mi>i</mi></msubsup></mrow><mo>,</mo><mrow><mrow><mo rspace="0.167em">∀</mo><mi>t</mi></mrow><mo>&gt;</mo><msup><mi>T</mi><mi>i</mi></msup></mrow></mrow><annotation encoding="application/x-tex">v_{t}^{i}=v_{T^{i}}^{i},\forall t&gt;T^{i}</annotation></semantics></math>.
+The cost of agent <math alttext="i" class="ltx_Math" display="inline" id="S2.p2.m9"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>’s path is <math alttext="T^{i}" class="ltx_Math" display="inline" id="S2.p2.m10"><semantics><msup><mi>T</mi><mi>i</mi></msup><annotation encoding="application/x-tex">T^{i}</annotation></semantics></math>. We refer to the path with the minimum cost as the shortest path.</p>
+</div>
+<div class="ltx_para" id="S2.p3">
+<p class="ltx_p">We consider two types of agent-agent collisions.
+The first type is <em class="ltx_emph ltx_font_italic">vertex collision</em>, where two agents <math alttext="i" class="ltx_Math" display="inline" id="S2.p3.m1"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> and <math alttext="j" class="ltx_Math" display="inline" id="S2.p3.m2"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math> occupy the same vertex at the same timestep. The second type is <em class="ltx_emph ltx_font_italic">edge collision</em>, where two agents move in opposite directions along the same edge simultaneously.
+We use <math alttext="(i,j,t)" class="ltx_Math" display="inline" id="S2.p3.m3"><semantics><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(i,j,t)</annotation></semantics></math> to denote a vertex collision between agents <math alttext="i" class="ltx_Math" display="inline" id="S2.p3.m4"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> and <math alttext="j" class="ltx_Math" display="inline" id="S2.p3.m5"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math> at timestep <math alttext="t" class="ltx_Math" display="inline" id="S2.p3.m6"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math> or an edge collision between agents <math alttext="i" class="ltx_Math" display="inline" id="S2.p3.m7"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> and <math alttext="j" class="ltx_Math" display="inline" id="S2.p3.m8"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math> at timestep <math alttext="t" class="ltx_Math" display="inline" id="S2.p3.m9"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math> to <math alttext="t+1" class="ltx_Math" display="inline" id="S2.p3.m10"><semantics><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">t+1</annotation></semantics></math>.
+The requirement of being collision-free implies the targets assigned to the agents must be distinct from each other. We use <em class="ltx_emph ltx_font_italic">SoC (flowtime)</em> <math alttext="\sum_{i=1}^{N}T^{i}" class="ltx_Math" display="inline" id="S2.p3.m11"><semantics><mrow><msubsup><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></msubsup><msup><mi>T</mi><mi>i</mi></msup></mrow><annotation encoding="application/x-tex">\sum_{i=1}^{N}T^{i}</annotation></semantics></math> as the cost function.</p>
+</div>
+<div class="ltx_para" id="S2.p4">
+<p class="ltx_p">The objective of the MAPF problem is to find a set of paths <math alttext="\{\pi_{i}\mid i\in I\}" class="ltx_Math" display="inline" id="S2.p4.m1"><semantics><mrow><mo stretchy="false">{</mo><msub><mi>π</mi><mi>i</mi></msub><mo fence="true" lspace="0em" rspace="0em">∣</mo><mrow><mi>i</mi><mo>∈</mo><mi>I</mi></mrow><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\pi_{i}\mid i\in I\}</annotation></semantics></math> for all agents such that, for each agent <math alttext="i" class="ltx_Math" display="inline" id="S2.p4.m2"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>:</p>
+<ol class="ltx_enumerate" id="S2.I1">
+<li class="ltx_item" id="S2.I1.i1" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">1.</span>
+<div class="ltx_para" id="S2.I1.i1.p1">
+<p class="ltx_p">Agent <math alttext="i" class="ltx_Math" display="inline" id="S2.I1.i1.p1.m1"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math> starts from its start location (i.e., <math alttext="v_{0}^{i}=s_{i}" class="ltx_Math" display="inline" id="S2.I1.i1.p1.m2"><semantics><mrow><msubsup><mi>v</mi><mn>0</mn><mi>i</mi></msubsup><mo>=</mo><msub><mi>s</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">v_{0}^{i}=s_{i}</annotation></semantics></math>) and stops at its target location <math alttext="g_{j}" class="ltx_Math" display="inline" id="S2.I1.i1.p1.m3"><semantics><msub><mi>g</mi><mi>j</mi></msub><annotation encoding="application/x-tex">g_{j}</annotation></semantics></math> (i.e., <math alttext="v_{t}^{i}=g_{j},\forall t\geq T^{i}" class="ltx_Math" display="inline" id="S2.I1.i1.p1.m4"><semantics><mrow><mrow><msubsup><mi>v</mi><mi>t</mi><mi>i</mi></msubsup><mo>=</mo><msub><mi>g</mi><mi>j</mi></msub></mrow><mo>,</mo><mrow><mrow><mo rspace="0.167em">∀</mo><mi>t</mi></mrow><mo>≥</mo><msup><mi>T</mi><mi>i</mi></msup></mrow></mrow><annotation encoding="application/x-tex">v_{t}^{i}=g_{j},\forall t\geq T^{i}</annotation></semantics></math>).</p>
+</div>
+</li>
+<li class="ltx_item" id="S2.I1.i2" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">2.</span>
+<div class="ltx_para" id="S2.I1.i2.p1">
+<p class="ltx_p">Every pair of adjacent vertices on path <math alttext="\pi_{i}" class="ltx_Math" display="inline" id="S2.I1.i2.p1.m1"><semantics><msub><mi>π</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\pi_{i}</annotation></semantics></math> is connected by an edge, i.e., <math alttext="(v_{t}^{i},v_{t+1}^{i})\in E,\forall t\in\{0,1,\dots,T^{i}\}" class="ltx_Math" display="inline" id="S2.I1.i2.p1.m2"><semantics><mrow><mrow><mrow><mo stretchy="false">(</mo><msubsup><mi>v</mi><mi>t</mi><mi>i</mi></msubsup><mo>,</mo><msubsup><mi>v</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow><mi>i</mi></msubsup><mo stretchy="false">)</mo></mrow><mo>∈</mo><mi>E</mi></mrow><mo>,</mo><mrow><mrow><mo rspace="0.167em">∀</mo><mi>t</mi></mrow><mo>∈</mo><mrow><mo stretchy="false">{</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">…</mi><mo>,</mo><msup><mi>T</mi><mi>i</mi></msup><mo stretchy="false">}</mo></mrow></mrow></mrow><annotation encoding="application/x-tex">(v_{t}^{i},v_{t+1}^{i})\in E,\forall t\in\{0,1,\dots,T^{i}\}</annotation></semantics></math>.</p>
+</div>
+</li>
+<li class="ltx_item" id="S2.I1.i3" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">3.</span>
+<div class="ltx_para" id="S2.I1.i3.p1">
+<p class="ltx_p"><math alttext="\{\pi_{i}\mid i\in I\}" class="ltx_Math" display="inline" id="S2.I1.i3.p1.m1"><semantics><mrow><mo stretchy="false">{</mo><msub><mi>π</mi><mi>i</mi></msub><mo fence="true" lspace="0em" rspace="0em">∣</mo><mrow><mi>i</mi><mo>∈</mo><mi>I</mi></mrow><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\pi_{i}\mid i\in I\}</annotation></semantics></math> is collision-free.</p>
+</div>
+</li>
+</ol>
+</div>
+</section>
+<section class="ltx_section" id="S3">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">III </span><span class="ltx_text ltx_font_smallcaps">Related Work</span>
+</h2>
+<section class="ltx_subsection" id="S3.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">III-A </span><span class="ltx_text ltx_font_italic">Multi-Agent Path Finding (MAPF)</span>
+</h3>
+<div class="ltx_para" id="S3.SS1.p1">
+<p class="ltx_p">MAPF has been proved an NP-hard problem with optimality <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib2" title="">2</a>]</cite>. It has inspired a wide range of solutions for its related challenges.
+Decoupled strategies, as outlined in <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib18" title="">18</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib19" title="">19</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib20" title="">20</a>]</cite>, approach the problem by independently planning paths for each agent before integrating these paths.
+In contrast, coupled approaches <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib21" title="">21</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib22" title="">22</a>]</cite> devise a unified plan for all agents simultaneously. There also exist dynamically coupled methods <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib3" title="">3</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib23" title="">23</a>]</cite> that consider agents planning independently at first and then together only when needed for resolving agent-agent collisions.
+Among these, Conflict-Based Search (CBS) algorithm <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib3" title="">3</a>]</cite> stands out as a centralized and optimal method for MAPF, with several bounded-suboptimal variants such as ECBS <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib24" title="">24</a>]</cite> and EECBS <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib25" title="">25</a>]</cite>. Some suboptimal MAPF algorithms, such as Prioritized Planning (PP) <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib26" title="">26</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib18" title="">18</a>]</cite>, PBS <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib27" title="">27</a>]</cite>, LaCAM <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib5" title="">5</a>]</cite> and their variant methods <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib28" title="">28</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib6" title="">6</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib29" title="">29</a>]</cite> exhibit better scalability and efficiency. However, these search-based algorithms always face the problem of search space dimensionality explosion as the problem size increases, making it difficult to produce a valid solution within a limited time. Learning-based methods can overcome the dimensionality issue by learning from large amounts of data and addressing the trade-off between low-cost paths and scalability.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S3.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">III-B </span><span class="ltx_text ltx_font_italic">Lifelong MAPF</span>
+</h3>
+<div class="ltx_para" id="S3.SS2.p1">
+<p class="ltx_p">Compared to the MAPF problem, Lifelong MAPF (LMAPF) continuously assigns new target locations to agents once they have reached their current targets. In LMAPF, agents do not need to arrive at their targets simultaneously. There are three main approaches to solving LMAPF: solving the problem as a whole <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib30" title="">30</a>]</cite>, using MAPF methods but replanning all paths at each specified timestep <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib31" title="">31</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib32" title="">32</a>]</cite>, and replanning only when agents reach their current targets and are assigned new ones <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib33" title="">33</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib34" title="">34</a>]</cite>. Some algorithms can solve LMAPF in an offline setting where all tasks are known in advance. include CBSS <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib35" title="">35</a>]</cite>, which applies Traveling Salesman Problem (TSP) methods to plan task orders. However, these LMAPF methods also face the same scalability problem as MAPF methods.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S3.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">III-C </span><span class="ltx_text ltx_font_italic">Learning-based MAPF</span>
+</h3>
+<div class="ltx_para" id="S3.SS3.p1">
+<p class="ltx_p">Given the huge success of deep learning, many learning-based MAPF methods have been proposed. Compared to search-based algorithms, these methods can usually complete planning in short time and automatically learn heuristic functions. Some of these methods focus on modifying edge weights in the map, such as the congestion model <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib36" title="">36</a>]</cite>, which is a data-driven approach that predicts agents’ movement delays and uses these delays as movement costs, or Online GGO <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib37" title="">37</a>]</cite>, which optimizes edge weights for Lifelong MAPF. However, these methods split MAPF planning into multiple stages, which can lead to a larger optimization search space if one considers both edge-weight design and the MAPF solver simultaneously.</p>
+</div>
+<div class="ltx_para" id="S3.SS3.p2">
+<p class="ltx_p">Most other methods focus on the solver side, using imitation learning (IL), reinforcement learning (RL), or both. Learning-based solves can make end-to-end decisions using all available information and can be trained on various data types (e.g., MAPF, TAPF, LMAPF). In contrast, search-based methods often require multi-stage decomposition with hand-crafted heuristics. One early learning-based method for MAPF is PRIMAL <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib11" title="">11</a>]</cite> which is trained by RL and IL. It is a decentralized algorithm that relies on an FOV around an agent to generate the actions of that agent. MAPF-GPT <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib15" title="">15</a>]</cite> is a GPT-based model for MAPF problems, trained by IL on a large dataset. Other approaches incorporate communication mechanisms in a decentralized manner, such as GNN <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib38" title="">38</a>]</cite> and MAGAT <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib13" title="">13</a>]</cite>, which employ Graph Neural Networks (GNNs) for communication, and SCRIMP <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib14" title="">14</a>]</cite>, which uses a global communication mechanism based on transformers.</p>
+</div>
+<div class="ltx_para" id="S3.SS3.p3">
+<p class="ltx_p">However, all existing learning-based solvers focus on the agents themselves, forcing researchers to design features of agents. This makes it challenging, if not impossible, to develop a centralized policy that can handle varying numbers of agents and map sizes. Our method is the first centralized MAPF solver to overcome the challenge of feature design and to integrate edge-weight design ideas <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib39" title="">39</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib40" title="">40</a>]</cite> into a neural-network-based solver.</p>
+</div>
+<figure class="ltx_figure" id="S3.F1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="256" id="S3.F1.g1" src="x1.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 1</span>: </span><span class="ltx_text" style="font-size:90%;">RAILGUN Inference Overview: On the left side (features), there is one current state along with all related input features of size <math alttext="(n,m,1)" class="ltx_Math" display="inline" id="S3.F1.m11"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo>,</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m,1)</annotation></semantics></math>. These features are then stacked along the last channel to construct the input feature <math alttext="F_{in}" class="ltx_Math" display="inline" id="S3.F1.m12"><semantics><msub><mi>F</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">F_{in}</annotation></semantics></math> of size <math alttext="(n,m,k)" class="ltx_Math" display="inline" id="S3.F1.m13"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo>,</mo><mi>k</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m,k)</annotation></semantics></math>. In this example, we have <math alttext="n=2" class="ltx_Math" display="inline" id="S3.F1.m14"><semantics><mrow><mi>n</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">n=2</annotation></semantics></math>, <math alttext="m=4" class="ltx_Math" display="inline" id="S3.F1.m15"><semantics><mrow><mi>m</mi><mo>=</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">m=4</annotation></semantics></math>, and <math alttext="k=4" class="ltx_Math" display="inline" id="S3.F1.m16"><semantics><mrow><mi>k</mi><mo>=</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">k=4</annotation></semantics></math>. On the right side (inference), the input feature <math alttext="F_{in}" class="ltx_Math" display="inline" id="S3.F1.m17"><semantics><msub><mi>F</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">F_{in}</annotation></semantics></math> is fed into a CNN-based neural network, which outputs action probabilities <math alttext="F_{out}" class="ltx_Math" display="inline" id="S3.F1.m18"><semantics><msub><mi>F</mi><mrow><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub><annotation encoding="application/x-tex">F_{out}</annotation></semantics></math> of size <math alttext="(n,m,5)" class="ltx_Math" display="inline" id="S3.F1.m19"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo>,</mo><mn>5</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m,5)</annotation></semantics></math>. We sample from <math alttext="F_{out}" class="ltx_Math" display="inline" id="S3.F1.m20"><semantics><msub><mi>F</mi><mrow><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub><annotation encoding="application/x-tex">F_{out}</annotation></semantics></math> to obtain actual actions and then apply the corresponding actions to each agent.</span></figcaption>
+</figure>
+<figure class="ltx_figure" id="S3.F2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="243" id="S3.F2.g1" src="x2.png" width="374"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 2</span>: </span><span class="ltx_text" style="font-size:90%;">This is an example of how an agent-based solution relates to a series of specialized graphs. The upper-left figure illustrates a testcase we aim to solve, along with a graph where green nodes and orange edges represent map connectivity. The other figures show a valid MAPF solution for this testcase, where agent <math alttext="1" class="ltx_Math" display="inline" id="S3.F2.m3"><semantics><mn>1</mn><annotation encoding="application/x-tex">1</annotation></semantics></math> should yield to agent <math alttext="2" class="ltx_Math" display="inline" id="S3.F2.m4"><semantics><mn>2</mn><annotation encoding="application/x-tex">2</annotation></semantics></math>. At each timestep, each node in the connectivity graph has only one outgoing edge. Here, we draw edges only for nodes occupied by agents, as the outgoing edge for other nodes could be any of the available edges.</span></figcaption>
+</figure>
+</section>
+</section>
+<section class="ltx_section" id="S4">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">IV </span><span class="ltx_text ltx_font_smallcaps">Method</span>
+</h2>
+<section class="ltx_subsection" id="S4.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">IV-A </span><span class="ltx_text ltx_font_italic">RAILGUN Overview</span>
+</h3>
+<div class="ltx_para" id="S4.SS1.p1">
+<p class="ltx_p">In this section, we introduce our RAILGUN method. First, we discuss why it is difficult to design a learning algorithm for centralized MAPF where policies are agent-based. When focusing on generating actions based on agent features, we need to provide a neural network with at least the agent’s start location, goal location, and additional features, amounting to <math alttext="k" class="ltx_Math" display="inline" id="S4.SS1.p1.m1"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> scalar variables (<math alttext="k\geq 4" class="ltx_Math" display="inline" id="S4.SS1.p1.m2"><semantics><mrow><mi>k</mi><mo>≥</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">k\geq 4</annotation></semantics></math>) for one agent. Then the total number of features is at least <math alttext="kN" class="ltx_Math" display="inline" id="S4.SS1.p1.m3"><semantics><mrow><mi>k</mi><mo lspace="0em" rspace="0em">​</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">kN</annotation></semantics></math>. Consider that the maximum number of agents could be <math alttext="N=|V|\approx nm" class="ltx_Math" display="inline" id="S4.SS1.p1.m4"><semantics><mrow><mi>N</mi><mo>=</mo><mrow><mo stretchy="false">|</mo><mi>V</mi><mo stretchy="false">|</mo></mrow><mo>≈</mo><mrow><mi>n</mi><mo lspace="0em" rspace="0em">​</mo><mi>m</mi></mrow></mrow><annotation encoding="application/x-tex">N=|V|\approx nm</annotation></semantics></math>, where <math alttext="n" class="ltx_Math" display="inline" id="S4.SS1.p1.m5"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math> and <math alttext="m" class="ltx_Math" display="inline" id="S4.SS1.p1.m6"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math> are the 2D map dimensions. If we want to handle all possible numbers of agents on a specific map, the total feature size would be <math alttext="knm" class="ltx_Math" display="inline" id="S4.SS1.p1.m7"><semantics><mrow><mi>k</mi><mo lspace="0em" rspace="0em">​</mo><mi>n</mi><mo lspace="0em" rspace="0em">​</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">knm</annotation></semantics></math>. This dependence on map size means that we cannot create a policy to cover all different maps if we construct the features agent by agent. That is why there is no centralized learning-based solver and all learning-based MAPF solvers adopt a decentralized approach with a limited FOV for each agent <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib11" title="">11</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib12" title="">12</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib13" title="">13</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib14" title="">14</a>, <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib15" title="">15</a>]</cite>.</p>
+</div>
+<div class="ltx_para" id="S4.SS1.p2">
+<p class="ltx_p">Our insight is that in a valid MAPF solution, there will be no collision, which means there can be at most one agent in each map grid cell in each timestep. At any timestep, each agent chooses one of the five edges of its grid cell as its action. Therefore, if we remove all edges that the agents do not use at each timestep, we find that a valid MAPF solution can be viewed as a series of specialized graphs. As shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.F2" title="In III-C Learning-based MAPF ‣ III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">2</span></a>, these specialized graphs have exactly one edge in every occupied grid cell. Once such a directed graph is given, no MAPF solver is needed, as there is only one possible transition at each timestep. The sequence of these specialized graphs then constitutes a valid MAPF solution.</p>
+</div>
+<div class="ltx_para" id="S4.SS1.p3">
+<p class="ltx_p">After converting agent-based solution into a representation as a series of specialized graphs, we use a CNN network to address the challenge of generating these specialized graphs and generalizing across different maps, which we discussed in the previous paragraphs. The input feature is <math alttext="F_{in}" class="ltx_Math" display="inline" id="S4.SS1.p3.m1"><semantics><msub><mi>F</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">F_{in}</annotation></semantics></math> with size <math alttext="(n,m,k)" class="ltx_Math" display="inline" id="S4.SS1.p3.m2"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo>,</mo><mi>k</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m,k)</annotation></semantics></math>, and the output feature is <math alttext="F_{out}" class="ltx_Math" display="inline" id="S4.SS1.p3.m3"><semantics><msub><mi>F</mi><mrow><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub><annotation encoding="application/x-tex">F_{out}</annotation></semantics></math> with size <math alttext="(n,m,5)" class="ltx_Math" display="inline" id="S4.SS1.p3.m4"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo>,</mo><mn>5</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m,5)</annotation></semantics></math>. Here, <math alttext="k" class="ltx_Math" display="inline" id="S4.SS1.p3.m5"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> represents the number of feature channels based on the feature design, and <math alttext="(n,m)" class="ltx_Math" display="inline" id="S4.SS1.p3.m6"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m)</annotation></semantics></math> represents the map size.</p>
+</div>
+<div class="ltx_para" id="S4.SS1.p4">
+<p class="ltx_p">As an example shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.F1" title="In III-C Learning-based MAPF ‣ III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">1</span></a>, to encode an agent’s current location as a feature, we construct a tensor <math alttext="F_{cur}" class="ltx_Math" display="inline" id="S4.SS1.p4.m1"><semantics><msub><mi>F</mi><mrow><mi>c</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>r</mi></mrow></msub><annotation encoding="application/x-tex">F_{cur}</annotation></semantics></math> with size <math alttext="(n,m,1)" class="ltx_Math" display="inline" id="S4.SS1.p4.m2"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo>,</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m,1)</annotation></semantics></math>. In this tensor, <math alttext="F_{cur}[i][j]=\text{{idx}}" class="ltx_Math" display="inline" id="S4.SS1.p4.m3"><semantics><mrow><mrow><msub><mi>F</mi><mrow><mi>c</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>r</mi></mrow></msub><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>i</mi><mo stretchy="false">]</mo></mrow><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>j</mi><mo stretchy="false">]</mo></mrow></mrow><mo>=</mo><mtext class="ltx_mathvariant_italic">idx</mtext></mrow><annotation encoding="application/x-tex">F_{cur}[i][j]=\text{{idx}}</annotation></semantics></math> if the agent <span class="ltx_text ltx_markedasmath ltx_font_italic">idx</span> is at position <math alttext="(i,j)" class="ltx_Math" display="inline" id="S4.SS1.p4.m5"><semantics><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(i,j)</annotation></semantics></math> in the map; otherwise, <math alttext="F_{cur}[i][j]=0" class="ltx_Math" display="inline" id="S4.SS1.p4.m6"><semantics><mrow><mrow><msub><mi>F</mi><mrow><mi>c</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>r</mi></mrow></msub><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>i</mi><mo stretchy="false">]</mo></mrow><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>j</mi><mo stretchy="false">]</mo></mrow></mrow><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">F_{cur}[i][j]=0</annotation></semantics></math>. Stacking all such feature tensors along the last dimension forms <math alttext="F_{in}" class="ltx_Math" display="inline" id="S4.SS1.p4.m7"><semantics><msub><mi>F</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>n</mi></mrow></msub><annotation encoding="application/x-tex">F_{in}</annotation></semantics></math> with size <math alttext="(n,m,k)" class="ltx_Math" display="inline" id="S4.SS1.p4.m8"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>m</mi><mo>,</mo><mi>k</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n,m,k)</annotation></semantics></math>. <math alttext="F_{out}[i][j]" class="ltx_Math" display="inline" id="S4.SS1.p4.m9"><semantics><mrow><msub><mi>F</mi><mrow><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>i</mi><mo stretchy="false">]</mo></mrow><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>j</mi><mo stretchy="false">]</mo></mrow></mrow><annotation encoding="application/x-tex">F_{out}[i][j]</annotation></semantics></math> represents the probability distribution over all possible actions at grid cell position <math alttext="(i,j)" class="ltx_Math" display="inline" id="S4.SS1.p4.m10"><semantics><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(i,j)</annotation></semantics></math>. We use 5 channels because each agent can take one of up to five different actions at each timestep. Thus, if an agent is located at grid cell <math alttext="(i,j)" class="ltx_Math" display="inline" id="S4.SS1.p4.m11"><semantics><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(i,j)</annotation></semantics></math>, its action probabilities are stored in <math alttext="F_{out}[i][j]" class="ltx_Math" display="inline" id="S4.SS1.p4.m12"><semantics><mrow><msub><mi>F</mi><mrow><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><mi>u</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>i</mi><mo stretchy="false">]</mo></mrow><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">[</mo><mi>j</mi><mo stretchy="false">]</mo></mrow></mrow><annotation encoding="application/x-tex">F_{out}[i][j]</annotation></semantics></math>. Note that the model only outputs the next action prediction based on the current timestep. Therefore, to obtain a full trajectory, the trained model must be invoked repeatedly.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S4.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">IV-B </span><span class="ltx_text ltx_font_italic">Model Architecture</span>
+</h3>
+<div class="ltx_para" id="S4.SS2.p1">
+<p class="ltx_p">In this paper, we use U-Net for RAILGUN, as it is widely used in diffusion models <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib41" title="">41</a>]</cite> and includes transposed convolution layers that allows the network to recover the spatial resolution of the input. That’s why RAILGUN can handle input maps of different sizes during inference. We employ the standard U-Net architecture comprising five layers in total. The encoder begins with an initial layer containing 64 channels. At each subsequent layer, the number of channels is doubled while the size of the feature maps is halved. In the decoder, this process is reversed, with the number of channels halved and the spatial resolution doubled at each layer. Notably, bilinear interpolation is not employed in the decoder; instead, we use deconvolution as in original U-Net. At the final layer, the number of channels is reduced to 5, corresponding to the maximum number of possible actions. We should also note that since U-Net uses CNN layers in the encoder, which progressively reduce the spatial dimensions of the feature maps, there is a minimum required input size to ensure valid downsampling operations. For small maps, padding is needed. The resulting RAILGUN model contains approximately 30 million FP32 parameters.</p>
+</div>
+</section>
+<section class="ltx_subsection" id="S4.SS3">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">IV-C </span><span class="ltx_text ltx_font_italic">Feature Selection</span>
+</h3>
+<div class="ltx_para" id="S4.SS3.p1">
+<p class="ltx_p">As shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.F1" title="In III-C Learning-based MAPF ‣ III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">1</span></a>, we construct the input features from multiple components. We employ five types of features: the map, current locations, goal locations, cost-to-goal, and gradients of cost-to-goal (the last feature is not shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.F1" title="In III-C Learning-based MAPF ‣ III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">1</span></a> due to space constraints). For the map feature, we use 1 to represent non-traversable grid cells and 0 to represent traversable grid cells. For the current and goal locations, we use the agent’s index to indicate which agent occupies a grid cell; otherwise, the grid cell is set to 0. We also attempted encoding agent indices as binary vectors; however, this produces excessively large input features, rendering the model too large to train.</p>
+</div>
+<div class="ltx_para" id="S4.SS3.p2">
+<p class="ltx_p">We also use the precomputed shortest path cost as the cost-to-goal feature for each agent which is a widely used feature in learning-based methods, as shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S3.F1" title="In III-C Learning-based MAPF ‣ III Related Work ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">1</span></a>. The gradients of the cost-to-goal, represents the potential direction of next action, are determined by the changes of the cost-to-goal distances. Specifically, we define the changes in cost-to-goal distances from an agent’s current cell <math alttext="(i,j)" class="ltx_Math" display="inline" id="S4.SS3.p2.m1"><semantics><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(i,j)</annotation></semantics></math> to its adjacent cells as <math alttext="\delta_{\text{left}},\delta_{\text{right}},\delta_{\text{up}},\delta_{\text{down}}" class="ltx_Math" display="inline" id="S4.SS3.p2.m2"><semantics><mrow><msub><mi>δ</mi><mtext>left</mtext></msub><mo>,</mo><msub><mi>δ</mi><mtext>right</mtext></msub><mo>,</mo><msub><mi>δ</mi><mtext>up</mtext></msub><mo>,</mo><msub><mi>δ</mi><mtext>down</mtext></msub></mrow><annotation encoding="application/x-tex">\delta_{\text{left}},\delta_{\text{right}},\delta_{\text{up}},\delta_{\text{down}}</annotation></semantics></math>. <math alttext="\delta&lt;0" class="ltx_Math" display="inline" id="S4.SS3.p2.m3"><semantics><mrow><mi>δ</mi><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\delta&lt;0</annotation></semantics></math> indicates that the agent is approaching the goal location. The resulting direction, denoted by <math alttext="\mathbf{g}_{ij}=\left(\Delta x_{ij},\Delta y_{ij}\right)" class="ltx_Math" display="inline" id="S4.SS3.p2.m4"><semantics><mrow><msub><mi>𝐠</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub><mo>=</mo><mrow><mo>(</mo><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><msub><mi>x</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub></mrow><mo>,</mo><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><msub><mi>y</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub></mrow><mo>)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathbf{g}_{ij}=\left(\Delta x_{ij},\Delta y_{ij}\right)</annotation></semantics></math>, consists of horizontal and vertical components. For the horizontal component, <math alttext="\Delta x_{ij}" class="ltx_Math" display="inline" id="S4.SS3.p2.m5"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><msub><mi>x</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\Delta x_{ij}</annotation></semantics></math> is computed as shown below:</p>
+<table class="ltx_equation ltx_eqn_table" id="S4.Ex1">
+<tbody><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_eqn_cell ltx_align_center"><math alttext="\Delta x_{ij}=\begin{cases}0&amp;\text{if }\delta_{\text{left}}\geq 0\text{ and }\delta_{\text{right}}\geq 0,\\[4.30554pt]
+1&amp;\text{if }\delta_{\text{left}}\geq 0\text{ and }\delta_{\text{right}}&lt;0,\\[4.30554pt]
+-1&amp;\text{if }\delta_{\text{left}}&lt;0\text{ and }\delta_{\text{right}}\geq 0,\\[4.30554pt]
+\text{random}(\pm 1)&amp;\text{if }\delta_{\text{left}}&lt;0\text{ and }\delta_{\text{right}}&lt;0,\end{cases}" class="ltx_Math" display="block" id="S4.Ex1.m1"><semantics><mrow><mrow><mi mathvariant="normal">Δ</mi><mo lspace="0em" rspace="0em">​</mo><msub><mi>x</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">​</mo><mi>j</mi></mrow></msub></mrow><mo>=</mo><mrow><mo>{</mo><mtable columnspacing="5pt" displaystyle="true" rowspacing="0pt"><mtr><mtd class="ltx_align_left" columnalign="left"><mn>0</mn></mtd><mtd class="ltx_align_left" columnalign="left"><mrow><mrow><mrow><mtext>if </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>left</mtext></msub></mrow><mo>≥</mo><mrow><mn>0</mn><mo lspace="0em" rspace="0em">​</mo><mtext> and </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>right</mtext></msub></mrow><mo>≥</mo><mn>0</mn></mrow><mo>,</mo></mrow></mtd></mtr><mtr><mtd class="ltx_align_left" columnalign="left"><mn>1</mn></mtd><mtd class="ltx_align_left" columnalign="left"><mrow><mrow><mrow><mtext>if </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>left</mtext></msub></mrow><mo>≥</mo><mrow><mn>0</mn><mo lspace="0em" rspace="0em">​</mo><mtext> and </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>right</mtext></msub></mrow><mo>&lt;</mo><mn>0</mn></mrow><mo>,</mo></mrow></mtd></mtr><mtr><mtd class="ltx_align_left" columnalign="left"><mrow><mo>−</mo><mn>1</mn></mrow></mtd><mtd class="ltx_align_left" columnalign="left"><mrow><mrow><mrow><mtext>if </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>left</mtext></msub></mrow><mo>&lt;</mo><mrow><mn>0</mn><mo lspace="0em" rspace="0em">​</mo><mtext> and </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>right</mtext></msub></mrow><mo>≥</mo><mn>0</mn></mrow><mo>,</mo></mrow></mtd></mtr><mtr><mtd class="ltx_align_left" columnalign="left"><mrow><mtext>random</mtext><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><mrow><mo>±</mo><mn>1</mn></mrow><mo stretchy="false">)</mo></mrow></mrow></mtd><mtd class="ltx_align_left" columnalign="left"><mrow><mrow><mrow><mtext>if </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>left</mtext></msub></mrow><mo>&lt;</mo><mrow><mn>0</mn><mo lspace="0em" rspace="0em">​</mo><mtext> and </mtext><mo lspace="0em" rspace="0em">​</mo><msub><mi>δ</mi><mtext>right</mtext></msub></mrow><mo>&lt;</mo><mn>0</mn></mrow><mo>,</mo></mrow></mtd></mtr></mtable></mrow></mrow><annotation encoding="application/x-tex">\Delta x_{ij}=\begin{cases}0&amp;\text{if }\delta_{\text{left}}\geq 0\text{ and }\delta_{\text{right}}\geq 0,\\[4.30554pt]
+1&amp;\text{if }\delta_{\text{left}}\geq 0\text{ and }\delta_{\text{right}}&lt;0,\\[4.30554pt]
+-1&amp;\text{if }\delta_{\text{left}}&lt;0\text{ and }\delta_{\text{right}}\geq 0,\\[4.30554pt]
+\text{random}(\pm 1)&amp;\text{if }\delta_{\text{left}}&lt;0\text{ and }\delta_{\text{right}}&lt;0,\end{cases}</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+</tr></tbody>
+</table>
+<p class="ltx_p">and similarly for the vertical component.</p>
+</div>
+<figure class="ltx_figure" id="S4.F3">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S4.F3.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="830" id="S4.F3.sf1.g1" src="x3.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(a)</span> </span><span class="ltx_text" style="font-size:90%;">Maze</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S4.F3.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="796" id="S4.F3.sf2.g1" src="x4.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(b)</span> </span><span class="ltx_text" style="font-size:90%;">Random</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S4.F3.sf3"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="611" id="S4.F3.sf3.g1" src="x5.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(c)</span> </span><span class="ltx_text" style="font-size:90%;">Warehouse</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S4.F3.sf4"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="830" id="S4.F3.sf4.g1" src="x6.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(d)</span> </span><span class="ltx_text" style="font-size:90%;">Puzzle</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S4.F3.sf5"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="830" id="S4.F3.sf5.g1" src="x7.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(e)</span> </span><span class="ltx_text" style="font-size:90%;">Cities-tiles</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_many">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S4.F3.sf6"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="830" id="S4.F3.sf6.g1" src="x8.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(f)</span> </span><span class="ltx_text" style="font-size:90%;">Cities</span></figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 3</span>: </span><span class="ltx_text" style="font-size:90%;">Examples of POGEMA-tested maps. The six metrics—<span class="ltx_text ltx_font_italic">Performance</span>, <span class="ltx_text ltx_font_italic">Coordination</span>, <span class="ltx_text ltx_font_italic">Scalability</span>, <span class="ltx_text ltx_font_italic">Cooperation</span>, <span class="ltx_text ltx_font_italic">OOD</span>, and <span class="ltx_text ltx_font_italic">Pathfinding</span>—are evaluated on different map sets. Note that Cities-tiles are 64×64 areas selected from larger Cities maps with dimensions of 256×256.</span></figcaption>
+</figure>
+</section>
+</section>
+<section class="ltx_section" id="S5">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">V </span><span class="ltx_text ltx_font_smallcaps">Experiments &amp; Results</span>
+</h2>
+<section class="ltx_subsection" id="S5.SS1">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-A </span><span class="ltx_text ltx_font_italic">Training and Testing Settings</span>
+</h3>
+<div class="ltx_para" id="S5.SS1.p1">
+<p class="ltx_p">We use the POGEMA <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib17" title="">17</a>]</cite> benchmark to evaluate our method, so for comparison, we only include the methods available in POGEMA. POGEMA includes several different metrics, allowing a fair multi-fold comparison.
+For data collection, our training data is primarily generated by LaCAM-v1 <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib5" title="">5</a>]</cite>. The model is trained with cross-entropy loss and a batch size of 256. We utilize the AdamW optimizer <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib42" title="">42</a>]</cite> with <math alttext="\beta" class="ltx_Math" display="inline" id="S5.SS1.p1.m1"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math> values set to <math alttext="(0.9,0.999)" class="ltx_Math" display="inline" id="S5.SS1.p1.m2"><semantics><mrow><mo stretchy="false">(</mo><mn>0.9</mn><mo>,</mo><mn>0.999</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(0.9,0.999)</annotation></semantics></math> and a weight decay of <math alttext="10^{-3}" class="ltx_Math" display="inline" id="S5.SS1.p1.m3"><semantics><msup><mn>10</mn><mrow><mo>−</mo><mn>3</mn></mrow></msup><annotation encoding="application/x-tex">10^{-3}</annotation></semantics></math>. The training process achieves convergence in only six hours, leveraging the power of four NVIDIA A100 GPUs.</p>
+</div>
+<div class="ltx_para" id="S5.SS1.p2">
+<p class="ltx_p">For training data, we randomly generate 180 maze maps with <math alttext="32\times 32" class="ltx_Math" display="inline" id="S5.SS1.p2.m1"><semantics><mrow><mn>32</mn><mo lspace="0.222em" rspace="0.222em">×</mo><mn>32</mn></mrow><annotation encoding="application/x-tex">32\times 32</annotation></semantics></math> size, each with varying obstacle densities and maze shape. For each map, we randomly generate {2, 5, 20, 40, 60} MAPF scenarios with {16, 32, 64, 96, 128} agents respectively, for a total of 127 scenarios for each map. We use LACAM-v1 <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib5" title="">5</a>]</cite> to compute reference paths for all scenarios as training data, primarily due to its fast data generation speed on large maps.</p>
+</div>
+<div class="ltx_para" id="S5.SS1.p3">
+<p class="ltx_p">All experiments<span class="ltx_note ltx_role_footnote" id="footnote1"><sup class="ltx_note_mark">1</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">1</sup><span class="ltx_tag ltx_tag_note">1</span>Our code can be found at Github: https://github.com/TachikakaMin</span></span></span> were conducted on a system running Ubuntu 22.04.1 LTS equipped with an AMD Intel i9-12900K CPU, 128GB RAM and NVIDIA RTX 3080. For the testing phase, the POGEMA benchmark provides a total of 3,376 test cases featuring six different types of maps shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S4.F3" title="In IV-C Feature Selection ‣ IV Method ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">3</span></a>, varying numbers of agents, and different map sizes. POGEMA use six metrics, namely, <span class="ltx_text ltx_font_italic">Performance</span>, <span class="ltx_text ltx_font_italic">Coordination</span>, <span class="ltx_text ltx_font_italic">Scalability</span>, <span class="ltx_text ltx_font_italic">Cooperation</span>, <span class="ltx_text ltx_font_italic">Out-of-Distribution (OOD)</span> and <span class="ltx_text ltx_font_italic">Pathfinding</span>. The relevant equations are as follows:</p>
+<table class="ltx_equationgroup ltx_eqn_gather ltx_eqn_table" id="S7.EGx1">
+<tbody id="S5.Ex2"><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_eqn_cell ltx_align_center"><math alttext="\displaystyle\text{Performance}=\begin{cases}SoC_{best}/SoC&amp;\text{if MAPF solved}\\
+0&amp;\text{if MAPF not solved}\\
+\frac{\text{throughput}}{\text{throughput}_{best}}&amp;\text{if LMAPF}\end{cases}" class="ltx_Math" display="block" id="S5.Ex2.m1"><semantics><mrow><mtext>Performance</mtext><mo>=</mo><mrow><mo>{</mo><mtable columnspacing="5pt" displaystyle="true" rowspacing="0pt"><mtr><mtd class="ltx_align_left" columnalign="left"><mrow><mrow><mrow><mi>S</mi><mo lspace="0em" rspace="0em">​</mo><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><msub><mi>C</mi><mrow><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub></mrow><mo>/</mo><mi>S</mi></mrow><mo lspace="0em" rspace="0em">​</mo><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><mi>C</mi></mrow></mtd><mtd class="ltx_align_left" columnalign="left"><mtext>if MAPF solved</mtext></mtd></mtr><mtr><mtd class="ltx_align_left" columnalign="left"><mn>0</mn></mtd><mtd class="ltx_align_left" columnalign="left"><mtext>if MAPF not solved</mtext></mtd></mtr><mtr><mtd class="ltx_align_left" columnalign="left"><mstyle displaystyle="false"><mfrac><mtext>throughput</mtext><msub><mtext>throughput</mtext><mrow><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub></mfrac></mstyle></mtd><mtd class="ltx_align_left" columnalign="left"><mtext>if LMAPF</mtext></mtd></mtr></mtable></mrow></mrow><annotation encoding="application/x-tex">\displaystyle\text{Performance}=\begin{cases}SoC_{best}/SoC&amp;\text{if MAPF solved}\\
+0&amp;\text{if MAPF not solved}\\
+\frac{\text{throughput}}{\text{throughput}_{best}}&amp;\text{if LMAPF}\end{cases}</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+</tr></tbody>
+</table>
+<p class="ltx_p">The <span class="ltx_text ltx_font_italic">Performance</span>, <span class="ltx_text ltx_font_italic">OOD</span>, and <span class="ltx_text ltx_font_italic">Cooperation</span> metrics share the same definitions and primarily evaluate solution quality and success rate across different maps. <math alttext="SoC_{best}" class="ltx_Math" display="inline" id="S5.SS1.p3.m1"><semantics><mrow><mi>S</mi><mo lspace="0em" rspace="0em">​</mo><mi>o</mi><mo lspace="0em" rspace="0em">​</mo><msub><mi>C</mi><mrow><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub></mrow><annotation encoding="application/x-tex">SoC_{best}</annotation></semantics></math> represents the best SoC performance achieved among all tested algorithms.</p>
+<table class="ltx_equationgroup ltx_eqn_gather ltx_eqn_table" id="S7.EGx2">
+<tbody id="S5.Ex4"><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_eqn_cell ltx_align_center"><math alttext="\displaystyle\text{Scalability}=\frac{\text{runtime}(\text{agents}_{1})/\text{runtime}(\text{agents}_{2})}{|\text{agents}_{1}|/|\text{agents}_{2}|}" class="ltx_Math" display="block" id="S5.Ex4.m1"><semantics><mrow><mtext>Scalability</mtext><mo>=</mo><mfrac><mrow><mrow><mrow><mtext>runtime</mtext><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mtext>agents</mtext><mn>1</mn></msub><mo stretchy="false">)</mo></mrow></mrow><mo>/</mo><mtext>runtime</mtext></mrow><mo lspace="0em" rspace="0em">​</mo><mrow><mo stretchy="false">(</mo><msub><mtext>agents</mtext><mn>2</mn></msub><mo stretchy="false">)</mo></mrow></mrow><mrow><mrow><mo stretchy="false">|</mo><msub><mtext>agents</mtext><mn>1</mn></msub><mo stretchy="false">|</mo></mrow><mo>/</mo><mrow><mo stretchy="false">|</mo><msub><mtext>agents</mtext><mn>2</mn></msub><mo stretchy="false">|</mo></mrow></mrow></mfrac></mrow><annotation encoding="application/x-tex">\displaystyle\text{Scalability}=\frac{\text{runtime}(\text{agents}_{1})/\text{runtime}(\text{agents}_{2})}{|\text{agents}_{1}|/|\text{agents}_{2}|}</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+</tr></tbody>
+<tbody id="S5.Ex5"><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_eqn_cell ltx_align_center"><math alttext="\displaystyle\text{Coordination}=1-\frac{\text{\# of collisions}}{\lvert\text{agents}\rvert\times\text{episode\_length}}" class="ltx_Math" display="block" id="S5.Ex5.m1"><semantics><mrow><mtext>Coordination</mtext><mo>=</mo><mrow><mn>1</mn><mo>−</mo><mfrac><mtext># of collisions</mtext><mrow><mrow><mo stretchy="false">|</mo><mtext>agents</mtext><mo rspace="0.055em" stretchy="false">|</mo></mrow><mo rspace="0.222em">×</mo><mtext>episode_length</mtext></mrow></mfrac></mrow></mrow><annotation encoding="application/x-tex">\displaystyle\text{Coordination}=1-\frac{\text{\# of collisions}}{\lvert\text{agents}\rvert\times\text{episode\_length}}</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+</tr></tbody>
+<tbody id="S5.Ex6"><tr class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<td class="ltx_eqn_cell ltx_eqn_center_padleft"></td>
+<td class="ltx_eqn_cell ltx_align_center"><math alttext="\displaystyle\text{Pathfinding}=\begin{cases}\text{SoC}/\text{SoC}_{best}\\
+0\text{ if path not found}\end{cases}" class="ltx_Math" display="block" id="S5.Ex6.m1"><semantics><mrow><mtext>Pathfinding</mtext><mo>=</mo><mrow><mo>{</mo><mtable columnspacing="5pt" displaystyle="true" rowspacing="0pt"><mtr><mtd class="ltx_align_left" columnalign="left"><mrow><mtext>SoC</mtext><mo>/</mo><msub><mtext>SoC</mtext><mrow><mi>b</mi><mo lspace="0em" rspace="0em">​</mo><mi>e</mi><mo lspace="0em" rspace="0em">​</mo><mi>s</mi><mo lspace="0em" rspace="0em">​</mo><mi>t</mi></mrow></msub></mrow></mtd><mtd></mtd></mtr><mtr><mtd class="ltx_align_left" columnalign="left"><mrow><mn>0</mn><mo lspace="0em" rspace="0em">​</mo><mtext> if path not found</mtext></mrow></mtd><mtd></mtd></mtr></mtable></mrow></mrow><annotation encoding="application/x-tex">\displaystyle\text{Pathfinding}=\begin{cases}\text{SoC}/\text{SoC}_{best}\\
+0\text{ if path not found}\end{cases}</annotation></semantics></math></td>
+<td class="ltx_eqn_cell ltx_eqn_center_padright"></td>
+</tr></tbody>
+</table>
+<p class="ltx_p"><span class="ltx_text ltx_font_italic">Scalability</span> is the ratio of algorithm runtimes with different agent numbers with <math alttext="|\text{agent}_{1}|&lt;|\text{agent}_{2}|" class="ltx_Math" display="inline" id="S5.SS1.p3.m2"><semantics><mrow><mrow><mo stretchy="false">|</mo><msub><mtext>agent</mtext><mn>1</mn></msub><mo stretchy="false">|</mo></mrow><mo>&lt;</mo><mrow><mo stretchy="false">|</mo><msub><mtext>agent</mtext><mn>2</mn></msub><mo stretchy="false">|</mo></mrow></mrow><annotation encoding="application/x-tex">|\text{agent}_{1}|&lt;|\text{agent}_{2}|</annotation></semantics></math>, providing a measure of how the algorithm’s runtime scales as the agent number changes and higher is better. <span class="ltx_text ltx_font_italic">Coordination</span> focuses on invalid action frequency produced by learning-based methods. <span class="ltx_text ltx_font_italic">Pathfinding</span> indicates the ability of learning-based methods to find the shortest path for a single agent.</p>
+</div>
+<figure class="ltx_figure" id="S5.F4">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S5.F4.sf1"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="878" id="S5.F4.sf1.g1" src="x9.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(a)</span> </span><span class="ltx_text" style="font-size:90%;">MAPF: RAILGUN outperforms most baseline models in Scalability, Performance, Pathfinding, OOD and Coordination.</span></figcaption>
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure class="ltx_figure ltx_figure_panel ltx_align_center" id="S5.F4.sf2"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_square" height="810" id="S5.F4.sf2.g1" src="x10.png" width="830"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">(b)</span> </span><span class="ltx_text" style="font-size:90%;">LMAPF:
+RAILGUN still have good zero-shot LMAPF performace in Pathfinding, Coordination, Cooperation and Scalability just training on MAPF dataset.</span></figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 4</span>: </span><span class="ltx_text" style="font-size:90%;">POGEMA Test Overview: Performance, OOD, Pathfinding and Cooperation represents solution SoC/throuput quality. Scalability represents runtime respect to agent numbers. Coordination is the probability of invalid actions from learning-based methods.</span></figcaption>
+</figure>
+</section>
+<section class="ltx_subsection" id="S5.SS2">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection">V-B </span><span class="ltx_text ltx_font_italic">Testing Results</span>
+</h3>
+<div class="ltx_para" id="S5.SS2.p1">
+<p class="ltx_p"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.F4" title="In V-A Training and Testing Settings ‣ V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">4</span></a> presents the performance metrics for RAILGUN and the baseline methods. The learning-based methods include VDN <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib43" title="">43</a>]</cite>, QPLEX <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib44" title="">44</a>]</cite>, SCRIMP <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib14" title="">14</a>]</cite>, IQL <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib45" title="">45</a>]</cite>, QMIX <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib46" title="">46</a>]</cite>, DCC <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib47" title="">47</a>]</cite>, MAMBA <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib48" title="">48</a>]</cite>, Switcher <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib49" title="">49</a>]</cite>, Follower <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib50" title="">50</a>]</cite>, and MATS-LP <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib51" title="">51</a>]</cite>. All these baseline methods are decentralized methods. LaCAM-v3 <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib29" title="">29</a>]</cite> and RHCR <cite class="ltx_cite ltx_citemacro_cite">[<a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#bib.bib31" title="">31</a>]</cite> serve as the search-based algorithm baselines in MAPF and LMAPF problems.</p>
+</div>
+<div class="ltx_para" id="S5.SS2.p2">
+<p class="ltx_p">In <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.F4.sf1" title="In Figure 4 ‣ V-A Training and Testing Settings ‣ V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">4(a)</span></a>, we observe that RAILGUN achieves high scores across all six metrics. RAILGUN attains the highest score in the Scalability metric because it generates specific directed graphs at each timestep, ensuring that runtime depends only on map size rather than the number of agents in theory. However, even though RAILGUN outperforms or matches the scores of other learning-based methods in most areas, it still exhibits a significant gap with LaCAM in SoC-related metrics. This outcome is expected, as RAILGUN is trained on data generated by LaCAM-v1, and LaCAM-v1 is not designed to achieve the best SoC performance. Mimicking LaCAM-v1 is the top priority of RAILGUN rather than producing a valid solution with the lowest SoC.</p>
+</div>
+<figure class="ltx_table" id="S5.T1">
+<table class="ltx_tabular ltx_centering ltx_guessed_headers ltx_align_middle">
+<thead class="ltx_thead">
+<tr class="ltx_tr">
+<th class="ltx_td ltx_th ltx_th_column ltx_th_row ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;"></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t" colspan="6" style="padding-left:3.0pt;padding-right:3.0pt;">CSR</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t" colspan="6" style="padding-left:3.0pt;padding-right:3.0pt;">SoC (x1000)</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t" colspan="6" style="padding-left:3.0pt;padding-right:3.0pt;">Makespan</th>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_nopad ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;"><svg height="24.45" overflow="visible" version="1.1" width="123.84"><g transform="translate(0,24.45) scale(1,-1)"><path d="M 0,24.45 123.84,0" stroke="#000000" stroke-width="0.4"></path><g class="ltx_svg_fog" transform="translate(0,0)"><g transform="translate(0,12.3) scale(1, -1)"><foreignobject height="12.3" overflow="visible" width="61.92"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block">
+<span class="ltx_inline-block ltx_align_left">
+<span class="ltx_p">Algorithm</span>
+</span>
+</span></span></span></foreignobject></g></g><g class="ltx_svg_fog" transform="translate(82.25,12.3)"><g transform="translate(0,12.15) scale(1, -1)"><foreignobject height="12.15" overflow="visible" width="41.59"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block">
+<span class="ltx_inline-block ltx_align_right">
+<span class="ltx_p">Agents</span>
+</span>
+</span></span></span></foreignobject></g></g></g></svg></th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">32</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">64</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">96</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">128</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">160</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">192</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">32</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">64</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">96</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">128</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">160</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">192</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">32</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">64</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">96</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">128</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">160</th>
+<th class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">192</th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">LaCAM</th>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">0.98</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">1.97</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">3.00</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">4.07</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">5.16</td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">6.32</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">55.34</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">58.50</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">60.50</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">61.59</td>
+<td class="ltx_td ltx_align_center ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">62.77</td>
+<td class="ltx_td ltx_align_center ltx_border_r ltx_border_t" style="padding-left:3.0pt;padding-right:3.0pt;">64.04</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">SCRIMP</th>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.98</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.98</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">0.91</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">1.07</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">2.34</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">3.81</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">5.49</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">7.45</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">9.81</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">56.54</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">62.48</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">68.17</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">75.25</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">83.43</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">94.73</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">RAILGUN</th>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">1.00</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.97</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.73</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.13</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.01</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">1.22</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">2.92</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">5.39</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">9.05</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">13.17</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">17.39</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">63.93</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">82.52</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">105.69</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">126.42</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">127.91</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">DCC</th>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.95</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.86</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.73</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">0.12</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">1.10</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">2.62</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">4.88</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">7.82</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">11.09</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">14.86</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">66.06</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">88.10</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">111.23</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">126.75</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">MAMBA</th>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">2.78</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">7.06</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">11.29</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">15.49</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">19.58</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">23.81</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">IQL</th>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">4.08</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">8.15</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">12.24</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">16.34</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">20.45</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">24.56</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">VDN</th>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">3.55</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">7.44</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">11.73</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">16.00</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">20.21</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">24.40</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">QMIX</th>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">3.67</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">7.56</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">11.64</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">15.85</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">20.06</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">24.28</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+</tr>
+<tr class="ltx_tr">
+<th class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_b ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">QPLEX</th>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">3.79</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">7.68</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">11.69</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">15.82</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">20.03</td>
+<td class="ltx_td ltx_align_center ltx_border_b ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">24.24</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+<td class="ltx_td ltx_align_center ltx_border_b ltx_border_r" style="padding-left:3.0pt;padding-right:3.0pt;">-</td>
+</tr>
+</tbody>
+</table>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table"><span class="ltx_text" style="font-size:90%;">TABLE I</span>: </span><span class="ltx_text" style="font-size:90%;">MAPF Scores on Warehouse: Makespan is the latest agent arrival time. “-” represents 0 in CSR and 128 in Makespan.</span></figcaption>
+</figure>
+<div class="ltx_para" id="S5.SS2.p3">
+<p class="ltx_p">As shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.F4.sf2" title="In Figure 4 ‣ V-A Training and Testing Settings ‣ V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">4(b)</span></a>, when testing on LMAPF, a completely zero-shot task for RAILGUN, RAILGUN achieves only moderate scores in throughput-related metrics since none of the training data was optimized for throughput. However, this zero-shot test also demonstrates RAILGUN’s strong generalization ability across different tasks. RAILGUN also attains high scores in Pathfinding, Coordination, and Scalability. These strengths and weaknesses suggest that, although RAILGUN’s overall solution quality remains an issue, it can produce valid solutions in a diverse set of scenarios. Thus, we believe using a dataset optimized for the cost function of interest, combined with applying a task-specific reward function for fine-tuning via RL after the SL process, will help improve the overall solution quality.</p>
+</div>
+<figure class="ltx_figure" id="S5.F5"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="272" id="S5.F5.g1" src="x11.png" width="374"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 5</span>: </span><span class="ltx_text" style="font-size:90%;">MAPF testing on Cities-tiles: CSR (the success rate at which all agents reach their goal locations; higher is better), SoC (Sum of all agent arrival time; lower is better).</span></figcaption>
+</figure>
+<div class="ltx_para" id="S5.SS2.p4">
+<p class="ltx_p"><a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.F5" title="In V-B Testing Results ‣ V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">5</span></a> presents detailed CSR (see caption) and SoC. Even for unseen maps (Cities-tiles) and larger agent numbers (192 and 256), RAILGUN outperforms other learning-based methods except SCRIMP, achieving up to 60% CSR. This also shows RAILGUN’s strong zero-shot generalization ability in new maps and new agent numbers. Furthermore, we observe that DCC attains a better SoC, despite having a lower CSR. This indicates that in DCC, only a few agents fail to reach their goal locations and the path lengths are shorter than those produced by RAILGUN, highlighting that generating valid solutions is a higher priority for RAILGUN.</p>
+</div>
+<div class="ltx_para" id="S5.SS2.p5">
+<p class="ltx_p">In <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.T1" title="In V-B Testing Results ‣ V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Table</span>˜<span class="ltx_text ltx_ref_tag">I</span></a>, we present the CSR, SoC, and Makespan metrics (see caption) of different algorithms for the Warehouse map. We observe a similar pattern where RAILGUN achieves a higher CSR score but a lower SoC compared to DCC. However, when considering Makespan, RAILGUN outperforms DCC. This indicates that RAILGUN is capable of finding relatively short solutions. As Makespan reflects the latest arrival time, many agents arriving before the last ones contribute to a higher SoC. This may be due to congestion situations, where many agents have a dead lock, and RAILGUN requires additional time to resolve the congestion<span class="ltx_note ltx_role_footnote" id="footnote2"><sup class="ltx_note_mark">2</sup><span class="ltx_note_outer"><span class="ltx_note_content"><sup class="ltx_note_mark">2</sup><span class="ltx_tag ltx_tag_note">2</span>We have a demonstration in our video supplementary material.</span></span></span>. SCRIMP achieves the best MAPF performance among learning-based methods, which may indicate that RAILGUN’s supervised learning is not sufficient and that reinforcement learning should also be involved. For LMAPF, as shown in <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.F6" title="In V-B Testing Results ‣ V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">6</span></a>, RAILGUN’s throughput score is better than those of VDN, IQL, and MAMBA. Although it does not achieve the best throughput score overall, its scalability is impressive. <a class="ltx_ref" href="https://arxiv.org/html/2503.02992v2#S5.F6" title="In V-B Testing Results ‣ V Experiments &amp; Results ‣ RAILGUN: A Unified Convolutional Policy for Multi-Agent Path Finding Across Different Environments and Tasks"><span class="ltx_text ltx_ref_tag">Figure</span>˜<span class="ltx_text ltx_ref_tag">6</span></a> also demonstrates that as the number of agents increases, the average runtime per agent decreases.</p>
+</div>
+<figure class="ltx_figure" id="S5.F6"><img alt="Refer to caption" class="ltx_graphics ltx_centering ltx_img_landscape" height="267" id="S5.F6.g1" src="x12.png" width="374"/>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span class="ltx_text" style="font-size:90%;">Figure 6</span>: </span><span class="ltx_text" style="font-size:90%;">LMAPF Throughput and Scalability Performance on Cities-tiles: Scalability is calculated by previous average per agent runtime divide by current one.</span></figcaption>
+</figure>
+</section>
+</section>
+<section class="ltx_section" id="S6">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VI </span><span class="ltx_text ltx_font_smallcaps">Conclusion and Future Work</span>
+</h2>
+<div class="ltx_para" id="S6.p1">
+<p class="ltx_p">In this paper, we propose the first centralized learning-based method, RAILGUN, for the MAPF problem. We found that, rather than predicting actions for individual agents, predicting edge directions for each map grid cell overcomes the difficulties associated with variable input feature dimensions. This finding allows RAILGUN to employ a CNN-based architecture capable of handling maps of any size and any number of agents. In our experiments, RAILGUN demonstrates strong performance across all six metrics in the POGEMA benchmark. Furthermore, its excellent generalization abilities enable it to handle unseen maps, varying agent numbers, and even other tasks such as the LMAPF problem. In future work, we plan to collect higher-quality data to train RAILGUN as a foundation model and apply RL with a task-specific cost function to fine-tune RAILGUN on specific tasks, agent numbers, and map shapes, thereby improving solution quality and success rate in real-world applications.</p>
+</div>
+</section>
+<section class="ltx_section" id="S7">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">VII </span><span class="ltx_text ltx_font_smallcaps">Acknowledgement</span>
+</h2>
+<div class="ltx_para" id="S7.p1">
+<p class="ltx_p">The research at the University of California, Irvine, the Carnegie Mellon University and the University
+of Southern California was supported by the National Science Foundation
+(NSF) under grant numbers 2328671, 2441629, 2434916, 2321786, 2112533, and 2121028, as
+well as gifts from Amazon Robotics and the Donald Bren Foundation. The views and conclusions contained in this document
+are those of the authors and should not be interpreted as representing
+the official policies, either expressed or implied, of the sponsoring
+organizations, agencies, or the U.S. government.</p>
+</div>
+</section>
+<section class="ltx_bibliography" id="bib">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+<ul class="ltx_biblist">
+<li class="ltx_bibitem" id="bib.bib1">
+<span class="ltx_tag ltx_tag_bibitem">[1]</span>
+<span class="ltx_bibblock">
+R. Stern, N. Sturtevant, A. Felner, S. Koenig, H. Ma, T. Walker, J. Li,
+D. Atzmon, L. Cohen, T. Kumar <em class="ltx_emph ltx_font_italic">et al.</em>, “Multi-agent pathfinding:
+Definitions, variants, and benchmarks,” in <em class="ltx_emph ltx_font_italic">Proceedings of the
+International Symposium on Combinatorial Search (SoCS)</em>, 2019.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib2">
+<span class="ltx_tag ltx_tag_bibitem">[2]</span>
+<span class="ltx_bibblock">
+J. Yu and S. LaValle, “Structure and intractability of optimal multi-robot
+path planning on graphs,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on
+Artificial Intelligence (AAAI)</em>, 2013.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib3">
+<span class="ltx_tag ltx_tag_bibitem">[3]</span>
+<span class="ltx_bibblock">
+G. Sharon, R. Stern, A. Felner, and N. R. Sturtevant, “Conflict-based search
+for optimal multi-agent pathfinding,” <em class="ltx_emph ltx_font_italic">Artificial Intelligence</em>, 2015.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib4">
+<span class="ltx_tag ltx_tag_bibitem">[4]</span>
+<span class="ltx_bibblock">
+G. Wagner and H. Choset, “M*: A complete multirobot path planning algorithm
+with performance bounds,” in <em class="ltx_emph ltx_font_italic">Proceedings of the IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS)</em>, 2011.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib5">
+<span class="ltx_tag ltx_tag_bibitem">[5]</span>
+<span class="ltx_bibblock">
+K. Okumura, “Lacam: Search-based algorithm for quick multi-agent
+pathfinding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial
+Intelligence (AAAI)</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib6">
+<span class="ltx_tag ltx_tag_bibitem">[6]</span>
+<span class="ltx_bibblock">
+J. Li, Z. Chen, D. Harabor, P. J. Stuckey, and S. Koenig, “Mapf-lns2: fast
+repairing for multi-agent path finding via large neighborhood search,” in
+<em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence
+(AAAI)</em>, 2022.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib7">
+<span class="ltx_tag ltx_tag_bibitem">[7]</span>
+<span class="ltx_bibblock">
+A. Krizhevsky, I. Sutskever, and G. E. Hinton, “Imagenet classification with
+deep convolutional neural networks,” in <em class="ltx_emph ltx_font_italic">Advances in Neural Information
+Processing Systems (NeurIPS)</em>, 2012.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib8">
+<span class="ltx_tag ltx_tag_bibitem">[8]</span>
+<span class="ltx_bibblock">
+D. Silver, A. Huang, C. J. Maddison, A. Guez, L. Sifre, G. Van Den Driessche,
+J. Schrittwieser, I. Antonoglou, V. Panneershelvam, M. Lanctot <em class="ltx_emph ltx_font_italic">et al.</em>,
+“Mastering the game of go with deep neural networks and tree search,”
+<em class="ltx_emph ltx_font_italic">Nature</em>, 2016.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib9">
+<span class="ltx_tag ltx_tag_bibitem">[9]</span>
+<span class="ltx_bibblock">
+J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L. Aleman, D. Almeida,
+J. Altenschmidt, S. Altman, S. Anadkat <em class="ltx_emph ltx_font_italic">et al.</em>, “Gpt-4 technical
+report,” <em class="ltx_emph ltx_font_italic">arXiv preprint arXiv:2303.08774</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib10">
+<span class="ltx_tag ltx_tag_bibitem">[10]</span>
+<span class="ltx_bibblock">
+J.-M. Alkazzi and K. Okumura, “A comprehensive review on leveraging machine
+learning for multi-agent path finding,” <em class="ltx_emph ltx_font_italic">IEEE Access</em>, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib11">
+<span class="ltx_tag ltx_tag_bibitem">[11]</span>
+<span class="ltx_bibblock">
+G. Sartoretti, J. Kerr, Y. Shi, G. Wagner, T. S. Kumar, S. Koenig, and
+H. Choset, “Primal: Pathfinding via reinforcement and imitation multi-agent
+learning,” <em class="ltx_emph ltx_font_italic">IEEE Robotics and Automation Letters</em>, 2019.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib12">
+<span class="ltx_tag ltx_tag_bibitem">[12]</span>
+<span class="ltx_bibblock">
+Z. Liu, B. Chen, H. Zhou, G. Koushik, M. Hebert, and D. Zhao, “Mapper:
+Multi-agent path planning with evolutionary reinforcement learning in mixed
+dynamic environments,” in <em class="ltx_emph ltx_font_italic">Proceedings of the IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS)</em>, 2020.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib13">
+<span class="ltx_tag ltx_tag_bibitem">[13]</span>
+<span class="ltx_bibblock">
+Q. Li, W. Lin, Z. Liu, and A. Prorok, “Message-aware graph attention networks
+for large-scale multi-robot path planning,” <em class="ltx_emph ltx_font_italic">IEEE Robotics and
+Automation Letters</em>, 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib14">
+<span class="ltx_tag ltx_tag_bibitem">[14]</span>
+<span class="ltx_bibblock">
+Y. Wang, B. Xiang, S. Huang, and G. Sartoretti, “Scrimp: Scalable
+communication for reinforcement-and imitation-learning-based multi-agent
+pathfinding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS)</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib15">
+<span class="ltx_tag ltx_tag_bibitem">[15]</span>
+<span class="ltx_bibblock">
+A. Andreychuk, K. Yakovlev, A. Panov, and A. Skrynnik, “Mapf-gpt: Imitation
+learning for multi-agent pathfinding at scale,” <em class="ltx_emph ltx_font_italic">arXiv preprint
+arXiv:2409.00134</em>, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib16">
+<span class="ltx_tag ltx_tag_bibitem">[16]</span>
+<span class="ltx_bibblock">
+O. Ronneberger, P. Fischer, and T. Brox, “U-net: Convolutional networks for
+biomedical image segmentation,” in <em class="ltx_emph ltx_font_italic">International Conference on Medical
+Image Computing and Computer-Assisted Intervention (MICCAI)</em>, 2015.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib17">
+<span class="ltx_tag ltx_tag_bibitem">[17]</span>
+<span class="ltx_bibblock">
+A. Skrynnik, A. Andreychuk, A. Borzilov, A. Chernyavskiy, K. Yakovlev, and
+A. Panov, “POGEMA: A benchmark platform for cooperative multi-agent
+pathfinding,” in <em class="ltx_emph ltx_font_italic">International Conference on Learning Representations
+(ICLR)</em>, 2025.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib18">
+<span class="ltx_tag ltx_tag_bibitem">[18]</span>
+<span class="ltx_bibblock">
+D. Silver, “Cooperative pathfinding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI
+Conference on Artificial Intelligence and Interactive Digital Entertainment
+(AIIDE)</em>, 2005.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib19">
+<span class="ltx_tag ltx_tag_bibitem">[19]</span>
+<span class="ltx_bibblock">
+K.-H. C. Wang and A. Botea, “Fast and memory-efficient multi-agent
+pathfinding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Conference on Auto-
+mated Planning and Scheduling (ICAPS)</em>, 2008.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib20">
+<span class="ltx_tag ltx_tag_bibitem">[20]</span>
+<span class="ltx_bibblock">
+R. J. Luna and K. E. Bekris, “Push and swap: Fast cooperative path-finding
+with completeness guarantees,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International
+Joint Conference on Artificial Intelligence (IJCAI)</em>, 2011.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib21">
+<span class="ltx_tag ltx_tag_bibitem">[21]</span>
+<span class="ltx_bibblock">
+T. Standley, “Finding optimal solutions to cooperative pathfinding
+problems,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial
+Intelligence (AAAI)</em>, 2010.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib22">
+<span class="ltx_tag ltx_tag_bibitem">[22]</span>
+<span class="ltx_bibblock">
+T. Standley and R. Korf, “Complete algorithms for cooperative pathfinding
+problems,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Joint Conference on
+Artificial Intelligence (IJCAI)</em>, 2011.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib23">
+<span class="ltx_tag ltx_tag_bibitem">[23]</span>
+<span class="ltx_bibblock">
+G. Wagner and H. Choset, “Subdimensional expansion for multirobot path
+planning,” <em class="ltx_emph ltx_font_italic">Artificial intelligence</em>, 2015.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib24">
+<span class="ltx_tag ltx_tag_bibitem">[24]</span>
+<span class="ltx_bibblock">
+M. Barer, G. Sharon, R. Stern, and A. Felner, “Suboptimal variants of the
+conflict-based search algorithm for the multi-agent pathfinding problem,”
+in <em class="ltx_emph ltx_font_italic">Proceedings of the International Symposium on Combinatorial Search
+(SoCS)</em>, 2014.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib25">
+<span class="ltx_tag ltx_tag_bibitem">[25]</span>
+<span class="ltx_bibblock">
+J. Li, W. Ruml, and S. Koenig, “Eecbs: A bounded-suboptimal search for
+multi-agent path finding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on
+Artificial Intelligence (AAAI)</em>, 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib26">
+<span class="ltx_tag ltx_tag_bibitem">[26]</span>
+<span class="ltx_bibblock">
+M. Erdmann and T. Lozano-Perez, “On multiple moving objects,”
+<em class="ltx_emph ltx_font_italic">Algorithmica</em>, 1987.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib27">
+<span class="ltx_tag ltx_tag_bibitem">[27]</span>
+<span class="ltx_bibblock">
+H. Ma, D. Harabor, P. J. Stuckey, J. Li, and S. Koenig, “Searching with
+consistent prioritization for multi-agent path finding,” in
+<em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence
+(AAAI)</em>, 2019.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib28">
+<span class="ltx_tag ltx_tag_bibitem">[28]</span>
+<span class="ltx_bibblock">
+S.-H. Chan, R. Stern, A. Felner, and S. Koenig, “Greedy priority-based search
+for suboptimal multi-agent path finding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the
+International Symposium on Combinatorial Search (SoCS)</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib29">
+<span class="ltx_tag ltx_tag_bibitem">[29]</span>
+<span class="ltx_bibblock">
+K. Okumura, “Engineering lacam<sup class="ltx_sup">∗</sup>: Towards real-time, large-scale, and
+near-optimal multi-agent pathfinding,” <em class="ltx_emph ltx_font_italic">arXiv preprint</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib30">
+<span class="ltx_tag ltx_tag_bibitem">[30]</span>
+<span class="ltx_bibblock">
+V. Nguyen, P. Obermeier, T. Son, T. Schaub, and W. Yeoh, “Generalized target
+assignment and path finding using answer set programming,” in
+<em class="ltx_emph ltx_font_italic">Proceedings of the International Symposium on Combinatorial Search
+(SoCS)</em>, 2019.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib31">
+<span class="ltx_tag ltx_tag_bibitem">[31]</span>
+<span class="ltx_bibblock">
+J. Li, A. Tinka, S. Kiesel, J. W. Durham, T. S. Kumar, and S. Koenig,
+“Lifelong multi-agent path finding in large-scale warehouses,” in
+<em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence
+(AAAI)</em>, 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib32">
+<span class="ltx_tag ltx_tag_bibitem">[32]</span>
+<span class="ltx_bibblock">
+K. Okumura, M. Machida, X. Défago, and Y. Tamura, “Priority inheritance
+with backtracking for iterative multi-agent path finding,” <em class="ltx_emph ltx_font_italic">Artificial
+Intelligence</em>, 2022.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib33">
+<span class="ltx_tag ltx_tag_bibitem">[33]</span>
+<span class="ltx_bibblock">
+M. Čáp, J. Vokřínek, and A. Kleiner, “Complete
+decentralized method for on-line multi-robot trajectory planning in
+well-formed infrastructures,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International
+Conference on Auto- mated Planning and Scheduling (ICAPS)</em>, 2015.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib34">
+<span class="ltx_tag ltx_tag_bibitem">[34]</span>
+<span class="ltx_bibblock">
+F. Grenouilleau, W.-J. Van Hoeve, and J. N. Hooker, “A multi-label a*
+algorithm for multi-agent pathfinding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the
+International Conference on Auto- mated Planning and Scheduling (ICAPS)</em>,
+2019.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib35">
+<span class="ltx_tag ltx_tag_bibitem">[35]</span>
+<span class="ltx_bibblock">
+Z. Ren, S. Rathinam, and H. Choset, “CBSS: A new approach for multiagent
+combinatorial path finding,” <em class="ltx_emph ltx_font_italic">IEEE Transactions on Robotics</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib36">
+<span class="ltx_tag ltx_tag_bibitem">[36]</span>
+<span class="ltx_bibblock">
+G. Yu and M. T. Wolf, “Congestion prediction for large fleets of mobile
+robots,” in <em class="ltx_emph ltx_font_italic">Proceedings of IEEE International Conference on Robotics
+and Automation (ICRA)</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib37">
+<span class="ltx_tag ltx_tag_bibitem">[37]</span>
+<span class="ltx_bibblock">
+H. Zang, Y. Zhang, H. Jiang, Z. Chen, D. Harabor, P. J. Stuckey, and J. Li,
+“Online guidance graph optimization for lifelong multi-agent path finding,”
+in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence
+(AAAI)</em>, 2025.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib38">
+<span class="ltx_tag ltx_tag_bibitem">[38]</span>
+<span class="ltx_bibblock">
+Q. Li, F. Gama, A. Ribeiro, and A. Prorok, “Graph neural networks for
+decentralized multi-robot path planning,” in <em class="ltx_emph ltx_font_italic">Proceedings of the
+IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS)</em>, 2020.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib39">
+<span class="ltx_tag ltx_tag_bibitem">[39]</span>
+<span class="ltx_bibblock">
+Y. Zhang, H. Jiang, V. Bhatt, S. Nikolaidis, and J. Li, “Guidance graph
+optimization for lifelong multi-agent path finding,” <em class="ltx_emph ltx_font_italic">arXiv preprint
+arXiv:2402.01446</em>, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib40">
+<span class="ltx_tag ltx_tag_bibitem">[40]</span>
+<span class="ltx_bibblock">
+Z. Chen, D. Harabor, J. Li, and P. J. Stuckey, “Traffic flow optimisation for
+lifelong multi-agent path finding,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI
+Conference on Artificial Intelligence (AAAI)</em>, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib41">
+<span class="ltx_tag ltx_tag_bibitem">[41]</span>
+<span class="ltx_bibblock">
+J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,”
+<em class="ltx_emph ltx_font_italic">Advances in Neural Information Processing Systems (NeurIPS)</em>, 2020.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib42">
+<span class="ltx_tag ltx_tag_bibitem">[42]</span>
+<span class="ltx_bibblock">
+I. Loshchilov and F. Hutter, “Decoupled weight decay regularization,”
+<em class="ltx_emph ltx_font_italic">arXiv preprint arXiv:1711.05101</em>, 2017.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib43">
+<span class="ltx_tag ltx_tag_bibitem">[43]</span>
+<span class="ltx_bibblock">
+P. Sunehag, G. Lever, A. Gruslys, W. M. Czarnecki, V. Zambaldi, M. Jaderberg,
+M. Lanctot, N. Sonnerat, J. Z. Leibo, K. Tuyls <em class="ltx_emph ltx_font_italic">et al.</em>,
+“Value-decomposition networks for cooperative multi-agent learning based on
+team reward,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Conference on
+Autonomous Agents and Multiagent Systems (AAMAS)</em>, 2018.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib44">
+<span class="ltx_tag ltx_tag_bibitem">[44]</span>
+<span class="ltx_bibblock">
+J. Wang, Z. Ren, T. Liu, Y. Yu, and C. Zhang, “Qplex: Duplex dueling
+multi-agent q-learning,” in <em class="ltx_emph ltx_font_italic">International Conference on Learning
+Representations (ICLR)</em>, 2020.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib45">
+<span class="ltx_tag ltx_tag_bibitem">[45]</span>
+<span class="ltx_bibblock">
+M. Tan, “Multi-agent reinforcement learning: Independent vs. cooperative
+agents,” in <em class="ltx_emph ltx_font_italic">International Conference on Machine Learning (ICML)</em>,
+1993.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib46">
+<span class="ltx_tag ltx_tag_bibitem">[46]</span>
+<span class="ltx_bibblock">
+T. Rashid, M. Samvelyan, C. S. De Witt, G. Farquhar, J. Foerster, and
+S. Whiteson, “Monotonic value function factorisation for deep multi-agent
+reinforcement learning,” <em class="ltx_emph ltx_font_italic">Journal of Machine Learning Research</em>, 2020.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib47">
+<span class="ltx_tag ltx_tag_bibitem">[47]</span>
+<span class="ltx_bibblock">
+Z. Ma, Y. Luo, and J. Pan, “Learning selective communication for multi-agent
+path finding,” <em class="ltx_emph ltx_font_italic">IEEE Robotics and Automation Letters</em>, 2021.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib48">
+<span class="ltx_tag ltx_tag_bibitem">[48]</span>
+<span class="ltx_bibblock">
+V. Egorov and A. Shpilman, “Scalable multi-agent model-based reinforcement
+learning,” in <em class="ltx_emph ltx_font_italic">Proceedings of the International Conference on
+Autonomous Agents and Multiagent Systems (AAMAS)</em>, 2022.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib49">
+<span class="ltx_tag ltx_tag_bibitem">[49]</span>
+<span class="ltx_bibblock">
+A. Skrynnik, A. Andreychuk, K. Yakovlev, and A. I. Panov, “When to switch:
+planning and learning for partially observable multi-agent pathfinding,”
+<em class="ltx_emph ltx_font_italic">IEEE Transactions on Neural Networks and Learning Systems</em>, 2023.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib50">
+<span class="ltx_tag ltx_tag_bibitem">[50]</span>
+<span class="ltx_bibblock">
+A. Skrynnik, A. Andreychuk, M. Nesterova, K. Yakovlev, and A. Panov, “Learn to
+follow: Decentralized lifelong multi-agent pathfinding via planning and
+learning,” in <em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial
+Intelligence (AAAI)</em>, 2024.
+
+</span>
+</li>
+<li class="ltx_bibitem" id="bib.bib51">
+<span class="ltx_tag ltx_tag_bibitem">[51]</span>
+<span class="ltx_bibblock">
+A. Skrynnik, A. Andreychuk, K. Yakovlev, and A. Panov, “Decentralized monte
+carlo tree search for partially observable multi-agent pathfinding,” in
+<em class="ltx_emph ltx_font_italic">Proceedings of the AAAI Conference on Artificial Intelligence
+(AAAI)</em>, 2024.
+
+</span>
+</li>
+</ul>
+</section>
+</article>
+</div>
+<footer class="ltx_page_footer">
+<div class="ltx_page_logo">Generated  on Wed Aug  6 08:39:02 2025 by <a class="ltx_LaTeXML_logo" href="http://dlmf.nist.gov/LaTeXML/"><span style="letter-spacing:-0.2em; margin-right:0.1em;">L<span class="ltx_font_smallcaps" style="position:relative; bottom:2.2pt;">a</span>T<span class="ltx_font_smallcaps" style="font-size:120%;position:relative; bottom:-0.2ex;">e</span></span><span style="font-size:90%; position:relative; bottom:-0.2ex;">XML</span><img alt="Mascot Sammy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg=="/></a>
+</div></footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,1496 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks</title>
+<!--Generated on Thu Mar  5 16:27:59 2026 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="/static/browse/0.3.4/css/arxiv-html-papers-20260131.css" type="text/css">
+<script src="/static/browse/0.3.4/js/arxiv-html-papers-20260131.js"></script>
+<script>
+  // Restore the saved color scheme preference, or
+  // enact the browser preference if "automatic", 
+  // without expecting DOM load to have completed.
+  //
+  // Also restore any saved readingmode and ToC display preferences.
+  function initializeReadingPreferences() {
+    let saved_theme = localStorage.getItem("ar5iv_theme") || "automatic";
+    if (saved_theme === "automatic") {
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        saved_theme = "dark";
+      }
+    }
+    if (saved_theme == "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+
+    const tocDisplay = localStorage.getItem('arxiv_html_paper_toc_display');
+    if (tocDisplay) {
+      document.documentElement.setAttribute("data-toc-display", tocDisplay);
+    }
+    const readingMode = localStorage.getItem('arxiv_html_paper_reading_mode');
+    if (readingMode) {
+      document.documentElement.setAttribute("data-reading-mode", readingMode);
+    }
+    // Pre-apply spinout-banner dismissal here, before the banner paints, so it
+    // never flashes in only to be hidden later by the deferred arxiv-header.js.
+    // Key matches arxiv-header.js: "arxiv-banner-dismissed:" + data-banner-name.
+    if (localStorage.getItem('arxiv-banner-dismissed:spinout-nonprofit')) {
+      document.documentElement.setAttribute("data-banner-dismissed", "");
+    }
+  }
+  // Run as soon as JS starts, to minimize repainting
+  initializeReadingPreferences();
+</script>
+<link rel="apple-touch-icon" sizes="180x180"
+  href="/static/browse/0.3.4/images/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32"
+  href="/static/browse/0.3.4/images/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16"
+  href="/static/browse/0.3.4/images/icons/favicon-16x16.png">
+<link rel="manifest" href="/static/browse/0.3.4/images/icons/site.webmanifest">
+<link rel="mask-icon" href="/static/browse/0.3.4/images/icons/safari-pinned-tab.svg" color="#5bbad5">
+<link rel="stylesheet" type="text/css" media="screen" href="https://use.typekit.net/utz6mli.css"><link rel="stylesheet" type="text/css" media="screen"
+  href="/static/base/1.0.1/css/arxiv-header-footer.css?v=20260626"><style>
+  /* Banner pre-dismissal (set above before paint -> no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</style>
+<script defer src="/static/base/1.0.1/js/arxiv-header.js?v=20260626"></script>
+</head>
+<body>
+<dialog id="modal-form" aria-labelledby="modal-title" closedby="any">
+  <form id="modal-form-content" method="dialog" enctype="multipart/form-data">
+    <header class="modal-header">
+      <h5 id="modal-title" class="modal-title">Report GitHub Issue</h5>
+      <button type="submit" formnovalidate class="modal-close" aria-label="Close">×</button>
+    </header>
+
+    <div class="modal-body">
+      <label for="form_title">Title:</label>
+      <input class="form-control" id="form_title" name="form_title" required placeholder="Enter title">
+
+      <p id="selectedTextModalDescription" hidden>Content selection saved. Describe the issue below:</p>
+
+      <label for="description">Description:</label>
+      <textarea class="form-control" id="description" name="description" required maxlength="500"
+        placeholder="500 characters maximum"></textarea>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="submit" value="internal-report" class="sr-only modal-submit">Submit without GitHub</button>
+      <button type="submit" value="github-report" class="modal-submit">Submit in GitHub</button>
+    </footer>
+  </form>
+</dialog><div class="ds-announcement" id="announcement-banner" role="region" aria-label="Announcement"
+    data-banner-name="spinout-nonprofit">
+    <img class="ds-announcement-glyph" src="/static/base/1.0.1/images/icons/smileybones-small.svg" alt="" aria-hidden="true">
+    <span class="ds-announcement-text">arXiv is now an independent nonprofit!</span>
+    <a class="ds-announcement-link" href="https://info.arxiv.org/about">Learn more</a>
+    <button type="button" class="ds-announcement-close" aria-label="Dismiss announcement">&times;</button>
+  </div>
+
+<header class="arxiv-html-header">
+  <div class="html-header-logo">
+    <a href="/"><img alt="arXiv logo" class="logo desktop-only" width="100"
+        src="/static/base/1.0.1/images/arxiv-logo-primary-light.svg">
+      <span class="sr-only">Back to arXiv</span>
+    </a>
+  </div>
+  <!--TOC, dark mode, links-->
+  <nav class="html-header-nav">
+    <a class="header-button hover-effect desktop-only" href="https://info.arxiv.org/about/accessible_HTML.html"
+      target="_blank">Why HTML?</a>
+    <a class="header-button" title="Report an Issue" href="#" title="Report an issue"
+      onclick="event.preventDefault(); showModalForm();">
+      <svg role="presentation" class="mobile-only toggle-icon" aria-hidden="true" height="1.25rem"
+        viewBox="0 0 640 640">
+        <path
+          d="M224 160C224 107 267 64 320 64C373 64 416 107 416 160L416 163.6C416 179.3 403.3 192 387.6 192L252.5 192C236.8 192 224.1 179.3 224.1 163.6L224.1 160zM569.6 172.8C580.2 186.9 577.3 207 563.2 217.6L465.4 290.9C470.7 299.8 474.7 309.6 477.2 320L576 320C593.7 320 608 334.3 608 352C608 369.7 593.7 384 576 384L480 384L480 416C480 418.6 479.9 421.3 479.8 423.9L563.2 486.4C577.3 497 580.2 517.1 569.6 531.2C559 545.3 538.9 548.2 524.8 537.6L461.7 490.3C438.5 534.5 395.2 566.5 344 574.2L344 344C344 330.7 333.3 320 320 320C306.7 320 296 330.7 296 344L296 574.2C244.8 566.5 201.5 534.5 178.3 490.3L115.2 537.6C101.1 548.2 81 545.3 70.4 531.2C59.8 517.1 62.7 497 76.8 486.4L160.2 423.9C160.1 421.3 160 418.7 160 416L160 384L64 384C46.3 384 32 369.7 32 352C32 334.3 46.3 320 64 320L162.8 320C165.3 309.6 169.3 299.8 174.6 290.9L76.8 217.6C62.7 207 59.8 186.9 70.4 172.8C81 158.7 101.1 155.8 115.2 166.4L224 248C236.3 242.9 249.8 240 264 240L376 240C390.2 240 403.7 242.8 416 248L524.8 166.4C538.9 155.8 559 158.7 569.6 172.8z" />
+      </svg>
+      <span class="desktop-only">Report Issue</span></a>
+    <!--back to abstract-->
+    <a class="header-button" title="Back to abstract page" aria-label="Back to abstract page"
+      href="/abs/2510.00425v2">
+      <svg class="mobile-only toggle-icon" role="presentation" height="1.25rem" viewBox="0 0 512 512" fill="#ffffff"
+        aria-hidden="true">
+        <path
+          d="M502.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L402.7 224 192 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l210.7 0-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128zM160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 32C43 32 0 75 0 128L0 384c0 53 43 96 96 96l64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0c-17.7 0-32-14.3-32-32l0-256c0-17.7 14.3-32 32-32l64 0z">
+        </path>
+      </svg>
+      <span class="desktop-only">Back to Abstract</span>
+    </a>
+    <!-- PDF download link -->
+    <a class="header-button" title="Download PDF" href="/pdf/2510.00425v2"
+      target="_blank">
+      <svg class="mobile-only toggle-icon" role="presentation" height="1.25rem" viewBox="0 0 576 542">
+        <path
+          d="M208 48L96 48c-8.8 0-16 7.2-16 16l0 384c0 8.8 7.2 16 16 16l80 0 0 48-80 0c-35.3 0-64-28.7-64-64L32 64C32 28.7 60.7 0 96 0L229.5 0c17 0 33.3 6.7 45.3 18.7L397.3 141.3c12 12 18.7 28.3 18.7 45.3l0 149.5-48 0 0-128-88 0c-39.8 0-72-32.2-72-72l0-88zM348.1 160L256 67.9 256 136c0 13.3 10.7 24 24 24l68.1 0zM240 380l32 0c33.1 0 60 26.9 60 60s-26.9 60-60 60l-12 0 0 28c0 11-9 20-20 20s-20-9-20-20l0-128c0-11 9-20 20-20zm32 80c11 0 20-9 20-20s-9-20-20-20l-12 0 0 40 12 0zm96-80l32 0c28.7 0 52 23.3 52 52l0 64c0 28.7-23.3 52-52 52l-32 0c-11 0-20-9-20-20l0-128c0-11 9-20 20-20zm32 128c6.6 0 12-5.4 12-12l0-64c0-6.6-5.4-12-12-12l-12 0 0 88 12 0zm76-108c0-11 9-20 20-20l48 0c11 0 20 9 20 20s-9 20-20 20l-28 0 0 24 28 0c11 0 20 9 20 20s-9 20-20 20l-28 0 0 44c0 11-9 20-20 20s-20-9-20-20l0-128z" />
+      </svg>
+      <span class="desktop-only">Download PDF</span></a>
+    <!-- navigational table of contents toggle -->
+    <a class="header-button toggle-icon" href="javascript:toggleNavTOC();" title="Toggle navigation"
+      aria-label="Toggle navigation">
+      <svg height="1.25rem" role="presentation" viewBox="0 0 512 512">
+        <path
+          d="M40 48C26.7 48 16 58.7 16 72v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V72c0-13.3-10.7-24-24-24H40zM192 64c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zM16 232v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V232c0-13.3-10.7-24-24-24H40c-13.3 0-24 10.7-24 24zM40 368c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V392c0-13.3-10.7-24-24-24H40z">
+        </path>
+      </svg>
+    </a>
+    <!--- collapsable header / reading mode toggle -->
+    <a class="header-button toggle-icon" href="javascript:toggleReadingMode();"
+      title="Disable reading mode, show header and footer">
+      <svg role="presentation" height="1.25rem"
+        viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+        <path
+          d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32S0 334.3 0 352l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z" />
+      </svg>
+    </a>
+    <!--- colored theme toggle -->
+    <button type="button" class="header-button color-tog" onclick="toggleColorScheme();" title="Toggle dark/light mode" aria-label="Toggle color scheme">
+      <span class="toggle-icon automatic-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9h-1.9M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69m-9.15 3.96h2.3L12 9l-1.15 3.65Z">
+          </path>
+        </svg>
+      </span>
+      <span class="toggle-icon light-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z">
+          </path>
+        </svg>
+      </span>
+      <span class="toggle-icon dark-tog" aria-hidden="true">
+        <svg role="presentation" height="1.25rem" viewBox="0 0 24 24">
+          <path
+            d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z">
+          </path>
+        </svg>
+      </span>
+    </button>
+  </nav>
+</header><nav class="ltx_page_navbar">
+<nav class="ltx_TOC">
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_abstract"><a href="#abstract1" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title">Abstract</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S1" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">I </span><span class="ltx_text ltx_font_smallcaps">Introduction</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S1.SS1" title="In I Introduction ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">I-A</span> </span><span class="ltx_text ltx_font_italic">Contributions</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S2" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">II </span><span class="ltx_text ltx_font_smallcaps">Related Work</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S2.SS1" title="In II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-A</span> </span><span class="ltx_text ltx_font_italic">Algorithmically Homogeneous MAMP Methods</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S2.SS1.SSS1" title="In II-A Algorithmically Homogeneous MAMP Methods ‣ II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-A</span>1 </span>Search-Based Planning</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S2.SS1.SSS2" title="In II-A Algorithmically Homogeneous MAMP Methods ‣ II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-A</span>2 </span>Sampling-Based Planning</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S2.SS1.SSS3" title="In II-A Algorithmically Homogeneous MAMP Methods ‣ II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-A</span>3 </span>Optimization Methods</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S2.SS1.SSS4" title="In II-A Algorithmically Homogeneous MAMP Methods ‣ II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-A</span>4 </span>Machine Learning Methods</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS2" title="In II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">II-B</span> </span><span class="ltx_text ltx_font_italic">Algorithmically Heterogeneous MAMP Techniques</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S3" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">III </span><span class="ltx_text ltx_font_smallcaps">CBS as a Protocol</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S3.SS1" title="In III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-A</span> </span><span class="ltx_text ltx_font_italic">Conflict Based Search</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S3.SS2" title="In III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">III-B</span> </span><span class="ltx_text ltx_font_italic">CBS as a Protocol</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S4" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">IV </span><span class="ltx_text ltx_font_smallcaps">Experiments</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S4.SS1" title="In IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-A</span> </span><span class="ltx_text ltx_font_italic">Single-Agent Solvers</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S4.SS1.SSS1" title="In IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-A</span>1 </span>Heuristic Search</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S4.SS1.SSS2" title="In IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-A</span>2 </span>Sampling Based Search</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S4.SS1.SSS3" title="In IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-A</span>3 </span>Optimization</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S4.SS1.SSS4" title="In IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-A</span>4 </span>Diffusion</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S4.SS1.SSS5" title="In IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-A</span>5 </span>Reinforcement Learning</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S4.SS2" title="In IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-B</span> </span><span class="ltx_text ltx_font_italic">CBS Protocol Settings</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S4.SS3" title="In IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">IV-C</span> </span><span class="ltx_text ltx_font_italic">Experimental Results</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="#S5" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">V </span><span class="ltx_text ltx_font_smallcaps">Conclusion and Future Directions</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_bibliography"><a href="#bib" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title">References</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S1a" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">A1 </span><span class="ltx_text ltx_font_smallcaps">Quick Summary</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S1.SS1a" title="In A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-A</span> </span><span class="ltx_text ltx_font_italic">Motivation</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S1.SS2" title="In A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-B</span> </span><span class="ltx_text ltx_font_italic">Intended Takeaways</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S1.SS2.SSS1" title="In A1-B Intended Takeaways ‣ A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-B</span>1 </span>Defining a new problem setting</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S1.SS2.SSS2" title="In A1-B Intended Takeaways ‣ A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-B</span>2 </span>Proposing CBS as a Protocol</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S1.SS2.SSS3" title="In A1-B Intended Takeaways ‣ A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-B</span>3 </span>Demonstrating broad applicability</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S1.SS3" title="In A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-C</span> </span><span class="ltx_text ltx_font_italic">Main Limitations</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S1.SS3.SSS1" title="In A1-C Main Limitations ‣ A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-C</span>1 </span>Independent tasks</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S1.SS3.SSS2" title="In A1-C Main Limitations ‣ A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-C</span>2 </span>Dependency on single-agent performance</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_subsection">
+<a href="#S1.SS4" title="In A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-D</span> </span><span class="ltx_text ltx_font_italic">Future Work</span></span></a>
+<ol class="ltx_toclist ltx_toclist_subsection">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S1.SS4.SSS1" title="In A1-D Future Work ‣ A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-D</span>1 </span>Future work for single-agent practitioners</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S1.SS4.SSS2" title="In A1-D Future Work ‣ A1 Quick Summary ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A1-D</span>2 </span>Future work for multi-agent practitioners</span></a></li>
+</ol>
+</li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="#S2a" title="In Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">A2 </span><span class="ltx_text ltx_font_smallcaps">Additional Experimental Details &amp; Results</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S2.SS0.SSS1" title="In A2 Additional Experimental Details &amp; Results ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A2-</span>1 </span>Start-Goal Solvers</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsubsection"><a href="#S2.SS0.SSS2" title="In A2 Additional Experimental Details &amp; Results ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A2-</span>2 </span>Non-Start Goal Solvers</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="#S2.SS1a" title="In A2 Additional Experimental Details &amp; Results ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text">A2-A</span> </span><span class="ltx_text ltx_font_italic">Visualizations</span></span></a></li>
+</ol>
+</li>
+</ol></nav>
+</nav>
+<div class="ltx_page_main">
+<div id="infobox" class="infobox">
+  <a id="license-tr" href="https://info.arxiv.org/help/license/index.html#licenses-available">
+    License: CC BY 4.0
+  </a>
+  <div id="watermark-tr">
+arXiv:2510.00425v2 [cs.MA] 05 Mar 2026</div>
+</div><div class="ltx_page_content">
+<article class="ltx_document ltx_authors_1line">
+<h1 class="ltx_title ltx_font_bold ltx_title_document" style="font-size:173%;">Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks
+</h1>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author">
+<span class="ltx_personname">
+Rishi Veerapaneni<sup id="id17.17.id1" class="ltx_sup"><span id="id17.17.id1.1" class="ltx_text ltx_font_italic">1</span></sup>, Alvin Tang<sup id="id18.18.id2" class="ltx_sup"><span id="id18.18.id2.1" class="ltx_text ltx_font_italic">†1</span></sup>, Haodong He<sup id="id19.19.id3" class="ltx_sup"><span id="id19.19.id3.1" class="ltx_text ltx_font_italic">†2</span></sup>, Sophia Zhao<sup id="id20.20.id4" class="ltx_sup"><span id="id20.20.id4.1" class="ltx_text ltx_font_italic">†1</span></sup>, Viraj Shah<sup id="id21.21.id5" class="ltx_sup"><span id="id21.21.id5.1" class="ltx_text ltx_font_italic">†1</span></sup>, Yidai Cen<sup id="id22.22.id6" class="ltx_sup"><span id="id22.22.id6.1" class="ltx_text ltx_font_italic">†1</span></sup>, Ziteng Ji<sup id="id23.23.id7" class="ltx_sup"><span id="id23.23.id7.1" class="ltx_text ltx_font_italic">†3</span></sup>, 
+<br class="ltx_break">Gabriel Olin<sup id="id24.24.id8" class="ltx_sup"><span id="id24.24.id8.1" class="ltx_text ltx_font_italic">‡1</span></sup>, Jon Arrizabalaga<sup id="id25.25.id9" class="ltx_sup"><span id="id25.25.id9.1" class="ltx_text ltx_font_italic">‡1</span></sup>, Yorai Shaoul<sup id="id26.26.id10" class="ltx_sup"><span id="id26.26.id10.1" class="ltx_text ltx_font_italic">‡1</span></sup>, Jiaoyang Li<sup id="id27.27.id11" class="ltx_sup"><span id="id27.27.id11.1" class="ltx_text ltx_font_italic">1</span></sup>, Maxim Likhachev<sup id="id28.28.id12" class="ltx_sup"><span id="id28.28.id12.1" class="ltx_text ltx_font_italic">1</span></sup>
+</span><span class="ltx_author_notes">This work was partially supported by National Science Foundation (NSF) grant #2328671, by NSF Graduate Research Fellowship Program grant #DGE2140739, and a gift from Amazon. This research partially used Bridges-2 at PSC <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">brown2021Bridges2</span>]</cite> through the ACCESS program which is supported by NSF grants #2138259, #2138286, #2138307, #2137603, and #2138296. <math id="id13.13.m1" class="ltx_Math" alttext="\dagger,\ddagger" display="inline" intent=":literal"><semantics><mrow><mo rspace="0em">†</mo><mo rspace="0em">,</mo><mo lspace="0em">‡</mo></mrow><annotation encoding="application/x-tex">\dagger,\ddagger</annotation></semantics></math> Equal authorship respectively, sorted alphabetically<sup id="id29.29.id1" class="ltx_sup">1</sup> Carnegie Mellon University, USA<sup id="id30.30.id1" class="ltx_sup">2</sup> Tongji University, China<sup id="id31.31.id1" class="ltx_sup">3</sup> UC Berkeley, USACorresponding author: vrishi@cmu.eduWebpage: <a href="https://rishi-v.github.io/CBS-Protocol/" title="" class="ltx_ref ltx_url ltx_font_typewriter">https://rishi-v.github.io/CBS-Protocol/</a></span></span>
+</div>
+
+<div id="abstract1" class="ltx_abstract">
+<h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+<p class="ltx_p">Imagine the future construction site, hospital, or office with dozens of robots bought from different manufacturers. How can we enable these different robots to effectively move in a shared environment, given that each robot may have its own independent motion planning system?
+This work shows how we can get efficient collision-free movements between algorithmically heterogeneous agents by using Conflict-Based Search (Sharon et al. 2015) as a protocol.
+At its core, the CBS Protocol requires one specific single-agent motion planning API; finding a collision-free path that satisfies certain space-time constraints. Given such an API, CBS uses a central planner to find collision-free paths - independent of how the API is implemented.
+We demonstrate how this protocol enables multi-agent motion planning for a heterogeneous team of agents completing independent tasks with a variety of single-agent planners including: Heuristic Search (e.g., A*), Sampling Based Search (e.g., RRT), Optimization (e.g., Direct Collocation), Diffusion, and Reinforcement Learning.</p>
+</div>
+<section id="S1" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">I </span><span id="S1.1.1" class="ltx_text ltx_font_smallcaps">Introduction</span>
+</h2>
+
+<div id="S1.p1" class="ltx_para">
+<p id="S1.p1.1" class="ltx_p">The rapid progress of robotics technology is lowering robots’ costs while enhancing capabilities, leading to a future in which multi-agent robotic systems will be ubiquitous.
+Such systems may operate across a wide range of domains, including construction, manufacturing, office environments, and even sophisticated household settings. Importantly, these multi-agent teams are unlikely to be homogeneous; rather, they will consist of robots produced by different manufacturers, each performing independent tasks. This raises a fundamental question: how can heterogeneous robots, each potentially equipped with its own motion planning system, coordinate their movements in a shared environment?</p>
+</div>
+<div id="S1.p2" class="ltx_para">
+<p id="S1.p2.1" class="ltx_p">In particular, such robots may:</p>
+<ol id="S1.I1" class="ltx_enumerate">
+<li id="S1.I1.i1" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">1.</span> 
+<div id="S1.I1.i1.p1" class="ltx_para">
+<p id="S1.I1.i1.p1.1" class="ltx_p">Exhibit different embodiments and kinodynamic constraints,</p>
+</div>
+</li>
+<li id="S1.I1.i2" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">2.</span> 
+<div id="S1.I1.i2.p1" class="ltx_para">
+<p id="S1.I1.i2.p1.1" class="ltx_p">Pursue distinct and independent tasks, and</p>
+</div>
+</li>
+<li id="S1.I1.i3" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">3.</span> 
+<div id="S1.I1.i3.p1" class="ltx_para">
+<p id="S1.I1.i3.p1.1" class="ltx_p">Be developed by different companies, each with proprietary motion planning solvers.</p>
+</div>
+</li>
+</ol>
+</div>
+<div id="S1.p3" class="ltx_para">
+<p id="S1.p3.1" class="ltx_p">While this may seem far-fetched, it is already beginning to appear in practice. Current automated warehouses and manufacturing facilities often integrate diverse platforms such as forklifts, trucks, and mobile carts, which must all operate within the same workspace. However, it remains unclear how to enable such heterogeneous robots to navigate and coordinate effectively in a common environment.</p>
+</div>
+<div id="S1.p4" class="ltx_para">
+<p id="S1.p4.1" class="ltx_p">To that end, our main contribution is demonstrating how we can use Conflict-Based Search as a protocol to enable efficient collision-free movement.
+Conflict-Based Search (CBS) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sharon2015cbs</span>]</cite> is a foundational method from Multi-Agent Path Finding <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">stern2019mapfbenchmark</span>]</cite> that finds collision-free multi-agent paths.
+At its core, we view CBS as defining a protocol that requires one specific single-agent motion planning API; finding a path that avoids space-time locations. Given such an API, CBS uses a central planner to resolve collision between agents - independent of how the API is implemented. Thus, “CBS as a protocol” enables collision-free multi-agent motion planning using different single-agent planners. We demonstrate the effectiveness of this protocol by showing how we can effectively plan for a heterogeneous team with a variety of single-agent planners including: Heuristic Search, Sampling Based Search, Optimization, Diffusion, and Reinforcement Learning. Additionally, the CBS Protocol enables each agent to complete different independent tasks (e.g., coverage, surveillance) instead of just start-goal tasks.</p>
+</div>
+<section id="S1.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S1.SS1.5.1.1" class="ltx_text">I-A</span> </span><span id="S1.SS1.6.2" class="ltx_text ltx_font_italic">Contributions</span>
+</h3>
+
+<div id="S1.SS1.p1" class="ltx_para">
+<p id="S1.SS1.p1.1" class="ltx_p">Taking a step back, to our knowledge the problem of Multi-Agent Motion Planning (MAMP) with algorithmically heterogeneous solvers has not been explored by the MAMP community (discussed more in Section <a href="#S2.SS2" title="II-B Algorithmically Heterogeneous MAMP Techniques ‣ II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag"><span class="ltx_text">II-B</span></span></a>). Thus, our first contribution is to bring attention to this problem which we term Algorithmically Heterogeneous MAMP (AH-MAMP).</p>
+</div>
+<div id="S1.SS1.p2" class="ltx_para">
+<p id="S1.SS1.p2.1" class="ltx_p">Second, the CBS Protocol bridges a gap between single-agent motion planning, multi-agent motion planning, and Multi-Agent Path Finding (MAPF). In particular, our CBS Protocol solution takes existing technology (i.e., existing single-agent solvers and existing MAPF techniques) and shows how they can be put together in a novel way.
+Thus, our paper is a proof-of-concept paper whose primary contributions are shaped by the reader’s context:</p>
+</div>
+<div id="S1.SS1.p3" class="ltx_para">
+<p id="S1.SS1.p3.1" class="ltx_p">(1) Readers focused on single-agent motion planning but not MAMP; For these readers, the key contribution of this paper is showing how we can use their single-agent motion planners in multi-agent systems through the CBS Protocol via defining one single API. The hope is that the protocol more easily enables single-agent motion planning researchers to incorporate their planners into multi-agent systems.</p>
+</div>
+<div id="S1.SS1.p4" class="ltx_para">
+<p id="S1.SS1.p4.1" class="ltx_p">(2) Readers working on real-world MAMP but are unfamiliar with CBS, or only familiar with CBS in its classical (gridworld) context; For these readers, the primary contribution is showing how the CBS Protocol extends beyond gridworld and can incorporate a range of diverse motion planners (e.g., optimization) for kinodynamic motion planning.</p>
+</div>
+<div id="S1.SS1.p5" class="ltx_para">
+<p id="S1.SS1.p5.1" class="ltx_p">(3) Readers familiar with CBS and its extensions past non-gridworld; For these readers, the main contribution is the protocol formulation using heterogeneous solvers at once as well as some intricacies of the single-agent planners in the CBS context (e.g., using an RL policy). We note that the CBS Protocol high-level search does not differ from CBS.</p>
+</div>
+</section>
+</section>
+<section id="S2" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">II </span><span id="S2.1.1" class="ltx_text ltx_font_smallcaps">Related Work</span>
+</h2>
+
+<div id="S2.p1" class="ltx_para">
+<p id="S2.p1.1" class="ltx_p">Our work focuses on collision-free multi-agent motion planning (MAMP) for agents with independent tasks.</p>
+</div>
+<div id="S2.p2" class="ltx_para">
+<p id="S2.p2.1" class="ltx_p">We first describe what we call “algorithmically homogeneous” MAMP methods that plan for agents using the same method across all agents, even if the agents themselves are heterogeneous. These methods explicitly require access to the internals of the agents and typically extend a single-agent planning technique to multiple agents. We then describe “algorithmically heterogeneous” MAMPF methods that plan for agents which have different single-agent planners.</p>
+</div>
+<section id="S2.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S2.SS1.5.1.1" class="ltx_text">II-A</span> </span><span id="S2.SS1.6.2" class="ltx_text ltx_font_italic">Algorithmically Homogeneous MAMP Methods</span>
+</h3>
+
+<div id="S2.SS1.p1" class="ltx_para">
+<p id="S2.SS1.p1.1" class="ltx_p">We describe a range of algorithmically homogeneous MAMP methods based on their broader taxonomy.</p>
+</div>
+<section id="S2.SS1.SSS1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S2.SS1.SSS1.5.1.1" class="ltx_text">II-A</span>1 </span>Search-Based Planning</h4>
+
+<div id="S2.SS1.SSS1.p1" class="ltx_para">
+<p id="S2.SS1.SSS1.p1.1" class="ltx_p">Search-Based Planning techniques for MAMP typically focus on a simplified problem set-up called Multi-Agent Path Finding (MAPF) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">stern2019mapfbenchmark</span>]</cite>. In the “classical” MAPF set-up, the world is discretized into a graph where each vertex corresponds to a grid cell. Time is also discretized into timestep where each agent can move to an adjacent cell or wait at its current location at each timestep (these define edges between the corresponding vertices). Each agent occupies exactly one vertex/grid cell at a timestep. Search-based MAPF solvers use variants of A* space-time solvers.
+Operator Decomposition <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">standley2010operater_decomposition</span>]</cite> addresses the combinatorial increase in search size by incrementally generating successors by planning individual agents. M* <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">mstart_2011</span>]</cite> uses a similar approach to plan for up to 100 2D agents.</p>
+</div>
+<div id="S2.SS1.SSS1.p2" class="ltx_para">
+<p id="S2.SS1.SSS1.p2.1" class="ltx_p">Conflict-Based Search <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sharon2015cbs</span>]</cite> is a foundational technique in MAPF. We describe CBS more in-depth in Section <a href="#S3.SS1" title="III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag"><span class="ltx_text">III-A</span></span></a>. Conceptually, CBS is a two-level heuristic search method that iteratively detects and resolves conflicts. CBS utilizes a high-level search that searches over constraints and a low-level search the plans single-agent paths. CBS first plans each agent individually and detects conflicts (i.e., collisions). CBS then proceeds to iteratively resolve conflicts by adding constraints to specific agents and replanning until a collision-free solution is found.
+Although originally created for MAPF with single-agent A* solvers, CBS has been used with other single-agent solvers as we will see later in this section. Several methods use different variants of A* solvers to handle heterogeneous teams of car-like robots with kinematic constraints <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">wen2022carlike_cbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">bai2025cbs_heterogeneous_robots</span>]</cite> or manipulator arms <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2024generalized_ecbs</span>]</cite>.</p>
+</div>
+</section>
+<section id="S2.SS1.SSS2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S2.SS1.SSS2.5.1.1" class="ltx_text">II-A</span>2 </span>Sampling-Based Planning</h4>
+
+<div id="S2.SS1.SSS2.p1" class="ltx_para">
+<p id="S2.SS1.SSS2.p1.1" class="ltx_p">Multi-Agent RRT* <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">vcap2013multi_agent_rrt</span>]</cite> is an initial attempt that tries to plan for up to 10 2D agents by running RRT* on the combined state space.
+Multi-Robot Discrete RRT (MRdRRT) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">solovey2016discrete_rrt</span>]</cite> is able to plan for up to a combined 60 degrees of freedom over various agents with different degrees of freedom. MRdRRT’s main insight is to plan over a discrete implicit graph and to modify the extend operation to move agents sequentially in a priority order.</p>
+</div>
+<div id="S2.SS1.SSS2.p2" class="ltx_para">
+<p id="S2.SS1.SSS2.p2.1" class="ltx_p"><cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">solis2021representation_optimal_cbs</span>]</cite> plans for a heterogeneous team by generating a probabilistic roadmap for each agent and using CBS.
+Safe Interval Continuous-space CBS <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sim2024safe_interval_rrt</span>]</cite> recently proposed a novel single-agent Safe Interval RRT* with CBS to plan for up to 100 2D agents in continuous space.</p>
+</div>
+</section>
+<section id="S2.SS1.SSS3" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S2.SS1.SSS3.5.1.1" class="ltx_text">II-A</span>3 </span>Optimization Methods</h4>
+
+<div id="S2.SS1.SSS3.p1" class="ltx_para">
+<p id="S2.SS1.SSS3.p1.1" class="ltx_p">Optimal Reciprocal Collision Avoidance (ORCA) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">alonso2013orca</span>]</cite> is able to plan for 1000’s of 2D agents by having each agent independently solve a low-dimensional linear program based on the positions and velocities of nearby agents. <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">wang2017safety_barrier_certificates</span>]</cite> introduces using safety control barrier certificates via formulating and solving a quadratic programming problem.
+Recently introduced Space-Time Graphs of Convex Sets <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">tang2025multiagent_space_time_gcs</span>]</cite> utilizes agent priorities and convex optimization to find solutions for up to 10 2D agents.</p>
+</div>
+<div id="S2.SS1.SSS3.p2" class="ltx_para">
+<p id="S2.SS1.SSS3.p2.1" class="ltx_p"><cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">debord2018multi_drone_ground_cbs</span>]</cite> first uses discrete planning (A*) in CBS and then post-processes the solution with optimization to plan for a heterogeneous drone and ground robot team.
+Discontinuity-Bound Conflict-Based Search (db-CBS) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">moldagalieva2024dbcbs</span>]</cite> interleaves discrete search and optimization by using a discontinuity-bounded A* search (e.g., A* with motion primitives) in CBS to generate single-agent approximate solutions which are used as warm-starts for a joint optimization across all agents. If the optimization does not return a feasible solution, then constraints are added and the CBS search continues.
+Conflict-Based Model Predictive Control (CB-MPC) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">tajbakhsh2024cbmpc</span>]</cite> replaces the low-level A* search in CBS with limited horizon MPC.</p>
+</div>
+</section>
+<section id="S2.SS1.SSS4" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S2.SS1.SSS4.5.1.1" class="ltx_text">II-A</span>4 </span>Machine Learning Methods</h4>
+
+<div id="S2.SS1.SSS4.p1" class="ltx_para">
+<p id="S2.SS1.SSS4.p1.1" class="ltx_p">Multi-Agent DDPG <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">lowe2017maddpg</span>]</cite> and Multi-Agent PPO <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">yu2022mappo</span>]</cite> extrapolate single-agent DDPG <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">lillicrap2015ddpg</span>]</cite> and PPO <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">schulman2017ppo</span>]</cite> respectively for multi-agent systems. These approaches are more general than collision-free MAMP but can be used for MAMP (e.g., <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">peng2023mappohr</span>]</cite>).</p>
+</div>
+<div id="S2.SS1.SSS4.p2" class="ltx_para">
+<p id="S2.SS1.SSS4.p2.1" class="ltx_p">Several methods train a single agent policy for MAPF using reinforcement learning or supervise learning that learns to avoid collisions
+<cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sartoretti2019primal</span>]</cite>
+and can handle up to 10000 agents in congestion <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">jiang2024sillm</span>]</cite>.
+Other recent work MMD <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2025mmd</span>]</cite> trained a diffusion model as a single-agent planner for CBS and incorporates constraints through guidance terms.</p>
+</div>
+<div id="S2.SS1.SSS4.p3" class="ltx_para">
+<p id="S2.SS1.SSS4.p3.1" class="ltx_p">The main restriction with all these algorithmically homogeneous MAMP methods is that they require all agents to run the same planner. Thus, these methods cannot incorporate agents manufactured / programmed externally which limits their application in such instances. The CBS Protocol directly addresses this limitation.</p>
+</div>
+<div id="S2.SS1.SSS4.p4" class="ltx_para">
+<p id="S2.SS1.SSS4.p4.1" class="ltx_p">Taking a step back, we note that CBS appears in each category with different types of single-agent solvers, with their emphasis on the single-agent solver. CBS as a Protocol has a different focus and can be seen as encompassing all these methods. Our perspective of CBS using an abstracted single-agent API means that we can recover <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sharon2015cbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">wen2022carlike_cbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">bai2025cbs_heterogeneous_robots</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2024generalized_ecbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">solis2021representation_optimal_cbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">sim2024safe_interval_rrt</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">debord2018multi_drone_ground_cbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">tajbakhsh2024cbmpc</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2025mmd</span>]</cite> with different API implementations.</p>
+</div>
+</section>
+</section>
+<section id="S2.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S2.SS2.5.1.1" class="ltx_text">II-B</span> </span><span id="S2.SS2.6.2" class="ltx_text ltx_font_italic">Algorithmically Heterogeneous MAMP Techniques</span>
+</h3>
+
+<div id="S2.SS2.p1" class="ltx_para">
+<p id="S2.SS2.p1.1" class="ltx_p">Unlike algorithmically homogeneous MAMP methods, algorithmically heterogeneous MAMP methods do not require each agent to run the same solver.
+To our surprise, we could not find any published work that addresses this problem setting. Existing MAMP methods for heterogeneous teams focus on robots with different capabilities but use algorithmically homogeneous solutions (e.g., <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">bai2025cbs_heterogeneous_robots</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">solis2021representation_optimal_cbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">debord2018multi_drone_ground_cbs</span>]</cite>). On the other hand, existing multi-agent task planning/coordination methods focus on heterogeneous behaviors or task assignment and not on collision-free movement <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">rizk2019heterogeneous_multi_robot_survey</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">bettini2023heterogeneous_behavior_marl</span>]</cite>.</p>
+</div>
+<div id="S2.SS2.p2" class="ltx_para">
+<p id="S2.SS2.p2.1" class="ltx_p">Thus, part of this paper’s goal is to introduce / bring attention to the Algorithmically Heterogeneous MAMP (AH-MAMP) problem setting. AH-MAMP tries to achieve collision-free motion planning for heterogeneous single-agent solvers without being able to modify the solvers. Solutions for AH-MAMP instead require designing multi-agent <span id="S2.SS2.p2.1.1" class="ltx_text ltx_font_italic">protocols</span> with well-defined single-agent APIs, with the protocol/API abstraction enabling using heterogeneous single-agent solvers.</p>
+</div>
+<div id="S2.SS2.p3" class="ltx_para">
+<p id="S2.SS2.p3.1" class="ltx_p">To our knowledge, current solutions for algorithmically heterogeneous multi-robot teams in the real world currently plan robots individually viewing other robots as dynamic obstacles. The most common solution is for agents to plan independent paths and rely on local sensing to replan when another agent obstructs their path. However, this reduces their ability to move fast, requires additional planning time during execution, and can lead to deadlock.
+An alternative scheme could be to use Prioritized Planning <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">erdmann1987multiple</span>]</cite> which assigns agents priorities and plans agents sequentially starting with the highest priority agent. Each agent plans a path that avoids colliding with the paths of previously planned (higher priority) agents. However, in congestion this can result in no solution being found, which limits its practicality.
+Taking a step back, the problem with both of these approaches is that they solve the multi-agent problem as greedy single-agent calls viewing other agents as obstacles, resulting in them failing in complex instances.
+To that end, we introduce CBS as a Protocol as a principled AH-MAMP protocol that does not view agents as obstacles but instead intelligently searches over space-time constraints to find collision-free solutions.</p>
+</div>
+<figure id="S2.F1" class="ltx_figure"><img src="2510.00425v2/x1.png" id="S2.F1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="747" height="330" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span id="S2.F1.9.4.1" class="ltx_text" style="font-size:90%;">Figure 1</span>: </span><span id="S2.F1.6.3" class="ltx_text" style="font-size:90%;">We depict using the CBS Protocol (left) and its internal process (right). Left: Given a Multi-Agent Motion Planning (MAMP) problem, each agent defines a <span id="S2.F1.6.3.1" class="ltx_text ltx_font_typewriter">plan()</span> API that satisfies the CBS Protocol requirements (blue dashed box). This is input into the protocol (which has no other knowledge except for collision detection) which uses the APIs and outputs a collision-free solution. Right: The CBS Protocol starts with generating a root node by querying each agent’s plan() API without constraints. It detects collisions between agents (e.g., agents A and C collide spatially at point <math id="S2.F1.4.1.m1" class="ltx_Math" alttext="p_{0}" display="inline" intent=":literal"><semantics><msub><mi>p</mi><mn>0</mn></msub><annotation encoding="application/x-tex">p_{0}</annotation></semantics></math> at time <math id="S2.F1.5.2.m2" class="ltx_Math" alttext="t_{0}" display="inline" intent=":literal"><semantics><msub><mi>t</mi><mn>0</mn></msub><annotation encoding="application/x-tex">t_{0}</annotation></semantics></math>) and generates two child CT nodes. Each node is created by adding a constraint (colored X) that the agent needs to avoid <math id="S2.F1.6.3.m3" class="ltx_Math" alttext="(p_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>p</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p_{0},t_{0})</annotation></semantics></math> and re-querying the agent’s plan() API with the additional constraint. CBS repeats this process of detecting collisions, adding constraints, and querying APIs with additional constraints until a collision-free solution is found.</span></figcaption>
+</figure>
+</section>
+</section>
+<section id="S3" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">III </span><span id="S3.1.1" class="ltx_text ltx_font_smallcaps">CBS as a Protocol</span>
+</h2>
+
+<div id="S3.p1" class="ltx_para">
+<p id="S3.p1.1" class="ltx_p">We first describe CBS from classical MAPF and then describe CBS as a protocol.</p>
+</div>
+<section id="S3.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS1.5.1.1" class="ltx_text">III-A</span> </span><span id="S3.SS1.6.2" class="ltx_text ltx_font_italic">Conflict Based Search</span>
+</h3>
+
+<div id="S3.SS1.p1" class="ltx_para">
+<p id="S3.SS1.p1.1" class="ltx_p">CBS is a two-level heuristic search algorithm for solving MAPF optimally. We focus on the top-level which searches over “Constraint Tree” (CT) nodes and describe its core search components (e.g., nodes, goal condition, etc).
+Algorithm <a href="#alg1" title="Algorithm 1 ‣ III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">1</span></a> describes the CBS Protocol (identical to CBS except for the <span id="S3.SS1.p1.1.1" class="ltx_text ltx_font_typewriter">plan</span> API) and can be used to follow along.</p>
+</div>
+<div id="S3.SS1.p2" class="ltx_para">
+<p id="S3.SS1.p2.1" class="ltx_p"><span id="S3.SS1.p2.1.1" class="ltx_text ltx_font_bold">CT Nodes:</span>
+At the high level, CBS employs a best-first search over CT nodes. Each CT node contains 1) a set of constraints, and 2) a set of agent paths, one for each agent, that satisfy the constraints. Each constraint prevents an agent from occupying certain space-time locations and is used to avoid collisions with other agents.
+Conceptually, each CT node represents a candidate solution.</p>
+</div>
+<div id="S3.SS1.p3" class="ltx_para">
+<p id="S3.SS1.p3.1" class="ltx_p"><span id="S3.SS1.p3.1.1" class="ltx_text ltx_font_bold">Goal Condition:</span>
+A CT node is considered a goal node if its agents paths have no collisions (line <a href="#alg1.l7" title="In Algorithm 1 ‣ III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">7</span></a>).</p>
+</div>
+<figure id="alg1" class="ltx_float ltx_float_algorithm ltx_framed ltx_framed_top">
+<figcaption class="ltx_caption"><span class="ltx_tag ltx_tag_float"><span id="alg1.3.1.1" class="ltx_text ltx_font_bold">Algorithm 1</span> </span> CBS Protocol</figcaption>
+<p id="alg1.1" class="ltx_p"><span id="alg1.1.1" class="ltx_text ltx_font_bold">Parameters</span>: Agents <math id="alg1.1.m1" class="ltx_Math" alttext="a_{i}" display="inline" intent=":literal"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_{i}</annotation></semantics></math> with <span id="alg1.1.2" class="ltx_text ltx_font_typewriter">plan()</span> API 
+<br class="ltx_break"><span id="alg1.1.3" class="ltx_text ltx_font_bold">Output</span>: Collision free paths</p>
+<br class="ltx_break ltx_break">
+<div id="alg1.4" class="ltx_listing ltx_listing">
+<div id="alg1.l1" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l1.3.1.1" class="ltx_text" style="font-size:80%;">1:</span></span>
+<span id="alg1.l1.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:433.6pt;"><span class="ltx_inline-block"><svg id="alg1.l1.1.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l1.2.1" class="ltx_p"><span id="alg1.l1.2.1.1" class="ltx_text ltx_font_bold">procedure</span> CBSProtocol(<math id="alg1.l1.2.1.m1" class="ltx_Math" alttext="\{a_{i}\}" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">{</mo><msub><mi>a</mi><mi>i</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{a_{i}\}</annotation></semantics></math>)</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l1.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l1.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l2" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l2.1.1.1" class="ltx_text" style="font-size:80%;">2:</span></span>   <span class="ltx_inline-block"><svg id="alg1.l2.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l2.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:418.6pt;">
+<span id="alg1.l2.2.1" class="ltx_p">node = generateRoot()</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l2.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l2.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l3" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l3.1.1.1" class="ltx_text" style="font-size:80%;">3:</span></span>   <span class="ltx_inline-block"><svg id="alg1.l3.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l3.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l3.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l3.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l3.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:418.6pt;">
+<span id="alg1.l3.2.1" class="ltx_p">OPEN.insert(node)</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l3.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l3.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l4" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l4.2.1.1" class="ltx_text" style="font-size:80%;">4:</span></span>   <span class="ltx_inline-block"><svg id="alg1.l4.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l4.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l4.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l4.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l4.1" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:418.6pt;"><span class="ltx_inline-block"><svg id="alg1.l4.1.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l4.1.1" class="ltx_p"><span id="alg1.l4.1.1.1" class="ltx_text ltx_font_bold">while</span> OPEN.notEmpty() and not TimeOut() <span id="alg1.l4.1.1.2" class="ltx_text ltx_font_bold">do</span></span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l4.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l4.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l5" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l5.2.1.1" class="ltx_text" style="font-size:80%;">5:</span></span>    <span class="ltx_inline-block"><svg id="alg1.l5.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l5.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l5.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l5.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l5.1" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:403.6pt;">
+<span id="alg1.l5.1.1" class="ltx_p">node <math id="alg1.l5.1.1.m1" class="ltx_Math" alttext="\leftarrow" display="inline" intent=":literal"><semantics><mo stretchy="false">←</mo><annotation encoding="application/x-tex">\leftarrow</annotation></semantics></math> OPEN.pop()</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l5.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l5.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l6" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l6.2.1.1" class="ltx_text" style="font-size:80%;">6:</span></span>    <span class="ltx_inline-block"><svg id="alg1.l6.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l6.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l6.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l6.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l6.1" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:403.6pt;">
+<span id="alg1.l6.1.1" class="ltx_p">conflicts <math id="alg1.l6.1.1.m1" class="ltx_Math" alttext="\leftarrow" display="inline" intent=":literal"><semantics><mo stretchy="false">←</mo><annotation encoding="application/x-tex">\leftarrow</annotation></semantics></math> detectConflicts(node.volumes)</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l6.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l6.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l7" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l7.4.1.1" class="ltx_text" style="font-size:80%;">7:</span></span>    <span class="ltx_inline-block"><svg id="alg1.l7.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l7.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l7.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l7.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l7.3" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:403.6pt;"><span class="ltx_inline-block"><svg id="alg1.l7.1.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l7.2.1" class="ltx_p"><span id="alg1.l7.2.1.1" class="ltx_text ltx_font_bold">if</span> conflicts <math id="alg1.l7.2.1.m1" class="ltx_Math" alttext="=\emptyset" display="inline" intent=":literal"><semantics><mrow><mi></mi><mo>=</mo><mi mathvariant="normal">∅</mi></mrow><annotation encoding="application/x-tex">=\emptyset</annotation></semantics></math> <span id="alg1.l7.2.1.2" class="ltx_text ltx_font_bold">then</span> <span id="alg1.l7.2.1.3" class="ltx_text"></span></span>
+<span id="S3.Ex1" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l7.3.3" class="ltx_p"></span>
+<span id="S3.Ex2" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l7.3.2" class="ltx_p"><math id="alg1.l7.3.2.m1" class="ltx_Math" alttext="\triangleright" display="inline" intent=":literal"><semantics><mo style="--ltx-fg-color:#0000FF;" mathcolor="#0000FF">⊳</mo><annotation encoding="application/x-tex">\triangleright</annotation></semantics></math><span id="alg1.l7.3.2.1" class="ltx_text ltx_font_italic" style="--ltx-fg-color:#0000FF;"> Found solution</span></span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l7.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l7.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l8" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l8.1.1.1" class="ltx_text" style="font-size:80%;">8:</span></span>      <span class="ltx_inline-block"><svg id="alg1.l8.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l8.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l8.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l8.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l8.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:388.6pt;">
+<span id="alg1.l8.2.1" class="ltx_p"><span id="alg1.l8.2.1.1" class="ltx_text ltx_font_bold">return</span> node.paths</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l8.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l8.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l8.pic7" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>   
+</div>
+<div id="alg1.l9" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l9.3.1.1" class="ltx_text" style="font-size:80%;">9:</span></span>    <span class="ltx_inline-block"><svg id="alg1.l9.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l9.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l9.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l9.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l9.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:403.6pt;">
+<span id="alg1.l9.1.1" class="ltx_p">constraints <math id="alg1.l9.1.1.m1" class="ltx_Math" alttext="\leftarrow" display="inline" intent=":literal"><semantics><mo stretchy="false">←</mo><annotation encoding="application/x-tex">\leftarrow</annotation></semantics></math> conflicts[0].getConstraints() <span id="alg1.l9.1.1.1" class="ltx_text"></span></span>
+<span id="S3.Ex3" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l9.2.3" class="ltx_p"></span>
+<span id="S3.Ex4" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l9.2.2" class="ltx_p"><math id="alg1.l9.2.2.m1" class="ltx_Math" alttext="\triangleright" display="inline" intent=":literal"><semantics><mo style="--ltx-fg-color:#0000FF;" mathcolor="#0000FF">⊳</mo><annotation encoding="application/x-tex">\triangleright</annotation></semantics></math><span id="alg1.l9.2.2.1" class="ltx_text ltx_font_italic" style="--ltx-fg-color:#0000FF;"> Resolve the first conflict via constraints</span></span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l9.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l9.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l10" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l10.4.1.1" class="ltx_text" style="font-size:80%;">10:</span></span>    <span class="ltx_inline-block"><svg id="alg1.l10.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l10.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l10.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l10.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l10.3" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:403.6pt;"><span class="ltx_inline-block"><svg id="alg1.l10.1.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l10.2.1" class="ltx_p"><span id="alg1.l10.2.1.1" class="ltx_text ltx_font_bold">for</span> <math id="alg1.l10.2.1.m1" class="ltx_Math" alttext="(a_{i},p,t)\in" display="inline" intent=":literal"><semantics><mrow><mrow><mo stretchy="false">(</mo><msub><mi>a</mi><mi>i</mi></msub><mo>,</mo><mi>p</mi><mo>,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mo>∈</mo><mi></mi></mrow><annotation encoding="application/x-tex">(a_{i},p,t)\in</annotation></semantics></math> constraints <span id="alg1.l10.2.1.2" class="ltx_text ltx_font_bold">do</span> <span id="alg1.l10.2.1.3" class="ltx_text"></span></span>
+<span id="S3.Ex5" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l10.3.3" class="ltx_p"></span>
+<span id="S3.Ex6" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l10.3.2" class="ltx_p"><math id="alg1.l10.3.2.m1" class="ltx_Math" alttext="\triangleright" display="inline" intent=":literal"><semantics><mo style="--ltx-fg-color:#0000FF;" mathcolor="#0000FF">⊳</mo><annotation encoding="application/x-tex">\triangleright</annotation></semantics></math><span id="alg1.l10.3.2.1" class="ltx_text ltx_font_italic" style="--ltx-fg-color:#0000FF;"> Simplified</span></span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l10.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l10.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l11" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l11.3.1.1" class="ltx_text" style="font-size:80%;">11:</span></span>      <span class="ltx_inline-block"><svg id="alg1.l11.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l11.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l11.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l11.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l11.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:388.6pt;">
+<span id="alg1.l11.1.1" class="ltx_p">n <math id="alg1.l11.1.1.m1" class="ltx_Math" alttext="\leftarrow" display="inline" intent=":literal"><semantics><mo stretchy="false">←</mo><annotation encoding="application/x-tex">\leftarrow</annotation></semantics></math> node.copy() <span id="alg1.l11.1.1.1" class="ltx_text"></span></span>
+<span id="S3.Ex7" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l11.2.3" class="ltx_p"></span>
+<span id="S3.Ex8" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l11.2.2" class="ltx_p"><math id="alg1.l11.2.2.m1" class="ltx_Math" alttext="\triangleright" display="inline" intent=":literal"><semantics><mo style="--ltx-fg-color:#0000FF;" mathcolor="#0000FF">⊳</mo><annotation encoding="application/x-tex">\triangleright</annotation></semantics></math><span id="alg1.l11.2.2.1" class="ltx_text ltx_font_italic" style="--ltx-fg-color:#0000FF;"> New node</span></span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l11.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l11.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l12" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l12.3.1.1" class="ltx_text" style="font-size:80%;">12:</span></span>      <span class="ltx_inline-block"><svg id="alg1.l12.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l12.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l12.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l12.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l12.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:388.6pt;">
+<span id="alg1.l12.2.2" class="ltx_p">n.cons[<math id="alg1.l12.1.1.m1" class="ltx_Math" alttext="a_{i}" display="inline" intent=":literal"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_{i}</annotation></semantics></math>].append(<math id="alg1.l12.2.2.m2" class="ltx_Math" alttext="(p,t)" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><mi>p</mi><mo>,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p,t)</annotation></semantics></math>)</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l12.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l12.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l13" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l13.4.1.1" class="ltx_text" style="font-size:80%;">13:</span></span>      <span class="ltx_inline-block"><svg id="alg1.l13.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l13.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l13.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l13.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l13.3" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:388.6pt;">
+<span id="alg1.l13.3.3" class="ltx_p">response <math id="alg1.l13.1.1.m1" class="ltx_Math" alttext="\leftarrow" display="inline" intent=":literal"><semantics><mo stretchy="false">←</mo><annotation encoding="application/x-tex">\leftarrow</annotation></semantics></math> <math id="alg1.l13.2.2.m2" class="ltx_Math" alttext="a_{i}" display="inline" intent=":literal"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_{i}</annotation></semantics></math>.<span id="alg1.l13.3.3.1" class="ltx_text ltx_font_typewriter">plan</span>(n.cons[<math id="alg1.l13.3.3.m3" class="ltx_Math" alttext="a_{i}" display="inline" intent=":literal"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_{i}</annotation></semantics></math>])</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l13.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l13.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l14" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l14.2.1.1" class="ltx_text" style="font-size:80%;">14:</span></span>      <span class="ltx_inline-block"><svg id="alg1.l14.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l14.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l14.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l14.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l14.1" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:388.6pt;"><span class="ltx_inline-block"><svg id="alg1.l14.1.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l14.1.1" class="ltx_p"><span id="alg1.l14.1.1.1" class="ltx_text ltx_font_bold">if</span> response is None <span id="alg1.l14.1.1.2" class="ltx_text ltx_font_bold">then</span></span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l14.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l14.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l15" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l15.2.1.1" class="ltx_text" style="font-size:80%;">15:</span></span>       <span class="ltx_inline-block"><svg id="alg1.l15.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l15.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l15.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l15.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l15.1" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:373.6pt;">
+<span id="alg1.l15.1.2" class="ltx_p"><span id="alg1.l15.1.2.1" class="ltx_text ltx_font_bold">continue</span> <span id="alg1.l15.1.2.2" class="ltx_text"></span></span>
+<span id="S3.Ex9" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l15.1.3" class="ltx_p"></span>
+<span id="S3.Ex10" class="ltx_equation ltx_eqn_table">
+
+<span><span class="ltx_equation ltx_eqn_row ltx_align_baseline">
+<span class="ltx_eqn_cell ltx_eqn_center_padleft"></span>
+<span class="ltx_eqn_cell ltx_align_center"></span>
+<span class="ltx_eqn_cell ltx_eqn_center_padright"></span></span></span>
+</span>
+<span id="alg1.l15.1.1" class="ltx_p"><math id="alg1.l15.1.1.m1" class="ltx_Math" alttext="\triangleright" display="inline" intent=":literal"><semantics><mo style="--ltx-fg-color:#0000FF;" mathcolor="#0000FF">⊳</mo><annotation encoding="application/x-tex">\triangleright</annotation></semantics></math><span id="alg1.l15.1.1.1" class="ltx_text ltx_font_italic" style="--ltx-fg-color:#0000FF;"> Skip if API did not find solution</span></span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l15.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l15.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l15.pic7" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>     
+</div>
+<div id="alg1.l16" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l16.5.1.1" class="ltx_text" style="font-size:80%;">16:</span></span>      <span class="ltx_inline-block"><svg id="alg1.l16.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l16.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l16.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l16.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l16.4" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:388.6pt;">
+<span id="alg1.l16.4.4" class="ltx_p">n.paths[<math id="alg1.l16.1.1.m1" class="ltx_Math" alttext="a_{i}" display="inline" intent=":literal"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_{i}</annotation></semantics></math>], n.volumes[<math id="alg1.l16.2.2.m2" class="ltx_Math" alttext="a_{i}" display="inline" intent=":literal"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_{i}</annotation></semantics></math>], n.costs[<math id="alg1.l16.3.3.m3" class="ltx_Math" alttext="a_{i}" display="inline" intent=":literal"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_{i}</annotation></semantics></math>] <math id="alg1.l16.4.4.m4" class="ltx_Math" alttext="\leftarrow" display="inline" intent=":literal"><semantics><mo stretchy="false">←</mo><annotation encoding="application/x-tex">\leftarrow</annotation></semantics></math> response</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l16.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l16.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+<div id="alg1.l17" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l17.1.1.1" class="ltx_text" style="font-size:80%;">17:</span></span>      <span class="ltx_inline-block"><svg id="alg1.l17.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l17.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l17.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l17.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l17.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:388.6pt;">
+<span id="alg1.l17.2.1" class="ltx_p">OPEN.insert(n)</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l17.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l17.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l17.pic7" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>    <span class="ltx_inline-block"><svg id="alg1.l17.pic8" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>  
+</div>
+<div id="alg1.l18" class="ltx_listingline">
+<span class="ltx_tag ltx_tag_listingline"><span id="alg1.l18.1.1.1" class="ltx_text" style="font-size:80%;">18:</span></span>   <span class="ltx_inline-block"><svg id="alg1.l18.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l18.pic2" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l18.pic3" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l18.pic4" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+<span id="alg1.l18.2" class="ltx_inline-block ltx_minipage ltx_align_top" style="width:418.6pt;">
+<span id="alg1.l18.2.1" class="ltx_p"><span id="alg1.l18.2.1.1" class="ltx_text ltx_font_bold">return</span> No solution found</span>
+</span> <span class="ltx_inline-block"><svg id="alg1.l18.pic5" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l18.pic6" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span> <span class="ltx_inline-block"><svg id="alg1.l18.pic7" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><g transform="translate(0,1) matrix(1 0 0 -1 0 0)"></g></svg></span>
+</div>
+</div>
+</figure>
+<div id="S3.SS1.p4" class="ltx_para">
+<p id="S3.SS1.p4.1" class="ltx_p"><span id="S3.SS1.p4.1.1" class="ltx_text ltx_font_bold">Successor Generator:</span>
+Suppose we have a CT node with a set of agent paths and constraints. If the paths have no collisions, then this is a goal node and CBS terminates. However, if it does have a collision, then CBS chooses one conflict and resolves it by generating two child CT nodes (lines <a href="#alg1.l9" title="In Algorithm 1 ‣ III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">9</span></a>-<a href="#alg1.l17" title="In Algorithm 1 ‣ III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">17</span></a>) with <span id="S3.SS1.p4.1.2" class="ltx_text ltx_font_italic">mutually disjunctive</span> constraints (a pair of constraints such that a collision occurs if both are violated).</p>
+</div>
+<div id="S3.SS1.p5" class="ltx_para">
+<p id="S3.SS1.p5.6" class="ltx_p">For example, suppose two agents collide at a specific vertex <math id="S3.SS1.p5.1.m1" class="ltx_Math" alttext="v_{0}" display="inline" intent=":literal"><semantics><msub><mi>v</mi><mn>0</mn></msub><annotation encoding="application/x-tex">v_{0}</annotation></semantics></math> at timestep <math id="S3.SS1.p5.2.m2" class="ltx_Math" alttext="t_{0}" display="inline" intent=":literal"><semantics><msub><mi>t</mi><mn>0</mn></msub><annotation encoding="application/x-tex">t_{0}</annotation></semantics></math>, denoted <math id="S3.SS1.p5.3.m3" class="ltx_Math" alttext="(v_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>v</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(v_{0},t_{0})</annotation></semantics></math>. A valid solution cannot have both of those agents at <math id="S3.SS1.p5.4.m4" class="ltx_Math" alttext="(v_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>v</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(v_{0},t_{0})</annotation></semantics></math>, so CBS generates two possible candidate solutions; one with the first agent prevented from visiting <math id="S3.SS1.p5.5.m5" class="ltx_Math" alttext="(v_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>v</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(v_{0},t_{0})</annotation></semantics></math> and the second with the second agent prevented from visiting <math id="S3.SS1.p5.6.m6" class="ltx_Math" alttext="(v_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>v</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(v_{0},t_{0})</annotation></semantics></math>.
+This results in two children CT nodes (one for each possibility). Importantly, each children node differs from the parent node by just having an additional constraint on one agent. Thus, generating a children CT node just requires replanning that one agent while keeping the other agents’ paths the same.
+The replanning is typically done by a “low-level” heuristic search algorithm (e.g., A*).</p>
+</div>
+<div id="S3.SS1.p6" class="ltx_para">
+<p id="S3.SS1.p6.1" class="ltx_p"><span id="S3.SS1.p6.1.1" class="ltx_text ltx_font_bold">Initial “Root” CT Node:</span>
+CBS starts by generating the “Root” CT node which contains no constraints (line <a href="#alg1.l2" title="In Algorithm 1 ‣ III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">2</span></a>). Generating the Root CT node requires generating paths for each agent individually (this is the only node that requires planning all agents). Once generated, this node is inserted into the CT queue and the high-level CT search is started.</p>
+</div>
+<div id="S3.SS1.p7" class="ltx_para">
+<p id="S3.SS1.p7.1" class="ltx_p"><span id="S3.SS1.p7.1.1" class="ltx_text ltx_font_bold">High-Level Search:</span>
+CBS employs a best-first search over the CT nodes by using a priority queue (which is called “OPEN”). There are multiple ways to sort the priority queue based on the MAPF objective, but one standard way is to sort by CT node’s cost (typically the sum of each agent’s path length). CBS pops out the cheapest node and checks if it is a goal node (line <a href="#alg1.l5" title="In Algorithm 1 ‣ III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">5</span></a>). If it is, CBS returns that node’s paths as the solution. If not, CBS generates successor nodes and inserts them into OPEN and repeats (line <a href="#alg1.l17" title="In Algorithm 1 ‣ III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">17</span></a>).</p>
+</div>
+<div id="S3.SS1.p8" class="ltx_para">
+<p id="S3.SS1.p8.1" class="ltx_p"><span id="S3.SS1.p8.1.1" class="ltx_text ltx_font_bold">Summary:</span>
+CBS searches over candidate solutions (high-level search over CT nodes) by iteratively finding collisions, adding constraints, and replanning individual agents (low-level search). CBS is a centralized planner that plans full-horizon collision-free paths for all agents.</p>
+</div>
+<div id="S3.SS1.p9" class="ltx_para">
+<p id="S3.SS1.p9.1" class="ltx_p"><span id="S3.SS1.p9.1.1" class="ltx_text ltx_font_bold">Properties: </span>
+In the classical MAPF form with optimal high-level A* search and optimal low-level A* planners, CBS is complete and optimal (i.e., it will find the optimal solution given enough time and memory).</p>
+</div>
+</section>
+<section id="S3.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S3.SS2.5.1.1" class="ltx_text">III-B</span> </span><span id="S3.SS2.6.2" class="ltx_text ltx_font_italic">CBS as a Protocol</span>
+</h3>
+
+<div id="S3.SS2.p1" class="ltx_para">
+<p id="S3.SS2.p1.1" class="ltx_p">As mentioned in Sec <a href="#S2.SS1" title="II-A Algorithmically Homogeneous MAMP Methods ‣ II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag"><span class="ltx_text">II-A</span></span></a>, although CBS has predominantly used A* single-agent planners, the general idea of iteratively planning and resolving collisions by searching over a Constraint Tree can be applied to other single-agent planners <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">moldagalieva2024dbcbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">sim2024safe_interval_rrt</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">tajbakhsh2024cbmpc</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2025mmd</span>]</cite>. However, those publications with CBS focus on developing the single-agent planner.</p>
+</div>
+<div id="S3.SS2.p2" class="ltx_para">
+<p id="S3.SS2.p2.1" class="ltx_p">We come from the AH-MAMP perspective where we do not focus on single-agent solvers but instead want a mechanism to coordinate an algorithmically diverse set of agents.
+Our insight is that CBS can be used as a protocol across multiple different solvers at once. CBS solely requires each agent to have the ability to plan a path that satisfies the CT node’s constraints. Thus, each agent could run their own individual solver with their own kinematic constraints. Since different agents could have different cost functions (other than path length), each solver should also return the solution cost, which can be included in the CT node.
+</p>
+</div>
+<div id="S3.SS2.p3" class="ltx_para">
+<p id="S3.SS2.p3.1" class="ltx_p">An important caveat is that given a set of agent plans, CBS must detect collisions between agents.
+Thus, we require the single-agent planner to not just return a path but also the space-time volume occupied by it. Note that compact representations for this are possible (e.g., if the robot’s footprint is static, giving the footprint along with the space-time path defines the occupied space-time volume).</p>
+</div>
+<div id="S3.SS2.p4" class="ltx_para">
+<p id="S3.SS2.p4.1" class="ltx_p">CBS as a protocol is exactly the same as CBS except for the change of perspective of the single-agent planner. In particular, instead of the planner being predefined, we view the plan call as an API call that can be written independently.</p>
+</div>
+<div id="S3.SS2.p5" class="ltx_para">
+<p id="S3.SS2.p5.1" class="ltx_p"><span id="S3.SS2.p5.1.1" class="ltx_text ltx_font_bold">Single-Agent Solver <span id="S3.SS2.p5.1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> API:</span></p>
+<ul id="S3.I1" class="ltx_itemize">
+<li id="S3.I1.i1" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S3.I1.i1.p1" class="ltx_para">
+<p id="S3.I1.i1.p1.1" class="ltx_p">Input: List of constraints</p>
+</div>
+</li>
+<li id="S3.I1.i2" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S3.I1.i2.p1" class="ltx_para">
+<p id="S3.I1.i2.p1.1" class="ltx_p">Output: 1) Path that satisfies the constraints, 2) Space-time volume occupied by the path (likely through a compact representation), 3) Solution cost 
+<br class="ltx_break">Or None if no such path found</p>
+</div>
+</li>
+</ul>
+</div>
+<div id="S3.SS2.p6" class="ltx_para">
+<p id="S3.SS2.p6.1" class="ltx_p">The CBS protocol can now be used to plan collision-free paths independently of how the single-agent API is defined, enabling using different solvers.
+Additionally since we only require the output of the solver, this allows using proprietary solvers that do not want to share their internal workings.</p>
+</div>
+<div id="S3.SS2.p7" class="ltx_para">
+<p id="S3.SS2.p7.1" class="ltx_p">In the context of CBS, this API will be repeatedly queried with different constraints. If the API is solving the same task between calls (e.g., start-goal task), this means the API is repeatedly solving the same problem with minor variations (through the constraints). <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2024experience-cbs</span>]</cite> showed how CBS can be sped up by having its single-agent solver reuse “experience” from previous queries. This idea is broadly applicable to different types of single-agent motion planning solvers.
+Thus single-agent solver APIs are recommended to leverage experience from past queries for faster query times in the CBS Protocol.</p>
+</div>
+<div id="S3.SS2.p8" class="ltx_para">
+<p id="S3.SS2.p8.5" class="ltx_p"><span id="S3.SS2.p8.5.1" class="ltx_text ltx_font_bold">Conflict Detection and Constraints:</span>
+The CBS Protocol detects inter-agent collisions in a CT node’s solution by checking for overlaps between all pairs of agents’ space-time volume. If a collision is detected between two agents <math id="S3.SS2.p8.1.m1" class="ltx_Math" alttext="A,C" display="inline" intent=":literal"><semantics><mrow><mi>A</mi><mo>,</mo><mi>C</mi></mrow><annotation encoding="application/x-tex">A,C</annotation></semantics></math>, a representative space-time point <math id="S3.SS2.p8.2.m2" class="ltx_Math" alttext="(p_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>p</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p_{0},t_{0})</annotation></semantics></math> in the overlapped region is selected (in 2D this corresponds to a point <math id="S3.SS2.p8.3.m3" class="ltx_Math" alttext="p_{0}=(x_{0},y_{0})" display="inline" intent=":literal"><semantics><mrow><msub><mi>p</mi><mn>0</mn></msub><mo>=</mo><mrow><mo stretchy="false">(</mo><msub><mi>x</mi><mn>0</mn></msub><mo>,</mo><msub><mi>y</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow></mrow><annotation encoding="application/x-tex">p_{0}=(x_{0},y_{0})</annotation></semantics></math>). To resolve this collision, we add a <math id="S3.SS2.p8.4.m4" class="ltx_Math" alttext="(\text{agent\_id},p_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><mtext>agent_id</mtext><mo>,</mo><msub><mi>p</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(\text{agent\_id},p_{0},t_{0})</annotation></semantics></math> constraint for each colliding agent that forbids the agent from overlapping spatially with <math id="S3.SS2.p8.5.m5" class="ltx_Math" alttext="(p_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>p</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p_{0},t_{0})</annotation></semantics></math> (we note prior work <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">li2019largeAgentMAPF</span>]</cite> introduced this constraint for large agents in gridworld MAPF).
+We highlight that the constraint is defined in the <span id="S3.SS2.p8.5.2" class="ltx_text ltx_font_italic">workspace</span> dimension (e.g., 2D or 3D) and is independent of the dimensionality of each agent / solver.</p>
+</div>
+<div id="S3.SS2.p9" class="ltx_para">
+<p id="S3.SS2.p9.3" class="ltx_p">A subtle but important caveat is that in continuous time motion planning, a constraint at a specific instantaneous time could be satisfied by planning a near identical path with an almost instantaneous wait, which will result in another collision at the same location at a negligibly offset time. Likewise for continuous space motion planning, a constraint at a single point could be satisfied by planning a near identical path with an almost negligible deviation.
+Thus, for practical purposes, the CBS Protocol should use constrain space-time volumes (e.g., forcing the agent to avoid <math id="S3.SS2.p9.1.m1" class="ltx_Math" alttext="p_{0}" display="inline" intent=":literal"><semantics><msub><mi>p</mi><mn>0</mn></msub><annotation encoding="application/x-tex">p_{0}</annotation></semantics></math> from <math id="S3.SS2.p9.2.m2" class="ltx_Math" alttext="(t_{0},t_{0}+\delta)" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>t</mi><mn>0</mn></msub><mo>,</mo><mrow><msub><mi>t</mi><mn>0</mn></msub><mo>+</mo><mi>δ</mi></mrow><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(t_{0},t_{0}+\delta)</annotation></semantics></math> where <math id="S3.SS2.p9.3.m3" class="ltx_Math" alttext="\delta" display="inline" intent=":literal"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math> is the constraint duration) that force meaningful changes in agents’ paths.
+We note that there are extensive improvements in the CBS literature for designing better constraints <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2024generalized_ecbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">srli2021</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">andreychuk2021improving</span>]</cite>, but this is not related to our main contribution and should be incorporated in the future.</p>
+</div>
+<div id="S3.SS2.p10" class="ltx_para">
+<p id="S3.SS2.p10.1" class="ltx_p"><span id="S3.SS2.p10.1.1" class="ltx_text ltx_font_bold">Independent Tasks:</span> CBS for motion planning has been primarily used to plan collision-free start-goal paths. From the API perspective, however, the API simply needs to find a solution that satisfies the constraints. A few prior works have used this flexibility in CBS for planning paths that visit multiple goal locations <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">ren2022cbs_steiner</span>]</cite>. Thus more generally, the API is not limited to planning start-goal paths and can be used for arbitrary single-agent tasks (e.g., coverage, exploration).</p>
+</div>
+<div id="S3.SS2.p11" class="ltx_para">
+<p id="S3.SS2.p11.1" class="ltx_p">We highlight that the CBS Protocol requires independent tasks between agents. If agents need to explicitly collaborate (e.g., move an object together) while avoiding collisions with other agents, our protocol is not applicable for two reasons. First, collaborative behavior between two agents is robot / task specific while the CBS Protocol is robot / task agnostic. Second, collaborative behavior is fundamentally not reasoned about in CBS, which only focuses on resolving collisions.</p>
+</div>
+<div id="S3.SS2.p12" class="ltx_para">
+<p id="S3.SS2.p12.1" class="ltx_p">If there are different groups of collaborative agent that need to work together, then the CBS Protocol could be used via meta-agents. Users could specify a single API that plans for all agents in a group (this is a “meta-agent”), which can then be input into the CBS Protocol to ensure that groups do not collide with each-other. Internally, each group API would run their own custom collaborative planning scheme.</p>
+</div>
+<div id="S3.SS2.p13" class="ltx_para">
+<p id="S3.SS2.p13.1" class="ltx_p"><span id="S3.SS2.p13.1.1" class="ltx_text ltx_font_bold">Theoretical Properties of the CBS Protocol: </span>
+The theoretical guarantees of using the CBS Protocol depend on the single-agent APIs and the constraints used.
+The CBS Protocol is “complete” (i.e., guaranteed to eventually find a valid solution in a solvable instance) given two conditions:
+1) Each single-agent API will find a valid solution with bounded cost that satisfies constraints if a solution exists, and
+2) The constraints are mutually disjunctive.
+The proof of completeness follows regular CBS <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sharon2015cbs</span>]</cite>.</p>
+</div>
+<div id="S3.SS2.p14" class="ltx_para">
+<p id="S3.SS2.p14.1" class="ltx_p">However, as mentioned earlier, for practical performance constraints should be on space-time volumes, which are not mutually disjunctive. More broadly, in continuous time planning, designing meaningful mutually disjunctive constraints for CBS is an unsolved question <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">li2025cbscontinuoustimerevisit</span>]</cite>.
+Thus, the CBS Protocol is not theoretically complete in the continuous space-time context, however, it still offers a principled way to resolve inter-agent conflicts for efficient motion planning.</p>
+</div>
+</section>
+</section>
+<section id="S4" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">IV </span><span id="S4.1.1" class="ltx_text ltx_font_smallcaps">Experiments</span>
+</h2>
+
+<div id="S4.p1" class="ltx_para">
+<p id="S4.p1.1" class="ltx_p">Our experiments seek to show the generality of the CBS Protocol by using a variety of solvers from different single-agent motion planning families. Our experiments focus on motion planning in a 2D occupancy map with agents with different kinematic constraints, solvers, and tasks.</p>
+</div>
+<section id="S4.SS1" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S4.SS1.5.1.1" class="ltx_text">IV-A</span> </span><span id="S4.SS1.6.2" class="ltx_text ltx_font_italic">Single-Agent Solvers</span>
+</h3>
+
+<div id="S4.SS1.p1" class="ltx_para">
+<p id="S4.SS1.p1.1" class="ltx_p">Table <a href="#S4.T1" title="TABLE I ‣ IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">I</span></a> shows a summary of the different solvers which we implemented the required <span id="S4.SS1.p1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> single-agent API for the CBS Protocol. We briefly describe each solver here and how they incorporate space-time constraints and experience.</p>
+</div>
+<figure id="S4.T1" class="ltx_table">
+<table id="S4.T1.2" class="ltx_tabular ltx_centering ltx_guessed_headers ltx_align_middle">
+<thead class="ltx_thead">
+<tr id="S4.T1.2.1.1" class="ltx_tr">
+<th id="S4.T1.2.1.1.1" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_th_row ltx_border_l ltx_border_rr ltx_border_t">Solvers</th>
+<th id="S4.T1.2.1.1.2" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t">Space-Time Constraints</th>
+<th id="S4.T1.2.1.1.3" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t">Experience</th>
+<th id="S4.T1.2.1.1.4" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t">Dynamic Constraints</th>
+<th id="S4.T1.2.1.1.5" class="ltx_td ltx_align_center ltx_th ltx_th_column ltx_border_r ltx_border_t">Tasks</th>
+</tr>
+</thead>
+<tbody class="ltx_tbody">
+<tr id="S4.T1.2.2.1" class="ltx_tr">
+<th id="S4.T1.2.2.1.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_l ltx_border_rr ltx_border_t">A*</th>
+<td id="S4.T1.2.2.1.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Edge validity</td>
+<td id="S4.T1.2.2.1.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Successor Generator <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2024experience-cbs</span>]</cite>
+</td>
+<td id="S4.T1.2.2.1.4" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Ackermann, 4-connected, Dubins</td>
+<td id="S4.T1.2.2.1.5" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Start-goal, Coverage</td>
+</tr>
+<tr id="S4.T1.2.3.2" class="ltx_tr">
+<th id="S4.T1.2.3.2.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_l ltx_border_rr">RRT</th>
+<td id="S4.T1.2.3.2.2" class="ltx_td ltx_align_center ltx_border_r">Edge validity</td>
+<td id="S4.T1.2.3.2.3" class="ltx_td ltx_align_center ltx_border_r">Re-use partial valid tree</td>
+<td id="S4.T1.2.3.2.4" class="ltx_td ltx_align_center ltx_border_r">4-connected, None</td>
+<td id="S4.T1.2.3.2.5" class="ltx_td ltx_align_center ltx_border_r">Start-goal, Coverage</td>
+</tr>
+<tr id="S4.T1.2.4.3" class="ltx_tr">
+<th id="S4.T1.2.4.3.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_l ltx_border_rr">Direct Collocation</th>
+<td id="S4.T1.2.4.3.2" class="ltx_td ltx_align_center ltx_border_r">Constraint</td>
+<td id="S4.T1.2.4.3.3" class="ltx_td ltx_align_center ltx_border_r">Warm start</td>
+<td id="S4.T1.2.4.3.4" class="ltx_td ltx_align_center ltx_border_r">Ackermann</td>
+<td id="S4.T1.2.4.3.5" class="ltx_td ltx_align_center ltx_border_r">Start-goal, Surveillance</td>
+</tr>
+<tr id="S4.T1.2.5.4" class="ltx_tr">
+<th id="S4.T1.2.5.4.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_l ltx_border_rr">Diffusion</th>
+<td id="S4.T1.2.5.4.2" class="ltx_td ltx_align_center ltx_border_r">Penalty</td>
+<td id="S4.T1.2.5.4.3" class="ltx_td ltx_align_center ltx_border_r">Warm start <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2025mmd</span>]</cite>
+</td>
+<td id="S4.T1.2.5.4.4" class="ltx_td ltx_align_center ltx_border_r">None</td>
+<td id="S4.T1.2.5.4.5" class="ltx_td ltx_align_center ltx_border_r">Start-goal, Motion patterns</td>
+</tr>
+<tr id="S4.T1.2.6.5" class="ltx_tr">
+<th id="S4.T1.2.6.5.1" class="ltx_td ltx_align_center ltx_th ltx_th_row ltx_border_b ltx_border_l ltx_border_rr">RL</th>
+<td id="S4.T1.2.6.5.2" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">Action masking</td>
+<td id="S4.T1.2.6.5.3" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">Caching</td>
+<td id="S4.T1.2.6.5.4" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">Unicycle</td>
+<td id="S4.T1.2.6.5.5" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">Start-goal, Coverage</td>
+</tr>
+</tbody>
+</table>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table"><span id="S4.T1.3.1.1" class="ltx_text" style="font-size:90%;">TABLE I</span>: </span><span id="S4.T1.4.2" class="ltx_text" style="font-size:90%;">Various Single-Agent Solvers used in the experiments with CBS-Protocol. We note that these solvers cover different motion-planning paradigms (heuristic search, sampling, optimization, diffusion, RL respectively).</span></figcaption>
+</figure>
+<section id="S4.SS1.SSS1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S4.SS1.SSS1.5.1.1" class="ltx_text">IV-A</span>1 </span>Heuristic Search</h4>
+
+<div id="S4.SS1.SSS1.p1" class="ltx_para">
+<p id="S4.SS1.SSS1.p1.1" class="ltx_p">We implement a single-agent A* search as a representative heuristic search algorithm.
+We plan in continuous space for robots with dynamic constraints (i.e., Ackermann and Dubins) by using discretized motion primitives. We use a modified version of soft-duplicate detection <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">du2019soft_duplicate_detection</span>]</cite> to speed up search.</p>
+</div>
+<div id="S4.SS1.SSS1.p2" class="ltx_para">
+<p id="S4.SS1.SSS1.p2.1" class="ltx_p"><span id="S4.SS1.SSS1.p2.1.1" class="ltx_text ltx_font_italic">Constraints:</span> Incorporating space-time constraints is straightforward; we search over space-time nodes and prune edges/nodes that violate space-time constraints.</p>
+</div>
+<div id="S4.SS1.SSS1.p3" class="ltx_para">
+<p id="S4.SS1.SSS1.p3.1" class="ltx_p"><span id="S4.SS1.SSS1.p3.1.1" class="ltx_text ltx_font_italic">Experience:</span> We implement experience by using the technique in <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2024experience-cbs</span>]</cite>. When we find a solution, we store the nodes on the solution path. Then when replanning, if we encounter a node in the solution path, we add as successors the rest of the nodes in the path that are valid under the new constraints.</p>
+</div>
+</section>
+<section id="S4.SS1.SSS2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S4.SS1.SSS2.5.1.1" class="ltx_text">IV-A</span>2 </span>Sampling Based Search</h4>
+
+<div id="S4.SS1.SSS2.p1" class="ltx_para">
+<p id="S4.SS1.SSS2.p1.1" class="ltx_p">We implement Rapidly-exploring Random Tree (RRT) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">lavalle1998rrt</span>]</cite> as a representative of sampling based search algorithms.
+We use a regular spatial RRT for its simplicity and popularity (with each vertex having an associated time of arrival). We note this means that the RRT solution does not contain wait actions and that the solver is incomplete. However, it can still be used in a plan() API (it may just return failure when solutions exist).</p>
+</div>
+<div id="S4.SS1.SSS2.p2" class="ltx_para">
+<p id="S4.SS1.SSS2.p2.1" class="ltx_p"><span id="S4.SS1.SSS2.p2.1.1" class="ltx_text ltx_font_italic">Constraints:</span>
+Space-time constraints are incorporated in the edge/node validity function.</p>
+</div>
+<div id="S4.SS1.SSS2.p3" class="ltx_para">
+<p id="S4.SS1.SSS2.p3.1" class="ltx_p"><span id="S4.SS1.SSS2.p3.1.1" class="ltx_text ltx_font_italic">Experience:</span>
+Given a new query, we iterate through all nodes/edges in the tree created in the previous query and remove those invalid under the new constraints. We then start the RRT process from this tree.
+We note more sophisticated versions of replanning using experience exist (e.g., <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">ferguson2006replanning_with_rrts</span>]</cite>).</p>
+</div>
+</section>
+<section id="S4.SS1.SSS3" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S4.SS1.SSS3.5.1.1" class="ltx_text">IV-A</span>3 </span>Optimization</h4>
+
+<div id="S4.SS1.SSS3.p1" class="ltx_para">
+<p id="S4.SS1.SSS3.p1.1" class="ltx_p">We formulate the motion planning problem as a trajectory optimization problem, whose objective is to drive the system from the initial state to the goal in minimum time. To this end, we transcribe the problem into a nonlinear program, with a cost function that minimizes a weighted objective and constraints that enforce both dynamic feasibility and spatial validity. Dynamic constraints are implemented using direct collocation <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">kelly2017introduction</span>]</cite>, while collision avoidance is addressed through a duality-based exact representation <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">zhang2020optimization</span>]</cite>. We initialize the nonconvex nonlinear program with an A* solution and solve it using IPOPT <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">wachter2006implementation</span>]</cite>.</p>
+</div>
+<div id="S4.SS1.SSS3.p2" class="ltx_para">
+<p id="S4.SS1.SSS3.p2.1" class="ltx_p"><span id="S4.SS1.SSS3.p2.1.1" class="ltx_text ltx_font_italic">Constraints:</span>
+We handle space–time constraints explicitly, in the same way as dynamics and spatial constraints.</p>
+</div>
+<div id="S4.SS1.SSS3.p3" class="ltx_para">
+<p id="S4.SS1.SSS3.p3.1" class="ltx_p"><span id="S4.SS1.SSS3.p3.1.1" class="ltx_text ltx_font_italic">Experience:</span> We incorporate experience by warm starting the optimization with the previous solution.</p>
+</div>
+</section>
+<section id="S4.SS1.SSS4" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S4.SS1.SSS4.5.1.1" class="ltx_text">IV-A</span>4 </span>Diffusion</h4>
+
+<div id="S4.SS1.SSS4.p1" class="ltx_para">
+<p id="S4.SS1.SSS4.p1.1" class="ltx_p">We implement a diffusion solver by modifying Multi-robot Multi-model planning Diffusion (MMD) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">shaoul2025mmd</span>]</cite> for our map and tasks.</p>
+</div>
+<div id="S4.SS1.SSS4.p2" class="ltx_para">
+<p id="S4.SS1.SSS4.p2.1" class="ltx_p"><span id="S4.SS1.SSS4.p2.1.1" class="ltx_text ltx_font_italic">Constraints:</span> MMD incorporates space-time constraints by adding a guidance term into the diffusion process that penalizes the distance between the agents path and the <math id="S4.SS1.SSS4.p2.1.m1" class="ltx_Math" alttext="(x,y)" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(x,y)</annotation></semantics></math> location of an active constraint.</p>
+</div>
+<div id="S4.SS1.SSS4.p3" class="ltx_para">
+<p id="S4.SS1.SSS4.p3.1" class="ltx_p"><span id="S4.SS1.SSS4.p3.1.1" class="ltx_text ltx_font_italic">Experience:</span> MMD generates paths by initializing a path with complete random noise and denoising it. MMD uses experience by replacing the random noise initialization with the path of a previous solution with some slight noise added.</p>
+</div>
+</section>
+<section id="S4.SS1.SSS5" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S4.SS1.SSS5.5.1.1" class="ltx_text">IV-A</span>5 </span>Reinforcement Learning</h4>
+
+<div id="S4.SS1.SSS5.p1" class="ltx_para">
+<p id="S4.SS1.SSS5.p1.1" class="ltx_p">We implement an Reinforcement Learning (RL) solver using PPO <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">schulman2017ppo</span>]</cite>. To our knowledge, we are unaware of existing papers that have used an RL single-agent solver with CBS.
+The model takes in a local observation and outputs a categorical probability distribution of the next action. Concretely, the model inputs are:</p>
+<ol id="S4.I1" class="ltx_enumerate">
+<li id="S4.I1.i1" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">1.</span> 
+<div id="S4.I1.i1.p1" class="ltx_para">
+<p id="S4.I1.i1.p1.1" class="ltx_p">An estimate of distance to goal computed via a backward Dijkstra assuming gridworld dynamics (so unaware of the agent’s footprint or dynamics),</p>
+</div>
+</li>
+<li id="S4.I1.i2" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">2.</span> 
+<div id="S4.I1.i2.p1" class="ltx_para">
+<p id="S4.I1.i2.p1.1" class="ltx_p">Local obstacle distances by ray casting at 30 degree increments (e.g., simulating a lidar scan), and</p>
+</div>
+</li>
+<li id="S4.I1.i3" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">3.</span> 
+<div id="S4.I1.i3.p1" class="ltx_para">
+<p id="S4.I1.i3.p1.1" class="ltx_p">Previous action indices</p>
+</div>
+</li>
+</ol>
+<p id="S4.SS1.SSS5.p1.2" class="ltx_p">The model outputs a 1-hot probability distribution corresponding to a discrete set of motion primitives for a robot with Dubins dynamics. We utilize motion primitives to handle kinodynamic constraints and as it also enables using action masking to speed up training.
+To generate a full path, we rollout the policy, greedily following its actions and backtracking if necessary when hitting a deadend (i.e., DFSing based on the agent’s policy).</p>
+</div>
+<div id="S4.SS1.SSS5.p2" class="ltx_para">
+<p id="S4.SS1.SSS5.p2.1" class="ltx_p"><span id="S4.SS1.SSS5.p2.1.1" class="ltx_text ltx_font_italic">Constraints:</span>
+We incorporate space-time constraints during test time by masking actions that violate constraints.
+We also tried training a constraint aware version (i.e., constraints were also input into the model) but that performed worse.</p>
+</div>
+<div id="S4.SS1.SSS5.p3" class="ltx_para">
+<p id="S4.SS1.SSS5.p3.1" class="ltx_p"><span id="S4.SS1.SSS5.p3.1.1" class="ltx_text ltx_font_italic">Experience:</span>
+We cache the previous solution and given a new call, reuse the previous solution up to the earliest violated constraint, minus a small slack (5 simultation seconds).</p>
+</div>
+<figure id="S4.F2" class="ltx_figure"><img src="2510.00425v2/figs/results/Cantwell.basic.scen_n6_s115_custom.png" id="S4.F2.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="568" height="338" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span id="S4.F2.2.1.1" class="ltx_text" style="font-size:90%;">Figure 2</span>: </span><span id="S4.F2.3.2" class="ltx_text" style="font-size:90%;">An example of the CBS Protocol with 6 heterogeneous agents with different solvers, dynamics, and tasks. Constraints for the solution are plotted as colored x’s.</span></figcaption>
+</figure>
+</section>
+</section>
+<section id="S4.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S4.SS2.5.1.1" class="ltx_text">IV-B</span> </span><span id="S4.SS2.6.2" class="ltx_text ltx_font_italic">CBS Protocol Settings</span>
+</h3>
+
+<div id="S4.SS2.p1" class="ltx_para">
+<p id="S4.SS2.p1.2" class="ltx_p">We primarily care about the success rate (as opposed to solution cost) in our experiments and therefore use a “Greedy” CBS variant <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">barer2014suboptimalecbs</span>]</cite> for the CBS Protocol that prioritizes CT nodes by number of pairs of agents with conflicts and tiebreaks by solution cost. We use discrete collision checking every 0.1 simulation seconds to detect conflicts. Each robot has a fixed footprint, so the APIs output space-time volumes by outputting their space-time path and footprint, which is then used by CBS for collision detection. Constraints for a collision at <math id="S4.SS2.p1.1.m1" class="ltx_Math" alttext="(x_{0},y_{0},t_{0})" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>x</mi><mn>0</mn></msub><mo>,</mo><msub><mi>y</mi><mn>0</mn></msub><mo>,</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(x_{0},y_{0},t_{0})</annotation></semantics></math> block a spatial square of size 0.1 containing <math id="S4.SS2.p1.2.m2" class="ltx_Math" alttext="x_{0},y_{0}" display="inline" intent=":literal"><semantics><mrow><msub><mi>x</mi><mn>0</mn></msub><mo>,</mo><msub><mi>y</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">x_{0},y_{0}</annotation></semantics></math> for 2.5 seconds. These numbers were semi-arbitrarily picked for performance and to emphasize continuous space / continuous time constraints and planning.</p>
+</div>
+</section>
+<section id="S4.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S4.SS3.5.1.1" class="ltx_text">IV-C</span> </span><span id="S4.SS3.6.2" class="ltx_text ltx_font_italic">Experimental Results</span>
+</h3>
+
+<div id="S4.SS3.p1" class="ltx_para">
+<p id="S4.SS3.p1.1" class="ltx_p">We test our method on the Cantwell (7.2x15.2, Fig <a href="#S4.F2" title="Figure 2 ‣ IV-A5 Reinforcement Learning ‣ IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">2</span></a>), Ribera (8.7x6.3), and Mosquito (23.4x11.1) maps from the IN2D dataset <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">dobrevskiskocaj2020in2d</span>]</cite> that realistically model a house or office space, as well as an empty map (10x15) and large (32x32) map with 10% obstacles (size in meters).
+Each robot has a footprint between 0.1 to 0.8 meters (some circles, rectangles, and triangles). All single-agent APIs/solvers, collision-checking, and the CBS Protocol were written in Python and experiments were run on a machine with an i7-11800H@2.30GHz x 16 CPU and 3050 Ti Laptop GPU.</p>
+</div>
+<div id="S4.SS3.p2" class="ltx_para">
+<p id="S4.SS3.p2.2" class="ltx_p"><span id="S4.SS3.p2.2.1" class="ltx_text ltx_font_bold">Start-Goal Planning:</span>
+We evaluate the CBS Protocol’s ability to handle a variety of different solvers at once. Each solver was given a per-query time limit of 5-10 seconds with an overall CBS Protocol time limit of 120 seconds. The A* and RRT solvers worked on most instances on all the maps, while RL and Collocation struggled on the IN2D maps, and Diffusion worked well only on the Ribera map. For each multi-agent problem instance with <math id="S4.SS3.p2.1.m1" class="ltx_Math" alttext="N" display="inline" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> agents, we semi-randomly select <math id="S4.SS3.p2.2.m2" class="ltx_Math" alttext="N" display="inline" intent=":literal"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> start-goal pairs, and then sample a random solver that is able to solve that pair. This means that the distribution of solvers and maps in our experiments is not uniform. We generated instances with 2-10 agents through this mechanism which resulted in 675 instances.</p>
+</div>
+<div id="S4.SS3.p3" class="ltx_para">
+<p id="S4.SS3.p3.1" class="ltx_p">Recall from Section <a href="#S3.SS1" title="III-A Conflict Based Search ‣ III CBS as a Protocol ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag"><span class="ltx_text">III-A</span></span></a> that the initial “root node” created in CBS requires planning each agent individually without constraints. Thus, the number of “root conflicts” (number of pairs of agents that conflicts) serves as an approximation for problem difficulty as having more conflicts implies a more congested problem instance that requires more work for the CBS Protocol to resolve.
+Additionally, a root node with 0 conflicts indicates that individually planning and executing would result in a successful instance. Of the 675 instances, 175 instances fell into this category.</p>
+</div>
+<div id="S4.SS3.p4" class="ltx_para">
+<p id="S4.SS3.p4.1" class="ltx_p">Fig <a href="#S4.F3" title="Figure 3 ‣ IV-C Experimental Results ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">3</span></a> shows the success rate (bottom) and number of CT Nodes generated (top) based on the number of root conflicts. The CBS Protocol solved 54% of instances with non-zero conflicts. As the number of conflicts increases, the number of CT Nodes generated for successful instances increases (e.g., the median of the blue dots increases). We also observe that the overall success rate decreases as root conflicts increase.</p>
+</div>
+<div id="S4.SS3.p5" class="ltx_para">
+<p id="S4.SS3.p5.1" class="ltx_p">We emphasize that the CBS Protocol is tightly coupled to the success rate and speed of the underlying single-agent APIs as it repeatedly calls them during its search process. For example, the RL and Collocation solvers had relatively low success rates with constraints (35%, 46% respectively) compared to A* with Dubin’s or 4-connected dynamics (87%, 94%). Additionally, some solvers/APIs took up to 10 seconds to satisfy a single query, which limited the number of CT nodes CBS could explore within the 2 minute timeout.
+Collision checking also took a non-negligible amount of time for larger amounts of agents.</p>
+</div>
+<div id="S4.SS3.p6" class="ltx_para">
+<p id="S4.SS3.p6.1" class="ltx_p">We conducted an ablation study by removing “experience” from each single-agent API and rerunning experiments. This did not noticeably change the overall CBS protocol success rate, but substantially increased the median API query time, ranging from 10% to 300% increases depending on the solver, except for Collocation which took 20x longer.</p>
+</div>
+<div id="S4.SS3.p7" class="ltx_para">
+<p id="S4.SS3.p7.1" class="ltx_p">Importantly, the raw results should not be interpreted as a fundamental limitation of the CBS Protocol. With optimized single-agent APIs and collision checking (e.g., planning times under 0.1 seconds), CBS is capable of generating thousands of nodes and achieving substantially higher success rates. Thus, our findings highlight the dependency of CBS performance on the single-agent API and illustrate the trend of CBS’s CT node generation and conflict resolution.</p>
+</div>
+<div id="S4.SS3.p8" class="ltx_para">
+<p id="S4.SS3.p8.1" class="ltx_p"><span id="S4.SS3.p8.1.1" class="ltx_text ltx_font_bold">Baseline: </span> As mentioned in Section <a href="#S2.SS2" title="II-B Algorithmically Heterogeneous MAMP Techniques ‣ II Related Work ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag"><span class="ltx_text">II-B</span></span></a>, algorithmically heterogeneous baselines are non-existent. We did not implement a local replanning baseline as our individual APIs are too slow to be called often during execution (which may also be an issue in real applications). Instead, we let each agent plan individually and implemented a local priority-based collision avoidance policy. When a lower-priority agent is within a radius of 0.1 meters to a higher-priority agent, the lower-priority agent attempts to reverse direction and backtrack. If agents are within 0.05 meters, then they freeze. This baseline worked on 87% of instances without root conflicts and 9% of instances with root conflicts.</p>
+</div>
+<div id="S4.SS3.p9" class="ltx_para">
+<p id="S4.SS3.p9.1" class="ltx_p"><span id="S4.SS3.p9.1.1" class="ltx_text ltx_font_bold">Heterogeneous Tasks:</span>
+We do a proof-of-concept and replace the start-goal task in the plan API with different tasks.
+For A* and RRT we implement coverage planners that need to visit a set of points in any arbitrary order. For optimization (direct collocation), the agent attempts to maintain a radius around a given “surveillance” point.
+For diffusion, we train a policy to mimic motion patterns on data where the robot visits an intermediate point before proceeding to the goal.
+Finally, for the RL solver we implement a Roomba-like policy that tries to sweep the entire environment. Due to space constraints, Figure <a href="#S4.F2" title="Figure 2 ‣ IV-A5 Reinforcement Learning ‣ IV-A Single-Agent Solvers ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">2</span></a> shows a single example solution with various APIs (more examples are provided on the website). We highlight that we only need to input the different plan APIs into the CBS Protocol without any additional changes.</p>
+</div>
+<figure id="S4.F3" class="ltx_figure"><img src="2510.00425v2/figs/results/nodes-generated-total-experience-arxiv.png" id="S4.F3.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="592" height="327" alt="Refer to caption">
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span id="S4.F3.2.1.1" class="ltx_text" style="font-size:90%;">Figure 3</span>: </span><span id="S4.F3.3.2" class="ltx_text" style="font-size:90%;">We show results on MAMP start-goal problems with different solvers and categorize them by the number of conflicts in the root node (a proxy for problem difficulty). The top plot shows the number of CT nodes that the CBS Protocol generates for successful (blue) and unsuccessful (red) instances while the bottom shows the success rate.
+</span></figcaption>
+</figure>
+</section>
+</section>
+<section id="S5" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">V </span><span id="S5.1.1" class="ltx_text ltx_font_smallcaps">Conclusion and Future Directions</span>
+</h2>
+
+<div id="S5.p1" class="ltx_para">
+<p id="S5.p1.1" class="ltx_p">The future of robotics will require multiple robots from different companies completing individual tasks to efficiently find collision-free paths in shared environments. It is unclear how to effectively do this due to each robot having its own interfaces and motion planning software.
+To that end, we show how we can use Conflict-Based Search <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sharon2015cbs</span>]</cite> as a protocol. The CBS Protocol solely requires agents to specify a single <span id="S5.p1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> API that takes in certain space-time constraints and returns a path with corresponding cost and space-time volume. We show how the CBS Protocol enables finding collision-free paths for a variety of solvers (A*, RRT, Direct Collocation, Diffusion, Reinforcement Learning), and is not limited to start-goal tasks but can work with arbitrary independent motion planning tasks.</p>
+</div>
+<div id="S5.p2" class="ltx_para">
+<p id="S5.p2.1" class="ltx_p"><span id="S5.p2.1.1" class="ltx_text ltx_font_bold">Future Work:</span>
+From an industry perspective, we would like to see the CBS Protocol adopted and deployed on real heterogeneous systems with efficient solvers.</p>
+</div>
+<div id="S5.p3" class="ltx_para">
+<p id="S5.p3.1" class="ltx_p">From the single-agent <span id="S5.p3.1.1" class="ltx_text ltx_font_typewriter">plan()</span> API perspective, there is significant potential in developing better solvers that handle CBS space-time constraints and replanning. In particular, these space-time constraints are a special subcategory of “dynamic” obstacles whose structure could be exploited for efficient planning.
+More effective versions of reusing experience in respect to these constraints is also promising.</p>
+</div>
+<div id="S5.p4" class="ltx_para">
+<p id="S5.p4.1" class="ltx_p">From the AH-MAMP and multi-agent protocol perspective, the use of heterogeneous <span id="S5.p4.1.1" class="ltx_text ltx_font_typewriter">plan()</span> APIs opens up interesting questions on how to best leverage their strengths and weaknesses. For example, in our experiments, different APIs had varying success rates and query times. Enabling the CBS Protocol to intelligently reason about this would likely boost performance. Additionally, as a proof of concept, the current version of the CBS Protocol retools CBS from classical MAPF but does not include additional improvements in the MAPF literature.
+Achieving this would likely require expanding the single-agent <span id="S5.p4.1.2" class="ltx_text ltx_font_typewriter">plan()</span> API inputs.</p>
+</div>
+<div id="S5.p5" class="ltx_para">
+<p id="S5.p5.1" class="ltx_p">From the most broad perspective, we hope this work bridges a gap between single-agent motion planning, multi-agent motion planning, and MAPF, as well as encourages future development of multi-agent motion planning protocols that can handle heterogeneous single-agent solvers.</p>
+</div>
+</section>
+<section id="Sx1" class="ltx_section">
+<h2 class="ltx_title ltx_font_smallcaps ltx_title_section">Author Contribution Statements</h2>
+
+<div id="Sx1.p1" class="ltx_para">
+<ul id="Sx1.I1" class="ltx_itemize">
+<li id="Sx1.I1.i1" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="Sx1.I1.i1.p1" class="ltx_para">
+<p id="Sx1.I1.i1.p1.1" class="ltx_p">RV conceived the project, gathered the team, implemented the CBS Protocol and parts of single-agent solvers, ran all experiments, and wrote the paper.</p>
+</div>
+</li>
+<li id="Sx1.I1.i2" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="Sx1.I1.i2.p1" class="ltx_para">
+<p id="Sx1.I1.i2.p1.1" class="ltx_p">AT developed the A* and RRT single-agent solvers, RV assisted and advised.</p>
+</div>
+</li>
+<li id="Sx1.I1.i3" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="Sx1.I1.i3.p1" class="ltx_para">
+<p id="Sx1.I1.i3.p1.1" class="ltx_p">HH and SZ developed the RL single-agent solver, RV assisted and advised.</p>
+</div>
+</li>
+<li id="Sx1.I1.i4" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="Sx1.I1.i4.p1" class="ltx_para">
+<p id="Sx1.I1.i4.p1.1" class="ltx_p">VS and YC developed the direct collocation single-agent solver, RV, GO, and JA assisted and advised.</p>
+</div>
+</li>
+<li id="Sx1.I1.i5" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="Sx1.I1.i5.p1" class="ltx_para">
+<p id="Sx1.I1.i5.p1.1" class="ltx_p">ZJ trained the diffusion solver from MMD, RV and YS assisted and advised.</p>
+</div>
+</li>
+<li id="Sx1.I1.i6" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="Sx1.I1.i6.p1" class="ltx_para">
+<p id="Sx1.I1.i6.p1.1" class="ltx_p">JA, YS, JL, ML gave feedback on the paper.</p>
+</div>
+</li>
+<li id="Sx1.I1.i7" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="Sx1.I1.i7.p1" class="ltx_para">
+<p id="Sx1.I1.i7.p1.1" class="ltx_p">JL and ML advised the overall project.</p>
+</div>
+</li>
+</ul>
+</div>
+</section>
+<section id="bib" class="ltx_bibliography">
+<h2 class="ltx_title ltx_title_bibliography">References</h2>
+
+<ul id="bib.L1" class="ltx_biblist">
+</ul>
+</section>
+<div class="ltx_pagination ltx_role_newpage"></div>
+<section id="Sx2" class="ltx_section">
+<h2 class="ltx_title ltx_font_smallcaps ltx_title_section">Appendix</h2>
+
+</section>
+<section id="S1a" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">A1 </span><span id="S1a.1.1" class="ltx_text ltx_font_smallcaps">Quick Summary</span>
+</h2>
+
+<section id="S1.SS1a" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S1.SS1a.5.1.1" class="ltx_text">A1-A</span> </span><span id="S1.SS1a.6.2" class="ltx_text ltx_font_italic">Motivation</span>
+</h3>
+
+<div id="S1.SS1a.p1" class="ltx_para">
+<p id="S1.SS1a.p1.1" class="ltx_p">As single-robot systems continue to grow more capable, the next frontier will be environments populated by multiple autonomous agents—likely from different manufacturers—operating side by side. Imagine, for example, a factory floor where autonomous forklifts, carts, and trucks all move independently while pursuing their own objectives. In such settings, a central challenge emerges: how can we reliably compute collision-free motions for heterogeneous agents?</p>
+</div>
+<div id="S1.SS1a.p2" class="ltx_para">
+<p id="S1.SS1a.p2.1" class="ltx_p">Crucially, each robot may rely on its own motion-planning software (possibly proprietary), embody different morphologies and kinodynamic constraints, and pursue distinct tasks. Any framework for safe coordination must therefore reason across diverse solvers, embodiments, and objectives, without assuming a shared planning infrastructure.</p>
+</div>
+</section>
+<section id="S1.SS2" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S1.SS2.5.1.1" class="ltx_text">A1-B</span> </span><span id="S1.SS2.6.2" class="ltx_text ltx_font_italic">Intended Takeaways</span>
+</h3>
+
+<section id="S1.SS2.SSS1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S1.SS2.SSS1.5.1.1" class="ltx_text">A1-B</span>1 </span>Defining a new problem setting</h4>
+
+<div id="S1.SS2.SSS1.p1" class="ltx_para">
+<p id="S1.SS2.SSS1.p1.1" class="ltx_p">To our knowledge, the problem of <em id="S1.SS2.SSS1.p1.1.1" class="ltx_emph ltx_font_italic">multi-agent motion planning (MAMP) with algorithmically heterogeneous single-agent solvers</em> has not been addressed by the community. Current heterogeneous MAMP methods are not algorithmically heterogeneous as they require the different robots to all run the same planner <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">debord2018multi_drone_ground_cbs</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">solis2021representation_optimal_cbs</span>]</cite> or focus on heterogeneous behaviors (and not collision-free movement) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">rizk2019heterogeneous_multi_robot_survey</span>, <span class="ltx_ref ltx_missing_citation ltx_ref_self">bettini2023heterogeneous_behavior_marl</span>]</cite>. We introduce and formalize this new setting as <span id="S1.SS2.SSS1.p1.1.2" class="ltx_text ltx_font_bold">Algorithmically Heterogeneous MAMP (AH-MAMP)</span>. Solutions for AH-MAMP cannot rely on accessing the internals of each single-agent solver. Instead, they must be formulated as <em id="S1.SS2.SSS1.p1.1.3" class="ltx_emph ltx_font_italic">protocols</em> that interact with single-agent planners only through well-defined APIs.</p>
+</div>
+</section>
+<section id="S1.SS2.SSS2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S1.SS2.SSS2.5.1.1" class="ltx_text">A1-B</span>2 </span>Proposing CBS as a Protocol</h4>
+
+<div id="S1.SS2.SSS2.p1" class="ltx_para">
+<p id="S1.SS2.SSS2.p1.2" class="ltx_p">Our second contribution is to cast Conflict-Based Search (CBS) <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">sharon2015cbs</span>]</cite>—a foundational method in multi-agent path finding <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">stern2019mapfbenchmark</span>]</cite>—as such a protocol. We observe that CBS fundamentally relies on a single-agent <span id="S1.SS2.SSS2.p1.2.1" class="ltx_text ltx_font_typewriter">plan()</span> interface that can return a path subject to space-time constraints. Specifically, the API requires:</p>
+<ul id="S1.I1a" class="ltx_itemize">
+<li id="S1.I1.i1a" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S1.I1.i1a.p1" class="ltx_para">
+<p id="S1.I1.i1a.p1.1" class="ltx_p"><span id="S1.I1.i1a.p1.1.1" class="ltx_text ltx_font_bold">Input:</span> A list of space-time constraints.</p>
+</div>
+</li>
+<li id="S1.I1.i2a" class="ltx_item" style="list-style-type:none;">
+<span class="ltx_tag ltx_tag_item">•</span> 
+<div id="S1.I1.i2a.p1" class="ltx_para">
+<p id="S1.I1.i2a.p1.1" class="ltx_p"><span id="S1.I1.i2a.p1.1.1" class="ltx_text ltx_font_bold">Output:</span> A path satisfying these constraints, its occupied space-time volume (possibly in compact form), and the solution cost. Returns None if no solution is found.</p>
+</div>
+</li>
+</ul>
+<p id="S1.SS2.SSS2.p1.1" class="ltx_p">Constraints minimally define space-time locations <math id="S1.SS2.SSS2.p1.1.m1" class="ltx_Math" alttext="(p,t)" display="inline" intent=":literal"><semantics><mrow><mo stretchy="false">(</mo><mi>p</mi><mo>,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p,t)</annotation></semantics></math> that must be avoided, but can be generalized to space-time volumes for practical performance. Crucially, CBS operates independently of how the underlying <span id="S1.SS2.SSS2.p1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> call is implemented, enabling it to coordinate diverse single-agent solvers under a shared protocol abstraction.</p>
+</div>
+<div id="S1.SS2.SSS2.p2" class="ltx_para">
+<p id="S1.SS2.SSS2.p2.1" class="ltx_p">This perspective highlights a practical benefit: new single-agent methods can be easily integrated into the CBS Protocol as long as they expose the required API. For example, our work demonstrates how to use an RL policy within CBS—a “novel” contribution from the RL or CBS perspective but straightforward under the API abstraction.</p>
+</div>
+</section>
+<section id="S1.SS2.SSS3" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S1.SS2.SSS3.5.1.1" class="ltx_text">A1-B</span>3 </span>Demonstrating broad applicability</h4>
+
+<div id="S1.SS2.SSS3.p1" class="ltx_para">
+<p id="S1.SS2.SSS3.p1.1" class="ltx_p">We demonstrate that the CBS Protocol can coordinate a heterogeneous team of robots equipped with a wide range of solvers: heuristic search (e.g., A*), sampling-based planning (e.g., RRT), trajectory optimization (e.g., direct collocation), diffusion-based planning, and reinforcement learning.
+Additionally, we show how the CBS Protocol is task-agnostic: the <span id="S1.SS2.SSS3.p1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> API is not limited to start-goal planning and can plan independent motion-planning tasks like coverage or surveillance.</p>
+</div>
+</section>
+</section>
+<section id="S1.SS3" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S1.SS3.5.1.1" class="ltx_text">A1-C</span> </span><span id="S1.SS3.6.2" class="ltx_text ltx_font_italic">Main Limitations</span>
+</h3>
+
+<section id="S1.SS3.SSS1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S1.SS3.SSS1.5.1.1" class="ltx_text">A1-C</span>1 </span>Independent tasks</h4>
+
+<div id="S1.SS3.SSS1.p1" class="ltx_para">
+<p id="S1.SS3.SSS1.p1.1" class="ltx_p">By design, the CBS Protocol assumes that agents solve independent tasks. It does not directly address collaborative multi-agent tasks where agents must explicitly coordinate behaviors or share objectives. In such cases, task- or robot-specific logic is required, which lies outside the scope of a task-agnostic protocol. Nonetheless, CBS can still mitigate collisions between <em id="S1.SS3.SSS1.p1.1.1" class="ltx_emph ltx_font_italic">groups</em> of collaborating agents by treating them as meta-agents.</p>
+</div>
+</section>
+<section id="S1.SS3.SSS2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S1.SS3.SSS2.5.1.1" class="ltx_text">A1-C</span>2 </span>Dependency on single-agent performance</h4>
+
+<div id="S1.SS3.SSS2.p1" class="ltx_para">
+<p id="S1.SS3.SSS2.p1.1" class="ltx_p">The efficiency of the CBS Protocol is directly tied to the quality of the underlying single-agent solvers. In our experiments, some solvers exhibited low success rates or required up to 10 seconds to return a plan, which bottlenecked overall performance. This is not an inherent limitation of the CBS Protocol itself: faster and more reliable single-agent APIs would immediately improve scalability.</p>
+</div>
+</section>
+</section>
+<section id="S1.SS4" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S1.SS4.5.1.1" class="ltx_text">A1-D</span> </span><span id="S1.SS4.6.2" class="ltx_text ltx_font_italic">Future Work</span>
+</h3>
+
+<section id="S1.SS4.SSS1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S1.SS4.SSS1.5.1.1" class="ltx_text">A1-D</span>1 </span>Future work for single-agent practitioners</h4>
+
+<div id="S1.SS4.SSS1.p1" class="ltx_para">
+<p id="S1.SS4.SSS1.p1.1" class="ltx_p">Developing more efficient single-agent solvers for the CBS Protocol, i.e., that handles space-time constraints and replanning, will enable more efficient multi-agent motion planning with the CBS Protocol. The benefit of the CBS Protocol is that these single-agent solvers can be developed independently and still be used plug-and-play with the CBS Protocol.</p>
+</div>
+</section>
+<section id="S1.SS4.SSS2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S1.SS4.SSS2.5.1.1" class="ltx_text">A1-D</span>2 </span>Future work for multi-agent practitioners</h4>
+
+<div id="S1.SS4.SSS2.p1" class="ltx_para">
+<p id="S1.SS4.SSS2.p1.1" class="ltx_p">As a proof-of-concept, the CBS Protocol took the core CBS idea without leveraging modern advancements in classical CBS. Thus, promising future work would be to incorporate improvements like stronger constraints and Enhanced CBS <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">barer2014suboptimalecbs</span>]</cite>. Interleaving partial planning and execution <cite class="ltx_cite ltx_citemacro_cite">[<span class="ltx_ref ltx_missing_citation ltx_ref_self">rhcrLi2020</span>]</cite> could also replace the need for a single long planning time in the beginning with interspersed planning throughout. Achieving this would likely require expanding the single-agent <span id="S1.SS4.SSS2.p1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> API inputs.</p>
+</div>
+<div id="S1.SS4.SSS2.p2" class="ltx_para">
+<p id="S1.SS4.SSS2.p2.1" class="ltx_p">More broadly, we hope more attention will be given to the AH-MAMP problem setting which will become prevalent as single-agent robots mature. We hope to see more solutions/protocols in the future.</p>
+</div>
+</section>
+</section>
+</section>
+<section id="S2a" class="ltx_section">
+<h2 class="ltx_title ltx_title_section">
+<span class="ltx_tag ltx_tag_section">A2 </span><span id="S2a.1.1" class="ltx_text ltx_font_smallcaps">Additional Experimental Details &amp; Results</span>
+</h2>
+
+<figure id="S2.T1" class="ltx_table">
+<table id="S2.T1.1" class="ltx_tabular ltx_centering ltx_align_middle">
+<tbody class="ltx_tbody">
+<tr id="S2.T1.1.2.1" class="ltx_tr">
+<td id="S2.T1.1.2.1.1" class="ltx_td ltx_align_center ltx_border_l ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.2.1.1.1" class="ltx_text">Solver</span></td>
+<td id="S2.T1.1.2.1.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.2.1.2.1" class="ltx_text">Dynamics</span></td>
+<td id="S2.T1.1.2.1.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.2.1.3.1" class="ltx_text">Shape (Size)</span></td>
+<td id="S2.T1.1.2.1.4" class="ltx_td ltx_align_center ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.2.1.4.1" class="ltx_text">Maps</span></td>
+<td id="S2.T1.1.2.1.5" class="ltx_td ltx_align_center ltx_border_rr ltx_border_t" rowspan="2"><span id="S2.T1.1.2.1.5.1" class="ltx_text">Timeout (s)</span></td>
+<td id="S2.T1.1.2.1.6" class="ltx_td ltx_align_center ltx_border_r ltx_border_t" colspan="3">No experience / Experience</td>
+</tr>
+<tr id="S2.T1.1.3.2" class="ltx_tr">
+<td id="S2.T1.1.3.2.1" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Mean Times (s)</td>
+<td id="S2.T1.1.3.2.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Median Times (s)</td>
+<td id="S2.T1.1.3.2.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Success %</td>
+</tr>
+<tr id="S2.T1.1.4.3" class="ltx_tr">
+<td id="S2.T1.1.4.3.1" class="ltx_td ltx_align_center ltx_border_l ltx_border_r ltx_border_t" rowspan="3"><span id="S2.T1.1.4.3.1.1" class="ltx_text">A*</span></td>
+<td id="S2.T1.1.4.3.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Ackermann</td>
+<td id="S2.T1.1.4.3.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.4.3.3.1" class="ltx_text">Rectangle (0.4x0.1)</span></td>
+<td id="S2.T1.1.4.3.4" class="ltx_td ltx_align_center ltx_border_r ltx_border_t" rowspan="3"><span id="S2.T1.1.4.3.4.1" class="ltx_text">All</span></td>
+<td id="S2.T1.1.4.3.5" class="ltx_td ltx_align_center ltx_border_rr ltx_border_t" rowspan="3"><span id="S2.T1.1.4.3.5.1" class="ltx_text">10</span></td>
+<td id="S2.T1.1.4.3.6" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">5.62 / 4.74</td>
+<td id="S2.T1.1.4.3.7" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">4.60 / 2.09</td>
+<td id="S2.T1.1.4.3.8" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">57.1 / 56.4</td>
+</tr>
+<tr id="S2.T1.1.5.4" class="ltx_tr">
+<td id="S2.T1.1.5.4.1" class="ltx_td ltx_align_center ltx_border_r">Dubins</td>
+<td id="S2.T1.1.5.4.2" class="ltx_td ltx_align_center ltx_border_r">2.09 / 1.85</td>
+<td id="S2.T1.1.5.4.3" class="ltx_td ltx_align_center ltx_border_r">0.26 / 0.17</td>
+<td id="S2.T1.1.5.4.4" class="ltx_td ltx_align_center ltx_border_r">88.2 / 87.7</td>
+</tr>
+<tr id="S2.T1.1.6.5" class="ltx_tr">
+<td id="S2.T1.1.6.5.1" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">4-connected</td>
+<td id="S2.T1.1.6.5.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Rectangle (0.8x0.3)</td>
+<td id="S2.T1.1.6.5.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1.41 / 1.58</td>
+<td id="S2.T1.1.6.5.4" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">0.72 / 0.66</td>
+<td id="S2.T1.1.6.5.5" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">91.3 / 94.0</td>
+</tr>
+<tr id="S2.T1.1.7.6" class="ltx_tr">
+<td id="S2.T1.1.7.6.1" class="ltx_td ltx_align_center ltx_border_l ltx_border_r ltx_border_t">Colloc</td>
+<td id="S2.T1.1.7.6.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Ackermann</td>
+<td id="S2.T1.1.7.6.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Rectangle (0.8x0.3)</td>
+<td id="S2.T1.1.7.6.4" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">empty, random</td>
+<td id="S2.T1.1.7.6.5" class="ltx_td ltx_align_center ltx_border_rr ltx_border_t">10</td>
+<td id="S2.T1.1.7.6.6" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">6.45 / 0.67</td>
+<td id="S2.T1.1.7.6.7" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">9.42 / 0.44</td>
+<td id="S2.T1.1.7.6.8" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">44.9 / 46.5</td>
+</tr>
+<tr id="S2.T1.1.8.7" class="ltx_tr">
+<td id="S2.T1.1.8.7.1" class="ltx_td ltx_align_center ltx_border_l ltx_border_r ltx_border_t">Diffusion</td>
+<td id="S2.T1.1.8.7.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">None</td>
+<td id="S2.T1.1.8.7.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Circle (0.15 radius)</td>
+<td id="S2.T1.1.8.7.4" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Ribera</td>
+<td id="S2.T1.1.8.7.5" class="ltx_td ltx_align_center ltx_border_rr ltx_border_t">10</td>
+<td id="S2.T1.1.8.7.6" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1.96 / 0.68</td>
+<td id="S2.T1.1.8.7.7" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1.59 / 0.51</td>
+<td id="S2.T1.1.8.7.8" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">61.9 / 62.3</td>
+</tr>
+<tr id="S2.T1.1.1" class="ltx_tr">
+<td id="S2.T1.1.1.2" class="ltx_td ltx_align_center ltx_border_l ltx_border_r ltx_border_t">RL</td>
+<td id="S2.T1.1.1.3" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Unicycle</td>
+<td id="S2.T1.1.1.4" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">Oval-like (0.8x0.3)</td>
+<td id="S2.T1.1.1.1" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">All<sup id="S2.T1.1.1.1.1" class="ltx_sup">†</sup>
+</td>
+<td id="S2.T1.1.1.5" class="ltx_td ltx_align_center ltx_border_rr ltx_border_t">5</td>
+<td id="S2.T1.1.1.6" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1.67 / 1.20</td>
+<td id="S2.T1.1.1.7" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1.72 / 0.72</td>
+<td id="S2.T1.1.1.8" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">34.4 / 35.0</td>
+</tr>
+<tr id="S2.T1.1.9.8" class="ltx_tr">
+<td id="S2.T1.1.9.8.1" class="ltx_td ltx_align_center ltx_border_b ltx_border_l ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.9.8.1.1" class="ltx_text">RRT</span></td>
+<td id="S2.T1.1.9.8.2" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">4-connected</td>
+<td id="S2.T1.1.9.8.3" class="ltx_td ltx_align_center ltx_border_b ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.9.8.3.1" class="ltx_text">Triangle (0.6x0.4)</span></td>
+<td id="S2.T1.1.9.8.4" class="ltx_td ltx_align_center ltx_border_b ltx_border_r ltx_border_t" rowspan="2"><span id="S2.T1.1.9.8.4.1" class="ltx_text">All</span></td>
+<td id="S2.T1.1.9.8.5" class="ltx_td ltx_align_center ltx_border_b ltx_border_rr ltx_border_t" rowspan="2"><span id="S2.T1.1.9.8.5.1" class="ltx_text">5</span></td>
+<td id="S2.T1.1.9.8.6" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">1.38 / 1.28</td>
+<td id="S2.T1.1.9.8.7" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">0.44 / 0.17</td>
+<td id="S2.T1.1.9.8.8" class="ltx_td ltx_align_center ltx_border_r ltx_border_t">79.1 / 82.3</td>
+</tr>
+<tr id="S2.T1.1.10.9" class="ltx_tr">
+<td id="S2.T1.1.10.9.1" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">None</td>
+<td id="S2.T1.1.10.9.2" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">0.87 / 0.82</td>
+<td id="S2.T1.1.10.9.3" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">0.18 / 0.07</td>
+<td id="S2.T1.1.10.9.4" class="ltx_td ltx_align_center ltx_border_b ltx_border_r">86.1 / 82.9</td>
+</tr>
+</tbody>
+</table>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_table"><span id="S2.T1.7.2.1" class="ltx_text" style="font-size:90%;">TABLE A1</span>: </span><span id="S2.T1.3.1" class="ltx_text" style="font-size:90%;">Additional information on single agent start-goal solvers. The A* and RRT solvers worked reliably across all maps. Direction Collocation (Colloc) took too long on the IN2D maps, Diffusion struggled with small obstacles or large maps, and <sup id="S2.T1.3.1.1" class="ltx_sup">†</sup> denotes how the RL agent was unreliable on IN2D maps. The timeout denotes the single-agent <span id="S2.T1.3.1.2" class="ltx_text ltx_font_typewriter">plan()</span> time limit before returning failure. The statistics on the right columns report statistics for replanning without and with experience in the CBS Protocol (e.g., the first results 5.62 / 4.74 denote that without experience the mean runtime is 5.62 seconds, while with experience it is 4.74). We see that experience noticeably decreases the median runtime across all solvers.</span></figcaption>
+</figure>
+<section id="S2.SS0.SSS1" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S2.SS0.SSS1.5.1.1" class="ltx_text">A2-</span>1 </span>Start-Goal Solvers</h4>
+
+<div id="S2.SS0.SSS1.p1" class="ltx_para">
+<p id="S2.SS0.SSS1.p1.1" class="ltx_p">Table <a href="#S2.T1" title="TABLE A1 ‣ A2 Additional Experimental Details &amp; Results ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">A1</span></a> describes additional information about the single agent start-goal solvers. The success percentage (last column) is the success rate of the single-agent <span id="S2.SS0.SSS1.p1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> returning a solution that satisfies constraints within the timeout. Mean and median times denote the <span id="S2.SS0.SSS1.p1.1.2" class="ltx_text ltx_font_typewriter">plan()</span> time for re-planning given constraints, with failures included as the timeout.</p>
+</div>
+</section>
+<section id="S2.SS0.SSS2" class="ltx_subsubsection">
+<h4 class="ltx_title ltx_title_subsubsection">
+<span class="ltx_tag ltx_tag_subsubsection"><span id="S2.SS0.SSS2.5.1.1" class="ltx_text">A2-</span>2 </span>Non-Start Goal Solvers</h4>
+
+<div id="S2.SS0.SSS2.p1" class="ltx_para">
+<p id="S2.SS0.SSS2.p1.1" class="ltx_p">We describe in more detail the heterogeneous tasks described in Section <a href="#S4.SS3" title="IV-C Experimental Results ‣ IV Experiments ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag"><span class="ltx_text">IV-C</span></span></a>.
+For tasks which are very-long or infinite horizon (e.g., coverage which could continue forever), we had the <span id="S2.SS0.SSS2.p1.1.1" class="ltx_text ltx_font_typewriter">plan()</span> APIs return a path of at most 50 simulation timesteps.</p>
+</div>
+<div id="S2.SS0.SSS2.p2" class="ltx_para">
+<p id="S2.SS0.SSS2.p2.1" class="ltx_p">For the coverage A* and RRT <span id="S2.SS0.SSS2.p2.1.1" class="ltx_text ltx_font_typewriter">plan()</span> API, we sampled 4 random states from the map and have the planners return a path that visits all 4 states (or a partial path that reaches the 50 simulation timestep limit). This is done by iteratively planning paths to the nearest state.</p>
+</div>
+<div id="S2.SS0.SSS2.p3" class="ltx_para">
+<p id="S2.SS0.SSS2.p3.1" class="ltx_p">For the Direction Collocation “surveillance” task, we change the objective function so that it penalizes deviations from a target radius distance from a target point and forward velocity. Solving this induces a circular motion around the target point.</p>
+</div>
+<div id="S2.SS0.SSS2.p4" class="ltx_para">
+<p id="S2.SS0.SSS2.p4.1" class="ltx_p">For the RL coverage planner, we discretized the environment into cells and greedily set the goal for the RL agent to reach the next location it has not covered yet.</p>
+</div>
+<div id="S2.SS0.SSS2.p5" class="ltx_para">
+<p id="S2.SS0.SSS2.p5.1" class="ltx_p">For the Diffusion solver, we collected a dataset of start-goal paths where each path visits the same central location on the way to its goal. We can then train and evaluate the model identical to that for a normal start-goal dataset, except that now the model will exhibit the new motion patterns in the dataset.</p>
+</div>
+</section>
+<section id="S2.SS1a" class="ltx_subsection">
+<h3 class="ltx_title ltx_title_subsection">
+<span class="ltx_tag ltx_tag_subsection"><span id="S2.SS1a.5.1.1" class="ltx_text">A2-A</span> </span><span id="S2.SS1a.6.2" class="ltx_text ltx_font_italic">Visualizations</span>
+</h3>
+
+<div id="S2.SS1a.p1" class="ltx_para">
+<p id="S2.SS1a.p1.1" class="ltx_p">Figures <a href="#S2.F1a" title="Figure A1 ‣ A2-A Visualizations ‣ A2 Additional Experimental Details &amp; Results ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">A1</span></a> and <a href="#S2.F2" title="Figure A2 ‣ A2-A Visualizations ‣ A2 Additional Experimental Details &amp; Results ‣ Conflict-Based Search as a Protocol: A Multi-Agent Motion Planning Protocol for Heterogeneous Agents, Solvers, and Independent Tasks" class="ltx_ref"><span class="ltx_text ltx_ref_tag">A2</span></a> visualize results for heterogeneous tasks which were solved using the CBS Protocol. We increased the timeouts of the Direct Collocation solver to 30 seconds so that it succeeded on more instances, and increased the overall CBS Protocol search time to 300 seconds. Instances were generated by randomly sampling single agent solvers and tasks.</p>
+</div>
+<figure id="S2.F1a" class="ltx_figure">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F1a.1" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/Cantwell.basic.scen_n7_s45_custom.png" id="S2.F1a.1.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="598" height="371" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F1a.2" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/Cantwell.basic.scen_n7_s117_custom.png" id="S2.F1a.2.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="598" height="371" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_break"></div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F1a.3" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/Mosquito.basic.scen_n7_s4_custom.png" id="S2.F1a.3.g1" class="ltx_graphics ltx_centering ltx_img_square" width="598" height="556" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F1a.4" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/Mosquito.basic.scen_n7_s7_custom.png" id="S2.F1a.4.g1" class="ltx_graphics ltx_centering ltx_img_square" width="598" height="556" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_break"></div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F1a.5" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/Ribera.basic.scen_n5_s13_custom.png" id="S2.F1a.5.g1" class="ltx_graphics ltx_centering ltx_img_square" width="598" height="573" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F1a.6" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/Ribera.basic.scen_n6_s3_custom.png" id="S2.F1a.6.g1" class="ltx_graphics ltx_centering ltx_img_square" width="598" height="548" alt="Refer to caption">
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span id="S2.F1a.8.1.1" class="ltx_text" style="font-size:90%;">Figure A1</span>: </span><span id="S2.F1a.9.2" class="ltx_text" style="font-size:90%;">Examples of successful instances of the CBS Protocol with algorithmically heterogeneous agents on IND2 Maps. Each legend denotes the task, solver, and dynamics for each agent. Note that some agents also have different footprint shapes/sizes. X’s denote space-time constraints required for the solution found by CBS, with the time depicted by the color bar.</span></figcaption>
+</figure>
+<figure id="S2.F2" class="ltx_figure">
+<div class="ltx_flex_figure">
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F2.1" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/random-32-32-10.basic.scen_n9_s27_custom.png" id="S2.F2.1.g1" class="ltx_graphics ltx_centering ltx_img_square" width="598" height="581" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F2.2" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/random-32-32-10.basic.scen_n9_s29_custom.png" id="S2.F2.2.g1" class="ltx_graphics ltx_centering ltx_img_square" width="598" height="577" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_break"></div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F2.3" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/empty-10-15.random30.scen_n9_s23_custom.png" id="S2.F2.3.g1" class="ltx_graphics ltx_centering ltx_img_landscape" width="598" height="481" alt="Refer to caption">
+</figure>
+</div>
+<div class="ltx_flex_cell ltx_flex_size_2">
+<figure id="S2.F2.4" class="ltx_figure ltx_figure_panel ltx_align_center"><img src="2510.00425v2/figs/results/empty-10-15.random30.scen_n11_s5_custom.png" id="S2.F2.4.g1" class="ltx_graphics ltx_centering ltx_img_square" width="598" height="497" alt="Refer to caption">
+</figure>
+</div>
+</div>
+<figcaption class="ltx_caption ltx_centering"><span class="ltx_tag ltx_tag_figure"><span id="S2.F2.6.1.1" class="ltx_text" style="font-size:90%;">Figure A2</span>: </span><span id="S2.F2.7.2" class="ltx_text" style="font-size:90%;">Examples of successful instances of the CBS Protocol with algorithmically heterogeneous agents on a map with random obstacles and an empty map. Each legend denotes the task, solver, and dynamics for each agent. Note that some agents also have different footprint shapes/sizes. X’s denote space-time constraints required for the solution found by CBS, with the time depicted by the color bar.</span></figcaption>
+</figure>
+</section>
+</section>
+</article>
+</div>
+</div>
+<footer class="arxiv-html-footer">
+  <div class="ltx_page_logo">
+    Experimental support, please
+    <a href="./2510.00425v2/__stdout.txt" class="ltx_ref"
+    target="_blank" rel="nofollow">view the build logs</a>
+    for errors. Generated by
+    <a href="https://math.nist.gov/~BMiller/LaTeXML/" target="_blank" class="ltx_ref ltx_LaTeXML_logo">
+      <span style="letter-spacing: -0.2em; margin-right: 0.1em;">
+        L
+        <span style="font-size: 70%; position: relative; bottom: 2.2pt;">A</span>
+        T
+        <span style="position: relative; bottom: -0.4ex;">E</span>
+      </span>
+      <span class="ltx_font_smallcaps">xml</span>
+      <img alt="[LOGO]"
+        src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAYAAAD5YeaVAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9wKExQZLWTEaOUAAAAddEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIFRoZSBHSU1Q72QlbgAAAdpJREFUKM9tkL+L2nAARz9fPZNCKFapUn8kyI0e4iRHSR1Kb8ng0lJw6FYHFwv2LwhOpcWxTjeUunYqOmqd6hEoRDhtDWdA8ApRYsSUCDHNt5ul13vz4w0vWCgUnnEc975arX6ORqN3VqtVZbfbTQC4uEHANM3jSqXymFI6yWazP2KxWAXAL9zCUa1Wy2tXVxheKA9YNoR8Pt+aTqe4FVVVvz05O6MBhqUIBGk8Hn8HAOVy+T+XLJfLS4ZhTiRJgqIoVBRFIoric47jPnmeB1mW/9rr9ZpSSn3Lsmir1fJZlqWlUonKsvwWwD8ymc/nXwVBeLjf7xEKhdBut9Hr9WgmkyGEkJwsy5eHG5vN5g0AKIoCAEgkEkin0wQAfN9/cXPdheu6P33fBwB4ngcAcByHJpPJl+fn54mD3Gg0NrquXxeLRQAAwzAYj8cwTZPwPH9/sVg8PXweDAauqqr2cDjEer1GJBLBZDJBs9mE4zjwfZ85lAGg2+06hmGgXq+j3+/DsixYlgVN03a9Xu8jgCNCyIegIAgx13Vfd7vdu+FweG8YRkjXdWy329+dTgeSJD3ieZ7RNO0VAXAPwDEAO5VKndi2fWrb9jWl9Esul6PZbDY9Go1OZ7PZ9z/lyuD3OozU2wAAAABJRU5ErkJggg==">
+    </a>.
+  </div>
+  <div class="keyboard-glossary">
+    <h2>Instructions for reporting errors</h2>
+    <p>We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:</p>
+    <ul>
+      <li>Click the "Report Issue" <span class="mobile-only">(<svg role="presentation"
+            style="display: inline-block; vertical-align: middle; fill: var(--text-color);" aria-hidden="true"
+            height="1em" viewBox="0 0 640 640">
+            <path
+              d="M224 160C224 107 267 64 320 64C373 64 416 107 416 160L416 163.6C416 179.3 403.3 192 387.6 192L252.5 192C236.8 192 224.1 179.3 224.1 163.6L224.1 160zM569.6 172.8C580.2 186.9 577.3 207 563.2 217.6L465.4 290.9C470.7 299.8 474.7 309.6 477.2 320L576 320C593.7 320 608 334.3 608 352C608 369.7 593.7 384 576 384L480 384L480 416C480 418.6 479.9 421.3 479.8 423.9L563.2 486.4C577.3 497 580.2 517.1 569.6 531.2C559 545.3 538.9 548.2 524.8 537.6L461.7 490.3C438.5 534.5 395.2 566.5 344 574.2L344 344C344 330.7 333.3 320 320 320C306.7 320 296 330.7 296 344L296 574.2C244.8 566.5 201.5 534.5 178.3 490.3L115.2 537.6C101.1 548.2 81 545.3 70.4 531.2C59.8 517.1 62.7 497 76.8 486.4L160.2 423.9C160.1 421.3 160 418.7 160 416L160 384L64 384C46.3 384 32 369.7 32 352C32 334.3 46.3 320 64 320L162.8 320C165.3 309.6 169.3 299.8 174.6 290.9L76.8 217.6C62.7 207 59.8 186.9 70.4 172.8C81 158.7 101.1 155.8 115.2 166.4L224 248C236.3 242.9 249.8 240 264 240L376 240C390.2 240 403.7 242.8 416 248L524.8 166.4C538.9 155.8 559 158.7 569.6 172.8z" />
+          </svg>)</span> button, located in the page header.</li>
+    </ul>
+    <p><strong>Tip:</strong> You can select the relevant text first, to include it in your report.</p>
+    <p>Our team has already identified <a class="ltx_ref" href="https://github.com/arXiv/html_feedback/issues"
+        target="_blank">the following issues</a>. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.</p>
+    <p>Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a <a
+        class="ltx_ref" href="https://github.com/brucemiller/LaTeXML/wiki/Porting-LaTeX-packages-for-LaTeXML"
+        target="_blank">list of packages that need conversion</a>, and welcome <a class="ltx_ref"
+        href="https://github.com/brucemiller/LaTeXML/issues" target="_blank">developer contributions</a>.</p>
+  </div>
+</footer><footer class="ds-site-footer">
+  <div class="ds-site-footer-grid">
+    <div class="ds-site-footer-main">
+      <div class="ds-site-footer-ack">
+        We gratefully acknowledge support from
+        our <strong>major funders</strong>,
+        <a href="https://info.arxiv.org/about/ourmembers.html"><strong>member institutions</strong></a><span class="ack-member-inline" hidden>, <strong></strong></span>,
+        and all contributors.
+      </div>
+      <nav class="ds-site-footer-links" aria-label="Site navigation">
+        <a href="https://info.arxiv.org/about">About</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help">Help</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/contact.html">Contact</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/subscribe">Subscribe</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/license/index.html">Copyright</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/policies/privacy_policy.html">Privacy</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://info.arxiv.org/help/web_accessibility.html">Accessibility</a>
+        <span class="ds-site-footer-sep" aria-hidden="true">&middot;</span>
+        <a href="https://status.arxiv.org" target="_blank" rel="noopener noreferrer">Operational Status<span class="is-sr-only"> (opens in new tab)</span></a>
+      </nav>
+    </div>
+
+    <div class="ds-site-footer-funders" aria-label="Major funders">
+      <div class="ds-site-footer-funders-label">Major funding support from</div>
+      <div class="ds-site-footer-funders-logos">
+        <img class="ds-funder-logo" src="/static/base/1.0.1/images/funders/simons-foundation.png" alt="Simons Foundation">
+        <img class="ds-funder-logo" src="/static/base/1.0.1/images/funders/schmidt-sciences.png" alt="Schmidt Sciences">
+      </div>
+    </div>
+  </div>
+</footer><div id="fixed-buttons-container">
+  <a id="disable-reading-mode-btn" class="header-button" href="javascript:toggleReadingMode();"
+    title="Disable reading mode, show header and footer">
+    <svg role="presentation" height="1.25rem"
+      viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+      <path
+        d="M0 96C0 78.3 14.3 64 32 64l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 128C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32L32 448c-17.7 0-32-14.3-32-32s14.3-32 32-32l384 0c17.7 0 32 14.3 32 32z" />
+    </svg>
+  </a>
+</div></body>
+</html>
