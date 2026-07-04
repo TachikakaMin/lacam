@@ -38,13 +38,13 @@ int lifelong_loaded_cost(const LifelongAgentState& agent,
 LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     std::vector<LifelongAgentState>& agents, std::vector<LifelongTask>& tasks,
     const MapDistanceCache& distances, int multi_carry_capacity = 1,
-    int max_shared_drop_goal_agents = 5, int pickup_service_duration = 1,
+    int max_shared_drop_goal_agents = 1, int pickup_service_duration = 1,
     int delivery_service_duration = 1,
     const std::vector<float>& agent_priority_offsets = std::vector<float>(),
     const std::vector<std::unordered_map<int, int> >&
         preferred_pickup_task_id_by_start_index_by_agent =
             std::vector<std::unordered_map<int, int> >(),
-    int assignment_cost_mode = LIFELONG_ASSIGNMENT_COST_BASELINE);
+    int assignment_cost_mode = LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY);
 TAPFInstance build_lifelong_tapf_instance(
     const std::string& map_filename,
     const std::vector<LifelongAgentState>& agents,

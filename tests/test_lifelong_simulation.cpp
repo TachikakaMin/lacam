@@ -4,6 +4,19 @@
 
 #include "gtest/gtest.h"
 
+TEST(lifelong_simulation, default_config_uses_scoring_planner_knobs)
+{
+  const auto config = LifelongSimulationConfig();
+  EXPECT_EQ(config.max_shared_drop_goal_agents, 1);
+  EXPECT_EQ(config.assignment_cost_mode,
+            LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY);
+
+  const auto metrics = LifelongSimulationMetrics();
+  EXPECT_EQ(metrics.max_shared_drop_goal_agents, 1);
+  EXPECT_EQ(metrics.assignment_cost_mode,
+            LIFELONG_ASSIGNMENT_COST_MILD_PICKUP_DELAY);
+}
+
 TEST(lifelong_simulation, direct_loaded_tapf_fixture_moves_to_goal)
 {
   const auto ins = TAPFInstance("./tests/assets/lifelong-sim-small.map", {0},

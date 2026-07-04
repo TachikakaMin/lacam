@@ -16,9 +16,11 @@ namespace
                  "[OUTBOUND_PROB=0.5] [RELEASE_INTERVAL=10] [DEBUG=0] "
                  "[SCHEDULE_YAML] [ANYTIME=0] [MULTI_CARRY_CAPACITY=1] "
                  "[FORCE_FULL_ASSIGNMENT=0] [SERVICE_COMMIT_AGENTS=0] "
-                 "[MAX_SHARED_DROP_GOAL_AGENTS=5] "
+                 "[MAX_SHARED_DROP_GOAL_AGENTS=1] "
                  "[PICKUP_SERVICE_DURATION=1] [DELIVERY_SERVICE_DURATION=1] "
-                 "[ASSIGNMENT_COST_MODE=0]\n";
+                 "[ASSIGNMENT_COST_MODE=1]\n"
+                 "Negative SERVICE_COMMIT_AGENTS, MAX_SHARED_DROP_GOAL_AGENTS, "
+                 "or ASSIGNMENT_COST_MODE keep the code default.\n";
   }
 
   bool should_write_header(const std::string& path)
@@ -423,16 +425,22 @@ int main(int argc, char** argv)
   config.multi_carry_capacity = argc >= 15 ? std::stoi(argv[14]) : 1;
   config.planner_force_full_assignment =
       argc >= 16 ? std::stoi(argv[15]) != 0 : false;
-  config.service_commit_agents =
-      argc >= 17 ? std::stoi(argv[16]) : config.service_commit_agents;
-  config.max_shared_drop_goal_agents =
-      argc >= 18 ? std::stoi(argv[17]) : config.max_shared_drop_goal_agents;
+  if (argc >= 17) {
+    const auto value = std::stoi(argv[16]);
+    if (value >= 0) config.service_commit_agents = value;
+  }
+  if (argc >= 18) {
+    const auto value = std::stoi(argv[17]);
+    if (value >= 0) config.max_shared_drop_goal_agents = value;
+  }
   config.pickup_service_duration =
       argc >= 19 ? std::stoi(argv[18]) : config.pickup_service_duration;
   config.delivery_service_duration =
       argc >= 20 ? std::stoi(argv[19]) : config.delivery_service_duration;
-  config.assignment_cost_mode =
-      argc >= 21 ? std::stoi(argv[20]) : config.assignment_cost_mode;
+  if (argc >= 21) {
+    const auto value = std::stoi(argv[20]);
+    if (value >= 0) config.assignment_cost_mode = value;
+  }
 
   const auto* legacy_env = std::getenv("LACAM_LIFELONG_BENCHMARK_LEGACY");
   const auto use_legacy =
