@@ -73,9 +73,14 @@ task:
     score. First run a normal `coral eval -m "baseline"` on the unmodified
     workspace so the leaderboard has an initial score, then iterate with local
     diagnostics plus delegated `coral eval --tune -m "..."` for screening on
-    public tune seeds. Run delegated normal
-    `coral eval -m "..."` whenever a candidate is valid and plausibly worth
-    counting. Still follow the protocol's core discipline: observe real
+    public tune seeds. Tune mode is for agent-internal diagnosis: agents may use
+    its per-seed rows, stdout/stderr, and traces to debug and compare candidates.
+    For the user-facing final result of any retained experiment chain, run a
+    delegated normal `coral eval -m "..."` so the user receives a hidden
+    held-out real score. A tune-only result may be recorded only as an internal
+    screen, failed hypothesis, or discarded diagnostic, not as the final
+    reported outcome of a candidate. Still follow the protocol's core discipline:
+    observe real
     trajectories, form a root-cause hypothesis, make the minimum code change,
     quick-verify, inspect trace signals, and use same-seed comparisons on local
     diagnostics or tune evals.
@@ -84,10 +89,16 @@ task:
     affects behavior: congestion, waiting, goal churn, service dwell,
     assignment churn, local conflicts, cache hit rates, runtime distribution, or
     other trace-derived signals. Do not immediately revert a candidate only
-    because quick throughput drops; first check whether the drop comes from a
-    fixable bug, a newly exposed bottleneck, seed variance, runtime tradeoff, or
-    an incomplete paired mechanism. Explore with evidence as long as fixed
-    scenario semantics and validity are preserved.
+    because quick throughput drops. Up to three consecutive exploration rounds
+    may accept a performance loss if the hypothesis is still technically
+    plausible, but after each losing round first verify the code path is sound:
+    build/tests pass, output remains valid, fixed scenario semantics are
+    preserved, and the regression is not caused by an obvious bug, bad flag,
+    broken instrumentation, or unintended runtime blow-up. Only then continue
+    with a narrower diagnostic, paired mechanism, or follow-up change. If three
+    consecutive explored variants still lose after these checks, summarize the
+    evidence and pivot away from that mechanism unless a new root-cause signal
+    appears.
 
     Allowed code changes are general algorithm, environment-semantics-safe, or
     engineering optimizations in the lacam_agent source/tests/tools. Put
@@ -97,9 +108,11 @@ task:
       real-mode seed identities are intentionally hidden by the grader.
     - Run `coral eval -m "baseline"` before code changes to register the first
       official score.
-    - Run `coral eval --tune -m "..."` for exploratory sweeps.
-    - Run normal `coral eval -m "..."` when you have a candidate that should
-      count on the leaderboard.
+    - Run `coral eval --tune -m "..."` for exploratory sweeps that the agent can
+      inspect in detail.
+    - Run normal `coral eval -m "..."` for the final user-facing result of every
+      retained candidate or experiment chain; tune-only outcomes are not final
+      user-facing evidence.
     - Tune eval logs contain `rows.csv`, seed stdout/stderr, and summary JSON;
       real eval logs expose aggregate summary only so held-out seeds do not leak.
     - Every throughput idea must cite a local `papers/briefs/*.md` summary and,
