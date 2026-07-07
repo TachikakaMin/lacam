@@ -23,13 +23,34 @@ coral start -c task.yaml agents.runtime=claude_code agents.count=4 run.session=l
 
 The default Codex configuration uses `gpt-5.5` with high reasoning effort.
 All throughput ideas must originate from the local paper library. Start with
-`papers/README.md`, open the relevant `papers/briefs/*.md` summary, and read
-the linked paper only when section, algorithm, design-pattern, or empirical
-detail is needed. Implementation plus command execution, including
+`papers/README.md`, use `papers/idea_categories.md` to classify the idea source
+as map/guidance-weight optimization, algorithm design, or heuristic-function
+design, open the relevant `papers/briefs/*.md` summary, and read the linked
+paper only when section, algorithm, design-pattern, or empirical detail is
+needed. Implementation plus command execution, including
 build/test/benchmark and `coral eval`, should be delegated through the
 `paper-grounded-subagent` skill. That skill launches nested Codex subagents with
-`gpt-5.3-codex-spark` and high reasoning effort, writing reports under
-`hl_agent/runs/paper_grounded_subagents/`.
+`gpt-5.3-codex-spark` and high reasoning effort by default. If that model has
+no quota or hits a quota/rate-limit/capacity/billing availability error, the
+helper automatically retries once with `gpt-5.5` and medium reasoning effort.
+Reports are written under `hl_agent/runs/paper_grounded_subagents/`.
+
+Current paper-routing summary:
+
+- Map/guidance-weight optimization papers suggest general edge, region,
+  congestion, station-pressure, or flow weights. They may change algorithm-side
+  costs but must not change the fixed official map or task target.
+- Algorithm-design papers suggest solver mechanisms such as LaCAM expansion,
+  target-path coupling, priority inheritance, local repair, commitment, or
+  bounded-window control.
+- Heuristic-function papers suggest scoring functions, lower bounds,
+  tie-breakers, local guidance, conflict estimates, or candidate-ranking terms.
+
+So far, the real-confirmed lift is from heuristic-function design grounded in
+`papers/briefs/2605.16855.md`: baseline real throughput 1.18275, immediate
+occupancy/target contention ordering 1.27700, and swap-friendly occupancy
+exemption 1.32950. The full paper-to-idea table is in
+`papers/idea_categories.md`.
 
 The official grader builds `build/lifelong_benchmark` in each submitted
 checkout and scores mean throughput. Normal `coral eval` runs a hidden held-out

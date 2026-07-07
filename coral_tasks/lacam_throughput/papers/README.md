@@ -10,6 +10,16 @@
 
 当前可用本地论文/资料：76 篇。完整下载元数据见 [index.md](index.md)，未解析来源见 [unresolved.md](unresolved.md)。
 
+## Idea category routing
+
+在打开具体 brief 前，先用 [idea_categories.md](idea_categories.md) 给候选 idea 选一个主类别，并在实验 note 与 `coral eval -m` 中记录：
+
+- **Map / guidance-graph / weight optimization**：论文主要提供地图、通道、边方向、边权、区域压力、拥堵或任务分配权重方向。只能转化为通用算法代价，不能修改固定 benchmark map/task/seed。
+- **Algorithm design**：论文主要提供求解器机制，例如 LaCAM 配置生成、目标-路径耦合、PIBT/优先级继承、局部修复、窗口化、commitment 或实时预算控制。
+- **Heuristic function design**：论文主要提供 move ordering、tie-breaker、lower bound、local guidance、冲突估计、候选排序或学习启发式的可实现代理。
+
+当前已确认 real 提升来自 **heuristic function design**，主要对应 [2605.16855](briefs/2605.16855.md) 的 local guidance / hindrance avoidance 思路；详表见 [idea_categories.md](idea_categories.md#observed-paper-grounded-results-so-far)。
+
 ## arcs-group
 
 - [2103.08835 - Multi-Robot Routing with Time Windows: A Column Generation Approach](briefs/2103.08835.md)：研究多机器人路由与时间窗/覆盖约束，可借鉴任务排序、容量和路径分解。

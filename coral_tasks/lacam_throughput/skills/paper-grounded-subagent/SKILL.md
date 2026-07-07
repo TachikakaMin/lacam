@@ -13,6 +13,9 @@ command.
 
 1. Ground the idea in the local paper library with progressive disclosure:
    - first read `coral_tasks/lacam_throughput/papers/README.md`;
+   - then read `coral_tasks/lacam_throughput/papers/idea_categories.md`
+     and choose the idea's primary category: map/guidance-weight optimization,
+     algorithm design, or heuristic function design;
    - then open a relevant `coral_tasks/lacam_throughput/papers/briefs/*.md`;
    - only then read the linked original HTML/PDF paper if section, algorithm,
      theorem, design-pattern, or empirical-observation detail is needed.
@@ -21,9 +24,9 @@ command.
 3. Delegate implementation and command execution to the helper script below.
 4. Review the subagent report and diff before deciding whether to run official
    `coral eval`.
-5. Record the brief path, linked paper file, concrete anchor, subagent report
-   path, files touched, commands run, and outcome in experiment notes and in
-   `coral eval -m` when practical.
+5. Record the primary category, brief path, linked paper file, concrete anchor,
+   subagent report path, files touched, commands run, and outcome in experiment
+   notes and in `coral eval -m` when practical.
 
 The main CORAL agent is the controller. It should choose hypotheses, launch
 subagents, review results, and write concise notes. It should not directly
@@ -41,10 +44,17 @@ python .codex/skills/paper-grounded-subagent/scripts/run_paper_subagent.py \
   --task "Implement the smallest safe candidate, run focused build/tests, and write a report."
 ```
 
-The helper launches:
+The helper first launches:
 
 ```bash
 codex exec --model gpt-5.3-codex-spark -c model_reasoning_effort="high" ...
+```
+
+If that call fails with a quota, rate-limit, capacity, billing, or insufficient
+credits style error, the helper automatically retries once with:
+
+```bash
+codex exec --model gpt-5.5 -c model_reasoning_effort="medium" ...
 ```
 
 It writes logs and the requested report under
@@ -54,6 +64,9 @@ It writes logs and the requested report under
 
 - Always pass a specific local `papers/briefs/*.md` path with `--paper`; do not
   pass `papers/README.md`, `papers/index.md`, or an original paper directly.
+- Ensure each subagent report labels the primary category as
+  map/guidance-weight optimization, algorithm design, or heuristic function
+  design.
 - Keep each subagent task focused on one idea.
 - Ask the subagent to run focused verification commands and summarize exact
   command outcomes.

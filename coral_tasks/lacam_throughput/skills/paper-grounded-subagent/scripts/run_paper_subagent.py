@@ -12,10 +12,24 @@ import sys
 from pathlib import Path
 
 
-SUBAGENT_MODEL = "gpt-5.3-codex-spark"
-SUBAGENT_EFFORT = "high"
+PRIMARY_SUBAGENT_MODEL = "gpt-5.3-codex-spark"
+PRIMARY_SUBAGENT_EFFORT = "high"
+FALLBACK_SUBAGENT_MODEL = "gpt-5.5"
+FALLBACK_SUBAGENT_EFFORT = "medium"
 PAPER_BRIEFS_ROOT = Path("coral_tasks/lacam_throughput/papers/briefs")
 PAPER_README = Path("coral_tasks/lacam_throughput/papers/README.md")
+PAPER_CATEGORIES = Path("coral_tasks/lacam_throughput/papers/idea_categories.md")
+QUOTA_ERROR_PATTERNS = (
+    "quota",
+    "rate limit",
+    "rate_limit",
+    "insufficient credits",
+    "insufficient_credit",
+    "billing",
+    "usage limit",
+    "capacity",
+    "no quota",
+)
 
 
 def main() -> int:
@@ -60,8 +74,10 @@ def main() -> int:
 
     report_path = run_dir / "report.md"
     prompt_path = run_dir / "prompt.md"
-    stdout_path = run_dir / "codex.stdout.jsonl"
-    stderr_path = run_dir / "codex.stderr.txt"
+    primary_stdout_path = run_dir / "codex.primary.stdout.jsonl"
+    primary_stderr_path = run_dir / "codex.primary.stderr.txt"
+    fallback_stdout_path = run_dir / "codex.fallback.stdout.jsonl"
+    fallback_stderr_path = run_dir / "codex.fallback.stderr.txt"
 
     prompt = _build_prompt(
         repo=repo,
@@ -73,39 +89,39 @@ def main() -> int:
     )
     prompt_path.write_text(prompt)
 
-    cmd = [
-        "codex",
-        "exec",
-        prompt,
-        "--dangerously-bypass-approvals-and-sandbox",
-        "--model",
-        SUBAGENT_MODEL,
-        "-c",
-        f"model_reasoning_effort={SUBAGENT_EFFORT!r}",
-        "--json",
-    ]
+    primary_cmd = _codex_cmd(prompt, PRIMARY_SUBAGENT_MODEL, PRIMARY_SUBAGENT_EFFORT)
+    fallback_cmd = _codex_cmd(prompt, FALLBACK_SUBAGENT_MODEL, FALLBACK_SUBAGENT_EFFORT)
 
     print(f"paper source: {args.paper}")
     print(f"prompt: {prompt_path}")
     print(f"report: {report_path}")
-    print(f"stdout log: {stdout_path}")
-    print(f"stderr log: {stderr_path}")
-    print("command: " + " ".join(_shell_quote(part) for part in cmd))
+    print(f"primary stdout log: {primary_stdout_path}")
+    print(f"primary stderr log: {primary_stderr_path}")
+    print(f"fallback stdout log: {fallback_stdout_path}")
+    print(f"fallback stderr log: {fallback_stderr_path}")
+    print("primary command: " + " ".join(_shell_quote(part) for part in primary_cmd))
+    print("fallback command: " + " ".join(_shell_quote(part) for part in fallback_cmd))
     if args.dry_run:
         return 0
 
-    with stdout_path.open("w") as stdout, stderr_path.open("w") as stderr:
-        result = subprocess.run(
-            cmd,
-            cwd=repo,
-            stdin=subprocess.DEVNULL,
-            stdout=stdout,
-            stderr=stderr,
-            text=True,
-            env=_clean_env(),
+    result = _run_codex(primary_cmd, repo, primary_stdout_path, primary_stderr_path)
+    used_fallback = False
+
+    if result.returncode != 0 and _looks_like_quota_error(primary_stdout_path, primary_stderr_path):
+        print(
+            "primary subagent failed with a quota/rate-limit style error; "
+            f"retrying with {FALLBACK_SUBAGENT_MODEL} "
+            f"({FALLBACK_SUBAGENT_EFFORT} effort)"
         )
+        used_fallback = True
+        result = _run_codex(fallback_cmd, repo, fallback_stdout_path, fallback_stderr_path)
 
     print(f"subagent exit code: {result.returncode}")
+    if used_fallback:
+        print(
+            "fallback model used: "
+            f"{FALLBACK_SUBAGENT_MODEL} / {FALLBACK_SUBAGENT_EFFORT}"
+        )
     if report_path.exists():
         print(f"subagent report written: {report_path}")
     else:
@@ -140,8 +156,10 @@ Delegated task:
 
 Rules:
 - Paper search is progressive disclosure: first read
-  {PAPER_README.as_posix()}, then the cited brief above, and only then the
-  linked original HTML/PDF paper if section, algorithm, design-pattern, or
+  {PAPER_README.as_posix()}, then read {PAPER_CATEGORIES.as_posix()} and
+  classify the idea as map/guidance-weight optimization, algorithm design, or
+  heuristic function design, then read the cited brief above, and only then
+  the linked original HTML/PDF paper if section, algorithm, design-pattern, or
   empirical-observation detail is needed.
 - Identify the brief, linked paper file, and concrete section, algorithm,
   design pattern, or empirical observation that motivates the idea.
@@ -160,6 +178,7 @@ Report template:
 # Paper-Grounded Subagent Report
 
 ## Paper Grounding
+- Primary category:
 - Brief file:
 - Linked paper file:
 - Section / algorithm / observation:
@@ -179,6 +198,46 @@ Report template:
 def _slug(text: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9]+", "-", text.strip().lower()).strip("-")
     return (slug or "subagent")[:60]
+
+
+def _codex_cmd(prompt: str, model: str, effort: str) -> list[str]:
+    return [
+        "codex",
+        "exec",
+        prompt,
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--model",
+        model,
+        "-c",
+        f"model_reasoning_effort={effort!r}",
+        "--json",
+    ]
+
+
+def _run_codex(
+    cmd: list[str], repo: Path, stdout_path: Path, stderr_path: Path
+) -> subprocess.CompletedProcess[str]:
+    with stdout_path.open("w") as stdout, stderr_path.open("w") as stderr:
+        return subprocess.run(
+            cmd,
+            cwd=repo,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+            text=True,
+            env=_clean_env(),
+        )
+
+
+def _looks_like_quota_error(stdout_path: Path, stderr_path: Path) -> bool:
+    text = ""
+    for path in (stdout_path, stderr_path):
+        try:
+            text += "\n" + path.read_text(errors="replace")
+        except OSError:
+            pass
+    lowered = text.lower()
+    return any(pattern in lowered for pattern in QUOTA_ERROR_PATTERNS)
 
 
 def _is_paper_brief(repo: Path, paper_path: Path) -> bool:

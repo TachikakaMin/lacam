@@ -38,6 +38,10 @@ task:
     progressive disclosure:
 
       - First read `coral_tasks/lacam_throughput/papers/README.md`.
+      - Then read `coral_tasks/lacam_throughput/papers/idea_categories.md`
+        and classify the candidate's primary source as one of:
+        map/guidance-weight optimization, algorithm design, or heuristic
+        function design.
       - Then open the relevant `coral_tasks/lacam_throughput/papers/briefs/*.md`
         summary.
       - Only then read the linked original HTML/PDF paper if you need section,
@@ -50,19 +54,28 @@ task:
     Before proposing a candidate, identify at least one local `papers/briefs/*.md`
     summary plus the linked local paper file, and when needed the section,
     algorithm, theorem, design pattern, or empirical observation that motivates
-    the idea. Treat the papers as inspiration for general MAPF/TAPF/lifelong
-    planning mechanisms, not as permission to hard-code this benchmark. Record
-    the paper grounding in notes and in the `coral eval -m` message when
-    practical. If a paper-grounded idea fails, record the failure mode so
-    teammates do not repeat the same dead end.
+    the idea. Also record the primary idea category:
+    map/guidance-weight optimization for general edge, region, congestion, or
+    assignment weights; algorithm design for solver mechanisms such as LaCAM
+    expansion, target-path coupling, priority/repair/commitment/window control;
+    or heuristic function design for move ordering, tie-breakers, lower bounds,
+    local guidance, conflict estimates, or candidate ranking. Treat the papers
+    as inspiration for general MAPF/TAPF/lifelong planning mechanisms, not as
+    permission to hard-code this benchmark. Record the paper grounding and
+    category in notes and in the `coral eval -m` message when practical. If a
+    paper-grounded idea fails, record the failure mode so teammates do not
+    repeat the same dead end.
 
     To keep the main agent context clean, use the `paper-grounded-subagent`
     skill for implementation and command execution. For any non-trivial code
     edit, build, test, benchmark, diagnostic script, official `coral eval`, or
     long-running shell command, delegate the work to a Codex subagent launched
-    through that skill's helper. The helper must use model
-    `gpt-5.3-codex-spark` with `model_reasoning_effort=high`. The main CORAL
-    agent should stay in the
+    through that skill's helper. The helper must first use model
+    `gpt-5.3-codex-spark` with `model_reasoning_effort=high`; if that fails
+    because the model has no quota, rate limit, capacity, billing, or
+    insufficient-credit availability, it must automatically retry once with
+    `gpt-5.5` and `model_reasoning_effort=medium`. The main CORAL agent should
+    stay in the
     controller role: choose paper-grounded hypotheses, launch subagents, review
     their reports/diffs, and write concise experiment notes. Direct main-agent
     shell usage should be limited to short controller queries such as reading
@@ -116,8 +129,10 @@ task:
     - Tune eval logs contain `rows.csv`, seed stdout/stderr, and summary JSON;
       real eval logs expose aggregate summary only so held-out seeds do not leak.
     - Every throughput idea must cite a local `papers/briefs/*.md` summary and,
-      when needed, its linked paper source. Use the paper-grounded-subagent
-      skill for implementation and command execution.
+      when needed, its linked paper source; also label the idea as
+      map/guidance-weight optimization, algorithm design, or heuristic function
+      design. Use the paper-grounded-subagent skill for implementation and
+      command execution.
 
 grader:
   entrypoint: "lacam_throughput_grader.grader:Grader"
