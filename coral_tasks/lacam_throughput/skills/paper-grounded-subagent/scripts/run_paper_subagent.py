@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch a paper-grounded Codex subagent for LaCAM throughput work."""
+"""启动论文支撑的 Codex subagent 来处理 LaCAM throughput 工作。"""
 
 from __future__ import annotations
 
@@ -34,33 +34,33 @@ QUOTA_ERROR_PATTERNS = (
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Run a Codex subagent grounded in a local paper-library source."
+        description="启动一个基于本地论文库来源的 Codex subagent。"
     )
-    parser.add_argument("--paper", required=True, help="Local paper brief path that grounds the idea.")
-    parser.add_argument("--idea", required=True, help="One concise paper-grounded hypothesis.")
-    parser.add_argument("--task", required=True, help="Concrete work delegated to the subagent.")
+    parser.add_argument("--paper", required=True, help="支撑该 idea 的本地论文 brief 路径。")
+    parser.add_argument("--idea", required=True, help="一句简洁的论文支撑 hypothesis。")
+    parser.add_argument("--task", required=True, help="委托给 subagent 的具体工作。")
     parser.add_argument(
         "--out-dir",
         default="hl_agent/runs/paper_grounded_subagents",
-        help="Directory for prompts, logs, and reports.",
+        help="prompt、日志和报告输出目录。",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Write prompt/report paths and print the Codex command without launching it.",
+        help="只写入 prompt/report 路径并打印 Codex 命令，不实际启动。",
     )
     args = parser.parse_args()
 
     repo = Path.cwd()
     paper_path = (repo / args.paper).resolve()
     if not paper_path.exists():
-        print(f"paper source not found: {args.paper}", file=sys.stderr)
+        print(f"找不到论文来源：{args.paper}", file=sys.stderr)
         return 2
     if not _is_paper_brief(repo, paper_path):
         print(
-            "paper source must be a local paper brief under "
-            f"{PAPER_BRIEFS_ROOT.as_posix()}; start from "
-            f"{PAPER_README.as_posix()} and pass the selected brief",
+            "论文来源必须是本地 paper brief，位置应在 "
+            f"{PAPER_BRIEFS_ROOT.as_posix()} 下；请先从 "
+            f"{PAPER_README.as_posix()} 开始筛选，然后传入选定 brief",
             file=sys.stderr,
         )
         return 2
@@ -92,15 +92,15 @@ def main() -> int:
     primary_cmd = _codex_cmd(prompt, PRIMARY_SUBAGENT_MODEL, PRIMARY_SUBAGENT_EFFORT)
     fallback_cmd = _codex_cmd(prompt, FALLBACK_SUBAGENT_MODEL, FALLBACK_SUBAGENT_EFFORT)
 
-    print(f"paper source: {args.paper}")
-    print(f"prompt: {prompt_path}")
-    print(f"report: {report_path}")
-    print(f"primary stdout log: {primary_stdout_path}")
-    print(f"primary stderr log: {primary_stderr_path}")
-    print(f"fallback stdout log: {fallback_stdout_path}")
-    print(f"fallback stderr log: {fallback_stderr_path}")
-    print("primary command: " + " ".join(_shell_quote(part) for part in primary_cmd))
-    print("fallback command: " + " ".join(_shell_quote(part) for part in fallback_cmd))
+    print(f"论文来源：{args.paper}")
+    print(f"prompt：{prompt_path}")
+    print(f"报告：{report_path}")
+    print(f"主模型 stdout 日志：{primary_stdout_path}")
+    print(f"主模型 stderr 日志：{primary_stderr_path}")
+    print(f"fallback stdout 日志：{fallback_stdout_path}")
+    print(f"fallback stderr 日志：{fallback_stderr_path}")
+    print("主模型命令：" + " ".join(_shell_quote(part) for part in primary_cmd))
+    print("fallback 命令：" + " ".join(_shell_quote(part) for part in fallback_cmd))
     if args.dry_run:
         return 0
 
@@ -109,23 +109,23 @@ def main() -> int:
 
     if result.returncode != 0 and _looks_like_quota_error(primary_stdout_path, primary_stderr_path):
         print(
-            "primary subagent failed with a quota/rate-limit style error; "
-            f"retrying with {FALLBACK_SUBAGENT_MODEL} "
-            f"({FALLBACK_SUBAGENT_EFFORT} effort)"
+            "主模型 subagent 遇到 quota/rate-limit 类错误；"
+            f"改用 {FALLBACK_SUBAGENT_MODEL} "
+            f"（{FALLBACK_SUBAGENT_EFFORT} effort）重试"
         )
         used_fallback = True
         result = _run_codex(fallback_cmd, repo, fallback_stdout_path, fallback_stderr_path)
 
-    print(f"subagent exit code: {result.returncode}")
+    print(f"subagent 退出码：{result.returncode}")
     if used_fallback:
         print(
-            "fallback model used: "
+            "已使用 fallback 模型："
             f"{FALLBACK_SUBAGENT_MODEL} / {FALLBACK_SUBAGENT_EFFORT}"
         )
     if report_path.exists():
-        print(f"subagent report written: {report_path}")
+        print(f"subagent 报告已写入：{report_path}")
     else:
-        print("subagent report was not written; inspect logs above", file=sys.stderr)
+        print("subagent 没有写出报告；请检查上面的日志", file=sys.stderr)
     return result.returncode
 
 
@@ -138,60 +138,54 @@ def _build_prompt(
     task: str,
     report_path: Path,
 ) -> str:
-    return f"""You are a focused implementation subagent for the LaCAM lifelong throughput CORAL task.
+    return f"""你是 LaCAM lifelong throughput CORAL 任务的聚焦实现 subagent。
 
-Repository root:
+仓库根目录：
 {repo}
 
-Local paper brief that grounds this task:
+本任务作为依据的本地论文 brief：
 {paper_arg}
-Resolved path:
+解析后的路径：
 {paper_path}
 
-Paper-grounded idea:
+论文支撑的 idea：
 {idea}
 
-Delegated task:
+委托任务：
 {task}
 
-Rules:
-- Paper search is progressive disclosure: first read
-  {PAPER_README.as_posix()}, then read {PAPER_CATEGORIES.as_posix()} and
-  classify the idea as map/guidance-weight optimization, algorithm design, or
-  heuristic function design, then read the cited brief above, and only then
-  the linked original HTML/PDF paper if section, algorithm, design-pattern, or
-  empirical-observation detail is needed.
-- Identify the brief, linked paper file, and concrete section, algorithm,
-  design pattern, or empirical observation that motivates the idea.
-- Implement only the smallest general algorithmic or diagnostic change needed
-  for this task.
-- Preserve fixed scenario semantics. Do not hard-code map, task, seed, output,
-  schedule, CSV, or trace shortcuts.
-- Run focused verification commands needed for confidence. Prefer build/tests
-  and tune/local diagnostics over broad noisy commands.
-- Run `coral eval --tune` or normal `coral eval` when the delegated task asks
-  you to score the candidate. Include the paper grounding in `coral eval -m`.
-- Write a concise markdown report to:
+规则：
+- 论文检索必须渐进式披露：先读 {PAPER_README.as_posix()}，再读 {PAPER_CATEGORIES.as_posix()}，并把 idea 分类为 map/guidance-weight optimization、algorithm design 或 heuristic function design；然后读上面指定的 brief；只有需要章节、算法、设计模式或实验观察细节时，才读链接的原始 HTML/PDF 论文。
+- 找出 brief、链接的论文文件，以及支撑 idea 的具体章节、算法、设计模式或实验观察。
+- 只实现本任务需要的最小通用算法改动或诊断改动。
+- 保持固定场景语义。不要硬编码 map、task、seed、output、schedule、CSV 或 trace 捷径。
+- 运行必要的聚焦验证命令来建立信心。优先使用 build/tests、local probes 和 direct public-seed benchmark runs，避免范围过大且噪声高的命令。
+- 永远不要运行 `coral eval --tune`。自测时直接用 `tools/run_symbotic_requested_grid.py` 跑 public tune seeds，输出到 `hl_agent/runs/<experiment>/runner`，这样结果不会注册为 CORAL attempt。
+- diagnostic-only、counter-only、logging-only、refactor-only、runtime-only、no-op 或 parameter-path-not-hit 改动，不要运行 direct public-seed self-tests，也不要运行普通 `coral eval`。
+- 任何 direct public-seed self-test 前，必须先证明 candidate 在 benchmark CLI defaults 下改变了 active algorithmic decision path。使用聚焦 local/single-seed probe 或 trace comparison，并报告行为变化信号：selected targets、move ordering、assignment rows、conflict/blocking counts、completed vector 或其他 decision-level metric。如果 completed vector 和关键 trace signals 与 parent 一致，标记为 no-op 或 instrumentation-only，不要跑 public-seed self-test 或 real。
+- 每当 retained candidate 或 progress result 将汇报给用户时，运行普通 `coral eval -m "..."`。eval message 中包含论文依据。面向用户汇报的结果必须是 real。
+- 写一份简洁 markdown report 到：
   {report_path}
 
-Report template:
-# Paper-Grounded Subagent Report
+报告模板：
+# 论文支撑 Subagent 报告
 
-## Paper Grounding
-- Primary category:
-- Brief file:
-- Linked paper file:
-- Section / algorithm / observation:
-- How it maps to this codebase:
+## 论文依据
+- 主要类别：
+- brief 文件：
+- 链接的论文文件：
+- 章节 / 算法 / 观察：
+- 如何映射到当前代码库：
 
-## Work Completed
-- Files changed:
-- Commands run:
-- Results:
+## 已完成工作
+- 修改文件：
+- 运行命令：
+- eval 前的行为变化证据：
+- 结果：
 
-## Recommendation
-- Keep / discard / needs follow-up:
-- Suggested eval message:
+## 建议
+- 保留 / 丢弃 / 需要后续：
+- 建议 eval message：
 """
 
 

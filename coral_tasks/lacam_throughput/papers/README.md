@@ -10,7 +10,7 @@
 
 当前可用本地论文/资料：76 篇。完整下载元数据见 [index.md](index.md)，未解析来源见 [unresolved.md](unresolved.md)。
 
-## Idea category routing
+## Idea 分类路由
 
 在打开具体 brief 前，先用 [idea_categories.md](idea_categories.md) 给候选 idea 选一个主类别，并在实验 note 与 `coral eval -m` 中记录：
 
