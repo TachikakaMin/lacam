@@ -595,6 +595,80 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
     if (snapshot.goal_indexes_by_agent[i].empty()) snapshot.feasible = false;
   }
 
+  // Corridor-pressure penalty on goal options: a goal inside a one-lane
+  // (degree-2 chain) corridor that other agents currently occupy risks
+  // head-on yields and service-dwell blocking, so bias assignment toward
+  // goal options in free corridors. Offsets are per-snapshot, so the
+  // per-solve assignment row cache stays consistent.
+  {
+    constexpr auto kCorridorPressureSteps = 16;
+    auto occupied_count_by_index = std::unordered_map<int, int>();
+    for (const auto& agent : agents) {
+      if (agent.current_location != nullptr) {
+        ++occupied_count_by_index[agent.current_location->index];
+      }
+    }
+    auto corridor_cells_cache =
+        std::unordered_map<int, std::vector<int> >();
+    auto corridor_cells_for =
+        [&](Vertex* target) -> const std::vector<int>& {
+      auto iter = corridor_cells_cache.find(target->index);
+      if (iter != corridor_cells_cache.end()) return iter->second;
+      auto cells = std::vector<int>();
+      if (target->neighbor.size() == 2) {
+        cells.push_back(target->index);
+        for (auto lead = 0; lead < 2; ++lead) {
+          auto prev = target;
+          auto cur = target->neighbor[lead];
+          while (cur != nullptr && cur->neighbor.size() == 2 &&
+                 cur != target) {
+            cells.push_back(cur->index);
+            auto next = cur->neighbor[0] == prev ? cur->neighbor[1]
+                                                 : cur->neighbor[0];
+            prev = cur;
+            cur = next;
+          }
+          if (cur == target) break;
+        }
+      }
+      return corridor_cells_cache.emplace(target->index, std::move(cells))
+          .first->second;
+    };
+    for (size_t i = 0; i < agents.size(); ++i) {
+      const auto self = agents[i].current_location;
+      auto& indexes = snapshot.goal_indexes_by_agent[i];
+      auto& offsets = snapshot.goal_cost_offsets_by_agent[i];
+      auto& scales = snapshot.goal_distance_scales_by_agent[i];
+      auto& keys = snapshot.goal_keys_by_agent[i];
+      for (size_t o = 0; o < indexes.size() && o < offsets.size() &&
+                         o < scales.size() && o < keys.size();
+           ++o) {
+        if (keys[o] < 0 || is_delivery_location_key(keys[o])) continue;
+        const auto titer = snapshot.target_by_index.find(indexes[o]);
+        if (titer == snapshot.target_by_index.end()) continue;
+        auto target = titer->second;
+        if (self != nullptr && target->index == self->index) continue;
+        const auto& cells = corridor_cells_for(target);
+        if (cells.empty()) continue;
+        auto occupants = 0;
+        auto self_inside = false;
+        for (const auto ci : cells) {
+          const auto oit = occupied_count_by_index.find(ci);
+          if (oit != occupied_count_by_index.end()) occupants += oit->second;
+          if (self != nullptr && ci == self->index) self_inside = true;
+        }
+        if (self_inside) --occupants;
+        if (occupants <= 0) continue;
+        const auto penalty = static_cast<long long>(kCorridorPressureSteps) *
+                             scales[o] * occupants;
+        const auto new_offset =
+            std::min(static_cast<long long>(offsets[o]) + penalty,
+                     static_cast<long long>(kTapfAssignmentInfCost - 1));
+        offsets[o] = static_cast<int>(new_offset);
+      }
+    }
+  }
+
   return snapshot;
 }
 
