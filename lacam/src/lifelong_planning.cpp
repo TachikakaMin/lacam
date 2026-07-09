@@ -602,10 +602,19 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   // per-solve assignment row cache stays consistent.
   {
     constexpr auto kCorridorPressureSteps = 16;
+    constexpr auto kCorridorTargetPressureSteps = 8;
     auto occupied_count_by_index = std::unordered_map<int, int>();
+    auto targeted_count_by_index = std::unordered_map<int, int>();
     for (const auto& agent : agents) {
       if (agent.current_location != nullptr) {
         ++occupied_count_by_index[agent.current_location->index];
+      }
+      // Previous-step target: agents already en route will occupy their
+      // corridor soon, so count them as predictive pressure.
+      if (agent.current_target != nullptr &&
+          (agent.current_location == nullptr ||
+           agent.current_target->index != agent.current_location->index)) {
+        ++targeted_count_by_index[agent.current_target->index];
       }
     }
     struct CorridorChain {
@@ -672,15 +681,32 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         const auto hi =
             from_front ? chain.target_pos : chain.cells.size() - 1;
         auto occupants = 0;
+        auto targeting = 0;
         for (auto p = lo; p <= hi; ++p) {
           const auto ci = chain.cells[p]->index;
           const auto oit = occupied_count_by_index.find(ci);
           if (oit != occupied_count_by_index.end()) occupants += oit->second;
+          const auto tit = targeted_count_by_index.find(ci);
+          if (tit != targeted_count_by_index.end()) targeting += tit->second;
           if (self != nullptr && ci == self->index) --occupants;
         }
-        if (occupants <= 0) continue;
+        const auto own_target = agents[i].current_target;
+        if (own_target != nullptr && self != nullptr &&
+            own_target->index != self->index) {
+          for (auto p = lo; p <= hi; ++p) {
+            if (chain.cells[p]->index == own_target->index) {
+              --targeting;
+              break;
+            }
+          }
+        }
+        if (occupants < 0) occupants = 0;
+        if (targeting < 0) targeting = 0;
+        if (occupants == 0 && targeting == 0) continue;
         const auto penalty =
-            static_cast<long long>(pressure_steps) * scales[o] * occupants;
+            static_cast<long long>(pressure_steps) * scales[o] * occupants +
+            static_cast<long long>(kCorridorTargetPressureSteps) * scales[o] *
+                targeting;
         const auto new_offset =
             std::min(static_cast<long long>(offsets[o]) + penalty,
                      static_cast<long long>(kTapfAssignmentInfCost - 1));
