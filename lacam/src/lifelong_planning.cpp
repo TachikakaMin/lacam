@@ -499,8 +499,28 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         const auto circle = circle_cost(task.start, pickup_set, distances);
         if (circle >= kTapfAssignmentInfCost) continue;
         const auto denominator = carried_count + 1;
+        // Penalize a bundled pickup by its actual DETOUR relative to the
+        // current delivery leg, not the raw pickup distance: an on-route
+        // second pickup costs almost nothing and saves a station round trip.
+        auto delay_distance = pickup_distance;
+        if (carried_count > 0 && !carried.empty()) {
+          const auto current_goal =
+              representative_goal(agent.current_location, *carried[0],
+                                  distances);
+          if (current_goal != nullptr) {
+            const auto d_now_goal =
+                distances.get(agent.current_location, current_goal);
+            const auto d_pickup_goal =
+                distances.get(task.start, current_goal);
+            if (d_now_goal < kMapDistanceInf &&
+                d_pickup_goal < kMapDistanceInf) {
+              delay_distance = std::max(
+                  0, pickup_distance + d_pickup_goal - d_now_goal);
+            }
+          }
+        }
         const auto delay_penalty = mild_loaded_pickup_delay_penalty(
-            carried_count, pickup_distance, pickup_service_duration,
+            carried_count, delay_distance, pickup_service_duration,
             assignment_cost_mode);
         const auto switched = previous_task_ids[i].has_value() &&
                               *previous_task_ids[i] != task.task_id;
