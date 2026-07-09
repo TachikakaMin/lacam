@@ -1,5 +1,6 @@
 #include "../include/tapf_planner.hpp"
 
+#include <deque>
 #include <limits>
 
 namespace
@@ -311,6 +312,43 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       const auto goal = ins->tasks[task];
       if (goal != nullptr) real_service_vertices[goal->id] = true;
     }
+  }
+
+  // Segment degree-2 chains into corridors (one-lane passages where head-on
+  // meetings force expensive swaps).
+  corridor_id.assign(V_size, -1);
+  corridor_pos.assign(V_size, 0);
+  auto is_corridor_cell = [](const Vertex* v) {
+    return v != nullptr && v->neighbor.size() == 2;
+  };
+  for (auto v : ins->G.V) {
+    if (!is_corridor_cell(v) || corridor_id[v->id] != -1) continue;
+    auto chain = std::deque<Vertex*>();
+    chain.push_back(v);
+    for (auto lead = 0; lead < 2; ++lead) {
+      auto prev = v;
+      auto cur = v->neighbor[lead];
+      while (is_corridor_cell(cur) && cur != v) {
+        if (lead == 0) {
+          chain.push_front(cur);
+        } else {
+          chain.push_back(cur);
+        }
+        auto next = cur->neighbor[0] == prev ? cur->neighbor[1]
+                                             : cur->neighbor[0];
+        prev = cur;
+        cur = next;
+      }
+      if (cur == v) break;  // cycle; single segment
+    }
+    const auto cid = static_cast<int>(corridors.size());
+    auto cells = std::vector<Vertex*>(chain.begin(), chain.end());
+    for (size_t p = 0; p < cells.size(); ++p) {
+      if (corridor_id[cells[p]->id] != -1) continue;
+      corridor_id[cells[p]->id] = cid;
+      corridor_pos[cells[p]->id] = static_cast<int>(p);
+    }
+    corridors.push_back(std::move(cells));
   }
 }
 
@@ -1551,8 +1589,57 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const TAPFNode* node)
     }
   }
 
+  // Yield-at-the-door rule for one-lane corridors: do not step into a
+  // corridor end cell while the nearest occupant within a short lookahead
+  // is heading out toward this entrance. Agents already inside are never
+  // gated (PIBT swap resolves in-corridor meetings).
+  constexpr auto kCorridorEntryLookahead = 4;
+  auto head_on_hazard = [&](Vertex* w) -> bool {
+    if (w == ai->v_now) return false;
+    const auto cid = corridor_id[w->id];
+    if (cid < 0) return false;
+    if (corridor_id[ai->v_now->id] == cid) return false;
+    const auto& cells = corridors[cid];
+    const auto size = static_cast<int>(cells.size());
+    const auto wpos = corridor_pos[w->id];
+    auto dir = 0;
+    if (wpos == 0) {
+      dir = 1;
+    } else if (wpos == size - 1) {
+      dir = -1;
+    } else {
+      return false;
+    }
+    for (auto step = 0; step <= kCorridorEntryLookahead; ++step) {
+      const auto p = wpos + step * dir;
+      if (p < 0 || p >= size) break;
+      const auto aj = occupied_now[cells[p]->id];
+      if (aj == nullptr || aj == ai) continue;
+      const auto q = p - dir;
+      if (q < 0 || q >= size) return false;
+      return distance_to_assigned_goal(node, aj->id, cells[q]) <
+             distance_to_assigned_goal(node, aj->id, aj->v_now);
+    }
+    return false;
+  };
+  auto hazard_flags = std::array<bool, 5>();
+  auto hazard_vertices = std::array<Vertex*, 5>();
+  for (size_t k = 0; k < K + 1; ++k) {
+    hazard_vertices[k] = C_next[i][k];
+    hazard_flags[k] = head_on_hazard(C_next[i][k]);
+  }
+  auto hazard_of = [&](Vertex* const w) {
+    for (size_t k = 0; k < K + 1; ++k) {
+      if (hazard_vertices[k] == w) return hazard_flags[k];
+    }
+    return false;
+  };
+
   std::sort(C_next[i].begin(), C_next[i].begin() + K + 1,
             [&](Vertex* const v, Vertex* const u) {
+              const auto zv = hazard_of(v);
+              const auto zu = hazard_of(u);
+              if (zv != zu) return zu;
               if (should_leave_foreign_service) {
                 const auto v_leaves = v != ai->v_now;
                 const auto u_leaves = u != ai->v_now;

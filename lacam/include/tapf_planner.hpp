@@ -153,6 +153,9 @@ struct TAPFPlanner {
   Agents occupied_next;
   std::vector<int> shared_goal_entry_counts;
   std::vector<bool> real_service_vertices;
+  std::vector<int> corridor_id;
+  std::vector<int> corridor_pos;
+  std::vector<std::vector<Vertex*> > corridors;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
