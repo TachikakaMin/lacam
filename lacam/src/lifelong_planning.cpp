@@ -608,30 +608,38 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         ++occupied_count_by_index[agent.current_location->index];
       }
     }
-    auto corridor_cells_cache =
-        std::unordered_map<int, std::vector<int> >();
-    auto corridor_cells_for =
-        [&](Vertex* target) -> const std::vector<int>& {
-      auto iter = corridor_cells_cache.find(target->index);
-      if (iter != corridor_cells_cache.end()) return iter->second;
-      auto cells = std::vector<int>();
+    struct CorridorChain {
+      std::vector<Vertex*> cells;  // ordered end-to-end
+      size_t target_pos = 0;
+    };
+    auto corridor_chain_cache = std::unordered_map<int, CorridorChain>();
+    auto corridor_chain_for = [&](Vertex* target) -> const CorridorChain& {
+      auto iter = corridor_chain_cache.find(target->index);
+      if (iter != corridor_chain_cache.end()) return iter->second;
+      auto chain = CorridorChain();
       if (target->neighbor.size() == 2) {
-        cells.push_back(target->index);
+        auto before = std::vector<Vertex*>();
+        auto after = std::vector<Vertex*>();
         for (auto lead = 0; lead < 2; ++lead) {
+          auto& side = lead == 0 ? before : after;
           auto prev = target;
           auto cur = target->neighbor[lead];
           while (cur != nullptr && cur->neighbor.size() == 2 &&
                  cur != target) {
-            cells.push_back(cur->index);
+            side.push_back(cur);
             auto next = cur->neighbor[0] == prev ? cur->neighbor[1]
                                                  : cur->neighbor[0];
             prev = cur;
             cur = next;
           }
-          if (cur == target) break;
+          if (cur == target) break;  // cycle corridor; single walk suffices
         }
+        chain.cells.assign(before.rbegin(), before.rend());
+        chain.target_pos = chain.cells.size();
+        chain.cells.push_back(target);
+        chain.cells.insert(chain.cells.end(), after.begin(), after.end());
       }
-      return corridor_cells_cache.emplace(target->index, std::move(cells))
+      return corridor_chain_cache.emplace(target->index, std::move(chain))
           .first->second;
     };
     for (size_t i = 0; i < agents.size(); ++i) {
@@ -648,16 +656,27 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
         if (titer == snapshot.target_by_index.end()) continue;
         auto target = titer->second;
         if (self != nullptr && target->index == self->index) continue;
-        const auto& cells = corridor_cells_for(target);
-        if (cells.empty()) continue;
+        const auto& chain = corridor_chain_for(target);
+        if (chain.cells.empty()) continue;
+        // Only occupants between the agent's likely entry end and the
+        // target block the approach; deeper occupants can exit the far end.
+        const auto dist_front = self == nullptr
+                                    ? kMapDistanceInf
+                                    : distances.get(self, chain.cells.front());
+        const auto dist_back = self == nullptr
+                                   ? kMapDistanceInf
+                                   : distances.get(self, chain.cells.back());
+        const auto from_front = dist_front <= dist_back;
+        const auto lo = from_front ? size_t(0) : chain.target_pos;
+        const auto hi =
+            from_front ? chain.target_pos : chain.cells.size() - 1;
         auto occupants = 0;
-        auto self_inside = false;
-        for (const auto ci : cells) {
+        for (auto p = lo; p <= hi; ++p) {
+          const auto ci = chain.cells[p]->index;
           const auto oit = occupied_count_by_index.find(ci);
           if (oit != occupied_count_by_index.end()) occupants += oit->second;
-          if (self != nullptr && ci == self->index) self_inside = true;
+          if (self != nullptr && ci == self->index) --occupants;
         }
-        if (self_inside) --occupants;
         if (occupants <= 0) continue;
         const auto penalty = static_cast<long long>(kCorridorPressureSteps) *
                              scales[o] * occupants;
