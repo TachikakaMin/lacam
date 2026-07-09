@@ -350,6 +350,69 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     }
     corridors.push_back(std::move(cells));
   }
+
+  // Congestion-weighted guidance (Guided-PIBT style): entering a cell that
+  // is occupied at the root costs extra steps in the guidance metric used
+  // for move ordering; assignment costs keep the true distances.
+  constexpr auto kGuidanceOccupiedCost = 4;
+  guidance_cell_cost.assign(V_size, 0);
+  for (auto v : ins->starts) {
+    if (v != nullptr) guidance_cell_cost[v->id] += kGuidanceOccupiedCost;
+  }
+  guidance_table.assign(ins->tasks.size(), std::vector<int>());
+}
+
+int TAPFPlanner::guidance_get(int task_id, Vertex* v)
+{
+  if (v == nullptr || task_id < 0 ||
+      task_id >= static_cast<int>(guidance_table.size())) {
+    return D.K;
+  }
+  auto& table = guidance_table[task_id];
+  if (table.empty()) {
+    table.assign(V_size, std::numeric_limits<int>::max());
+    const auto goal = ins->tasks[task_id];
+    if (goal == nullptr) return D.K;
+    using QE = std::pair<int, Vertex*>;
+    auto cmp = [](const QE& a, const QE& b) { return a.first > b.first; };
+    std::priority_queue<QE, std::vector<QE>, decltype(cmp)> open(cmp);
+    table[goal->id] = 0;
+    open.emplace(0, goal);
+    while (!open.empty()) {
+      const auto [d, u] = open.top();
+      open.pop();
+      if (d > table[u->id]) continue;
+      for (auto w : u->neighbor) {
+        // Moving w -> u enters u; walking backward we charge entering u.
+        const auto nd = d + 1 + guidance_cell_cost[u->id];
+        if (nd < table[w->id]) {
+          table[w->id] = nd;
+          open.emplace(nd, w);
+        }
+      }
+    }
+  }
+  const auto value = table[v->id];
+  return value == std::numeric_limits<int>::max() ? D.K : value;
+}
+
+int TAPFPlanner::guidance_to_assigned_goal(const TAPFNode* node, int agent,
+                                           Vertex* v)
+{
+  if (node == nullptr || v == nullptr) return D.K;
+  const auto goal = service_goal(node, agent);
+  if (goal == nullptr) return D.K;
+  const auto task =
+      agent >= 0 &&
+              agent < static_cast<int>(node->service_assignment.size()) &&
+              node->service_assignment[agent] >= 0 &&
+              !agent_satisfied(node, agent)
+          ? node->service_assignment[agent]
+          : (agent >= 0 && agent < static_cast<int>(node->assignment.size())
+                 ? node->assignment[agent]
+                 : -1);
+  if (task < 0 || task >= static_cast<int>(ins->tasks.size())) return D.K;
+  return guidance_get(task, v);
 }
 
 Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
@@ -1656,8 +1719,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const TAPFNode* node)
                 const auto u_leaves = u != ai->v_now;
                 if (v_leaves != u_leaves) return v_leaves;
               }
-              const auto dv = distance_to_assigned_goal(node, i, v);
-              const auto du = distance_to_assigned_goal(node, i, u);
+              const auto dv = guidance_to_assigned_goal(node, i, v);
+              const auto du = guidance_to_assigned_goal(node, i, u);
               if (dv != du) return dv < du;
               auto foreign_service = [&](Vertex* w) {
                 return w != ai->v_now &&

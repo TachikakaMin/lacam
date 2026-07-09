@@ -156,6 +156,8 @@ struct TAPFPlanner {
   std::vector<int> corridor_id;
   std::vector<int> corridor_pos;
   std::vector<std::vector<Vertex*> > corridors;
+  std::vector<int> guidance_cell_cost;
+  std::vector<std::vector<int> > guidance_table;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
@@ -193,6 +195,8 @@ struct TAPFPlanner {
   int distance_to_assigned_goal(const TAPFNode* node, int agent, Vertex* v);
   int distance_to_assigned_goal(const std::vector<int>& assignment, int agent,
                                 Vertex* v);
+  int guidance_get(int task_id, Vertex* v);
+  int guidance_to_assigned_goal(const TAPFNode* node, int agent, Vertex* v);
   bool is_goal_node(const TAPFNode* node) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
