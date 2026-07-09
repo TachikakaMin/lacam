@@ -602,7 +602,6 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
   // per-solve assignment row cache stays consistent.
   {
     constexpr auto kCorridorPressureSteps = 16;
-    constexpr auto kCorridorPressureStepsDelivery = 4;
     auto occupied_count_by_index = std::unordered_map<int, int>();
     for (const auto& agent : agents) {
       if (agent.current_location != nullptr) {
@@ -652,10 +651,8 @@ LifelongPlanningSnapshot prepare_lifelong_planning_snapshot(
       for (size_t o = 0; o < indexes.size() && o < offsets.size() &&
                          o < scales.size() && o < keys.size();
            ++o) {
-        if (keys[o] < 0) continue;
-        const auto pressure_steps = is_delivery_location_key(keys[o])
-                                        ? kCorridorPressureStepsDelivery
-                                        : kCorridorPressureSteps;
+        if (keys[o] < 0 || is_delivery_location_key(keys[o])) continue;
+        const auto pressure_steps = kCorridorPressureSteps;
         const auto titer = snapshot.target_by_index.find(indexes[o]);
         if (titer == snapshot.target_by_index.end()) continue;
         auto target = titer->second;

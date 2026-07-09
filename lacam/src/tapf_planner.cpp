@@ -1610,9 +1610,20 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const TAPFNode* node)
     } else {
       return false;
     }
+    // Position of my own goal within this corridor, if any; occupants at or
+    // beyond my goal cell do not block the approach.
+    const auto own_goal = service_goal(node, i);
+    const auto own_goal_pos =
+        own_goal != nullptr && corridor_id[own_goal->id] == cid
+            ? corridor_pos[own_goal->id]
+            : -1;
     for (auto step = 0; step <= kCorridorEntryLookahead; ++step) {
       const auto p = wpos + step * dir;
       if (p < 0 || p >= size) break;
+      if (own_goal_pos >= 0 && step > 0 &&
+          (dir > 0 ? p >= own_goal_pos : p <= own_goal_pos)) {
+        break;
+      }
       const auto aj = occupied_now[cells[p]->id];
       if (aj == nullptr || aj == ai) continue;
       const auto q = p - dir;
