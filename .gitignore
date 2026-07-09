@@ -43,3 +43,14 @@ outputs/
 tmp_runs/
 Manifest.toml
 map
+.claude/
+.codex/
+.coral_agent_id
+.coral_dir
+.coral_island
+.cursor/
+.opencode/
+.pi/
+.venv/
+AGENTS.md
+CLAUDE.md
