@@ -1561,6 +1561,16 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const TAPFNode* node)
               const auto dv = distance_to_assigned_goal(node, i, v);
               const auto du = distance_to_assigned_goal(node, i, u);
               if (dv != du) return dv < du;
+              auto foreign_service = [&](Vertex* w) {
+                return w != ai->v_now &&
+                       w->id <
+                           static_cast<int>(real_service_vertices.size()) &&
+                       real_service_vertices[w->id] &&
+                       !can_share_service_goal(node, i, w);
+              };
+              const auto fv = foreign_service(v);
+              const auto fu = foreign_service(u);
+              if (fv != fu) return fu;
               const auto hv = get_hindrance(v);
               const auto hu = get_hindrance(u);
               if (hv != hu) {
