@@ -29,8 +29,10 @@ All you need is [CMake](https://cmake.org/) (≥v3.16). The code is written in C
 First, clone this repo with submodules.
 
 ```sh
-git clone --recursive https://github.com/Kei18/lacam.git
+git clone --recursive https://github.com/TachikakaMin/lacam.git
 cd lacam
+git switch lacam_mapd
+git submodule update --init --recursive
 ```
 Then, build the project.
 
@@ -51,6 +53,22 @@ docker compose exec dev bash
 
 ## Usage
 
+### Lifelong MAPD benchmark (this branch)
+
+Extra CMake targets: `tapf_benchmark`, `lifelong_benchmark`.
+
+```sh
+build/lifelong_benchmark MAP NUM_AGENTS HORIZON SEED OUTPUT_CSV [CACHE] \
+  [TIME_LIMIT_SEC=2] [GOAL_SET_SIZE=3] [OUTBOUND_PROB=0.5] [RELEASE_INTERVAL=10] \
+  [DEBUG=0] [SCHEDULE_YAML] [ANYTIME=0] [MULTI_CARRY_CAPACITY=1] \
+  [FORCE_FULL_ASSIGNMENT=0] [SERVICE_COMMIT_AGENTS=0] [MAX_SHARED_DROP_GOAL_AGENTS] \
+  [PICKUP_SERVICE_DURATION=1] [DELIVERY_SERVICE_DURATION=1] [ASSIGNMENT_COST_MODE]
+```
+
+Each run appends one CSV row (throughput, completed tasks, planner runtimes, ...) to `OUTPUT_CSV`.
+Negative `SERVICE_COMMIT_AGENTS`, `MAX_SHARED_DROP_GOAL_AGENTS`, or `ASSIGNMENT_COST_MODE` keep the code default. Analysis utilities live in `python/` and `docs/`.
+
+### Basic MAPF solver (upstream)
 ```sh
 build/main -i assets/random-32-32-10-random-1.scen -m assets/random-32-32-10.map -N 50 -v 1
 ```
