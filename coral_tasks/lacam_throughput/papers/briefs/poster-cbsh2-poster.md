@@ -1,6 +1,6 @@
 # Improved Heuristics for Multi-Agent Path Finding with Conflict-Based Search
 
-简短介绍：改进 MAPF 搜索启发式，可启发冲突排序、下界估计和候选选择。
+简短介绍：提出 DG/WDG 可采纳启发式，用成对代理依赖和加权依赖图的最小顶点覆盖指导 CBS 高层搜索。海报报告相较 CG 成功率显著提高，扩展节点和运行时间最多降低 50 倍。它为 LaCAM 吞吐优化提供了用局部成对冲突/依赖估计来排序候选、减少无效展开的依据。
 
 - 原论文：[arcs-group/Poster_cbsh2-poster.pdf](../arcs-group/Poster_cbsh2-poster.pdf)
 - 来源：arcs-group

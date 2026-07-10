@@ -1,6 +1,6 @@
 # A Hierarchical Approach to Multi-Agent Path Finding
 
-简短介绍：用层级分解扩展 MAPF 求解，可启发区域划分、分层搜索和跨区协调。
+简短介绍：HMAPP 将地图划分为区域，用高层区域序列引导、区域内用 ECBS 局部重规划，并通过有向边界对协调跨区移动。实验显示它能扩展到贪心方法可处理的大规模实例，同时路径质量更好，部分大规模场景 makespan 比 Ros-dmapf 少约一半。对 LaCAM 吞吐优化而言，可借鉴其区域分解、边界容量/方向控制和拥塞感知高层路由，把全局冲突压力转化为局部可并行协调。
 
 - 原论文：[arcs-group/Preprint_2021-HPLAN.pdf](../arcs-group/Preprint_2021-HPLAN.pdf)
 - 来源：arcs-group

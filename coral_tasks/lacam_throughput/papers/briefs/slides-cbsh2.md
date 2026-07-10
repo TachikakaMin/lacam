@@ -1,6 +1,6 @@
 # Improved Heuristics for Multi-Agent Path Finding with Conflict-Based Search
 
-简短介绍：改进 MAPF 搜索启发式，可启发冲突排序、下界估计和候选选择。
+简短介绍：CBSH2 在 CBS 中用智能体两两依赖构造 DG/WDG 启发式，把最小顶点覆盖（含边权）作为可采纳下界来排序搜索节点。幻灯片报告 h_WDG ≥ h_DG ≥ h_CG，额外开销较小，整体性能表现为 WDG 优于 DG、DG 优于 CG。它为 LaCAM 吞吐优化提供了把冲突依赖转成轻量下界与优先级信号的依据，可用于拥堵/瓶颈场景下的候选选择和冲突处理。
 
 - 原论文：[arcs-group/Slides_cbsh2.pdf](../arcs-group/Slides_cbsh2.pdf)
 - 来源：arcs-group
