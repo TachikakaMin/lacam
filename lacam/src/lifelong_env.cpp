@@ -1491,7 +1491,7 @@ LifelongEnvAction LacamTapfPolicy::replan(
       // state copies and counting completions. Deviate from attempt 0
       // only on a strictly better rollout.
       constexpr auto kRolloutCandidates = 12;
-      constexpr auto kRolloutHorizon = 8;
+      constexpr auto kRolloutHorizon = 12;
       const auto budget_ms = config_.planner_time_limit_sec * 1000.0;
       auto elapsed_ms_now = [&]() {
         return std::chrono::duration_cast<std::chrono::nanoseconds>(
