@@ -29,8 +29,10 @@ All you need is [CMake](https://cmake.org/) (≥v3.16). The code is written in C
 First, clone this repo with submodules.
 
 ```sh
-git clone --recursive https://github.com/Kei18/lacam.git
+git clone --recursive https://github.com/TachikakaMin/lacam.git
 cd lacam
+git switch lacam_tapf
+git submodule update --init --recursive
 ```
 Then, build the project.
 
@@ -51,6 +53,18 @@ docker compose exec dev bash
 
 ## Usage
 
+### TAPF benchmark (this branch)
+
+Extra CMake target: `tapf_benchmark` (LaCAM-TAPF; the method is documented in [`lacam_tapf.md`](lacam_tapf.md)).
+
+```sh
+build/tapf_benchmark YAML MAP_DIR [TIME_LIMIT_SEC] [SCHEDULE_YAML] [ANYTIME=1] \
+  [FULL_TA=0] [SEED=-1] [SEARCH_MODE=dfs] [FOCAL_WEIGHT=1.5] [FOCAL_TIE_BREAK=h]
+```
+
+Experiment runners and symbotic scenarios live in `tools/` and `tests/assets/`.
+
+### Basic MAPF solver (upstream)
 ```sh
 build/main -i assets/random-32-32-10-random-1.scen -m assets/random-32-32-10.map -N 50 -v 1
 ```
