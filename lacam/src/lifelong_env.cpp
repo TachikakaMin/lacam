@@ -1252,6 +1252,168 @@ LifelongEnvAction LacamTapfPolicy::act(
   return next_cached_action(observation);
 }
 
+namespace
+{
+struct RolloutState {
+  std::vector<LifelongAgentState> agents;
+  std::vector<LifelongTask> tasks;
+  std::vector<bool> service_active;
+  std::vector<int> service_keys;
+  std::vector<int> service_target_indexes;
+  std::vector<int> service_progress;
+};
+
+// Mirrors LifelongEnvCore::service_ready_agents + process_arrivals on local
+// copies: advance service dwell bookkeeping given the previous positions,
+// then fire pickups/completions for agents whose service finished. Returns
+// the number of completions this step.
+int rollout_advance_services(RolloutState& s,
+                             const LifelongSimulationConfig& config,
+                             const std::vector<Vertex*>& previous,
+                             int timestep)
+{
+  auto completions = 0;
+  for (size_t i = 0; i < s.agents.size(); ++i) {
+    auto& agent = s.agents[i];
+    if (agent.current_location == nullptr) {
+      s.service_active[i] = false;
+      s.service_keys[i] = -1;
+      s.service_target_indexes[i] = -1;
+      s.service_progress[i] = 0;
+      continue;
+    }
+    auto key = -1;
+    auto duration = 0;
+    if (agent.assigned_task_id.has_value() &&
+        carried_task_count(agent) < config.multi_carry_capacity) {
+      const auto* task = find_task_by_id(s.tasks, *agent.assigned_task_id);
+      if (task != nullptr && task->status == LifelongTaskStatus::ASSIGNED &&
+          task->assigned_agent_id == agent.agent_id &&
+          task->start == agent.current_location) {
+        key = task->task_id;
+        duration = config.pickup_service_duration;
+      }
+    }
+    if (key < 0 && agent_is_loaded(agent)) {
+      for (const auto task_id : agent.carried_task_ids) {
+        const auto* task = find_task_by_id(s.tasks, task_id);
+        if (task != nullptr && task->status == LifelongTaskStatus::PICKED &&
+            task->picked_agent_id == agent.agent_id &&
+            vertex_in_goal_set(agent.current_location, task->goal_set)) {
+          key = kDeliveryLocationKeyBase + task->task_id;
+          duration = config.delivery_service_duration;
+          break;
+        }
+      }
+    }
+    if (key < 0) {
+      s.service_active[i] = false;
+      s.service_keys[i] = -1;
+      s.service_target_indexes[i] = -1;
+      s.service_progress[i] = 0;
+      continue;
+    }
+    const auto target_index = agent.current_location->index;
+    const auto same_service = s.service_active[i] &&
+                              s.service_keys[i] == key &&
+                              s.service_target_indexes[i] == target_index;
+    if (!same_service) {
+      s.service_active[i] = true;
+      s.service_keys[i] = key;
+      s.service_target_indexes[i] = target_index;
+      s.service_progress[i] = 0;
+    } else if (i < previous.size() && previous[i] != nullptr &&
+               previous[i]->index == target_index) {
+      s.service_progress[i] = std::max(0, s.service_progress[i]) + 1;
+    }
+    if (s.service_progress[i] < std::max(0, duration)) continue;
+    auto pickup =
+        try_pickup(agent, s.tasks, timestep, config.multi_carry_capacity);
+    auto completion = try_complete(agent, s.tasks, timestep);
+    if (completion.changed) {
+      ++completions;
+      agent.loaded_distance_since_last_delivery = 0;
+    }
+    if (pickup.changed || completion.changed) {
+      s.service_active[i] = false;
+      s.service_keys[i] = -1;
+      s.service_target_indexes[i] = -1;
+      s.service_progress[i] = 0;
+    }
+  }
+  return completions;
+}
+
+// One closed-loop planning step on the rollout copies: snapshot, solve,
+// apply assignment + first configuration, advance services. Returns
+// completions (or -1 if the pipeline failed).
+int rollout_pipeline_step(RolloutState& s,
+                          const LifelongSimulationConfig& config,
+                          const Graph& graph,
+                          const MapDistanceCache& distances,
+                          const std::vector<float>& inherited_priorities,
+                          int timestep, unsigned rng_salt)
+{
+  const auto preferred = partial_pickup_preferences(
+      s.agents, s.tasks, s.service_active, s.service_keys,
+      s.service_target_indexes, s.service_progress,
+      config.pickup_service_duration);
+  auto snapshot = prepare_lifelong_planning_snapshot(
+      s.agents, s.tasks, distances, config.multi_carry_capacity,
+      config.max_shared_drop_goal_agents, config.pickup_service_duration,
+      config.delivery_service_duration, inherited_priorities, preferred,
+      config.assignment_cost_mode);
+  if (!snapshot.feasible) return -1;
+  auto instance =
+      build_lifelong_tapf_instance(config.map_filename, s.agents, snapshot);
+  if (!instance.is_valid()) return -1;
+  auto deadline = Deadline(50.0);
+  auto mt = std::mt19937(config.seed + timestep + rng_salt);
+  auto search_config = TAPFSearchConfig();
+  search_config.mode = TAPFSearchMode::FOCAL;
+  search_config.focal_tie_break = TAPFFocalTieBreak::H;
+  search_config.service_goal_mode = true;
+  search_config.service_commit_agents = 0;
+  search_config.pickup_service_duration = config.pickup_service_duration;
+  search_config.delivery_service_duration = config.delivery_service_duration;
+  initialize_optional_partial_services(
+      instance, snapshot, s.agents, s.service_active, s.service_keys,
+      s.service_target_indexes, s.service_progress,
+      config.pickup_service_duration, config.delivery_service_duration,
+      search_config);
+  auto stats = TAPFStats();
+  auto final_assignment = std::vector<int>();
+  auto assignment_schedule = std::vector<std::vector<int> >();
+  const auto solution =
+      solve_tapf(instance, 0, &deadline, &mt, 0, &stats, config.planner_anytime,
+                 config.planner_force_full_assignment, search_config,
+                 &final_assignment, &assignment_schedule);
+  if (solution.empty() || solution.front().size() != s.agents.size()) {
+    return -1;
+  }
+  if (assignment_schedule.empty() ||
+      !apply_lifelong_solution_assignment(s.agents, s.tasks, snapshot,
+                                          instance,
+                                          assignment_schedule.front())) {
+    return -1;
+  }
+  const auto& next =
+      solution.size() >= 2 ? solution[1] : solution.front();
+  auto previous = std::vector<Vertex*>(s.agents.size(), nullptr);
+  for (size_t i = 0; i < s.agents.size(); ++i) {
+    previous[i] = s.agents[i].current_location;
+    auto v = next[i] != nullptr ? graph.U[next[i]->index] : nullptr;
+    if (v != nullptr) {
+      if (agent_is_loaded(s.agents[i]) && v != s.agents[i].current_location) {
+        ++s.agents[i].loaded_distance_since_last_delivery;
+      }
+      s.agents[i].current_location = v;
+    }
+  }
+  return rollout_advance_services(s, config, previous, timestep);
+}
+}  // namespace
+
 LifelongEnvAction LacamTapfPolicy::replan(
     const LifelongEnvObservation& observation, const LifelongEnvInfo& info)
 {
@@ -1322,10 +1484,97 @@ LifelongEnvAction LacamTapfPolicy::replan(
           request.service_keys, request.service_target_indexes,
           request.service_progress, config_.pickup_service_duration,
           config_.delivery_service_duration, search_config);
-      solution = solve_tapf(
-          instance, 0, &deadline, &planner_mt, 0, &stats,
-          config_.planner_anytime, config_.planner_force_full_assignment,
-          search_config, &final_assignment, &assignment_schedule);
+      // Closed-loop candidate selection: k solves with distinct RNG
+      // (attempt 0 reproduces the single-solve behavior bit-for-bit);
+      // each candidate's first step is scored by rolling the REAL
+      // per-step pipeline (reassignment included) forward h steps on
+      // state copies and counting completions. Deviate from attempt 0
+      // only on a strictly better rollout.
+      constexpr auto kRolloutCandidates = 12;
+      constexpr auto kRolloutHorizon = 8;
+      const auto budget_ms = config_.planner_time_limit_sec * 1000.0;
+      auto elapsed_ms_now = [&]() {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(
+                   Time::now() - planning_start)
+                   .count() /
+               1000000.0;
+      };
+      auto best_completions = -1;
+      for (auto attempt = 0; attempt < kRolloutCandidates; ++attempt) {
+        // Real-time budget gate: never start a new candidate past half the
+        // per-invocation time limit, so the whole selection stays within it.
+        if (attempt > 0 && elapsed_ms_now() > 0.5 * budget_ms) break;
+        auto att_deadline = Deadline(std::max(
+            10.0, std::min(100.0, budget_ms - elapsed_ms_now() - 100.0)));
+        auto att_mt =
+            std::mt19937(config_.seed + request.timestep + attempt * 1000003);
+        auto att_solution = Solution();
+        auto att_assignment = std::vector<int>();
+        auto att_schedule = std::vector<std::vector<int> >();
+        auto att_stats = TAPFStats();
+        att_solution = solve_tapf(
+            instance, 0, &att_deadline, &att_mt, 0, &att_stats,
+            config_.planner_anytime, config_.planner_force_full_assignment,
+            search_config, &att_assignment, &att_schedule);
+        if (att_solution.empty()) {
+          if (attempt == 0) stats = att_stats;
+          continue;
+        }
+        auto completions = 0;
+        if (att_schedule.empty() ||
+            att_solution.front().size() != agents.size()) {
+          completions = -1;
+        } else {
+          auto s = RolloutState{agents,
+                                tasks,
+                                request.service_active,
+                                request.service_keys,
+                                request.service_target_indexes,
+                                request.service_progress};
+          if (apply_lifelong_solution_assignment(s.agents, s.tasks, snapshot,
+                                                 instance,
+                                                 att_schedule.front())) {
+            const auto& next = att_solution.size() >= 2
+                                   ? att_solution[1]
+                                   : att_solution.front();
+            auto previous =
+                std::vector<Vertex*>(s.agents.size(), nullptr);
+            for (size_t i = 0; i < s.agents.size(); ++i) {
+              previous[i] = s.agents[i].current_location;
+              auto v = next[i] != nullptr
+                           ? info.planner_request->graph->U[next[i]->index]
+                           : nullptr;
+              if (v != nullptr) {
+                if (agent_is_loaded(s.agents[i]) &&
+                    v != s.agents[i].current_location) {
+                  ++s.agents[i].loaded_distance_since_last_delivery;
+                }
+                s.agents[i].current_location = v;
+              }
+            }
+            completions = rollout_advance_services(s, config_, previous,
+                                                   request.timestep);
+            for (auto step = 1; step < kRolloutHorizon; ++step) {
+              const auto more = rollout_pipeline_step(
+                  s, config_, *info.planner_request->graph,
+                  *request.distances, request.inherited_priorities,
+                  request.timestep + step, 0);
+              if (more < 0) break;
+              completions += more;
+            }
+          } else {
+            completions = -1;
+          }
+        }
+        if (completions > best_completions ||
+            (solution.empty() && !att_solution.empty())) {
+          best_completions = completions;
+          solution = std::move(att_solution);
+          final_assignment = std::move(att_assignment);
+          assignment_schedule = std::move(att_schedule);
+          stats = att_stats;
+        }
+      }
       action.planner_trace.root_initial_assignment_cost =
           stats.initial_assignment_cost;
       action.planner_trace.solution_found = !solution.empty();
