@@ -7,6 +7,46 @@ The code repository of the paper ["LaCAM: Search-Based Algorithm for Quick Multi
 
 __A refactored, clean version is available: [lacam0](https://github.com/Kei18/lacam0). I recommend using it instead of this repo.__
 
+## Branches (this fork)
+
+This fork ([TachikakaMin/lacam](https://github.com/TachikakaMin/lacam)) extends upstream
+[Kei18/lacam](https://github.com/Kei18/lacam) toward lifelong warehouse throughput research:
+
+| Branch | Purpose |
+|---|---|
+| `dev` | Mirror of the upstream LaCAM (AAAI-23) code; base of all other branches. |
+| `lacam_mapd` | Gym-style lifelong MAPD environment, congestion-aware assignment cost modes, and MAPD benchmarks. |
+| `lacam_tapf` | LaCAM-TAPF extension (task-and-path-finding), symbotic warehouse experiments, and adaptive experiment runners. |
+| `lacam_agent` | LLM-agent research setup: the CORAL lifelong-throughput task (`coral_tasks/lacam_throughput`), paper briefs, and `hl_agent` tooling; built on `lacam_tapf`. |
+| `agent_fable` | Best snapshot from the CORAL Fable run — deterministic five-candidate rollout portfolio, hidden 10-seed mean throughput 1.65525 at commit `05d91e9` — plus follow-up rollout-horizon experiments. |
+
+**This branch: `agent_fable`** — snapshot of the best CORAL Fable run commit `05d91e9` (deterministic five-candidate rollout portfolio over guidance costs {4,2,8,6} + one RNG restart; hidden 10-seed mean throughput **1.65525**), with follow-up local experiments on the rollout horizon `kRolloutHorizon` in `lacam/src/lifelong_env.cpp`.
+
+Local sweep on public seeds 0–9 (mean throughput / mean total planner runtime):
+
+| horizon | mean TP | planner runtime |
+|---|---|---|
+| 12 (original) | 1.63 (seed 0) | ~281 s |
+| 4 | 1.4792 | 88.2 s |
+| 3 | 1.5160 | 63.8 s |
+| 2 | 1.4950 | 45.0 s |
+| 1 (current) | 1.5052 | 21.8 s |
+
+The branch currently ships **horizon = 1** (greedy one-step lookahead): ~-0.15 throughput vs h=12 for ~13x lower planner cost.
+
+Reproduce the evaluation scenario with:
+
+```sh
+cmake -B build/coral_eval -DCMAKE_BUILD_TYPE=Release
+cmake --build build/coral_eval --target lifelong_benchmark -j
+python3 tools/run_symbotic_requested_grid.py \
+  --binary build/coral_eval/lifelong_benchmark --out-dir /tmp/lacam_eval \
+  --maps symbotic_star --ks 2 --slots -1 --agent-counts 100 --dists 50_50 \
+  --durations 4 --cost-modes -1 --horizon 400 --seeds 0 --time-limit-sec 1.0 \
+  --goal-set-size 3 --release-interval 10 --service-commit-agents -1 \
+  --timeout-sec 1800 --workers 1 --force
+```
+
 ## Building
 
 All you need is [CMake](https://cmake.org/) (≥v3.16). The code is written in C++(17).
