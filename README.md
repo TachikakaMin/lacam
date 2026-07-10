@@ -7,6 +7,21 @@ The code repository of the paper ["LaCAM: Search-Based Algorithm for Quick Multi
 
 __A refactored, clean version is available: [lacam0](https://github.com/Kei18/lacam0). I recommend using it instead of this repo.__
 
+## Branches (this fork)
+
+This fork ([TachikakaMin/lacam](https://github.com/TachikakaMin/lacam)) extends upstream
+[Kei18/lacam](https://github.com/Kei18/lacam) toward lifelong warehouse throughput research:
+
+| Branch | Purpose |
+|---|---|
+| `dev` | Mirror of the upstream LaCAM (AAAI-23) code; base of all other branches. |
+| `lacam_mapd` | Gym-style lifelong MAPD environment, congestion-aware assignment cost modes, and MAPD benchmarks. |
+| `lacam_tapf` | LaCAM-TAPF extension (task-and-path-finding), symbotic warehouse experiments, and adaptive experiment runners. |
+| `lacam_agent` | LLM-agent research setup: the CORAL lifelong-throughput task (`coral_tasks/lacam_throughput`), paper briefs, and `hl_agent` tooling; built on `lacam_tapf`. |
+| `agent_fable` | Best snapshot from the CORAL Fable run — deterministic five-candidate rollout portfolio, hidden 10-seed mean throughput 1.65525 at commit `05d91e9` — plus follow-up rollout-horizon experiments. |
+
+**This branch: `lacam_agent`** — working branch for LLM-agent-driven throughput optimization. Contains the CORAL task definition and grader (`coral_tasks/lacam_throughput`), curated paper briefs (`coral_tasks/lacam_throughput/papers`), and the `hl_agent` high-level agent tooling. Agent runs are archived under `coral_tasks/lacam_throughput/results/`.
+
 ## Building
 
 All you need is [CMake](https://cmake.org/) (≥v3.16). The code is written in C++(17).
