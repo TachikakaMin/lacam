@@ -1508,6 +1508,13 @@ LifelongEnvAction LacamTapfPolicy::replan(
             10.0, std::min(100.0, budget_ms - elapsed_ms_now() - 100.0)));
         auto att_mt =
             std::mt19937(config_.seed + request.timestep + attempt * 1000003);
+        // Heterogeneous portfolio: candidates differ by route-guidance
+        // aggressiveness, not just RNG; attempt 0 keeps the retained
+        // default so the fallback behavior is unchanged.
+        constexpr int kGuidancePortfolio[4] = {4, 2, 8, 6};
+        auto att_search_config = search_config;
+        att_search_config.guidance_occupied_cost =
+            kGuidancePortfolio[attempt % 4];
         auto att_solution = Solution();
         auto att_assignment = std::vector<int>();
         auto att_schedule = std::vector<std::vector<int> >();
@@ -1515,7 +1522,7 @@ LifelongEnvAction LacamTapfPolicy::replan(
         att_solution = solve_tapf(
             instance, 0, &att_deadline, &att_mt, 0, &att_stats,
             config_.planner_anytime, config_.planner_force_full_assignment,
-            search_config, &att_assignment, &att_schedule);
+            att_search_config, &att_assignment, &att_schedule);
         if (att_solution.empty()) {
           if (attempt == 0) stats = att_stats;
           continue;

@@ -34,6 +34,8 @@ struct TAPFSearchConfig {
   std::vector<int> initial_service_progress;
   std::vector<int> initial_optional_service_assignments;
   std::vector<int> initial_optional_service_remaining;
+  // Extra guidance-metric cost for entering a root-occupied cell.
+  int guidance_occupied_cost = 4;
 };
 
 struct TAPFConstraint {

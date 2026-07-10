@@ -354,10 +354,11 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
   // Congestion-weighted guidance (Guided-PIBT style): entering a cell that
   // is occupied at the root costs extra steps in the guidance metric used
   // for move ordering; assignment costs keep the true distances.
-  constexpr auto kGuidanceOccupiedCost = 4;
+  const auto guidance_occupied_cost =
+      std::max(0, search_config.guidance_occupied_cost);
   guidance_cell_cost.assign(V_size, 0);
   for (auto v : ins->starts) {
-    if (v != nullptr) guidance_cell_cost[v->id] += kGuidanceOccupiedCost;
+    if (v != nullptr) guidance_cell_cost[v->id] += guidance_occupied_cost;
   }
   guidance_table.assign(ins->tasks.size(), std::vector<int>());
 }
