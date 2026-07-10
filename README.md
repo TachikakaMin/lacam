@@ -29,7 +29,7 @@ All you need is [CMake](https://cmake.org/) (≥v3.16). The code is written in C
 First, clone this repo with submodules.
 
 ```sh
-git clone --recursive https://github.com/Kei18/lacam.git
+git clone --recursive https://github.com/TachikakaMin/lacam.git
 cd lacam
 ```
 Then, build the project.
