@@ -1490,7 +1490,10 @@ LifelongEnvAction LacamTapfPolicy::replan(
       // per-step pipeline (reassignment included) forward h steps on
       // state copies and counting completions. Deviate from attempt 0
       // only on a strictly better rollout.
-      constexpr auto kRolloutCandidates = 12;
+      // Deterministic real-time allocation: cover all four guidance policies
+      // plus one repeated-policy stochastic restart.  The prior wall-clock
+      // admission boundary was sensitive to passive bookkeeping overhead.
+      constexpr auto kRolloutCandidates = 5;
       constexpr auto kRolloutHorizon = 12;
       const auto budget_ms = config_.planner_time_limit_sec * 1000.0;
       auto elapsed_ms_now = [&]() {
@@ -1501,9 +1504,6 @@ LifelongEnvAction LacamTapfPolicy::replan(
       };
       auto best_completions = -1;
       for (auto attempt = 0; attempt < kRolloutCandidates; ++attempt) {
-        // Real-time budget gate: never start a new candidate past half the
-        // per-invocation time limit, so the whole selection stays within it.
-        if (attempt > 0 && elapsed_ms_now() > 0.5 * budget_ms) break;
         auto att_deadline = Deadline(std::max(
             10.0, std::min(100.0, budget_ms - elapsed_ms_now() - 100.0)));
         auto att_mt =
