@@ -1494,7 +1494,7 @@ LifelongEnvAction LacamTapfPolicy::replan(
       // plus one repeated-policy stochastic restart.  The prior wall-clock
       // admission boundary was sensitive to passive bookkeeping overhead.
       constexpr auto kRolloutCandidates = 5;
-      constexpr auto kRolloutHorizon = 3;
+      constexpr auto kRolloutHorizon = 1;
       const auto budget_ms = config_.planner_time_limit_sec * 1000.0;
       auto elapsed_ms_now = [&]() {
         return std::chrono::duration_cast<std::chrono::nanoseconds>(
