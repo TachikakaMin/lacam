@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""启动论文支撑的 Codex subagent 来处理 LaCAM throughput 工作。"""
+"""启动论文支撑的 coding subagent 来处理 LaCAM throughput 工作。"""
 
 from __future__ import annotations
 
@@ -14,8 +14,10 @@ from pathlib import Path
 
 PRIMARY_SUBAGENT_MODEL = "gpt-5.3-codex-spark"
 PRIMARY_SUBAGENT_EFFORT = "high"
-FALLBACK_SUBAGENT_MODEL = "gpt-5.5"
-FALLBACK_SUBAGENT_EFFORT = "medium"
+FALLBACK_SUBAGENT_MODEL = "gpt-5.6-luna"
+FALLBACK_SUBAGENT_EFFORT = "xhigh"
+CLAUDE_SUBAGENT_MODEL = "claude-opus-4-8"
+CLAUDE_SUBAGENT_EFFORT = "medium"
 PAPER_BRIEFS_ROOT = Path("coral_tasks/lacam_throughput/papers/briefs")
 PAPER_README = Path("coral_tasks/lacam_throughput/papers/README.md")
 PAPER_CATEGORIES = Path("coral_tasks/lacam_throughput/papers/idea_categories.md")
@@ -34,7 +36,7 @@ QUOTA_ERROR_PATTERNS = (
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="启动一个基于本地论文库来源的 Codex subagent。"
+        description="启动一个基于本地论文库来源的 coding subagent。"
     )
     parser.add_argument("--paper", required=True, help="支撑该 idea 的本地论文 brief 路径。")
     parser.add_argument("--idea", required=True, help="一句简洁的论文支撑 hypothesis。")
@@ -47,9 +49,50 @@ def main() -> int:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="只写入 prompt/report 路径并打印 Codex 命令，不实际启动。",
+        help="只写入 prompt/report 路径并打印命令，不实际启动。",
+    )
+    parser.add_argument(
+        "--runtime",
+        choices=("codex", "claude", "claude_code"),
+        default=os.environ.get("PAPER_SUBAGENT_RUNTIME", "codex"),
+        help="coding subagent runtime：codex 或 claude。默认可由 PAPER_SUBAGENT_RUNTIME 设置。",
+    )
+    parser.add_argument(
+        "--codex-model",
+        default=os.environ.get("PAPER_SUBAGENT_CODEX_MODEL", PRIMARY_SUBAGENT_MODEL),
+        help="Codex subagent model；默认只是建议，可按任务选择其他可用模型。",
+    )
+    parser.add_argument(
+        "--codex-effort",
+        default=os.environ.get("PAPER_SUBAGENT_CODEX_EFFORT", PRIMARY_SUBAGENT_EFFORT),
+        help="Codex subagent reasoning effort；默认 high。",
+    )
+    parser.add_argument(
+        "--codex-fallback-model",
+        default=os.environ.get(
+            "PAPER_SUBAGENT_CODEX_FALLBACK_MODEL", FALLBACK_SUBAGENT_MODEL
+        ),
+        help="Codex quota/rate-limit fallback model；默认只是建议。",
+    )
+    parser.add_argument(
+        "--codex-fallback-effort",
+        default=os.environ.get(
+            "PAPER_SUBAGENT_CODEX_FALLBACK_EFFORT", FALLBACK_SUBAGENT_EFFORT
+        ),
+        help="Codex fallback reasoning effort；默认 medium。",
+    )
+    parser.add_argument(
+        "--claude-model",
+        default=os.environ.get("PAPER_SUBAGENT_CLAUDE_MODEL", CLAUDE_SUBAGENT_MODEL),
+        help="Claude coding subagent model；默认只是建议，可按任务选择其他可用模型。",
+    )
+    parser.add_argument(
+        "--claude-effort",
+        default=os.environ.get("PAPER_SUBAGENT_CLAUDE_EFFORT", CLAUDE_SUBAGENT_EFFORT),
+        help="Claude coding policy label，默认 medium；Claude CLI 当前只接收 --model，label 写入日志。",
     )
     args = parser.parse_args()
+    runtime = _normalize_runtime(args.runtime)
 
     repo = Path.cwd()
     paper_path = (repo / args.paper).resolve()
@@ -74,8 +117,8 @@ def main() -> int:
 
     report_path = run_dir / "report.md"
     prompt_path = run_dir / "prompt.md"
-    primary_stdout_path = run_dir / "codex.primary.stdout.jsonl"
-    primary_stderr_path = run_dir / "codex.primary.stderr.txt"
+    primary_stdout_path = run_dir / f"{runtime}.primary.stdout.jsonl"
+    primary_stderr_path = run_dir / f"{runtime}.primary.stderr.txt"
     fallback_stdout_path = run_dir / "codex.fallback.stdout.jsonl"
     fallback_stderr_path = run_dir / "codex.fallback.stderr.txt"
 
@@ -89,38 +132,59 @@ def main() -> int:
     )
     prompt_path.write_text(prompt)
 
-    primary_cmd = _codex_cmd(prompt, PRIMARY_SUBAGENT_MODEL, PRIMARY_SUBAGENT_EFFORT)
-    fallback_cmd = _codex_cmd(prompt, FALLBACK_SUBAGENT_MODEL, FALLBACK_SUBAGENT_EFFORT)
+    if runtime == "claude":
+        primary_cmd = _claude_cmd(prompt, args.claude_model, args.claude_effort)
+        fallback_cmd = []
+        primary_label = f"{args.claude_model} / {args.claude_effort}"
+        fallback_label = "(none)"
+    else:
+        primary_cmd = _codex_cmd(prompt, args.codex_model, args.codex_effort)
+        fallback_cmd = _codex_cmd(
+            prompt, args.codex_fallback_model, args.codex_fallback_effort
+        )
+        primary_label = f"{args.codex_model} / {args.codex_effort}"
+        fallback_label = (
+            f"{args.codex_fallback_model} / {args.codex_fallback_effort}"
+        )
 
     print(f"论文来源：{args.paper}")
     print(f"prompt：{prompt_path}")
     print(f"报告：{report_path}")
+    print(f"runtime：{runtime}")
+    print(f"主模型：{primary_label}")
+    print(f"fallback：{fallback_label}")
     print(f"主模型 stdout 日志：{primary_stdout_path}")
     print(f"主模型 stderr 日志：{primary_stderr_path}")
-    print(f"fallback stdout 日志：{fallback_stdout_path}")
-    print(f"fallback stderr 日志：{fallback_stderr_path}")
+    if runtime == "codex":
+        print(f"fallback stdout 日志：{fallback_stdout_path}")
+        print(f"fallback stderr 日志：{fallback_stderr_path}")
     print("主模型命令：" + " ".join(_shell_quote(part) for part in primary_cmd))
-    print("fallback 命令：" + " ".join(_shell_quote(part) for part in fallback_cmd))
+    if fallback_cmd:
+        print("fallback 命令：" + " ".join(_shell_quote(part) for part in fallback_cmd))
     if args.dry_run:
         return 0
 
-    result = _run_codex(primary_cmd, repo, primary_stdout_path, primary_stderr_path)
+    result = _run_subagent(primary_cmd, repo, primary_stdout_path, primary_stderr_path)
     used_fallback = False
 
-    if result.returncode != 0 and _looks_like_quota_error(primary_stdout_path, primary_stderr_path):
+    if (
+        runtime == "codex"
+        and result.returncode != 0
+        and _looks_like_quota_error(primary_stdout_path, primary_stderr_path)
+    ):
         print(
             "主模型 subagent 遇到 quota/rate-limit 类错误；"
-            f"改用 {FALLBACK_SUBAGENT_MODEL} "
-            f"（{FALLBACK_SUBAGENT_EFFORT} effort）重试"
+            f"改用 {args.codex_fallback_model} "
+            f"（{args.codex_fallback_effort} effort）重试"
         )
         used_fallback = True
-        result = _run_codex(fallback_cmd, repo, fallback_stdout_path, fallback_stderr_path)
+        result = _run_subagent(fallback_cmd, repo, fallback_stdout_path, fallback_stderr_path)
 
     print(f"subagent 退出码：{result.returncode}")
     if used_fallback:
         print(
             "已使用 fallback 模型："
-            f"{FALLBACK_SUBAGENT_MODEL} / {FALLBACK_SUBAGENT_EFFORT}"
+            f"{args.codex_fallback_model} / {args.codex_fallback_effort}"
         )
     if report_path.exists():
         print(f"subagent 报告已写入：{report_path}")
@@ -155,7 +219,7 @@ def _build_prompt(
 {task}
 
 规则：
-- 论文检索必须渐进式披露：先读 {PAPER_README.as_posix()}，再读 {PAPER_CATEGORIES.as_posix()}，并把 idea 分类为 map/guidance-weight optimization、algorithm design 或 heuristic function design；然后读上面指定的 brief；只有需要章节、算法、设计模式或实验观察细节时，才读链接的原始 HTML/PDF 论文。
+- 论文检索必须渐进式披露：先读较短的 {PAPER_CATEGORIES.as_posix()}，并把 idea 分类为 map/guidance-weight optimization、algorithm design 或 heuristic function design；然后读上面指定的 brief；只有需要章节、算法、设计模式或实验观察细节时，才读链接的原始 HTML/PDF 论文。较长的 {PAPER_README.as_posix()} 只用于局部检索相关条目，不要默认全文加载。
 - 找出 brief、链接的论文文件，以及支撑 idea 的具体章节、算法、设计模式或实验观察。
 - 只实现本任务需要的最小通用算法改动或诊断改动。
 - 保持固定场景语义。不要硬编码 map、task、seed、output、schedule、CSV 或 trace 捷径。
@@ -163,7 +227,8 @@ def _build_prompt(
 - 永远不要运行 `coral eval --tune`。自测时直接用 `tools/run_symbotic_requested_grid.py` 跑 public tune seeds，输出到 `hl_agent/runs/<experiment>/runner`，这样结果不会注册为 CORAL attempt。
 - diagnostic-only、counter-only、logging-only、refactor-only、runtime-only、no-op 或 parameter-path-not-hit 改动，不要运行 direct public-seed self-tests，也不要运行普通 `coral eval`。
 - 任何 direct public-seed self-test 前，必须先证明 candidate 在 benchmark CLI defaults 下改变了 active algorithmic decision path。使用聚焦 local/single-seed probe 或 trace comparison，并报告行为变化信号：selected targets、move ordering、assignment rows、conflict/blocking counts、completed vector 或其他 decision-level metric。如果 completed vector 和关键 trace signals 与 parent 一致，标记为 no-op 或 instrumentation-only，不要跑 public-seed self-test 或 real。
-- 每当 retained candidate 或 progress result 将汇报给用户时，运行普通 `coral eval -m "..."`。eval message 中包含论文依据。面向用户汇报的结果必须是 real。
+- 每个已定形、能够 build/test 且输出 valid 的行为改变型 candidate，无论 local/public benchmark 改善、持平还是退化，都先单独 git commit 并运行普通 `coral eval -m "..."`，之后才能 retain、revert、丢弃或 pivot。不得因为自己的 benchmark/eval 结果不好而静默回退。回退到已有 official eval 的旧状态时引用已有 commit/attempt 结果，不为回退本身重复 benchmark/eval。
+- 运行中持续写可恢复日志：开始前记录 parent commit、hypothesis、计划改动、风险和验证信号；每个重要命令后记录精确结果、artifact 路径、changed files、commit/eval attempt、决策和下一步。context 变大、可能自动 compact、重启或切换 agent 前先写 checkpoint；resume 后先读日志。
 - 写一份简洁 markdown report 到：
   {report_path}
 
@@ -208,7 +273,33 @@ def _codex_cmd(prompt: str, model: str, effort: str) -> list[str]:
     ]
 
 
-def _run_codex(
+def _claude_cmd(prompt: str, model: str, effort: str) -> list[str]:
+    return [
+        "claude",
+        "-p",
+        prompt,
+        "--model",
+        model,
+        "--effort",
+        effort,
+        "--permission-mode",
+        "bypassPermissions",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+    ]
+
+
+def _normalize_runtime(value: str) -> str:
+    normalized = value.strip().lower().replace("-", "_")
+    if normalized == "claude_code":
+        return "claude"
+    if normalized in {"codex", "claude"}:
+        return normalized
+    raise ValueError(f"unsupported subagent runtime: {value}")
+
+
+def _run_subagent(
     cmd: list[str], repo: Path, stdout_path: Path, stderr_path: Path
 ) -> subprocess.CompletedProcess[str]:
     with stdout_path.open("w") as stdout, stderr_path.open("w") as stderr:

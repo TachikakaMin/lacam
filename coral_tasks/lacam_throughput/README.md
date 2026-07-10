@@ -37,7 +37,7 @@ coral start -c task.yaml agents.runtime=claude_code agents.model=fable agents.ru
 main model `fable` / high policy。启动脚本不再设置 coding subagent model；
 由 agent 根据任务、可用性和 quota 自主选择。若委托 Codex subagent，建议使用
 `gpt-5.3-codex-spark` / high；没有额度或不可用时 fallback 到
-`gpt-5.5` / medium。agent 仍可以根据任务性质、可用性、速度、能力、quota 或 rate
+`gpt-5.6-luna` / xhigh。agent 仍可以根据任务性质、可用性、速度、能力、quota 或 rate
 limit 自动选择其他可用模型、effort 或 runtime。所有 throughput ideas
 都必须来自本地论文库。先读较短的 `papers/idea_categories.md`，把 idea source 分类为 map/guidance-weight
 optimization、algorithm design 或 heuristic-function design，然后打开相关
