@@ -1,37 +1,55 @@
 # CORAL 任务：LaCAM lifelong throughput
 
 这个任务让 CORAL agents 在固定 Symbotic 场景上优化本仓库 C++ lifelong TAPF
-吞吐量，场景来自
-`hl_agent/lacam_throughput_prompt_template.txt`.
+吞吐量。CORAL 所需规则以 `task.yaml` 为准；不要默认完整读取
+`hl_agent/lacam_throughput_prompt_template.txt`，该文件仅用于 standalone
+长程实验，确有需要时只读取相关小节。
 
-请在本目录运行命令，这样 CORAL 会把 `workspace.repo_path: ../..` 解析到
-`lacam_agent` 仓库根目录。
+启动脚本会自动切换到本任务目录，使 CORAL 将 `workspace.repo_path: ../..`
+解析到 `lacam_agent` 仓库根目录。
 
 ```sh
 cd /home/yimin/research/symbotic_agent/lacam_agent/coral_tasks/lacam_throughput
 uv pip install -e /home/yimin/research/symbotic_agent/CORAL
 coral validate .
-coral start -c task.yaml
+# 必须显式选择 runtime：
+scripts/start_coral.sh codex
+# 或：
+scripts/start_coral.sh claude
+
+# 安全恢复指定 run（必须显式提供 runtime 和 RUN_ID）：
+scripts/start_coral.sh resume codex 2026-07-09_003415
+scripts/start_coral.sh resume claude 2026-07-09_003415
 ```
 
 常用 runtime overrides：
 
 ```sh
-coral start -c task.yaml agents.runtime=codex agents.model=gpt-5.5 agents.runtime_options.model_reasoning_effort=high agents.count=2 run.session=local
-coral start -c task.yaml agents.runtime=claude_code agents.count=4 run.session=local
+CORAL_AGENTS=2 scripts/start_coral.sh codex
+CORAL_AGENTS=2 scripts/start_coral.sh claude
+
+# 等价的裸 coral 命令：
+coral start -c task.yaml agents.runtime=codex agents.model=gpt-5.6-sol agents.runtime_options.model_reasoning_effort=high agents.count=1 run.session=local
+coral start -c task.yaml agents.runtime=claude_code agents.model=fable agents.runtime_options.model_reasoning_effort=high agents.count=1 run.session=local
 ```
 
-默认 Codex 配置使用 `gpt-5.5` 和 high reasoning effort。所有 throughput ideas
-都必须来自本地论文库。先读 `papers/README.md`，再用
-`papers/idea_categories.md` 把 idea source 分类为 map/guidance-weight
+默认 Codex 配置使用 `gpt-5.6-sol` 和 high reasoning effort。Claude Code 配置使用
+main model `fable` / high policy。启动脚本不再设置 coding subagent model；
+由 agent 根据任务、可用性和 quota 自主选择。若委托 Codex subagent，建议使用
+`gpt-5.3-codex-spark` / high；没有额度或不可用时 fallback 到
+`gpt-5.5` / medium。agent 仍可以根据任务性质、可用性、速度、能力、quota 或 rate
+limit 自动选择其他可用模型、effort 或 runtime。所有 throughput ideas
+都必须来自本地论文库。先读较短的 `papers/idea_categories.md`，把 idea source 分类为 map/guidance-weight
 optimization、algorithm design 或 heuristic-function design，然后打开相关
 `papers/briefs/*.md` 简介；只有需要章节、算法、设计模式或实验细节时，才读
-链接的原论文。implementation 和命令执行，包括 build/test/benchmark 和
-`coral eval`，都应通过 `paper-grounded-subagent` skill 委托。该 skill 默认
-用 `gpt-5.3-codex-spark` 和 high reasoning effort 启动 nested Codex
-subagents；如果该模型没有 quota，或遇到 quota/rate-limit/capacity/billing
-availability error，helper 会自动用 `gpt-5.5` 和 medium reasoning effort
-重试一次。报告写到 `hl_agent/runs/paper_grounded_subagents/`。
+链接的原论文。较长的 `papers/README.md` 只用于局部检索候选论文条目，不要
+默认全文加载。鼓励把复杂 implementation、diagnostics、build/test/benchmark、
+长时间命令和大输出交给 subagent，以避免污染 main context window；但是否使用
+subagent 由 agent 自主决定，main agent 也可以直接编辑和执行。使用
+`paper-grounded-subagent` helper 时，Codex 建议默认
+`gpt-5.3-codex-spark` / high，Claude 建议默认
+`claude-opus-4-8` / medium，也可以显式选择其他模型。报告写到
+`hl_agent/runs/paper_grounded_subagents/`。
 
 当前论文路由总结：
 
@@ -84,8 +102,17 @@ local/single-seed probe 或 trace signal 证明，例如 selected targets、move
 ordering、assignment rows、conflict/blocking counts、completed vector 或其他
 decision-level metric。如果 completed vector 和关键 trace signals 与 parent
 一致，记录为 no-op 或 instrumentation-only，不要跑 public-seed self-test 或
-real。每次 agent 向用户汇报 retained candidate 或 progress，都必须跑普通
-`coral eval -m "..."`，让 reported score 是 hidden real result。
+real。
+
+Claude Code 和 Codex runtime 遵循相同的 candidate 提交规则：每个已定形、
+能够 build/test 且输出 valid 的行为改变型 candidate，无论 local/public 自测
+改善、持平还是退化，都必须先单独 git commit，再立即跑普通
+`coral eval -m "..."`。Agent 不得因为自己的 benchmark/eval 结果不好而静默
+revert、丢弃或切换方向；必须先为该 candidate 留下 commit 和 hidden real
+attempt，再决定 retain 或放弃。回退到已有 official eval 的旧状态时，记录直接
+引用旧 commit/attempt 的分数，不要为回退本身重复跑 benchmark/eval。每次 agent
+向用户汇报 retained、rejected、reverted candidate 或 progress，都必须确保对应
+行为改变型 candidate 已有普通 `coral eval`。
 
 grader 固定 environment/task target，但 service commitment、shared drop-goal
 slots、assignment cost mode 等 planner-side defaults 来自 submitted code。
@@ -103,4 +130,8 @@ held-out seed identities 和 per-seed traces 泄漏给 agents。
 
 Agent 应把自己的 experiment notes、scripts、traces、plots 和 diagnostic
 summaries 放到 worktree 内的 `hl_agent/runs/`，与现有 high-level prompt 的
-lab-notebook 要求保持一致。
+lab-notebook 要求保持一致。运行过程中应持续更新日志，而不是只写最终总结；
+尤其在 candidate/长任务开始前、重要命令完成后以及可能自动 compact、重启或
+切换 agent 前，写入 parent commit、hypothesis、commands/results、artifact
+路径、changed files、commit/eval attempt、当前状态和下一步。resume 后先读
+这些 checkpoint，避免丢失细节或重复实验。

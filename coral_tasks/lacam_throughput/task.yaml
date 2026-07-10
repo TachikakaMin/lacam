@@ -25,18 +25,21 @@ task:
 
     普通 `coral eval` 会在 grader 内部选择的 10 个隐藏 real-mode seeds 上计算平均吞吐量。分数越高越好，所有 rows 必须 valid。
 
-    改代码前先读 `hl_agent/lacam_throughput_prompt_template.txt`，但只把它当实验指导，不要当独立 run controller。所有 throughput idea、候选假设和 pivot 方向都必须来自本地论文库。按渐进式披露检索论文库：
+    本 task description 已包含 CORAL 运行所需规则。不要默认读取 `hl_agent/lacam_throughput_prompt_template.txt`；它是 standalone 长程实验模板，只有执行独立 hl_agent 实验或确实缺少某项细节时才按需读取相关小节，避免把整份模板加载进 context。所有 throughput idea、候选假设和 pivot 方向都必须来自本地论文库。按渐进式披露检索论文库：
 
-      - 先读 `coral_tasks/lacam_throughput/papers/README.md`。
-      - 再读 `coral_tasks/lacam_throughput/papers/idea_categories.md`，并把候选 idea 的主要来源分类为：map/guidance-weight optimization、algorithm design、heuristic function design。
+      - 先读较短的 `coral_tasks/lacam_throughput/papers/idea_categories.md`，并把候选 idea 的主要来源分类为：map/guidance-weight optimization、algorithm design、heuristic function design。
       - 然后打开相关的 `coral_tasks/lacam_throughput/papers/briefs/*.md` 简介。
       - 只有需要章节、算法、设计模式、定理或实验观察细节时，才继续读链接的原始 HTML/PDF 论文。
-      - `coral_tasks/lacam_throughput/papers/index.md` 和 `coral_tasks/lacam_throughput/papers/manifest.json` 只作为完整元数据/下载记录使用。
+      - `coral_tasks/lacam_throughput/papers/README.md` 很长，只在需要按一句话简介搜索论文时局部检索相关条目，不要默认全文读取。`papers/index.md` 和 `papers/manifest.json` 只作为完整元数据/下载记录使用。
       - `coral_tasks/lacam_throughput/papers/unresolved.md`
 
     提出候选前，必须至少指出一个本地 `papers/briefs/*.md` 简介及其链接的本地论文文件；必要时还要指出支撑 idea 的章节、算法、定理、设计模式或实验观察。同时记录主要 idea 类别：map/guidance-weight optimization 用于一般 edge、region、congestion 或 assignment weights；algorithm design 用于 LaCAM expansion、target-path coupling、priority/repair/commitment/window control 等 solver 机制；heuristic function design 用于 move ordering、tie-breaker、lower bound、local guidance、conflict estimate 或 candidate ranking。论文只能作为一般 MAPF/TAPF/lifelong planning 机制的灵感，不能作为硬编码本 benchmark 的理由。尽量在 notes 和 `coral eval -m` 消息中记录 paper grounding 和类别。paper-grounded idea 失败时，记录 failure mode，避免队友重复同一个 dead end。
 
-    为了保持 main agent 上下文干净，implementation 和命令执行都使用 `paper-grounded-subagent` skill。任何非平凡代码修改、build、test、benchmark、diagnostic script、官方 `coral eval` 或长时间 shell 命令，都必须委托给通过该 skill helper 启动的 Codex subagent。helper 先使用 `gpt-5.3-codex-spark` 和 `model_reasoning_effort=high`；如果因为 quota、rate limit、capacity、billing 或 insufficient-credit 不可用而失败，必须自动重试一次 `gpt-5.5` 和 `model_reasoning_effort=medium`。main CORAL agent 只做 controller：选择 paper-grounded hypotheses、启动 subagents、review reports/diffs、写简洁实验 notes。main agent 直接 shell 使用应限制在短 controller 查询，例如读 notes、检查 reports 或查看 `coral log`。
+    鼓励使用 `paper-grounded-subagent` skill 或其他合适的 subagent 来隔离复杂 implementation、diagnostics、build/test/benchmark、长时间命令和可并行工作，避免 main agent context window 被大量代码、trace 和命令输出污染；但 subagent 不是强制要求。main agent 应根据任务复杂度、延迟、quota、可用工具和当前 context 自主决定直接完成还是委托，也可以直接修改代码和运行命令。Codex main agent 默认使用 `gpt-5.6-sol` / high。若委托 Codex subagent，优先使用 `gpt-5.3-codex-spark` / high；如果 spark 没有额度或不可用，自动 fallback 到 `gpt-5.5` / medium，再根据实际任务、速度、能力、quota 或 rate limit 选择其他可用模型。不要为了形式上的并行而强制调用 subagent，也不必固定使用与 main agent 相同的模型家族。启动 CORAL 时可显式选择 runtime：Codex 路线使用 `scripts/start_coral.sh codex`；Claude Code 路线使用 `scripts/start_coral.sh claude`。
+
+    运行过程中必须持续写可恢复日志，不能只在方案结束时补写总结。开始一个 candidate、长任务或 subagent 前，先在 `.codex/notes/`、`.claude/notes/` 或 `hl_agent/runs/<experiment>/` 中记录当前 baseline/parent commit、论文依据、hypothesis、计划改动、已知风险、关键命令和预期验证信号；每个重要 build/test/benchmark/diagnostic/eval 后及时追加精确结果、artifact 路径、changed files、commit/attempt ID、保留或放弃理由以及下一步。预计 context 较大、可能自动 compact、进程可能重启或切换 agent 时，必须先写 checkpoint，包含“当前做到哪里、哪些事实已确认、哪些命令仍在运行、下一条可执行动作”。resume/restart 后先读这些日志再继续，避免 compact 丢失重要细节或重复实验。
+
+    迭代时间也是本 task 的重要资源。吞吐量不是唯一需要优化的指标：如果一个 candidate 大幅延长每个 seed 或每轮 benchmark 的运行时间，它会减少剩余时间内可以尝试的 candidate 数量，可能导致整个 run 还没有找到更好的解就耗尽实验预算。候选前后都要比较 parent 与 candidate 的 mean total_planner_runtime、单次 planner 平均/最大耗时、benchmark wall-clock 和 mean throughput 绝对变化；比较 runtime 时优先使用进入当前探索方向时 retained parent 的数据，不要因为一个慢 candidate 被暂时保留就重置参照。默认优先选择运行代价较小的改动；这不是硬性淘汰条件，但如果 throughput 只提升几个百分点，却让每轮迭代慢数倍或从秒级变成分钟级，应优先寻找更便宜的近似方法。只有当候选有很强的 throughput 证据时，才值得接受较大的运行代价，例如 local/real 结果显示 mean throughput 可能有约 0.1 或更大绝对提升，或出现同等强度的机制信号。不要只因为单次 planner 没超过 1.0s，就认为 runtime 成本可以接受；要把单次成本乘以一轮中的数百次 replan 以及后续多轮实验，并在 candidate note 和 eval message 中如实说明吞吐收益与时间代价。
 
     在这个 CORAL task 中，`coral eval` 是唯一官方打分路径。不要等待旧模板里的 80-local-run pre-final gate。先在未修改 workspace 上跑一次普通 `coral eval -m "baseline"`，让 leaderboard 有初始分数。Agent 不得用 `coral eval --tune` 做自测或筛选。内部测试必须直接用 benchmark runner 跑 public tune seeds，这样结果不会注册为 CORAL attempt，例如：
 
@@ -58,7 +61,9 @@ task:
         --release-interval 10 \
         --service-commit-agents -1
 
-    Public-seed self-test 只供 agent 内部诊断：agent 可以使用 per-seed rows、stdout/stderr 和 traces 来 debug/比较候选，但 artifacts 必须放到 `hl_agent/runs/`，不要注册 CORAL attempts。diagnostic-only、counter-only、logging-only、report-only、refactor-only、runtime-only 或 instrumentation fixes 必须用 focused local commands 和 trace checks 验证，不能用 CORAL eval。no-op 或 parameter-path-not-hit 改动甚至不能跑 direct public-seed self-test。任何 public-seed self-test 前，必须先在 notes 或 subagent report 中证明 candidate 改变了 active decision path：相关 option/branch 在 benchmark CLI defaults 下确实命中，并且相对 parent 至少有一个 local/single-seed behavior signal 改变。可接受信号包括 selected targets、move ordering、conflict/blocking counts、assignment rows、local probe completed vector 或其他 trace-derived decision metric。如果 completed vector 和关键 trace signals 与 parent 完全一样，标记为 no-op/instrumentation-only，不要跑 public-seed self-test 或 real。每当 agent 向用户汇报 retained candidate 或 progress 时，都必须委托跑普通 `coral eval -m "..."`，让用户拿到 hidden held-out real score。继续遵循核心实验纪律：观察 real trajectories，形成 root-cause hypothesis，做最小代码改动，quick-verify，检查 trace signals，并在 local diagnostics 或 direct public-seed self-tests 上做 same-seed comparison。
+    Public-seed self-test 只供 agent 内部诊断：agent 可以使用 per-seed rows、stdout/stderr 和 traces 来 debug/比较候选，但 artifacts 必须放到 `hl_agent/runs/`，不要注册 CORAL attempts。diagnostic-only、counter-only、logging-only、report-only、refactor-only、runtime-only 或 instrumentation fixes 必须用 focused local commands 和 trace checks 验证，不能用 CORAL eval。no-op 或 parameter-path-not-hit 改动甚至不能跑 direct public-seed self-test。任何 public-seed self-test 前，必须先在 notes 或 subagent report 中证明 candidate 改变了 active decision path：相关 option/branch 在 benchmark CLI defaults 下确实命中，并且相对 parent 至少有一个 local/single-seed behavior signal 改变。可接受信号包括 selected targets、move ordering、conflict/blocking counts、assignment rows、local probe completed vector 或其他 trace-derived decision metric。如果 completed vector 和关键 trace signals 与 parent 完全一样，标记为 no-op/instrumentation-only，不要跑 public-seed self-test 或 real。
+
+    以下 candidate 生命周期规则同时强制适用于 Claude Code 和 Codex runtime。一个行为改变型 candidate 一旦定形、能够 build/test 并产生 valid 输出，无论 agent 自己的 local/public benchmark、quick check 或 diagnostics 显示它改善、持平还是退化，都必须先把该 candidate 的源码改动单独 git commit，再立即运行一次普通 `coral eval -m "..."` 注册 hidden real attempt。尤其禁止因为 agent 自己的 benchmark/eval 结果不好，就在没有 commit 和普通 `coral eval` 的情况下直接 revert、丢弃该 candidate、切换方案或 pivot away。eval message 必须如实写明 local 结果和“可能放弃”的判断。拿到官方 eval 后再写 experiment note，并决定 retain、继续迭代或 revert。若随后回退到一个已经有官方 eval 的旧代码状态，记录时直接引用该旧 commit/attempt 的已有分数，不要仅为了证明回退而重复运行 public benchmark 或 `coral eval`；下一个新的行为改变型 candidate 定形后仍须重新执行 commit + official eval。只有无法 build、基础测试失败、输出 invalid、纯 diagnostic/instrumentation/refactor/runtime-only，或已证实为 no-op/parameter-path-not-hit 的改动可以不提交 official eval。每当 agent 向用户汇报 retained、rejected、reverted candidate 或 progress 时，也必须确保该行为改变型 candidate 已有对应的普通 `coral eval`。继续遵循核心实验纪律：观察 real trajectories，形成 root-cause hypothesis，做最小代码改动，quick-verify，检查 trace signals，并在 local diagnostics 或 direct public-seed self-tests 上做 same-seed comparison。
 
     添加任何能解释算法改变如何影响行为的辅助指标：congestion、waiting、goal churn、service dwell、assignment churn、local conflicts、cache hit rates、runtime distribution 或其他 trace-derived signals。不要只因为 quick throughput 下降就立刻 revert candidate。只要 hypothesis 仍然技术上合理，最多允许连续三轮探索出现性能损失；但每一轮 losing round 后必须先验证 code path sound：build/tests 通过、输出 valid、固定场景语义保持不变，且 regression 不是明显 bug、bad flag、broken instrumentation 或 unintended runtime blow-up。只有这样才能继续做更窄的 diagnostic、paired mechanism 或 follow-up change。如果连续三个 explored variants 仍然失败，除非出现新的 root-cause signal，否则总结证据并 pivot away。
 
@@ -68,9 +73,14 @@ task:
     - 改代码前先跑 `coral eval -m "baseline"` 注册第一个 official score。
     - 不要跑 `coral eval --tune`；public tune seeds 自测必须直接跑 `tools/run_symbotic_requested_grid.py`，输出到 `hl_agent/runs/`。
     - diagnostic-only、instrumentation-only、refactor-only、runtime-only、no-op 或 parameter-path-not-hit 改动不要跑 public-seed self-test 或 real eval。
-    - 每次向用户汇报 retained candidate 或 progress result，都要跑普通 `coral eval -m "..."`；user-facing outcomes 必须是 real。
+    - 每个已定形、可 build/test 且输出 valid 的行为改变型 candidate，无论 local/public 自测改善或退化，都必须先单独 commit 并跑普通 `coral eval -m "..."`，之后才允许 retain、revert、丢弃或 pivot；不得因本地结果差而静默回退。
+    - 回退到已有 official eval 的旧状态时引用其已有 commit/attempt 结果，不要为回退本身重复跑 benchmark/eval；新的行为改变型 candidate 仍必须 commit + official eval。
+    - 每次向用户汇报 retained、rejected、reverted candidate 或 progress result，都要确保对应 candidate 已有普通 `coral eval`；user-facing outcomes 必须是 real。
     - direct public-seed self-test logs 有可检查的 rows 和 traces；real eval logs 只暴露 aggregate summary，避免 held-out seeds 泄漏。
-    - 每个 throughput idea 都必须引用本地 `papers/briefs/*.md` summary，必要时引用 linked paper source；同时标注 idea 类别：map/guidance-weight optimization、algorithm design 或 heuristic function design。implementation 和命令执行使用 paper-grounded-subagent skill。
+    - 每个 throughput idea 都必须引用本地 `papers/briefs/*.md` summary，必要时引用 linked paper source；同时标注 idea 类别：map/guidance-weight optimization、algorithm design 或 heuristic function design。
+    - 每个 candidate 都要报告 throughput 收益和累计 runtime 代价；默认优先保护后续迭代速度，只有强 throughput 证据才接受大幅变慢。
+    - 鼓励用 subagent 隔离复杂实现、长命令和大输出以保护 main context，但由 agent 自主决定是否委托；列出的 subagent 模型只是建议，可以按任务和可用性选择其他模型/runtime。
+    - 持续写 experiment logs 和 compact-safe checkpoints；记录 parent/commit、hypothesis、命令结果、artifacts、eval attempt、当前状态和下一步，resume 后先读日志。
 
 grader:
   entrypoint: "lacam_throughput_grader.grader:Grader"
@@ -84,7 +94,7 @@ grader:
 agents:
   count: 1
   runtime: codex
-  model: gpt-5.5
+  model: gpt-5.6-sol
   runtime_options:
     model_reasoning_effort: high
   research: false
