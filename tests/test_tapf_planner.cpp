@@ -193,6 +193,28 @@ TEST(tapf_planner, assignment_uses_agent_target_distance_scales)
   ASSERT_EQ(ins.tasks[assignment.agent_to_task[0]]->index, 4);
 }
 
+TEST(tapf_planner, motion_assignment_cache_keys_full_motion_state)
+{
+  const auto ins = TAPFInstance("./tests/assets/5x1.map", {0}, {{4}});
+  auto distances = TAPFDistTable(ins);
+  auto state = TAPFAssignmentState();
+  const auto changed_agents = std::vector<int>{0};
+
+  const auto first = assign_tapf_tasks_dynamic(
+      ins, distances, ins.starts, state, changed_agents, true, nullptr, {}, {},
+      {}, {10}, [](int, int, Vertex*) { return 5; });
+  ASSERT_TRUE(first.feasible);
+  EXPECT_EQ(first.cost, 5);
+
+  // The physical location is unchanged, but heading/speed/omega may produce a
+  // different motion state and therefore a different weighted distance row.
+  const auto second = assign_tapf_tasks_dynamic(
+      ins, distances, ins.starts, state, changed_agents, true, nullptr, {}, {},
+      {}, {11}, [](int, int, Vertex*) { return 9; });
+  ASSERT_TRUE(second.feasible);
+  EXPECT_EQ(second.cost, 9);
+}
+
 TEST(tapf_planner, unsolved_instance_returns_no_partial_path)
 {
   const auto map_filename = "./tests/assets/2x1.map";

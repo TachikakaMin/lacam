@@ -129,20 +129,26 @@ namespace
 }  // namespace
 
 TAPFConstraint::TAPFConstraint()
-    : who(std::vector<int>()), where(Vertices()), motion_where(), depth(0)
+    : who(std::vector<int>()), where(Vertices()), depth(0)
 {
+}
+
+TAPFConstraint::TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v)
+    : who(parent->who), where(parent->where), depth(parent->depth + 1)
+{
+  who.push_back(i);
+  where.push_back(v);
 }
 
 TAPFConstraint::TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v,
                                int motion_state_id)
-    : who(parent->who),
-      where(parent->where),
-      motion_where(parent->motion_where),
-      depth(parent->depth + 1)
+    : who(parent->who), where(parent->where), depth(parent->depth + 1)
 {
+  // Store [agent, motion-state] pairs in the existing integer vector so a
+  // position-only constraint keeps the exact pre-motion object layout.
   who.push_back(i);
+  who.push_back(motion_state_id);
   where.push_back(v);
-  motion_where.push_back(motion_state_id);
 }
 
 TAPFConstraint::~TAPFConstraint(){};
@@ -737,21 +743,12 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     return best == OPEN.size() ? OPEN.size() - 1 : best;
   };
 
-  auto state_ids = std::function<std::vector<int>(const MotionConfig&)>(
-      [](const MotionConfig& motion) {
-        auto ids = std::vector<int>();
-        ids.reserve(motion.size());
-        for (const auto& state : motion) ids.push_back(state.id);
-        return ids;
-      });
-  if (search_config.map_distance_rows != nullptr) {
-    state_ids = [&](const MotionConfig& motion) {
-      auto ids = std::vector<int>();
-      ids.reserve(motion.size());
-      for (const auto& state : motion) ids.push_back(state.location->id);
-      return ids;
-    };
-  }
+  auto state_ids = [](const MotionConfig& motion) {
+    auto ids = std::vector<int>();
+    ids.reserve(motion.size());
+    for (const auto& state : motion) ids.push_back(state.id);
+    return ids;
+  };
 
   auto initial_motion = MotionConfig();
   if (motion_graph != nullptr) {
@@ -788,15 +785,20 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
           std::max(0, search_config.initial_optional_service_remaining[i]);
     }
   }
-  auto initial_assignment = assign_tapf_tasks_dynamic(
-      *ins, D, ins->starts, initial_assignment_state, initial_agents, true,
-      &assignment_stats, std::vector<int>(), std::vector<bool>(),
-      initial_service_cost_state, state_ids(initial_motion),
+  auto initial_assignment =
       motion_graph == nullptr
-          ? TAPFDistanceOverride()
-          : TAPFDistanceOverride([&](int agent, int task, Vertex*) {
-              return motion_distance(initial_motion[agent].id, task);
-            }));
+          ? assign_tapf_tasks_dynamic(
+                *ins, D, ins->starts, initial_assignment_state, initial_agents,
+                true, &assignment_stats, std::vector<int>(),
+                std::vector<bool>(), initial_service_cost_state)
+          : assign_tapf_tasks_dynamic(
+                *ins, D, ins->starts, initial_assignment_state, initial_agents,
+                true, &assignment_stats, std::vector<int>(),
+                std::vector<bool>(), initial_service_cost_state,
+                state_ids(initial_motion),
+                TAPFDistanceOverride([&](int agent, int task, Vertex*) {
+                  return motion_distance(initial_motion[agent].id, task);
+                }));
   if (!initial_assignment.feasible) return Solution();
   if (stats != nullptr) {
     stats->initial_assignment = initial_assignment.agent_to_task;
@@ -893,7 +895,7 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       initial_satisfied_assignment, nullptr, initial_motion);
   S_init->h = search_config.service_goal_mode ? get_h_value(S_init)
                                               : initial_assignment.cost;
-  refresh_motion_priorities(S_init);
+  if (motion_graph != nullptr) refresh_motion_priorities(S_init);
   S_init->f = S_init->g + S_init->h;
   push_open(S_init);
   if (search_config.service_goal_mode) {
@@ -1105,15 +1107,20 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
             ? assignment_service_cost_state_for(C_new, service_assignment,
                                                 service_progress)
             : TAPFAssignmentServiceCostState();
-    auto assignment = assign_tapf_tasks_dynamic(
-        *ins, D, C_new, assignment_state, changed_agents, force_full_assignment,
-        &assignment_stats, fixed_task_by_agent, std::vector<bool>(),
-        service_cost_state, state_ids(motion_next),
+    auto assignment =
         motion_graph == nullptr
-            ? TAPFDistanceOverride()
-            : TAPFDistanceOverride([&](int agent, int task, Vertex*) {
-                return motion_distance(motion_next[agent].id, task);
-              }));
+            ? assign_tapf_tasks_dynamic(
+                  *ins, D, C_new, assignment_state, changed_agents,
+                  force_full_assignment, &assignment_stats,
+                  fixed_task_by_agent, std::vector<bool>(), service_cost_state)
+            : assign_tapf_tasks_dynamic(
+                  *ins, D, C_new, assignment_state, changed_agents,
+                  force_full_assignment, &assignment_stats,
+                  fixed_task_by_agent, std::vector<bool>(), service_cost_state,
+                  state_ids(motion_next),
+                  TAPFDistanceOverride([&](int agent, int task, Vertex*) {
+                    return motion_distance(motion_next[agent].id, task);
+                  }));
     if (!assignment.feasible) {
       if (stats != nullptr) ++stats->assignment_infeasible_count;
       continue;
@@ -1146,7 +1153,7 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     S_new->h =
         search_config.service_goal_mode ? get_h_value(S_new) : assignment.cost;
     S_new->f = S_new->g + S_new->h;
-    refresh_motion_priorities(S_new);
+    if (motion_graph != nullptr) refresh_motion_priorities(S_new);
     if (search_config.service_goal_mode) {
       const auto key = service_key(S_new);
       auto iter = CLOSED_SERVICE.find(key);
@@ -1777,13 +1784,14 @@ bool TAPFPlanner::get_new_motion_config(TAPFNode* node,
   const auto cells = ins->G.width * ins->G.height;
   auto required_first = std::vector<int>(N, -1);
   for (auto k = 0; k < constraint->depth; ++k) {
-    const auto agent = constraint->who[k];
-    if (agent < 0 || agent >= N ||
-        k >= static_cast<int>(constraint->motion_where.size()) ||
-        constraint->motion_where[k] < 0) {
+    const auto pair = 2 * k;
+    if (pair + 1 >= static_cast<int>(constraint->who.size())) return false;
+    const auto agent = constraint->who[pair];
+    const auto state = constraint->who[pair + 1];
+    if (agent < 0 || agent >= N || state < 0) {
       return false;
     }
-    required_first[agent] = constraint->motion_where[k];
+    required_first[agent] = state;
   }
 
   struct PathRef {

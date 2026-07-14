@@ -65,7 +65,7 @@ int main(int argc, char** argv)
   if (argc < 3 || argc > 9) {
     std::cerr << "usage: motion_path_precompute MAP CACHE [MAX_SPEED=2] "
                  "[ROTATION_STEPS=2] [PATH_LENGTH=6] [ACTIONS=all] "
-                 "[ACTION_COSTS=1,1,1,1,0,0,0] [WORKERS=auto]\n";
+                 "[ACTION_COSTS=1,1,1,1,1,1,1] [WORKERS=auto]\n";
     return 2;
   }
 
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
   if (argc >= 5) parameters.rotation_steps = std::stoi(argv[4]);
   if (argc >= 6) parameters.lookahead_horizon = std::stoi(argv[5]);
   const auto actions = argc >= 7 ? std::string(argv[6]) : "all";
-  const auto costs = argc >= 8 ? std::string(argv[7]) : "1,1,1,1,0,0,0";
+  const auto costs = argc >= 8 ? std::string(argv[7]) : "1,1,1,1,1,1,1";
   const auto workers =
       argc >= 9
           ? std::stoi(argv[8])

@@ -343,7 +343,7 @@ int main(int argc, char** argv)
                  "[SEARCH_MODE=dfs] [FOCAL_WEIGHT=1.5] "
                  "[FOCAL_TIE_BREAK=h] [MOTION=0] [MAX_SPEED=2] "
                  "[ROTATION_STEPS=2] [PATH_LENGTH=6] [ACTIONS=all] "
-                 "[ACTION_COSTS=1,1,1,1,0,0,0] [FOLLOWER=1] "
+                 "[ACTION_COSTS=1,1,1,1,1,1,1] [FOLLOWER=1] "
                  "[MAP_DISTANCE_CACHE=] [MOTION_PATH_CACHE=]\n";
     return 2;
   }
@@ -366,14 +366,25 @@ int main(int argc, char** argv)
   if (argc >= 15) search_config.motion.lookahead_horizon = std::stoi(argv[14]);
   const auto action_names = argc >= 16 ? std::string(argv[15]) : "all";
   const auto action_costs =
-      argc >= 17 ? std::string(argv[16]) : "1,1,1,1,0,0,0";
-  if (!parse_motion_actions(action_names, search_config.motion.actions) ||
+      argc >= 17 ? std::string(argv[16]) : "1,1,1,1,1,1,1";
+  if ((search_config.motion.enabled &&
+       !parse_motion_actions(action_names, search_config.motion.actions)) ||
       !parse_motion_costs(action_costs, search_config.motion.costs)) {
     std::cerr << "invalid motion action list or costs\n";
     return 2;
   }
   if (argc >= 18)
     search_config.motion.follower_collisions = std::stoi(argv[17]) != 0;
+  if (!search_config.motion.enabled) {
+    // Position-only compatibility mode: keep action costs observable for the
+    // experiment record, but make every other motion knob inert.
+    search_config.motion.max_speed = 0;
+    search_config.motion.rotation_steps = 0;
+    search_config.motion.lookahead_horizon = 0;
+    search_config.motion.follower_collisions = false;
+    search_config.motion.actions =
+        MotionActionSet{false, false, false, false, false, false, false};
+  }
   const auto map_distance_cache_path =
       argc >= 19 ? std::filesystem::path(argv[18]) : std::filesystem::path();
   const auto motion_path_cache_path =
@@ -464,12 +475,16 @@ int main(int argc, char** argv)
   std::cout << "unique_goal_assignment=" << validation.unique_goal_assignment
             << "\n";
   std::cout << "runtime_ms=" << runtime_ms << "\n";
-  std::cout << "map_distance_cache=" << (!map_distance_cache_path.empty())
+  std::cout << "map_distance_cache="
+            << (search_config.motion.enabled &&
+                !map_distance_cache_path.empty())
             << "\n";
   std::cout << "map_distance_load_ms=" << map_distance_load_ms << "\n";
   std::cout << "motion_graph_preprocess_ms=" << motion_graph_preprocess_ms
             << "\n";
-  std::cout << "motion_path_cache=" << (!motion_path_cache_path.empty())
+  std::cout << "motion_path_cache="
+            << (search_config.motion.enabled &&
+                !motion_path_cache_path.empty())
             << "\n";
   std::cout << "motion_path_load_ms=" << motion_path_load_ms << "\n";
   std::cout << "makespan=" << get_makespan(solution) << "\n";
@@ -514,7 +529,9 @@ int main(int argc, char** argv)
   std::cout << "max_speed=" << search_config.motion.max_speed << "\n";
   std::cout << "rotation_steps=" << search_config.motion.rotation_steps << "\n";
   std::cout << "path_length=" << search_config.motion.lookahead_horizon << "\n";
-  std::cout << "motion_actions=" << action_names << "\n";
+  std::cout << "motion_actions="
+            << (search_config.motion.enabled ? action_names : "disabled")
+            << "\n";
   std::cout << "motion_action_costs=" << action_costs << "\n";
   std::cout << "follower_collisions="
             << search_config.motion.follower_collisions << "\n";

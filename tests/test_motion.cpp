@@ -19,7 +19,7 @@ namespace
   }
 }  // namespace
 
-TEST(Motion, PaperDefaultsAccelerateMoveAndStop)
+TEST(Motion, UnitActionCostDefaultsAccelerateMoveAndStop)
 {
   const auto graph = Graph("./tests/assets/5x1.map");
   auto parameters = MotionParameters();
@@ -28,11 +28,20 @@ TEST(Motion, PaperDefaultsAccelerateMoveAndStop)
   parameters.rotation_steps = 2;
   const auto motion = MotionGraph(graph, parameters);
 
+  EXPECT_EQ(parameters.costs.stay, 1);
+  EXPECT_EQ(parameters.costs.forward, 1);
+  EXPECT_EQ(parameters.costs.rotate_ccw, 1);
+  EXPECT_EQ(parameters.costs.rotate_cw, 1);
+  EXPECT_EQ(parameters.costs.keep_speed, 1);
+  EXPECT_EQ(parameters.costs.accelerate, 1);
+  EXPECT_EQ(parameters.costs.decelerate, 1);
+
   const auto start = motion.state_id(graph.U[0], 0);
   ASSERT_GE(start, 0);
   const auto accelerate = find_transition(motion, start, MotionMoveAction::STAY,
                                           MotionSpeedAction::ACCELERATE);
   ASSERT_NE(accelerate, nullptr);
+  EXPECT_EQ(accelerate->cost, 2);
   EXPECT_EQ(motion.state(accelerate->to).location, graph.U[0]);
   EXPECT_EQ(motion.state(accelerate->to).speed, 1);
 

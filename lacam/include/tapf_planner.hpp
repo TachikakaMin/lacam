@@ -47,11 +47,11 @@ struct TAPFSearchConfig {
 struct TAPFConstraint {
   std::vector<int> who;
   Vertices where;
-  std::vector<int> motion_where;
   const int depth;
   TAPFConstraint();
+  TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v);
   TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v,
-                 int motion_state_id = -1);
+                 int motion_state_id);
   ~TAPFConstraint();
 };
 

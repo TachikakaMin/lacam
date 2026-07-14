@@ -38,14 +38,12 @@ struct TAPFAssignmentServiceCostState {
 struct TAPFAssignmentRowCacheKey {
   int agent_id = -1;
   int cell_id = -1;
-  int motion_state_id = -1;
   int partial_task = -1;
   int partial_remaining = 0;
 
   bool operator==(const TAPFAssignmentRowCacheKey& other) const
   {
     return agent_id == other.agent_id && cell_id == other.cell_id &&
-           motion_state_id == other.motion_state_id &&
            partial_task == other.partial_task &&
            partial_remaining == other.partial_remaining;
   }
@@ -61,7 +59,6 @@ struct TAPFAssignmentRowCacheKeyHash {
     };
     combine(key.agent_id);
     combine(key.cell_id);
-    combine(key.motion_state_id);
     combine(key.partial_task);
     combine(key.partial_remaining);
     return seed;

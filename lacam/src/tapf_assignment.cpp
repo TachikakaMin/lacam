@@ -103,9 +103,14 @@ namespace
                                           int motion_state_id, int partial_task,
                                           int partial_remaining)
   {
-    const auto cell_id = cell == nullptr ? -1 : cell->id;
-    return TAPFAssignmentRowCacheKey{agent_id, cell_id, motion_state_id,
-                                     partial_task, partial_remaining};
+    // A motion-state id already uniquely identifies its physical cell.  Reuse
+    // the legacy four-int key layout: position-only rows use the cell id and
+    // motion rows use the full state id (including heading, speed and omega).
+    const auto state_id = motion_state_id >= 0
+                              ? motion_state_id
+                              : (cell == nullptr ? -1 : cell->id);
+    return TAPFAssignmentRowCacheKey{agent_id, state_id, partial_task,
+                                     partial_remaining};
   }
 
   void record_assignment_time(const Time::time_point& t_start,
@@ -124,16 +129,56 @@ namespace
       const TAPFAssignmentServiceCostState& service_cost_state,
       const TAPFDistanceOverride& distance_override)
   {
+    if (!distance_override) {
+      auto cost = std::vector<std::vector<int> >(
+          ins.N, std::vector<int>(ins.tasks.size(), kTapfAssignmentInfCost));
+      for (size_t i = 0; i < ins.N; ++i) {
+        for (size_t j = 0; j < ins.tasks.size(); ++j) {
+          if (!ins.allowed[i][j]) continue;
+          const auto d = D.get(j, C[i]);
+          if (d >= D.K) continue;
+          const auto offset = ins.assignment_cost_offsets[i][j];
+          const auto distance_scale =
+              ins.assignment_distance_scales.empty()
+                  ? ins.assignment_distance_scale
+                  : ins.assignment_distance_scales[i][j];
+          const auto full_service_duration =
+              ins.assignment_service_durations.empty()
+                  ? 0
+                  : ins.assignment_service_durations[i][j];
+          const auto partial_task =
+              i < service_cost_state.partial_task_by_agent.size()
+                  ? service_cost_state.partial_task_by_agent[i]
+                  : -1;
+          const auto partial_remaining =
+              i < service_cost_state.partial_remaining_by_agent.size()
+                  ? std::max(0,
+                             service_cost_state.partial_remaining_by_agent[i])
+                  : 0;
+          const auto continues_partial =
+              partial_task == static_cast<int>(j) && C[i] == ins.tasks[j];
+          const auto service_duration =
+              continues_partial ? partial_remaining : full_service_duration;
+          const auto scaled_work =
+              static_cast<long long>(d + service_duration) * distance_scale;
+          if (scaled_work + offset >= kTapfAssignmentInfCost) continue;
+          cost[i][j] = static_cast<int>(scaled_work + offset);
+          if (!previous_assignment.empty() &&
+              previous_assignment[i] != static_cast<int>(j)) {
+            cost[i][j] += sticky_penalty;
+          }
+        }
+      }
+      return cost;
+    }
+
     auto cost = std::vector<std::vector<int> >(
         ins.N, std::vector<int>(ins.tasks.size(), kTapfAssignmentInfCost));
     for (size_t i = 0; i < ins.N; ++i) {
       for (size_t j = 0; j < ins.tasks.size(); ++j) {
         if (!ins.allowed[i][j]) continue;
-        auto d =
-            distance_override ? distance_override(i, j, C[i]) : D.get(j, C[i]);
-        if ((!distance_override && d >= D.K) ||
-            (distance_override && d >= kTapfAssignmentInfCost / 2))
-          continue;
+        const auto d = distance_override(i, j, C[i]);
+        if (d >= kTapfAssignmentInfCost / 2) continue;
         const auto offset = ins.assignment_cost_offsets[i][j];
         const auto distance_scale = ins.assignment_distance_scales.empty()
                                         ? ins.assignment_distance_scale
@@ -217,15 +262,12 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     state.init(ins.N, ins.tasks.size());
   }
 
-  auto build_row = [&](const int i) {
+  auto build_legacy_row = [&](const int i) {
     auto row = std::vector<int>(ins.tasks.size(), kTapfAssignmentInfCost);
     for (size_t j = 0; j < ins.tasks.size(); ++j) {
       if (!ins.allowed[i][j]) continue;
-      auto d =
-          distance_override ? distance_override(i, j, C[i]) : D.get(j, C[i]);
-      if ((!distance_override && d >= D.K) ||
-          (distance_override && d >= kTapfAssignmentInfCost / 2))
-        continue;
+      const auto d = D.get(j, C[i]);
+      if (d >= D.K) continue;
       const auto offset = ins.assignment_cost_offsets[i][j];
       const auto distance_scale = ins.assignment_distance_scales.empty()
                                       ? ins.assignment_distance_scale
@@ -255,7 +297,42 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     return row;
   };
 
-  auto cost = [&](const int i, const int j) -> int {
+  auto build_motion_row = [&](const int i) {
+    auto row = std::vector<int>(ins.tasks.size(), kTapfAssignmentInfCost);
+    for (size_t j = 0; j < ins.tasks.size(); ++j) {
+      if (!ins.allowed[i][j]) continue;
+      const auto d = distance_override(i, j, C[i]);
+      if (d >= kTapfAssignmentInfCost / 2) continue;
+      const auto offset = ins.assignment_cost_offsets[i][j];
+      const auto distance_scale = ins.assignment_distance_scales.empty()
+                                      ? ins.assignment_distance_scale
+                                      : ins.assignment_distance_scales[i][j];
+      const auto full_service_duration =
+          ins.assignment_service_durations.empty()
+              ? 0
+              : ins.assignment_service_durations[i][j];
+      const auto partial_task =
+          i < static_cast<int>(service_cost_state.partial_task_by_agent.size())
+              ? service_cost_state.partial_task_by_agent[i]
+              : -1;
+      const auto partial_remaining =
+          i < static_cast<int>(
+                  service_cost_state.partial_remaining_by_agent.size())
+              ? std::max(0, service_cost_state.partial_remaining_by_agent[i])
+              : 0;
+      const auto continues_partial =
+          partial_task == static_cast<int>(j) && C[i] == ins.tasks[j];
+      const auto service_duration =
+          continues_partial ? partial_remaining : full_service_duration;
+      const auto scaled_work =
+          static_cast<long long>(d + service_duration) * distance_scale;
+      if (scaled_work + offset >= kTapfAssignmentInfCost) continue;
+      row[j] = static_cast<int>(scaled_work + offset);
+    }
+    return row;
+  };
+
+  auto base_cost_checks = [&](const int i, const int j) -> int {
     if (j >= static_cast<int>(ins.tasks.size())) return kTapfAssignmentInfCost;
     const auto fixed = i < static_cast<int>(fixed_task_by_agent.size())
                            ? fixed_task_by_agent[i]
@@ -265,6 +342,37 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
         unavailable_tasks[j]) {
       return kTapfAssignmentInfCost;
     }
+    return -1;
+  };
+
+  auto legacy_cost = [&](const int i, const int j) -> int {
+    const auto checked = base_cost_checks(i, j);
+    if (checked >= 0) return checked;
+    if (stats != nullptr) ++stats->row_cache_requests;
+    const auto partial_task =
+        i < static_cast<int>(service_cost_state.partial_task_by_agent.size())
+            ? service_cost_state.partial_task_by_agent[i]
+            : -1;
+    const auto partial_remaining =
+        i < static_cast<int>(
+                service_cost_state.partial_remaining_by_agent.size())
+            ? std::max(0, service_cost_state.partial_remaining_by_agent[i])
+            : 0;
+    const auto key = row_cache_key(i, C[i], -1, partial_task,
+                                   partial_remaining);
+    if (state.row_cost_cache == nullptr) state.reset_row_cost_cache();
+    auto iter = state.row_cost_cache->find(key);
+    if (iter == state.row_cost_cache->end()) {
+      iter = state.row_cost_cache->emplace(key, build_legacy_row(i)).first;
+    } else if (stats != nullptr) {
+      ++stats->row_cache_hits;
+    }
+    return iter->second[j];
+  };
+
+  auto motion_cost = [&](const int i, const int j) -> int {
+    const auto checked = base_cost_checks(i, j);
+    if (checked >= 0) return checked;
     if (stats != nullptr) ++stats->row_cache_requests;
     const auto partial_task =
         i < static_cast<int>(service_cost_state.partial_task_by_agent.size())
@@ -283,15 +391,21 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     if (state.row_cost_cache == nullptr) state.reset_row_cost_cache();
     auto iter = state.row_cost_cache->find(key);
     if (iter == state.row_cost_cache->end()) {
-      iter = state.row_cost_cache->emplace(key, build_row(i)).first;
+      iter = state.row_cost_cache->emplace(key, build_motion_row(i)).first;
     } else if (stats != nullptr) {
       ++stats->row_cache_hits;
     }
     return iter->second[j];
   };
 
-  auto result = force_full ? state.solve_full(cost)
-                           : state.repair_rows(changed_agents, cost);
+  const auto motion_costs_enabled = static_cast<bool>(distance_override);
+  auto result = motion_costs_enabled
+                    ? (force_full ? state.solve_full(motion_cost)
+                                  : state.repair_rows(changed_agents,
+                                                      motion_cost))
+                    : (force_full ? state.solve_full(legacy_cost)
+                                  : state.repair_rows(changed_agents,
+                                                      legacy_cost));
   record_assignment_time(t_start, stats);
   return result;
 }

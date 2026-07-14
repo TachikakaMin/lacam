@@ -197,9 +197,9 @@ ACTION_COSTS FOLLOWER MAP_DISTANCE_CACHE MOTION_PATH_CACHE`:
 ```sh
 build/map_distance_precompute map.map map.dist.bin 64
 build/motion_path_precompute map.map map.motion.bin 2 2 6 all \
-  1,1,1,1,0,0,0 64
+  1,1,1,1,1,1,1 64
 build/tapf_benchmark case.yaml "" 1 out.yaml 0 0 0 dfs 1.5 h \
-  1 2 2 6 all 1,1,1,1,0,0,0 1 map.dist.bin map.motion.bin
+  1 2 2 6 all 1,1,1,1,1,1,1 1 map.dist.bin map.motion.bin
 ```
 
 `ACTIONS` is `all` or a comma-separated subset of `stay,forward,rotate_ccw,
@@ -216,6 +216,18 @@ for every motion state, validates its cache against the map topology and all
 motion parameters, and keeps candidate generation outside each solve.  The
 solver uses compact candidate views, paper-style division sorting in batches
 of eight, and reusable collision buffers.
+
+To check compatibility with pre-motion `agent_fable`, the differential runner
+sets `MOTION=0`, disables every motion action and motion-only parameter, and
+keeps all seven recorded action costs at one.  It compares stable solver
+metrics and the binary schedule for every YAML case:
+
+```sh
+python3 tools/compare_agent_fable.py \
+  --old-binary /tmp/agent_fable_baseline/build/tapf_benchmark \
+  --new-binary build/tapf_benchmark \
+  --cases experiments/mawpf_paper_comparison/cases
+```
 
 The paper-setting comparison uses the
 [authors' implementation](https://github.com/hirokiNagai-39/mawpf), all 12
