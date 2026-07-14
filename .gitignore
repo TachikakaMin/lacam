@@ -41,6 +41,10 @@
 **/__pycache__/
 outputs/
 tmp_runs/
+experiments/mawpf_paper_comparison/cases/
+experiments/mawpf_paper_comparison/raw/
+experiments/mawpf_paper_comparison/map_cache/
+experiments/mawpf_paper_comparison/motion_path_cache/
 Manifest.toml
 map
 .claude/

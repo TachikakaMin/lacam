@@ -38,12 +38,14 @@ struct TAPFAssignmentServiceCostState {
 struct TAPFAssignmentRowCacheKey {
   int agent_id = -1;
   int cell_id = -1;
+  int motion_state_id = -1;
   int partial_task = -1;
   int partial_remaining = 0;
 
   bool operator==(const TAPFAssignmentRowCacheKey& other) const
   {
     return agent_id == other.agent_id && cell_id == other.cell_id &&
+           motion_state_id == other.motion_state_id &&
            partial_task == other.partial_task &&
            partial_remaining == other.partial_remaining;
   }
@@ -59,11 +61,15 @@ struct TAPFAssignmentRowCacheKeyHash {
     };
     combine(key.agent_id);
     combine(key.cell_id);
+    combine(key.motion_state_id);
     combine(key.partial_task);
     combine(key.partial_remaining);
     return seed;
   }
 };
+
+using TAPFDistanceOverride =
+    std::function<int(int agent, int task, Vertex* location)>;
 
 struct TAPFAssignmentState {
   int org_n = 0;
@@ -75,9 +81,9 @@ struct TAPFAssignmentState {
   std::vector<long> ly;
   long cost_scale = 1;
   long tie_hash_mod = 1;
-  using RowCostCache = std::unordered_map<TAPFAssignmentRowCacheKey,
-                                          std::vector<int>,
-                                          TAPFAssignmentRowCacheKeyHash>;
+  using RowCostCache =
+      std::unordered_map<TAPFAssignmentRowCacheKey, std::vector<int>,
+                         TAPFAssignmentRowCacheKeyHash>;
   std::shared_ptr<RowCostCache> row_cost_cache;
 
   void init(const int agent_num, const int task_num)
@@ -149,7 +155,7 @@ struct TAPFAssignmentState {
     return make_result(cost_fn);
   }
 
- private:
+private:
   void reset_matching()
   {
     std::fill(mateL.begin(), mateL.end(), -1);
@@ -176,12 +182,14 @@ struct TAPFAssignmentState {
 
   long tie_hash(const int row, const int col) const
   {
-    auto value = static_cast<unsigned long long>(row + 1) * 11995408973635179863ULL;
+    auto value =
+        static_cast<unsigned long long>(row + 1) * 11995408973635179863ULL;
     value ^= static_cast<unsigned long long>(col + 1) * 10150724397891781847ULL;
     value ^= value >> 33;
     value *= 0xff51afd7ed558ccdULL;
     value ^= value >> 33;
-    return static_cast<long>(value % static_cast<unsigned long long>(tie_hash_mod));
+    return static_cast<long>(value %
+                             static_cast<unsigned long long>(tie_hash_mod));
   }
 
   long tie_cost(const int row, const int col) const
@@ -307,10 +315,11 @@ struct TAPFAssignmentState {
 TAPFAssignmentResult assign_tapf_tasks(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
     const std::vector<int>& previous_assignment = std::vector<int>(),
-    const int sticky_penalty = 0,
-    TAPFAssignmentStats* stats = nullptr,
+    const int sticky_penalty = 0, TAPFAssignmentStats* stats = nullptr,
     const TAPFAssignmentServiceCostState& service_cost_state =
-        TAPFAssignmentServiceCostState());
+        TAPFAssignmentServiceCostState(),
+    const std::vector<int>& motion_state_ids = std::vector<int>(),
+    const TAPFDistanceOverride& distance_override = TAPFDistanceOverride());
 
 TAPFAssignmentResult assign_tapf_tasks_dynamic(
     const TAPFInstance& ins, TAPFDistTable& D, const Config& C,
@@ -319,7 +328,9 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     const std::vector<int>& fixed_task_by_agent = std::vector<int>(),
     const std::vector<bool>& unavailable_tasks = std::vector<bool>(),
     const TAPFAssignmentServiceCostState& service_cost_state =
-        TAPFAssignmentServiceCostState());
+        TAPFAssignmentServiceCostState(),
+    const std::vector<int>& motion_state_ids = std::vector<int>(),
+    const TAPFDistanceOverride& distance_override = TAPFDistanceOverride());
 
 TAPFAssignmentResult assign_hungarian_cost_matrix(
     const std::vector<std::vector<int> >& cost);

@@ -1,23 +1,23 @@
 #include <filesystem>
-
 #include <lacam.hpp>
 
 #include "gtest/gtest.h"
 
 namespace
 {
-std::filesystem::path temp_cache_path(const std::string& name)
-{
-  return std::filesystem::temp_directory_path() / name;
-}
+  std::filesystem::path temp_cache_path(const std::string& name)
+  {
+    return std::filesystem::temp_directory_path() / name;
+  }
 }  // namespace
 
 TEST(map_dist_cache, computes_reachable_and_unreachable_distances)
 {
-  const auto map_path = std::filesystem::path("./tests/assets/disconnected-3x1.map");
+  const auto map_path =
+      std::filesystem::path("./tests/assets/disconnected-3x1.map");
   const auto graph = Graph(map_path.string());
-  const auto cache =
-      build_map_distance_cache(graph, map_path.filename().string(), hash_file(map_path));
+  const auto cache = build_map_distance_cache(
+      graph, map_path.filename().string(), hash_file(map_path));
 
   ASSERT_EQ(cache.metadata.width, 3);
   ASSERT_EQ(cache.metadata.height, 1);
@@ -40,6 +40,13 @@ TEST(map_dist_cache, saves_loads_and_rejects_metadata_mismatch)
   auto loaded = MapDistanceCache();
   ASSERT_TRUE(load_map_distance_cache(cache_path, expected, loaded));
   ASSERT_EQ(loaded.get_by_vertex_id(1, 0), 1);
+
+  auto rows = MapDistanceRows();
+  ASSERT_TRUE(load_map_distance_rows(cache_path, expected, {1}, rows));
+  const auto graph = Graph(map_path.string());
+  ASSERT_EQ(rows.rows.size(), 1);
+  ASSERT_EQ(rows.get(graph.V[0], graph.V[1]), 1);
+  ASSERT_EQ(rows.get(graph.V[1], graph.V[0]), kMapDistanceInf);
 
   expected.map_hash += 1;
   auto rejected = MapDistanceCache();

@@ -1,0 +1,10 @@
+map: 5x1.map
+agents:
+  - start: [0, 0, 0]
+    potentialGoals:
+      - [0, 3, 0]
+      - [0, 4, 0]
+  - start: [0, 1, 0]
+    potentialGoals:
+      - [0, 3, 0]
+      - [0, 4, 0]

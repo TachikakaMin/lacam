@@ -72,6 +72,35 @@ def expand_task_timeline(entries, makespan):
     return dense
 
 
+def expand_motion_schedule(entries, agent_count, makespan):
+    dense = [[None] * (makespan + 1) for _ in range(agent_count)]
+    for entry in entries or []:
+        timestep = int(entry.get("timestep", -1))
+        if timestep < 0 or timestep > makespan:
+            continue
+        states = entry.get("states", [])
+        if len(states) != agent_count:
+            raise ValueError(
+                f"motion_schedule timestep {timestep} has {len(states)} states; "
+                f"expected {agent_count}"
+            )
+        for agent, state in enumerate(states):
+            if len(state) != 5:
+                raise ValueError(
+                    f"motion state for agent {agent} at timestep {timestep} "
+                    "must be [row, col, heading, speed, omega]"
+                )
+            row, col, heading, speed, omega = map(int, state)
+            dense[agent][timestep] = {
+                "row": row,
+                "col": col,
+                "heading": heading,
+                "speed": speed,
+                "omega": omega,
+            }
+    return dense
+
+
 def throughput_series(tasks, makespan):
     completions = [0] * (makespan + 1)
     for task in tasks:
@@ -446,10 +475,11 @@ tr.selected {{
         <div><span class="swatch" style="background:#fff;border:2px solid #111"></span>Task goals</div>
         <div><span class="cargo-swatch inbound"></span>Inbound cargo</div>
         <div><span class="cargo-swatch outbound"></span>Outbound cargo</div>
+        <div><span style="display:inline-block;width:18px;margin-right:3px;text-align:center">&#8594;</span>Motion heading</div>
       </div>
     </section>
     <section class="panel">
-      <div class="title">Current Task</div>
+      <div class="title">Current State</div>
       <div id="taskInfo" class="task-info"></div>
     </section>
     <section class="panel">
@@ -458,7 +488,7 @@ tr.selected {{
         <table id="table">
           <thead>
             <tr>
-              <th>agent</th><th>task</th><th>phase</th><th>SOC</th><th>SOL</th><th>ABA</th>
+              <th>agent</th><th>task</th><th>phase</th><th>v</th><th>&omega;</th><th>SOC</th><th>SOL</th><th>ABA</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -522,6 +552,19 @@ function taskState(agent) {{
   return agent.timeline[idx] || {{task: -1, phase: 'idle', assigned_task: -1, carried_tasks: []}};
 }}
 
+function motionState(agent) {{
+  const idx = Math.min(t, agent.motion.length - 1);
+  return idx >= 0 ? agent.motion[idx] : null;
+}}
+
+function motionLabel(agent) {{
+  const motion = motionState(agent);
+  if (!motion) return 'motion unavailable';
+  const cardinal = motion.heading / DATA.rotationSteps;
+  const degrees = cardinal * 90;
+  return `cell (${{motion.row}},${{motion.col}}), heading phase ${{motion.heading}} (${{degrees.toFixed(0)}}&deg;), speed ${{motion.speed}}, &omega; ${{motion.omega}}`;
+}}
+
 function stateTaskIds(state) {{
   if (state.phase === 'assigned') {{
     const task = Number(state.assigned_task ?? state.task ?? -1);
@@ -575,6 +618,33 @@ function interpolatedPosition(agent) {{
     fromRow + (toRow - fromRow) * progress,
     fromCol + (toCol - fromCol) * progress
   ];
+}}
+
+function drawHeading(agent, x, y, cell) {{
+  const motion = motionState(agent);
+  if (!motion) return;
+  const angle = motion.heading * Math.PI / (2 * DATA.rotationSteps);
+  const tipRadius = cell * 0.48;
+  const baseRadius = cell * 0.18;
+  const halfWidth = cell * 0.12;
+  const tipX = x + Math.cos(angle) * tipRadius;
+  const tipY = y + Math.sin(angle) * tipRadius;
+  const baseX = x + Math.cos(angle) * baseRadius;
+  const baseY = y + Math.sin(angle) * baseRadius;
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#17202a';
+  ctx.lineWidth = Math.max(1, cell * 0.045);
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(baseX + Math.cos(angle + Math.PI / 2) * halfWidth,
+             baseY + Math.sin(angle + Math.PI / 2) * halfWidth);
+  ctx.lineTo(baseX + Math.cos(angle - Math.PI / 2) * halfWidth,
+             baseY + Math.sin(angle - Math.PI / 2) * halfWidth);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 }}
 
 function phaseLabel(phase) {{
@@ -894,6 +964,7 @@ function draw(forceUi = false) {{
     ctx.beginPath();
     ctx.arc(x, y, cell * 0.32, 0, Math.PI * 2);
     ctx.fill();
+    drawHeading(agent, x, y, cell);
     ctx.fillStyle = '#fff';
     ctx.font = `${{Math.max(9, cell * 0.32)}}px ui-sans-serif`;
     ctx.textAlign = 'center';
@@ -924,7 +995,9 @@ function renderTaskInfo() {{
     const carried = carriedTaskIds(state);
     const taskIds = [...(assigned >= 0 ? [assigned] : []), ...carried];
     if (!agent || taskIds.length === 0) {{
-      taskInfo.innerHTML = '<strong>Selected agent</strong>: idle';
+      taskInfo.innerHTML = agent
+        ? `<strong>${{agent.name}}</strong>: idle<br>${{motionLabel(agent)}}`
+        : '<strong>Selected agent</strong>: idle';
       return;
     }}
     const details = taskIds.map(taskId => {{
@@ -936,7 +1009,7 @@ function renderTaskInfo() {{
     }}).join('<br>');
     taskInfo.innerHTML = `<strong>${{agent.name}}</strong> ${{
       phaseLabelForState(agent, state)
-    }}<br>${{details}}`;
+    }}<br>${{motionLabel(agent)}}<br>${{details}}`;
     return;
   }}
   let assigned = 0;
@@ -967,10 +1040,11 @@ function renderTable() {{
   tbody.innerHTML = '';
   for (const a of agents) {{
     const state = taskState(a);
+    const motion = motionState(a);
     const tr = document.createElement('tr');
     tr.dataset.id = a.id;
     if (a.id === selected) tr.classList.add('selected');
-    tr.innerHTML = `<td><span class="swatch" style="background:${{colorForState(a, state)}}"></span>${{a.name}}</td><td>${{taskLabel(state)}}</td><td>${{phaseLabelForState(a, state)}}</td><td>${{a.soc}}</td><td>${{a.sol}}</td><td>${{a.aba}}</td>`;
+    tr.innerHTML = `<td><span class="swatch" style="background:${{colorForState(a, state)}}"></span>${{a.name}}</td><td>${{taskLabel(state)}}</td><td>${{phaseLabelForState(a, state)}}</td><td>${{motion ? motion.speed : '-'}}</td><td>${{motion ? motion.omega : '-'}}</td><td>${{a.soc}}</td><td>${{a.sol}}</td><td>${{a.aba}}</td>`;
     tr.addEventListener('click', () => {{
       selected = selected === a.id ? null : a.id;
       draw(true);
@@ -1040,14 +1114,23 @@ def main():
     parser.add_argument("schedule")
     parser.add_argument("output")
     parser.add_argument("--title", default="TAPF schedule visualization")
+    parser.add_argument(
+        "--rotation-steps",
+        type=int,
+        help="heading phases per cardinal turn (defaults to schedule metadata or 1)",
+    )
     args = parser.parse_args()
 
     grid = read_movingai_map(args.map)
     schedule_data = load_schedule(Path(args.schedule))
     makespan = int(schedule_data["statistics"]["makespan"])
 
+    agent_names = sorted(schedule_data["schedule"], key=agent_index)
+    motion = expand_motion_schedule(
+        schedule_data.get("motion_schedule", []), len(agent_names), makespan
+    )
     agents = []
-    for name in sorted(schedule_data["schedule"], key=agent_index):
+    for agent_id, name in enumerate(agent_names):
         goal = [
             schedule_data["assignments"][name]["x"],
             schedule_data["assignments"][name]["y"],
@@ -1058,6 +1141,7 @@ def main():
         stats["timeline"] = expand_task_timeline(
             schedule_data.get("agent_task_timeline", {}).get(name, []), makespan
         )
+        stats["motion"] = motion[agent_id]
         agents.append(stats)
 
     tasks = schedule_data.get("tasks", [])
@@ -1066,6 +1150,8 @@ def main():
         "height": len(grid),
         "width": len(grid[0]),
         "makespan": makespan,
+        "rotationSteps": args.rotation_steps
+        or int(schedule_data.get("motion_parameters", {}).get("rotation_steps", 1)),
         "tasks": tasks,
         "throughput": throughput_series(tasks, makespan),
         "agents": agents,

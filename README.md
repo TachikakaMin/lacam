@@ -186,6 +186,54 @@ build/tapf_benchmark case.yaml "" 10 out.yaml 1 0 -1 dfs 1.5 h
 build/tapf_benchmark case.yaml "" 10 out.yaml 1 0 -1 focal 1.5 h
 ```
 
+Motion-aware LaCAM-TAPF follows the [MAWPF paper](https://arxiv.org/abs/2605.15799)
+state model (position, heading, speed, and an in-progress rotation).  Start and
+goal YAML coordinates may add
+a cardinal heading as a third value (`0=east`, `1=south`, `2=west`,
+`3=north`); omitting a goal heading accepts any final heading.  The positional
+motion arguments are `MOTION MAX_SPEED ROTATION_STEPS PATH_LENGTH ACTIONS
+ACTION_COSTS FOLLOWER MAP_DISTANCE_CACHE MOTION_PATH_CACHE`:
+
+```sh
+build/map_distance_precompute map.map map.dist.bin 64
+build/motion_path_precompute map.map map.motion.bin 2 2 6 all \
+  1,1,1,1,0,0,0 64
+build/tapf_benchmark case.yaml "" 1 out.yaml 0 0 0 dfs 1.5 h \
+  1 2 2 6 all 1,1,1,1,0,0,0 1 map.dist.bin map.motion.bin
+```
+
+`ACTIONS` is `all` or a comma-separated subset of `stay,forward,rotate_ccw,
+rotate_cw,keep,accelerate,decelerate`.  `ACTION_COSTS` supplies the seven
+non-negative costs in that order.  Dynamic task assignment remains part of
+every generated high-level node and uses exact weighted motion-state
+distances when no map cache is supplied.  With `MAP_DISTANCE_CACHE`, the
+parallel preprocessor stores all-pairs grid distances once; each solve reads
+only its candidate-goal rows, augments them with heading/rotation cost, and
+still runs TA at every high-level node.  Motion-graph construction and cache
+row loading occur before the per-case solver deadline.  The motion-path
+preprocessor independently enumerates and prunes all fixed-horizon candidates
+for every motion state, validates its cache against the map topology and all
+motion parameters, and keeps candidate generation outside each solve.  The
+solver uses compact candidate views, paper-style division sorting in batches
+of eight, and reusable collision buffers.
+
+The paper-setting comparison uses the
+[authors' implementation](https://github.com/hirokiNagai-39/mawpf), all 12
+Figure-3 map scenarios, five seeds
+per scenario, the paper defaults (`Vmax=2`, `Trot=2`, `L=6`), and a one-second
+per-case limit.  It builds and runs the authors' checkout supplied through
+`--reference`, detects current CPU load, leaves ten logical CPUs unused, and
+also caps workers from available memory:
+
+```sh
+python3 tools/run_mawpf_paper_comparison.py \
+  --reference /tmp/mawpf-reference \
+  --cases-per-scenario 5 --time-limit 1 --reserve-cpus 10
+```
+
+The comparison runner builds/reuses one all-pairs cache per selected map before
+launching testcase workers.
+
 Full exp1/exp2/IR comparison:
 
 ```sh

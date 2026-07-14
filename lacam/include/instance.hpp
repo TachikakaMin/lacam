@@ -29,21 +29,29 @@ struct Instance {
 };
 
 struct TAPFInstance {
- private:
+private:
   struct YamlData {
     std::string map_filename;
     std::vector<int> start_indexes;
     std::vector<std::vector<int> > task_indexes;
+    std::vector<int> start_headings;
+    std::vector<std::vector<int> > task_headings;
   };
 
   static YamlData load_yaml(const std::string& yaml_filename,
                             const std::string& map_dir);
   explicit TAPFInstance(const YamlData& data);
 
- public:
+public:
   const Graph G;  // graph
+  const std::string source_map_filename;
   Config starts;  // initial configuration
   Config tasks;   // unique task/goal locations
+  // Cardinal headings use 0=east, 1=south, 2=west, 3=north.  A task heading
+  // of -1 accepts any cardinal heading.  Starts default to east for backward
+  // compatible programmatic construction.
+  std::vector<int> start_headings;
+  std::vector<int> task_headings;
   std::vector<int> task_keys;
   std::vector<std::vector<bool> > allowed;  // agent-task compatibility
   std::vector<std::vector<int> > assignment_cost_offsets;
@@ -51,19 +59,20 @@ struct TAPFInstance {
   std::vector<std::vector<int> > assignment_service_durations;
   std::vector<float> agent_priority_offsets;
   int assignment_distance_scale;
-  const uint N;                           // number of agents
+  const uint N;  // number of agents
 
-  TAPFInstance(const std::string& map_filename,
-               const std::vector<int>& start_indexes,
-               const std::vector<std::vector<int> >& task_indexes,
-               const std::vector<std::vector<int> >& task_cost_offsets = {},
-               int task_distance_scale = 1,
-               const std::vector<std::vector<int> >& task_distance_scales = {},
-               const std::vector<float>& agent_priority_offsets = {},
-               bool preserve_duplicate_tasks = false,
-               const std::vector<std::vector<int> >& task_key_options = {},
-               const std::vector<std::vector<int> >& task_service_durations =
-                   {});
+  TAPFInstance(
+      const std::string& map_filename, const std::vector<int>& start_indexes,
+      const std::vector<std::vector<int> >& task_indexes,
+      const std::vector<std::vector<int> >& task_cost_offsets = {},
+      int task_distance_scale = 1,
+      const std::vector<std::vector<int> >& task_distance_scales = {},
+      const std::vector<float>& agent_priority_offsets = {},
+      bool preserve_duplicate_tasks = false,
+      const std::vector<std::vector<int> >& task_key_options = {},
+      const std::vector<std::vector<int> >& task_service_durations = {},
+      const std::vector<int>& initial_headings = {},
+      const std::vector<std::vector<int> >& task_heading_options = {});
   TAPFInstance(const std::string& yaml_filename,
                const std::string& map_dir = "");
   ~TAPFInstance() {}

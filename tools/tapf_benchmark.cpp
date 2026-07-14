@@ -1,8 +1,10 @@
+#include <chrono>
+#include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <lacam.hpp>
-#include <cstdint>
-#include <filesystem>
+#include <sstream>
 #include <tuple>
 #include <vector>
 
@@ -53,6 +55,58 @@ namespace
       default:
         return "h";
     }
+  }
+
+  std::vector<std::string> split_csv(const std::string& value)
+  {
+    auto result = std::vector<std::string>();
+    auto input = std::stringstream(value);
+    auto item = std::string();
+    while (std::getline(input, item, ',')) result.push_back(item);
+    return result;
+  }
+
+  bool parse_motion_actions(const std::string& value, MotionActionSet& actions)
+  {
+    if (value == "all" || value == "paper") return true;
+    actions = MotionActionSet{false, false, false, false, false, false, false};
+    for (const auto& item : split_csv(value)) {
+      if (item == "stay")
+        actions.stay = true;
+      else if (item == "forward")
+        actions.forward = true;
+      else if (item == "rotate_ccw")
+        actions.rotate_ccw = true;
+      else if (item == "rotate_cw")
+        actions.rotate_cw = true;
+      else if (item == "keep")
+        actions.keep_speed = true;
+      else if (item == "accelerate")
+        actions.accelerate = true;
+      else if (item == "decelerate")
+        actions.decelerate = true;
+      else
+        return false;
+    }
+    return true;
+  }
+
+  bool parse_motion_costs(const std::string& value, MotionActionCosts& costs)
+  {
+    const auto fields = split_csv(value);
+    if (fields.size() != 7) return false;
+    try {
+      costs.stay = std::stoi(fields[0]);
+      costs.forward = std::stoi(fields[1]);
+      costs.rotate_ccw = std::stoi(fields[2]);
+      costs.rotate_cw = std::stoi(fields[3]);
+      costs.keep_speed = std::stoi(fields[4]);
+      costs.accelerate = std::stoi(fields[5]);
+      costs.decelerate = std::stoi(fields[6]);
+    } catch (...) {
+      return false;
+    }
+    return true;
   }
 
   struct ValidationResult {
@@ -118,6 +172,65 @@ namespace
     return result;
   }
 
+  ValidationResult validate_motion_solution(
+      const TAPFInstance& ins, const MotionParameters& parameters,
+      const Solution& solution, const MotionSolution& motion_solution)
+  {
+    auto result = ValidationResult();
+    if (solution.empty() || solution.size() != motion_solution.size())
+      return result;
+    const auto motion = MotionGraph(ins.G, parameters);
+    result.start_valid = is_same_config(solution.front(), ins.starts);
+    result.moves_valid = true;
+    result.collision_free = true;
+    for (size_t i = 0; i < ins.N; ++i) {
+      const auto heading =
+          i < ins.start_headings.size() ? ins.start_headings[i] : 0;
+      result.start_valid =
+          result.start_valid && motion_solution.front()[i].id ==
+                                    motion.state_id(ins.starts[i], heading);
+    }
+    for (size_t t = 1; t < motion_solution.size(); ++t) {
+      auto occupied = std::vector<int>(ins.G.width * ins.G.height, -1);
+      for (size_t i = 0; i < ins.N; ++i) {
+        const auto edge = motion.transition(motion_solution[t - 1][i].id,
+                                            motion_solution[t][i].id);
+        if (edge == nullptr) {
+          result.moves_valid = false;
+          continue;
+        }
+        auto swept = edge->swept_cells;
+        if (!parameters.follower_collisions && swept.size() > 1)
+          swept.erase(swept.begin());
+        for (const auto cell : swept) {
+          if (occupied[cell] >= 0 && occupied[cell] != static_cast<int>(i))
+            result.collision_free = false;
+          occupied[cell] = i;
+        }
+      }
+    }
+    auto used_tasks = std::vector<bool>(ins.tasks.size(), false);
+    result.goal_valid = true;
+    result.unique_goal_assignment = true;
+    for (size_t i = 0; i < ins.N; ++i) {
+      auto matched = false;
+      for (size_t task = 0; task < ins.tasks.size(); ++task) {
+        const auto heading =
+            task < ins.task_headings.size() ? ins.task_headings[task] : -1;
+        if (!ins.allowed[i][task] ||
+            !motion.is_goal(motion_solution.back()[i].id, ins.tasks[task],
+                            heading))
+          continue;
+        if (used_tasks[task]) result.unique_goal_assignment = false;
+        used_tasks[task] = true;
+        matched = true;
+        break;
+      }
+      if (!matched) result.goal_valid = false;
+    }
+    return result;
+  }
+
   int get_tapf_sum_of_loss(const Solution& solution)
   {
     if (solution.empty()) return 0;
@@ -163,10 +276,9 @@ namespace
         auto v = solution[t][i];
         if (last == v) continue;
         last = v;
-        changes.emplace_back(
-            static_cast<uint32_t>(t),
-            static_cast<uint32_t>(v->index / ins.G.width),
-            static_cast<uint32_t>(v->index % ins.G.width));
+        changes.emplace_back(static_cast<uint32_t>(t),
+                             static_cast<uint32_t>(v->index / ins.G.width),
+                             static_cast<uint32_t>(v->index % ins.G.width));
       }
       write_u32(out, static_cast<uint32_t>(changes.size()));
       for (const auto& [t, x, y] : changes) {
@@ -178,7 +290,9 @@ namespace
   }
 
   void write_schedule_output(const TAPFInstance& ins, const Solution& solution,
-                             const std::string& output_path)
+                             const std::string& output_path,
+                             const MotionSolution& motion_solution = {},
+                             const MotionParameters& motion_parameters = {})
   {
     if (output_path.empty() || solution.empty()) return;
     const auto binary_path = binary_schedule_path(output_path);
@@ -197,6 +311,21 @@ namespace
       out << "    x: " << goal->index / ins.G.width << "\n";
       out << "    y: " << goal->index % ins.G.width << "\n";
     }
+    if (motion_solution.size() == solution.size()) {
+      out << "motion_parameters:\n";
+      out << "  max_speed: " << motion_parameters.max_speed << "\n";
+      out << "  rotation_steps: " << motion_parameters.rotation_steps << "\n";
+      out << "motion_schedule:\n";
+      for (size_t t = 0; t < motion_solution.size(); ++t) {
+        out << "  - timestep: " << t << "\n";
+        out << "    states:\n";
+        for (const auto& state : motion_solution[t]) {
+          out << "      - [" << state.location->index / ins.G.width << ", "
+              << state.location->index % ins.G.width << ", " << state.heading
+              << ", " << state.speed << ", " << state.omega << "]\n";
+        }
+      }
+    }
     out << "schedule_binary:\n";
     out << "  format: tapf_sparse_schedule_v1\n";
     out << "  encoding: little_endian_u32\n";
@@ -212,7 +341,10 @@ int main(int argc, char** argv)
     std::cerr << "usage: tapf_benchmark YAML MAP_DIR [TIME_LIMIT_SEC] "
                  "[SCHEDULE_YAML] [ANYTIME=1] [FULL_TA=0] [SEED=-1] "
                  "[SEARCH_MODE=dfs] [FOCAL_WEIGHT=1.5] "
-                 "[FOCAL_TIE_BREAK=h]\n";
+                 "[FOCAL_TIE_BREAK=h] [MOTION=0] [MAX_SPEED=2] "
+                 "[ROTATION_STEPS=2] [PATH_LENGTH=6] [ACTIONS=all] "
+                 "[ACTION_COSTS=1,1,1,1,0,0,0] [FOLLOWER=1] "
+                 "[MAP_DISTANCE_CACHE=] [MOTION_PATH_CACHE=]\n";
     return 2;
   }
   const auto yaml_filename = std::string(argv[1]);
@@ -220,12 +352,32 @@ int main(int argc, char** argv)
   const auto time_limit_sec = argc >= 4 ? std::stod(argv[3]) : 30.0;
   const auto output_path = argc >= 5 ? std::string(argv[4]) : std::string();
   const auto anytime = argc >= 6 ? std::stoi(argv[5]) != 0 : true;
-  const auto force_full_assignment = argc >= 7 ? std::stoi(argv[6]) != 0 : false;
+  const auto force_full_assignment =
+      argc >= 7 ? std::stoi(argv[6]) != 0 : false;
   const auto seed = argc >= 8 ? std::stoi(argv[7]) : -1;
   auto search_config = TAPFSearchConfig();
   if (argc >= 9) search_config.mode = parse_search_mode(argv[8]);
   if (argc >= 10) search_config.focal_weight = std::stod(argv[9]);
-  if (argc >= 11) search_config.focal_tie_break = parse_focal_tie_break(argv[10]);
+  if (argc >= 11)
+    search_config.focal_tie_break = parse_focal_tie_break(argv[10]);
+  if (argc >= 12) search_config.motion.enabled = std::stoi(argv[11]) != 0;
+  if (argc >= 13) search_config.motion.max_speed = std::stoi(argv[12]);
+  if (argc >= 14) search_config.motion.rotation_steps = std::stoi(argv[13]);
+  if (argc >= 15) search_config.motion.lookahead_horizon = std::stoi(argv[14]);
+  const auto action_names = argc >= 16 ? std::string(argv[15]) : "all";
+  const auto action_costs =
+      argc >= 17 ? std::string(argv[16]) : "1,1,1,1,0,0,0";
+  if (!parse_motion_actions(action_names, search_config.motion.actions) ||
+      !parse_motion_costs(action_costs, search_config.motion.costs)) {
+    std::cerr << "invalid motion action list or costs\n";
+    return 2;
+  }
+  if (argc >= 18)
+    search_config.motion.follower_collisions = std::stoi(argv[17]) != 0;
+  const auto map_distance_cache_path =
+      argc >= 19 ? std::filesystem::path(argv[18]) : std::filesystem::path();
+  const auto motion_path_cache_path =
+      argc >= 20 ? std::filesystem::path(argv[19]) : std::filesystem::path();
 
   const auto ins = TAPFInstance(yaml_filename, map_dir);
   if (!ins.is_valid()) {
@@ -233,15 +385,74 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  auto map_distance_load_ms = 0.0;
+  if (search_config.motion.enabled && !map_distance_cache_path.empty()) {
+    const auto started = std::chrono::steady_clock::now();
+    const auto map_path = std::filesystem::path(ins.source_map_filename);
+    const auto expected = MapDistanceCacheMetadata{
+        map_path.filename().string(), hash_file(map_path), ins.G.width,
+        ins.G.height, ins.G.size()};
+    auto task_vertex_ids = std::vector<int>();
+    task_vertex_ids.reserve(ins.tasks.size());
+    for (const auto task : ins.tasks) task_vertex_ids.push_back(task->id);
+    auto rows = std::make_shared<MapDistanceRows>();
+    if (!load_map_distance_rows(map_distance_cache_path, expected,
+                                task_vertex_ids, *rows)) {
+      std::cerr << "invalid or missing map distance cache: "
+                << map_distance_cache_path << "\n";
+      return 2;
+    }
+    search_config.map_distance_rows = std::move(rows);
+    map_distance_load_ms = std::chrono::duration<double, std::milli>(
+                               std::chrono::steady_clock::now() - started)
+                               .count();
+  }
+
+  auto motion_graph_preprocess_ms = 0.0;
+  auto motion_path_load_ms = 0.0;
+  auto precomputed_motion = std::shared_ptr<MotionGraph>();
+  if (search_config.motion.enabled &&
+      (search_config.map_distance_rows != nullptr ||
+       !motion_path_cache_path.empty())) {
+    const auto started = std::chrono::steady_clock::now();
+    precomputed_motion =
+        std::make_shared<MotionGraph>(ins.G, search_config.motion);
+    motion_graph_preprocess_ms = std::chrono::duration<double, std::milli>(
+                                     std::chrono::steady_clock::now() - started)
+                                     .count();
+    if (!motion_path_cache_path.empty()) {
+      const auto load_started = std::chrono::steady_clock::now();
+      if (!precomputed_motion->load_path_cache(motion_path_cache_path)) {
+        std::cerr << "invalid or missing motion path cache: "
+                  << motion_path_cache_path << "\n";
+        return 2;
+      }
+      motion_path_load_ms = std::chrono::duration<double, std::milli>(
+                                std::chrono::steady_clock::now() - load_started)
+                                .count();
+    }
+  }
+
   auto deadline = Deadline(time_limit_sec * 1000);
   auto stats = TAPFStats();
+  auto motion_solution = MotionSolution();
   auto MT = std::mt19937(seed);
   auto solution =
       solve_tapf(ins, 0, &deadline, seed >= 0 ? &MT : nullptr, 0, &stats,
-                 anytime, force_full_assignment, search_config);
+                 anytime, force_full_assignment, search_config, nullptr,
+                 nullptr, &motion_solution, precomputed_motion);
   const auto runtime_ms = deadline.elapsed_ms();
-  const auto validation = validate_tapf_solution(ins, solution);
-  write_schedule_output(ins, solution, output_path);
+  const auto validation =
+      search_config.motion.enabled
+          ? validate_motion_solution(ins, search_config.motion, solution,
+                                     motion_solution)
+          : validate_tapf_solution(ins, solution);
+  const auto objective_soc =
+      search_config.motion.enabled
+          ? stats.solution_parent_edge_cost
+          : static_cast<unsigned>(get_sum_of_costs(solution));
+  write_schedule_output(ins, solution, output_path, motion_solution,
+                        search_config.motion);
 
   std::cout << "valid_instance=1\n";
   std::cout << "solved=" << !solution.empty() << "\n";
@@ -253,12 +464,23 @@ int main(int argc, char** argv)
   std::cout << "unique_goal_assignment=" << validation.unique_goal_assignment
             << "\n";
   std::cout << "runtime_ms=" << runtime_ms << "\n";
+  std::cout << "map_distance_cache=" << (!map_distance_cache_path.empty())
+            << "\n";
+  std::cout << "map_distance_load_ms=" << map_distance_load_ms << "\n";
+  std::cout << "motion_graph_preprocess_ms=" << motion_graph_preprocess_ms
+            << "\n";
+  std::cout << "motion_path_cache=" << (!motion_path_cache_path.empty())
+            << "\n";
+  std::cout << "motion_path_load_ms=" << motion_path_load_ms << "\n";
   std::cout << "makespan=" << get_makespan(solution) << "\n";
-  std::cout << "soc=" << get_sum_of_costs(solution) << "\n";
+  std::cout << "soc=" << objective_soc << "\n";
   std::cout << "sum_of_loss=" << get_tapf_sum_of_loss(solution) << "\n";
   std::cout << "hl_loop_iterations=" << stats.hl_loop_iterations << "\n";
   std::cout << "hl_nodes_created=" << stats.hl_nodes_created << "\n";
   std::cout << "hl_nodes_explored=" << stats.hl_nodes_explored << "\n";
+  std::cout << "hl_max_depth=" << stats.hl_max_depth << "\n";
+  std::cout << "motion_best_satisfied_agents="
+            << stats.motion_best_satisfied_agents << "\n";
   std::cout << "hl_reinsertions=" << stats.hl_reinsertions << "\n";
   std::cout << "hl_duplicate_configs=" << stats.hl_duplicate_configs << "\n";
   std::cout << "open_max_size=" << stats.open_max_size << "\n";
@@ -270,6 +492,8 @@ int main(int argc, char** argv)
   std::cout << "pibt_failures=" << stats.pibt_failures << "\n";
   std::cout << "pibt_recursions=" << stats.pibt_recursions << "\n";
   std::cout << "assignment_calls=" << stats.assignment_calls << "\n";
+  std::cout << "initial_assignment_cost=" << stats.initial_assignment_cost
+            << "\n";
   std::cout << "assignment_changes=" << stats.assignment_changes << "\n";
   std::cout << "final_assignment_changes=" << stats.final_assignment_changes
             << "\n";
@@ -286,9 +510,17 @@ int main(int argc, char** argv)
   std::cout << "first_solution_cost=" << stats.first_solution_cost << "\n";
   std::cout << "first_solution_time_ms=" << stats.first_solution_time_ms
             << "\n";
+  std::cout << "motion=" << search_config.motion.enabled << "\n";
+  std::cout << "max_speed=" << search_config.motion.max_speed << "\n";
+  std::cout << "rotation_steps=" << search_config.motion.rotation_steps << "\n";
+  std::cout << "path_length=" << search_config.motion.lookahead_horizon << "\n";
+  std::cout << "motion_actions=" << action_names << "\n";
+  std::cout << "motion_action_costs=" << action_costs << "\n";
+  std::cout << "follower_collisions="
+            << search_config.motion.follower_collisions << "\n";
   std::cout << "incumbent_updates=" << stats.incumbent_updates << "\n";
-  std::cout << "solution_parent_edge_cost="
-            << stats.solution_parent_edge_cost << "\n";
+  std::cout << "solution_parent_edge_cost=" << stats.solution_parent_edge_cost
+            << "\n";
   std::cout << "anytime_cost_updates=" << stats.anytime_cost_updates << "\n";
   std::cout << "swap_checks=" << stats.swap_checks << "\n";
   std::cout << "swap_applied=" << stats.swap_applied << "\n";

@@ -3,9 +3,13 @@
  */
 #pragma once
 
+#include <memory>
 #include <set>
+#include <unordered_map>
 #include <vector>
 
+#include "map_dist_cache.hpp"
+#include "motion.hpp"
 #include "planner.hpp"
 #include "tapf_assignment.hpp"
 
@@ -36,19 +40,24 @@ struct TAPFSearchConfig {
   std::vector<int> initial_optional_service_remaining;
   // Extra guidance-metric cost for entering a root-occupied cell.
   int guidance_occupied_cost = 4;
+  MotionParameters motion;
+  std::shared_ptr<const MapDistanceRows> map_distance_rows;
 };
 
 struct TAPFConstraint {
   std::vector<int> who;
   Vertices where;
+  std::vector<int> motion_where;
   const int depth;
   TAPFConstraint();
-  TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v);
+  TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v,
+                 int motion_state_id = -1);
   ~TAPFConstraint();
 };
 
 struct TAPFNode {
   const Config C;
+  MotionConfig motion;
   TAPFNode* parent;
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
@@ -79,7 +88,8 @@ struct TAPFNode {
            const std::vector<bool>& _service_committed = std::vector<bool>(),
            const std::vector<bool>& _satisfied = std::vector<bool>(),
            const std::vector<int>& _satisfied_assignment = std::vector<int>(),
-           TAPFNode* _parent = nullptr);
+           TAPFNode* _parent = nullptr,
+           const MotionConfig& _motion = MotionConfig());
   ~TAPFNode();
   void discard_search_tree();
   void refresh_priority(TAPFDistTable& D, const TAPFInstance* ins,
@@ -92,6 +102,7 @@ struct TAPFStats {
   int hl_loop_iterations = 0;
   int hl_nodes_created = 0;
   int hl_nodes_explored = 0;
+  int hl_max_depth = 0;
   int hl_reinsertions = 0;
   int hl_duplicate_configs = 0;
   int open_max_size = 0;
@@ -128,6 +139,7 @@ struct TAPFStats {
   int service_satisfied_pickups = 0;
   int service_satisfied_deliveries = 0;
   int service_best_satisfied_agents = 0;
+  int motion_best_satisfied_agents = 0;
   std::vector<int> initial_assignment;
 };
 
@@ -157,17 +169,34 @@ struct TAPFPlanner {
   std::vector<bool> real_service_vertices;
   std::vector<int> corridor_id;
   std::vector<int> corridor_pos;
-  std::vector<std::vector<Vertex*> > corridors;
+  std::vector<std::vector<Vertex*>> corridors;
   std::vector<int> guidance_cell_cost;
-  std::vector<std::vector<int> > guidance_table;
+  std::vector<std::vector<int>> guidance_table;
+  std::shared_ptr<MotionGraph> motion_graph;
+  MotionConfig motion_next;
+  struct RankedMotionCandidate {
+    int candidate = -1;
+    int distance = 0;
+    std::uint32_t tie = 0;
+  };
+  std::vector<std::vector<RankedMotionCandidate>> motion_candidate_order;
+  std::vector<std::vector<int>> motion_reservations;
+  std::vector<std::vector<std::vector<int>>> motion_future_conflict_agents;
+  std::vector<std::vector<int>> motion_future_used_cells;
+  std::uint32_t motion_rng_x = 123456789u;
+  std::uint32_t motion_rng_y = 362436069u;
+  std::uint32_t motion_rng_z = 521288629u;
+  std::uint32_t motion_rng_w = 88675123u;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
               float _restart_rate = 0.001f, bool _anytime = true,
               TAPFStats* _stats = nullptr,
-              TAPFSearchConfig _search_config = TAPFSearchConfig());
+              TAPFSearchConfig _search_config = TAPFSearchConfig(),
+              std::shared_ptr<MotionGraph> _precomputed_motion = nullptr);
   Solution solve(std::vector<int>* final_assignment = nullptr,
-                 std::vector<std::vector<int> >* assignment_schedule = nullptr);
+                 std::vector<std::vector<int>>* assignment_schedule = nullptr,
+                 MotionSolution* motion_solution = nullptr);
   bool agent_satisfied(const TAPFNode* node, int agent) const;
   Vertex* assigned_goal(const std::vector<int>& assignment, int agent) const;
   Vertex* service_goal(const TAPFNode* node, int agent) const;
@@ -201,6 +230,13 @@ struct TAPFPlanner {
   int guidance_to_assigned_goal(const TAPFNode* node, int agent, Vertex* v);
   bool is_goal_node(const TAPFNode* node) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
+  bool get_new_motion_config(TAPFNode* S, TAPFConstraint* M);
+  int motion_distance(int state_id, int task);
+  int task_heading(int task) const;
+  bool motion_agent_satisfied(const TAPFNode* node, int agent,
+                              int task = -1) const;
+  void refresh_motion_priorities(TAPFNode* node);
+  std::uint32_t motion_random();
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
                std::vector<TAPFNode*>& OPEN);
   unsigned get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
@@ -222,4 +258,6 @@ Solution solve_tapf(
     bool anytime = true, bool force_full_assignment = false,
     TAPFSearchConfig search_config = TAPFSearchConfig(),
     std::vector<int>* final_assignment = nullptr,
-    std::vector<std::vector<int> >* assignment_schedule = nullptr);
+    std::vector<std::vector<int>>* assignment_schedule = nullptr,
+    MotionSolution* motion_solution = nullptr,
+    std::shared_ptr<MotionGraph> precomputed_motion = nullptr);

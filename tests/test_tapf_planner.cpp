@@ -72,6 +72,74 @@ TEST(tapf_planner, solve_shared_task_set)
   ASSERT_TRUE(is_tapf_feasible_solution(ins, solution));
 }
 
+TEST(tapf_planner, motion_mode_keeps_task_assignment_at_every_high_level_node)
+{
+  const auto ins = TAPFInstance("./tests/assets/5x1.map", {0}, {{4}}, {}, 1, {},
+                                {}, false, {}, {}, {0}, {{0}});
+  ASSERT_TRUE(ins.is_valid());
+  auto config = TAPFSearchConfig();
+  config.motion.enabled = true;
+  config.motion.max_speed = 2;
+  config.motion.rotation_steps = 2;
+  config.motion.lookahead_horizon = 6;
+  const auto all_pairs = build_map_distance_cache(ins.G, "5x1.map", 0, 2);
+  auto goal_rows = std::make_shared<MapDistanceRows>();
+  goal_rows->metadata = all_pairs.metadata;
+  for (const auto task : ins.tasks) {
+    goal_rows->row_by_vertex_id[task->id] = goal_rows->rows.size();
+    goal_rows->rows.push_back(all_pairs.distances[task->id]);
+  }
+  config.map_distance_rows = goal_rows;
+  auto deadline = Deadline(1000);
+  auto random = std::mt19937(7);
+  auto stats = TAPFStats();
+  auto motion_solution = MotionSolution();
+  const auto solution =
+      solve_tapf(ins, 0, &deadline, &random, 0, &stats, false, true, config,
+                 nullptr, nullptr, &motion_solution);
+  ASSERT_FALSE(solution.empty());
+  ASSERT_EQ(solution.size(), motion_solution.size());
+  EXPECT_EQ(solution.back()[0], ins.tasks[0]);
+  EXPECT_EQ(motion_solution.back()[0].speed, 0);
+  EXPECT_EQ(motion_solution.back()[0].heading, 0);
+  EXPECT_EQ(stats.assignment_calls, stats.hl_nodes_created);
+
+  const auto motion = MotionGraph(ins.G, config.motion);
+  for (size_t t = 1; t < motion_solution.size(); ++t) {
+    EXPECT_NE(motion.transition(motion_solution[t - 1][0].id,
+                                motion_solution[t][0].id),
+              nullptr);
+  }
+}
+
+TEST(tapf_planner, motion_mode_prevents_swept_and_follower_collisions)
+{
+  const auto ins = TAPFInstance("./tests/assets/motion-5x1.yaml");
+  ASSERT_TRUE(ins.is_valid());
+  auto config = TAPFSearchConfig();
+  config.motion.enabled = true;
+  auto deadline = Deadline(1000);
+  auto random = std::mt19937(9);
+  auto motion_solution = MotionSolution();
+  const auto solution =
+      solve_tapf(ins, 0, &deadline, &random, 0, nullptr, false, true, config,
+                 nullptr, nullptr, &motion_solution);
+  ASSERT_FALSE(solution.empty());
+  const auto motion = MotionGraph(ins.G, config.motion);
+  for (size_t t = 1; t < motion_solution.size(); ++t) {
+    auto occupied = std::vector<int>(ins.G.width * ins.G.height, -1);
+    for (size_t i = 0; i < ins.N; ++i) {
+      const auto edge = motion.transition(motion_solution[t - 1][i].id,
+                                          motion_solution[t][i].id);
+      ASSERT_NE(edge, nullptr);
+      for (const auto cell : edge->swept_cells) {
+        EXPECT_EQ(occupied[cell], -1);
+        occupied[cell] = i;
+      }
+    }
+  }
+}
+
 TEST(tapf_planner, solve_ita_cbs_yaml_fixture)
 {
   const auto yaml_filename =
@@ -468,8 +536,8 @@ TEST(tapf_planner, optional_partial_service_can_be_abandoned)
   const auto offsets = std::vector<std::vector<int> >{{100, 0}};
   const auto task_keys = std::vector<std::vector<int> >{{0, 1}};
   const auto service_durations = std::vector<std::vector<int> >{{3, 3}};
-  const auto ins = TAPFInstance(map_filename, starts, goals, offsets, 1, {},
-                                {}, false, task_keys, service_durations);
+  const auto ins = TAPFInstance(map_filename, starts, goals, offsets, 1, {}, {},
+                                false, task_keys, service_durations);
   auto stats = TAPFStats();
   auto final_assignment = std::vector<int>();
   auto search_config = TAPFSearchConfig();
@@ -480,9 +548,8 @@ TEST(tapf_planner, optional_partial_service_can_be_abandoned)
   search_config.initial_optional_service_assignments = {0};
   search_config.initial_optional_service_remaining = {2};
 
-  const auto solution =
-      solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false, false,
-                 search_config, &final_assignment);
+  const auto solution = solve_tapf(ins, 0, nullptr, nullptr, 0, &stats, false,
+                                   false, search_config, &final_assignment);
 
   ASSERT_FALSE(solution.empty());
   ASSERT_EQ(final_assignment.size(), 1);
@@ -499,9 +566,8 @@ TEST(tapf_planner, optional_partial_service_changes_root_assignment_cost)
   const auto scales = std::vector<std::vector<int> >{{1, 1}};
   const auto task_keys = std::vector<std::vector<int> >{{0, 1}};
   const auto service_durations = std::vector<std::vector<int> >{{5, 1}};
-  const auto ins = TAPFInstance(map_filename, starts, goals, offsets, 1,
-                                scales, {}, false, task_keys,
-                                service_durations);
+  const auto ins = TAPFInstance(map_filename, starts, goals, offsets, 1, scales,
+                                {}, false, task_keys, service_durations);
 
   auto no_partial_stats = TAPFStats();
   auto search_config = TAPFSearchConfig();
@@ -510,8 +576,8 @@ TEST(tapf_planner, optional_partial_service_changes_root_assignment_cost)
   search_config.pickup_service_duration = 5;
   search_config.delivery_service_duration = 5;
   const auto no_partial_solution =
-      solve_tapf(ins, 0, nullptr, nullptr, 0, &no_partial_stats, false,
-                 false, search_config);
+      solve_tapf(ins, 0, nullptr, nullptr, 0, &no_partial_stats, false, false,
+                 search_config);
 
   ASSERT_FALSE(no_partial_solution.empty());
   ASSERT_EQ(no_partial_stats.initial_assignment.size(), 1);
@@ -520,9 +586,8 @@ TEST(tapf_planner, optional_partial_service_changes_root_assignment_cost)
   auto partial_stats = TAPFStats();
   search_config.initial_optional_service_assignments = {0};
   search_config.initial_optional_service_remaining = {1};
-  const auto partial_solution =
-      solve_tapf(ins, 0, nullptr, nullptr, 0, &partial_stats, false, false,
-                 search_config);
+  const auto partial_solution = solve_tapf(
+      ins, 0, nullptr, nullptr, 0, &partial_stats, false, false, search_config);
 
   ASSERT_FALSE(partial_solution.empty());
   ASSERT_EQ(partial_stats.initial_assignment.size(), 1);
@@ -597,8 +662,7 @@ TEST(tapf_planner, non_real_wait_target_does_not_use_service_duration)
   const auto map_filename = "./tests/assets/3x1.map";
   const auto starts = std::vector<int>{0, 2};
   const auto goals = std::vector<std::vector<int> >{{0}, {1}};
-  const auto task_keys =
-      std::vector<std::vector<int> >{{-2}, {1000000001}};
+  const auto task_keys = std::vector<std::vector<int> >{{-2}, {1000000001}};
   const auto ins = TAPFInstance(map_filename, starts, goals, {}, 1, {}, {},
                                 false, task_keys);
   auto stats = TAPFStats();

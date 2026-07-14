@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <limits>
+#include <unordered_set>
 
 namespace
 {
@@ -9,6 +10,7 @@ namespace
 
   struct ServiceConfigKey {
     Config C;
+    MotionConfig motion;
     std::vector<int> service_assignment;
     std::vector<int> service_progress;
     std::vector<bool> service_committed;
@@ -16,7 +18,8 @@ namespace
 
     bool operator==(const ServiceConfigKey& other) const
     {
-      return C == other.C && service_assignment == other.service_assignment &&
+      return C == other.C && motion == other.motion &&
+             service_assignment == other.service_assignment &&
              service_committed == other.service_committed &&
              service_progress == other.service_progress &&
              satisfied == other.satisfied;
@@ -27,6 +30,10 @@ namespace
     size_t operator()(const ServiceConfigKey& key) const
     {
       auto seed = ConfigHasher()(key.C);
+      for (const auto& state : key.motion) {
+        seed ^=
+            std::hash<int>()(state.id) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      }
       for (const auto task : key.service_assignment) {
         seed ^= std::hash<int>()(task) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
       }
@@ -35,8 +42,8 @@ namespace
             std::hash<int>()(progress) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
       }
       for (const auto committed : key.service_committed) {
-        seed ^= std::hash<int>()(committed ? 1 : 0) + 0x9e3779b9 +
-                (seed << 6) + (seed >> 2);
+        seed ^= std::hash<int>()(committed ? 1 : 0) + 0x9e3779b9 + (seed << 6) +
+                (seed >> 2);
       }
       for (const auto done : key.satisfied) {
         seed ^= std::hash<int>()(done ? 1 : 0) + 0x9e3779b9 + (seed << 6) +
@@ -105,8 +112,8 @@ namespace
   {
     if (ins == nullptr || agent < 0 || task < 0 ||
         agent >= static_cast<int>(ins->assignment_service_durations.size()) ||
-        task >= static_cast<int>(
-                    ins->assignment_service_durations[agent].size())) {
+        task >=
+            static_cast<int>(ins->assignment_service_durations[agent].size())) {
       return 0;
     }
     return std::max(0, ins->assignment_service_durations[agent][task]);
@@ -122,15 +129,20 @@ namespace
 }  // namespace
 
 TAPFConstraint::TAPFConstraint()
-    : who(std::vector<int>()), where(Vertices()), depth(0)
+    : who(std::vector<int>()), where(Vertices()), motion_where(), depth(0)
 {
 }
 
-TAPFConstraint::TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v)
-    : who(parent->who), where(parent->where), depth(parent->depth + 1)
+TAPFConstraint::TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v,
+                               int motion_state_id)
+    : who(parent->who),
+      where(parent->where),
+      motion_where(parent->motion_where),
+      depth(parent->depth + 1)
 {
   who.push_back(i);
   where.push_back(v);
+  motion_where.push_back(motion_state_id);
 }
 
 TAPFConstraint::~TAPFConstraint(){};
@@ -144,8 +156,9 @@ TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
                    const std::vector<bool>& _service_committed,
                    const std::vector<bool>& _satisfied,
                    const std::vector<int>& _satisfied_assignment,
-                   TAPFNode* _parent)
+                   TAPFNode* _parent, const MotionConfig& _motion)
     : C(_C),
+      motion(_motion),
       parent(_parent),
       neighbor(std::set<TAPFNode*>()),
       assignment(_assignment),
@@ -168,6 +181,7 @@ TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
       order(C.size(), 0),
       search_tree(std::queue<TAPFConstraint*>())
 {
+  if (!motion.empty() && motion.size() != C.size()) motion.clear();
   if (search_config.service_goal_mode) {
     if (_service_assignment.size() == C.size()) {
       service_assignment = _service_assignment;
@@ -278,7 +292,8 @@ void TAPFNode::refresh_search_metrics(TAPFDistTable& D, const TAPFInstance* ins,
 TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
                          std::mt19937* _MT, int _verbose, int _sticky_penalty,
                          float _restart_rate, bool _anytime, TAPFStats* _stats,
-                         TAPFSearchConfig _search_config)
+                         TAPFSearchConfig _search_config,
+                         std::shared_ptr<MotionGraph> _precomputed_motion)
     : ins(_ins),
       deadline(_deadline),
       MT(_MT),
@@ -302,6 +317,14 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       shared_goal_entry_counts(std::vector<int>(V_size, 0)),
       real_service_vertices(std::vector<bool>(V_size, false))
 {
+  if (search_config.motion.enabled) {
+    motion_graph =
+        _precomputed_motion != nullptr
+            ? std::move(_precomputed_motion)
+            : std::make_shared<MotionGraph>(ins->G, search_config.motion);
+    motion_next.resize(N);
+    motion_candidate_order.resize(N);
+  }
   if (stats != nullptr) *stats = TAPFStats();
   if (search_config.service_goal_mode) {
     for (size_t task = 0; task < ins->tasks.size(); ++task) {
@@ -334,8 +357,8 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
         } else {
           chain.push_back(cur);
         }
-        auto next = cur->neighbor[0] == prev ? cur->neighbor[1]
-                                             : cur->neighbor[0];
+        auto next =
+            cur->neighbor[0] == prev ? cur->neighbor[1] : cur->neighbor[0];
         prev = cur;
         cur = next;
       }
@@ -361,6 +384,125 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     if (v != nullptr) guidance_cell_cost[v->id] += guidance_occupied_cost;
   }
   guidance_table.assign(ins->tasks.size(), std::vector<int>());
+}
+
+int TAPFPlanner::task_heading(int task) const
+{
+  return task >= 0 && task < static_cast<int>(ins->task_headings.size())
+             ? ins->task_headings[task]
+             : -1;
+}
+
+int TAPFPlanner::motion_distance(int state_id, int task)
+{
+  if (motion_graph == nullptr || task < 0 ||
+      task >= static_cast<int>(ins->tasks.size())) {
+    return kTapfAssignmentInfCost;
+  }
+  if (search_config.map_distance_rows != nullptr) {
+    const auto& state = motion_graph->state(state_id);
+    const auto d =
+        search_config.map_distance_rows->get(state.location, ins->tasks[task]);
+    if (d >= kMapDistanceInf) return kTapfAssignmentInfCost;
+    const auto phases = 4 * search_config.motion.rotation_steps;
+    auto rotation_cost_to = [&](int cardinal_heading) {
+      const auto target =
+          cardinal_heading * search_config.motion.rotation_steps;
+      const auto ccw_steps = (target - state.heading + phases) % phases;
+      const auto cw_steps = (state.heading - target + phases) % phases;
+      auto cost = kTapfAssignmentInfCost;
+      if (search_config.motion.actions.rotate_ccw) {
+        const auto step_cost =
+            std::max(1, search_config.motion.costs.rotate_ccw +
+                            search_config.motion.costs.keep_speed);
+        cost = std::min(cost, ccw_steps * step_cost);
+      }
+      if (search_config.motion.actions.rotate_cw) {
+        const auto step_cost =
+            std::max(1, search_config.motion.costs.rotate_cw +
+                            search_config.motion.costs.keep_speed);
+        cost = std::min(cost, cw_steps * step_cost);
+      }
+      return cost;
+    };
+    if (d == 0) {
+      return task_heading(task) < 0 ? 0 : rotation_cost_to(task_heading(task));
+    }
+    auto turn_cost = kTapfAssignmentInfCost;
+    for (const auto neighbor : state.location->neighbor) {
+      if (search_config.map_distance_rows->get(neighbor, ins->tasks[task]) !=
+          d - 1) {
+        continue;
+      }
+      const auto delta = neighbor->index - state.location->index;
+      const auto direction =
+          delta == 1 ? 0
+                     : delta == ins->G.width
+                           ? 1
+                           : delta == -1 ? 2 : delta == -ins->G.width ? 3 : -1;
+      if (direction >= 0) {
+        turn_cost = std::min(turn_cost, rotation_cost_to(direction));
+      }
+    }
+    return turn_cost >= kTapfAssignmentInfCost ? turn_cost : d + turn_cost;
+  }
+  const auto d = motion_graph->distance(state_id, task, ins->tasks[task],
+                                        task_heading(task));
+  return d >= MotionGraph::kInf ? kTapfAssignmentInfCost : d;
+}
+
+bool TAPFPlanner::motion_agent_satisfied(const TAPFNode* node, int agent,
+                                         int task) const
+{
+  if (motion_graph == nullptr || node == nullptr || agent < 0 ||
+      agent >= static_cast<int>(node->motion.size())) {
+    return false;
+  }
+  if (task < 0) {
+    if (agent >= static_cast<int>(node->assignment.size())) return false;
+    task = node->assignment[agent];
+  }
+  if (task < 0 || task >= static_cast<int>(ins->tasks.size())) return false;
+  return motion_graph->is_goal(node->motion[agent].id, ins->tasks[task],
+                               task_heading(task));
+}
+
+void TAPFPlanner::refresh_motion_priorities(TAPFNode* node)
+{
+  if (motion_graph == nullptr || node == nullptr ||
+      node->motion.size() != static_cast<size_t>(N))
+    return;
+  for (auto i = 0; i < N; ++i) {
+    const auto task = i < static_cast<int>(node->assignment.size())
+                          ? node->assignment[i]
+                          : -1;
+    const auto d = motion_distance(node->motion[i].id, task);
+    if (node->parent == nullptr) {
+      const auto offset = ins->agent_priority_offsets.empty()
+                              ? 0.0f
+                              : ins->agent_priority_offsets[i];
+      node->priorities[i] = static_cast<float>(d) / std::max(1, N) + offset;
+    } else if (d > 0 && d < kTapfAssignmentInfCost / 2) {
+      node->priorities[i] = node->parent->priorities[i] + 1;
+    } else {
+      node->priorities[i] = node->parent->priorities[i] -
+                            static_cast<int>(node->parent->priorities[i]);
+    }
+  }
+  std::iota(node->order.begin(), node->order.end(), 0);
+  std::sort(node->order.begin(), node->order.end(), [&](int a, int b) {
+    return node->priorities[a] > node->priorities[b];
+  });
+}
+
+std::uint32_t TAPFPlanner::motion_random()
+{
+  const auto t = motion_rng_x ^ (motion_rng_x << 11);
+  motion_rng_x = motion_rng_y;
+  motion_rng_y = motion_rng_z;
+  motion_rng_z = motion_rng_w;
+  motion_rng_w = (motion_rng_w ^ (motion_rng_w >> 19)) ^ (t ^ (t >> 8));
+  return motion_rng_w;
 }
 
 int TAPFPlanner::guidance_get(int task_id, Vertex* v)
@@ -404,8 +546,7 @@ int TAPFPlanner::guidance_to_assigned_goal(const TAPFNode* node, int agent,
   const auto goal = service_goal(node, agent);
   if (goal == nullptr) return D.K;
   const auto task =
-      agent >= 0 &&
-              agent < static_cast<int>(node->service_assignment.size()) &&
+      agent >= 0 && agent < static_cast<int>(node->service_assignment.size()) &&
               node->service_assignment[agent] >= 0 &&
               !agent_satisfied(node, agent)
           ? node->service_assignment[agent]
@@ -417,14 +558,17 @@ int TAPFPlanner::guidance_to_assigned_goal(const TAPFNode* node, int agent,
 }
 
 Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
-                            std::vector<std::vector<int> >* assignment_schedule)
+                            std::vector<std::vector<int>>* assignment_schedule,
+                            MotionSolution* motion_solution)
 {
   info(1, verbose, "elapsed:", elapsed_ms(deadline), "ms\tstart TAPF search");
   if (final_assignment != nullptr) final_assignment->clear();
   if (assignment_schedule != nullptr) assignment_schedule->clear();
+  if (motion_solution != nullptr) motion_solution->clear();
 
   std::vector<TAPFNode*> OPEN;
   std::unordered_map<Config, TAPFNode*, ConfigHasher> CLOSED;
+  std::unordered_map<MotionConfig, TAPFNode*, MotionConfigHasher> CLOSED_MOTION;
   std::unordered_map<ServiceConfigKey, TAPFNode*, ServiceConfigKeyHasher>
       CLOSED_SERVICE;
   TAPFNode* S_goal = nullptr;
@@ -439,8 +583,9 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       if (i < service_progress.size()) service_progress[i] = 0;
       if (i < service_committed.size()) service_committed[i] = false;
     }
-    return ServiceConfigKey{node->C, service_assignment, service_progress,
-                            service_committed, node->satisfied};
+    return ServiceConfigKey{
+        node->C,          node->motion,      service_assignment,
+        service_progress, service_committed, node->satisfied};
   };
   struct ServiceState {
     std::vector<int> service_assignment;
@@ -473,8 +618,15 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       }
       auto task = state.service_assignment[i] >= 0 ? state.service_assignment[i]
                                                    : parent->assignment[i];
-      if (task >= 0 && task < static_cast<int>(ins->tasks.size()) &&
-          C[i] == ins->tasks[task]) {
+      const auto valid_task =
+          task >= 0 && task < static_cast<int>(ins->tasks.size());
+      const auto motion_ready =
+          valid_task &&
+          (motion_graph == nullptr ||
+           (i < motion_next.size() &&
+            motion_graph->is_goal(motion_next[i].id, ins->tasks[task],
+                                  task_heading(task))));
+      if (valid_task && C[i] == ins->tasks[task] && motion_ready) {
         if (!is_real_service_task(ins, task)) {
           state.satisfied[i] = true;
           state.satisfied_assignment[i] = task;
@@ -585,6 +737,35 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     return best == OPEN.size() ? OPEN.size() - 1 : best;
   };
 
+  auto state_ids = std::function<std::vector<int>(const MotionConfig&)>(
+      [](const MotionConfig& motion) {
+        auto ids = std::vector<int>();
+        ids.reserve(motion.size());
+        for (const auto& state : motion) ids.push_back(state.id);
+        return ids;
+      });
+  if (search_config.map_distance_rows != nullptr) {
+    state_ids = [&](const MotionConfig& motion) {
+      auto ids = std::vector<int>();
+      ids.reserve(motion.size());
+      for (const auto& state : motion) ids.push_back(state.location->id);
+      return ids;
+    };
+  }
+
+  auto initial_motion = MotionConfig();
+  if (motion_graph != nullptr) {
+    initial_motion.reserve(N);
+    for (auto i = 0; i < N; ++i) {
+      const auto heading = i < static_cast<int>(ins->start_headings.size())
+                               ? ins->start_headings[i]
+                               : 0;
+      const auto id = motion_graph->state_id(ins->starts[i], heading);
+      if (id < 0) return Solution();
+      initial_motion.push_back(motion_graph->state(id));
+    }
+  }
+
   auto initial_assignment_state = TAPFAssignmentState();
   initial_assignment_state.init(ins->N, ins->tasks.size());
   auto initial_agents = std::vector<int>(N, 0);
@@ -607,11 +788,15 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
           std::max(0, search_config.initial_optional_service_remaining[i]);
     }
   }
-  auto initial_assignment =
-      assign_tapf_tasks_dynamic(*ins, D, ins->starts, initial_assignment_state,
-                                initial_agents, true, &assignment_stats,
-                                std::vector<int>(), std::vector<bool>(),
-                                initial_service_cost_state);
+  auto initial_assignment = assign_tapf_tasks_dynamic(
+      *ins, D, ins->starts, initial_assignment_state, initial_agents, true,
+      &assignment_stats, std::vector<int>(), std::vector<bool>(),
+      initial_service_cost_state, state_ids(initial_motion),
+      motion_graph == nullptr
+          ? TAPFDistanceOverride()
+          : TAPFDistanceOverride([&](int agent, int task, Vertex*) {
+              return motion_distance(initial_motion[agent].id, task);
+            }));
   if (!initial_assignment.feasible) return Solution();
   if (stats != nullptr) {
     stats->initial_assignment = initial_assignment.agent_to_task;
@@ -624,6 +809,13 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
   auto initial_service_assignment = std::vector<int>(N, -1);
   auto initial_service_progress = std::vector<int>(N, 0);
   auto initial_service_committed = std::vector<bool>(N, false);
+  auto initial_motion_goal = [&](int agent, int task) {
+    return motion_graph == nullptr ||
+           (agent < static_cast<int>(initial_motion.size()) && task >= 0 &&
+            task < static_cast<int>(ins->tasks.size()) &&
+            motion_graph->is_goal(initial_motion[agent].id, ins->tasks[task],
+                                  task_heading(task)));
+  };
   if (search_config.service_goal_mode) {
     if (search_config.initial_service_assignments.size() == N) {
       for (auto i = 0; i < N; ++i) {
@@ -635,6 +827,7 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
         }
         initial_assignment.agent_to_task[i] = task;
         service_required_agents[i] = true;
+        if (!initial_motion_goal(i, task)) continue;
         if (is_real_service_task(ins, task) &&
             service_duration_for_task(ins, search_config, task) == 0) {
           initial_satisfied[i] = true;
@@ -655,12 +848,11 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       const auto task = initial_service_cost_state.partial_task_by_agent[i];
       if (task < 0 || initial_service_assignment[i] >= 0 ||
           initial_assignment.agent_to_task[i] != task ||
-          ins->starts[i] != ins->tasks[task]) {
+          ins->starts[i] != ins->tasks[task] || !initial_motion_goal(i, task)) {
         continue;
       }
       const auto remaining =
-          std::max(0,
-                   initial_service_cost_state.partial_remaining_by_agent[i]);
+          std::max(0, initial_service_cost_state.partial_remaining_by_agent[i]);
       if (remaining == 0 ||
           service_duration_for_task(ins, search_config, task) == 0) {
         initial_satisfied[i] = true;
@@ -676,7 +868,7 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       if (initial_service_assignment[i] >= 0) continue;
       const auto task = initial_assignment.agent_to_task[i];
       if (task < 0 || task >= static_cast<int>(ins->tasks.size()) ||
-          ins->starts[i] != ins->tasks[task]) {
+          ins->starts[i] != ins->tasks[task] || !initial_motion_goal(i, task)) {
         continue;
       }
       if (is_real_service_task(ins, task)) {
@@ -694,18 +886,20 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     }
   }
 
-  auto S_init =
-      new TAPFNode(ins->starts, D, ins, initial_assignment.agent_to_task,
-                   initial_assignment_state, search_config,
-                   initial_service_assignment, initial_service_progress,
-                   initial_service_committed,
-                   initial_satisfied, initial_satisfied_assignment);
+  auto S_init = new TAPFNode(
+      ins->starts, D, ins, initial_assignment.agent_to_task,
+      initial_assignment_state, search_config, initial_service_assignment,
+      initial_service_progress, initial_service_committed, initial_satisfied,
+      initial_satisfied_assignment, nullptr, initial_motion);
   S_init->h = search_config.service_goal_mode ? get_h_value(S_init)
                                               : initial_assignment.cost;
+  refresh_motion_priorities(S_init);
   S_init->f = S_init->g + S_init->h;
   push_open(S_init);
   if (search_config.service_goal_mode) {
     CLOSED_SERVICE[service_key(S_init)] = S_init;
+  } else if (motion_graph != nullptr) {
+    CLOSED_MOTION[S_init->motion] = S_init;
   } else {
     CLOSED[S_init->C] = S_init;
   }
@@ -777,23 +971,39 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     const auto constrained_agents = N;
     if (M->depth < constrained_agents) {
       auto i = S->order[M->depth];
-      auto C = S->C[i]->neighbor;
-      C.push_back(S->C[i]);
-      if (MT != nullptr) std::shuffle(C.begin(), C.end(), *MT);
-      for (auto u : C) {
-        S->search_tree.push(new TAPFConstraint(M, i, u));
-        if (stats != nullptr) ++stats->constraints_generated;
+      if (motion_graph != nullptr) {
+        auto C = motion_graph->successors(S->motion[i].id);
+        if (MT != nullptr) std::shuffle(C.begin(), C.end(), *MT);
+        for (const auto& edge : C) {
+          const auto& state = motion_graph->state(edge.to);
+          S->search_tree.push(
+              new TAPFConstraint(M, i, state.location, state.id));
+          if (stats != nullptr) ++stats->constraints_generated;
+        }
+      } else {
+        auto C = S->C[i]->neighbor;
+        C.push_back(S->C[i]);
+        if (MT != nullptr) std::shuffle(C.begin(), C.end(), *MT);
+        for (auto u : C) {
+          S->search_tree.push(new TAPFConstraint(M, i, u));
+          if (stats != nullptr) ++stats->constraints_generated;
+        }
       }
     }
 
-    if (!get_new_config(S, M)) {
+    if (!(motion_graph != nullptr ? get_new_motion_config(S, M)
+                                  : get_new_config(S, M))) {
       delete M;
       if (stats != nullptr) ++stats->constraint_failures;
       continue;
     }
     delete M;
 
-    for (auto a : A) C_new[a->id] = a->v_next;
+    if (motion_graph != nullptr) {
+      for (auto i = 0; i < N; ++i) C_new[i] = motion_next[i].location;
+    } else {
+      for (auto a : A) C_new[a->id] = a->v_next;
+    }
     if (search_config.service_goal_mode &&
         !validate_service_child_config(S, C_new, S->assignment,
                                        S->service_assignment, S->satisfied,
@@ -806,9 +1016,15 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     }
 
     if (!search_config.service_goal_mode) {
-      auto iter = CLOSED.find(C_new);
-      if (iter != CLOSED.end()) {
-        auto S_known = iter->second;
+      auto S_known = static_cast<TAPFNode*>(nullptr);
+      if (motion_graph != nullptr) {
+        const auto iter = CLOSED_MOTION.find(motion_next);
+        if (iter != CLOSED_MOTION.end()) S_known = iter->second;
+      } else {
+        const auto iter = CLOSED.find(C_new);
+        if (iter != CLOSED.end()) S_known = iter->second;
+      }
+      if (S_known != nullptr) {
         S->neighbor.insert(S_known);
         rewrite(S, S_known, S_goal, OPEN);
         auto S_insert = S_known;
@@ -829,7 +1045,11 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     auto changed_agent_flags = std::vector<bool>(N, false);
     changed_agents.reserve(N);
     for (size_t i = 0; i < N; ++i) {
-      if (C_new[i] != S->C[i]) {
+      const auto motion_cost_changed =
+          motion_graph != nullptr &&
+          search_config.map_distance_rows == nullptr &&
+          motion_next[i].id != S->motion[i].id;
+      if (C_new[i] != S->C[i] || motion_cost_changed) {
         changed_agents.push_back(i);
         changed_agent_flags[i] = true;
       }
@@ -888,7 +1108,12 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
     auto assignment = assign_tapf_tasks_dynamic(
         *ins, D, C_new, assignment_state, changed_agents, force_full_assignment,
         &assignment_stats, fixed_task_by_agent, std::vector<bool>(),
-        service_cost_state);
+        service_cost_state, state_ids(motion_next),
+        motion_graph == nullptr
+            ? TAPFDistanceOverride()
+            : TAPFDistanceOverride([&](int agent, int task, Vertex*) {
+                return motion_distance(motion_next[agent].id, task);
+              }));
     if (!assignment.feasible) {
       if (stats != nullptr) ++stats->assignment_infeasible_count;
       continue;
@@ -913,14 +1138,15 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
         }
       }
     }
-    auto S_new =
-        new TAPFNode(C_new, D, ins, assignment.agent_to_task, assignment_state,
-                     search_config, service_assignment, service_progress,
-                     service_committed, satisfied, satisfied_assignment, S);
+    auto S_new = new TAPFNode(
+        C_new, D, ins, assignment.agent_to_task, assignment_state,
+        search_config, service_assignment, service_progress, service_committed,
+        satisfied, satisfied_assignment, S, motion_next);
     S_new->g = S->g + get_edge_cost(S, S_new);
     S_new->h =
         search_config.service_goal_mode ? get_h_value(S_new) : assignment.cost;
     S_new->f = S_new->g + S_new->h;
+    refresh_motion_priorities(S_new);
     if (search_config.service_goal_mode) {
       const auto key = service_key(S_new);
       auto iter = CLOSED_SERVICE.find(key);
@@ -944,12 +1170,27 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       }
       CLOSED_SERVICE[key] = S_new;
     } else {
-      CLOSED[S_new->C] = S_new;
+      if (motion_graph != nullptr) {
+        CLOSED_MOTION[S_new->motion] = S_new;
+      } else {
+        CLOSED[S_new->C] = S_new;
+      }
     }
     if (S_goal == nullptr || S_new->f < S_goal->g) {
       push_open(S_new);
     }
     if (stats != nullptr) ++stats->hl_nodes_created;
+    if (stats != nullptr) {
+      stats->hl_max_depth = std::max<int>(stats->hl_max_depth, S_new->depth);
+      if (motion_graph != nullptr) {
+        auto reached = 0;
+        for (auto i = 0; i < N; ++i) {
+          if (motion_agent_satisfied(S_new, i)) ++reached;
+        }
+        stats->motion_best_satisfied_agents =
+            std::max(stats->motion_best_satisfied_agents, reached);
+      }
+    }
   }
 
   auto solution = Solution();
@@ -1017,10 +1258,18 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
       assignment_schedule->push_back(node->assignment);
     }
   }
+  if (motion_solution != nullptr && motion_graph != nullptr) {
+    motion_solution->reserve(solution_nodes.size());
+    for (const auto* node : solution_nodes) {
+      motion_solution->push_back(node->motion);
+    }
+  }
 
   if (stats != nullptr) {
     stats->hl_nodes_explored =
-        search_config.service_goal_mode ? CLOSED_SERVICE.size() : CLOSED.size();
+        search_config.service_goal_mode
+            ? CLOSED_SERVICE.size()
+            : (motion_graph != nullptr ? CLOSED_MOTION.size() : CLOSED.size());
     stats->timed_out = S_goal == nullptr && is_expired(deadline);
     stats->assignment_calls = assignment_stats.calls;
     stats->assignment_time_ms = assignment_stats.time_ms;
@@ -1093,17 +1342,22 @@ Solution TAPFPlanner::solve(std::vector<int>* final_assignment,
        solution.empty() ? (OPEN.empty() ? "no TAPF solution" : "failed")
                         : "TAPF solution found",
        "\texplored:",
-       search_config.service_goal_mode ? CLOSED_SERVICE.size() : CLOSED.size());
+       search_config.service_goal_mode
+           ? CLOSED_SERVICE.size()
+           : (motion_graph != nullptr ? CLOSED_MOTION.size() : CLOSED.size()));
 
   if (deadline != nullptr &&
       deadline->elapsed_ms() >= incumbent_search_limit_ms) {
     for (auto p : CLOSED) p.second->discard_search_tree();
+    for (auto p : CLOSED_MOTION) p.second->discard_search_tree();
     for (auto p : CLOSED_SERVICE) p.second->discard_search_tree();
   }
 
   for (auto a : A) delete a;
   if (search_config.service_goal_mode) {
     for (auto p : CLOSED_SERVICE) delete p.second;
+  } else if (motion_graph != nullptr) {
+    for (auto p : CLOSED_MOTION) delete p.second;
   } else {
     for (auto p : CLOSED) delete p.second;
   }
@@ -1145,6 +1399,21 @@ unsigned TAPFPlanner::get_edge_cost(const TAPFNode* from,
         (agent_satisfied(from, i) || agent_satisfied(to, i))) {
       continue;
     }
+    if (motion_graph != nullptr && i < from->motion.size() &&
+        i < to->motion.size()) {
+      const auto task = i < to->assignment.size() ? to->assignment[i] : -1;
+      if (task >= 0 && task < static_cast<int>(ins->tasks.size()) &&
+          motion_graph->is_goal(from->motion[i].id, ins->tasks[task],
+                                task_heading(task)) &&
+          motion_graph->is_goal(to->motion[i].id, ins->tasks[task],
+                                task_heading(task))) {
+        continue;
+      }
+      const auto action_cost =
+          motion_graph->transition_cost(from->motion[i].id, to->motion[i].id);
+      if (action_cost < MotionGraph::kInf) cost += action_cost;
+      continue;
+    }
     const auto goal = assigned_goal(to->assignment, i);
     if (from->C[i] != goal || to->C[i] != goal) ++cost;
   }
@@ -1181,8 +1450,12 @@ unsigned TAPFPlanner::get_h_value(const TAPFNode* node)
       cost += D.K;
       continue;
     }
-    const auto d = D.get(task, node->C[i]);
-    if (d >= D.K) {
+    const auto d = motion_graph != nullptr && i < node->motion.size()
+                       ? const_cast<TAPFPlanner*>(this)->motion_distance(
+                             node->motion[i].id, task)
+                       : D.get(task, node->C[i]);
+    if ((motion_graph != nullptr && d >= kTapfAssignmentInfCost / 2) ||
+        (motion_graph == nullptr && d >= D.K)) {
       cost += D.K;
       continue;
     }
@@ -1195,8 +1468,7 @@ unsigned TAPFPlanner::get_h_value(const TAPFNode* node)
       auto service_steps = assignment_service_duration_for_task(ins, i, task);
       if (i < node->service_assignment.size() &&
           node->service_assignment[i] == task &&
-          i < node->service_progress.size() &&
-          node->C[i] == ins->tasks[task]) {
+          i < node->service_progress.size() && node->C[i] == ins->tasks[task]) {
         service_steps =
             std::max(0, service_steps - std::max(0, node->service_progress[i]));
       }
@@ -1216,6 +1488,7 @@ bool TAPFPlanner::agent_satisfied(const TAPFNode* node, int agent) const
     return false;
   }
   if (!search_config.service_goal_mode) {
+    if (motion_graph != nullptr) return motion_agent_satisfied(node, agent);
     const auto goal = assigned_goal(node->assignment, agent);
     return goal != nullptr && node->C[agent] == goal;
   }
@@ -1374,7 +1647,7 @@ bool TAPFPlanner::validate_service_child_config(
   if (!search_config.service_goal_mode) return true;
   if (C.size() != ins->N || assignment.size() != ins->N) return false;
 
-  auto occupancy = std::vector<std::vector<int> >(V_size);
+  auto occupancy = std::vector<std::vector<int>>(V_size);
   auto entrants = std::vector<int>(V_size, 0);
   for (size_t i = 0; i < C.size(); ++i) {
     if (C[i] == nullptr) return false;
@@ -1489,6 +1762,247 @@ bool TAPFPlanner::is_goal_node(const TAPFNode* node) const
         !ins->allowed[i][task] || !agent_satisfied(node, i)) {
       return false;
     }
+  }
+  return true;
+}
+
+bool TAPFPlanner::get_new_motion_config(TAPFNode* node,
+                                        TAPFConstraint* constraint)
+{
+  if (motion_graph == nullptr || node == nullptr ||
+      node->motion.size() != static_cast<size_t>(N)) {
+    return false;
+  }
+  const auto horizon = search_config.motion.lookahead_horizon;
+  const auto cells = ins->G.width * ins->G.height;
+  auto required_first = std::vector<int>(N, -1);
+  for (auto k = 0; k < constraint->depth; ++k) {
+    const auto agent = constraint->who[k];
+    if (agent < 0 || agent >= N ||
+        k >= static_cast<int>(constraint->motion_where.size()) ||
+        constraint->motion_where[k] < 0) {
+      return false;
+    }
+    required_first[agent] = constraint->motion_where[k];
+  }
+
+  struct PathRef {
+    const MotionPathSet* paths = nullptr;
+    int candidate = -1;
+  };
+  auto path_state = [&](const PathRef& path, int timestep) {
+    return path.paths->state(path.candidate, timestep, horizon);
+  };
+
+  auto defaults = std::vector<PathRef>(N);
+  for (auto i = 0; i < N; ++i) {
+    const auto& paths = motion_graph->path_candidates(node->motion[i].id);
+    if (paths.stop_candidate < 0) return false;
+    defaults[i] = PathRef{&paths, paths.stop_candidate};
+  }
+
+  auto edge_cells = [&](int from, int to) -> const std::vector<int>* {
+    const auto edge = motion_graph->transition(from, to);
+    return edge == nullptr ? nullptr : &edge->swept_cells;
+  };
+  auto first_occupied_cell = [&](const std::vector<int>& occupied) {
+    return !search_config.motion.follower_collisions && occupied.size() > 1
+               ? size_t{1}
+               : size_t{0};
+  };
+
+  if (motion_reservations.size() != static_cast<size_t>(horizon) ||
+      motion_reservations.empty() ||
+      motion_reservations.front().size() != static_cast<size_t>(cells)) {
+    motion_reservations.assign(horizon, std::vector<int>(cells, -1));
+  } else {
+    for (auto& row : motion_reservations) std::fill(row.begin(), row.end(), -1);
+  }
+  if (motion_future_conflict_agents.size() != static_cast<size_t>(horizon) ||
+      motion_future_conflict_agents.empty() ||
+      motion_future_conflict_agents.front().size() !=
+          static_cast<size_t>(cells)) {
+    motion_future_conflict_agents.assign(horizon,
+                                         std::vector<std::vector<int>>(cells));
+    motion_future_used_cells.assign(horizon, std::vector<int>());
+  } else {
+    for (auto t = 0; t < horizon; ++t) {
+      for (const auto cell : motion_future_used_cells[t]) {
+        motion_future_conflict_agents[t][cell].clear();
+      }
+      motion_future_used_cells[t].clear();
+    }
+  }
+  for (auto agent = 0; agent < N; ++agent) {
+    auto from = node->motion[agent].id;
+    for (auto t = 0; t < horizon; ++t) {
+      const auto to = path_state(defaults[agent], t);
+      const auto occupied = edge_cells(from, to);
+      if (occupied == nullptr) return false;
+      for (auto k = first_occupied_cell(*occupied); k < occupied->size(); ++k) {
+        const auto cell = (*occupied)[k];
+        auto& bucket = motion_future_conflict_agents[t][cell];
+        if (bucket.empty()) motion_future_used_cells[t].push_back(cell);
+        bucket.push_back(agent);
+      }
+      from = to;
+    }
+  }
+  auto selected = std::vector<PathRef>(N);
+  auto planned = std::vector<bool>(N, false);
+  auto visiting = std::vector<bool>(N, false);
+
+  std::function<bool(int)> plan_agent = [&](int agent) -> bool {
+    if (planned[agent]) return true;
+    if (visiting[agent]) return false;
+    visiting[agent] = true;
+    if (stats != nullptr) ++stats->pibt_calls;
+
+    const auto& candidates =
+        motion_graph->path_candidates(node->motion[agent].id);
+    const auto task = agent < static_cast<int>(node->assignment.size())
+                          ? node->assignment[agent]
+                          : -1;
+    auto& ranked = motion_candidate_order[agent];
+    ranked.clear();
+    ranked.reserve(candidates.size());
+    for (auto candidate = 0; candidate < candidates.size(); ++candidate) {
+      const auto endpoint = candidates.state(candidate, horizon - 1, horizon);
+      ranked.push_back(RankedMotionCandidate{
+          candidate, motion_distance(endpoint, task), motion_random()});
+    }
+    auto compare = [](const RankedMotionCandidate& lhs,
+                      const RankedMotionCandidate& rhs) {
+      return lhs.distance != rhs.distance ? lhs.distance < rhs.distance
+                                          : lhs.tie < rhs.tie;
+    };
+
+    constexpr auto division_size = 8;
+    for (auto base = size_t{0}; base < ranked.size(); base += division_size) {
+      const auto end = std::min(base + division_size, ranked.size());
+      if (end < ranked.size()) {
+        std::nth_element(ranked.begin() + base, ranked.begin() + end,
+                         ranked.end(), compare);
+      }
+      std::sort(ranked.begin() + base, ranked.begin() + end, compare);
+
+      for (auto position = base; position < end; ++position) {
+        const auto candidate = ranked[position].candidate;
+        const auto first = candidates.state(candidate, 0, horizon);
+        if (required_first[agent] >= 0 && first != required_first[agent]) {
+          continue;
+        }
+        if (search_config.service_goal_mode &&
+            agent < static_cast<int>(node->service_committed.size()) &&
+            node->service_committed[agent]) {
+          auto stays = true;
+          for (auto t = 0; t < horizon; ++t) {
+            const auto state_id = candidates.state(candidate, t, horizon);
+            const auto& state = motion_graph->state(state_id);
+            stays =
+                stays && state.location == node->C[agent] && state.speed == 0;
+          }
+          if (!stays) continue;
+        }
+
+        auto conflict = false;
+        auto from = node->motion[agent].id;
+        for (auto t = 0; t < horizon && !conflict; ++t) {
+          const auto to = candidates.state(candidate, t, horizon);
+          const auto occupied = edge_cells(from, to);
+          if (occupied == nullptr) {
+            conflict = true;
+            break;
+          }
+          for (auto k = first_occupied_cell(*occupied); k < occupied->size();
+               ++k) {
+            const auto cell = (*occupied)[k];
+            if (cell < 0 || cell >= cells ||
+                (motion_reservations[t][cell] >= 0 &&
+                 motion_reservations[t][cell] != agent)) {
+              conflict = true;
+              break;
+            }
+          }
+          from = to;
+        }
+        if (conflict) continue;
+
+        auto reserve_from = node->motion[agent].id;
+        for (auto t = 0; t < horizon; ++t) {
+          const auto to = candidates.state(candidate, t, horizon);
+          const auto occupied = edge_cells(reserve_from, to);
+          for (auto k = first_occupied_cell(*occupied); k < occupied->size();
+               ++k) {
+            motion_reservations[t][(*occupied)[k]] = agent;
+          }
+          reserve_from = to;
+        }
+        selected[agent] = PathRef{&candidates, candidate};
+        planned[agent] = true;
+
+        auto success = true;
+        auto inherited = std::vector<int>();
+        auto inherited_seen = std::vector<bool>(N, false);
+        auto scan_from = node->motion[agent].id;
+        for (auto t = 0; t < horizon; ++t) {
+          const auto to = candidates.state(candidate, t, horizon);
+          const auto occupied = edge_cells(scan_from, to);
+          for (auto k = first_occupied_cell(*occupied); k < occupied->size();
+               ++k) {
+            const auto cell = (*occupied)[k];
+            for (const auto other : motion_future_conflict_agents[t][cell]) {
+              if (other == agent || planned[other] || inherited_seen[other])
+                continue;
+              inherited_seen[other] = true;
+              inherited.push_back(other);
+            }
+          }
+          scan_from = to;
+        }
+        for (const auto other : inherited) {
+          if (visiting[other]) {
+            success = false;
+            break;
+          }
+          if (stats != nullptr) ++stats->pibt_recursions;
+          success = plan_agent(other);
+          if (!success) break;
+        }
+        if (success) {
+          visiting[agent] = false;
+          return true;
+        }
+        // Match the paper implementation's PIBT backtracking semantics: reject
+        // only this agent's candidate.  Descendants planned through priority
+        // inheritance keep their reservations and need not be replanned.
+        auto rollback_from = node->motion[agent].id;
+        for (auto t = 0; t < horizon; ++t) {
+          const auto to = candidates.state(candidate, t, horizon);
+          const auto occupied = edge_cells(rollback_from, to);
+          for (auto k = first_occupied_cell(*occupied); k < occupied->size();
+               ++k) {
+            auto& owner = motion_reservations[t][(*occupied)[k]];
+            if (owner == agent) owner = -1;
+          }
+          rollback_from = to;
+        }
+        selected[agent] = PathRef();
+        planned[agent] = false;
+      }
+    }
+
+    visiting[agent] = false;
+    if (stats != nullptr) ++stats->pibt_failures;
+    return false;
+  };
+
+  for (const auto agent : node->order) {
+    if (!plan_agent(agent)) return false;
+  }
+  for (auto i = 0; i < N; ++i) {
+    if (!planned[i] || selected[i].paths == nullptr) return false;
+    motion_next[i] = motion_graph->state(path_state(selected[i], 0));
   }
   return true;
 }
@@ -1725,8 +2239,7 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const TAPFNode* node)
               if (dv != du) return dv < du;
               auto foreign_service = [&](Vertex* w) {
                 return w != ai->v_now &&
-                       w->id <
-                           static_cast<int>(real_service_vertices.size()) &&
+                       w->id < static_cast<int>(real_service_vertices.size()) &&
                        real_service_vertices[w->id] &&
                        !can_share_service_goal(node, i, w);
               };
@@ -1890,11 +2403,14 @@ Solution solve_tapf(const TAPFInstance& ins, const int verbose,
                     const int sticky_penalty, TAPFStats* stats, bool anytime,
                     bool force_full_assignment, TAPFSearchConfig search_config,
                     std::vector<int>* final_assignment,
-                    std::vector<std::vector<int> >* assignment_schedule)
+                    std::vector<std::vector<int>>* assignment_schedule,
+                    MotionSolution* motion_solution,
+                    std::shared_ptr<MotionGraph> precomputed_motion)
 {
   info(1, verbose, "elapsed:", elapsed_ms(deadline), "ms\tTAPF pre-processing");
-  auto planner = TAPFPlanner(&ins, deadline, MT, verbose, sticky_penalty,
-                             0.001f, anytime, stats, search_config);
+  auto planner =
+      TAPFPlanner(&ins, deadline, MT, verbose, sticky_penalty, 0.001f, anytime,
+                  stats, search_config, std::move(precomputed_motion));
   planner.force_full_assignment = force_full_assignment;
-  return planner.solve(final_assignment, assignment_schedule);
+  return planner.solve(final_assignment, assignment_schedule, motion_solution);
 }

@@ -19,6 +19,14 @@ add_executable(lifelong_benchmark tools/lifelong_benchmark.cpp)
 target_compile_features(lifelong_benchmark PUBLIC cxx_std_17)
 target_link_libraries(lifelong_benchmark lacam)
 
+add_executable(map_distance_precompute tools/map_distance_precompute.cpp)
+target_compile_features(map_distance_precompute PUBLIC cxx_std_17)
+target_link_libraries(map_distance_precompute lacam)
+
+add_executable(motion_path_precompute tools/motion_path_precompute.cpp)
+target_compile_features(motion_path_precompute PUBLIC cxx_std_17)
+target_link_libraries(motion_path_precompute lacam)
+
 # test
 set(TEST_MAIN_FUNC ./third_party/googletest/googletest/src/gtest_main.cc)
 set(TEST_ALL_SRC ${TEST_MAIN_FUNC})
@@ -34,6 +42,7 @@ add_test(test_graph ./tests/test_graph.cpp)
 add_test(test_instance ./tests/test_instance.cpp)
 add_test(test_dist_table ./tests/test_dist_table.cpp)
 add_test(test_map_dist_cache ./tests/test_map_dist_cache.cpp)
+add_test(test_motion ./tests/test_motion.cpp)
 add_test(test_lifelong_task ./tests/test_lifelong_task.cpp)
 add_test(test_lifelong_state ./tests/test_lifelong_state.cpp)
 add_test(test_lifelong_planning ./tests/test_lifelong_planning.cpp)
