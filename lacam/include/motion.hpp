@@ -34,9 +34,9 @@ struct MotionActionCosts {
   int forward = 1;
   int rotate_ccw = 1;
   int rotate_cw = 1;
-  int keep_speed = 1;
-  int accelerate = 1;
-  int decelerate = 1;
+  int keep_speed = 0;
+  int accelerate = 0;
+  int decelerate = 0;
 };
 
 struct MotionParameters {

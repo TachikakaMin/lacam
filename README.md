@@ -197,9 +197,9 @@ ACTION_COSTS FOLLOWER MAP_DISTANCE_CACHE MOTION_PATH_CACHE`:
 ```sh
 build/map_distance_precompute map.map map.dist.bin 64
 build/motion_path_precompute map.map map.motion.bin 2 2 6 all \
-  1,1,1,1,1,1,1 64
+  1,1,1,1,0,0,0 64
 build/tapf_benchmark case.yaml "" 1 out.yaml 0 0 0 dfs 1.5 h \
-  1 2 2 6 all 1,1,1,1,1,1,1 1 map.dist.bin map.motion.bin
+  1 2 2 6 all 1,1,1,1,0,0,0 1 map.dist.bin map.motion.bin
 ```
 
 `ACTIONS` is `all` or a comma-separated subset of `stay,forward,rotate_ccw,

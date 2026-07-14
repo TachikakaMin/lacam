@@ -343,7 +343,7 @@ int main(int argc, char** argv)
                  "[SEARCH_MODE=dfs] [FOCAL_WEIGHT=1.5] "
                  "[FOCAL_TIE_BREAK=h] [MOTION=0] [MAX_SPEED=2] "
                  "[ROTATION_STEPS=2] [PATH_LENGTH=6] [ACTIONS=all] "
-                 "[ACTION_COSTS=1,1,1,1,1,1,1] [FOLLOWER=1] "
+                 "[ACTION_COSTS=1,1,1,1,0,0,0] [FOLLOWER=1] "
                  "[MAP_DISTANCE_CACHE=] [MOTION_PATH_CACHE=]\n";
     return 2;
   }
@@ -366,7 +366,7 @@ int main(int argc, char** argv)
   if (argc >= 15) search_config.motion.lookahead_horizon = std::stoi(argv[14]);
   const auto action_names = argc >= 16 ? std::string(argv[15]) : "all";
   const auto action_costs =
-      argc >= 17 ? std::string(argv[16]) : "1,1,1,1,1,1,1";
+      argc >= 17 ? std::string(argv[16]) : "1,1,1,1,0,0,0";
   if ((search_config.motion.enabled &&
        !parse_motion_actions(action_names, search_config.motion.actions)) ||
       !parse_motion_costs(action_costs, search_config.motion.costs)) {
@@ -375,16 +375,6 @@ int main(int argc, char** argv)
   }
   if (argc >= 18)
     search_config.motion.follower_collisions = std::stoi(argv[17]) != 0;
-  if (!search_config.motion.enabled) {
-    // Position-only compatibility mode: keep action costs observable for the
-    // experiment record, but make every other motion knob inert.
-    search_config.motion.max_speed = 0;
-    search_config.motion.rotation_steps = 0;
-    search_config.motion.lookahead_horizon = 0;
-    search_config.motion.follower_collisions = false;
-    search_config.motion.actions =
-        MotionActionSet{false, false, false, false, false, false, false};
-  }
   const auto map_distance_cache_path =
       argc >= 19 ? std::filesystem::path(argv[18]) : std::filesystem::path();
   const auto motion_path_cache_path =

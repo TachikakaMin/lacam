@@ -183,7 +183,7 @@ def main() -> int:
         motion_prepared = run([
             str(motion_cache_builder), str(map_path), str(motion_cache_path),
             str(args.max_speed), str(args.rotation_steps), str(args.horizon),
-            "all", "1,1,1,1,1,1,1", str(precompute_workers),
+            "all", "1,1,1,1,0,0,0", str(precompute_workers),
         ], timeout=3600)
         if motion_prepared.returncode:
             raise RuntimeError(
@@ -233,7 +233,7 @@ def main() -> int:
         ours_run = run([
             str(ours), str(case["yaml"]), "", str(args.time_limit), "", "0", "0",
             str(case["seed"]), "dfs", "1.5", "h", "1", str(args.max_speed),
-            str(args.rotation_steps), str(args.horizon), "all", "1,1,1,1,1,1,1", "1",
+            str(args.rotation_steps), str(args.horizon), "all", "1,1,1,1,0,0,0", "1",
             str(cache_paths[str(case["map"])]),
             str(motion_cache_paths[str(case["map"])]),
         ], timeout=max(args.process_timeout, args.time_limit))
