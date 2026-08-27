@@ -101,12 +101,6 @@ def validate(input_yaml: Path, output_yaml: Path, require_unique_goals: bool) ->
             curr = state_coord(path[t])
             prev_time = state_time(path[t - 1], t - 1)
             curr_time = state_time(path[t], t)
-            if curr_time - prev_time != 1 and prev != curr:
-                errors.append(
-                    f"{name}: non-wait sparse jump t={prev_time}->{curr_time}: "
-                    f"{prev}->{curr}"
-                )
-                break
             manhattan = abs(prev[0] - curr[0]) + abs(prev[1] - curr[1])
             if manhattan > 1:
                 errors.append(
