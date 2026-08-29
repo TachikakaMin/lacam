@@ -11,6 +11,7 @@
 #include <dd_planner.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <set>
 #include <vector>
 
@@ -153,4 +154,63 @@ TEST(dd_g1_conformance, mid_carry_state_from_solver_step)
   EXPECT_TRUE(missing.empty())
       << missing.size() << " successors missing from carrying state";
   EXPECT_EQ(produced.size(), oracle.size());
+}
+
+TEST(dd_prop2, zero_empty_cycle_moves_require_following)
+{
+  // Proposition 2 same-instance separation (debug.md P2-10): on the fully
+  // occupied cycle, EVERY validator-legal transition that contains a MOVE
+  // has some robot entering a cell vacated in the SAME step (following).
+  // Hence any no-following model (BRaP / 1-robust MAPF-DECOMP(PP)) admits
+  // only lift/drop/wait transitions here -> shelves can never move -> the
+  // instance is unsolvable for them, while Carrier-LaCAM solves it
+  // (dd_planner.cycle_rotation_zero_empty_cells).
+  auto ins = load_dd_instance(std::string(DD_TEST_DIR) +
+                              "/fixtures/prop2_cycle_2x2.yaml");
+  const auto X = initial_phys_config(ins);
+  // lift everything first (carriers on every shelf), the interesting state:
+  std::vector<Op> lifts(4, Op::make_lift());
+  auto lifted = apply_ops(ins, X, lifts);
+  ASSERT_TRUE(lifted.has_value());
+  const size_t R = ins.n_robots();
+  std::vector<std::vector<Op>> raw(R);
+  for (size_t i = 0; i < R; ++i) {
+    raw[i].push_back(Op::make_wait());
+    int nb[4];
+    const int n = ins.grid.neighbors(lifted->robots[i], nb);
+    for (int k = 0; k < n; ++k) raw[i].push_back(Op::make_move(nb[k]));
+    raw[i].push_back(Op::make_drop());
+  }
+  long with_move = 0, following_violations = 0;
+  std::vector<Op> ops(R, Op::make_wait());
+  std::function<void(size_t)> rec = [&](size_t i) {
+    if (i == R) {
+      auto nxt = apply_ops(ins, *lifted, ops);
+      if (!nxt.has_value()) return;
+      bool any_move = false;
+      for (const Op& op : ops) any_move |= (op.kind == Op::MOVE);
+      if (!any_move) return;
+      ++with_move;
+      // no-following check: every mover enters a cell someone vacates now
+      for (size_t r2 = 0; r2 < R; ++r2) {
+        if (ops[r2].kind != Op::MOVE) continue;
+        bool vacated = false;
+        for (size_t j = 0; j < R; ++j)
+          if (lifted->robots[j] == ops[r2].to &&
+              nxt->robots[j] != ops[r2].to)
+            vacated = true;
+        if (!vacated) ++following_violations;
+      }
+      return;
+    }
+    for (const Op& op : raw[i]) {
+      ops[i] = op;
+      rec(i + 1);
+    }
+  };
+  rec(0);
+  ASSERT_GT(with_move, 0) << "cycle admits no move transitions at all?";
+  EXPECT_EQ(following_violations, 0)
+      << "found a mover entering a non-vacated cell: the separation "
+         "argument would be broken";
 }

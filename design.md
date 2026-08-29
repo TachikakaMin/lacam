@@ -1,6 +1,11 @@
 # Carrier-LaCAM 设计文档 (v2)
 
-状态: draft v2.1, 2026-08-28。
+状态: draft v2.2, 2026-08-29。
+v2.2 变更(吸收实现期独立审计与实证, 见 debug.md):flags 接口移出 v1(§2.2);
+新增 target-as-blocker parking 机制章节(§5.4a);§5.5 更新为已实证的
+多信号方案;§5.6 placement 记录被否决假设;§6.1 Zobrist 落地;§6.2 惰性失效
+与 §6.4 双 validator 架构表述修正;命题 2 增加同实例可执行论证(§4.1);
+B4 表述拆分(§8.1);贡献声明按 M1 实证收窄(§9);里程碑状态如实标注(§10)。
 v2.1 变更(吸收外部评审 R1):修正 $h_{\mathrm{mk}}$ 的 admissibility
 off-by-one;χ 降级为 derived view(不进 state/key);命题 2 按 DD-MAPD 原文
 查证后收窄;补 `N.order` 定义;macro 重定义为 event-bounded rollout(与 B0
@@ -78,9 +83,11 @@ p_b=g_b
 b \text{ grounded(没有 robot 正 carry 它)}.
 $$
 
-- robot 终态不约束(可选 flag `robots_return_to_rest`,默认关);
-- 到达 goal 的 target shelf 默认**留在原地继续占格**
-  (可选 flag `remove_on_complete`,默认关;见 D2)。
+- robot 终态不约束;
+- 到达 goal 的 target shelf **留在原地继续占格**(D2;completed 可逆)。
+- (v2.2) `robots_return_to_rest` / `remove_on_complete` 两个可选 flag
+  **移出 v1 接口**:v1 loader 遇到非默认值将显式报错拒载(fail loudly),
+  而非静默忽略;二者移入 §7 扩展(实现时需 state/hash/goal 全链路支持)。
 
 ### 2.3 目标函数
 
@@ -218,6 +225,13 @@ Carrier 问题可行,但以下模型均不可解:
    轨迹 *safe 1-robust*,而 1-robust("下一步不得占据当前已被占据的格子",
    DD-MAPD Def. 1)恰是 no-following;且零空格实例不存在 1-robust 解,
    连 well-formed 都不是。
+
+(v2.2 实证锚点)同实例分离已固化为可执行测试:固定 zero-empty 2×2 cycle
+fixture 上,(a) Carrier-LaCAM 解出整体旋转;(b) 穷举证明该实例上**每个含
+移动的合法转移都要求 following**(mover 进入本步被腾出的格),故任何
+no-following 模型在此实例只能 lift/drop/wait,shelf 永不移动 ⇒ 不可解;
+(c) B4 的顺序执行器因无空格诚实失败(定理 1 的适用域边界)。见
+`tests/test_dd_g1.cpp::dd_prop2_*` 与 `benchmark/tests/test_prop2.py`。
 
 对 **base MAPF-DECOMP 分离不成立**:其 shelf 层是标准 MAPF(允许 following
 与 rotation),执行层通过 soft-dependency cycle 机制(Update/FindNoMove、
@@ -387,6 +401,28 @@ PIBT 同步解决(单 timestep)。
 4. §5.5 的 livelock shuffle 只在同类内部扰动,静态类序不破坏
    (让 carrier 给 idle 让位没有意义)。
 
+### 5.4a Target-as-blocker parking(v2.2 正式化;原实现期 ad-hoc 机制)
+
+**动机**:target b 的 goal 可能位于另一未完成 target o 的活跃通道上
+(走廊场景):若把 b 直接落位,o 将被 S1 永久阻断。
+
+**定义(纯 X 函数,无搜索历史状态)**:
+
+- 触发:$g_b$ 落在**另一**未完成 target $o$ 的当前 least-blocking path 上
+  (owner=o);此时 b 的载具按 clear 语义走 parking 而非落位;
+- 掩蔽规则:计算各 path 所用的 occupancy 视图中,**被 carry 且悬停于
+  自身 goal 的 target 的 goal 格视为空**——恰好消除 park/deliver 的
+  循环依赖(悬停期 owner path 不再因 b 的占位而绕行,park 判定稳定);
+- 释放:owner o 在当前 X 中完成即释放(path 消失);
+- 环打破:park 关系可能成环(互为 owner);沿 owner 链检出环后,
+  **最小下标成员解除 park**(确定性);
+- 性质:ordering-only,不改可行域;不依赖 parent 链或全局 registry——
+  实证教训:solve 级 registry 会**跨 DFS 分支泄漏** park 决策,导致
+  大规模实例全局过度 park(r2r/dne/s2w 平台期的总根因,见 debug.md)。
+
+回归锚:`tests/test_dd_regression.cpp::dd_sticky_park.*`(走廊触发、
+互锁环、goal 占用不抖动;断言为因果式而非完成时序式)。
+
 ### 5.5 Livelock 与 cross-deck deadlock 处理(核心修改 3)
 
 **时间尺度错配是本域特有问题**:PIBT 的 priority inheritance 在同一 timestep
@@ -397,29 +433,37 @@ PIBT 同步解决(单 timestep)。
 - idle robot 停在 blocker 正下方,任何人都无法 lift 它;
 - 两条 blocker chain 互为对方的放置区。
 
-处理(分两期):
+处理(v2.2:实证后的落地形态):
 
-- **M1(信号驱动)**:检测 "连续 $W$ 步 guidance-h 无下降 + configuration
-  近周期重复" 的 livelock 信号 → 触发 (a) `N.order` shuffle(带 seed)、
-  (b) $\rho$ 强制 re-match(禁忌当前配对)。
-- **M2(结构驱动)**:维护 cross-deck wait-for graph
-  (robot 等格子 → 格子等 shelf 清空 → shelf 等 robot 动作),检测环;
-  环上触发重排/换配对,或直接把该 node 留给 high-level backtracking。
-  类比 LaCAM2 swap,但跨两层——这可能是第二个有辨识度的机制。
+- **信号 A(h 平台)**:连续 $W{=}24$ 步 guidance-h 无下降 → (a) PIBT
+  priority `order` 类内 shuffle(**约束树的 `constraint_order` 冻结不动**,
+  否则破坏 §4.2 的枚举完备前提——审计修正 P0-1);(b) $\rho$ 禁忌
+  re-match。
+- **信号 B(重访计数)**:duplicate successor 命中 EXPLORED 节点每 8 次 →
+  对该节点 re-guidance(禁忌其当前配对)+ 允许重新尝试 macro rollout
+  (rng 已前进,合法多样化)。
+- **载具对头 yield**:两 carried target 的 next 互为对方当前格(R2 禁 swap,
+  PIBT 无法跨步化解)→ 余距更大者按 park 语义让路(确定性 tie-break)。
+- **结构驱动 wait-for graph** 保留为后续工作;实证中上述信号组合 +
+  §5.4a + macro rollout 已使 dev 全集(含 DnE-M/S2W-M 400-target)10s 内
+  可解,wait-for 的增量收益待评估。
 
 以上全部只是 ordering 扰动,completeness 由 high-level search 兜底。
 
 ### 5.6 Sound pruning 与 placement score
 
-**Dead-cell pruning(sound,来自 Sokoban)。** 预处理:对 goal 集在 upper
-deck 上做 reverse BFS(只考虑 wall)。从 $g_b$ 反向不可达的格子对 target
-shelf 是 **provably dead**——wall 是静态的,任何后续操作都救不回来。
-禁止把 target shelf `Drop` 进 dead cell(hard prune,completeness 无损,
-窄仓库剪枝量大)。匿名 shelf 无 goal,不适用。
+**Dead-cell 分析(v2.2 修正)。** v1 中双层共用同一 wall 集,故 "从
+$g_b$ 反向(仅 wall)不可达" ⟺ start 与 goal 处于不同连通分量 ⟺ 实例
+本身不可行——正确形态是 **load 期可行性拒载**(`finalize` 抛错),
+而非搜索期 drop-pruning。Sokoban 式 drop-pruning 只有在两层 wall 集
+不同(如 upper 层有额外禁区)时才有非平凡剪枝量,推迟到该扩展。
 
-**Placement score(soft,ordering only)。** `Drop` 位置偏好:
-远离所有活跃 least-blocking paths、不堵单格宽走廊、离 dead-end 近
-(反正没人要去)。类比 Sokoban 的 parking heuristics。
+**Placement score(v2.2:被实证否决的假设)。** 原假设("远离活跃
+path、不堵单格宽走廊、靠近 dead-end")在 d50(16×16, 50% 填充)A/B 中
+**使已解实例回归超时**:高密度下走廊/边角是仅存的机动空间,回避它们
+等于自断退路。现行实现为 "最近的、避开活跃 path 与 goal 的空格",
+必要时回退到任意非 goal 空格。新的 score 假设(局部空格连通度、
+articulation、逃逸度)标注为未验证,留待 §8.4 placement ablation。
 
 ### 5.7 Cost 与 heuristic
 
@@ -464,9 +508,9 @@ metrics:`loaded_move_ratio`、`shelf_switches`、`futile_lift_drop`。
 - `EXPLORED` key = canonical($X$):labeled targets map + 匿名 occupancy
   bitset + labeled robots(v1 不匿名化 robot,见 D4)+ $\kappa$
   (χ 是 derived,不进 key,D12);
-- **Zobrist 增量 hash**:robot 位置、shelf occupancy、$\kappa$
-  各一套 key 表,每步只 XOR 变更格(removal 模式下 target 消失本身体现在
-  occupancy key 上)。configuration 判重是热点,必须增量。
+- **Zobrist 增量 hash(v2.2 已落地)**:无表实现——key 由 splitmix64 对
+  (role, id, cell) 即时派生,全量 hash = 各分量 XOR;增量版本按 joint op
+  的 effect 组合 XOR(性质测试对照全量重算)。已接入 rollout 热路径。
 
 ### 6.2 距离场缓存
 
@@ -474,7 +518,7 @@ metrics:`loaded_move_ratio`、`shelf_switches`、`futile_lift_drop`。
 |---|---|---|
 | $d^{\mathrm{wall}}_{\mathrm{upper}}(\cdot,g_b)$ | 静态(只依赖 wall) | 复用 `DistTable` 的 lazy BFS,per goal 一张 |
 | $d_{\mathrm{lower}}(\cdot,\text{cell})$ | 静态(free robot 只受 wall) | per-cell lazy BFS + LRU cache(request cell 数量少) |
-| $D_b$(blocking-aware) | 依赖当前 occupancy | **惰性失效**(v2.1):cache 整条 least-blocking path;维护"自缓存以来新增占据格"的 dirty set,查询时逐 path 求交($O(\text{路径长})$),不相交继续用,相交才重算。**新腾空的格子不触发失效**——它只会让更优路径出现,而 $D_b$ 仅是 ordering guidance,偏保守的 stale 值无害 |
+| $D_b$(blocking-aware) | 依赖当前 occupancy | **惰性失效(v2.2 已按本行语义落地)**:cache 整条 least-blocking path + 逐格占用快照;查询时仅当某 path 格 **由空变占** 才重算(非对称),腾空不失效(stale 保守无害);另有 head-advance(载具沿 path 前进一格时 O(1) 裁剪)。路径搜索用 A*(Manhattan 启发,代价语义不变) |
 
 ### 6.3 复杂度预算(每次 expansion)
 
@@ -486,7 +530,10 @@ Carrier-PIBT $O(|R|\cdot\deg)$;距离场按 cache 命中摊销。
 ### 6.4 Validator-first(开发顺序约束)
 
 **先写 two-deck transition validator,再写 planner。**
-validator 是 §3.3 规则表的唯一实现,同时充当:
+(v2.2 表述修正)仓库实际架构为**双实现互查**:C++ `apply_ops` 是
+planner 运行时的 authoritative arbiter;Python `ddbench.validator` 是
+独立 conformance oracle,每个输出 plan 都会被其重放复核。两者由共享
+语义测试(§6.5 + G1 穷举对照)钉住,防漂移。validator 职责:
 
 1. 单测与 CI 的裁决(扩展现有 `tools/validate_tapf_solution.py` 到双层);
 2. Carrier-PIBT 的最终裁决(generator 只 propose,validator accept)——
@@ -549,7 +596,7 @@ cost,moved-row 增量)。放 phase 3 或独立扩展章节,保持 v1 故事紧�
 | B1: 2-stage | BR-LaCAM 风格 block plan 固定后,**复用 B0 的 Carrier-PIBT 在"shelf plan 为硬约束"模式下执行**(requests 改由固定 plan 的下一步生成) | 对照 "shelf-first decomposition";与 full method 的差异被隔离为唯一变量"shelf intent 固定 vs 逐 configuration 重算",ablation 更干净且省一份实现 |
 | B2: MAPF-DECOMP / CREST | CREST 有公开代码(github.com/ChristinaTan0704/CREST) | 外部 SOTA 执行框架 |
 | B3: NAT-CBS / MARPF | 小实例 | optimality gap |
-| B4: 单 robot 顺序模拟 | 定理 1 的构造(≈ DD-MAPD 论文自带的 BASE/PAS baseline) | 可行性 sanity + 吞吐下界 |
+| B4: 单 robot 顺序模拟 | (v2.2 拆分表述)定理 1 本身只断言"给定 sequential pebble plan 可被单 robot 执行";当前实现是 **B4-greedy**:自行用贪心清障构造 plan 并执行,可失败(无空格/递归不收敛时诚实报错),其 success rate 是观测指标而非保证 | 可行性 sanity + 吞吐下界 |
 
 ### 8.2 自变量 sweep(优势应最大的两条轴放前面)
 
@@ -595,11 +642,15 @@ loaded/free travel、lift+drop 次数、shelf switching 次数、
 
 ## 9. 相关工作与定位
 
-**一句话贡献:**
+**一句话贡献(v2.2 按实证收窄):**
 
-> A complete and scalable LaCAM-style search over **executable robot–shelf
-> physical configurations**, with operator-level lazy constraints,
-> per-configuration robot-task matching, and cross-deck conflict reasoning.
+> A LaCAM-style search over **executable robot–shelf physical
+> configurations** with operator-level lazy constraints,
+> per-configuration guidance, and cross-deck conflict handling —
+> feasibility-first with anytime cost improvement;每条搜索边过
+> deterministic validator。completeness 论证依赖 §4.2 的骨架
+> (G1 直通 + 冻结 constraint order 已按此实现并有穷举对照测试),
+> 最优性只在 admissible-h 剪枝意义下 anytime 逼近,不作 LaCAM* 级主张。
 
 | 工作 | 与本文关系 |
 |---|---|
@@ -629,6 +680,13 @@ no-following 保守约束(§3.4a)。
 | **M2**(~2 周) | min-cost ρ + blocking-aware fields + dead-cell pruning + FOCAL/anytime + Zobrist | B0 vs full 的初步曲线;高密度实例不 livelock |
 | **M3** | 基线接入(B1–B4)+ sweep + 论文图 | §8 全套结果 |
 | **M4**(可选) | macro successors、LNS、wait-for deadlock、ITA τ 层 | 论文扩展章节 / paper 2 |
+
+(v2.2 状态)M0 除双层可视化外完成;M1 完成(出口判据以 20×20/52
+shelves/10 robots 通过,2×2 协议下 shelf 数为 4 的倍数,取 ≥50 最近值);
+M2 的 min-cost ρ(Hungarian)未做(greedy + 禁忌 re-match 实证够用,
+Hungarian 移入扩展),其余(blocking-aware field、dead-cell v1 形态、
+FOCAL/anytime、Zobrist)完成;M3 的 B0-B4 完成,sweep/ablation 见
+benchmark;M4 中 macro rollout 已提前落地,LNS/wait-for/ITA-τ 未做。
 
 代码落点:fork `lacam/src/tapf_planner.cpp` → `dd_planner.cpp`;
 `PhysConfig {Config robots; ShelfOcc shelves; vector<int8> kappa;}`
