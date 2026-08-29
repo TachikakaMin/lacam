@@ -461,20 +461,18 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
       if (k == o) return false;
     return true;
   };
+  // PURE function of X (audit P1-5): park[b] iff goal_b lies on another
+  // unfinished target's CURRENT masked least-blocking path.  No memory:
+  // the carried-hover mask alone kills the deliver/park flip-flop stage,
+  // and a search-global registry proved to leak parks across DFS branches
+  // (r2r over-parking regression).  park_registry retained in signatures
+  // for rollback experiments but neither read nor written here.
+  (void)park_registry;
   for (size_t b = 0; b < ins.n_targets(); ++b) {
-    // release stale registry entries first
-    if (park_registry[b] >= 0 && done_in_X(park_registry[b]))
-      park_registry[b] = -1;
-    if (park_registry[b] >= 0) {
-      g.target_park[b] = 1;
-      g.park_owner[b] = park_registry[b];
-      continue;
-    }
     const int ow__ = sc.owner[ins.target_goals[b]];
     if (ow__ > 0 && ow__ - 1 != (int)b && !done_in_X(ow__ - 1)) {
       g.target_park[b] = 1;
       g.park_owner[b] = ow__ - 1;
-      park_registry[b] = ow__ - 1;
     }
   }
   // carrier head-on deadlock (cross-deck swap, design 5.5): two carried
@@ -528,7 +526,6 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
       const int drop = *std::min_element(chain.begin(), chain.end());
       g.target_park[drop] = 0;
       g.park_owner[drop] = -1;
-      park_registry[drop] = -1;
     }
   }
 
@@ -1299,7 +1296,9 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
     // roll the unconstrained generator to the next lift/drop event (or cap)
     // and insert the terminal configuration as an extra successor tried
     // FIRST.  Constraint tree untouched -> completeness unaffected.
-    if (c->depth == 0 && !nd->macro_tried) {
+    const int msparse = env_int("DD_MACRO_SPARSE", 1);
+    if (c->depth == 0 && !nd->macro_tried &&
+        (msparse <= 1 || nd->depth % msparse == 0)) {
       nd->macro_tried = true;
       auto reg_copy = park_registry;  // speculative: do not pollute registry
       // design 7.1: on large instances free-travel phases are long, so we
@@ -1357,6 +1356,10 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
       // reshuffle the intra-class order.  Ordering only — completeness kept.
       Node* ex = it->second;
       ex->revisits++;
+      // legal diversification (D11-compliant): allow a FRESH macro rollout
+      // on heavy revisiting — rng has advanced, so the probe differs; the
+      // constraint tree/variable order stay untouched.
+      if (ex->revisits % 8 == 0) ex->macro_tried = false;
       if (ex->revisits % 8 == 0) {
         std::vector<std::pair<int, int>> taboo;
         for (size_t i = 0; i < R; ++i)
