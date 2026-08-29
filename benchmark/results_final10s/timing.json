@@ -1,0 +1,33 @@
+{
+  "wall_time_sec": 265.9,
+  "jobs": 24,
+  "n_tasks": 660,
+  "timeout_per_run_sec": 10.0,
+  "methods": {
+    "b4": {
+      "solved": 132,
+      "total": 132,
+      "solver_time_sum_sec": 990.8
+    },
+    "carrier": {
+      "solved": 73,
+      "total": 132,
+      "solver_time_sum_sec": 684.9
+    },
+    "crest_base": {
+      "solved": 77,
+      "total": 132,
+      "solver_time_sum_sec": 720.1
+    },
+    "crest_full": {
+      "solved": 30,
+      "total": 132,
+      "solver_time_sum_sec": 2307.3
+    },
+    "natcbs": {
+      "solved": 20,
+      "total": 132,
+      "solver_time_sum_sec": 211.1
+    }
+  }
+}

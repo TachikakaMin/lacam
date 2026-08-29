@@ -36,6 +36,7 @@ from ddbench.validator import plan_cost, validate_plan
 REPO = Path(__file__).resolve().parent.parent
 CREST_BIN = REPO / "baselines/CREST/build/CREST"
 MAWR_BIN = REPO / "baselines/wh-rearrangement/build/MAWR"
+CARRIER_BIN = REPO / "build/dd_benchmark"
 MICROMAMBA = Path.home() / ".local/bin/micromamba"
 
 FIELDS = [
@@ -176,6 +177,75 @@ def row_natcbs(ins, name, family, work, timeout):
                 status=st, raw=(out + err)[-150:].replace("\n", " "))
 
 
+def row_carrier(ins, path, name, family, work, timeout):
+    """Carrier-LaCAM (C++): plan re-validated by the authoritative Python
+    two-deck validator; unified metrics via plan_cost (same as b4)."""
+    from ddbench.validator import apply_joint_action, initial_state, is_goal
+
+    plan_out = work / f"{name}.carrier.plan"
+    t0 = time.time()
+    env = dict(os.environ)
+    try:
+        p = subprocess.run(
+            [str(CARRIER_BIN), str(path), str(timeout), str(plan_out), "0"],
+            capture_output=True, text=True, timeout=timeout + 30, env=env,
+        )
+        status = "ok"
+    except subprocess.TimeoutExpired:
+        p = None
+        status = "timeout"
+    rt = time.time() - t0
+    metrics = {}
+    if p is not None:
+        for line in p.stdout.splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                metrics[k.strip()] = v.strip()
+    if status != "ok" or metrics.get("solved") != "1":
+        return dict(instance=name, family=family, method="carrier", success=0,
+                    executed_makespan="", weighted_soc="", loaded_moves="",
+                    free_moves="", lift_drop="", runtime_sec=round(rt, 3),
+                    status="timeout" if status != "ok" or
+                    metrics.get("timed_out") == "1" else "failed",
+                    raw=(p.stdout + p.stderr)[-150:].replace("\n", " ")
+                    if p else "")
+    # authoritative re-validation
+    plan = []
+    for line in plan_out.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        joint = []
+        for tok in line.split(";"):
+            parts = tok.split()
+            if parts[0] == "w":
+                joint.append(("wait",))
+            elif parts[0] == "m":
+                joint.append(("move", (int(parts[1]), int(parts[2]))))
+            elif parts[0] == "l":
+                joint.append(("lift",))
+            elif parts[0] == "d":
+                joint.append(("drop",))
+        plan.append(joint)
+    try:
+        s = initial_state(ins)
+        for joint in plan:
+            s = apply_joint_action(ins, s, joint)
+        if not is_goal(ins, s):
+            raise ValueError("final state is not a goal")
+    except Exception as e:  # noqa: BLE001
+        return dict(instance=name, family=family, method="carrier", success=0,
+                    executed_makespan="", weighted_soc="", loaded_moves="",
+                    free_moves="", lift_drop="", runtime_sec=round(rt, 3),
+                    status="invalid_plan", raw=str(e)[:200])
+    c = plan_cost(ins, plan)
+    return dict(instance=name, family=family, method="carrier", success=1,
+                executed_makespan=c["executed_makespan"],
+                weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
+                free_moves=c["free_moves"], lift_drop=c["lift_drop"],
+                runtime_sec=round(rt, 3), status="ok", raw="")
+
+
 def run_one(task):
     """Top-level worker (picklable): task = (path, family, method, work,
     timeout, natcbs_max_cells, subopt)."""
@@ -185,6 +255,8 @@ def run_one(task):
     work = Path(work)
     if method == "b4":
         return row_b4(ins, name, family, timeout)
+    if method == "carrier":
+        return row_carrier(ins, path, name, family, work, timeout)
     if method == "crest_base":
         return row_crest(ins, name, family, work, timeout, False, subopt)
     if method == "crest_full":

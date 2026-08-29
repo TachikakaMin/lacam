@@ -19,6 +19,10 @@ add_executable(tapf_benchmark tools/tapf_benchmark.cpp)
 target_compile_features(tapf_benchmark PUBLIC cxx_std_17)
 target_link_libraries(tapf_benchmark lacam)
 
+add_executable(dd_benchmark tools/dd_benchmark.cpp)
+target_compile_features(dd_benchmark PUBLIC cxx_std_17)
+target_link_libraries(dd_benchmark lacam)
+
 # test
 set(TEST_MAIN_FUNC ./third_party/googletest/googletest/src/gtest_main.cc)
 set(TEST_ALL_SRC ${TEST_MAIN_FUNC})
@@ -30,12 +34,16 @@ macro(add_test name target)
   list(APPEND TEST_ALL_SRC ${target})
 endmacro(add_test)
 
+add_compile_definitions(DD_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests")
 add_test(test_graph ./tests/test_graph.cpp)
 add_test(test_instance ./tests/test_instance.cpp)
 add_test(test_dist_table ./tests/test_dist_table.cpp)
 add_test(test_planner ./tests/test_planner.cpp)
 add_test(test_tapf_planner ./tests/test_tapf_planner.cpp)
 add_test(test_post_processing ./tests/test_post_processing.cpp)
+add_test(test_dd_carrier ./tests/test_dd_carrier.cpp)
+add_test(test_dd_planner ./tests/test_dd_planner.cpp)
+add_test(test_dd_regression ./tests/test_dd_regression.cpp)
 
 add_executable(test_all ${TEST_ALL_SRC})
 target_link_libraries(test_all lacam gtest ${YAML_CPP_LIBRARIES})

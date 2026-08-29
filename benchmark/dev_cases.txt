@@ -1,0 +1,13 @@
+# PROTECTED dev benchmark cases for Carrier-LaCAM development (10s limit).
+# Fixed on 2026-08-29 BEFORE implementation started; spans families and
+# difficulty. Do NOT change without independent subagent APPROVE
+# (see goal workflow). One instance path per line, relative to benchmark/.
+instances_small/scramble/scramble_h6w6r2s8t2k40_seed1.yaml
+instances_small/scramble/scramble_h8w8r4s12t4k80_seed0.yaml
+instances_small/ddmapd/ddmapd_h10w10r3d30t3_seed0.yaml
+instances_standard/scramble/scramble_h12w12r4s28t8k120_seed0.yaml
+instances_standard/scramble/scramble_h16w16r8s128t16k320_seed0.yaml
+instances_standard/ddmapd/ddmapd_h16w16r8d50t8_seed0.yaml
+instances_paper/r2r_m/r2rM_n32_seed0.yaml
+instances_paper/dne_m/dneM_n32_seed0.yaml
+instances_paper/s2w_m/s2wM_n32_seed0.yaml

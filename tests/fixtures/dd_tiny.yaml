@@ -1,0 +1,14 @@
+name: dd_tiny
+map: |
+  ....
+  ....
+robots:
+  - [1, 0]
+shelves:
+  - [0, 1]
+  - [1, 3]
+targets:
+  - id: b0
+    start: [0, 1]
+    goal: [0, 3]
+flags: {}
