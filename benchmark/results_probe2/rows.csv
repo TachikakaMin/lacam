@@ -1,0 +1,7 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,first_solution_ms,runtime_sec,status,raw
+ddmapd_h8w8r2d20t2_seed0,ddmapd,carrier,1,14,14.0,4,6,4,0,0.1429,0.115289,0.042,ok,
+ddmapd_h8w8r2d20t2_seed0,ddmapd,carrier_b0,1,11,20.0,4,12,4,0,0.1818,-1,0.004,ok,
+ddmapd_h8w8r2d20t2_seed0,ddmapd,carrier_b1,1,11,20.0,4,12,4,0,0.1818,-1,0.004,ok,
+scramble_h6w6r2s4t2k20_seed0,scramble,carrier,1,7,7.0,3,2,2,0,0.2143,0.105592,0.005,ok,
+scramble_h6w6r2s4t2k20_seed0,scramble,carrier_b0,1,7,7.0,3,2,2,0,0.2143,-1,0.003,ok,
+scramble_h6w6r2s4t2k20_seed0,scramble,carrier_b1,1,7,7.0,3,2,2,0,0.2143,-1,0.004,ok,

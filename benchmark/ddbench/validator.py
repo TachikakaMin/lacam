@@ -235,9 +235,29 @@ def plan_cost(
     """Weighted action cost + executed makespan.  Assumes plan is valid."""
     s = initial_state(s0_ins)
     loaded_moves = free_moves = liftdrops = anon_moves = 0
+    shelf_switches = 0
+    lift_counts = {}       # shelf identity -> number of lifts so far
+    anon_id_at = {}        # cell -> anon identity (custody chain)
+    carrier_custody = {}   # robot i -> identity currently carried
+    next_anon_id = [0]
     executed_makespan = 0
     for t, joint in enumerate(plan):
         for i, act in enumerate(joint):
+            if act[0] == "lift":
+                cell = s.robots[i]
+                tgt = {p: b for b, p in s.target_pos}
+                if cell in tgt:
+                    key = ("tgt", tgt[cell])
+                else:
+                    if cell not in anon_id_at:
+                        anon_id_at[cell] = next_anon_id[0]
+                        next_anon_id[0] += 1
+                    key = ("anon", anon_id_at.pop(cell))
+                carrier_custody[i] = key
+                n = lift_counts.get(key, 0)
+                if n >= 1:
+                    shelf_switches += 1
+                lift_counts[key] = n + 1
             if act[0] == "move":
                 if s.kappa[i] is None:
                     free_moves += 1
@@ -247,6 +267,10 @@ def plan_cost(
                         anon_moves += 1
             elif act[0] in ("lift", "drop"):
                 liftdrops += 1
+                if act[0] == "drop":
+                    key = carrier_custody.pop(i, None)
+                    if key is not None and key[0] == "anon":
+                        anon_id_at[s.robots[i]] = key[1]
         s = apply_joint_action(s0_ins, s, joint)
         if is_goal(s0_ins, s):
             executed_makespan = t + 1
@@ -254,12 +278,20 @@ def plan_cost(
             break
     else:
         executed_makespan = len(plan)
+    # shelf switches (design 8.3): re-lifts, i.e. lift events beyond each
+    # shelf's first lift.  Track identity for targets; anonymous shelves are
+    # tracked by cell chain-of-custody within this replay.
     return {
         "executed_makespan": executed_makespan,
         "loaded_moves": loaded_moves,
         "free_moves": free_moves,
         "lift_drop": liftdrops,
         "anon_moves": anon_moves,
+        "shelf_switches": shelf_switches,
+        "robot_utilization": (
+            loaded_moves / (len(s0_ins.robots) * executed_makespan)
+            if executed_makespan > 0 else 0.0
+        ),
         "weighted_soc": alpha * loaded_moves
         + beta * free_moves
         + gamma * liftdrops

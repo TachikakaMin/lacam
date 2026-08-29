@@ -42,6 +42,7 @@ MICROMAMBA = Path.home() / ".local/bin/micromamba"
 FIELDS = [
     "instance", "family", "method", "success", "executed_makespan",
     "weighted_soc", "loaded_moves", "free_moves", "lift_drop",
+    "shelf_switches", "robot_utilization", "first_solution_ms",
     "runtime_sec", "status", "raw",
 ]
 
@@ -72,6 +73,11 @@ def run_external(cmd, timeout):
         return -1, "", "", timeout, "timeout"
 
 
+def _blank_extra():
+    return dict(shelf_switches="", robot_utilization="",
+                first_solution_ms="")
+
+
 def row_b4(ins, name, family, timeout):
     t0 = time.time()
     try:
@@ -79,20 +85,23 @@ def row_b4(ins, name, family, timeout):
     except B4Failure as e:
         return dict(instance=name, family=family, method="b4", success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
-                    free_moves="", lift_drop="", runtime_sec=round(time.time() - t0, 3),
+                    free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(time.time() - t0, 3),
                     status="failed", raw=str(e))
     runtime = time.time() - t0
     ok, errs, _ = validate_plan(ins, plan)
     if not ok:
         return dict(instance=name, family=family, method="b4", success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
-                    free_moves="", lift_drop="", runtime_sec=round(runtime, 3),
+                    free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(runtime, 3),
                     status="invalid_plan", raw=";".join(errs)[:200])
     c = plan_cost(ins, plan)
     return dict(instance=name, family=family, method="b4", success=1,
                 executed_makespan=c["executed_makespan"],
                 weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
                 free_moves=c["free_moves"], lift_drop=c["lift_drop"],
+                shelf_switches=c["shelf_switches"],
+                robot_utilization=round(c["robot_utilization"], 4),
+                first_solution_ms="",
                 runtime_sec=round(runtime, 3), status="ok", raw="")
 
 
@@ -112,7 +121,7 @@ def row_crest(ins, name, family, work, timeout, full_release, subopt=1.6):
     except ConversionError as e:
         return dict(instance=name, family=family, method=method, success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
-                    free_moves="", lift_drop="", runtime_sec=0,
+                    free_moves="", lift_drop="", **_blank_extra(), runtime_sec=0,
                     status="conversion_error", raw=str(e))
     flag = "true" if full_release else "false"
     rc, out, err, rt, status = run_external(
@@ -126,7 +135,7 @@ def row_crest(ins, name, family, work, timeout, full_release, subopt=1.6):
     if status != "ok" or rc != 0 or not m:
         return dict(instance=name, family=family, method=method, success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
-                    free_moves="", lift_drop="", runtime_sec=round(rt, 3),
+                    free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
                     status=status if status != "ok" else f"rc={rc}",
                     raw=(out + err)[-200:].replace("\n", " "))
     soc, mk, travel, pickups, _, overhead = m.groups()
@@ -136,7 +145,7 @@ def row_crest(ins, name, family, work, timeout, full_release, subopt=1.6):
                 weighted_soc=int(soc),
                 loaded_moves=int(soc) - int(travel) - int(overhead),
                 free_moves=int(travel), lift_drop=int(overhead),
-                runtime_sec=round(rt, 3), status="ok",
+                **_blank_extra(), runtime_sec=round(rt, 3), status="ok",
                 raw=m.group(0)[:200])
 
 
@@ -173,21 +182,24 @@ def row_natcbs(ins, name, family, work, timeout):
     success = 1 if mk != "" else 0
     return dict(instance=name, family=family, method="natcbs", success=success,
                 executed_makespan=mk, weighted_soc="", loaded_moves="",
-                free_moves="", lift_drop="", runtime_sec=round(rt, 3),
+                free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
                 status=st, raw=(out + err)[-150:].replace("\n", " "))
 
 
-def row_carrier(ins, path, name, family, work, timeout):
+def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
     """Carrier-LaCAM (C++): plan re-validated by the authoritative Python
     two-deck validator; unified metrics via plan_cost (same as b4)."""
     from ddbench.validator import apply_joint_action, initial_state, is_goal
 
-    plan_out = work / f"{name}.carrier.plan"
+    method = {"lacam": "carrier", "b0": "carrier_b0",
+              "b1": "carrier_b1"}[mode]
+    plan_out = work / f"{name}.{method}.plan"
     t0 = time.time()
     env = dict(os.environ)
     try:
         p = subprocess.run(
-            [str(CARRIER_BIN), str(path), str(timeout), str(plan_out), "0"],
+            [str(CARRIER_BIN), str(path), str(timeout), str(plan_out), "0",
+             mode],
             capture_output=True, text=True, timeout=timeout + 30, env=env,
         )
         status = "ok"
@@ -202,9 +214,9 @@ def row_carrier(ins, path, name, family, work, timeout):
                 k, v = line.split("=", 1)
                 metrics[k.strip()] = v.strip()
     if status != "ok" or metrics.get("solved") != "1":
-        return dict(instance=name, family=family, method="carrier", success=0,
+        return dict(instance=name, family=family, method=method, success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
-                    free_moves="", lift_drop="", runtime_sec=round(rt, 3),
+                    free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
                     status="timeout" if status != "ok" or
                     metrics.get("timed_out") == "1" else "failed",
                     raw=(p.stdout + p.stderr)[-150:].replace("\n", " ")
@@ -234,15 +246,18 @@ def row_carrier(ins, path, name, family, work, timeout):
         if not is_goal(ins, s):
             raise ValueError("final state is not a goal")
     except Exception as e:  # noqa: BLE001
-        return dict(instance=name, family=family, method="carrier", success=0,
+        return dict(instance=name, family=family, method=method, success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
-                    free_moves="", lift_drop="", runtime_sec=round(rt, 3),
+                    free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
                     status="invalid_plan", raw=str(e)[:200])
     c = plan_cost(ins, plan)
-    return dict(instance=name, family=family, method="carrier", success=1,
+    return dict(instance=name, family=family, method=method, success=1,
                 executed_makespan=c["executed_makespan"],
                 weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
                 free_moves=c["free_moves"], lift_drop=c["lift_drop"],
+                shelf_switches=c["shelf_switches"],
+                robot_utilization=round(c["robot_utilization"], 4),
+                first_solution_ms=metrics.get("first_solution_ms", ""),
                 runtime_sec=round(rt, 3), status="ok", raw="")
 
 
@@ -256,7 +271,11 @@ def run_one(task):
     if method == "b4":
         return row_b4(ins, name, family, timeout)
     if method == "carrier":
-        return row_carrier(ins, path, name, family, work, timeout)
+        return row_carrier(ins, path, name, family, work, timeout, "lacam")
+    if method == "carrier_b0":
+        return row_carrier(ins, path, name, family, work, timeout, "b0")
+    if method == "carrier_b1":
+        return row_carrier(ins, path, name, family, work, timeout, "b1")
     if method == "crest_base":
         return row_crest(ins, name, family, work, timeout, False, subopt)
     if method == "crest_full":
@@ -266,7 +285,7 @@ def run_one(task):
             return dict(instance=name, family=family, method="natcbs",
                         success=0, executed_makespan="", weighted_soc="",
                         loaded_moves="", free_moves="", lift_drop="",
-                        runtime_sec=0, status="skipped_too_large", raw="")
+                        **_blank_extra(), runtime_sec=0, status="skipped_too_large", raw="")
         return row_natcbs(ins, name, family, work, timeout)
     raise SystemExit(f"unknown method {method}")
 
