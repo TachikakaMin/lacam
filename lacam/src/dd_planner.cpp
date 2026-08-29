@@ -265,6 +265,7 @@ struct Guidance {
   // per-target: next cell along its least-blocking path (guidance for the
   // carrier), -1 if none
   std::vector<int> target_next;
+  bool plan_bound = false;  // B1: fixed shelf plan is a HARD constraint
   // per-target: true when the target's goal lies on ANOTHER unfinished
   // target's active path — its carrier must PARK it (clear semantics)
   // instead of delivering into the busy corridor (design 5.3 clear).
@@ -742,6 +743,19 @@ struct PIBTContext {
       auto d_of = [&](int c) { return d[c]; };
       if (q == ins.target_goals[k]) {
         cand.push_back(Op::make_drop());
+        cand.push_back(Op::make_wait());
+        return cand;
+      }
+      if (g.plan_bound) {
+        // B1 hard constraint: only the fixed plan's next cell or waiting
+        const int nxt_cell = g.target_next[k];
+        if (nxt_cell >= 0 && !upper_taken(nxt_cell)) {
+          for (int t2 = 0; t2 < n; ++t2)
+            if (nb[t2] == nxt_cell) {
+              cand.push_back(Op::make_move(nxt_cell));
+              break;
+            }
+        }
         cand.push_back(Op::make_wait());
         return cand;
       }
@@ -1454,6 +1468,223 @@ double dd_root_admissible_h(const DDInstance& ins)
   tgd.reserve(ins.n_targets());
   for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
   return dd_admissible_h(ins, initial_phys_config(ins), tgd);
+}
+
+DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
+                            int seed, DDStats* stats,
+                            std::vector<std::vector<int>>* fixed_paths_out)
+{
+  const auto t_start = Clock::now();
+  std::mt19937 rng(seed);
+  std::vector<DistCache> tgd;
+  tgd.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  LowerDist ld(ins.grid);
+  Scratch sc(ins.grid.size());
+
+  // ---- stage 1: freeze per-target least-blocking paths at X0 ----
+  PhysConfig X = initial_phys_config(ins);
+  fill_occupancy(ins, X, sc);
+  std::vector<std::vector<int>> fixed(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b) {
+    fixed[b] = least_blocking_path(ins.grid, ins.target_starts[b],
+                                   ins.target_goals[b], sc.upper,
+                                   ins.target_starts[b], sc);
+    if (fixed[b].empty()) return {};  // no wall-feasible path
+  }
+  if (fixed_paths_out) *fixed_paths_out = fixed;
+  // static park relation: goal_b on another target's FIXED path
+  std::vector<uint8_t> park(ins.n_targets(), 0);
+  std::vector<int> park_owner(ins.n_targets(), -1);
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    for (size_t o = 0; o < ins.n_targets(); ++o) {
+      if (o == b) continue;
+      for (int c : fixed[o])
+        if (c == ins.target_goals[b]) {
+          park[b] = 1;
+          park_owner[b] = (int)o;
+          break;
+        }
+      if (park[b]) break;
+    }
+
+  // per-target progress index along its fixed path
+  std::vector<size_t> idx(ins.n_targets(), 0);
+
+  auto build_2stage_guidance = [&](const PhysConfig& s) {
+    Guidance g;
+    const size_t R = ins.n_robots();
+    fill_occupancy(ins, s, sc);
+    std::fill(sc.protect.begin(), sc.protect.end(), 0);
+    g.target_next.assign(ins.n_targets(), -1);
+    g.target_park.assign(ins.n_targets(), 0);
+    g.park_owner.assign(ins.n_targets(), -1);
+    auto done_in_X = [&](int o) {
+      if (s.target_pos[o] != ins.target_goals[o]) return false;
+      for (int k : s.kappa)
+        if (k == o) return false;
+      return true;
+    };
+    for (size_t b = 0; b < ins.n_targets(); ++b) {
+      // advance the frozen-plan index to the target's current cell if it
+      // matches (targets may only move ALONG the plan by construction)
+      while (idx[b] + 1 < fixed[b].size() &&
+             fixed[b][idx[b]] != s.target_pos[b])
+        ++idx[b];
+      if (fixed[b][idx[b]] != s.target_pos[b]) idx[b] = 0;  // safety
+      const bool carried = [&] {
+        for (int k : s.kappa)
+          if (k == (int)b) return true;
+        return false;
+      }();
+      const bool done = !carried && s.target_pos[b] == ins.target_goals[b];
+      if (done) continue;
+      for (size_t j = idx[b]; j < fixed[b].size(); ++j)
+        sc.protect[fixed[b][j]] = 1;
+      if (idx[b] + 1 < fixed[b].size())
+        g.target_next[b] = fixed[b][idx[b] + 1];
+      if (park[b] && park_owner[b] >= 0 && !done_in_X(park_owner[b])) {
+        g.target_park[b] = 1;
+        g.park_owner[b] = park_owner[b];
+      }
+      // serve/clear off the FIXED plan
+      const int nxt = g.target_next[b];
+      const bool head_free = nxt >= 0 && sc.grounded[nxt] == 0;
+      if (!carried && head_free && !g.target_park[b]) {
+        Request r;
+        r.kind = Request::SERVE;
+        r.target = (int)b;
+        r.cell = s.target_pos[b];
+        r.priority = 100;
+        g.requests.push_back(r);
+      }
+      int emitted = 0;
+      for (size_t j = idx[b] + 1;
+           j < fixed[b].size() && emitted < CLEAR_CHAIN_K; ++j) {
+        const int cur = fixed[b][j];
+        const int gr = sc.grounded[cur];
+        if (gr == -1 || (gr > 0 && gr - 1 != (int)b)) {
+          Request r;
+          r.kind = Request::CLEAR;
+          r.target = (int)b;
+          r.cell = cur;
+          r.priority = 50 - emitted;
+          g.requests.push_back(r);
+          ++emitted;
+        }
+      }
+    }
+    for (size_t b = 0; b < ins.n_targets(); ++b)
+      sc.protect[ins.target_goals[b]] = 1;
+    // rho greedy (same as main guidance)
+    g.rho.assign(R, -1);
+    g.free_goal.assign(R, -1);
+    g.parking_cell.assign(R, -1);
+    std::vector<int> req_order(g.requests.size());
+    for (size_t i = 0; i < req_order.size(); ++i) req_order[i] = (int)i;
+    std::stable_sort(req_order.begin(), req_order.end(), [&](int a, int b2) {
+      return g.requests[a].priority > g.requests[b2].priority;
+    });
+    std::vector<bool> used(R, false);
+    int free_left = 0;
+    for (size_t i = 0; i < R; ++i) {
+      if (s.kappa[i] != KAPPA_FREE)
+        used[i] = true;
+      else
+        ++free_left;
+    }
+    for (int ri : req_order) {
+      if (free_left == 0) break;
+      const auto& req = g.requests[ri];
+      int best = -1, bestd = INT_MAX / 2;
+      for (size_t i = 0; i < R; ++i) {
+        if (used[i]) continue;
+        const int dd = ld.dist(req.cell, s.robots[i]);
+        if (dd < bestd) {
+          bestd = dd;
+          best = (int)i;
+        }
+      }
+      if (best >= 0) {
+        used[best] = true;
+        --free_left;
+        g.rho[best] = ri;
+        g.free_goal[best] = req.cell;
+      }
+    }
+    // parking for ANON / parked-target carriers: nearest off-protect cell
+    for (size_t i = 0; i < R; ++i) {
+      const bool anon_c = s.kappa[i] == KAPPA_ANON;
+      const bool parked_c = s.kappa[i] >= 0 && g.target_park[s.kappa[i]];
+      if (!anon_c && !parked_c) continue;
+      int found = -1, fallback = -1;
+      std::fill(sc.prev.begin(), sc.prev.end(), 0);
+      std::deque<int> dq;
+      dq.push_back(s.robots[i]);
+      sc.prev[s.robots[i]] = 1;
+      int nb[4];
+      while (!dq.empty() && found < 0) {
+        int u = dq.front();
+        dq.pop_front();
+        if (u != s.robots[i] && !sc.upper[u]) {
+          if (!sc.protect[u]) {
+            found = u;
+            break;
+          }
+          if (fallback < 0) {
+            bool is_goal = false;
+            for (size_t b2 = 0; b2 < ins.n_targets(); ++b2)
+              if (ins.target_goals[b2] == u) {
+                is_goal = true;
+                break;
+              }
+            if (!is_goal) fallback = u;
+          }
+        }
+        const int n = ins.grid.neighbors(u, nb);
+        for (int k = 0; k < n; ++k)
+          if (!sc.prev[nb[k]]) {
+            sc.prev[nb[k]] = 1;
+            dq.push_back(nb[k]);
+          }
+      }
+      g.parking_cell[i] = found >= 0 ? found : fallback;
+    }
+    return g;
+  };
+
+  // ---- stage 2: rolling execution with the fixed-plan guidance ----
+  DDPlan plan;
+  if (is_dd_goal(ins, X)) {
+    plan.push_back(std::vector<Op>(ins.n_robots(), Op::make_wait()));
+    return plan;
+  }
+  std::unordered_set<uint64_t> seen;
+  uint64_t hash = phys_config_hash(X);
+  seen.insert(hash);
+  Node tmp;
+  while (std::chrono::duration<double>(Clock::now() - t_start).count() <
+         time_limit_sec) {
+    tmp.X = X;
+    sc.occ_node = nullptr;
+    sc.pibt_node = nullptr;
+    tmp.guide = build_2stage_guidance(X);
+    tmp.guide.plan_bound = true;
+    tmp.order = make_order(ins, tmp.X, tmp.guide, tgd);
+    tmp.constraint_order = tmp.order;
+    Constraint root;
+    PathCache dummy_paths;
+    auto res = carrier_pibt(ins, tmp, &root, tgd, ld, rng, sc, stats);
+    if (!res.has_value()) return {};
+    auto& [X_new, ops] = *res;
+    hash = phys_config_hash_incremental(ins, X, ops, hash);
+    if (!seen.insert(hash).second) return {};  // cycle -> honest failure
+    plan.push_back(ops);
+    X = X_new;
+    if (is_dd_goal(ins, X)) return plan;
+  }
+  if (stats) stats->timed_out = true;
+  return {};
 }
 
 std::vector<PhysConfig> dd_enumerate_node_successors(const DDInstance& ins,

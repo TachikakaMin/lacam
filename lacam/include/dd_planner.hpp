@@ -53,6 +53,16 @@ DDPlan solve_carrier_rollout(const DDInstance& ins, double time_limit_sec,
 // (design 5.7 h_soc); used by tests and f-pruning.
 double dd_root_admissible_h(const DDInstance& ins);
 
+// B1 baseline (design 8.1): 2-stage — shelf paths fixed ONCE at the start
+// configuration (stage 1), then executed by Carrier-PIBT with the fixed
+// plan as a hard constraint (stage 2; requests derive from each target's
+// next fixed waypoint).  Deliberately NOT complete: quantifies what the
+// unified per-configuration replanning buys.  If fixed_paths != nullptr it
+// receives the stage-1 plan (per target, cell sequence).
+DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
+                            int seed, DDStats* stats = nullptr,
+                            std::vector<std::vector<int>>* fixed_paths = nullptr);
+
 // TEST SUPPORT (G1/completeness conformance, debug.md P0-1/P0-2):
 // drain ONE node's operator-constraint tree through the production
 // machinery (tree expansion + Carrier-PIBT + validator) and return every

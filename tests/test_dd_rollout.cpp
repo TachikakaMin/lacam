@@ -2,6 +2,7 @@
 // event-bounded rollout successors (design 7.1, D13).  TDD RED first.
 #include <dd_carrier.hpp>
 #include <dd_planner.hpp>
+#include <set>
 
 #include "gtest/gtest.h"
 
@@ -111,4 +112,58 @@ TEST(dd_macro_rollout, macro_successors_used_and_plan_valid)
       << "macro rollout successors were never inserted (design 7.1)";
   EXPECT_GT(st.macro_steps, st.macro_successors)
       << "macro edges must contain multi-step traces";
+}
+
+TEST(dd_b1_2stage, solves_simple_and_respects_fixed_plan)
+{
+  auto ins = make_ins({"....", "...."}, {{1, 0}, {1, 3}}, {{0, 1}},
+                      {{{0, 1}, {0, 3}}});
+  DDStats st;
+  std::vector<std::vector<int>> fixed;
+  auto plan = solve_carrier_2stage(ins, 5.0, 0, &st, &fixed);
+  ASSERT_FALSE(plan.empty());
+  EXPECT_TRUE(plan_is_valid(ins, plan));
+  ASSERT_EQ(fixed.size(), 1u);
+  // hard-constraint property: the target NEVER leaves its fixed path
+  std::set<int> allowed(fixed[0].begin(), fixed[0].end());
+  auto s = initial_phys_config(ins);
+  for (const auto& ops : plan) {
+    auto nxt = apply_ops(ins, s, ops);
+    ASSERT_TRUE(nxt.has_value());
+    s = *nxt;
+    EXPECT_TRUE(allowed.count(s.target_pos[0]))
+        << "2-stage execution left the fixed shelf plan";
+  }
+}
+
+TEST(dd_b1_2stage, blocker_clearing_along_fixed_plan)
+{
+  auto ins = make_ins({".....", "....."}, {{1, 0}, {1, 4}},
+                      {{0, 0}, {0, 2}}, {{{0, 0}, {0, 4}}});
+  DDStats st;
+  auto plan = solve_carrier_2stage(ins, 5.0, 0, &st, nullptr);
+  ASSERT_FALSE(plan.empty());
+  EXPECT_TRUE(plan_is_valid(ins, plan));
+}
+
+TEST(dd_b1_2stage, corridor_conflict_fails_honestly_where_full_solver_succeeds)
+{
+  // b1's goal sits mid-corridor ON b0's only fixed path: with both plans
+  // frozen at t=0 the 2-stage executor cannot re-route (design 8.1: the
+  // difference to the full method is exactly "fixed shelf intent").  It
+  // must either legitimately solve (if its serve ordering dodges) or
+  // return an EMPTY plan — never an invalid one.  The FULL solver must
+  // solve the same instance (separation evidence).
+  auto ins = make_ins(
+      {"@.@", "@.@", "@.@", "..."},
+      {{3, 0}, {3, 2}},
+      {{3, 1}, {1, 1}},
+      {{{3, 1}, {0, 1}}, {{1, 1}, {1, 1}}});
+  DDStats st;
+  auto plan = solve_carrier_2stage(ins, 3.0, 0, &st, nullptr);
+  if (!plan.empty()) EXPECT_TRUE(plan_is_valid(ins, plan));
+  DDStats st2;
+  auto full = solve_carrier_lacam(ins, 10.0, 0, &st2);
+  ASSERT_FALSE(full.empty()) << "full solver must handle the corridor case";
+  EXPECT_TRUE(plan_is_valid(ins, full));
 }
