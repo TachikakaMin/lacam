@@ -1,0 +1,18 @@
+{
+  "wall_time_sec": 1830.3,
+  "jobs": 6,
+  "n_tasks": 6,
+  "timeout_per_run_sec": 1800.0,
+  "methods": {
+    "b4": {
+      "solved": 1,
+      "total": 3,
+      "solver_time_sum_sec": 18.7
+    },
+    "crest_base": {
+      "solved": 2,
+      "total": 3,
+      "solver_time_sum_sec": 1922.6
+    }
+  }
+}

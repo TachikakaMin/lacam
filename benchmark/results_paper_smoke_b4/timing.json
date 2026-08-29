@@ -1,0 +1,13 @@
+{
+  "wall_time_sec": 32.3,
+  "jobs": 3,
+  "n_tasks": 3,
+  "timeout_per_run_sec": 300.0,
+  "methods": {
+    "b4": {
+      "solved": 3,
+      "total": 3,
+      "solver_time_sum_sec": 32.6
+    }
+  }
+}

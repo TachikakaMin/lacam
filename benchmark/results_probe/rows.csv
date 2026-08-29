@@ -1,0 +1,9 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+ddmapd_h8w8r2d20t2_seed0,ddmapd,b4,1,14,14.0,4,6,4,0.0,ok,
+ddmapd_h8w8r2d20t2_seed0,ddmapd,crest_base,1,11,18,8,10,0,0.042,ok,sum_of_cost : 18 makespan : 11 agent_travel_time : 10 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed0,ddmapd,crest_full,1,11,18,8,10,0,0.041,ok,sum_of_cost : 18 makespan : 11 agent_travel_time : 10 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed0,ddmapd,natcbs,1,9,,,,,0.24,ok," 2), 9: (4, 2)} Obs 7: {6: (5, 4)} Obs 8: {6: (6, 3)} Obs 9: {7: (6, 4)} Obs 10: {7: (7, 3)} Obs 11: {8: (7, 4)} Makespan: 9 Elapsed time: 0.175 sec  "
+scramble_h6w6r2s4t2k20_seed0,scramble,b4,1,8,8.0,3,3,2,0.0,ok,
+scramble_h6w6r2s4t2k20_seed0,scramble,crest_base,1,6,7,6,1,0,0.04,ok,sum_of_cost : 7 makespan : 6 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed0,scramble,crest_full,1,6,7,6,1,0,0.039,ok,sum_of_cost : 7 makespan : 6 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed0,scramble,natcbs,1,5,,,,,0.068,ok,"0)} Obs 0: {5: (0, 2)} Obs 1: {2: (2, 4)} Obs 2: {1: (4, 2)} Obs 3: {2: (5, 2), 3: (5, 1), 4: (5, 0), 5: (4, 0)} Makespan: 5 Elapsed time: 0.002 sec  "

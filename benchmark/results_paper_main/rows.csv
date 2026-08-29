@@ -1,0 +1,151 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+dneM_n32_seed0,dne_m,b4,1,33903,34094.0,14180,17771,1952,18.562,ok,
+dneM_n32_seed0,dne_m,crest_base,1,921,28630,13614,10522,4494,77.974,ok,sum_of_cost : 28630 makespan : 921 agent_travel_time : 10522 pickup_count : 2650 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4494
+dneM_n32_seed0,dne_m,crest_full,0,,,,,,910.166,rc=1,"Error : dep from shelf 73 step 6 to shelf 58 step 6 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed1,dne_m,b4,1,32604,32790.0,14100,16694,1810,18.489,ok,
+dneM_n32_seed1,dne_m,crest_base,1,971,30320,14196,11200,4924,104.196,ok,sum_of_cost : 30320 makespan : 971 agent_travel_time : 11200 pickup_count : 2865 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4924
+dneM_n32_seed1,dne_m,crest_full,0,,,,,,548.584,rc=1,"Error : dep from shelf 121 step 0 to shelf 6 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed10,dne_m,b4,1,28010,28014.0,14317,12851,842,13.622,ok,
+dneM_n32_seed10,dne_m,crest_base,1,987,30762,14602,11514,4646,89.916,ok,sum_of_cost : 30762 makespan : 987 agent_travel_time : 11514 pickup_count : 2726 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4646
+dneM_n32_seed10,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed11,dne_m,b4,1,34428,34718.0,13843,18177,2408,15.741,ok,
+dneM_n32_seed11,dne_m,crest_base,1,916,27413,12863,10202,4348,77.351,ok,sum_of_cost : 27413 makespan : 916 agent_travel_time : 10202 pickup_count : 2577 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4348
+dneM_n32_seed11,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed12,dne_m,b4,1,40284,40751.0,15317,21731,3236,25.982,ok,
+dneM_n32_seed12,dne_m,crest_base,1,1037,30355,13647,11680,5028,108.375,ok,sum_of_cost : 30355 makespan : 1037 agent_travel_time : 11680 pickup_count : 2917 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5028
+dneM_n32_seed12,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed13,dne_m,b4,1,35060,35305.0,14445,18387,2228,19.014,ok,
+dneM_n32_seed13,dne_m,crest_base,1,977,29432,13492,11198,4742,84.289,ok,sum_of_cost : 29432 makespan : 977 agent_travel_time : 11198 pickup_count : 2774 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4742
+dneM_n32_seed13,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed14,dne_m,b4,1,37111,37397.0,14772,19733,2606,16.831,ok,
+dneM_n32_seed14,dne_m,crest_base,1,991,30570,14112,11458,5000,98.262,ok,sum_of_cost : 30570 makespan : 991 agent_travel_time : 11458 pickup_count : 2903 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5000
+dneM_n32_seed14,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed15,dne_m,b4,1,37231,37550.0,14590,19961,2680,23.94,ok,
+dneM_n32_seed15,dne_m,crest_base,1,963,29037,13808,10603,4626,86.746,ok,sum_of_cost : 29037 makespan : 963 agent_travel_time : 10603 pickup_count : 2716 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4626
+dneM_n32_seed15,dne_m,crest_full,0,,,,,,1592.524,rc=1,"Error : dep from shelf 363 step 0 to shelf 116 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed16,dne_m,b4,1,34982,35236.0,14516,18296,2170,19.75,ok,
+dneM_n32_seed16,dne_m,crest_base,1,959,29230,13475,10703,5052,93.324,ok,sum_of_cost : 29230 makespan : 959 agent_travel_time : 10703 pickup_count : 2929 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5052
+dneM_n32_seed16,dne_m,crest_full,0,,,,,,1248.317,rc=1,"Error : dep from shelf 8 step 0 to shelf 331 step 8 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed17,dne_m,b4,1,39270,39685.0,15036,21224,3010,22.423,ok,
+dneM_n32_seed17,dne_m,crest_base,1,933,28774,13514,10258,5002,82.377,ok,sum_of_cost : 28774 makespan : 933 agent_travel_time : 10258 pickup_count : 2904 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5002
+dneM_n32_seed17,dne_m,crest_full,0,,,,,,1502.932,rc=1,"Error : dep from shelf 278 step 2 to shelf 431 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed18,dne_m,b4,1,37395,37757.0,15767,19014,2614,17.184,ok,
+dneM_n32_seed18,dne_m,crest_base,1,1067,31879,14336,12747,4796,90.696,ok,sum_of_cost : 31879 makespan : 1067 agent_travel_time : 12747 pickup_count : 2801 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4796
+dneM_n32_seed18,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed19,dne_m,b4,1,30075,30161.0,14027,14716,1332,13.101,ok,
+dneM_n32_seed19,dne_m,crest_base,1,1022,30505,14160,11717,4628,85.233,ok,sum_of_cost : 30505 makespan : 1022 agent_travel_time : 11717 pickup_count : 2717 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4628
+dneM_n32_seed19,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed2,dne_m,b4,1,33487,33756.0,14632,16735,2120,14.46,ok,
+dneM_n32_seed2,dne_m,crest_base,1,981,29651,13916,10853,4882,109.708,ok,sum_of_cost : 29651 makespan : 981 agent_travel_time : 10853 pickup_count : 2844 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4882
+dneM_n32_seed2,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed20,dne_m,b4,1,36464,36744.0,15043,19015,2406,19.942,ok,
+dneM_n32_seed20,dne_m,crest_base,1,948,28821,13371,10702,4748,90.366,ok,sum_of_cost : 28821 makespan : 948 agent_travel_time : 10702 pickup_count : 2777 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4748
+dneM_n32_seed20,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed21,dne_m,b4,1,29843,29962.0,14172,14165,1506,14.48,ok,
+dneM_n32_seed21,dne_m,crest_base,1,984,30290,13902,11348,5040,94.85,ok,sum_of_cost : 30290 makespan : 984 agent_travel_time : 11348 pickup_count : 2923 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5040
+dneM_n32_seed21,dne_m,crest_full,0,,,,,,854.585,rc=1,"Error : dep from shelf 579 step 0 to shelf 374 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed22,dne_m,b4,1,34779,35048.0,14983,17622,2174,18.289,ok,
+dneM_n32_seed22,dne_m,crest_base,1,1009,30486,14192,11364,4930,99.143,ok,sum_of_cost : 30486 makespan : 1009 agent_travel_time : 11364 pickup_count : 2868 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4930
+dneM_n32_seed22,dne_m,crest_full,0,,,,,,899.037,rc=1,"Error : dep from shelf 190 step 6 to shelf 507 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed23,dne_m,b4,1,34130,34288.0,14083,18081,1966,17.946,ok,
+dneM_n32_seed23,dne_m,crest_base,1,952,29225,13546,10937,4742,85.933,ok,sum_of_cost : 29225 makespan : 952 agent_travel_time : 10937 pickup_count : 2774 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4742
+dneM_n32_seed23,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed24,dne_m,b4,1,40591,41046.0,15360,21977,3254,19.666,ok,
+dneM_n32_seed24,dne_m,crest_base,1,974,29900,14225,10769,4906,101.55,ok,sum_of_cost : 29900 makespan : 974 agent_travel_time : 10769 pickup_count : 2856 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4906
+dneM_n32_seed24,dne_m,crest_full,0,,,,,,640.921,rc=1,"Error : dep from shelf 488 step 0 to shelf 479 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed3,dne_m,b4,1,34150,34342.0,14132,18044,1974,18.035,ok,
+dneM_n32_seed3,dne_m,crest_base,1,978,28563,13435,10614,4514,71.659,ok,sum_of_cost : 28563 makespan : 978 agent_travel_time : 10614 pickup_count : 2660 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4514
+dneM_n32_seed3,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed4,dne_m,b4,1,33542,33747.0,14487,17035,2020,17.76,ok,
+dneM_n32_seed4,dne_m,crest_base,1,996,30448,14171,11217,5060,103.463,ok,sum_of_cost : 30448 makespan : 996 agent_travel_time : 11217 pickup_count : 2933 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5060
+dneM_n32_seed4,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed5,dne_m,b4,1,36645,36952.0,15078,19069,2498,18.29,ok,
+dneM_n32_seed5,dne_m,crest_base,0,,,,,,36.275,rc=1,Error : can not find path for agent 18 taskID 365 at step 0 try to pickup the shelf again 
+dneM_n32_seed5,dne_m,crest_full,0,,,,,,83.827,rc=1,Error : can not find path for agent 18 taskID 365 at step 0 try to pickup the shelf again 
+dneM_n32_seed6,dne_m,b4,1,31568,31729.0,14168,15694,1706,12.823,ok,
+dneM_n32_seed6,dne_m,crest_base,0,,,,,,30.073,rc=1,Error : can not find path for agent 14 taskID 198 at step 0 try to pickup the shelf again 
+dneM_n32_seed6,dne_m,crest_full,0,,,,,,131.719,rc=1,Error : can not find path for agent 14 taskID 198 at step 0 try to pickup the shelf again 
+dneM_n32_seed7,dne_m,b4,1,36662,36982.0,14548,19498,2616,16.553,ok,
+dneM_n32_seed7,dne_m,crest_base,1,970,28578,13333,10783,4462,82.369,ok,sum_of_cost : 28578 makespan : 970 agent_travel_time : 10783 pickup_count : 2634 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4462
+dneM_n32_seed7,dne_m,crest_full,0,,,,,,256.247,rc=1,"Error : dep from shelf 564 step 1 to shelf 508 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed8,dne_m,b4,1,34175,34399.0,14828,17307,2040,15.496,ok,
+dneM_n32_seed8,dne_m,crest_base,1,1017,30966,14206,11784,4976,86.168,ok,sum_of_cost : 30966 makespan : 1017 agent_travel_time : 11784 pickup_count : 2891 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4976
+dneM_n32_seed8,dne_m,crest_full,0,,,,,,1830.0,timeout,
+dneM_n32_seed9,dne_m,b4,1,33640,33804.0,14355,17401,1884,18.531,ok,
+dneM_n32_seed9,dne_m,crest_base,1,994,29982,13871,11117,4994,104.115,ok,sum_of_cost : 29982 makespan : 994 agent_travel_time : 11117 pickup_count : 2900 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4994
+dneM_n32_seed9,dne_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed0,r2r_m,b4,1,15976,15984.0,7673,7835,468,5.356,ok,
+r2rM_n32_seed0,r2r_m,crest_base,1,523,14248,7634,5132,1482,24.895,ok,sum_of_cost : 14248 makespan : 523 agent_travel_time : 5132 pickup_count : 971 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1482
+r2rM_n32_seed0,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed1,r2r_m,b4,1,16218,16233.0,7920,7772,526,5.511,ok,
+r2rM_n32_seed1,r2r_m,crest_base,1,527,14913,7861,5222,1830,28.142,ok,sum_of_cost : 14913 makespan : 527 agent_travel_time : 5222 pickup_count : 1145 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1830
+r2rM_n32_seed1,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed10,r2r_m,b4,1,15305,15307.0,7754,7087,464,5.09,ok,
+r2rM_n32_seed10,r2r_m,crest_base,1,564,15047,7858,5371,1818,28.348,ok,sum_of_cost : 15047 makespan : 564 agent_travel_time : 5371 pickup_count : 1139 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1818
+r2rM_n32_seed10,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed11,r2r_m,b4,1,16884,16921.0,7662,8560,662,6.181,ok,
+r2rM_n32_seed11,r2r_m,crest_base,1,519,14604,7620,5308,1676,28.176,ok,sum_of_cost : 14604 makespan : 519 agent_travel_time : 5308 pickup_count : 1068 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1676
+r2rM_n32_seed11,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed12,r2r_m,b4,1,17185,17231.0,8121,8412,652,6.72,ok,
+r2rM_n32_seed12,r2r_m,crest_base,1,599,15584,8142,5440,2002,33.529,ok,sum_of_cost : 15584 makespan : 599 agent_travel_time : 5440 pickup_count : 1231 rearrange_shelf_num : 230 pickup_dropoff_overhead : 2002
+r2rM_n32_seed12,r2r_m,crest_full,0,,,,,,296.943,rc=1,"Error : dep from shelf 429 step 0 to shelf 322 step 15 is added before the planned step, this may cause sth wrong "
+r2rM_n32_seed13,r2r_m,b4,1,15804,15805.0,7725,7617,462,5.242,ok,
+r2rM_n32_seed13,r2r_m,crest_base,1,559,14398,7708,4932,1758,25.56,ok,sum_of_cost : 14398 makespan : 559 agent_travel_time : 4932 pickup_count : 1109 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1758
+r2rM_n32_seed13,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed14,r2r_m,b4,1,15902,15904.0,7959,7477,466,5.39,ok,
+r2rM_n32_seed14,r2r_m,crest_base,1,581,15383,7991,5626,1766,28.048,ok,sum_of_cost : 15383 makespan : 581 agent_travel_time : 5626 pickup_count : 1113 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1766
+r2rM_n32_seed14,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed15,r2r_m,b4,1,15146,15146.0,7497,7189,460,5.073,ok,
+r2rM_n32_seed15,r2r_m,crest_base,1,526,13852,7566,4534,1752,25.42,ok,sum_of_cost : 13852 makespan : 526 agent_travel_time : 4534 pickup_count : 1106 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1752
+r2rM_n32_seed15,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed16,r2r_m,b4,1,15931,15931.0,8215,7256,460,5.391,ok,
+r2rM_n32_seed16,r2r_m,crest_base,1,703,16320,8234,6122,1964,30.649,ok,sum_of_cost : 16320 makespan : 703 agent_travel_time : 6122 pickup_count : 1212 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1964
+r2rM_n32_seed16,r2r_m,crest_full,0,,,,,,365.274,rc=1,"Error : dep from shelf 144 step 0 to shelf 306 step 14 is added before the planned step, this may cause sth wrong "
+r2rM_n32_seed17,r2r_m,b4,1,15761,15761.0,7885,7414,462,5.327,ok,
+r2rM_n32_seed17,r2r_m,crest_base,1,584,14744,7786,5074,1884,28.565,ok,sum_of_cost : 14744 makespan : 584 agent_travel_time : 5074 pickup_count : 1172 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1884
+r2rM_n32_seed17,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed18,r2r_m,b4,1,15564,15566.0,7840,7248,476,5.202,ok,
+r2rM_n32_seed18,r2r_m,crest_base,1,600,15046,7983,5305,1758,28.372,ok,sum_of_cost : 15046 makespan : 600 agent_travel_time : 5305 pickup_count : 1109 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1758
+r2rM_n32_seed18,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed19,r2r_m,b4,1,15703,15709.0,7706,7479,518,5.386,ok,
+r2rM_n32_seed19,r2r_m,crest_base,1,532,14913,7789,5262,1862,29.816,ok,sum_of_cost : 14913 makespan : 532 agent_travel_time : 5262 pickup_count : 1161 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1862
+r2rM_n32_seed19,r2r_m,crest_full,0,,,,,,716.513,rc=1,"Error : dep from shelf 73 step 0 to shelf 89 step 3 is added before the planned step, this may cause sth wrong "
+r2rM_n32_seed2,r2r_m,b4,1,15484,15493.0,7673,7307,504,5.297,ok,
+r2rM_n32_seed2,r2r_m,crest_base,1,509,14753,7648,5303,1802,26.83,ok,sum_of_cost : 14753 makespan : 509 agent_travel_time : 5303 pickup_count : 1131 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1802
+r2rM_n32_seed2,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed20,r2r_m,b4,1,16185,16191.0,8180,7523,482,5.533,ok,
+r2rM_n32_seed20,r2r_m,crest_base,1,577,15224,8217,5213,1794,27.824,ok,sum_of_cost : 15224 makespan : 577 agent_travel_time : 5213 pickup_count : 1127 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1794
+r2rM_n32_seed20,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed21,r2r_m,b4,1,15701,15702.0,7673,7564,464,5.246,ok,
+r2rM_n32_seed21,r2r_m,crest_base,1,532,14497,7862,5067,1568,26.323,ok,sum_of_cost : 14497 makespan : 532 agent_travel_time : 5067 pickup_count : 1014 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1568
+r2rM_n32_seed21,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed22,r2r_m,b4,1,16180,16190.0,7762,7900,518,5.682,ok,
+r2rM_n32_seed22,r2r_m,crest_base,0,,,,,,6.907,rc=1,Error : can not find path for agent 30 taskID 441 at step 0 try to pickup the shelf again 
+r2rM_n32_seed22,r2r_m,crest_full,0,,,,,,82.515,rc=1,Error : can not find path for agent 30 taskID 53 at step 0 try to pickup the shelf again 
+r2rM_n32_seed23,r2r_m,b4,1,15878,15881.0,7537,7875,466,5.299,ok,
+r2rM_n32_seed23,r2r_m,crest_base,1,487,14156,7449,4995,1712,26.372,ok,sum_of_cost : 14156 makespan : 487 agent_travel_time : 4995 pickup_count : 1086 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1712
+r2rM_n32_seed23,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed24,r2r_m,b4,1,16153,16154.0,7761,7930,462,5.574,ok,
+r2rM_n32_seed24,r2r_m,crest_base,1,511,15009,7825,5268,1916,31.905,ok,sum_of_cost : 15009 makespan : 511 agent_travel_time : 5268 pickup_count : 1188 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1916
+r2rM_n32_seed24,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed3,r2r_m,b4,1,14982,14982.0,7406,7112,464,5.092,ok,
+r2rM_n32_seed3,r2r_m,crest_base,1,499,13936,7451,4771,1714,27.774,ok,sum_of_cost : 13936 makespan : 499 agent_travel_time : 4771 pickup_count : 1087 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1714
+r2rM_n32_seed3,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed4,r2r_m,b4,1,15615,15632.0,7378,7717,520,5.615,ok,
+r2rM_n32_seed4,r2r_m,crest_base,1,485,13700,7329,4679,1692,27.444,ok,sum_of_cost : 13700 makespan : 485 agent_travel_time : 4679 pickup_count : 1076 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1692
+r2rM_n32_seed4,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed5,r2r_m,b4,1,16205,16213.0,7853,7850,502,5.747,ok,
+r2rM_n32_seed5,r2r_m,crest_base,1,561,14988,7956,5272,1760,29.595,ok,sum_of_cost : 14988 makespan : 561 agent_travel_time : 5272 pickup_count : 1110 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1760
+r2rM_n32_seed5,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed6,r2r_m,b4,1,15767,15771.0,7737,7550,480,5.403,ok,
+r2rM_n32_seed6,r2r_m,crest_base,1,522,14476,7871,4955,1650,32.245,ok,sum_of_cost : 14476 makespan : 522 agent_travel_time : 4955 pickup_count : 1055 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1650
+r2rM_n32_seed6,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed7,r2r_m,b4,1,15823,15832.0,7825,7506,492,6.235,ok,
+r2rM_n32_seed7,r2r_m,crest_base,1,521,14263,7838,4673,1752,28.283,ok,sum_of_cost : 14263 makespan : 521 agent_travel_time : 4673 pickup_count : 1106 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1752
+r2rM_n32_seed7,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed8,r2r_m,b4,1,16112,16129.0,7670,7910,532,5.911,ok,
+r2rM_n32_seed8,r2r_m,crest_base,1,586,14822,7902,5148,1772,28.514,ok,sum_of_cost : 14822 makespan : 586 agent_travel_time : 5148 pickup_count : 1116 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1772
+r2rM_n32_seed8,r2r_m,crest_full,0,,,,,,1830.0,timeout,
+r2rM_n32_seed9,r2r_m,b4,1,15846,15848.0,7712,7658,476,5.354,ok,
+r2rM_n32_seed9,r2r_m,crest_base,1,499,14459,7556,5155,1748,27.15,ok,sum_of_cost : 14459 makespan : 499 agent_travel_time : 5155 pickup_count : 1104 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1748
+r2rM_n32_seed9,r2r_m,crest_full,0,,,,,,350.225,rc=1,"Error : dep from shelf 448 step 0 to shelf 454 step 1 is added before the planned step, this may cause sth wrong "

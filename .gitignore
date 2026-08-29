@@ -42,3 +42,9 @@
 outputs/
 Manifest.toml
 map
+
+# dd-lacam benchmark: external baseline clones and regenerable data
+baselines/
+benchmark/instances_*/
+benchmark/results_*/work/
+nohup.out

@@ -1,0 +1,51 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+dneM_n32_seed0,dne_m,crest_full,0,,,,,,980.21,rc=1,"Error : dep from shelf 73 step 6 to shelf 58 step 6 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed1,dne_m,crest_full,0,,,,,,554.844,rc=1,"Error : dep from shelf 121 step 0 to shelf 6 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed10,dne_m,crest_full,0,,,,,,3630.0,timeout,
+dneM_n32_seed11,dne_m,crest_full,0,,,,,,3630.0,timeout,
+dneM_n32_seed12,dne_m,crest_full,0,,,,,,3630.0,timeout,
+dneM_n32_seed13,dne_m,crest_full,0,,,,,,2743.519,rc=1,"Error : dep from shelf 448 step 3 to shelf 594 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed14,dne_m,crest_full,0,,,,,,3630.0,timeout,
+dneM_n32_seed15,dne_m,crest_full,0,,,,,,1583.947,rc=1,"Error : dep from shelf 363 step 0 to shelf 116 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed16,dne_m,crest_full,0,,,,,,1332.757,rc=1,"Error : dep from shelf 8 step 0 to shelf 331 step 8 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed17,dne_m,crest_full,0,,,,,,1525.667,rc=1,"Error : dep from shelf 278 step 2 to shelf 431 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed18,dne_m,crest_full,0,,,,,,2782.417,rc=1,"Error : dep from shelf 93 step 0 to shelf 254 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed19,dne_m,crest_full,0,,,,,,2057.365,rc=1,"Error : dep from shelf 563 step 2 to shelf 347 step 2 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed2,dne_m,crest_full,0,,,,,,1859.256,rc=1,"Error : dep from shelf 387 step 3 to shelf 232 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed20,dne_m,crest_full,0,,,,,,2674.629,rc=1,"Error : dep from shelf 326 step 1 to shelf 7 step 4 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed21,dne_m,crest_full,0,,,,,,890.243,rc=1,"Error : dep from shelf 579 step 0 to shelf 374 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed22,dne_m,crest_full,0,,,,,,903.413,rc=1,"Error : dep from shelf 190 step 6 to shelf 507 step 1 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed23,dne_m,crest_full,0,,,,,,2135.221,rc=1,"Error : dep from shelf 495 step 0 to shelf 388 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed24,dne_m,crest_full,0,,,,,,507.974,rc=1,"Error : dep from shelf 488 step 0 to shelf 479 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed3,dne_m,crest_full,0,,,,,,3630.0,timeout,
+dneM_n32_seed4,dne_m,crest_full,0,,,,,,3630.0,timeout,
+dneM_n32_seed5,dne_m,crest_full,0,,,,,,83.201,rc=1,Error : can not find path for agent 18 taskID 365 at step 0 try to pickup the shelf again 
+dneM_n32_seed6,dne_m,crest_full,0,,,,,,132.402,rc=1,Error : can not find path for agent 14 taskID 198 at step 0 try to pickup the shelf again 
+dneM_n32_seed7,dne_m,crest_full,0,,,,,,251.938,rc=1,"Error : dep from shelf 564 step 1 to shelf 508 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed8,dne_m,crest_full,0,,,,,,3077.73,rc=1,"Error : dep from shelf 173 step 0 to shelf 665 step 3 is added before the planned step, this may cause sth wrong "
+dneM_n32_seed9,dne_m,crest_full,0,,,,,,3630.0,timeout,
+r2rM_n32_seed0,r2r_m,crest_full,1,457,12652,7527,3967,1158,2065.628,ok,sum_of_cost : 12652 makespan : 457 agent_travel_time : 3967 pickup_count : 809 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1158
+r2rM_n32_seed1,r2r_m,crest_full,1,497,13138,7994,3912,1232,2524.311,ok,sum_of_cost : 13138 makespan : 497 agent_travel_time : 3912 pickup_count : 846 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1232
+r2rM_n32_seed10,r2r_m,crest_full,1,513,13360,7843,4221,1296,2394.745,ok,sum_of_cost : 13360 makespan : 513 agent_travel_time : 4221 pickup_count : 878 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1296
+r2rM_n32_seed11,r2r_m,crest_full,1,469,12879,7647,4152,1080,2132.026,ok,sum_of_cost : 12879 makespan : 469 agent_travel_time : 4152 pickup_count : 770 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1080
+r2rM_n32_seed12,r2r_m,crest_full,0,,,,,,305.462,rc=1,"Error : dep from shelf 429 step 0 to shelf 322 step 15 is added before the planned step, this may cause sth wrong "
+r2rM_n32_seed13,r2r_m,crest_full,1,495,12546,7777,3643,1126,2302.577,ok,sum_of_cost : 12546 makespan : 495 agent_travel_time : 3643 pickup_count : 793 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1126
+r2rM_n32_seed14,r2r_m,crest_full,1,464,13302,7932,4148,1222,2477.667,ok,sum_of_cost : 13302 makespan : 464 agent_travel_time : 4148 pickup_count : 841 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1222
+r2rM_n32_seed15,r2r_m,crest_full,1,487,12901,7648,4037,1216,2282.057,ok,sum_of_cost : 12901 makespan : 487 agent_travel_time : 4037 pickup_count : 838 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1216
+r2rM_n32_seed16,r2r_m,crest_full,0,,,,,,365.342,rc=1,"Error : dep from shelf 144 step 0 to shelf 306 step 14 is added before the planned step, this may cause sth wrong "
+r2rM_n32_seed17,r2r_m,crest_full,1,468,13289,7879,4064,1346,2498.434,ok,sum_of_cost : 13289 makespan : 468 agent_travel_time : 4064 pickup_count : 903 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1346
+r2rM_n32_seed18,r2r_m,crest_full,1,472,13241,7871,4134,1236,2478.249,ok,sum_of_cost : 13241 makespan : 472 agent_travel_time : 4134 pickup_count : 848 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1236
+r2rM_n32_seed19,r2r_m,crest_full,0,,,,,,721.131,rc=1,"Error : dep from shelf 73 step 0 to shelf 89 step 3 is added before the planned step, this may cause sth wrong "
+r2rM_n32_seed2,r2r_m,crest_full,1,478,13053,7710,4113,1230,1991.796,ok,sum_of_cost : 13053 makespan : 478 agent_travel_time : 4113 pickup_count : 845 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1230
+r2rM_n32_seed20,r2r_m,crest_full,1,540,15013,8309,5418,1286,2351.087,ok,sum_of_cost : 15013 makespan : 540 agent_travel_time : 5418 pickup_count : 873 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1286
+r2rM_n32_seed21,r2r_m,crest_full,1,599,13123,7658,4309,1156,2299.386,ok,sum_of_cost : 13123 makespan : 599 agent_travel_time : 4309 pickup_count : 808 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1156
+r2rM_n32_seed22,r2r_m,crest_full,0,,,,,,88.994,rc=1,Error : can not find path for agent 30 taskID 53 at step 0 try to pickup the shelf again 
+r2rM_n32_seed23,r2r_m,crest_full,1,412,12360,7501,3673,1186,2131.283,ok,sum_of_cost : 12360 makespan : 412 agent_travel_time : 3673 pickup_count : 823 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1186
+r2rM_n32_seed24,r2r_m,crest_full,0,,,,,,3630.0,timeout,
+r2rM_n32_seed3,r2r_m,crest_full,1,415,11824,7489,3205,1130,2244.138,ok,sum_of_cost : 11824 makespan : 415 agent_travel_time : 3205 pickup_count : 795 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1130
+r2rM_n32_seed4,r2r_m,crest_full,1,430,12310,7409,3785,1116,1885.476,ok,sum_of_cost : 12310 makespan : 430 agent_travel_time : 3785 pickup_count : 788 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1116
+r2rM_n32_seed5,r2r_m,crest_full,1,445,13459,7909,4284,1266,1956.997,ok,sum_of_cost : 13459 makespan : 445 agent_travel_time : 4284 pickup_count : 863 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1266
+r2rM_n32_seed6,r2r_m,crest_full,1,480,12938,7783,3967,1188,1980.762,ok,sum_of_cost : 12938 makespan : 480 agent_travel_time : 3967 pickup_count : 824 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1188
+r2rM_n32_seed7,r2r_m,crest_full,1,478,12970,7842,3876,1252,2318.135,ok,sum_of_cost : 12970 makespan : 478 agent_travel_time : 3876 pickup_count : 856 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1252
+r2rM_n32_seed8,r2r_m,crest_full,1,501,12886,7709,4065,1112,2047.949,ok,sum_of_cost : 12886 makespan : 501 agent_travel_time : 4065 pickup_count : 786 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1112
+r2rM_n32_seed9,r2r_m,crest_full,0,,,,,,353.434,rc=1,"Error : dep from shelf 448 step 0 to shelf 454 step 1 is added before the planned step, this may cause sth wrong "

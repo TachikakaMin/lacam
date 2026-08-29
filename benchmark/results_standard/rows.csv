@@ -1,0 +1,145 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+ddmapd_h10w10r3d30t3_seed0,ddmapd,b4,1,39,39.0,17,16,6,0.001,ok,
+ddmapd_h10w10r3d30t3_seed0,ddmapd,crest_base,1,24,36,22,12,2,0.05,ok,sum_of_cost : 36 makespan : 24 agent_travel_time : 12 pickup_count : 4 rearrange_shelf_num : 3 pickup_dropoff_overhead : 2
+ddmapd_h10w10r3d30t3_seed0,ddmapd,crest_full,1,28,40,22,16,2,0.053,ok,sum_of_cost : 40 makespan : 28 agent_travel_time : 16 pickup_count : 4 rearrange_shelf_num : 3 pickup_dropoff_overhead : 2
+ddmapd_h10w10r3d30t3_seed0,ddmapd,natcbs,0,,,,,,126.947,timeout,"start locations: [(6, 9), (9, 6), (0, 3)] Pickup locations: [(0, 4), (0, 5), (1, 4)] Delivery locations: [(0, 4), (0, 5), (1, 4)]  Time Limit Reached "
+ddmapd_h10w10r3d30t3_seed1,ddmapd,b4,1,77,77.0,38,33,6,0.003,ok,
+ddmapd_h10w10r3d30t3_seed1,ddmapd,crest_base,1,33,79,52,27,0,0.053,ok,sum_of_cost : 79 makespan : 33 agent_travel_time : 27 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed1,ddmapd,crest_full,1,31,77,50,27,0,0.06,ok,sum_of_cost : 77 makespan : 31 agent_travel_time : 27 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed1,ddmapd,natcbs,0,,,,,,150.0,timeout,
+ddmapd_h10w10r3d30t3_seed2,ddmapd,b4,1,39,39.0,19,14,6,0.002,ok,
+ddmapd_h10w10r3d30t3_seed2,ddmapd,crest_base,1,23,38,25,13,0,0.049,ok,sum_of_cost : 38 makespan : 23 agent_travel_time : 13 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed2,ddmapd,crest_full,1,23,38,25,13,0,0.051,ok,sum_of_cost : 38 makespan : 23 agent_travel_time : 13 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed2,ddmapd,natcbs,0,,,,,,128.69,timeout,"start locations: [(9, 1), (0, 8), (5, 9)] Pickup locations: [(0, 1), (0, 2), (1, 1)] Delivery locations: [(0, 1), (0, 2), (1, 1)]  Time Limit Reached "
+ddmapd_h16w16r4d30t8_seed0,ddmapd,b4,1,243,243.0,127,100,16,0.012,ok,
+ddmapd_h16w16r4d30t8_seed0,ddmapd,crest_base,0,,,,,,0.099,rc=1,Failed to find solutions in Run 0 No path exists for agent 46 
+ddmapd_h16w16r4d30t8_seed0,ddmapd,crest_full,0,,,,,,0.098,rc=1,Failed to find solutions in Run 0 No path exists for agent 46 
+ddmapd_h16w16r4d30t8_seed0,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h16w16r4d30t8_seed1,ddmapd,b4,1,248,248.0,102,130,16,0.014,ok,
+ddmapd_h16w16r4d30t8_seed1,ddmapd,crest_base,1,57,163,119,42,2,0.112,ok,sum_of_cost : 163 makespan : 57 agent_travel_time : 42 pickup_count : 9 rearrange_shelf_num : 8 pickup_dropoff_overhead : 2
+ddmapd_h16w16r4d30t8_seed1,ddmapd,crest_full,1,53,166,119,45,2,0.167,ok,sum_of_cost : 166 makespan : 53 agent_travel_time : 45 pickup_count : 9 rearrange_shelf_num : 8 pickup_dropoff_overhead : 2
+ddmapd_h16w16r4d30t8_seed1,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h16w16r4d30t8_seed2,ddmapd,b4,1,220,220.0,113,91,16,0.012,ok,
+ddmapd_h16w16r4d30t8_seed2,ddmapd,crest_base,1,56,204,113,73,18,0.121,ok,sum_of_cost : 204 makespan : 56 agent_travel_time : 73 pickup_count : 17 rearrange_shelf_num : 8 pickup_dropoff_overhead : 18
+ddmapd_h16w16r4d30t8_seed2,ddmapd,crest_full,1,56,191,110,65,16,0.245,ok,sum_of_cost : 191 makespan : 56 agent_travel_time : 65 pickup_count : 16 rearrange_shelf_num : 8 pickup_dropoff_overhead : 16
+ddmapd_h16w16r4d30t8_seed2,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h16w16r8d50t8_seed0,ddmapd,b4,0,,,,,,0.015,failed,plan finished but goal not reached
+ddmapd_h16w16r8d50t8_seed0,ddmapd,crest_base,1,41,211,105,72,34,0.394,ok,sum_of_cost : 211 makespan : 41 agent_travel_time : 72 pickup_count : 25 rearrange_shelf_num : 8 pickup_dropoff_overhead : 34
+ddmapd_h16w16r8d50t8_seed0,ddmapd,crest_full,1,57,297,108,155,34,0.735,ok,sum_of_cost : 297 makespan : 57 agent_travel_time : 155 pickup_count : 25 rearrange_shelf_num : 8 pickup_dropoff_overhead : 34
+ddmapd_h16w16r8d50t8_seed0,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h16w16r8d50t8_seed1,ddmapd,b4,0,,,,,,0.003,failed,"illegal emitted action ('lift',) (robot 0): robot 0: lift at (12, 4), no grounded shelf (I1)"
+ddmapd_h16w16r8d50t8_seed1,ddmapd,crest_base,0,,,,,,0.133,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed1,ddmapd,crest_full,0,,,,,,0.138,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed1,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h16w16r8d50t8_seed2,ddmapd,b4,0,,,,,,0.019,failed,plan finished but goal not reached
+ddmapd_h16w16r8d50t8_seed2,ddmapd,crest_base,0,,,,,,120.693,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed2,ddmapd,crest_full,0,,,,,,120.696,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed2,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h24w24r12d60t16_seed0,ddmapd,b4,0,,,,,,0.037,failed,"illegal emitted action ('lift',) (robot 0): robot 0: lift at (0, 15), no grounded shelf (I1)"
+ddmapd_h24w24r12d60t16_seed0,ddmapd,crest_base,0,,,,,,0.55,rc=1,Failed to find solutions in Run 0 No path exists for agent 139 
+ddmapd_h24w24r12d60t16_seed0,ddmapd,crest_full,0,,,,,,0.55,rc=1,Failed to find solutions in Run 0 No path exists for agent 139 
+ddmapd_h24w24r12d60t16_seed0,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h24w24r12d60t16_seed1,ddmapd,b4,0,,,,,,0.173,failed,"illegal emitted action ('lift',) (robot 0): robot 0: lift at (5, 0), no grounded shelf (I1)"
+ddmapd_h24w24r12d60t16_seed1,ddmapd,crest_base,0,,,,,,0.751,rc=1,Failed to find solutions in Run 0 No path exists for agent 340 
+ddmapd_h24w24r12d60t16_seed1,ddmapd,crest_full,0,,,,,,0.749,rc=1,Failed to find solutions in Run 0 No path exists for agent 340 
+ddmapd_h24w24r12d60t16_seed1,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h24w24r12d60t16_seed2,ddmapd,b4,0,,,,,,0.205,failed,"illegal emitted action ('lift',) (robot 0): robot 0: lift at (22, 8), no grounded shelf (I1)"
+ddmapd_h24w24r12d60t16_seed2,ddmapd,crest_base,0,,,,,,0.576,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed2,ddmapd,crest_full,0,,,,,,0.575,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed2,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h24w24r8d40t16_seed0,ddmapd,b4,1,712,717.0,374,298,40,0.059,ok,
+ddmapd_h24w24r8d40t16_seed0,ddmapd,crest_base,1,198,662,377,215,70,0.658,ok,sum_of_cost : 662 makespan : 198 agent_travel_time : 215 pickup_count : 51 rearrange_shelf_num : 16 pickup_dropoff_overhead : 70
+ddmapd_h24w24r8d40t16_seed0,ddmapd,crest_full,1,98,634,373,201,60,4.135,ok,sum_of_cost : 634 makespan : 98 agent_travel_time : 201 pickup_count : 46 rearrange_shelf_num : 16 pickup_dropoff_overhead : 60
+ddmapd_h24w24r8d40t16_seed0,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h24w24r8d40t16_seed1,ddmapd,b4,0,,,,,,0.11,failed,plan finished but goal not reached
+ddmapd_h24w24r8d40t16_seed1,ddmapd,crest_base,0,,,,,,0.379,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r8d40t16_seed1,ddmapd,crest_full,0,,,,,,0.379,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r8d40t16_seed1,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+ddmapd_h24w24r8d40t16_seed2,ddmapd,b4,1,799,816.0,367,372,60,0.093,ok,
+ddmapd_h24w24r8d40t16_seed2,ddmapd,crest_base,0,,,,,,120.767,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r8d40t16_seed2,ddmapd,crest_full,0,,,,,,120.772,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r8d40t16_seed2,ddmapd,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h12w12r4s28t8k120_seed0,scramble,b4,1,22,22.0,7,11,4,0.001,ok,
+scramble_h12w12r4s28t8k120_seed0,scramble,crest_base,0,,,,,,0.049,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h12w12r4s28t8k120_seed0,scramble,crest_full,0,,,,,,0.048,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h12w12r4s28t8k120_seed0,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h12w12r4s28t8k120_seed1,scramble,b4,1,20,20.0,2,14,4,0.001,ok,
+scramble_h12w12r4s28t8k120_seed1,scramble,crest_base,1,30,99,52,41,6,0.059,ok,sum_of_cost : 99 makespan : 30 agent_travel_time : 41 pickup_count : 17 rearrange_shelf_num : 14 pickup_dropoff_overhead : 6
+scramble_h12w12r4s28t8k120_seed1,scramble,crest_full,1,30,99,60,39,0,0.08,ok,sum_of_cost : 99 makespan : 30 agent_travel_time : 39 pickup_count : 14 rearrange_shelf_num : 14 pickup_dropoff_overhead : 0
+scramble_h12w12r4s28t8k120_seed1,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h12w12r4s28t8k120_seed2,scramble,b4,1,25,25.0,5,16,4,0.001,ok,
+scramble_h12w12r4s28t8k120_seed2,scramble,crest_base,0,,,,,,0.047,rc=134,e_node_by_d>; A1 = boost::parameter::void_; A2 = boost::parameter::void_; A3 = boost::parameter::void_; A4 = boost::parameter::void_; const_reference = ECBSNode* const&]: Assertion `!empty()' failed. 
+scramble_h12w12r4s28t8k120_seed2,scramble,crest_full,0,,,,,,0.047,rc=134,e_node_by_d>; A1 = boost::parameter::void_; A2 = boost::parameter::void_; A3 = boost::parameter::void_; A4 = boost::parameter::void_; const_reference = ECBSNode* const&]: Assertion `!empty()' failed. 
+scramble_h12w12r4s28t8k120_seed2,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h12w12r6s43t8k160_seed0,scramble,b4,1,47,47.0,12,25,10,0.002,ok,
+scramble_h12w12r6s43t8k160_seed0,scramble,crest_base,0,,,,,,0.052,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r6s43t8k160_seed0,scramble,crest_full,0,,,,,,0.052,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r6s43t8k160_seed0,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h12w12r6s43t8k160_seed1,scramble,b4,1,12,12.0,4,6,2,0.001,ok,
+scramble_h12w12r6s43t8k160_seed1,scramble,crest_base,0,,,,,,0.052,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed1,scramble,crest_full,0,,,,,,0.052,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed1,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h12w12r6s43t8k160_seed2,scramble,b4,1,17,17.0,5,8,4,0.001,ok,
+scramble_h12w12r6s43t8k160_seed2,scramble,crest_base,0,,,,,,0.051,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed2,scramble,crest_full,0,,,,,,0.051,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed2,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h16w16r8s128t16k320_seed0,scramble,b4,0,,,,,,0.012,failed,plan finished but goal not reached
+scramble_h16w16r8s128t16k320_seed0,scramble,crest_base,0,,,,,,0.108,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed0,scramble,crest_full,0,,,,,,0.108,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed0,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h16w16r8s128t16k320_seed1,scramble,b4,1,104,104.0,16,74,14,0.007,ok,
+scramble_h16w16r8s128t16k320_seed1,scramble,crest_base,0,,,,,,0.109,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed1,scramble,crest_full,0,,,,,,0.108,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed1,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h16w16r8s128t16k320_seed2,scramble,b4,1,118,126.0,23,71,24,0.007,ok,
+scramble_h16w16r8s128t16k320_seed2,scramble,crest_base,0,,,,,,0.117,rc=1,Failed to find solutions in Run 0 No path exists for agent 98 
+scramble_h16w16r8s128t16k320_seed2,scramble,crest_full,0,,,,,,0.118,rc=1,Failed to find solutions in Run 0 No path exists for agent 98 
+scramble_h16w16r8s128t16k320_seed2,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h16w16r8s76t16k240_seed0,scramble,b4,1,127,128.0,24,87,16,0.007,ok,
+scramble_h16w16r8s76t16k240_seed0,scramble,crest_base,0,,,,,,0.087,rc=1,Failed to find solutions in Run 0 No path exists for agent 48 
+scramble_h16w16r8s76t16k240_seed0,scramble,crest_full,0,,,,,,0.086,rc=1,Failed to find solutions in Run 0 No path exists for agent 48 
+scramble_h16w16r8s76t16k240_seed0,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h16w16r8s76t16k240_seed1,scramble,b4,1,120,122.0,26,74,20,0.007,ok,
+scramble_h16w16r8s76t16k240_seed1,scramble,crest_base,0,,,,,,0.085,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed1,scramble,crest_full,0,,,,,,0.085,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed1,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h16w16r8s76t16k240_seed2,scramble,b4,1,186,190.0,33,131,22,0.011,ok,
+scramble_h16w16r8s76t16k240_seed2,scramble,crest_base,0,,,,,,0.083,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed2,scramble,crest_full,0,,,,,,0.083,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed2,scramble,natcbs,0,,,,,,0,skipped_too_large,
+scramble_h6w6r2s8t2k20_seed2,scramble,b4,1,6,6.0,1,3,2,0.0,ok,
+scramble_h6w6r2s8t2k20_seed2,scramble,crest_base,1,10,14,9,5,0,0.04,ok,sum_of_cost : 14 makespan : 10 agent_travel_time : 5 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed2,scramble,crest_full,1,10,14,9,5,0,0.04,ok,sum_of_cost : 14 makespan : 10 agent_travel_time : 5 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed2,scramble,natcbs,1,7,,,,,0.194,ok,"5), 4: (2, 5), 5: (3, 5)} Obs 4: {6: (3, 4), 7: (3, 3)} Obs 5: {4: (4, 1)} Obs 6: {4: (5, 2)} Obs 7: {2: (5, 4)} Makespan: 7 Elapsed time: 0.128 sec  "
+scramble_h6w6r2s8t2k20_seed47515,scramble,b4,1,11,11.0,4,5,2,0.0,ok,
+scramble_h6w6r2s8t2k20_seed47515,scramble,crest_base,1,7,8,7,1,0,0.04,ok,sum_of_cost : 8 makespan : 7 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed47515,scramble,crest_full,1,7,8,7,1,0,0.04,ok,sum_of_cost : 8 makespan : 7 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed47515,scramble,natcbs,1,6,,,,,0.069,ok,"{3: (2, 1)} Obs 5: {2: (2, 2), 3: (3, 2), 4: (3, 1), 5: (4, 1), 6: (5, 1)} Obs 6: {2: (2, 4)} Obs 7: {3: (5, 3)} Makespan: 6 Elapsed time: 0.003 sec  "
+scramble_h6w6r2s8t2k20_seed7919,scramble,b4,1,12,12.0,2,8,2,0.0,ok,
+scramble_h6w6r2s8t2k20_seed7919,scramble,crest_base,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r2s8t2k20_seed7919,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r2s8t2k20_seed7919,scramble,natcbs,1,2,,,,,0.066,ok,"3: {0: (3, 1), 1: (4, 1), 2: (5, 1)} Obs 4: {2: (3, 4)} Obs 5: {2: (4, 2)} Obs 6: {2: (4, 3)} Obs 7: {2: (4, 5)} Makespan: 2 Elapsed time: 0.000 sec  "
+scramble_h8w8r2s12t4k40_seed1,scramble,b4,1,4,4.0,2,0,2,0.0,ok,
+scramble_h8w8r2s12t4k40_seed1,scramble,crest_base,0,,,,,,0.04,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s12t4k40_seed1,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s12t4k40_seed1,scramble,natcbs,1,7,,,,,0.075,ok," 7)} Obs 7: {3: (4, 4)} Obs 8: {6: (6, 1), 7: (6, 0)} Obs 9: {4: (6, 3)} Obs 10: {7: (6, 6)} Obs 11: {5: (7, 3)} Makespan: 7 Elapsed time: 0.009 sec  "
+scramble_h8w8r2s12t4k40_seed2,scramble,b4,1,6,6.0,1,3,2,0.0,ok,
+scramble_h8w8r2s12t4k40_seed2,scramble,crest_base,1,5,10,7,3,0,0.041,ok,sum_of_cost : 10 makespan : 5 agent_travel_time : 3 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed2,scramble,crest_full,1,5,10,7,3,0,0.041,ok,sum_of_cost : 10 makespan : 5 agent_travel_time : 3 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed2,scramble,natcbs,1,4,,,,,0.067,ok," {2: (6, 1), 3: (6, 2), 4: (5, 2)} Obs 8: {2: (6, 3)} Obs 9: {4: (6, 5)} Obs 10: {5: (6, 6)} Obs 11: {4: (7, 6)} Makespan: 4 Elapsed time: 0.002 sec  "
+scramble_h8w8r2s12t4k40_seed7919,scramble,b4,1,6,6.0,3,1,2,0.0,ok,
+scramble_h8w8r2s12t4k40_seed7919,scramble,crest_base,1,8,13,10,3,0,0.041,ok,sum_of_cost : 13 makespan : 8 agent_travel_time : 3 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed7919,scramble,crest_full,1,8,13,10,3,0,0.042,ok,sum_of_cost : 13 makespan : 8 agent_travel_time : 3 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed7919,scramble,natcbs,1,7,,,,,0.137,ok,"} Obs 8: {1: (6, 3), 2: (6, 4), 3: (7, 4), 4: (7, 5)} Obs 9: {3: (6, 5)} Obs 10: {2: (7, 1)} Obs 11: {4: (7, 7)} Makespan: 7 Elapsed time: 0.071 sec  "
+scramble_h8w8r4s12t4k80_seed0,scramble,b4,1,16,16.0,5,9,2,0.001,ok,
+scramble_h8w8r4s12t4k80_seed0,scramble,crest_base,0,,,,,,0.061,rc=139,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,scramble,crest_full,0,,,,,,0.062,rc=139,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,scramble,natcbs,1,8,,,,,20.605,ok,"{4: (6, 0)} Obs 8: {3: (6, 1)} Obs 9: {2: (6, 2)} Obs 10: {1: (6, 3), 2: (6, 4), 3: (6, 5)} Obs 11: {5: (7, 0)} Makespan: 8 Elapsed time: 20.530 sec  "
+scramble_h8w8r4s12t4k80_seed1,scramble,b4,1,13,13.0,3,8,2,0.001,ok,
+scramble_h8w8r4s12t4k80_seed1,scramble,crest_base,1,15,34,25,9,0,0.043,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,scramble,crest_full,1,15,34,25,9,0,0.044,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,scramble,natcbs,1,12,,,,,0.843,ok,", 3), 9: (5, 2), 10: (6, 2), 11: (6, 1), 12: (6, 0)} Obs 9: {1: (6, 3)} Obs 10: {4: (6, 6)} Obs 11: {0: (7, 3)} Makespan: 12 Elapsed time: 0.776 sec  "
+scramble_h8w8r4s12t4k80_seed7921,scramble,b4,1,35,37.0,8,19,8,0.001,ok,
+scramble_h8w8r4s12t4k80_seed7921,scramble,crest_base,1,20,41,32,9,0,0.043,ok,sum_of_cost : 41 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,scramble,crest_full,1,20,36,27,9,0,0.047,ok,sum_of_cost : 36 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,scramble,natcbs,0,,,,,,121.134,timeout,", (0, 6), (6, 0), (3, 3)] Pickup locations: [(0, 5), (1, 4), (2, 0), (4, 0)] Delivery locations: [(1, 0), (1, 4), (2, 0), (4, 0)]  Time Limit Reached "

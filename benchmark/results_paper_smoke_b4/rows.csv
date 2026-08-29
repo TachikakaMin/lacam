@@ -1,0 +1,4 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+dneM_n32_seed0,dne_m,b4,1,33903,34094.0,14180,17771,1952,14.947,ok,
+r2rM_n32_seed0,r2r_m,b4,1,15976,15984.0,7673,7835,468,4.327,ok,
+s2wM_n32_seed0,s2w_m,b4,1,40240,40240.0,16598,20370,3272,13.325,ok,

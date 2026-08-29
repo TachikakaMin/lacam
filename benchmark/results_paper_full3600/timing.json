@@ -1,0 +1,13 @@
+{
+  "wall_time_sec": 5863.0,
+  "jobs": 25,
+  "n_tasks": 50,
+  "timeout_per_run_sec": 3600.0,
+  "methods": {
+    "crest_full": {
+      "solved": 19,
+      "total": 50,
+      "solver_time_sum_sec": 99313.8
+    }
+  }
+}

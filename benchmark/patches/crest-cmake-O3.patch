@@ -1,0 +1,13 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d52581f..7d3795f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
+ project(CREST)
+ 
+ set(CMAKE_BUILD_TYPE CREST)  # Or manually add flags:
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")  # dd-lacam local patch: upstream forces -O0
+ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -fno-omit-frame-pointer")
+ 
+ IF(NOT CMAKE_BUILD_TYPE)

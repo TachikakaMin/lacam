@@ -1,0 +1,85 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+ddmapd_h10w10r3d30t3_seed0,ddmapd,b4,1,39,39.0,17,16,6,0.001,ok,
+ddmapd_h10w10r3d30t3_seed0,ddmapd,crest_base,1,24,36,22,12,2,0.05,ok,sum_of_cost : 36 makespan : 24 agent_travel_time : 12 pickup_count : 4 rearrange_shelf_num : 3 pickup_dropoff_overhead : 2
+ddmapd_h10w10r3d30t3_seed0,ddmapd,crest_full,1,28,40,22,16,2,0.053,ok,sum_of_cost : 40 makespan : 28 agent_travel_time : 16 pickup_count : 4 rearrange_shelf_num : 3 pickup_dropoff_overhead : 2
+ddmapd_h10w10r3d30t3_seed0,ddmapd,natcbs,0,,,,,,63.214,timeout,"start locations: [(6, 9), (9, 6), (0, 3)] Pickup locations: [(0, 4), (0, 5), (1, 4)] Delivery locations: [(0, 4), (0, 5), (1, 4)]  Time Limit Reached "
+ddmapd_h10w10r3d30t3_seed1,ddmapd,b4,1,77,77.0,38,33,6,0.003,ok,
+ddmapd_h10w10r3d30t3_seed1,ddmapd,crest_base,1,33,79,52,27,0,0.053,ok,sum_of_cost : 79 makespan : 33 agent_travel_time : 27 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed1,ddmapd,crest_full,1,31,77,50,27,0,0.06,ok,sum_of_cost : 77 makespan : 31 agent_travel_time : 27 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed1,ddmapd,natcbs,0,,,,,,90.0,timeout,
+ddmapd_h10w10r3d30t3_seed2,ddmapd,b4,1,39,39.0,19,14,6,0.002,ok,
+ddmapd_h10w10r3d30t3_seed2,ddmapd,crest_base,1,23,38,25,13,0,0.049,ok,sum_of_cost : 38 makespan : 23 agent_travel_time : 13 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed2,ddmapd,crest_full,1,23,38,25,13,0,0.051,ok,sum_of_cost : 38 makespan : 23 agent_travel_time : 13 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed2,ddmapd,natcbs,0,,,,,,64.46,timeout,"start locations: [(9, 1), (0, 8), (5, 9)] Pickup locations: [(0, 1), (0, 2), (1, 1)] Delivery locations: [(0, 1), (0, 2), (1, 1)]  Time Limit Reached "
+ddmapd_h8w8r2d20t2_seed0,ddmapd,b4,1,14,14.0,4,6,4,0.0,ok,
+ddmapd_h8w8r2d20t2_seed0,ddmapd,crest_base,1,11,18,8,10,0,0.043,ok,sum_of_cost : 18 makespan : 11 agent_travel_time : 10 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed0,ddmapd,crest_full,1,11,18,8,10,0,0.043,ok,sum_of_cost : 18 makespan : 11 agent_travel_time : 10 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed0,ddmapd,natcbs,1,9,,,,,0.242,ok," 2), 9: (4, 2)} Obs 7: {6: (5, 4)} Obs 8: {6: (6, 3)} Obs 9: {7: (6, 4)} Obs 10: {7: (7, 3)} Obs 11: {8: (7, 4)} Makespan: 9 Elapsed time: 0.175 sec  "
+ddmapd_h8w8r2d20t2_seed1,ddmapd,b4,1,32,32.0,16,12,4,0.001,ok,
+ddmapd_h8w8r2d20t2_seed1,ddmapd,crest_base,1,22,35,22,13,0,0.042,ok,sum_of_cost : 35 makespan : 22 agent_travel_time : 13 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed1,ddmapd,crest_full,1,22,35,22,13,0,0.042,ok,sum_of_cost : 35 makespan : 22 agent_travel_time : 13 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed1,ddmapd,natcbs,0,,,,,,74.397,timeout,"2 Num of tasks: 2 Agent start locations: [(7, 6), (7, 7)] Pickup locations: [(1, 4), (1, 5)] Delivery locations: [(1, 4), (7, 2)]  Time Limit Reached "
+ddmapd_h8w8r2d20t2_seed2,ddmapd,b4,1,37,39.0,16,15,6,0.001,ok,
+ddmapd_h8w8r2d20t2_seed2,ddmapd,crest_base,1,22,42,18,16,8,0.044,ok,sum_of_cost : 42 makespan : 22 agent_travel_time : 16 pickup_count : 6 rearrange_shelf_num : 2 pickup_dropoff_overhead : 8
+ddmapd_h8w8r2d20t2_seed2,ddmapd,crest_full,1,21,41,21,14,6,0.048,ok,sum_of_cost : 41 makespan : 21 agent_travel_time : 14 pickup_count : 5 rearrange_shelf_num : 2 pickup_dropoff_overhead : 6
+ddmapd_h8w8r2d20t2_seed2,ddmapd,natcbs,0,,,,,,60.85,timeout,"2 Num of tasks: 2 Agent start locations: [(4, 0), (0, 6)] Pickup locations: [(0, 0), (0, 1)] Delivery locations: [(0, 0), (0, 1)]  Time Limit Reached "
+scramble_h6w6r1s4t2k20_seed0,scramble,b4,1,5,5.0,2,1,2,0.0,ok,
+scramble_h6w6r1s4t2k20_seed0,scramble,crest_base,1,4,4,4,0,0,0.041,ok,sum_of_cost : 4 makespan : 4 agent_travel_time : 0 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r1s4t2k20_seed0,scramble,crest_full,1,4,4,4,0,0,0.04,ok,sum_of_cost : 4 makespan : 4 agent_travel_time : 0 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r1s4t2k20_seed0,scramble,natcbs,1,3,,,,,0.067,ok,"0), 3: (4, 0)} Obs 0: {5: (0, 2)} Obs 1: {5: (2, 4)} Obs 2: {1: (4, 2)} Obs 3: {1: (5, 1), 2: (5, 0), 3: (4, 0)} Makespan: 3 Elapsed time: 0.000 sec  "
+scramble_h6w6r1s4t2k20_seed110868,scramble,b4,1,5,5.0,3,0,2,0.0,ok,
+scramble_h6w6r1s4t2k20_seed110868,scramble,crest_base,0,,,,,,0.04,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed110868,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed110868,scramble,natcbs,1,3,,,,,0.067,ok,"1)} Obs 0: {4: (1, 0)} Obs 1: {6: (2, 5)} Obs 2: {0: (4, 1), 1: (3, 1), 2: (2, 1), 3: (1, 1)} Obs 3: {1: (4, 2)} Makespan: 3 Elapsed time: 0.000 sec  "
+scramble_h6w6r1s4t2k20_seed39596,scramble,b4,1,7,7.0,5,0,2,0.0,ok,
+scramble_h6w6r1s4t2k20_seed39596,scramble,crest_base,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed39596,scramble,crest_full,0,,,,,,0.038,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed39596,scramble,natcbs,1,5,,,,,0.067,ok," Obs 1: {5: (4, 0)} Obs 2: {2: (4, 3)} Obs 3: {0: (4, 5), 1: (4, 4), 2: (3, 4), 3: (3, 3), 4: (3, 2), 5: (4, 2)} Makespan: 5 Elapsed time: 0.002 sec  "
+scramble_h6w6r2s4t2k20_seed0,scramble,b4,1,8,8.0,3,3,2,0.0,ok,
+scramble_h6w6r2s4t2k20_seed0,scramble,crest_base,1,6,7,6,1,0,0.039,ok,sum_of_cost : 7 makespan : 6 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed0,scramble,crest_full,1,6,7,6,1,0,0.039,ok,sum_of_cost : 7 makespan : 6 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed0,scramble,natcbs,1,5,,,,,0.067,ok,"0)} Obs 0: {5: (0, 2)} Obs 1: {2: (2, 4)} Obs 2: {1: (4, 2)} Obs 3: {2: (5, 2), 3: (5, 1), 4: (5, 0), 5: (4, 0)} Makespan: 5 Elapsed time: 0.002 sec  "
+scramble_h6w6r2s4t2k20_seed15839,scramble,b4,1,6,6.0,2,2,2,0.0,ok,
+scramble_h6w6r2s4t2k20_seed15839,scramble,crest_base,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h6w6r2s4t2k20_seed15839,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h6w6r2s4t2k20_seed15839,scramble,natcbs,1,4,,,,,0.066,ok,"4), 4: (3, 4)} Obs 0: {4: (1, 2)} Obs 1: {3: (2, 5)} Obs 2: {1: (4, 4)} Obs 3: {2: (5, 2), 3: (5, 3), 4: (4, 3)} Makespan: 4 Elapsed time: 0.001 sec  "
+scramble_h6w6r2s4t2k20_seed15840,scramble,b4,1,6,6.0,1,3,2,0.0,ok,
+scramble_h6w6r2s4t2k20_seed15840,scramble,crest_base,1,5,6,4,2,0,0.039,ok,sum_of_cost : 6 makespan : 5 agent_travel_time : 2 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed15840,scramble,crest_full,1,5,6,4,2,0,0.039,ok,sum_of_cost : 6 makespan : 5 agent_travel_time : 2 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed15840,scramble,natcbs,1,4,,,,,0.066,ok,"3), 3: (0, 3), 4: (0, 3)} Obs 0: {1: (1, 5)} Obs 1: {0: (3, 4)} Obs 2: {4: (4, 1)} Obs 3: {3: (5, 3), 4: (5, 2)} Makespan: 4 Elapsed time: 0.001 sec  "
+scramble_h6w6r2s8t2k40_seed1,scramble,b4,1,7,7.0,1,4,2,0.0,ok,
+scramble_h6w6r2s8t2k40_seed1,scramble,crest_base,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 No path exists for agent 1 
+scramble_h6w6r2s8t2k40_seed1,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 No path exists for agent 1 
+scramble_h6w6r2s8t2k40_seed1,scramble,natcbs,1,10,,,,,18.425,ok," (2, 2)} Obs 5: {2: (2, 3)} Obs 6: {9: (3, 0), 10: (4, 0)} Obs 7: {4: (3, 2), 5: (4, 2), 6: (5, 2), 7: (5, 1)} Makespan: 10 Elapsed time: 18.335 sec  "
+scramble_h6w6r2s8t2k40_seed2,scramble,b4,1,9,9.0,1,6,2,0.0,ok,
+scramble_h6w6r2s8t2k40_seed2,scramble,crest_base,0,,,,,,0.041,rc=1,Failed to find solutions in Run 0 No path exists for agent 7 
+scramble_h6w6r2s8t2k40_seed2,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 No path exists for agent 7 
+scramble_h6w6r2s8t2k40_seed2,scramble,natcbs,0,,,,,,60.493,timeout,"cations: [(3, 1), (3, 3)] Pickup locations: [(0, 4), (0, 5), (1, 4), (1, 5)] Delivery locations: [(0, 3), (0, 5), (1, 4), (3, 5)]  Time Limit Reached "
+scramble_h6w6r2s8t2k40_seed7919,scramble,b4,1,11,11.0,2,7,2,0.0,ok,
+scramble_h6w6r2s8t2k40_seed7919,scramble,crest_base,1,4,7,7,0,0,0.041,ok,sum_of_cost : 7 makespan : 4 agent_travel_time : 0 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k40_seed7919,scramble,crest_full,1,4,7,7,0,0,0.042,ok,sum_of_cost : 7 makespan : 4 agent_travel_time : 0 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k40_seed7919,scramble,natcbs,1,3,,,,,0.068,ok,"4)} Obs 4: {1: (4, 0), 2: (4, 1), 3: (5, 1)} Obs 5: {3: (4, 2)} Obs 6: {2: (4, 3)} Obs 7: {2: (4, 4), 3: (4, 5)} Makespan: 3 Elapsed time: 0.001 sec  "
+scramble_h8w8r2s8t4k40_seed0,scramble,b4,1,9,9.0,1,6,2,0.0,ok,
+scramble_h8w8r2s8t4k40_seed0,scramble,crest_base,0,,,,,,0.04,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed0,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed0,scramble,natcbs,1,1,,,,,0.067,ok,"3, 2)} Obs 3: {8: (3, 7)} Obs 4: {2: (4, 0)} Obs 5: {0: (5, 1), 1: (6, 1)} Obs 6: {2: (6, 0)} Obs 7: {3: (7, 0)} Makespan: 1 Elapsed time: 0.000 sec  "
+scramble_h8w8r2s8t4k40_seed15839,scramble,b4,1,6,6.0,4,0,2,0.0,ok,
+scramble_h8w8r2s8t4k40_seed15839,scramble,crest_base,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed15839,scramble,crest_full,0,,,,,,0.039,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed15839,scramble,natcbs,1,4,,,,,0.068,ok,"{0: (5, 4), 1: (5, 5), 2: (5, 6), 3: (5, 7), 4: (6, 7)} Obs 5: {3: (6, 1)} Obs 6: {1: (6, 4)} Obs 7: {3: (7, 0)} Makespan: 4 Elapsed time: 0.003 sec  "
+scramble_h8w8r2s8t4k40_seed31678,scramble,b4,1,8,8.0,3,3,2,0.0,ok,
+scramble_h8w8r2s8t4k40_seed31678,scramble,crest_base,1,8,16,8,8,0,0.04,ok,sum_of_cost : 16 makespan : 8 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s8t4k40_seed31678,scramble,crest_full,1,8,16,8,8,0,0.041,ok,sum_of_cost : 16 makespan : 8 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s8t4k40_seed31678,scramble,natcbs,1,7,,,,,0.079,ok,"{5: (3, 5)} Obs 5: {4: (5, 2), 5: (5, 3), 6: (5, 4), 7: (4, 4)} Obs 6: {4: (6, 4)} Obs 7: {6: (6, 6), 7: (5, 6)} Makespan: 7 Elapsed time: 0.013 sec  "
+scramble_h8w8r4s12t4k80_seed0,scramble,b4,1,16,16.0,5,9,2,0.001,ok,
+scramble_h8w8r4s12t4k80_seed0,scramble,crest_base,0,,,,,,0.061,rc=139,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,scramble,crest_full,0,,,,,,0.061,rc=139,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,scramble,natcbs,1,8,,,,,20.617,ok,"{4: (6, 0)} Obs 8: {3: (6, 1)} Obs 9: {2: (6, 2)} Obs 10: {1: (6, 3), 2: (6, 4), 3: (6, 5)} Obs 11: {5: (7, 0)} Makespan: 8 Elapsed time: 20.542 sec  "
+scramble_h8w8r4s12t4k80_seed1,scramble,b4,1,13,13.0,3,8,2,0.001,ok,
+scramble_h8w8r4s12t4k80_seed1,scramble,crest_base,1,15,34,25,9,0,0.043,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,scramble,crest_full,1,15,34,25,9,0,0.044,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,scramble,natcbs,1,12,,,,,0.842,ok,", 3), 9: (5, 2), 10: (6, 2), 11: (6, 1), 12: (6, 0)} Obs 9: {1: (6, 3)} Obs 10: {4: (6, 6)} Obs 11: {0: (7, 3)} Makespan: 12 Elapsed time: 0.775 sec  "
+scramble_h8w8r4s12t4k80_seed7921,scramble,b4,1,35,37.0,8,19,8,0.001,ok,
+scramble_h8w8r4s12t4k80_seed7921,scramble,crest_base,1,20,41,32,9,0,0.043,ok,sum_of_cost : 41 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,scramble,crest_full,1,20,36,27,9,0,0.046,ok,sum_of_cost : 36 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,scramble,natcbs,0,,,,,,60.752,timeout,", (0, 6), (6, 0), (3, 3)] Pickup locations: [(0, 5), (1, 4), (2, 0), (4, 0)] Delivery locations: [(1, 0), (1, 4), (2, 0), (4, 0)]  Time Limit Reached "

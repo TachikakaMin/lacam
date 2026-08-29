@@ -1,0 +1,7 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+dneM_n32_seed0,dne_m,b4,0,,,,,,14.286,failed,plan finished but goal not reached
+dneM_n32_seed0,dne_m,crest_base,1,921,28630,13614,10522,4494,72.456,ok,sum_of_cost : 28630 makespan : 921 agent_travel_time : 10522 pickup_count : 2650 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4494
+r2rM_n32_seed0,r2r_m,b4,1,15984,15989.0,7672,7842,470,4.322,ok,
+r2rM_n32_seed0,r2r_m,crest_base,1,523,14248,7634,5132,1482,20.098,ok,sum_of_cost : 14248 makespan : 523 agent_travel_time : 5132 pickup_count : 971 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1482
+s2wM_n32_seed0,s2w_m,b4,0,,,,,,0.099,failed,"no parking cell reachable from (30, 6)"
+s2wM_n32_seed0,s2w_m,crest_base,0,,,,,,1830.0,timeout,
