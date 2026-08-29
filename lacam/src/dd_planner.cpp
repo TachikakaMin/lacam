@@ -1017,7 +1017,8 @@ RolloutResult rollout_from(const DDInstance& ins, const PhysConfig& X0,
   RolloutResult out;
   out.end = X0;
   std::unordered_set<uint64_t> local_seen;
-  local_seen.insert(phys_config_hash(X0));
+  uint64_t roll_hash = phys_config_hash(X0);  // maintained incrementally
+  local_seen.insert(roll_hash);
   Node tmp;  // reused across steps; guidance refreshed every GUIDE_EVERY
   const int GUIDE_EVERY = env_int("DD_GUIDE_EVERY", 8);
   for (int step = 0; step < max_steps; ++step) {
@@ -1042,7 +1043,8 @@ RolloutResult rollout_from(const DDInstance& ins, const PhysConfig& X0,
     auto res = carrier_pibt(ins, tmp, &root, tgd, ld, rng, sc, stats);
     if (!res.has_value()) return out;
     auto& [X_new, ops] = *res;
-    if (!local_seen.insert(phys_config_hash(X_new)).second) return out;
+    roll_hash = phys_config_hash_incremental(ins, out.end, ops, roll_hash);
+    if (!local_seen.insert(roll_hash).second) return out;
     for (size_t i = 0; i < ops.size(); ++i) {
       if (ops[i].kind == Op::MOVE) {
         out.cost += 1;                                    // alpha/beta = 1

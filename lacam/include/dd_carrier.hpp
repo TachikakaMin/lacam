@@ -86,6 +86,14 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
 
 uint64_t phys_config_hash(const PhysConfig& s);
 
+// Zobrist-style incremental hash (design 6.1): given the hash of s and a
+// LEGAL joint op vector, returns the hash of apply_ops(ins, s, ops) without
+// rehashing the whole configuration.
+uint64_t phys_config_hash_incremental(const DDInstance& ins,
+                                      const PhysConfig& s,
+                                      const std::vector<Op>& ops,
+                                      uint64_t hash_of_s);
+
 struct PhysConfigHasher {
   uint64_t operator()(const PhysConfig& s) const
   {

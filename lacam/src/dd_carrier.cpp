@@ -68,6 +68,36 @@ void DDInstance::finalize()
     if (!seen_g.insert(target_goals[b]).second)
       throw std::invalid_argument("finalize: duplicate target goal");
   }
+
+  // dead-cell / feasibility analysis (design 5.6, v1 form): both decks share
+  // the wall set, so a goal outside its target's wall-component can never be
+  // reached — reject at load instead of pruning at search time.
+  {
+    std::vector<int> comp(grid.size(), -1);
+    int nc = 0;
+    for (int v = 0; v < grid.size(); ++v) {
+      if (grid.is_wall(v) || comp[v] >= 0) continue;
+      std::vector<int> stack{v};
+      comp[v] = nc;
+      while (!stack.empty()) {
+        int u = stack.back();
+        stack.pop_back();
+        int nb[4];
+        const int n = grid.neighbors(u, nb);
+        for (int k = 0; k < n; ++k)
+          if (comp[nb[k]] < 0) {
+            comp[nb[k]] = nc;
+            stack.push_back(nb[k]);
+          }
+      }
+      ++nc;
+    }
+    for (size_t b = 0; b < target_starts.size(); ++b)
+      if (comp[target_starts[b]] != comp[target_goals[b]])
+        throw std::invalid_argument(
+            "finalize: target goal unreachable from its start "
+            "(different wall components)");
+  }
 }
 
 DDInstance load_dd_instance(const std::string& yaml_path)
@@ -261,20 +291,107 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
   return nxt;
 }
 
+namespace {
+// deterministic Zobrist keys derived on the fly (splitmix64): no tables,
+// no grid-size coupling, stable across runs.
+inline uint64_t zmix(uint64_t x)
+{
+  x += 0x9e3779b97f4a7c15ULL;
+  x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+  x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+  return x ^ (x >> 31);
+}
+inline uint64_t zkey_robot(size_t i, int cell)
+{
+  return zmix(0x1000000000ULL + (uint64_t)i * 1315423911ULL + (uint64_t)cell);
+}
+inline uint64_t zkey_target(size_t b, int cell)
+{
+  return zmix(0x2000000000ULL + (uint64_t)b * 2654435761ULL + (uint64_t)cell);
+}
+inline uint64_t zkey_anon(int cell)
+{
+  return zmix(0x3000000000ULL + (uint64_t)cell);
+}
+inline uint64_t zkey_kappa(size_t i, int k)
+{
+  return zmix(0x4000000000ULL + (uint64_t)i * 40503ULL +
+              (uint64_t)(k + 3));
+}
+}  // namespace
+
 uint64_t phys_config_hash(const PhysConfig& s)
 {
-  // FNV-1a over all state components (anon_occ kept sorted -> canonical)
-  uint64_t h = 1469598103934665603ULL;
-  auto mix = [&h](uint64_t x) {
-    h ^= x + 0x9e3779b97f4a7c15ULL;
-    h *= 1099511628211ULL;
-  };
-  for (int v : s.robots) mix((uint64_t)v);
-  mix(0xffffULL);
-  for (int v : s.target_pos) mix((uint64_t)v);
-  mix(0xfffeULL);
-  for (int v : s.anon_occ) mix((uint64_t)v);
-  mix(0xfffdULL);
-  for (int v : s.kappa) mix((uint64_t)(v + 3));
+  // Zobrist XOR over all state components (design 6.1); anon occupancy is
+  // a set -> order-free XOR is canonical by construction.
+  uint64_t h = 0x5851f42d4c957f2dULL;
+  for (size_t i = 0; i < s.robots.size(); ++i)
+    h ^= zkey_robot(i, s.robots[i]);
+  for (size_t b = 0; b < s.target_pos.size(); ++b)
+    h ^= zkey_target(b, s.target_pos[b]);
+  for (int c : s.anon_occ) h ^= zkey_anon(c);
+  for (size_t i = 0; i < s.kappa.size(); ++i)
+    h ^= zkey_kappa(i, s.kappa[i]);
+  return h;
+}
+
+uint64_t phys_config_hash_incremental(const DDInstance& ins,
+                                      const PhysConfig& s,
+                                      const std::vector<Op>& ops,
+                                      uint64_t h)
+{
+  // mirrors apply_ops effects; caller guarantees ops is LEGAL for s.
+  std::unordered_map<int, int> grounded_target;
+  std::vector<bool> carried(ins.n_targets(), false);
+  for (size_t i = 0; i < s.kappa.size(); ++i)
+    if (s.kappa[i] >= 0) carried[s.kappa[i]] = true;
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    if (!carried[b]) grounded_target[s.target_pos[b]] = (int)b;
+  std::unordered_set<int> grounded_anon(s.anon_occ.begin(), s.anon_occ.end());
+
+  for (size_t i = 0; i < ops.size(); ++i) {
+    const int q = s.robots[i];
+    const int k = s.kappa[i];
+    switch (ops[i].kind) {
+      case Op::WAIT:
+        break;
+      case Op::MOVE: {
+        const int v = ops[i].to;
+        h ^= zkey_robot(i, q);
+        h ^= zkey_robot(i, v);
+        if (k >= 0) {
+          h ^= zkey_target((size_t)k, q);
+          h ^= zkey_target((size_t)k, v);
+        }
+        // carried ANON has no positional key (identity-free); nothing else
+        break;
+      }
+      case Op::LIFT: {
+        auto it = grounded_target.find(q);
+        if (it != grounded_target.end()) {
+          h ^= zkey_kappa(i, KAPPA_FREE);
+          h ^= zkey_kappa(i, it->second);
+        } else {
+          // anon leaves the grounded set while carried
+          h ^= zkey_anon(q);
+          h ^= zkey_kappa(i, KAPPA_FREE);
+          h ^= zkey_kappa(i, KAPPA_ANON);
+        }
+        (void)grounded_anon;
+        break;
+      }
+      case Op::DROP: {
+        if (k == KAPPA_ANON) {
+          h ^= zkey_anon(q);
+          h ^= zkey_kappa(i, KAPPA_ANON);
+          h ^= zkey_kappa(i, KAPPA_FREE);
+        } else {
+          h ^= zkey_kappa(i, k);
+          h ^= zkey_kappa(i, KAPPA_FREE);
+        }
+        break;
+      }
+    }
+  }
   return h;
 }
