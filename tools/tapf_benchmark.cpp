@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <lacam.hpp>
+#include <filesystem_compat.hpp>
 #include <cstdint>
-#include <filesystem>
 #include <tuple>
 #include <vector>
 
@@ -145,7 +145,7 @@ namespace
 
   std::string binary_schedule_metadata_path(const std::string& binary_path)
   {
-    return std::filesystem::path(binary_path).filename().string();
+    return lacam_filesystem::path(binary_path).filename().string();
   }
 
   void write_schedule_binary(const TAPFInstance& ins, const Solution& solution,

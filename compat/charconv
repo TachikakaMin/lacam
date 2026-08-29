@@ -1,0 +1,52 @@
+#pragma once
+
+#include <cerrno>
+#include <cstdlib>
+#include <limits>
+#include <string>
+#include <system_error>
+#include <type_traits>
+
+namespace std {
+
+struct from_chars_result {
+  const char* ptr;
+  errc ec;
+};
+
+template <typename T>
+typename enable_if<is_integral<T>::value, from_chars_result>::type from_chars(
+    const char* first, const char* last, T& value, int base = 10)
+{
+  if (first == last || base < 2 || base > 36) {
+    return {first, errc::invalid_argument};
+  }
+
+  const string input(first, last);
+  char* parsed_end = nullptr;
+  errno = 0;
+
+  if (is_signed<T>::value) {
+    const long long parsed = strtoll(input.c_str(), &parsed_end, base);
+    const auto consumed = static_cast<size_t>(parsed_end - input.c_str());
+    if (consumed == 0) return {first, errc::invalid_argument};
+    if (errno == ERANGE || parsed < numeric_limits<T>::min() ||
+        parsed > numeric_limits<T>::max()) {
+      return {first + consumed, errc::result_out_of_range};
+    }
+    value = static_cast<T>(parsed);
+    return {first + consumed, errc{}};
+  }
+
+  if (input.front() == '-') return {first, errc::invalid_argument};
+  const unsigned long long parsed = strtoull(input.c_str(), &parsed_end, base);
+  const auto consumed = static_cast<size_t>(parsed_end - input.c_str());
+  if (consumed == 0) return {first, errc::invalid_argument};
+  if (errno == ERANGE || parsed > numeric_limits<T>::max()) {
+    return {first + consumed, errc::result_out_of_range};
+  }
+  value = static_cast<T>(parsed);
+  return {first + consumed, errc{}};
+}
+
+}  // namespace std

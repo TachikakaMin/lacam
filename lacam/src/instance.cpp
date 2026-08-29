@@ -1,6 +1,6 @@
 #include "../include/instance.hpp"
+#include "../include/filesystem_compat.hpp"
 
-#include <filesystem>
 #include <unordered_map>
 
 #include <yaml-cpp/yaml.h>
@@ -140,11 +140,11 @@ TAPFInstance::YamlData TAPFInstance::load_yaml(
   YamlData data;
 
   if (config["map"].IsScalar()) {
-    std::filesystem::path map_path(config["map"].as<std::string>());
+    lacam_filesystem::path map_path(config["map"].as<std::string>());
     if (!map_dir.empty()) {
-      map_path = std::filesystem::path(map_dir) / map_path;
+      map_path = lacam_filesystem::path(map_dir) / map_path;
     } else if (map_path.is_relative()) {
-      map_path = std::filesystem::path(yaml_filename).parent_path() / map_path;
+      map_path = lacam_filesystem::path(yaml_filename).parent_path() / map_path;
     }
     data.map_filename = map_path.string();
   } else {
