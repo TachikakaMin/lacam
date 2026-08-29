@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <cstdlib>
 #include <set>
 #include <map>
 
@@ -68,7 +69,7 @@ int main(int argc, char** argv)
           std::chrono::steady_clock::now() - t0)
           .count();
 
-  long loaded_moves = 0, free_moves = 0, lift_drop = 0;
+  long loaded_moves = 0, free_moves = 0, lift_drop = 0, anon_moves = 0;
   bool valid = !plan.empty();
   if (valid) {
     // replay through the validator: belt-and-braces before reporting
@@ -84,10 +85,12 @@ int main(int argc, char** argv)
           case Op::MOVE:
             out << "m " << ins.grid.row(ops[i].to) << " "
                 << ins.grid.col(ops[i].to);
-            if (s.kappa[i] == KAPPA_FREE)
+            if (s.kappa[i] == KAPPA_FREE) {
               ++free_moves;
-            else
+            } else {
               ++loaded_moves;
+              if (s.kappa[i] == KAPPA_ANON) ++anon_moves;
+            }
             break;
           case Op::LIFT:
             out << "l";
@@ -110,20 +113,35 @@ int main(int argc, char** argv)
     if (valid && !is_dd_goal(ins, s)) valid = false;
   }
 
+  // cost weights (design 2.3): alpha*loaded + beta*free + gamma*liftdrop
+  // + delta*anon; defaults all 1, overridable via env (DD_ALPHA etc.)
+  auto envd = [](const char* k, double dflt) {
+    const char* v = std::getenv(k);
+    return v ? std::atof(v) : dflt;
+  };
+  const double alpha = envd("DD_ALPHA", 1.0), beta = envd("DD_BETA", 1.0),
+               gamma = envd("DD_GAMMA", 1.0), delta = envd("DD_DELTA", 1.0);
+  const double weighted_soc = alpha * loaded_moves + beta * free_moves +
+                              gamma * lift_drop + delta * anon_moves;
+
   std::cout << "solved=" << (valid ? 1 : 0) << "\n";
   std::cout << "makespan=" << (valid ? plan.size() : 0) << "\n";
   std::cout << "loaded_moves=" << loaded_moves << "\n";
   std::cout << "free_moves=" << free_moves << "\n";
   std::cout << "lift_drop=" << lift_drop << "\n";
-  std::cout << "weighted_soc=" << (loaded_moves + free_moves + lift_drop)
-            << "\n";
+  std::cout << "anon_moves=" << anon_moves << "\n";
+  std::cout << "weighted_soc=" << weighted_soc << "\n";
   std::cout << "runtime_ms=" << runtime_ms << "\n";
   std::cout << "hl_nodes=" << stats.hl_nodes << "\n";
   std::cout << "hl_expanded=" << stats.hl_expanded << "\n";
   std::cout << "pibt_calls=" << stats.pibt_calls << "\n";
   std::cout << "validator_rejects=" << stats.validator_rejects << "\n";
+  std::cout << "g1_rejects=" << stats.g1_rejects << "\n";
   std::cout << "generator_failures=" << stats.generator_failures << "\n";
   std::cout << "max_depth=" << stats.max_depth << "\n";
+  std::cout << "guidance_builds=" << stats.guidance_builds << "\n";
+  std::cout << "path_recomputes=" << stats.path_recomputes << "\n";
+  std::cout << "path_cache_hits=" << stats.path_cache_hits << "\n";
   std::cout << "best_targets_done=" << stats.best_targets_done << "\n";
   std::cout << "duplicate_configs=" << stats.duplicate_configs << "\n";
   std::cout << "timed_out=" << (stats.timed_out ? 1 : 0) << "\n";

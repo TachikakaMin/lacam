@@ -67,6 +67,48 @@ def replay(ins, plan):
 
 
 @unittest.skipUnless(BIN.exists(), "dd_benchmark not built")
+class TestCostCrossConsistency(unittest.TestCase):
+    """debug.md P0-3: C++ metrics must match the authoritative Python
+    plan_cost, INCLUDING the delta * anonymous-shelf-move term (design 2.3:
+    cost = a*loaded + b*free + g*liftdrop + d*anon)."""
+
+    def test_weighted_soc_includes_anon_moves(self):
+        import yaml as _yaml
+        ins_yaml = {
+            "name": "cost_anon_case",
+            "map": "....\n....\n",
+            "robots": [[1, 0]],
+            "shelves": [[0, 1], [0, 3]],
+            "targets": [{"id": "b0", "start": [0, 1], "goal": [0, 3]}],
+            "flags": {},
+        }
+        base = BENCH / "results_probe"
+        base.mkdir(exist_ok=True)
+        ins_path = base / "cost_anon_case.yaml"
+        ins_path.write_text(_yaml.safe_dump(ins_yaml, sort_keys=False))
+        plan_out = base / "cost_anon_case.plan"
+        p, metrics = run_solver(ins_path, 5, plan_out)
+        self.assertEqual(metrics.get("solved"), "1", p.stdout)
+
+        ins = load_instance(ins_path)
+        plan = parse_plan(plan_out)
+        from ddbench.validator import plan_cost
+        c = plan_cost(ins, plan)  # alpha=beta=gamma=delta=1
+        # the blocker at (0,2) must be relocated: anonymous moves happen
+        self.assertGreater(c["anon_moves"], 0,
+                           "test instance must exercise anonymous moves")
+        # C++ must report anon_moves and a consistent weighted_soc
+        self.assertIn("anon_moves", metrics,
+                      "C++ driver does not report anon_moves (P0-3)")
+        self.assertEqual(int(metrics["anon_moves"]), c["anon_moves"])
+        self.assertEqual(float(metrics["weighted_soc"]), c["weighted_soc"],
+                         "C++ weighted_soc must include delta*anon_moves")
+        self.assertEqual(int(metrics["loaded_moves"]), c["loaded_moves"])
+        self.assertEqual(int(metrics["free_moves"]), c["free_moves"])
+        self.assertEqual(int(metrics["lift_drop"]), c["lift_drop"])
+
+
+@unittest.skipUnless(BIN.exists(), "dd_benchmark not built")
 class TestCarrierLacamIntegration(unittest.TestCase):
     def test_tiny_fixture_solves_and_validates(self):
         ins_path = REPO / "tests/fixtures/dd_tiny.yaml"

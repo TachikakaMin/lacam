@@ -76,6 +76,24 @@ DDInstance load_dd_instance(const std::string& yaml_path)
   DDInstance ins;
   if (doc["name"]) ins.name = doc["name"].as<std::string>();
 
+  // debug.md P0-4: v1 does not implement optional flag semantics; fail
+  // loudly on any non-default value instead of silently ignoring it.
+  if (doc["flags"]) {
+    for (const auto& kv : doc["flags"]) {
+      bool value = false;
+      try {
+        value = kv.second.as<bool>();
+      } catch (...) {
+        value = true;  // non-boolean flag value: treat as unsupported
+      }
+      if (value) {
+        throw std::invalid_argument(
+            "load_dd_instance: unsupported non-default flag '" +
+            kv.first.as<std::string>() + "' (v1 implements defaults only)");
+      }
+    }
+  }
+
   std::vector<std::string> rows;
   {
     std::istringstream ss(doc["map"].as<std::string>());

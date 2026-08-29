@@ -129,6 +129,14 @@ def dump_map_str(grid: List[List[bool]]) -> str:
 
 def load_instance(path) -> Instance:
     data = yaml.safe_load(Path(path).read_text())
+    # debug.md P0-4: v1 implements default flag semantics only; fail loudly
+    # on any non-default value instead of silently ignoring it.
+    for key, value in dict(data.get("flags") or {}).items():
+        if bool(value):
+            raise ValueError(
+                f"load_instance: unsupported non-default flag {key!r} "
+                "(v1 implements defaults only)"
+            )
     grid = parse_map_str(data["map"])
     robots = [tuple(x) for x in data.get("robots", [])]
     shelves = [tuple(x) for x in data.get("shelves", [])]

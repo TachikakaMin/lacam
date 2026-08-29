@@ -166,3 +166,24 @@ TEST(dd_instance, load_yaml_fixture)
   auto s = initial_phys_config(ins);
   EXPECT_FALSE(is_dd_goal(ins, s));
 }
+
+TEST(dd_instance, non_default_flags_rejected)
+{
+  // debug.md P0-4 decision (a): v1 does not implement the optional flag
+  // semantics (remove_on_complete / robots_return_to_rest); silently
+  // ignoring a requested non-default flag would produce wrong semantics,
+  // so the loader must FAIL LOUDLY.
+  const auto path =
+      std::string(DD_TEST_DIR) + "/fixtures/dd_flags_unsupported.yaml";
+  EXPECT_THROW(load_dd_instance(path), std::exception);
+}
+
+TEST(dd_instance, default_or_absent_flags_accepted)
+{
+  // flags absent (dd_tiny.yaml) already covered above; explicit false
+  // values must also load fine.
+  const auto path =
+      std::string(DD_TEST_DIR) + "/fixtures/dd_flags_default.yaml";
+  auto ins = load_dd_instance(path);
+  EXPECT_EQ(ins.n_targets(), 1u);
+}

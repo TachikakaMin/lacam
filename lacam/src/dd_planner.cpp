@@ -10,6 +10,19 @@
 #include <algorithm>
 #include <chrono>
 #include <climits>
+#include <cstdlib>
+
+namespace {
+long g_guidance_builds = 0;
+long g_path_recomputes = 0;
+long g_path_cache_hits = 0;
+
+inline int env_int(const char* k, int dflt)
+{
+  const char* v = std::getenv(k);
+  return v ? std::atoi(v) : dflt;
+}
+}  // namespace
 #include <cstring>
 #include <deque>
 #include <memory>
@@ -58,6 +71,27 @@ struct DistCache {
   }
 };
 
+// lower-deck distance provider: exact Manhattan on wall-free grids (all
+// benchmark suites), BFS cache otherwise.  Kills the dominant per-rollout
+// BFS cost without changing any distance value.
+struct LowerDist {
+  const DDGrid& g;
+  bool wallfree;
+  DistCache bfs;
+  explicit LowerDist(const DDGrid& g_) : g(g_), bfs(g_)
+  {
+    wallfree = true;
+    for (uint8_t w : g.wall) wallfree &= (w == 0);
+  }
+  int dist(int cell, int from)
+  {
+    if (wallfree)
+      return std::abs(g.row(cell) - g.row(from)) +
+             std::abs(g.col(cell) - g.col(from));
+    return bfs.to(cell)[from];
+  }
+};
+
 // ---------- least-blocking path (design 5.3(2)) ----------
 // deque-based small-weight Dijkstra: step cost 1 + LAMBDA_BLK * occupied(to).
 constexpr int LAMBDA_BLK = 8;
@@ -71,11 +105,14 @@ struct Scratch {
   std::vector<int> dist;         // dijkstra dist / bfs visited
   std::vector<int> prev;         // dijkstra parents
   std::vector<int> upper_base;   // grounded+anon counts for PIBT baseline
+  std::vector<uint8_t> upper_path;  // occupancy view for PATH computation:
+                                    // targets sitting on their own goals are
+                                    // masked free (P1-5 determinism)
   const void* occ_node = nullptr;
   const void* pibt_node = nullptr;
   explicit Scratch(int n)
       : upper(n, 0), protect(n, 0), grounded(n, 0), owner(n, 0), dist(n),
-        prev(n), upper_base(n, 0) {}
+        prev(n), upper_base(n, 0), upper_path(n, 0) {}
 };
 
 void fill_occupancy(const DDInstance& ins, const PhysConfig& s, Scratch& sc)
@@ -95,6 +132,16 @@ void fill_occupancy(const DDInstance& ins, const PhysConfig& s, Scratch& sc)
   }
   for (size_t i = 0; i < s.kappa.size(); ++i)
     if (s.kappa[i] == KAPPA_ANON) sc.upper[s.robots[i]] = 1;
+  // path view: mask a target's own goal cell ONLY while that target is
+  // CARRIED and hovering on the goal — kills the park/deliver circular
+  // dependency (debug.md P1-5) at exactly the flip-flop stage, while
+  // grounded (completed) targets remain real blockers for path costs.
+  sc.upper_path = sc.upper;
+  for (size_t i = 0; i < s.kappa.size(); ++i) {
+    const int k = s.kappa[i];
+    if (k >= 0 && s.target_pos[k] == ins.target_goals[k])
+      sc.upper_path[ins.target_goals[k]] = 0;
+  }
 }
 
 void fill_occupancy_if_needed(const DDInstance& ins, const PhysConfig& s,
@@ -166,21 +213,29 @@ struct PathCache {
         e.path.erase(e.path.begin());
         e.occ_snapshot.erase(e.occ_snapshot.begin());
         e.src = src;
-        // the new head is the target itself now: mark unoccupied
         if (!e.occ_snapshot.empty()) e.occ_snapshot[0] = 0;
       }
       if (e.src == src) {
+        // design 6.2 lazy invalidation (asymmetric): only NEWLY OCCUPIED
+        // path cells invalidate; cells that were occupied and became free
+        // keep the (conservatively stale, ordering-only) cached path.
+        static const bool strict_inval = env_int("DD_STRICT_INVAL", 0) != 0;
         bool ok = true;
         for (size_t i = 0; i < e.path.size() && ok; ++i) {
           const int c = e.path[i];
           const bool occ_now = c != exclude && occupied[c];
-          ok = (occ_now == (e.occ_snapshot[i] != 0));
+          ok = strict_inval ? (occ_now == (e.occ_snapshot[i] != 0))
+                            : !(occ_now && e.occ_snapshot[i] == 0);
         }
-        if (ok) return e.path;
+        if (ok) {
+          g_path_cache_hits++;
+          return e.path;
+        }
       }
     }
     Entry e;
     e.src = src;
+    g_path_recomputes++;
     e.path = least_blocking_path(g, src, dst, occupied, exclude, sc);
     e.occ_snapshot.resize(e.path.size());
     for (size_t i = 0; i < e.path.size(); ++i) {
@@ -234,7 +289,12 @@ struct Constraint {
 struct Node {
   PhysConfig X;
   Node* parent = nullptr;
-  std::vector<int> order;  // PIBT priority order (robot ids)
+  std::vector<int> order;  // PIBT priority order (may be perturbed, 5.5)
+  // IMMUTABLE robot order for constraint-tree expansion (debug.md P0-1,
+  // design D11 + 4.2): frozen at node creation so the lazy tree provably
+  // enumerates every operator combination exactly once.  Livelock handling
+  // must never touch this.
+  std::vector<int> constraint_order;
   std::unique_ptr<Constraint> tree_root;
   std::deque<Constraint*> tree_open;  // FIFO within node (LaCAM style)
   Guidance guide;
@@ -245,6 +305,9 @@ struct Node {
   long best_h = 0;
   int no_progress = 0;
   int revisits = 0;  // duplicate-successor re-pushes (livelock indicator)
+  bool macro_tried = false;  // macro successor attempted (design 7.1)
+  double g_cost = 0;   // TRUE physical cost from root (design D5)
+  double h_adm = 0;    // admissible h_soc (design 5.7)
 };
 
 // upper-deck occupancy set of a config (grounded + carried-at-cell)
@@ -277,11 +340,11 @@ constexpr int CLEAR_CHAIN_K = 3;
 
 Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
                         std::vector<DistCache>& target_goal_dist,
-                        DistCache& lower_dist, PathCache& paths, Scratch& sc,
-                        const void* node_key,
-                        const std::vector<std::pair<int, int>>* taboo = nullptr,
-                        const Guidance* parent = nullptr)
+                        LowerDist& lower_dist, PathCache& paths, Scratch& sc,
+                        const void* node_key, std::vector<int>& park_registry,
+                        const std::vector<std::pair<int, int>>* taboo = nullptr)
 {
+  g_guidance_builds++;
   Guidance g;
   const size_t R = ins.n_robots();
   fill_occupancy_if_needed(ins, s, sc, node_key);
@@ -292,7 +355,50 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
   // least-blocking paths (cached) drive serve/clear requests, carrier
   // guidance, and the protected set.
   g.target_park.assign(ins.n_targets(), 0);
-  for (size_t b = 0; b < ins.n_targets(); ++b) {
+  // Active-target cap (throughput, ordering-only): with hundreds of
+  // unfinished targets only ACTIVE_CAP get paths/requests/park/protection
+  // this node — carried ones first, then nearest-to-goal.  Inactive targets
+  // still count in guidance-h; the cap only changes successor ORDERING.
+  // adaptive: full guidance below the threshold (r2r-M 230 targets works
+  // well uncapped); cap only for very large target counts (dne/s2w 400ish)
+  const size_t n_unf_precount = [&]{
+    size_t n = 0;
+    std::vector<char> cf(ins.n_targets(), 0);
+    for (int k : s.kappa) if (k >= 0) cf[k] = 1;
+    for (size_t b = 0; b < ins.n_targets(); ++b)
+      if (cf[b] || s.target_pos[b] != ins.target_goals[b]) ++n;
+    return n;
+  }();
+  const size_t ACTIVE_CAP =
+      n_unf_precount > 256 ? (size_t)env_int("DD_ACTIVE_CAP", 64)
+                           : n_unf_precount;
+  std::vector<int> active_targets;
+  {
+    std::vector<char> carried_flag(ins.n_targets(), 0);
+    for (int k : s.kappa)
+      if (k >= 0) carried_flag[k] = 1;
+    std::vector<int> rest;
+    for (size_t b = 0; b < ins.n_targets(); ++b) {
+      const bool done =
+          !carried_flag[b] && s.target_pos[b] == ins.target_goals[b];
+      if (done) continue;
+      if (carried_flag[b])
+        active_targets.push_back((int)b);
+      else
+        rest.push_back((int)b);
+    }
+    std::stable_sort(rest.begin(), rest.end(), [&](int a, int b2) {
+      const auto& da = target_goal_dist[a].to(ins.target_goals[a]);
+      const auto& db = target_goal_dist[b2].to(ins.target_goals[b2]);
+      return da[s.target_pos[a]] < db[s.target_pos[b2]];
+    });
+    for (int b : rest) {
+      if (active_targets.size() >= ACTIVE_CAP) break;
+      active_targets.push_back(b);
+    }
+  }
+  for (int b_int : active_targets) {
+    const size_t b = (size_t)b_int;
     bool carried =
         std::any_of(s.kappa.begin(), s.kappa.end(),
                     [&](int k) { return k == (int)b; });
@@ -300,7 +406,7 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
     if (done) continue;
     // occupancy for this target's path: every upper cell except itself
     const auto& path = paths.get(ins.grid, (int)b, s.target_pos[b],
-                                 ins.target_goals[b], sc.upper,
+                                 ins.target_goals[b], sc.upper_path,
                                  s.target_pos[b], sc);
     if (path.size() >= 2) g.target_next[b] = path[1];
     for (int c : path) {
@@ -339,31 +445,90 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
   for (size_t b = 0; b < ins.n_targets(); ++b)
     sc.protect[ins.target_goals[b]] = 1;
 
-  // clear semantics for carried targets whose goal sits on ANOTHER
-  // unfinished target's path: park instead of delivering into the corridor.
+  // Park relation (debug.md P1-5).  Semantics (also documented in
+  // design.md "target-as-blocker parking"):
+  //   trigger  — goal_b lies on ANOTHER unfinished target o's active
+  //              least-blocking path (detected from the CURRENT X);
+  //   sticky   — the pair (b -> o) is recorded in a solve-level registry so
+  //              the decision cannot flip with path-cache retie-breaks;
+  //   release  — as soon as o is complete in the CURRENT X.
+  // Same-X consistency: EXPLORED dedup guarantees guidance is built once
+  // per configuration, so identical X always sees identical park state.
   g.park_owner.assign(ins.n_targets(), -1);
-  auto target_done = [&](int b) {
-    if (s.target_pos[b] != ins.target_goals[b]) return false;
+  auto done_in_X = [&](int o) {
+    if (s.target_pos[o] != ins.target_goals[o]) return false;
     for (int k : s.kappa)
-      if (k == b) return false;
+      if (k == o) return false;
     return true;
   };
   for (size_t b = 0; b < ins.n_targets(); ++b) {
+    // release stale registry entries first
+    if (park_registry[b] >= 0 && done_in_X(park_registry[b]))
+      park_registry[b] = -1;
+    if (park_registry[b] >= 0) {
+      g.target_park[b] = 1;
+      g.park_owner[b] = park_registry[b];
+      continue;
+    }
     const int ow__ = sc.owner[ins.target_goals[b]];
-    if (ow__ > 0 && ow__ - 1 != (int)b) {
+    if (ow__ > 0 && ow__ - 1 != (int)b && !done_in_X(ow__ - 1)) {
       g.target_park[b] = 1;
       g.park_owner[b] = ow__ - 1;
+      park_registry[b] = ow__ - 1;
     }
   }
-  // sticky park (hysteresis): inherit parent's park until the owner is done
-  if (parent && !parent->target_park.empty()) {
-    for (size_t b = 0; b < ins.n_targets(); ++b) {
-      if (g.target_park[b] || !parent->target_park[b]) continue;
-      const int owner = parent->park_owner[b];
-      if (owner >= 0 && !target_done(owner)) {
-        g.target_park[b] = 1;
-        g.park_owner[b] = owner;
+  // carrier head-on deadlock (cross-deck swap, design 5.5): two carried
+  // targets whose next path cells are each other's current cells can never
+  // pass (R2 forbids the swap; PIBT cannot fix multi-step intent).  Yield
+  // rule: the one FARTHER from its goal parks (ties: higher index).
+  if (env_int("DD_NO_YIELD", 0) == 0) {
+    std::vector<int> carrier_of(ins.n_targets(), -1);
+    for (size_t i = 0; i < R; ++i)
+      if (s.kappa[i] >= 0) carrier_of[s.kappa[i]] = (int)i;
+    for (size_t a = 0; a < ins.n_targets(); ++a) {
+      if (carrier_of[a] < 0 || g.target_park[a]) continue;
+      const int na = g.target_next[a];
+      if (na < 0) continue;
+      for (size_t b2 = a + 1; b2 < ins.n_targets(); ++b2) {
+        if (carrier_of[b2] < 0 || g.target_park[b2]) continue;
+        const int nb2 = g.target_next[b2];
+        if (nb2 < 0) continue;
+        if (na == s.target_pos[b2] && nb2 == s.target_pos[a]) {
+          const auto& da = target_goal_dist[a].to(ins.target_goals[a]);
+          const auto& db = target_goal_dist[b2].to(ins.target_goals[b2]);
+          const int ra = da[s.target_pos[a]], rb = db[s.target_pos[b2]];
+          const size_t yield_b = (ra > rb || (ra == rb)) ? a : b2;
+          g.target_park[yield_b] = 1;
+          g.park_owner[yield_b] = (int)(yield_b == a ? b2 : a);
+        }
       }
+    }
+  }
+
+  // cycle break: park relations may form cycles (a parks for o, o parks
+  // for a, possibly longer).  Walk each cycle and un-park its minimum-index
+  // member so exactly one target per cycle delivers first (deterministic).
+  for (size_t b = 0; b < ins.n_targets(); ++b) {
+    if (!g.target_park[b]) continue;
+    // follow owner chain collecting the cycle (bounded by n_targets)
+    std::vector<int> chain;
+    int cur = (int)b;
+    bool cycle = false;
+    for (size_t guard = 0; guard <= ins.n_targets(); ++guard) {
+      chain.push_back(cur);
+      const int nxt = g.target_park[cur] ? g.park_owner[cur] : -1;
+      if (nxt < 0) break;
+      if (nxt == (int)b) {
+        cycle = true;
+        break;
+      }
+      cur = nxt;
+    }
+    if (cycle) {
+      const int drop = *std::min_element(chain.begin(), chain.end());
+      g.target_park[drop] = 0;
+      g.park_owner[drop] = -1;
+      park_registry[drop] = -1;
     }
   }
 
@@ -387,7 +552,6 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
   for (int ri : req_order) {
     if (free_left == 0) break;
     const auto& req = g.requests[ri];
-    const auto& dl = lower_dist.to(req.cell);
     int best = -1, bestd = INT_MAX / 2;
     for (size_t i = 0; i < R; ++i) {
       if (robot_used[i]) continue;
@@ -397,8 +561,9 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
           banned |= (rb == (int)i && cell == req.cell);
         if (banned) continue;
       }
-      if (dl[s.robots[i]] < bestd) {
-        bestd = dl[s.robots[i]];
+      const int dd = lower_dist.dist(req.cell, s.robots[i]);
+      if (dd < bestd) {
+        bestd = dd;
         best = (int)i;
       }
     }
@@ -491,7 +656,7 @@ struct PIBTContext {
   const PhysConfig& s;
   const Guidance& g;
   std::vector<DistCache>& target_goal_dist;
-  DistCache& lower_dist;
+  LowerDist& lower_dist;
   std::mt19937& rng;
   // occupancy bookkeeping for the NEXT config being built
   std::vector<Op> ops;              // per robot; kind==WAIT&&to==-2 -> unset
@@ -516,7 +681,7 @@ struct PIBTContext {
 
   PIBTContext(const DDInstance& ins_, const PhysConfig& s_,
               const Guidance& g_, std::vector<DistCache>& tgd,
-              DistCache& ld, std::mt19937& rng_, Scratch& sc_,
+              LowerDist& ld, std::mt19937& rng_, Scratch& sc_,
               const void* node_key)
       : ins(ins_), s(s_), g(g_), target_goal_dist(tgd), lower_dist(ld),
         rng(rng_), sc(sc_)
@@ -560,12 +725,11 @@ struct PIBTContext {
     const int n = ins.grid.neighbors(q, nb);
     const int k = s.kappa[i];
 
-    auto push_moves_sorted_by = [&](const std::vector<int>& dist,
-                                    bool loaded) {
+    auto push_moves_sorted_by = [&](auto&& dist_of, bool loaded) {
       std::vector<int> cells(nb, nb + n);
       std::shuffle(cells.begin(), cells.end(), rng);
       std::stable_sort(cells.begin(), cells.end(),
-                       [&](int a, int b) { return dist[a] < dist[b]; });
+                       [&](int a, int b) { return dist_of(a) < dist_of(b); });
       for (int v : cells) {
         if (loaded) {
           // S1 pre-filter: destination upper cell free so far
@@ -578,6 +742,7 @@ struct PIBTContext {
     if (k >= 0 && !g.target_park[k]) {
       // loaded with target k
       const auto& d = target_goal_dist[k].to(ins.target_goals[k]);
+      auto d_of = [&](int c) { return d[c]; };
       if (q == ins.target_goals[k]) {
         cand.push_back(Op::make_drop());
         cand.push_back(Op::make_wait());
@@ -592,7 +757,7 @@ struct PIBTContext {
             break;
           }
       }
-      push_moves_sorted_by(d, /*loaded=*/true);
+      push_moves_sorted_by(d_of, /*loaded=*/true);
       // dedupe: drop a duplicate of nxt_cell if present
       if (cand.size() >= 2)
         for (size_t a = 1; a < cand.size(); ++a)
@@ -619,12 +784,11 @@ struct PIBTContext {
         return cand;
       }
       if (park >= 0) {
-        const auto& d = lower_dist.to(park);
-        push_moves_sorted_by(d, /*loaded=*/true);
+        auto d_of = [&](int c) { return lower_dist.dist(park, c); };
+        push_moves_sorted_by(d_of, /*loaded=*/true);
       } else {
         // no parking known: any legal loaded move
-        std::vector<int> zero(ins.grid.size(), 0);
-        push_moves_sorted_by(zero, /*loaded=*/true);
+        push_moves_sorted_by([](int) { return 0; }, /*loaded=*/true);
       }
       // drop is the last resort (validator-checked); wait before drop
       cand.push_back(Op::make_wait());
@@ -637,14 +801,13 @@ struct PIBTContext {
         if (sc.grounded[q] != 0) cand.push_back(Op::make_lift());
       }
       if (goal >= 0) {
-        const auto& d = lower_dist.to(goal);
-        push_moves_sorted_by(d, /*loaded=*/false);
+        auto d_of = [&](int c) { return lower_dist.dist(goal, c); };
+        push_moves_sorted_by(d_of, /*loaded=*/false);
         cand.push_back(Op::make_wait());
       } else {
         // idle: prefer to stay put; move only when pushed (M1 avoidance)
         cand.push_back(Op::make_wait());
-        std::vector<int> zero(ins.grid.size(), 0);
-        push_moves_sorted_by(zero, /*loaded=*/false);
+        push_moves_sorted_by([](int) { return 0; }, /*loaded=*/false);
       }
     }
     return cand;
@@ -758,14 +921,28 @@ bool pibt_fix(PIBTContext& ctx, const std::vector<int>& order, int i,
 // generator failed — allowed under partial constraints, G1)
 std::optional<std::pair<PhysConfig, std::vector<Op>>> carrier_pibt(
     const DDInstance& ins, Node& node, Constraint* c,
-    std::vector<DistCache>& tgd, DistCache& ld, std::mt19937& rng,
+    std::vector<DistCache>& tgd, LowerDist& ld, std::mt19937& rng,
     Scratch& sc, DDStats* stats)
 {
   const size_t R = ins.n_robots();
-  // collect forced ops from constraint chain
+  // collect forced ops from constraint chain (each depth fixes one robot)
   std::vector<Op> forced(R, Op{Op::WAIT, -2});
   for (Constraint* p = c; p && p->depth > 0; p = p->parent)
     forced[p->who] = p->what;
+
+  // G1 (design 4.2, debug.md P0-2): when the constraint covers ALL robots,
+  // the deterministic two-deck validator is the sole arbiter — no PIBT
+  // feasibility logic in the way.
+  if (c->depth == (int)R) {
+    if (stats) stats->pibt_calls++;
+    std::vector<Op> ops(forced);
+    auto nxt = apply_ops(ins, node.X, ops);
+    if (!nxt.has_value()) {
+      if (stats) stats->g1_rejects++;  // expected: exhaustive enumeration
+      return std::nullopt;
+    }
+    return std::make_pair(*nxt, ops);
+  }
 
   PIBTContext ctx(ins, node.X, node.guide, tgd, ld, rng, sc, &node);
   if (stats) stats->pibt_calls++;
@@ -821,6 +998,112 @@ std::vector<Op> legal_local_ops(const DDInstance& ins, const PhysConfig& s,
 
 }  // namespace
 
+// ---------- rollout core (design 7.1 / D13; shared by B0 and macro) ----------
+// From configuration X, repeatedly apply the UNCONSTRAINED Carrier-PIBT
+// generator.  Stops on: goal, any lift/drop event AFTER at least one step
+// (event boundary), step cap, generator failure, or revisiting a
+// configuration inside this rollout (local cycle).  Returns the trace.
+struct RolloutResult {
+  std::vector<std::vector<Op>> trace;  // joint ops, possibly empty
+  PhysConfig end;                      // final configuration
+  double cost = 0;                     // physical cost of the trace (D5)
+  bool reached_goal = false;
+};
+
+RolloutResult rollout_from(const DDInstance& ins, const PhysConfig& X0,
+                           int max_steps, int min_chunk,
+                           std::vector<DistCache>& tgd, LowerDist& ld,
+                           PathCache& paths, Scratch& sc,
+                           std::vector<int>& park_registry, std::mt19937& rng,
+                           DDStats* stats, bool stop_on_event)
+{
+  RolloutResult out;
+  out.end = X0;
+  std::unordered_set<uint64_t> local_seen;
+  local_seen.insert(phys_config_hash(X0));
+  Node tmp;  // reused across steps; guidance refreshed every GUIDE_EVERY
+  const int GUIDE_EVERY = env_int("DD_GUIDE_EVERY", 8);
+  for (int step = 0; step < max_steps; ++step) {
+    if (is_dd_goal(ins, out.end)) {
+      out.reached_goal = true;
+      return out;
+    }
+    tmp.X = out.end;
+    if (step % GUIDE_EVERY == 0) {
+      // guidance frozen within the chunk (ordering-only staleness);
+      // occupancy is refreshed every step below.
+      sc.occ_node = nullptr;
+      tmp.guide = build_guidance(ins, tmp.X, tgd, ld, paths, sc, &tmp,
+                                 park_registry);
+      tmp.order = make_order(ins, tmp.X, tmp.guide, tgd);
+      tmp.constraint_order = tmp.order;
+    }
+    Constraint root;
+    // tmp/config change every step: invalidate address-keyed scratch state.
+    sc.occ_node = nullptr;
+    sc.pibt_node = nullptr;
+    auto res = carrier_pibt(ins, tmp, &root, tgd, ld, rng, sc, stats);
+    if (!res.has_value()) return out;
+    auto& [X_new, ops] = *res;
+    if (!local_seen.insert(phys_config_hash(X_new)).second) return out;
+    for (size_t i = 0; i < ops.size(); ++i) {
+      if (ops[i].kind == Op::MOVE) {
+        out.cost += 1;                                    // alpha/beta = 1
+        if (out.end.kappa[i] == KAPPA_ANON) out.cost += 1;  // delta = 1
+      } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
+        out.cost += 1;                                    // gamma = 1
+      }
+    }
+    out.trace.push_back(ops);
+    out.end = X_new;
+    if (stats) stats->macro_steps++;
+    if (is_dd_goal(ins, out.end)) {
+      out.reached_goal = true;
+      return out;
+    }
+    if (stop_on_event && step >= min_chunk) {
+      for (const Op& op : ops)
+        if (op.kind == Op::LIFT || op.kind == Op::DROP) return out;
+    }
+  }
+  return out;
+}
+
+
+// physical cost of one joint op from configuration X (design 2.3, weights 1)
+double dd_edge_cost(const PhysConfig& X, const std::vector<Op>& ops)
+{
+  double c = 0;
+  for (size_t i = 0; i < ops.size(); ++i) {
+    if (ops[i].kind == Op::MOVE) {
+      c += 1;
+      if (X.kappa[i] == KAPPA_ANON) c += 1;
+    } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
+      c += 1;
+    }
+  }
+  return c;
+}
+
+// admissible h_soc (design 5.7): per unfinished target, wall-only upper
+// distance + remaining lift/drop count (2 uncarried / 1 carried).
+double dd_admissible_h(const DDInstance& ins, const PhysConfig& X,
+                       std::vector<DistCache>& tgd)
+{
+  double h = 0;
+  std::vector<char> carried(ins.n_targets(), 0);
+  for (int k : X.kappa)
+    if (k >= 0) carried[k] = 1;
+  for (size_t b = 0; b < ins.n_targets(); ++b) {
+    const bool done = !carried[b] && X.target_pos[b] == ins.target_goals[b];
+    if (done) continue;
+    const auto& d = tgd[b].to(ins.target_goals[b]);
+    h += d[X.target_pos[b]];
+    h += carried[b] ? 1 : 2;
+  }
+  return h;
+}
+
 DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
                            int seed, DDStats* stats, DDPlan* best_effort)
 {
@@ -837,15 +1120,18 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
   target_goal_dist.reserve(ins.n_targets());
   for (size_t b = 0; b < ins.n_targets(); ++b)
     target_goal_dist.emplace_back(ins.grid);
-  DistCache lower_dist(ins.grid);
+  LowerDist lower_dist(ins.grid);
   PathCache path_cache;
   Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
 
   // node storage
   std::deque<std::unique_ptr<Node>> all_nodes;
   std::unordered_map<PhysConfig, Node*, PhysConfigHasher> explored;
   // parent op edge for solution extraction
-  std::unordered_map<Node*, std::pair<Node*, std::vector<Op>>> parent_edge;
+  // edge = op sequence (1 step for primitive edges, >1 for macro edges)
+  std::unordered_map<Node*, std::pair<Node*, std::vector<std::vector<Op>>>>
+      parent_edge;
 
   // guidance-h: sum over unfinished targets of goal distance (+2 lift/drop
   // proxy).  Ordering-only signal for the livelock detector; the O(B*R)
@@ -887,10 +1173,10 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
           taboo.emplace_back((int)i, parent->guide.free_goal[i]);
     }
     nd->guide = build_guidance(ins, nd->X, target_goal_dist, lower_dist,
-                               path_cache, scratch, nd,
-                               livelock ? &taboo : nullptr,
-                               parent ? &parent->guide : nullptr);
+                               path_cache, scratch, nd, park_registry,
+                               livelock ? &taboo : nullptr);
     nd->order = make_order(ins, nd->X, nd->guide, target_goal_dist);
+    nd->constraint_order = nd->order;  // frozen for the node's lifetime
     if (livelock) {
       // shuffle within equal-priority classes only: order was built with
       // stable sort by (class, rem, id); shuffle whole order but re-sort by
@@ -907,6 +1193,7 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
                          return cls(a) < cls(b);
                        });
     }
+    nd->h_adm = dd_admissible_h(ins, nd->X, target_goal_dist);
     nd->tree_root = std::make_unique<Constraint>();
     nd->tree_open.push_back(nd->tree_root.get());
     if (stats) {
@@ -929,8 +1216,9 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
   auto extract_plan = [&](Node* nd) {
     DDPlan plan;
     for (Node* cur = nd; cur && parent_edge.count(cur);) {
-      auto& [p, ops] = parent_edge[cur];
-      plan.push_back(ops);
+      auto& [p, seq] = parent_edge[cur];
+      for (auto it = seq.rbegin(); it != seq.rend(); ++it)
+        plan.push_back(*it);
       cur = p;
     }
     std::reverse(plan.begin(), plan.end());
@@ -946,9 +1234,59 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
   std::vector<Node*> open;  // DFS stack
   open.push_back(root);
 
+  // anytime state (design 5.7; debug.md P3)
+  DDPlan best_plan;
+  double incumbent = -1;  // best physical SOC so far
+  auto on_goal = [&](Node* nd) {
+    const double soc = nd->g_cost;
+    if (incumbent < 0 || soc < incumbent - 1e-9) {
+      incumbent = soc;
+      best_plan = extract_plan(nd);
+      if (stats) {
+        stats->incumbent_updates++;
+        stats->best_soc = incumbent;
+        if (stats->first_solution_ms < 0) {
+          stats->first_solution_ms =
+              std::chrono::duration<double, std::milli>(Clock::now() - t_start)
+                  .count();
+          stats->first_solution_soc = soc;
+        }
+      }
+    }
+  };
+
   while (!open.empty() && !expired()) {
+    if (incumbent >= 0 && incumbent <= root->h_adm + 1e-9)
+      return best_plan;  // incumbent matches the admissible bound: optimal
+    // FOCAL-lite selection after the first solution: among the top of the
+    // stack pick the min-f entry (bounded scan, ordering only)
     Node* nd = open.back();
-    if (is_dd_goal(ins, nd->X)) return extract_plan(nd);
+    if (incumbent >= 0) {
+      const size_t K = std::min<size_t>(open.size(), 32);
+      size_t best_i = open.size() - 1;
+      double best_f = 1e18;
+      for (size_t j = open.size() - K; j < open.size(); ++j) {
+        const double f = open[j]->g_cost + open[j]->h_adm;
+        if (f < best_f) {
+          best_f = f;
+          best_i = j;
+        }
+      }
+      nd = open[best_i];
+      open.erase(open.begin() + best_i);
+      open.push_back(nd);
+    }
+    // f-pruning: g + admissible h >= incumbent cannot improve
+    if (incumbent >= 0 && nd->g_cost + nd->h_adm >= incumbent - 1e-9) {
+      if (stats) stats->f_pruned++;
+      open.pop_back();
+      continue;
+    }
+    if (is_dd_goal(ins, nd->X)) {
+      on_goal(nd);
+      open.pop_back();
+      continue;
+    }
     if (nd->tree_open.empty()) {
       open.pop_back();
       continue;
@@ -957,9 +1295,44 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
     nd->tree_open.pop_front();
     if (stats) stats->hl_expanded++;
 
+    // macro successor (design 7.1, D13): on the node's FIRST expansion,
+    // roll the unconstrained generator to the next lift/drop event (or cap)
+    // and insert the terminal configuration as an extra successor tried
+    // FIRST.  Constraint tree untouched -> completeness unaffected.
+    if (c->depth == 0 && !nd->macro_tried) {
+      nd->macro_tried = true;
+      auto reg_copy = park_registry;  // speculative: do not pollute registry
+      // design 7.1: on large instances free-travel phases are long, so we
+      // force a minimum chunk; on small ones stop at the FIRST event.
+      const int min_chunk =
+          (int)ins.n_targets() > 64 ? env_int("DD_MACRO_MIN", 15) : 0;
+      auto r = rollout_from(ins, nd->X, env_int("DD_MACRO_CAP", 64), min_chunk,
+                            target_goal_dist, lower_dist,
+                            path_cache, scratch, reg_copy, rng, stats,
+                            /*stop_on_event=*/true);
+      // scratch keys were invalidated by rollout; nothing stale remains
+      if (r.trace.size() >= 2 && !explored.count(r.end)) {
+        PhysConfig X_macro = r.end;
+        Node* mchild = make_node(std::move(X_macro), nd);
+        mchild->g_cost = nd->g_cost + r.cost;
+        explored.emplace(mchild->X, mchild);
+        parent_edge[mchild] = {nd, r.trace};
+        if (stats) stats->macro_successors++;
+        if (is_dd_goal(ins, mchild->X)) {
+          on_goal(mchild);
+        } else {
+          nd->tree_open.push_front(c);  // re-queue the popped constraint
+          open.push_back(mchild);
+          continue;  // try the macro child first (DFS top)
+        }
+        nd->tree_open.push_front(c);
+        continue;
+      }
+    }
+
     // low-level lazy expansion (design 5.1)
     if (c->depth < (int)R) {
-      const int r = nd->order[c->depth];
+      const int r = nd->constraint_order[c->depth];
       for (const Op& op : legal_local_ops(ins, nd->X, r, scratch, nd)) {
         c->kids.push_back(std::make_unique<Constraint>());
         Constraint* k = c->kids.back().get();
@@ -990,7 +1363,8 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
           if (ex->guide.rho[i] >= 0)
             taboo.emplace_back((int)i, ex->guide.free_goal[i]);
         ex->guide = build_guidance(ins, ex->X, target_goal_dist, lower_dist,
-                                   path_cache, scratch, ex, &taboo);
+                                   path_cache, scratch, ex, park_registry,
+                                   &taboo);
         ex->order = make_order(ins, ex->X, ex->guide, target_goal_dist);
         std::shuffle(ex->order.begin(), ex->order.end(), rng);
         std::stable_sort(ex->order.begin(), ex->order.end(), [&](int a, int b) {
@@ -1008,13 +1382,121 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
       continue;
     }
     Node* child = make_node(std::move(X_new), nd);
+    child->g_cost = nd->g_cost + dd_edge_cost(nd->X, ops);
     explored.emplace(child->X, child);
-    parent_edge[child] = {nd, ops};
+    parent_edge[child] = {nd, {ops}};
     if (child->depth > deepest->depth) deepest = child;
-    if (is_dd_goal(ins, child->X)) return extract_plan(child);
+    if (is_dd_goal(ins, child->X)) {
+      on_goal(child);
+      continue;
+    }
     open.push_back(child);
   }
-  if (stats) stats->timed_out = true;
+  if (stats) {
+    stats->timed_out = best_plan.empty();
+    stats->guidance_builds = g_guidance_builds;
+    stats->path_recomputes = g_path_recomputes;
+    stats->path_cache_hits = g_path_cache_hits;
+  }
+  if (!best_plan.empty()) return best_plan;
   if (best_effort) *best_effort = extract_plan(deepest);
   return {};
+}
+
+
+DDPlan solve_carrier_rollout(const DDInstance& ins, double time_limit_sec,
+                             int seed, DDStats* stats)
+{
+  const auto t_start = Clock::now();
+  std::mt19937 rng(seed);
+  std::vector<DistCache> tgd;
+  tgd.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  LowerDist ld(ins.grid);
+  PathCache paths;
+  Scratch sc(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+
+  DDPlan plan;
+  PhysConfig X = initial_phys_config(ins);
+  if (is_dd_goal(ins, X)) {
+    plan.push_back(std::vector<Op>(ins.n_robots(), Op::make_wait()));
+    return plan;
+  }
+  std::unordered_set<uint64_t> seen;
+  seen.insert(phys_config_hash(X));
+  while (std::chrono::duration<double>(Clock::now() - t_start).count() <
+         time_limit_sec) {
+    auto r = rollout_from(ins, X, 512, 0, tgd, ld, paths, sc, park_registry,
+                          rng, stats, /*stop_on_event=*/false);
+    for (auto& ops : r.trace) plan.push_back(std::move(ops));
+    X = r.end;
+    if (r.reached_goal) return plan;
+    if (r.trace.empty()) {
+      if (stats) stats->generator_failures++;
+      return {};  // stuck: honest failure (no search to recover)
+    }
+    if (!seen.insert(phys_config_hash(X)).second) return {};  // global cycle
+  }
+  if (stats) stats->timed_out = true;
+  return {};
+}
+
+
+double dd_root_admissible_h(const DDInstance& ins)
+{
+  std::vector<DistCache> tgd;
+  tgd.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  return dd_admissible_h(ins, initial_phys_config(ins), tgd);
+}
+
+std::vector<PhysConfig> dd_enumerate_node_successors(const DDInstance& ins,
+                                                     const PhysConfig& X,
+                                                     int seed)
+{
+  std::mt19937 rng(seed);
+  std::vector<DistCache> target_goal_dist;
+  target_goal_dist.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    target_goal_dist.emplace_back(ins.grid);
+  LowerDist lower_dist(ins.grid);
+  PathCache path_cache;
+  Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+
+  Node node;
+  node.X = X;
+  node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                              path_cache, scratch, &node, park_registry);
+  node.order = make_order(ins, node.X, node.guide, target_goal_dist);
+  node.constraint_order = node.order;
+  node.tree_root = std::make_unique<Constraint>();
+  node.tree_open.push_back(node.tree_root.get());
+
+  std::vector<PhysConfig> out;
+  std::unordered_set<uint64_t> seen;
+  const size_t R = ins.n_robots();
+  while (!node.tree_open.empty()) {
+    Constraint* c = node.tree_open.front();
+    node.tree_open.pop_front();
+    if (c->depth < (int)R) {
+      const int r = node.constraint_order[c->depth];
+      for (const Op& op : legal_local_ops(ins, node.X, r, scratch, &node)) {
+        c->kids.push_back(std::make_unique<Constraint>());
+        Constraint* k = c->kids.back().get();
+        k->parent = c;
+        k->depth = c->depth + 1;
+        k->who = r;
+        k->what = op;
+        node.tree_open.push_back(k);
+      }
+    }
+    auto res = carrier_pibt(ins, node, c, target_goal_dist, lower_dist, rng,
+                            scratch, nullptr);
+    if (!res.has_value()) continue;
+    const auto& X_new = res->first;
+    if (seen.insert(phys_config_hash(X_new)).second) out.push_back(X_new);
+  }
+  return out;
 }

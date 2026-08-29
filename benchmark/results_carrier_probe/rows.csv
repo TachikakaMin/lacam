@@ -1,0 +1,5 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,runtime_sec,status,raw
+ddmapd_h8w8r2d20t2_seed0,ddmapd,b4,1,14,14.0,4,6,4,0.0,ok,
+ddmapd_h8w8r2d20t2_seed0,ddmapd,carrier,1,11,20.0,4,12,4,0.004,ok,
+scramble_h6w6r2s4t2k20_seed0,scramble,b4,1,8,8.0,3,3,2,0.0,ok,
+scramble_h6w6r2s4t2k20_seed0,scramble,carrier,1,7,7.0,3,2,2,0.004,ok,

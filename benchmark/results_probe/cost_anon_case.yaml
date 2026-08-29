@@ -1,0 +1,23 @@
+name: cost_anon_case
+map: '....
+
+  ....
+
+  '
+robots:
+- - 1
+  - 0
+shelves:
+- - 0
+  - 1
+- - 0
+  - 3
+targets:
+- id: b0
+  start:
+  - 0
+  - 1
+  goal:
+  - 0
+  - 3
+flags: {}

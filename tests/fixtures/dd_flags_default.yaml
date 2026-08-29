@@ -1,0 +1,15 @@
+name: dd_flags_default
+map: |
+  ....
+  ....
+robots:
+  - [1, 0]
+shelves:
+  - [0, 1]
+targets:
+  - id: b0
+    start: [0, 1]
+    goal: [0, 3]
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false

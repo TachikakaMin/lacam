@@ -255,5 +255,44 @@ class TestScrambler(unittest.TestCase):
         self.assertEqual(len(ins.shelves) % 4, 0)
 
 
+class TestFlagsRejection(unittest.TestCase):
+    """debug.md P0-4 decision (a): v1 does not implement optional flag
+    semantics; loaders must fail loudly on non-default values instead of
+    silently producing wrong semantics."""
+
+    def test_non_default_flag_rejected(self):
+        import tempfile, yaml as _yaml
+        from ddbench.instance import load_instance as _load
+        doc = {
+            "map": "....\n....\n",
+            "robots": [[1, 0]],
+            "shelves": [[0, 1]],
+            "targets": [{"id": "b0", "start": [0, 1], "goal": [0, 3]}],
+            "flags": {"remove_on_complete": True},
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as f:
+            f.write(_yaml.safe_dump(doc))
+            f.flush()
+            with self.assertRaises(ValueError):
+                _load(f.name)
+
+    def test_default_flags_accepted(self):
+        import tempfile, yaml as _yaml
+        from ddbench.instance import load_instance as _load
+        doc = {
+            "map": "....\n....\n",
+            "robots": [[1, 0]],
+            "shelves": [[0, 1]],
+            "targets": [{"id": "b0", "start": [0, 1], "goal": [0, 3]}],
+            "flags": {"remove_on_complete": False,
+                      "robots_return_to_rest": False},
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as f:
+            f.write(_yaml.safe_dump(doc))
+            f.flush()
+            ins = _load(f.name)
+            self.assertEqual(len(ins.targets), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
