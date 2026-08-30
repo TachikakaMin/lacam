@@ -108,11 +108,12 @@ struct Scratch {
   std::vector<uint8_t> upper_path;  // occupancy view for PATH computation:
                                     // targets sitting on their own goals are
                                     // masked free (P1-5 determinism)
+  std::vector<uint8_t> on_prev;     // path-inertia scratch (P2-13c)
   const void* occ_node = nullptr;
   const void* pibt_node = nullptr;
   explicit Scratch(int n)
       : upper(n, 0), protect(n, 0), grounded(n, 0), owner(n, 0), dist(n),
-        prev(n), upper_base(n, 0), upper_path(n, 0) {}
+        prev(n), upper_base(n, 0), upper_path(n, 0), on_prev(n, 0) {}
 };
 
 void fill_occupancy(const DDInstance& ins, const PhysConfig& s, Scratch& sc)
@@ -167,9 +168,10 @@ std::vector<int> least_blocking_path(const DDGrid& g, int src, int dst,
   // < N < 2N = one base unit, so inertia is a strict tie-break — it can
   // never trade away real cost.  Ordering-only (guidance path shape).
   const int scale = 2 * (int)g.size();
-  std::vector<uint8_t> on_prev;
-  if (prev_path && !prev_path->empty()) {
-    on_prev.assign(g.size(), 0);
+  const bool use_prev = prev_path && !prev_path->empty();
+  auto& on_prev = sc.on_prev;
+  if (use_prev) {
+    std::fill(on_prev.begin(), on_prev.end(), 0);
     for (int c : *prev_path) on_prev[c] = 1;
   }
   using QE = std::pair<int, int>;  // (dist, cell)
@@ -187,7 +189,7 @@ std::vector<int> least_blocking_path(const DDGrid& g, int src, int dst,
       const int v = nb[k];
       const bool occ = v != exclude && occupied[v];
       int w = (1 + (occ ? LAMBDA_BLK : 0)) * scale;
-      if (!on_prev.empty() && on_prev[v]) w -= 1;
+      if (use_prev && on_prev[v]) w -= 1;
       if (dist[v] > d + w) {
         dist[v] = d + w;
         prev[v] = u;
@@ -730,8 +732,14 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
   // P2-16a knob: min-cost rho via Hungarian on the top-priority request
   // subset (rows = min(requests, free robots)).  Cost = lower-deck dist
   // minus the same eta hysteresis discount as greedy.  Ordering-only.
-  if (env_int("DD_RHO_HUNGARIAN", 1) != 0 && free_left > 0 &&
-      !req_order.empty()) {
+  // scale regime (round-2 s2w-timing fix): the O(n^3) matching per node
+  // is a clear quality win up to a few hundred targets (r2r 230: mk 614
+  // -> 548) but its per-node cost pushes 384..403-target suites past the
+  // 10 s first-solution line under parallel contention; greedy was
+  // already 25/25 there.  Same 256 boundary as DD_ACTIVE_CAP.
+  if (env_int("DD_RHO_HUNGARIAN", 1) != 0 &&
+      ins.n_targets() <= (size_t)env_int("DD_RHO_HUNGARIAN_TGT", 256) &&
+      free_left > 0 && !req_order.empty()) {
     std::vector<int> free_ids;
     for (size_t i = 0; i < R; ++i)
       if (!robot_used[i]) free_ids.push_back((int)i);

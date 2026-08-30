@@ -27,22 +27,22 @@ commit 98516f7 及其前后)。
 - **处置**:design.md v2.3 已改为 $|R|=1$ 并写入反例(本轮完成);
   **遗留**:反例固化为可执行回归测试(Python validator 穷举可达集
   断言 goal 不可达 + 同图 $|R|=1$ 时 carrier 可解)。
-- [ ] **遗留测试**:`benchmark/tests/test_theorem1.py`(或并入
-  test_validator.py):反例穷举 + 单 robot 对照。
+- [x] **遗留测试**:`benchmark/tests/test_theorem1.py` 2 用例
+  (84255fd;R2 放宽灵敏度验证:关掉 swap 检查测试即失败)。
 
-### 2. [ ] park 纯度:same-X/双缓存历史不变性未测,声明已降级
+### 2. [x] park 纯度:same-X/双缓存历史不变性未测,声明已降级
 - **位置**:dd_planner.cpp park/hover 逻辑 + PathCache 非对称失效
   (§6.2);design.md §5.4a。
 - **问题**:park 实为 (X, D_b 缓存纪元) 的函数,非纯 X 函数——同一 X
   经不同缓存历史可得不同 owner/park 集。只影响 ordering 可复现性,
   不影响可行域,但原勾选声明("纯 X 函数")过强。
 - **处置**:design.md v2.3 已把声明降级并说明纪元依赖(本轮完成)。
-- **待办**(二选一,先测后定):
-  - [ ] 写 same-X 双缓存历史测试:同一物理配置,分别经"路径格曾被
-    占后腾空"与"从未被占"两条历史到达,断言 park 集是否一致;
-  - [ ] 若选择严格纯化:park 判定改用对当前 X 严格重算的 path
-    (不走缓存),A/B 验证吞吐代价;若保留纪元依赖,测试固化
-    "不纯但 ordering-only"的边界(DD_STRICT_INVAL=1 下必须一致)。
+- **处置**(84255fd,tests/test_dd_park_purity.cpp 4 用例,夹具经
+  subagent APPROVE):同 X 双历史测试落地;审计发现原 strict 实现
+  也非纪元无关(路径局部快照看不见 off-path 腾空)——按"修实现不放宽
+  测试"方向,DD_STRICT_INVAL 升级为**全局有效占用快照失效**(真纪元
+  无关,合同成立);默认 lazy 的纪元依赖固化为 characterization 断言
+  (若未来变纪元无关,该断言失败提示升级 design 5.4a 声明)。
 
 ### 3. [x] no_astar 消融是 no-op(假对照)
 - **位置**:run_ablations.py(设 `DD_NO_ASTAR=1`);生产代码从不读取
@@ -52,7 +52,8 @@ commit 98516f7 及其前后)。
   §5.3(2)/§6.2 修正 Dijkstra 措辞;§6.6 记录该历史。
   results_ablation/ablation_rows.csv 中的 no_astar 行**作废不采信**
   (其余变体行不受影响,各变体独立运行)。
-- [ ] **可选**:重生成 ablation_rows.csv(6 变体)以移除作废行。
+- [x] 已重生成:results_ablation/ablation_rows.csv(11 变体 × 9 dev
+  cases,新默认配置,无 no_astar;2026-08-30)。
 
 ### 4. [x] dd_benchmark MODE 支持未提交(复现性)
 - **位置**:tools/dd_benchmark.cpp 的 b0/b1 分派与 first_solution_ms
@@ -60,17 +61,21 @@ commit 98516f7 及其前后)。
   HEAD 复现。
 - **处置**:已提交(本轮,见 git log "Commit stray dd_benchmark MODE
   support");runner 传参与 CLI 现在一致。
-- [ ] **遗留测试**:dd_benchmark 对未知 MODE 应报错退出(当前静默
-  回落 lacam);加 CLI 冒烟断言三种 mode 输出 method 可区分。
+- [x] **遗留测试**:benchmark/tests/test_cli.py 3 用例(84255fd,
+  RED→GREEN):未知 MODE exit 2 + stderr 提示;mode= 回显三模式可
+  区分;默认 mode=lacam。
 
-### 5. [ ] P0-1(第一轮)自称的 revisit 回归测试从未写
+### 5. [x] P0-1(第一轮)自称的 revisit 回归测试从未写
 - **位置**:第一轮清单第 1 项承诺"构造小实例强制走 revisit 路径,
   断言同一节点约束树枚举的 (robot,op) 集合与冻结 order 一致";
   实际只有 fresh-node 穷举(test_dd_g1),revisit 路径无覆盖。
 - **修复方向**:暴露测试 hook(或经 DDStats 观察),强制同一节点
   revisits≥8 触发 re-guidance 后,断言 constraint_order 与叶子
   (robot,op) 集合不变。
-- **测试**:`tests/test_dd_g1.cpp::dd_g1.revisit_preserves_enumeration`。
+- **测试**:`dd_g1_conformance.revisit_reguide_preserves_enumeration`
+  (84255fd;dd_enumerate_node_successors_reguided API 复刻生产
+  re-guidance 变异中途施加;注入"改写 constraint_order"bug 灵敏度
+  验证通过后还原)。
 
 ## P1 文档-实现一致性(本轮已大部处置)与测试补强
 
@@ -88,58 +93,80 @@ commit 98516f7 及其前后)。
   guidance-h 按实现描述(approach 项因 O(B×R) 吞吐被移除,plateau
   由信号兜住);§5.3(4) η hysteresis 标注未实现。
 
-### 8. [ ] 跨语言 golden transition corpus 缺失
+### 8. [x] 跨语言 golden transition corpus 缺失
 - **位置**:第一轮 P2-11 勾选时只建立了"整 plan 重放互查",无共享
   单转移用例集。
 - **修复方向**:固定 YAML 转移 corpus(合法/非法各若干,覆盖 §3.3
   全部规则 + §6.5 极限用例),C++ 与 Python validator 各自裁决,
   断言判定一致。
-- **测试**:`benchmark/tests/test_golden_corpus.py` +
-  `tests/test_dd_carrier.cpp::dd_validator.golden_corpus`。
+- **测试**(736f63f):tests/fixtures/golden/ 3 案例 23 行(R1/R2
+  swap+following、S1、S2-via-R2、I1 前置、I3 hover、D1 上层
+  following、2×2 零空格 rotation)+ 双跑器 test_dd_golden.cpp /
+  test_golden_corpus.py;判定翻转灵敏度双侧验证。
 
-### 9. [ ] 非单位权重 cost 一致性未测
+### 9. [x] 非单位权重 cost 一致性未测
 - **位置**:跨语言 cost 测试只覆盖默认 α=β=γ=δ=1;DD_ALPHA..DELTA
   非默认值下 C++/Python 无对照。
-- **测试**:同一固定 plan,权重 (2,1,5,3) 下两侧数值一致。
+- **测试**:benchmark/tests/test_weights.py(736f63f):强制匿名搬运
+  夹具上 (2,1,5,3) 的 weighted_soc 与全部分量计数器跨语言一致。
 
-### 10. [ ] sweep 缺 1:50 档
+### 10. [x] sweep 缺 1:50 档
 - **位置**:generate_sweep_instances.py 只有 1:2/1:5/1:10/1:20
   (20×20 放不下 1:50 的 shelf 数)。
-- **修复方向**:1:50 档改用更大地图(如 40×40)生成,重跑该轴。
-  design §8.2 已如实标注现状。
+- **处置**(736f63f):ratio_r4x50 档(40×40、4 robots、200 shelves、
+  8 targets、k=320)生成并纳入全量套件;两实例均 10s 内可解。
 
-### 11. [ ] 工具类勾选项缺最小自动测试
-- visualizer(ascii/png/web)的 plan 解析与 validator 复核路径、
-  sweep 生成器的轴集合断言、ablation runner 的 env wiring
-  (每个变体对 planner 有可观察配置差异——正是本轮抓出 no_astar
-  的检查)。各加冒烟测试。
+### 11. [x] 工具类勾选项缺最小自动测试
+- 处置(736f63f):benchmark/tests/test_tools.py 5 用例——ascii 帧
+  渲染、web viz 拒坏 plan(validator 门)、sweep 轴集合含 1:50、
+  ablation env 接线静态检查(runner 设的每个 DD_* 必须被生产源码
+  读取——正是抓 no_astar 的那个检查)、变体 mode 合法性。
 
-### 12. [ ] 过时注释与 README 数字
-- dd_planner.cpp 中仍有"park pair 记录在 solve-level registry"的
-  旧注释(与实现相反),删除;
-- benchmark/README.md 补 v3(两阶段配置)结果表与 no_astar 作废说明。
+### 12. [x] 过时注释与 README 数字
+- 处置(736f63f):两处 registry/sticky 旧注释替换为 per-X 语义;
+  README round-2 章节(v3 结果、no_astar 作废、CLI 合同、1:50)。
 
 ## P2 质量改进(非阻塞,按收益排序)
 
-### 13. [ ] 往返震荡抑制(可视化实证观察)
-- 三个叠加来源:ρ 无迟滞(η 未实现)、D_b 平局翻转、idle 避让缺失
-  (design §12.5)。
-- 步骤(test-first):(a) validator plan_cost 加 `reversals` 指标
-  (A→B→A 计数)先测基线;(b) η 迟滞;(c) 路径惯性(前路径格
-  微折扣);(d) idle 主动离开活跃 path;每步全量 A/B,质量指标
-  (makespan/SOC/reversals)与成功率都不得回归。
+### 13. [x] 往返震荡抑制(可视化实证观察)
+- 处置(a4c6cb7,四步 test-first 全落地):(a) reversals 指标
+  (test_metrics.py 5 用例;顺带修复 plan_cost 首 goal 截断 bug);
+  (b) η 迟滞 DD_ETA=2(dd_match_free_goals,3 用例);(c) 路径惯性
+  (2N 缩放-1 折扣严格平局,dd_least_blocking_path,2 用例);
+  (d) idle 避让 DD_IDLE_AVOID=1(dd_root_joint_ops,2 用例)。
+  dev 9 例累计:reversals 27392→17512(-36%)、SOC -11%、mk -8.6%、
+  9/9 不变;叠加 16a Hungarian 后 reversals 13104(-52%)。
 
-### 14. [ ] duplicate g-relax/rewire(恢复 eventually-optimal 的前提)
-- 实现 reopen/relax/rewire 后补穷举小图最优性对照;在此之前
-  §4.3 的收窄措辞保持。
+### 14. [x] duplicate g-relax/rewire(恢复 eventually-optimal 的前提)
+- 处置(b21aaf2):cheaper-g 命中更新 g/parent_edge 并 reopen,
+  goal 配置 relax 即再抽取;两相 stats 合并修复。测试
+  test_dd_rewire:12 种子 3×3 族 solver best_soc == 全转移图
+  穷举最优、relax 在族上触发、rewired plan 重放合法;dev 中性。
 
-### 15. [ ] wait-for graph(定位:提质量而非修 bug)
-- dev 全集已可解;评估其对 makespan/SOC 的增量收益。
+### 15. [x] wait-for graph(定位:提质量而非修 bug)
+- 处置(0e7231c):robot→robot(下层占位)与 carrier→(grounded
+  shelf)→clearer 两类边,函数图环检测;livelock 时定向禁忌环成员
+  ρ 对(兜底回退全量禁忌)。测试 test_dd_waitfor 3 用例(对头环用
+  DD_NO_YIELD 隔离、跨层环、无环对照)。收益:dev 质量不变;
+  dneM_seed18(此前两阶段默认下不可解)恢复可解。
 
-### 16. [ ] 扩展篮子(v2 既定)
-- Hungarian ρ、carrier-aware LNS、ITA-τ 动态 goal、非单位权重进
-  solver 目标、robot 匿名化、no-following 语义开关对齐实验、
-  placement score 新假设的 ablation。
+### 16. [x] 扩展篮子(v2 既定)——有界子集完成,其余按本清单排期
+  留 design §7 扩展
+- [x] Hungarian ρ(3da02d5):O(n³) 位势匹配,ACTIVE_CAP 限界;
+  dev A/B 大胜(mk -10%、SOC -7%、reversals -25%)→ **转正默认**
+  (DD_RHO_HUNGARIAN=0 回退);两个丢失 DnE 实例(seed18/22)全部
+  恢复可解。交叉对分离单元测试。
+- [x] 非单位权重进 solver(3da02d5):DD_SOLVER_WEIGHTS=1 贯穿
+  g/admissible-h/rollout(默认仍单位,design v1);(2,1,5,3) 加权
+  穷举最优性质测试通过。
+- [x] no-following 开关实验(16c):DD_NO_FOLLOWING=1 双层拒
+  following;量化:5 例子集 mk 总和 159→350(2.2×)、d50 3.6×,
+  命题 2 实例诚实不可解(test_dd_nofollow 3 用例)。
+- [x] placement 新假设 ablation(16d):DD_PLACE_ESCAPE 同层逃逸度
+  平局裁决;dev A/B 更差(mk +4.4%)→ **评估后不采纳**,默认关,
+  单元测试钉住旋钮行为。
+- [ → design §7] LNS、ITA-τ、robot 匿名化:按本清单原文"按 M4/
+  论文需要排期",维持 design.md §7/§12 扩展记录,不属本轮范围。
 
 ## 修复顺序建议
 

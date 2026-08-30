@@ -29,6 +29,11 @@ VARIANTS = [
     ("no_macro", {"DD_MACRO_CAP": "0"}, "lacam"),
     ("strict_inv", {"DD_STRICT_INVAL": "1"}, "lacam"),
     ("no_yield", {"DD_NO_YIELD": "1"}, "lacam"),
+    ("greedy_rho", {"DD_RHO_HUNGARIAN": "0"}, "lacam"),
+    ("no_eta", {"DD_ETA": "0"}, "lacam"),
+    ("no_idle_avoid", {"DD_IDLE_AVOID": "0"}, "lacam"),
+    ("place_escape", {"DD_PLACE_ESCAPE": "1"}, "lacam"),
+    ("nofollow", {"DD_NO_FOLLOWING": "1"}, "lacam"),
     ("b0", {}, "b0"),
     ("b1", {}, "b1"),
 ]
