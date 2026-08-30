@@ -37,21 +37,36 @@ std::string key_of(const PhysConfig& X)
   return k;
 }
 
-double edge_cost(const PhysConfig& X, const std::vector<Op>& ops)
+double edge_cost(const PhysConfig& X, const std::vector<Op>& ops,
+                 double alpha = 1, double beta = 1, double gamma = 1,
+                 double delta = 1)
 {
   double c = 0;
   for (size_t i = 0; i < ops.size(); ++i) {
     if (ops[i].kind == Op::MOVE) {
-      c += 1;
-      if (X.kappa[i] == KAPPA_ANON) c += 1;
+      const bool loaded = X.kappa[i] != KAPPA_FREE;
+      c += loaded ? alpha : beta;
+      if (X.kappa[i] == KAPPA_ANON) c += delta;
     } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
-      c += 1;
+      c += gamma;
     }
   }
   return c;
 }
 
+// NOTE: the unit-weight overloads below keep the original semantics
+// (alpha=beta -> per-move 1 regardless of loadedness).
+
+double brute_optimal_w(const DDInstance& ins, double a, double b2, double g2,
+                       double d2, int cap = 3000000);
+
 double brute_optimal(const DDInstance& ins, int cap = 3000000)
+{
+  return brute_optimal_w(ins, 1, 1, 1, 1, cap);
+}
+
+double brute_optimal_w(const DDInstance& ins, double A, double B, double G,
+                       double D, int cap)
 {
   const size_t R = ins.n_robots();
   auto X0 = initial_phys_config(ins);
@@ -86,7 +101,7 @@ double brute_optimal(const DDInstance& ins, int cap = 3000000)
         auto nxt = apply_ops(ins, X, ops);
         if (!nxt.has_value()) return;
         auto nk = key_of(*nxt);
-        const double nd = d + edge_cost(X, ops);
+        const double nd = d + edge_cost(X, ops, A, B, G, D);
         auto it = dist.find(nk);
         if (it == dist.end() || nd < it->second - 1e-9) {
           dist[nk] = nd;
@@ -158,4 +173,35 @@ TEST(dd_rewire, tiny_family_matches_brute_optimum_and_relax_fires)
   EXPECT_GT(relax_total, 0)
       << "duplicate g-relax never fired across the family — rewire "
          "machinery dead (or DDStats.g_relaxed not wired)";
+}
+
+// P2-16b — non-unit weights in the SOLVER objective (DD_SOLVER_WEIGHTS=1
+// + DD_ALPHA..DD_DELTA): with weights (2,1,5,3) the solver must reach the
+// weighted brute-force optimum on the tiny family (g/h/f-pruning must all
+// be weight-consistent; the admissible h scales with alpha/gamma).
+TEST(dd_rewire, weighted_objective_matches_weighted_brute_optimum)
+{
+  setenv("DD_SOLVER_WEIGHTS", "1", 1);
+  setenv("DD_ALPHA", "2", 1);
+  setenv("DD_BETA", "1", 1);
+  setenv("DD_GAMMA", "5", 1);
+  setenv("DD_DELTA", "3", 1);
+  int checked = 0;
+  for (int seed = 0; seed < 10; ++seed) {
+    auto ins = random_3x3(seed);
+    const double opt = brute_optimal_w(ins, 2, 1, 5, 3, 3000000);
+    if (opt < 0) continue;
+    ++checked;
+    DDStats st;
+    auto plan = solve_carrier_lacam(ins, 1.0, 0, &st);
+    ASSERT_FALSE(plan.empty()) << "seed " << seed;
+    EXPECT_NEAR(st.best_soc, opt, 1e-6)
+        << "seed " << seed << " weighted objective mismatch";
+  }
+  unsetenv("DD_SOLVER_WEIGHTS");
+  unsetenv("DD_ALPHA");
+  unsetenv("DD_BETA");
+  unsetenv("DD_GAMMA");
+  unsetenv("DD_DELTA");
+  EXPECT_GE(checked, 5);
 }

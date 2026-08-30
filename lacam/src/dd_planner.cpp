@@ -460,6 +460,60 @@ static std::vector<int> waitfor_cycles(const DDInstance& ins,
   return in_cycle;
 }
 
+
+// O(n^3) potentials Hungarian on a rows<=cols rectangular cost matrix;
+// returns per-row assigned column.  Small sizes only (rho A/B knob).
+static std::vector<int> hungarian_min_cost(
+    const std::vector<std::vector<int>>& cost)
+{
+  const int n = (int)cost.size();
+  if (n == 0) return {};
+  const int m = (int)cost[0].size();
+  const int INF = INT_MAX / 4;
+  std::vector<int> u(n + 1, 0), v(m + 1, 0), p(m + 1, 0), way(m + 1, 0);
+  for (int i = 1; i <= n; ++i) {
+    p[0] = i;
+    int j0 = 0;
+    std::vector<int> minv(m + 1, INF);
+    std::vector<char> used(m + 1, 0);
+    do {
+      used[j0] = 1;
+      const int i0 = p[j0];
+      int delta = INF, j1 = -1;
+      for (int j = 1; j <= m; ++j) {
+        if (used[j]) continue;
+        const int cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) {
+          minv[j] = cur;
+          way[j] = j0;
+        }
+        if (minv[j] < delta) {
+          delta = minv[j];
+          j1 = j;
+        }
+      }
+      for (int j = 0; j <= m; ++j) {
+        if (used[j]) {
+          u[p[j]] += delta;
+          v[j] -= delta;
+        } else {
+          minv[j] -= delta;
+        }
+      }
+      j0 = j1;
+    } while (p[j0] != 0);
+    do {
+      const int j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0);
+  }
+  std::vector<int> row_to_col(n, -1);
+  for (int j = 1; j <= m; ++j)
+    if (p[j] > 0) row_to_col[p[j] - 1] = j - 1;
+  return row_to_col;
+}
+
 Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
                         std::vector<DistCache>& target_goal_dist,
                         LowerDist& lower_dist, PathCache& paths, Scratch& sc,
@@ -673,6 +727,48 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
   const int ETA = env_int("DD_ETA", 2);
   const bool use_hyst = parent_guide != nullptr &&
                         parent_guide->free_goal.size() == R && ETA > 0;
+  // P2-16a knob: min-cost rho via Hungarian on the top-priority request
+  // subset (rows = min(requests, free robots)).  Cost = lower-deck dist
+  // minus the same eta hysteresis discount as greedy.  Ordering-only.
+  if (env_int("DD_RHO_HUNGARIAN", 1) != 0 && free_left > 0 &&
+      !req_order.empty()) {
+    std::vector<int> free_ids;
+    for (size_t i = 0; i < R; ++i)
+      if (!robot_used[i]) free_ids.push_back((int)i);
+    std::vector<int> rows;
+    for (int ri : req_order) {
+      if ((int)rows.size() >= (int)free_ids.size()) break;
+      rows.push_back(ri);
+    }
+    std::vector<std::vector<int>> cost(rows.size(),
+                                       std::vector<int>(free_ids.size(), 0));
+    for (size_t a = 0; a < rows.size(); ++a) {
+      const auto& req = g.requests[rows[a]];
+      for (size_t b2 = 0; b2 < free_ids.size(); ++b2) {
+        const int i = free_ids[b2];
+        bool banned = false;
+        if (taboo)
+          for (auto& [rb, cell] : *taboo)
+            banned |= (rb == i && cell == req.cell);
+        int dd = banned ? INT_MAX / 8
+                        : lower_dist.dist(req.cell, s.robots[i]);
+        if (!banned && use_hyst && parent_guide->rho[i] >= 0 &&
+            parent_guide->free_goal[i] == req.cell)
+          dd -= ETA;
+        cost[a][b2] = dd;
+      }
+    }
+    const auto row_to_col = hungarian_min_cost(cost);
+    for (size_t a = 0; a < rows.size(); ++a) {
+      const int c = row_to_col[a];
+      if (c < 0 || cost[a][c] >= INT_MAX / 8) continue;
+      const int i = free_ids[c];
+      robot_used[i] = true;
+      --free_left;
+      g.rho[i] = rows[a];
+      g.free_goal[i] = g.requests[rows[a]].cell;
+    }
+  } else
   for (int ri : req_order) {
     if (free_left == 0) break;
     const auto& req = g.requests[ri];
@@ -1165,6 +1261,8 @@ struct RolloutResult {
   bool reached_goal = false;
 };
 
+double dd_edge_cost(const PhysConfig& X, const std::vector<Op>& ops);
+
 RolloutResult rollout_from(const DDInstance& ins, const PhysConfig& X0,
                            int max_steps, int min_chunk,
                            std::vector<DistCache>& tgd, LowerDist& ld,
@@ -1205,14 +1303,7 @@ RolloutResult rollout_from(const DDInstance& ins, const PhysConfig& X0,
     auto& [X_new, ops] = *res;
     roll_hash = phys_config_hash_incremental(ins, out.end, ops, roll_hash);
     if (!local_seen.insert(roll_hash).second) return out;
-    for (size_t i = 0; i < ops.size(); ++i) {
-      if (ops[i].kind == Op::MOVE) {
-        out.cost += 1;                                    // alpha/beta = 1
-        if (out.end.kappa[i] == KAPPA_ANON) out.cost += 1;  // delta = 1
-      } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
-        out.cost += 1;                                    // gamma = 1
-      }
-    }
+    out.cost += dd_edge_cost(out.end, ops);
     out.trace.push_back(ops);
     out.end = X_new;
     if (stats) stats->macro_steps++;
@@ -1230,15 +1321,36 @@ RolloutResult rollout_from(const DDInstance& ins, const PhysConfig& X0,
 
 
 // physical cost of one joint op from configuration X (design 2.3, weights 1)
+// solver-objective weights (round-2 P2-16b): unit by default (design v1);
+// DD_SOLVER_WEIGHTS=1 folds DD_ALPHA..DD_DELTA into g / admissible-h /
+// rollout cost consistently (f-pruning stays admissible: h only uses
+// alpha-scaled loaded distance + gamma-scaled lift/drop lower bounds).
+struct SolverWeights {
+  double alpha = 1, beta = 1, gamma = 1, delta = 1;
+};
+static SolverWeights g_weights;  // refreshed at every solve entry
+static void refresh_solver_weights()
+{
+  SolverWeights w;
+  if (env_int("DD_SOLVER_WEIGHTS", 0) != 0) {
+    if (const char* e = getenv("DD_ALPHA")) w.alpha = atof(e);
+    if (const char* e = getenv("DD_BETA")) w.beta = atof(e);
+    if (const char* e = getenv("DD_GAMMA")) w.gamma = atof(e);
+    if (const char* e = getenv("DD_DELTA")) w.delta = atof(e);
+  }
+  g_weights = w;
+}
+
 double dd_edge_cost(const PhysConfig& X, const std::vector<Op>& ops)
 {
+  const SolverWeights& w = g_weights;
   double c = 0;
   for (size_t i = 0; i < ops.size(); ++i) {
     if (ops[i].kind == Op::MOVE) {
-      c += 1;
-      if (X.kappa[i] == KAPPA_ANON) c += 1;
+      c += X.kappa[i] == KAPPA_FREE ? w.beta : w.alpha;
+      if (X.kappa[i] == KAPPA_ANON) c += w.delta;
     } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
-      c += 1;
+      c += w.gamma;
     }
   }
   return c;
@@ -1249,6 +1361,7 @@ double dd_edge_cost(const PhysConfig& X, const std::vector<Op>& ops)
 double dd_admissible_h(const DDInstance& ins, const PhysConfig& X,
                        std::vector<DistCache>& tgd)
 {
+  const SolverWeights& w = g_weights;
   double h = 0;
   std::vector<char> carried(ins.n_targets(), 0);
   for (int k : X.kappa)
@@ -1257,8 +1370,8 @@ double dd_admissible_h(const DDInstance& ins, const PhysConfig& X,
     const bool done = !carried[b] && X.target_pos[b] == ins.target_goals[b];
     if (done) continue;
     const auto& d = tgd[b].to(ins.target_goals[b]);
-    h += d[X.target_pos[b]];
-    h += carried[b] ? 1 : 2;
+    h += w.alpha * d[X.target_pos[b]];
+    h += w.gamma * (carried[b] ? 1 : 2);
   }
   return h;
 }
@@ -1622,6 +1735,7 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
 DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
                            int seed, DDStats* stats, DDPlan* best_effort)
 {
+  refresh_solver_weights();
   // Two-phase anytime (ablation-verified):
   //   phase 1: macro rollout ON, stop at the FIRST solution -> fast,
   //            feasibility-oriented upper bound (greedy traces padded);
@@ -1676,6 +1790,7 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
 DDPlan solve_carrier_rollout(const DDInstance& ins, double time_limit_sec,
                              int seed, DDStats* stats)
 {
+  refresh_solver_weights();
   const auto t_start = Clock::now();
   std::mt19937 rng(seed);
   std::vector<DistCache> tgd;
@@ -1724,6 +1839,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
                             int seed, DDStats* stats,
                             std::vector<std::vector<int>>* fixed_paths_out)
 {
+  refresh_solver_weights();
   const auto t_start = Clock::now();
   std::mt19937 rng(seed);
   std::vector<DistCache> tgd;

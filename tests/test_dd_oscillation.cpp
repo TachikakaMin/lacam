@@ -172,3 +172,70 @@ TEST(dd_oscillation, idle_off_path_keeps_wait_first)
         << ")";
   }
 }
+
+// P2-16a — min-cost rho (Hungarian) vs greedy nearest: the classic
+// greedy-suboptimal fixture.  Requests at cells A=(0,0), B=(0,3);
+// robots r0=(0,1), r1=(0,2).  Greedy (priority order, nearest robot):
+// A takes r0 (d1), B takes r1 (d1) -> total 2 ... need asymmetric case:
+// A=(0,0), B=(0,2); r0=(0,1), r1=(0,3).  Greedy: A->r0 (1), B->r1 (1),
+// total 2 = optimal, still fine.  True separation: A=(0,1), B=(0,2);
+// r0=(0,0), r1=(0,3): greedy A->r0(1) B->r1(1)=2 optimal again...
+// Separation needs priority-order mismatch: HIGH-priority request far
+// from everyone steals the only close robot of the LOW one.
+//   serve S at (0,5) (priority 100), clear C at (0,0) (priority 50);
+//   robots r0=(0,4), r1=(0,3).
+//   greedy: S first -> r0 (d1); C -> r1 (d3). total 4.
+//   optimal: S -> r0 (1), C -> r1 (3) ... identical.  For a real swap:
+//   r0=(0,1), r1=(0,4):  greedy: S->r1 (1), C->r0 (1) total 2 optimal.
+//   r0=(0,2), r1=(0,3):  greedy: S->r1 (2), C->r0 (2) total 4 optimal.
+// Greedy-by-priority equals min-cost only when the cost matrix is a
+// permutation-friendly Monge-ish; break it with THREE requests and TWO
+// robots: priorities force greedy to serve the two HIGH requests with
+// the two robots at large cost, while min-cost picks the same requests
+// cheaper by swapping.
+//   requests: S1 (0,0) prio 100, S2 (0,5) prio 100 (tie, order by index)
+//   robots:   r0 (0,4), r1 (0,1)
+//   greedy: S1 -> r1 (d1)?  nearest to S1 is r1 (1) -> S1:r1;
+//           S2 -> r0 (1).  total 2 — optimal.  greedy nearest is optimal
+//           for 2x2 unless the first pick blocks the second:
+//   robots: r0 (0,2), r1 (0,3):
+//           greedy S1 -> r0 (2), S2 -> r1 (2) = 4; optimal same.
+//   The failing shape: S1 prio-first picks a robot that S2 NEEDS:
+//   S1 (0,3), S2 (0,0); robots r0 (0,2), r1 (0,4).
+//     greedy: S1 nearest = r1 (1) [r0 d1 too — tie, lower idx r0 wins!]
+//     -> S1:r0 (1), S2 gets r1 (4). total 5.
+//     optimal: S1:r1 (1), S2:r0 (2). total 3.  <-- separation
+TEST(dd_oscillation, hungarian_rho_beats_greedy_on_crossing_fixture)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({".....", "....."});
+  ins.robots.push_back(ins.grid.idx(0, 2));  // r0
+  ins.robots.push_back(ins.grid.idx(0, 4));  // r1
+  // two serve requests with equal priority at (0,3) and (0,0)
+  ins.target_starts.push_back(ins.grid.idx(0, 3));
+  ins.target_goals.push_back(ins.grid.idx(1, 3));
+  ins.shelves.push_back(ins.grid.idx(0, 3));
+  ins.target_starts.push_back(ins.grid.idx(0, 0));
+  ins.target_goals.push_back(ins.grid.idx(1, 0));
+  ins.shelves.push_back(ins.grid.idx(0, 0));
+  ins.finalize();
+  const auto X = initial_phys_config(ins);
+
+  // greedy mode (DD_RHO_HUNGARIAN=0; min-cost is the default since the
+  // dev A/B win: mk -10%, reversals -25%): request order (tie -> index)
+  // lets S1 grab r0, pushing S2 to pay 4.
+  setenv("DD_RHO_HUNGARIAN", "0", 1);
+  const auto greedy = dd_match_free_goals(ins, X, nullptr);
+  const int A = ins.grid.idx(0, 3), B = ins.grid.idx(0, 0);
+  ASSERT_EQ(greedy.size(), 2u);
+  EXPECT_EQ(greedy[0], A);
+  EXPECT_EQ(greedy[1], B);
+
+  // min-cost (default) must produce the crossing-free assignment
+  // (total 3): r0 -> B (d2), r1 -> A (d1)
+  unsetenv("DD_RHO_HUNGARIAN");
+  const auto opt = dd_match_free_goals(ins, X, nullptr);
+  ASSERT_EQ(opt.size(), 2u);
+  EXPECT_EQ(opt[0], B) << "min-cost rho must swap the crossing pair";
+  EXPECT_EQ(opt[1], A);
+}
