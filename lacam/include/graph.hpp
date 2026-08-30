@@ -21,9 +21,16 @@ struct Graph {
   int height;  // grid height
   Graph();
   Graph(const std::string& filename);  // taking map filename
+  // inline map rows (carrier integration M1): same wall rule and the same
+  // vertex/edge construction order as the file loader
+  explicit Graph(const std::vector<std::string>& rows);
   ~Graph();
 
   int size() const;  // the number of vertices, |V|
+
+ private:
+  // shared vertex/edge construction (file loader and inline rows)
+  void build_from_rows(const std::vector<std::string>& rows);
 };
 
 bool is_same_config(

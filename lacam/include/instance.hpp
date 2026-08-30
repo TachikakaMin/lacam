@@ -4,6 +4,7 @@
 #pragma once
 #include <random>
 
+#include "dd_carrier.hpp"
 #include "graph.hpp"
 #include "utils.hpp"
 
@@ -47,14 +48,27 @@ struct TAPFInstance {
   std::vector<std::vector<bool> > allowed;  // agent-task compatibility
   const uint N;                           // number of agents
 
+  // carrier layer (design.md v3, mapping M1): shelf occupancy and labeled
+  // rearrangement targets.  Empty on shelf-free TAPF instances — every
+  // carrier mechanism downstream degenerates by data absence, never by
+  // flag.  Cells use the Vertex::index encoding (width * y + x).
+  std::vector<int> shelf_cells;    // ALL shelf cells incl. target starts
+  std::vector<int> target_starts;  // by target index
+  std::vector<int> target_goals;   // by target index
+
   TAPFInstance(const std::string& map_filename,
                const std::vector<int>& start_indexes,
                const std::vector<std::vector<int> >& task_indexes);
   TAPFInstance(const std::string& yaml_filename,
                const std::string& map_dir = "");
+  // two-deck carrier instance (design.md v3, M1): robots become agents
+  // with NO instance tasks; the shelf layer is carried alongside.
+  explicit TAPFInstance(const DDInstance& dd);
   ~TAPFInstance() {}
 
   bool is_valid(const int verbose = 0) const;
+
+  size_t n_targets() const { return target_starts.size(); }
 };
 
 // solution: a sequence of configurations

@@ -42,14 +42,33 @@ Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
     if (std::regex_match(line, results, r_map)) break;
   }
 
+  // collect map rows, then build (same order as before the extraction)
+  auto rows = std::vector<std::string>();
+  while (getline(file, line) && (int)rows.size() < height) {
+    // for CRLF coding
+    if (!line.empty() && *(line.end() - 1) == 0x0d) line.pop_back();
+    rows.push_back(line);
+  }
+  file.close();
+  build_from_rows(rows);
+}
+
+Graph::Graph(const std::vector<std::string>& rows)
+    : V(Vertices()), width(0), height(0)
+{
+  height = rows.size();
+  for (const auto& row : rows) width = std::max(width, (int)row.size());
+  build_from_rows(rows);
+}
+
+void Graph::build_from_rows(const std::vector<std::string>& rows)
+{
   U = Vertices(width * height, nullptr);
 
   // create vertices
-  int y = 0;
-  while (getline(file, line)) {
-    // for CRLF coding
-    if (*(line.end() - 1) == 0x0d) line.pop_back();
-    for (int x = 0; x < width; ++x) {
+  for (int y = 0; y < height && y < (int)rows.size(); ++y) {
+    const auto& line = rows[y];
+    for (int x = 0; x < width && x < (int)line.size(); ++x) {
       char s = line[x];
       if (is_map_wall_char(s)) continue;  // object (shared rule)
       auto index = width * y + x;
@@ -57,9 +76,7 @@ Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
       V.push_back(v);
       U[index] = v;
     }
-    ++y;
   }
-  file.close();
 
   // create edges
   for (int y = 0; y < height; ++y) {

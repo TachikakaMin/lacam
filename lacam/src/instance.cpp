@@ -178,13 +178,42 @@ TAPFInstance::YamlData TAPFInstance::load_yaml(
   return data;
 }
 
+namespace {
+// DDGrid wall bitmap -> map rows for the shared Graph builder
+std::vector<std::string> dd_grid_rows(const DDGrid& g)
+{
+  std::vector<std::string> rows(g.height, std::string(g.width, '.'));
+  for (int r = 0; r < g.height; ++r)
+    for (int c = 0; c < g.width; ++c)
+      if (g.is_wall(g.idx(r, c))) rows[r][c] = '@';
+  return rows;
+}
+}  // namespace
+
+TAPFInstance::TAPFInstance(const DDInstance& dd)
+    : G(dd_grid_rows(dd.grid)),
+      starts(Config()),
+      tasks(Config()),
+      allowed(std::vector<std::vector<bool> >(dd.robots.size())),
+      N(dd.robots.size()),
+      shelf_cells(dd.shelves),
+      target_starts(dd.target_starts),
+      target_goals(dd.target_goals)
+{
+  for (auto cell : dd.robots) starts.push_back(G.U[cell]);
+}
+
 bool TAPFInstance::is_valid(const int verbose) const
 {
   if (N != starts.size() || N != allowed.size()) {
     info(1, verbose, "invalid N, check TAPF instance");
     return false;
   }
-  if (tasks.size() < N) {
+  // carrier form (design.md v3, M1): agents may have NO instance tasks
+  // when the instance declares rearrangement targets — the goal condition
+  // then quantifies over targets, not agent tasks.
+  const auto carrier_form = tasks.empty() && !target_starts.empty();
+  if (!carrier_form && tasks.size() < N) {
     info(1, verbose, "TAPF expects at least one unique task per agent");
     return false;
   }
@@ -205,7 +234,7 @@ bool TAPFInstance::is_valid(const int verbose) const
       }
       any_allowed = any_allowed || allowed[i][j];
     }
-    if (!any_allowed) {
+    if (!any_allowed && !carrier_form) {
       info(1, verbose, "agent has no allowed TAPF task");
       return false;
     }
