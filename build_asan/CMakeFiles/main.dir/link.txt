@@ -1,1 +1,0 @@
-/usr/bin/c++ -fsanitize=address,undefined -fno-omit-frame-pointer -g -O2 -g -DNDEBUG CMakeFiles/main.dir/main.cpp.o -o main   -L/home/yimint/.local/lib64  -Wl,-rpath,/home/yimint/.local/lib64 lacam/liblacam.a -lyaml-cpp -lstdc++fs 
