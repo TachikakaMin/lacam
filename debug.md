@@ -1,276 +1,180 @@
-# debug.md — 第二轮独立审计返工清单
+# debug.md — Carrier-LaCAM → LaCAM-TAPF 增量集成计划（v3 重写）
 
-来源:2026-08-30 独立 subagent 审计(GPT-5.6 Sol, high reasoning),对照
-design.md v2.2 与实现逐项核查后给出 **REJECT**。本文件**取代**第一轮
-清单(2026-08-29,14 项全部完成;历史内容与完成记录见 git,
-commit 98516f7 及其前后)。
-
-第二轮审计确认:核心 validator、G1 直通、constraint_order 冻结、flags
-拒载、单位权重 cost、B0/B1/dead-cell/anytime/Zobrist/M1 出口全部真实
-存在且 45 C++ + 39 Python 测试全绿;REJECT 的原因集中在**理论措辞过强、
-文档滞后于代码、一个 no-op 消融、一个提交遗漏、若干勾选项缺其自称的
-回归测试**。
-
-修复流程遵循项目规范:**先写 regression test 复现(RED)→ 修复(GREEN)
-→ 保留测试**;protected 测试的修改需独立 subagent APPROVE。
-进度标记:[ ] 未开始 / [x] 完成(附 commit 与测试名)。
+来源：2026-08-30 用户指令。本文件**取代**第二轮审计返工清单（其 16 项
+已全部完成，历史见 git：98516f7 → 2577f3f）。第三轮独立审计已判定
+dd_planner.cpp 属**另起炉灶**（架构形状可追溯 LaCAM，但对原骨架符号
+引用为 0）；此前的"骨架回迁"（P1-17/P1-18）只共享了 kernel 零件
+（Hungarian/lazy-BFS/FOCAL/LacamNodeCore），solve loop、状态类型、
+PIBT、guidance 仍是独立体系。**本轮任务：消除独立体系，把 DD 机制
+重建为现有 LaCAM-TAPF（tapf_planner.cpp）execution path 上的增量扩展。**
 
 ---
 
-## P0 正确性 / 证据完整性
+## 0. 最高约束（用户指令，不可协商）
 
-### 1. [x] 定理 1 对多 robot 不成立(理论错误)
-- **位置**:design.md §4.1(原文 "$|R|\ge 1$")。
-- **问题**:审计给出穷举反例——1×2 连通图、2 robot 占满下层、shelf
-  需左→右:upper sequential move 存在,但全系统仅 2 个可达状态,
-  goal 不可达。定理只对 $|R|=1$ 成立。
-- **处置**:design.md v2.3 已改为 $|R|=1$ 并写入反例(本轮完成);
-  **遗留**:反例固化为可执行回归测试(Python validator 穷举可达集
-  断言 goal 不可达 + 同图 $|R|=1$ 时 carrier 可解)。
-- [x] **遗留测试**:`benchmark/tests/test_theorem1.py` 2 用例
-  (84255fd;R2 放宽灵敏度验证:关掉 swap 检查测试即失败)。
+1. **禁止平行 planner / 第二套 search pipeline / 独立算法框架**。
+   终态仓库里只有一个 solve loop：`TAPFPlanner::solve()`。
+   dd_planner.cpp 的独立 loop、独立 Node/Constraint/PIBT 全部删除，
+   其公开 API 降级为 thin adapter。
+2. **Semantic invariant（spec 级）**：零 shelf（无 pick/place）实例上，
+   扩展后的 `solve_tapf` 与修改前**行为和结果一致**（解序列、搜索轨迹、
+   RNG 消耗流全部不变）。兼容性必须来自**保守扩展**（空数据结构 ⇒ 空
+   循环 ⇒ 原代码路径逐字执行），禁止 feature flag / legacy mode /
+   fallback / "检测无 pick/place 后切换 baseline"。
+3. 开发流程严格 **test → RED → implementation → GREEN → benchmark →
+   regression test → debug**；发现 bug 先写 regression test 复现再修。
+4. 新增 tests / benchmark cases 一经创建即 **protected**；修改需独立
+   subagent（GPT-5.6 Sol, high reasoning）明确 APPROVE。既有 protected
+   资产（全部 test_dd_*、benchmark/tests/*、dev_cases.txt、benchmark
+   语义）继续受保护。
+5. Benchmark：与 baseline 相同 dataset/seed/metric/success 语义，每
+   testcase 严格 10s；并行度钉在物理核数且留 1–2 核（本机 16 物理核
+   ⇒ 全量跑 jobs=14）；单 testcase 内不超订。
 
-### 2. [x] park 纯度:same-X/双缓存历史不变性未测,声明已降级
-- **位置**:dd_planner.cpp park/hover 逻辑 + PathCache 非对称失效
-  (§6.2);design.md §5.4a。
-- **问题**:park 实为 (X, D_b 缓存纪元) 的函数,非纯 X 函数——同一 X
-  经不同缓存历史可得不同 owner/park 集。只影响 ordering 可复现性,
-  不影响可行域,但原勾选声明("纯 X 函数")过强。
-- **处置**:design.md v2.3 已把声明降级并说明纪元依赖(本轮完成)。
-- **处置**(84255fd,tests/test_dd_park_purity.cpp 4 用例,夹具经
-  subagent APPROVE):同 X 双历史测试落地;审计发现原 strict 实现
-  也非纪元无关(路径局部快照看不见 off-path 腾空)——按"修实现不放宽
-  测试"方向,DD_STRICT_INVAL 升级为**全局有效占用快照失效**(真纪元
-  无关,合同成立);默认 lazy 的纪元依赖固化为 characterization 断言
-  (若未来变纪元无关,该断言失败提示升级 design 5.4a 声明)。
+## 1. 目标架构（一段话）
 
-### 3. [x] no_astar 消融是 no-op(假对照)
-- **位置**:run_ablations.py(设 `DD_NO_ASTAR=1`);生产代码从不读取
-  该变量,least-blocking 路径本就是 Dijkstra(无 A* 开关)。
-- **问题**:"no_astar 9/9" 不能作为消融证据;§6.2 原文误写 A*。
-- **处置**(本轮完成):变体已从 run_ablations.py 移除;design.md
-  §5.3(2)/§6.2 修正 Dijkstra 措辞;§6.6 记录该历史。
-  results_ablation/ablation_rows.csv 中的 no_astar 行**作废不采信**
-  (其余变体行不受影响,各变体独立运行)。
-- [x] 已重生成:results_ablation/ablation_rows.csv(11 变体 × 9 dev
-  cases,新默认配置,无 no_astar;2026-08-30)。
+唯一 solve loop = `TAPFPlanner::solve()`。状态 = `Config`（robots，
+`vector<Vertex*>`，原样）+ `ShelfState{target_pos, anon_occ, kappa}`
+（零 shelf 时三个 vector 全空）。**角色模型**：free robot ≡ 原 TAPF
+agent（候选排序、hindrance、swap、优先级继承等原语义完整保留；其
+"task" 可以是实例 task（TAPF）或 guidance 派发的 request cell（DD））；
+loaded robot 与 Lift/Drop 是新增的 operator 维度；shelf 是被 robot op
+驱动的状态变量（design §0）。`dd_carrier.cpp`（PhysConfig/apply_ops/
+load_dd_instance）保留为 conformance oracle 与实例格式层，不是第二个
+planner。`dd_planner.hpp` 的全部 API（solve_carrier_lacam/rollout/
+2stage + 测试支持 API）变为集成机制的 adapter（类型换算 + 转发）。
 
-### 4. [x] dd_benchmark MODE 支持未提交(复现性)
-- **位置**:tools/dd_benchmark.cpp 的 b0/b1 分派与 first_solution_ms
-  输出一直是未提交 diff;results_final_v2 的 B0/B1 列无法从干净
-  HEAD 复现。
-- **处置**:已提交(本轮,见 git log "Commit stray dd_benchmark MODE
-  support");runner 传参与 CLI 现在一致。
-- [x] **遗留测试**:benchmark/tests/test_cli.py 3 用例(84255fd,
-  RED→GREEN):未知 MODE exit 2 + stderr 提示;mode= 回显三模式可
-  区分;默认 mode=lacam。
+## 2. 集成映射表（design.md 机制 → LaCAM-TAPF 修改位置）
 
-### 5. [x] P0-1(第一轮)自称的 revisit 回归测试从未写
-- **位置**:第一轮清单第 1 项承诺"构造小实例强制走 revisit 路径,
-  断言同一节点约束树枚举的 (robot,op) 集合与冻结 order 一致";
-  实际只有 fresh-node 穷举(test_dd_g1),revisit 路径无覆盖。
-- **修复方向**:暴露测试 hook(或经 DDStats 观察),强制同一节点
-  revisits≥8 触发 re-guidance 后,断言 constraint_order 与叶子
-  (robot,op) 集合不变。
-- **测试**:`dd_g1_conformance.revisit_reguide_preserves_enumeration`
-  (84255fd;dd_enumerate_node_successors_reguided API 复刻生产
-  re-guidance 变异中途施加;注入"改写 constraint_order"bug 灵敏度
-  验证通过后还原)。
+| # | design.md 机制 | 现 dd_planner.cpp 位置 | 集成落点（文件 :: 函数/结构） | 零 shelf 退化论证 |
+|---|---|---|---|---|
+| M1 | §2.1/§2.2 双层实例 + goal 条件 | DDInstance / load_dd_instance / is_dd_goal | instance.hpp/.cpp :: `TAPFInstance` 增 `shelf_cells / target_starts / target_goals`（默认空）+ 新 ctor `TAPFInstance(const DDInstance&)`；graph.hpp/.cpp :: `Graph(rows)` inline-map ctor；tapf_planner.cpp :: `is_goal_config` = 原 task 匹配（仅遍历**有 allowed task** 的 agent）∧ 所有 target grounded@goal | 字段空；TAPF 实例每个 agent 都有 task（is_valid 保证），量词范围与原实现相同 |
+| M2 | §3.1 状态 X=(Q^R,Q^B,κ) | PhysConfig | tapf_planner.hpp :: `TAPFNode` 增 `ShelfState`；solve() 的 CLOSED：`unordered_map<Config,·>` → `unordered_map<XKey{C,shelf},·>`，hasher = ConfigHasher(C) ⊕ shelf-hash（空 shelf ⇒ ⊕0） | shelf 恒空 ⇒ key 等价性与桶行为 ≡ Config |
+| M3 | §3.2 primitive ops + §5.2 operator 约束树 | Op / legal_local_ops / Constraint(parent-chain) | planner.hpp :: `Constraint` 增 op payload（与 who/where 平行；上游 `Constraint(parent,i,v)` ctor 语义不变）；tapf_planner.cpp solve() 展开处：候选 = 邻居+self（原顺序、同一次 shuffle）∪ 条件追加（free 且站在 grounded shelf 上 → LIFT；carrying → DROP）；search_kernel.hpp :: `lacam_expand_constraint_vec` 携带 payload | 追加条件永不成立 ⇒ 候选集合、长度、RNG 消耗与原实现一致 |
+| M4 | §3.3 转移合法性（R1/R2/S1/I1-I3）+ G1 直通 | carrier_pibt 末端 apply_ops | tapf_planner.cpp :: `get_new_config` — forced-op 内联检查（现只有 R1/R2）扩展上层规则与 lift/drop 前置条件；`funcPIBT` feasibility 增 `upper_next` 占用计数（S1）；M.depth==N 全约束时内联规则即完整裁决（G1）；**与 oracle（apply_ops）的等价性由 test_dd_g1 穷举对照钉住** | upper 结构恒空，新检查是空操作；R1/R2 路径逐字保留 |
+| M5 | §2.3/§5.7 cost 与 admissible h | dd_edge_cost / dd_admissible_h | tapf_planner.cpp :: `get_edge_cost` = 原 task 项（对**有 task** 的 agent）+ 物理项（loaded/free move、lift/drop、anon，unit 权重；DD_SOLVER_WEIGHTS 语义保留）；TAPFNode g/h/f `unsigned`→`double`（整数值在 double 中精确，比较行为不变）；h = assignment.cost + h_shelf（dd_admissible_h 平移） | 物理项对有 task 的 agent 恒 0（无 loaded/lift/drop/taskless）；double 化不改变整数比较 |
+| M6 | §5.3 guidance：D_b/requests/ρ/parking/ACTIVE_CAP | build_guidance / PathCache / LowerDist / make_order | tapf_planner.cpp :: guidance 模块（同文件；TAPFNode 创建路径调用）：PathCache/least_blocking_path/park/yield/parking 逐一平移；ρ 复用 `tapf_hungarian_row_to_col`（已共享）+ eta 迟滞；request-cell 与 target-goal 距离场挂 `TAPFDistTable` 新增的动态场族（LazyBfsField 复用；wallfree Manhattan fast-path 仅作用于动态场族，task 场族保持原 lazy BFS） | targets 空 ⇒ requests 空 ⇒ 整个模块零调用（数据驱动，无开关） |
+| M7 | §5.4 Carrier-PIBT 候选序 | PIBTContext::candidates | tapf_planner.cpp :: `funcPIBT` — 候选构造按**角色**分派：free-with-goal = **原代码路径**（dist 排序 + hindrance + tie_breakers + swap；DD free robot 的 goal=request cell，距离取动态场）；loaded（§5.4 表：path-next 优先、S1 预过滤、结构阻塞时 Drop 前置）；idle（避让 protect 格）；**递归/预留/回溯语义 = 上游 funcPIBT 原样**（放弃 DD 自有 pibt_recurse 的三处 delta） | 全部 agent 都是 free-with-task ⇒ 原路径逐字执行 |
+| M8 | §5.4a target-as-blocker park + 载具对头 yield | build_guidance 中段 | guidance 模块内平移；per-X 纯函数语义、carried-hover mask、环打破（最小下标）、DD_NO_YIELD 旋钮全部保持 | 无 target ⇒ 不执行 |
+| M9 | §5.5 livelock 信号 / wait-for / 重访 re-guidance | make_node 信号 + solve 重访分支 + waitfor_cycles | tapf_planner.cpp :: 节点创建路径挂 `h_guidance/best_h/no_progress`（**仅 h_guidance>0 时累计**）；solve() duplicate 分支挂 revisit 计数与 re-guidance（requests 非空才有动作/抽签）；waitfor_cycles 平移 | h_guidance≡0 ⇒ 信号永不触发 ⇒ 无新增 RNG 消耗 |
+| M10 | §7.1 macro rollout（与 B0 共码，D13） | rollout_from / solve_carrier_rollout | tapf_planner.cpp :: `TAPFPlanner` 新增无约束单步生成（复用 get_new_config 路径）+ rollout 循环；solve() 在节点首扩注入 macro child（条件：存在未完成 target ∧ 规模域 ∧ 首解前）；macro 边的多步 trace 与 cost 存 parent-edge 附注（供 rewrite/抽取） | 未完成 target = 0 ⇒ 永不注入（macro 事件语义定义在 shelf 事件上） |
+| M11 | D14 两阶段 anytime | solve_carrier_lacam wrapper | tapf_planner.hpp :: `TAPFSearchConfig` 增 `{stop_at_first, incumbent_init, macro_enabled}`（默认值 = 现 TAPF 行为）；DD 入口按 D14 两次调用 solve_tapf，取更优 | 默认配置下 solve() 控制流与现在 bit 相同 |
+| M12 | §4.3 duplicate g-relax/rewire | explored 命中 g_new<g 分支 | **已存在**：`TAPFPlanner::rewrite()` 即该机制（neighbor 集 + 传播 + 重入 OPEN）；macro 边 cost 从 trace 附注读取 | 原样 |
+| M13 | §5.7 FOCAL / anytime 选点 / f 剪枝 / 早停 | focal_select_index 调用块 | **已存在**：tapf select_open_index / incumbent / `S->f >= S_goal->g` 剪枝 / `S_goal->g <= initial_lower_bound` 早停；DD 的 h_adm 进 h | 原样 |
+| M14 | §6.1 canonical hash / Zobrist | phys_config_hash(_incremental) | XKey hasher = ConfigHasher ⊕ shelf Zobrist（splitmix64 派生，dd_carrier 保留）；rollout 局部去重继续用增量 hash | ⊕0，桶行为不变 |
+| M15 | §8.1 B1（2-stage） | solve_carrier_2stage | 入口 adapter：stage-1 冻结 least-blocking 计划 → guidance.plan_bound 硬约束；执行走同一 funcPIBT | — |
+| M16 | 测试支持 API（G1 枚举/park/rho/path/waitfor/parking…） | dd_planner.hpp 全部 | 签名不变；dd_planner.cpp 变 thin adapter（DDInstance/PhysConfig ↔ TAPFInstance/Config+ShelfState 视图换算），转发到集成机制的**生产代码** | — |
+| M17 | dd_benchmark CLI（MODE/统计/plan 格式） | tools/dd_benchmark.cpp | 外部合同不变（benchmark/tests/test_cli.py protected）；内部走 adapter | — |
 
-## P1 文档-实现一致性(本轮已大部处置)与测试补强
+**删除清单（终态不得残留）**：dd_planner.cpp 独立 solve loop、DD 私有
+Node/Constraint/PIBTContext/pibt_recurse 调用、search_kernel.hpp 的
+`dd_expand_constraint` 与 `pibt_recurse`（cutover 后无使用者即删）、
+dd_dist_adapters.hpp（若 cutover 后仅测试引用，须经 subagent APPROVE
+调整对应测试或改挂 GraphIdTopology）。
 
-### 6. [x] 两阶段 anytime + macro 规模域未入文档
-- **处置**:design.md v2.3 全面同步(§4.2/§4.3/§5.1/§7.1/§8.1/§10/
-  D14/§12);158/162 与质量 2.5–3× 数字已落;§6.6 新增旋钮配置表
-  (DD_MACRO_TGT/CAP/MIN/SPARSE、DD_GUIDE_EVERY、DD_ACTIVE_CAP、
-  DD_STRICT_INVAL、DD_NO_YIELD、DD_ALPHA..DELTA、DD_DEBUG_DUMP)。
-- 回归锚:`test_dd_anytime::macro_disabled_after_first_solution`。
+## 3. 向后兼容逐点论证（golden 特征化测试钉死）
 
-### 7. [x] eventually-optimal / D11 / guidance-h MUST 措辞过强
-- **处置**:design.md v2.3——§4.3 撤回 LaCAM* 套用声明(实现无
-  g-relax/rewire,如实记录屏蔽效应);D11 重写(冻结的是
-  constraint_order,guidance 可在 livelock 信号下重建);§5.7
-  guidance-h 按实现描述(approach 项因 O(B×R) 吞吐被移除,plateau
-  由信号兜住);§5.3(4) η hysteresis 标注未实现。
+1. **RNG 流**：展开 shuffle 作用于同长度同内容候选列表；funcPIBT
+   tie_breakers 抽签次数不变；restart_rate 抽签位置不变；livelock/
+   re-guidance/macro 的抽签被数据条件（h_guidance>0 / requests 非空 /
+   未完成 target>0）自然屏蔽。
+2. **order**：`init_priorities_and_order` 原样；角色分类排序对全同类
+   agent 用 stable_sort ⇒ 原序保持；`constraint_order` = 创建时 order
+   拷贝（冻结，D11），TAPF 原实现本就从不在创建后改 order，语义一致。
+3. **类型**：g/h/f unsigned→double，整数值精确表示，所有比较/剪枝/
+   早停判定不变。
+4. **CLOSED**：XKey 等价 ⇔ Config 等价（shelf 空）；hash 值 = 原
+   ConfigHasher 值 ⊕ 0。
+5. **goal / edge cost / h**：量词范围"有 task 的 agent" = 原全体。
+6. **get_new_config / funcPIBT**：新增检查全部以 shelf 数据为条件；
+   upper 数组零元素。swap/hindrance 路径不动。
+7. **assignment 层**：零 task 时不调用 Hungarian（空 universe 直接
+   feasible/cost0）——仅 DD 实例可达（TAPF is_valid 要求 task≥N）。
+8. **Solution 抽取 / post_processing / tapf_benchmark CLI**：不动。
+9. **planner.cpp（上游 MAPF）**：共享 Constraint 增 payload 但默认
+   ctor 语义不变；main.cpp 路径 golden 覆盖。
+10. **验证手段**：WP0 golden 特征化测试（多实例×多 seed：解全序列
+    hash + soc + makespan + hl_loop_iterations + hl_nodes_created），
+    先于一切改动落地，全程必须绿。
 
-### 8. [x] 跨语言 golden transition corpus 缺失
-- **位置**:第一轮 P2-11 勾选时只建立了"整 plan 重放互查",无共享
-  单转移用例集。
-- **修复方向**:固定 YAML 转移 corpus(合法/非法各若干,覆盖 §3.3
-  全部规则 + §6.5 极限用例),C++ 与 Python validator 各自裁决,
-  断言判定一致。
-- **测试**(736f63f):tests/fixtures/golden/ 3 案例 23 行(R1/R2
-  swap+following、S1、S2-via-R2、I1 前置、I3 hover、D1 上层
-  following、2×2 零空格 rotation)+ 双跑器 test_dd_golden.cpp /
-  test_golden_corpus.py;判定翻转灵敏度双侧验证。
+## 4. 已知 DD 侧语义变化（诚实清单；由 benchmark gate 裁决）
 
-### 9. [x] 非单位权重 cost 一致性未测
-- **位置**:跨语言 cost 测试只覆盖默认 α=β=γ=δ=1;DD_ALPHA..DELTA
-  非默认值下 C++/Python 无对照。
-- **测试**:benchmark/tests/test_weights.py(736f63f):强制匿名搬运
-  夹具上 (2,1,5,3) 的 weighted_soc 与全部分量计数器跨语言一致。
+集成后 DD 行为不承诺与旧 dd_planner bit 相同（旧实现删除），仅承诺
+成功率/质量 gate（§6）。变化源：
 
-### 10. [x] sweep 缺 1:50 档
-- **位置**:generate_sweep_instances.py 只有 1:2/1:5/1:10/1:20
-  (20×20 放不下 1:50 的 shelf 数)。
-- **处置**(736f63f):ratio_r4x50 档(40×40、4 robots、200 shelves、
-  8 targets、k=320)生成并纳入全量套件;两实例均 10s 内可解。
+- D1 PIBT 递归采用上游语义（占位保留、wait=预留+false 让 pusher 重试、
+  递归失败不试下一候选），替换 DD 自有三处 delta；
+- D2 邻接序 DDGrid(下/上/右/左) → Graph::neighbor(左/右/上/下)，
+  tie-break 平移；
+- D3 类内序从 (余距,id) 改为 TAPF 优先级继承（design §5.4 N.order
+  第 3 条"no-progress 提升"的原生实现即此机制）；
+- D4 free 载具候选获得 hindrance 项与 LaCAM2 swap（free-free 对）；
+- D5 duplicate 命中的 restart_rate 抽签对 DD 生效；
+- D6 goal 判定含 target grounded 条件平移（D10 不变）。
 
-### 11. [x] 工具类勾选项缺最小自动测试
-- 处置(736f63f):benchmark/tests/test_tools.py 5 用例——ascii 帧
-  渲染、web viz 拒坏 plan(validator 门)、sweep 轴集合含 1:50、
-  ablation env 接线静态检查(runner 设的每个 DD_* 必须被生产源码
-  读取——正是抓 no_astar 的那个检查)、变体 mode 合法性。
+任何 gate 未达 → 按 regression-test-first 流程定位；候选回旋手段
+（按 design 语义合法、非 hack）：候选序微调、swap 对 DD 关闭须以
+"载具语义不满足 swap 前置"论证而非开关、类内序恢复余距键等。
 
-### 12. [x] 过时注释与 README 数字
-- 处置(736f63f):两处 registry/sticky 旧注释替换为 per-X 语义;
-  README round-2 章节(v3 结果、no_astar 作废、CLI 合同、1:50)。
+## 5. 工作包（WP）与出口判据
 
-## P2 质量改进(非阻塞,按收益排序)
+- **WP0 golden 特征化（先于一切代码改动）**
+  新 test_tapf_compat.cpp：固定 (实例,seed) 组 × {solve_tapf, solve}
+  → 全解 hash/soc/makespan/关键 stats 常量断言（常量由改动前 HEAD
+  运行采集）。出口：当前 HEAD 上全绿；此后每个 WP 结束必须仍全绿。
+- **WP1 实例/图层（M1）**：DD YAML → TAPFInstance（经 DDInstance）；
+  Graph inline ctor；is_valid 规则。RED：加载 DD fixture 断言字段。
+- **WP2 状态/键/goal/cost（M2/M5/M14 + M11 config 字段）**：
+  ShelfState、XKey CLOSED、goal、edge cost、h、double 化、空 task
+  assignment 守卫。RED：已解 DD 实例 solve_tapf 返回单步；goal/cost
+  单元；golden 全绿。
+- **WP3 生成器（M3/M4 + plan 导出）**：op 约束、展开追加、forced-op
+  上层检查、funcPIBT 上层 veto + lift/drop、G1、(C,shelf) 链 → DDPlan
+  导出。RED：单 blocker / 双 blocker chain / corridor 小 fixture 经
+  solve_tapf 解出且 oracle 重放通过。
+- **WP4 guidance 全栈（M6/M7/M8/M9/M10 部分）**：requests/ρ(Hungarian
+  +eta)/PathCache/park/yield/order 类/livelock/waitfor/idle 避让/
+  parking/ACTIVE_CAP/rollout 单步。RED：dev 小例（scramble_h6w6 等）
+  经 solve_tapf 10s 内解出。
+- **WP5 cutover（M10/M11/M15/M16/M17）**：两阶段入口、B0/B1、全部
+  dd_* API 转 adapter，删除旧 loop 与死代码。出口：**全部 C++ 13
+  target + Python 套件绿**（protected 测试不改，除非 APPROVE）；
+  dev 9/9 within 10s。
+- **WP6 benchmark parity**：dev → 全量 164×7（jobs=14，统一 10s，
+  baseline 同批重跑）。gate 见 §6。回归→regression test→修。
+- **WP7 审计与汇报**：git diff 逐项对照本映射表；无 dead code/平行
+  实现/特殊分支；文档同步；最终报告。
 
-### 13. [x] 往返震荡抑制(可视化实证观察)
-- 处置(a4c6cb7,四步 test-first 全落地):(a) reversals 指标
-  (test_metrics.py 5 用例;顺带修复 plan_cost 首 goal 截断 bug);
-  (b) η 迟滞 DD_ETA=2(dd_match_free_goals,3 用例);(c) 路径惯性
-  (2N 缩放-1 折扣严格平局,dd_least_blocking_path,2 用例);
-  (d) idle 避让 DD_IDLE_AVOID=1(dd_root_joint_ops,2 用例)。
-  dev 9 例累计:reversals 27392→17512(-36%)、SOC -11%、mk -8.6%、
-  9/9 不变;叠加 16a Hungarian 后 reversals 13104(-52%)。
+## 6. Benchmark 协议与 gate
 
-### 14. [x] duplicate g-relax/rewire(恢复 eventually-optimal 的前提)
-- 处置(b21aaf2):cheaper-g 命中更新 g/parent_edge 并 reopen,
-  goal 配置 relax 即再抽取;两相 stats 合并修复。测试
-  test_dd_rewire:12 种子 3×3 族 solver best_soc == 全转移图
-  穷举最优、relax 在族上触发、rewired plan 重放合法;dev 中性。
+- dev cases：benchmark/dev_cases.txt 9 例（protected，不变），10s。
+- 全量：instances_full2 全套（small/standard/paper/sweep，164 实例）×
+  7 方法（carrier/carrier_b0/carrier_b1/b4/crest_base/crest_full/
+  natcbs），统一 10s，jobs=14（16 物理核留 2），LD_LIBRARY_PATH 直跑
+  二进制；**benchmark 运行期间不并行跑测试套件**（历史教训）。
+- 对照基准：results_final_v5（旧实现官方数字：carrier 162/164，
+  r2r 25/25 mk 548，dne 24/25，s2w 25/25）。
+- **gate**：TAPF golden 全等；DD carrier 解出数 ≥162/164；r2r/s2w/dne
+  家族平均 executed makespan ≤ v5 对应值 +5%；carrier_b0/b1 保持
+  各自基线语义（共码退化关系不变）。
+- 未达 gate：先固化 regression test，再调查；结果如实入报告。
 
-### 15. [x] wait-for graph(定位:提质量而非修 bug)
-- 处置(0e7231c):robot→robot(下层占位)与 carrier→(grounded
-  shelf)→clearer 两类边,函数图环检测;livelock 时定向禁忌环成员
-  ρ 对(兜底回退全量禁忌)。测试 test_dd_waitfor 3 用例(对头环用
-  DD_NO_YIELD 隔离、跨层环、无环对照)。收益:dev 质量不变;
-  dneM_seed18(此前两阶段默认下不可解)恢复可解。
+## 7. Protected 清单增量
 
-### 16. [x] 扩展篮子(v2 既定)——有界子集完成,其余按本清单排期
-  留 design §7 扩展
-- [x] Hungarian ρ(3da02d5):O(n³) 位势匹配,ACTIVE_CAP 限界;
-  dev A/B 大胜(mk -10%、SOC -7%、reversals -25%)→ **转正默认**
-  (DD_RHO_HUNGARIAN=0 回退);两个丢失 DnE 实例(seed18/22)全部
-  恢复可解。交叉对分离单元测试。
-- [x] 非单位权重进 solver(3da02d5):DD_SOLVER_WEIGHTS=1 贯穿
-  g/admissible-h/rollout(默认仍单位,design v1);(2,1,5,3) 加权
-  穷举最优性质测试通过。
-- [x] no-following 开关实验(16c):DD_NO_FOLLOWING=1 双层拒
-  following;量化:5 例子集 mk 总和 159→350(2.2×)、d50 3.6×,
-  命题 2 实例诚实不可解(test_dd_nofollow 3 用例)。
-- [x] placement 新假设 ablation(16d):DD_PLACE_ESCAPE 同层逃逸度
-  平局裁决;dev A/B 更差(mk +4.4%)→ **评估后不采纳**,默认关,
-  单元测试钉住旋钮行为。
-- [ → design §7] LNS、ITA-τ、robot 匿名化:按本清单原文"按 M4/
-  论文需要排期",维持 design.md §7/§12 扩展记录,不属本轮范围。
+既有全部 protected 资产不变。本轮新增（创建即 protected）：
+test_tapf_compat.cpp（golden 特征化）、WP1-WP5 各 RED 测试、
+（若新增 benchmark case 则同样 protected）。
 
-## P1-17 骨架回迁(2026-08-30 第三轮独立审计,GPT-5.6 Sol high)
+## 8. 进度
 
-审计结论:dd_planner 属**另起炉灶**(置信 95%)——架构形状可追溯
-LaCAM,但对原骨架符号引用为 0;自写 Hungarian 与 tapf_assignment 原版
-token 相似率 72.4%(复制而非调用)。违反 design §10 "fork tapf_planner、
-DistTable 直接复用" 的既定方针。按审计的最小代价路径逐组件回迁
-(全程 125+ 测试全绿 + 164 套件性能不回退为门禁):
+- [ ] WP0 golden 特征化
+- [ ] WP1 实例/图层
+- [ ] WP2 状态/键/goal/cost
+- [ ] WP3 生成器
+- [ ] WP4 guidance 全栈
+- [ ] WP5 cutover + 删除旧实现
+- [ ] WP6 benchmark parity（dev → 全量）
+- [ ] WP7 git diff 审计 + 最终汇报
 
-1. [x] **Hungarian 复用**:原匿名 HungarianAssignment 提为公开
-   `tapf_hungarian_row_to_col`,TAPF 原类改薄包装,DD 复制版删除;
-   契约测试 test_tapf_hungarian_shared 5 用例(矩形/负代价/禁制/
-   平局确定性/穷举对照);确定性逐位验证(dev SOC 38178/15801/35949
-   与 v4 一致)。
-2. [x] **共享 lazy distance core**:lazy_dist.hpp 落地——原 DistTable
-   的 resumable lazy BFS(RRA*)提为拓扑无关模板 LazyBfsField,DD 侧
-   完成接入(DDLazyDist/DDDistCache adapter,旧 bfs_dist/DistCache
-   复制版删除;`.to()` 保 legacy 全量视图、`dist()` 提供 lazy 迁移
-   路径;sentinel 按调用方传入)。契约测试 test_lazy_dist 4 用例
-   (任意查询序等价/可续性 expanded 计数/哨兵/adapter 全量视图);
-   benchmark 数字逐位不变(479/15801/38178/35949)。
-   上游已收口:dist_table / tapf_dist_table 均改为 GraphIdTopology
-   adapter 挂同一核心(近似逐行重复的两份 BFS 删除;test_all 86 测试
-   门禁通过)。**本项完成**(标记改 [x])。
-3. [x] **topology 接口**:LazyBfsField 模板即拓扑概念,DDGrid 与
-   GraphIdTopology 双双满足(#2 已落);邻接序 down/up/right/left
-   golden 测试钉死(确定性合同);墙字符规则提为 utils.hpp 共享
-   is_map_wall_char(graph.cpp 与 dd_carrier.cpp 同源)。
-4. [x] **FOCAL selector 对齐**:原 tapf_planner select_open_index
-   语义(全 OPEN viable f_min、bound=w·f_min、h_adm 平局、栈顶兜底)
-   落入 DD;shadow A/B 门禁精确通过(164 套 162/164、r2r mk=548、
-   dev 中性 mk 3264 vs 3270)后转正默认(w=1.5;DD_FOCAL_W=0 回退
-   legacy top-32)。design §10 表已更新。
-5. [x] **Node/OPEN 骨架接口层(切片)**:三 parent 语义正式化
-   (search_kernel.hpp 词汇表 + design §10);lazy 约束树展开步提为
-   共享驱动 dd_expand_constraint(DD 内主循环+两个枚举 API 共 3 份
-   拷贝去重;dd_g1 穷举网+revisit 回归门禁通过,SOC 逐位一致)。
-   上游反向采用缓行(vector-copy Constraint 形态差异,理由记
-   design §10 表)。
-6. [x] **PIBT 递归框架抽共享**:pibt_recurse 落入 search_kernel.hpp
-   (上游 funcPIBT 控制形:候选序→feasible 否决→暂定预留→occupant
-   立即递归→回溯→wait 兜底);双层 Carrier 语义全部留在 PIBTContext
-   hooks(decided/has_forced/move_dest/undecided_occupant/wait_op)。
-   13 target 门禁绿,SOC 逐位一致(479/15801/38178/35949)。上游
-   funcPIBT 反向采用与 #5 同理由缓行。
-7. [x] **loader 解析工具共享**:wall 字符判定统一(is_map_wall_char,
-   上游 graph.cpp 一并接入,test_all 88 门禁);inline map/坐标解析
-   两侧 schema 本质不同(movingAI .map vs YAML 行),按审计"避免为
-   形式统一引入 variant"不强并。
-
-## P1-18 Node 骨架深化(2026-08-30 第四轮审计,fable-5 high)
-
-审计发现:search_kernel 两驱动当时是**伪共享**(仅 DD 使用),
-pibt_recurse 对上游 funcPIBT 三处语义不忠实;Node/Constraint/主循环
-仍是 dd_planner 内独立体系。按其推荐顺序处置:
-
-1. [x] Deadline/RNG 对齐:DD phase 计时改用上游 utils Deadline。
-2. [x] Constraint 双胞胎合并:TAPFConstraint = using 别名 → planner.hpp
-   Constraint 单一类型,重复实现删除。
-3. [x] 约束树展开驱动真三方共享:lacam_expand_constraint_vec(vector-
-   copy 形)由 planner.cpp 与 tapf_planner.cpp 双双调用;DD 用
-   parent-chain 形 dd_expand_constraint,两形并存且在 kernel 头文档化。
-4. [x] FOCAL 真三方共享:focal_select_index 单一实现,tapf
-   select_open_index 与 DD 选点块均改调(语义双侧不变)。
-5. [x] Node 公共核心:LacamNodeCore<ConstraintT,Derived>(C/parent/
-   priorities/order/search_tree + 逐字节等价的 priority 继承/析构)
-   由上游 Node 与 TAPFNode 双双继承,双胞胎字段与构造逻辑去重。
-   **DD Node 保持独立**:Config(Vertex*) vs PhysConfig(int 双层状态)
-   的类型鸿沟使继承同一核心 = 全实例类型重写(第三轮审计标记的
-   最高风险路径),作为记录在案的分歧保留(design §10)。
-6. [x] pibt_recurse 注释改为如实 lineage 记录(三处语义差异 + 上游
-   采用前置条件),消除"upstream can adopt"的不实声明。
-
-官方结果版本:results_final_v5/rows.csv = 当前默认配置(原版
-weighted-FOCAL w=1.5 + 全部骨架回迁)下 carrier 164 套跑,162/164、
-分组与 v4 完全一致(r2r 25/25 mk548)。
-
-正当保留差异(审计确认,design §10 表格已记录):operator constraint、
-PhysConfig/canonical+Zobrist hash、apply_ops 裁决、constraint_order、
-least-blocking PathCache、serve/clear/park/yield/wait-for、macro
-rollout+parent_edge、两阶段 anytime、DD YAML schema。
-
-## 修复顺序建议
-
-1. P0-5(revisit 回归——完备性主张的最后一块测试空洞)
-2. P0-1 遗留(定理 1 反例测试)、P0-4 遗留(MODE 报错)
-3. P0-2(park 纯度测试,按结果定纯化与否)
-4. P1-8/9(golden corpus + 非单位权重——语义防漂移)
-5. P1-10/11/12(sweep 1:50、工具冒烟测试、注释/README)
-6. P2-13(震荡抑制,用户可见的质量项)
-7. P2-14/15/16 按 M4/论文需要排期
-
----
-完成记录(2026-08-30,round-2 全部落地):P0 1-5、P1 6-12、P2 13-16
-全部 [x](16 的 LNS/ITA-τ/robot 匿名化按本清单排期维持 design §7
-扩展记录)。最终验证:C++ 13 target 68 测试 + Python 57 测试全绿;
-164 实例 × 7 方法统一 10s(results_final_v4,jobs=16 物理核):
-carrier 162/164(r2r 25/25 且 mk 548 与 crest_base 546 打平、
-s2w 25/25、dne 24/25),对比 b4 115、crest_base 81、natcbs 21;
-论文级质量对 v2 默认 2.6–3.1×。遗留:dneM_seed22(统一规模域
-边界的已记录代价)、1 个 std scramble、strict_inv 诊断模式变重
-(7/9,全局快照代价)。耗时记录:全量 470s、ablation 46s(16 路)。
-教训入档:benchmark 并行度必须钉在物理核数(HT 超订制造假超时);
-与计时基准并行跑测试套件会污染判定(v4 首跑作废重跑)。
-
-维护约定:每完成一项勾选 [x] 并附 commit hash 与测试名;新发现的
-问题追加到对应优先级段落;protected 测试改动需独立 subagent APPROVE。
+维护约定：每完成一项勾选并附 commit hash 与测试名；新发现问题追加
+到对应 WP；protected 测试改动需独立 subagent APPROVE。

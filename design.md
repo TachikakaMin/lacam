@@ -1,6 +1,14 @@
-# Carrier-LaCAM 设计文档 (v2)
+# Carrier-LaCAM 设计文档 (v3)
 
-状态: draft v2.3, 2026-08-30。
+状态: draft v3.0, 2026-08-30。
+v3.0 变更(用户指令:增量集成,禁止另起炉灶):**实现载体从独立
+dd_planner 迁为现有 LaCAM-TAPF 主流程的保守扩展**——唯一 solve loop
+为 `TAPFPlanner::solve()`,状态=Config(robots)+ShelfState(空则退化),
+free robot ≡ 原 TAPF agent,loaded/Lift/Drop 为新增 operator 维度;
+零 shelf 实例上与原 LaCAM-TAPF 行为逐位一致(semantic invariant,由
+golden 特征化测试钉死),且该退化必须来自空数据结构的自然短路,禁止
+feature flag/fallback/检测切换。§10 代码落点全面重写;机制→修改位置
+映射表与工作包见 debug.md(v3)。算法语义(§2-§7)不变。
 v2.3 变更(吸收第二轮独立审计, 见 debug.md 重写版):定理 1 修正为
 $|R|=1$ 并给出多 robot 反例(§4.1);§4.3/§5.1 撤回 LaCAM* rewiring 与
 eventually-optimal 声明(实现无 g-relax/rewire);新增两阶段 anytime 与
@@ -583,10 +591,12 @@ Carrier-PIBT $O(|R|\cdot\deg)$;距离场按 cache 命中摊销。
 ### 6.4 Validator-first(开发顺序约束)
 
 **先写 two-deck transition validator,再写 planner。**
-(v2.2 表述修正)仓库实际架构为**双实现互查**:C++ `apply_ops` 是
-planner 运行时的 authoritative arbiter;Python `ddbench.validator` 是
-独立 conformance oracle,每个输出 plan 都会被其重放复核。两者由共享
-语义测试(§6.5 + G1 穷举对照)钉住,防漂移。validator 职责:
+(v3.0 表述更新)仓库架构为**三方一致**:运行时裁决是集成 planner
+`get_new_config` 的内联规则(原 R1/R2 检查 + S1/I1-I3 扩展;全约束
+深度即 G1 直通);C++ `apply_ops` 是独立 conformance oracle(G1 穷举
+对照 + dd_benchmark 输出前重放);Python `ddbench.validator` 是第二
+oracle,每个输出 plan 都被重放复核。三者由共享语义测试(§6.5 + G1
+穷举对照 + golden corpus)钉住,防漂移。validator 职责:
 
 1. 单测与 CI 的裁决(扩展现有 `tools/validate_tapf_solution.py` 到双层);
 2. Carrier-PIBT 的最终裁决(generator 只 propose,validator accept)——
@@ -819,24 +829,51 @@ natcbs 21。round-2 新增默认:η 迟滞、路径惯性、idle 避让、
 g-relax/rewire、wait-for 定向禁忌、Hungarian ρ(≤256 targets 规模域,
 DD_RHO_HUNGARIAN_TGT)。
 
-代码落点(v2.4 按 2026-08-30 骨架审计修正;原文声称 "fork
-tapf_planner.cpp、DistTable 直接复用" 与实现不符):dd_planner.cpp 是
-**以 LaCAM 思路为参照的独立实现**——Constraint→lazy tree→PIBT 补全→
-DFS/EXPLORED 的架构形状可追溯到原骨架,但类型体系(DDGrid/PhysConfig/
-DistCache)自成一套,原 Graph/Vertex/DistTable/TAPF* 符号引用为 0。
-现按"逐组件回迁"路线向原 lacam-tapf 骨架对齐(见 debug.md 骨架回迁
-清单):
+代码落点(v3.0 重写;取代 v2.4 的"独立实现 + 逐组件回迁"路线)。
+**用户指令(最高优先级):新算法必须建立在现有 LaCAM-TAPF 代码与算法
+流程之上增量扩展,禁止另起炉灶——不允许平行 planner、第二套 search
+pipeline、独立算法框架,或以大量独立函数/文件绕开原逻辑。** v2.4 的
+现状(dd_planner.cpp 独立 solve loop + kernel 零件共享)不满足该要求,
+按以下终态架构重建:
 
-| 组件 | 状态 | 说明 |
-|---|---|---|
-| Hungarian | **已回迁** | DD 复制版删除,统一调用 tapf_assignment 的 `tapf_hungarian_row_to_col`(从原匿名类提出;算法与扫描序逐字节一致,benchmark 确定性不变) |
-| 距离场(DistCache/LowerDist vs DistTable) | 待回迁 | 抽共享 lazy-BFS core,DDGrid/Graph 各挂 adapter;Manhattan fast path 保留为策略层 |
-| 网格拓扑(DDGrid vs Graph) | 待对齐 | 非侵入 topology 接口;注意邻接序(down/up/right/left)决定确定性 |
-| OPEN 选点(FOCAL-lite vs TAPF FOCAL) | **已对齐** | 默认=原版 select_open_index 语义(全 OPEN f_min、bound=1.5·f_min、h 平局;DD_FOCAL_W=0 回退 legacy top-32);门禁 162/164、r2r mk 548 精确达标,dev 中性 |
-| Node/Constraint 骨架 | **核心已共享(上游双采用)** | search_kernel.hpp:LacamNodeCore 为上游 Node/TAPFNode 公共基类(双胞胎去重);Constraint/TAPFConstraint 合一;展开驱动与 FOCAL 选点三方真共享(planner.cpp/tapf_planner.cpp/dd_planner.cpp 同一实现);DD 内 3 份展开拷贝去重;**三 parent 语义**正式化——search parent(创建者,冻结,喂 guidance 祖先)/solution parent(parent_edge,可被 g-relax/macro 重接,出 plan)/guidance ancestry(只读 search parent,禁随 rewire)。上游反向采用缓行:其 Constraint 为 vector-copy 形态且 get_new_config 直接消费 vector,强改属高风险重写(audit #5 风险提示),留待上游自身重构窗口 |
-| **正当保留的差异** | — | operator constraint、PhysConfig/canonical hash、apply_ops 裁决、constraint_order 冻结、least-blocking PathCache、serve/clear/park/yield/wait-for、macro rollout 与 parent_edge、双层 YAML schema——均为双层语义特有,原骨架无对应物 |
+- **唯一 solve loop**:`TAPFPlanner::solve()`(tapf_planner.cpp)。
+  状态 = `Config`(robots,`vector<Vertex*>`,原样)+
+  `ShelfState{target_pos, anon_occ, kappa}`(零 shelf 时全空);
+  CLOSED key = (Config, ShelfState),hasher = 原 ConfigHasher ⊕
+  shelf-Zobrist(空 ⊕0)。
+- **角色模型**:free robot ≡ 原 TAPF agent(候选排序/hindrance/swap/
+  优先级继承逐字保留;其目标可为实例 task 或 guidance 派发的 request
+  cell);loaded robot 与无参数 Lift/Drop 是 operator 维度的新增;
+  shelf 是被 op 驱动的状态变量(§0 的两条核心修改即落在 Constraint
+  的 op payload 与 funcPIBT 的角色分派上)。
+- **semantic invariant(spec 级)**:零 shelf 实例上,扩展后的
+  `solve_tapf` 与扩展前行为与结果一致(解序列、搜索轨迹、RNG 消耗流);
+  退化必须来自空数据结构的自然短路(空循环/永假前置条件),禁止
+  feature flag、legacy mode、fallback、"检测无 pick/place 即切换"。
+  由 golden 特征化测试(tests/test_tapf_compat.cpp)钉死。
+- **oracle 分层**:dd_carrier.cpp(PhysConfig/apply_ops/loader)保留为
+  conformance oracle 与双层 YAML 格式层——运行时裁决是 get_new_config
+  内联规则(R1/R2 原有 + S1/I1-I3 扩展;全约束深度即 G1 直通),其与
+  apply_ops 的等价性由 test_dd_g1 穷举对照与 Python 整 plan 重放钉住。
+  §6.4 的"双实现互查"含义相应更新:generator 内联规则 vs C++ oracle
+  vs Python oracle 三方一致。
+- **adapter 层**:dd_planner.hpp 全部公开 API(solve_carrier_lacam /
+  solve_carrier_rollout / solve_carrier_2stage / 测试支持 API)保留
+  签名,降级为类型换算 + 转发的 thin adapter;dd_benchmark CLI 合同
+  不变。B0/macro 共码(D13)以 TAPFPlanner 的无约束生成步实现;
+  D14 两阶段 = 对同一 solve 的两次配置化调用
+  (TAPFSearchConfig 增 stop_at_first / incumbent_init /
+  macro_enabled,默认值即原 TAPF 行为)。
+- **机制→修改位置映射表(M1-M17)、零 shelf 退化逐点论证、DD 侧
+  语义变化诚实清单、工作包与 gate:见 debug.md(v3)。**
+- **删除清单**:dd_planner.cpp 独立 loop 与私有 Node/Constraint/
+  PIBTContext、search_kernel.hpp 中 cutover 后无使用者的
+  dd_expand_constraint/pibt_recurse、dd_dist_adapters.hpp(同条件)。
 
-macro rollout 与 B0 共码,可视 M2 进度提前。
+集成后 DD 侧行为不承诺与旧实现 bit 相同(旧实现删除;PIBT 递归语义、
+邻接序、类内 tie-break、hindrance/swap 覆盖面均迁就原 LaCAM-TAPF,
+见 debug.md §4),仅承诺 benchmark gate:carrier ≥162/164、论文家族
+质量 ≤ v5+5%、TAPF golden 逐位不变。
 
 ---
 
