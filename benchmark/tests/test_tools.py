@@ -119,8 +119,11 @@ class TestAblationEnvWiring(unittest.TestCase):
         knobs = set(re.findall(r'"(DD_[A-Z_]+)"\s*:', runner))
         self.assertTrue(knobs, "expected at least one DD_* knob in variants")
         sources = ""
-        for p in list((REPO / "lacam/src").glob("*.cpp")) + list(
-                (REPO / "tools").glob("*.cpp")):
+        # lacam/src/*.hpp are internal implementation headers compiled into
+        # the planner (carrier_guidance.hpp); subagent-APPROVEd extension
+        for p in (list((REPO / "lacam/src").glob("*.cpp"))
+                  + list((REPO / "lacam/src").glob("*.hpp"))
+                  + list((REPO / "tools").glob("*.cpp"))):
             sources += p.read_text()
         for k in sorted(knobs):
             self.assertIn(

@@ -146,8 +146,11 @@ struct TAPFStats {
   long macro_successors = 0;
   long macro_steps = 0;
   long macro_after_first = 0;  // two-phase policy: must stay 0
+  long f_pruned = 0;    // nodes discarded by the incumbent/f bound
+  long g_relaxed = 0;   // duplicate-hit g relaxations (rewrite propagation)
   unsigned solution_cost = 0;
   unsigned first_solution_cost = 0;
+  double first_solution_g = -1;  // exact double (carrier weighted soc)
   unsigned solution_parent_edge_cost = 0;
   double assignment_time_ms = 0;
   double first_solution_time_ms = 0;
@@ -206,6 +209,13 @@ struct TAPFPlanner {
   // solution shelf chain (parallel to the returned Solution; empty layers
   // on shelf-free instances) — consumed by the carrier adapters/tests
   std::vector<ShelfState> solution_shelves;
+  // deepest explored node (carrier debug/best-effort, M16); the chain is
+  // extracted into best_effort_* when a carrier solve ends without a plan
+  const TAPFNode* deepest_node = nullptr;
+  unsigned deepest_depth = 0;
+  long best_targets_done = 0;
+  Solution best_effort_solution;
+  std::vector<ShelfState> best_effort_shelves;
   // multi-step macro edges (M10), keyed (from, to): physical cost and the
   // INTERMEDIATE states (exclusive of endpoints) for extraction/rewrite.
   // Always empty on shelf-free instances.
@@ -248,6 +258,11 @@ struct TAPFPlanner {
   void attach_carrier_guidance(
       TAPFNode* nd, bool reguide = false,
       const CarrierGuidance* rollout_parent_guide = nullptr);
+  // operator-candidate construction for the lazy constraint tree (M3):
+  // the ONE production implementation, shared by solve() and the G1
+  // conformance enumeration adapters.  rng consumption identical to the
+  // pre-integration vertex shuffle on shelf-free instances.
+  void build_op_candidates(TAPFNode* S, int i, std::vector<OpCand>& out);
   bool is_goal_config(const Config& C, const ShelfState& S) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
