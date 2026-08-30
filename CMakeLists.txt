@@ -52,6 +52,7 @@ add_test(test_dd_park_purity ./tests/test_dd_park_purity.cpp)
 add_test(test_dd_golden ./tests/test_dd_golden.cpp)
 add_test(test_dd_oscillation ./tests/test_dd_oscillation.cpp)
 add_test(test_dd_rewire ./tests/test_dd_rewire.cpp)
+add_test(test_dd_waitfor ./tests/test_dd_waitfor.cpp)
 
 add_executable(test_all ${TEST_ALL_SRC})
 target_link_libraries(test_all lacam gtest ${YAML_CPP_LIBRARIES})

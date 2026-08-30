@@ -377,6 +377,89 @@ struct GroundedIndex {
 // ---------- guidance construction ----------
 constexpr int CLEAR_CHAIN_K = 3;
 
+// ---------- cross-deck wait-for graph (design 5.5, round-2 P2-15) ------
+// One out-edge per robot; cycles are structural deadlocks PIBT cannot
+// resolve within a step.  Used by the livelock diversification to taboo
+// exactly the cycle members' rho pairs (targeted re-match).
+static std::vector<int> waitfor_cycles(const DDInstance& ins,
+                                       const PhysConfig& s,
+                                       const Guidance& g,
+                                       LowerDist& lower_dist, Scratch& sc)
+{
+  const size_t R = ins.n_robots();
+  // robot at lower cell
+  std::vector<int> robot_at(ins.grid.size(), -1);
+  for (size_t i = 0; i < R; ++i) robot_at[s.robots[i]] = (int)i;
+  // rho assignee per request cell
+  std::vector<int> assignee_of_cell(ins.grid.size(), -1);
+  for (size_t i = 0; i < R; ++i)
+    if (g.rho[i] >= 0 && g.free_goal[i] >= 0)
+      assignee_of_cell[g.free_goal[i]] = (int)i;
+  // intended next cell per robot
+  auto next_cell = [&](size_t i) -> int {
+    const int k = s.kappa[i];
+    if (k >= 0 && !g.target_park[k]) return g.target_next[k];
+    if (k == KAPPA_ANON || (k >= 0 && g.target_park[k])) {
+      const int park = g.parking_cell[i];
+      if (park < 0 || park == s.robots[i]) return -1;
+      int nb[4];
+      const int n = ins.grid.neighbors(s.robots[i], nb);
+      int best = -1, bd = INT_MAX / 2;
+      for (int t = 0; t < n; ++t) {
+        const int d = lower_dist.dist(park, nb[t]);
+        if (d < bd) { bd = d; best = nb[t]; }
+      }
+      return best;
+    }
+    const int goal = g.free_goal[i];
+    if (goal < 0 || goal == s.robots[i]) return -1;
+    int nb[4];
+    const int n = ins.grid.neighbors(s.robots[i], nb);
+    int best = -1, bd = INT_MAX / 2;
+    for (int t = 0; t < n; ++t) {
+      const int d = lower_dist.dist(goal, nb[t]);
+      if (d < bd) { bd = d; best = nb[t]; }
+    }
+    return best;
+  };
+  std::vector<int> out(R, -1);
+  for (size_t i = 0; i < R; ++i) {
+    const int nc = next_cell(i);
+    if (nc < 0) continue;
+    if (robot_at[nc] >= 0 && robot_at[nc] != (int)i) {
+      out[i] = robot_at[nc];  // waits for the robot occupying the cell
+      continue;
+    }
+    // loaded robot waits for a GROUNDED shelf on its next upper cell,
+    // which waits for its rho-assigned clearer
+    if (s.kappa[i] != KAPPA_FREE && sc.grounded[nc] != 0) {
+      const int j = assignee_of_cell[nc];
+      if (j >= 0 && j != (int)i) out[i] = j;
+    }
+  }
+  // functional-graph cycle detection
+  std::vector<int> color(R, 0);  // 0 white 1 on-stack 2 done
+  std::vector<int> in_cycle;
+  for (size_t st = 0; st < R; ++st) {
+    if (color[st] != 0) continue;
+    std::vector<int> stack;
+    int cur = (int)st;
+    while (cur >= 0 && color[cur] == 0) {
+      color[cur] = 1;
+      stack.push_back(cur);
+      cur = out[cur];
+    }
+    if (cur >= 0 && color[cur] == 1) {
+      // found a cycle: everything from cur onwards in stack
+      auto itc = std::find(stack.begin(), stack.end(), cur);
+      for (auto p = itc; p != stack.end(); ++p) in_cycle.push_back(*p);
+    }
+    for (int v : stack) color[v] = 2;
+  }
+  std::sort(in_cycle.begin(), in_cycle.end());
+  return in_cycle;
+}
+
 Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
                         std::vector<DistCache>& target_goal_dist,
                         LowerDist& lower_dist, PathCache& paths, Scratch& sc,
@@ -1251,9 +1334,23 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
     const bool livelock = nd->no_progress > 0 &&
                           nd->no_progress % LIVELOCK_WINDOW == 0;
     if (livelock && parent) {
-      for (size_t i = 0; i < ins.n_robots(); ++i)
-        if (parent->guide.rho[i] >= 0)
-          taboo.emplace_back((int)i, parent->guide.free_goal[i]);
+      // wait-for refinement (round-2 P2-15): taboo ONLY the rho pairs of
+      // robots on wait-for cycles when any exist — targeted re-match
+      // beats blanket diversification; blanket taboo is the fallback.
+      scratch.occ_node = nullptr;
+      fill_occupancy(ins, nd->X, scratch);
+      const auto cyc = waitfor_cycles(ins, nd->X, parent->guide, lower_dist,
+                                      scratch);
+      if (!cyc.empty()) {
+        for (int i : cyc)
+          if (parent->guide.rho[i] >= 0)
+            taboo.emplace_back(i, parent->guide.free_goal[i]);
+      }
+      if (taboo.empty()) {
+        for (size_t i = 0; i < ins.n_robots(); ++i)
+          if (parent->guide.rho[i] >= 0)
+            taboo.emplace_back((int)i, parent->guide.free_goal[i]);
+      }
     }
     nd->guide = build_guidance(ins, nd->X, target_goal_dist, lower_dist,
                                path_cache, scratch, nd, park_registry,
@@ -2073,6 +2170,7 @@ std::vector<int> dd_least_blocking_path(const DDGrid& g, int src, int dst,
                              prev_path);
 }
 
+
 std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
                                   int seed)
 {
@@ -2098,4 +2196,26 @@ std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
                           rng, scratch, nullptr);
   if (!res.has_value()) return {};
   return res->second;
+}
+
+std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
+                                         const PhysConfig& X)
+{
+  std::vector<DistCache> target_goal_dist;
+  target_goal_dist.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    target_goal_dist.emplace_back(ins.grid);
+  LowerDist lower_dist(ins.grid);
+  PathCache path_cache;
+  Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+  Node node;
+  node.X = X;
+  scratch.occ_node = nullptr;
+  scratch.pibt_node = nullptr;
+  node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                              path_cache, scratch, &node, park_registry);
+  scratch.occ_node = nullptr;
+  fill_occupancy(ins, node.X, scratch);
+  return waitfor_cycles(ins, node.X, node.guide, lower_dist, scratch);
 }

@@ -116,3 +116,10 @@ std::vector<int> dd_least_blocking_path(const DDGrid& g, int src, int dst,
 // Carrier-PIBT step from X and return the chosen joint ops.
 std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
                                   int seed);
+
+// TEST SUPPORT + livelock machinery (debug.md round-2 P2-15): build the
+// cross-deck wait-for graph for X (guidance computed internally) and
+// return the SORTED ids of robots on cycles (empty = no structural
+// deadlock detected).
+std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
+                                         const PhysConfig& X);
