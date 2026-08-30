@@ -21,6 +21,8 @@ struct DDStats {
   long best_targets_done = 0;
   long macro_successors = 0;  // event-bounded rollout successors inserted
   long macro_steps = 0;       // total primitive steps inside macro edges
+  long macro_after_first = 0; // macro successors inserted AFTER the first
+                              // solution (two-phase policy: must stay 0)
   long guidance_builds = 0;
   long path_recomputes = 0;
   long path_cache_hits = 0;

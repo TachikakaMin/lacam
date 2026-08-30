@@ -1117,14 +1117,21 @@ double dd_admissible_h(const DDInstance& ins, const PhysConfig& X,
   return h;
 }
 
-DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
-                           int seed, DDStats* stats, DDPlan* best_effort)
+namespace {
+struct PhaseOpts {
+  bool macro_enabled = true;
+  bool stop_at_first = false;      // return as soon as an incumbent exists
+  double incumbent_init = -1;      // externally supplied upper bound
+};
+}  // namespace
+
+static DDPlan dd_solve_phase(const DDInstance& ins,
+                             Clock::time_point t_hard_end, int seed,
+                             DDStats* stats, DDPlan* best_effort,
+                             const PhaseOpts& opt, double* incumbent_out)
 {
   const auto t_start = Clock::now();
-  auto expired = [&]() {
-    return std::chrono::duration<double>(Clock::now() - t_start).count() >
-           time_limit_sec;
-  };
+  auto expired = [&]() { return Clock::now() >= t_hard_end; };
   std::mt19937 rng(seed);
   const size_t R = ins.n_robots();
 
@@ -1249,9 +1256,11 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
 
   // anytime state (design 5.7; debug.md P3)
   DDPlan best_plan;
-  double incumbent = -1;  // best physical SOC so far
+  double incumbent = opt.incumbent_init;  // may carry phase-1 upper bound
+  bool stop_now = false;
   auto on_goal = [&](Node* nd) {
     const double soc = nd->g_cost;
+    if (opt.stop_at_first) stop_now = true;
     if (incumbent < 0 || soc < incumbent - 1e-9) {
       incumbent = soc;
       best_plan = extract_plan(nd);
@@ -1268,9 +1277,12 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
     }
   };
 
-  while (!open.empty() && !expired()) {
-    if (incumbent >= 0 && incumbent <= root->h_adm + 1e-9)
+  while (!open.empty() && !expired() && !stop_now) {
+    if (incumbent >= 0 && !best_plan.empty() &&
+        incumbent <= root->h_adm + 1e-9) {
+      if (incumbent_out) *incumbent_out = incumbent;
       return best_plan;  // incumbent matches the admissible bound: optimal
+    }
     // FOCAL-lite selection after the first solution: among the top of the
     // stack pick the min-f entry (bounded scan, ordering only)
     Node* nd = open.back();
@@ -1312,9 +1324,12 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
     // roll the unconstrained generator to the next lift/drop event (or cap)
     // and insert the terminal configuration as an extra successor tried
     // FIRST.  Constraint tree untouched -> completeness unaffected.
+    // two-phase policy (ablation-verified): macro is a FEASIBILITY device;
+    // greedy rollout traces pad plan cost at scale, so the anytime
+    // improvement phase (incumbent found) runs WITHOUT macro successors.
     const int msparse = env_int("DD_MACRO_SPARSE", 1);
-    if (c->depth == 0 && !nd->macro_tried &&
-        (msparse <= 1 || nd->depth % msparse == 0)) {
+    if (opt.macro_enabled && c->depth == 0 && !nd->macro_tried &&
+        incumbent < 0 && (msparse <= 1 || nd->depth % msparse == 0)) {
       nd->macro_tried = true;
       auto reg_copy = park_registry;  // speculative: do not pollute registry
       // design 7.1: on large instances free-travel phases are long, so we
@@ -1332,7 +1347,10 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
         mchild->g_cost = nd->g_cost + r.cost;
         explored.emplace(mchild->X, mchild);
         parent_edge[mchild] = {nd, r.trace};
-        if (stats) stats->macro_successors++;
+        if (stats) {
+          stats->macro_successors++;
+          if (incumbent >= 0) stats->macro_after_first++;
+        }
         if (is_dd_goal(ins, mchild->X)) {
           on_goal(mchild);
         } else {
@@ -1412,14 +1430,67 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
     open.push_back(child);
   }
   if (stats) {
-    stats->timed_out = best_plan.empty();
+    stats->timed_out = stats->timed_out || best_plan.empty();
     stats->guidance_builds = g_guidance_builds;
     stats->path_recomputes = g_path_recomputes;
     stats->path_cache_hits = g_path_cache_hits;
   }
+  if (incumbent_out) *incumbent_out = incumbent;
   if (!best_plan.empty()) return best_plan;
   if (best_effort) *best_effort = extract_plan(deepest);
   return {};
+}
+
+DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
+                           int seed, DDStats* stats, DDPlan* best_effort)
+{
+  // Two-phase anytime (ablation-verified):
+  //   phase 1: macro rollout ON, stop at the FIRST solution -> fast,
+  //            feasibility-oriented upper bound (greedy traces padded);
+  //   phase 2: fresh primitive-only search from the root for the remaining
+  //            budget, pruned by the phase-1 bound -> quality plan.
+  // Returns the better of the two.  DD_MACRO_CAP=0 degenerates to a single
+  // primitive-only phase (ablation knob semantics preserved).
+  const auto t_end = Clock::now() +
+                     std::chrono::duration_cast<Clock::duration>(
+                         std::chrono::duration<double>(time_limit_sec));
+  PhaseOpts p1;
+  // scale-regime rule (same 64-target boundary as ACTIVE_CAP/min_chunk):
+  // macro rollout helps dense small/mid instances but pads plan cost when
+  // hundreds of targets are involved (full-suite A/B, 2026-08-30).
+  p1.macro_enabled = env_int("DD_MACRO_CAP", 64) > 0 &&
+                     ins.n_targets() <= (size_t)env_int("DD_MACRO_TGT", 64);
+  p1.stop_at_first = true;
+  double inc1 = -1;
+  DDPlan plan1 =
+      dd_solve_phase(ins, t_end, seed, stats, best_effort, p1, &inc1);
+  if (Clock::now() >= t_end)
+    return plan1;  // no budget left for the quality phase
+
+  PhaseOpts p2;
+  p2.macro_enabled = false;
+  p2.stop_at_first = false;
+  p2.incumbent_init = inc1;  // -1 if phase 1 failed
+  double inc2 = -1;
+  DDStats st2;
+  DDPlan plan2 = dd_solve_phase(ins, t_end, seed + 1, &st2, nullptr, p2,
+                                &inc2);
+  if (stats) {
+    // merge phase-2 stats that matter for reporting
+    stats->hl_nodes += st2.hl_nodes;
+    stats->hl_expanded += st2.hl_expanded;
+    stats->pibt_calls += st2.pibt_calls;
+    stats->duplicate_configs += st2.duplicate_configs;
+    stats->f_pruned += st2.f_pruned;
+    if (st2.incumbent_updates > 0) {
+      stats->incumbent_updates += st2.incumbent_updates;
+      stats->best_soc = inc2;
+    }
+    stats->timed_out = plan1.empty() && plan2.empty();
+  }
+  if (plan2.empty()) return plan1;
+  if (plan1.empty()) return plan2;
+  return (inc2 >= 0 && (inc1 < 0 || inc2 < inc1)) ? plan2 : plan1;
 }
 
 

@@ -177,3 +177,26 @@ TEST(dd_anytime, admissible_h_never_exceeds_true_cost)
         << "admissible h exceeds true optimum on case " << ci;
   }
 }
+
+TEST(dd_anytime, macro_disabled_after_first_solution)
+{
+  // Two-phase policy (ablation-驱动): macro rollout is a FEASIBILITY device
+  // — greedy multi-step traces committed into the plan pad the cost at
+  // scale (full-suite A/B: paper-suite makespan 2.5-3x worse with macro in
+  // the improvement phase).  After the first solution the anytime phase
+  // must therefore never insert macro successors.
+  auto ins = make_ins(
+      {"............", "............", "..@@........", "..@@........",
+       "............", "............", "............", "............",
+       "............", "............", "............", "............"},
+      {{0, 0}, {0, 11}, {11, 0}, {11, 11}},
+      {{2, 6}, {2, 7}, {3, 6}, {3, 7}, {8, 2}, {8, 3}, {9, 2}, {9, 3}},
+      {{{2, 6}, {10, 10}}, {{8, 2}, {0, 5}}});
+  DDStats st;
+  auto plan = solve_carrier_lacam(ins, 3.0, 0, &st);
+  ASSERT_FALSE(plan.empty());
+  EXPECT_GT(st.macro_successors, 0)
+      << "macro must still fire BEFORE the first solution";
+  EXPECT_EQ(st.macro_after_first, 0)
+      << "macro successors inserted during the anytime phase";
+}
