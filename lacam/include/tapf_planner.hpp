@@ -32,23 +32,43 @@ struct TAPFSearchConfig {
 // byte-identical twin of planner.hpp's Constraint — now ONE type.
 using TAPFConstraint = Constraint;
 
+// Two-deck shelf layer of a search state (design.md 3.1, mapping M2).
+// EMPTY vectors on shelf-free instances: every consumer loops over the
+// data, so degradation to plain TAPF is structural, never a flag.
+struct ShelfState {
+  std::vector<int> target_pos;  // per target: current cell
+  std::vector<int> anon_occ;    // SORTED cells of grounded anonymous shelves
+  std::vector<int> kappa;       // per robot (empty when no shelf layer):
+                                // KAPPA_FREE / KAPPA_ANON / target index
+
+  bool operator==(const ShelfState& o) const
+  {
+    return target_pos == o.target_pos && anon_occ == o.anon_occ &&
+           kappa == o.kappa;
+  }
+};
+
+// root shelf state of an instance (empty layer for shelf-free TAPF)
+ShelfState initial_shelf_state(const TAPFInstance& ins);
+
 struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {
+  const ShelfState shelf;  // two-deck layer (empty on shelf-free instances)
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
   bool queued;
-  unsigned g;
-  unsigned h;
-  unsigned f;
+  double g;
+  double h;
+  double f;
   unsigned depth;
   unsigned non_goal_waits;
   unsigned reversals;
   unsigned distance_increases;
   unsigned settled_pushes;
 
-  TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
-           std::vector<int> _assignment, TAPFAssignmentState _assignment_state,
-           TAPFNode* _parent = nullptr);
+  TAPFNode(Config _C, ShelfState _shelf, TAPFDistTable& D,
+           const TAPFInstance* ins, std::vector<int> _assignment,
+           TAPFAssignmentState _assignment_state, TAPFNode* _parent = nullptr);
   void discard_search_tree();
   void refresh_priority(TAPFDistTable& D);
   void refresh_search_metrics(TAPFDistTable& D, const TAPFInstance* ins);
@@ -99,6 +119,13 @@ struct TAPFPlanner {
 
   const int N;
   const int V_size;
+  // physical cost weights (design 2.3/5.7, mapping M5): unit by default;
+  // DD_SOLVER_WEIGHTS=1 folds DD_ALPHA..DD_DELTA into g.  Shelf-free edge
+  // costs never read these (the carrier term loops over an empty kappa).
+  struct Weights {
+    double alpha = 1, beta = 1, gamma = 1, delta = 1;
+  };
+  Weights weights;
   TAPFDistTable D;
   Candidates C_next;
   std::vector<float> tie_breakers;
@@ -112,12 +139,12 @@ struct TAPFPlanner {
               TAPFStats* _stats = nullptr,
               TAPFSearchConfig _search_config = TAPFSearchConfig());
   Solution solve();
-  bool is_goal_config(const Config& C) const;
+  bool is_goal_config(const Config& C, const ShelfState& S) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
                std::vector<TAPFNode*>& OPEN);
-  unsigned get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
-  unsigned get_h_value(const Config& C);
+  double get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
+  double get_h_value(const Config& C);
   Agent* swap_possible_and_required(Agent* ai,
                                     const std::vector<int>& assignment);
   bool is_swap_required(const int pusher, const int puller,

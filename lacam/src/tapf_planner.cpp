@@ -1,6 +1,9 @@
 #include "../include/tapf_planner.hpp"
 
+#include <cmath>
+#include <cstdlib>
 #include <limits>
+#include <unordered_set>
 
 #include "../include/search_kernel.hpp"
 
@@ -12,7 +15,7 @@ namespace
            (goal == nullptr || node->f < goal->g);
   }
 
-  unsigned focal_score(const TAPFNode* node, TAPFFocalTieBreak tie_break)
+  double focal_score(const TAPFNode* node, TAPFFocalTieBreak tie_break)
   {
     switch (tie_break) {
       case TAPFFocalTieBreak::ANTI_WAIT:
@@ -44,13 +47,69 @@ namespace
     if (a->g != b->g) return a->g > b->g;
     return a->depth < b->depth;
   }
+
+  // CLOSED key = (Config, ShelfState) (design 6.1, mapping M2/M14): the
+  // shelf hash is splitmix64-derived per (role, id, cell) and XORs to 0
+  // for the empty layer, so shelf-free instances keep the exact original
+  // ConfigHasher value and duplicate semantics.
+  uint64_t splitmix64(uint64_t x)
+  {
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
+  }
+
+  uint64_t shelf_layer_hash(const ShelfState& S)
+  {
+    uint64_t h = 0;
+    for (size_t b = 0; b < S.target_pos.size(); ++b)
+      h ^= splitmix64((1ULL << 40) ^ (b << 20) ^ (uint64_t)S.target_pos[b]);
+    for (const int c : S.anon_occ)
+      h ^= splitmix64((2ULL << 40) ^ (uint64_t)c);
+    for (size_t i = 0; i < S.kappa.size(); ++i)
+      h ^= splitmix64((3ULL << 40) ^ (i << 20) ^
+                      (uint64_t)(S.kappa[i] + 2));
+    return h;
+  }
+
+  struct SearchKey {
+    Config C;
+    ShelfState S;
+    bool operator==(const SearchKey& o) const
+    {
+      return C == o.C && S == o.S;
+    }
+  };
+
+  struct SearchKeyHasher {
+    size_t operator()(const SearchKey& k) const
+    {
+      return (size_t)ConfigHasher()(k.C) ^ (size_t)shelf_layer_hash(k.S);
+    }
+  };
 }  // namespace
 
 
-TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
-                   std::vector<int> _assignment,
+ShelfState initial_shelf_state(const TAPFInstance& ins)
+{
+  ShelfState S;
+  if (ins.shelf_cells.empty()) return S;  // shelf-free: empty layer
+  S.target_pos = ins.target_starts;
+  std::unordered_set<int> tset(ins.target_starts.begin(),
+                               ins.target_starts.end());
+  for (const int p : ins.shelf_cells)
+    if (!tset.count(p)) S.anon_occ.push_back(p);
+  std::sort(S.anon_occ.begin(), S.anon_occ.end());
+  S.kappa.assign(ins.N, KAPPA_FREE);
+  return S;
+}
+
+TAPFNode::TAPFNode(Config _C, ShelfState _shelf, TAPFDistTable& D,
+                   const TAPFInstance* ins, std::vector<int> _assignment,
                    TAPFAssignmentState _assignment_state, TAPFNode* _parent)
     : LacamNodeCore<TAPFConstraint, TAPFNode>(_C, _parent),
+      shelf(std::move(_shelf)),
       neighbor(std::set<TAPFNode*>()),
       assignment(_assignment),
       assignment_state(_assignment_state),
@@ -76,9 +135,12 @@ void TAPFNode::discard_search_tree()
 
 void TAPFNode::refresh_priority(TAPFDistTable& D)
 {
-  // shared core machinery, task-keyed distance (node-skeleton audit 5)
-  init_priorities_and_order(
-      [&](size_t i) { return D.get(assignment[i], C[i]); });
+  // shared core machinery, task-keyed distance (node-skeleton audit 5);
+  // carrier agents (no instance task) contribute 0 here — their PIBT
+  // ordering comes from the guidance layer (design 5.4, WP4)
+  init_priorities_and_order([&](size_t i) {
+    return assignment[i] >= 0 ? D.get(assignment[i], C[i]) : 0;
+  });
 }
 
 void TAPFNode::refresh_search_metrics(TAPFDistTable& D,
@@ -88,6 +150,7 @@ void TAPFNode::refresh_search_metrics(TAPFDistTable& D,
 
   for (size_t i = 0; i < C.size(); ++i) {
     const auto task = assignment[i];
+    if (task < 0) continue;  // carrier agent: no instance task
     const auto goal = ins->tasks[task];
     if (C[i] == parent->C[i] && C[i] != goal) ++non_goal_waits;
     if (parent->parent != nullptr && C[i] == parent->parent->C[i] &&
@@ -104,6 +167,7 @@ void TAPFNode::refresh_search_metrics(TAPFDistTable& D,
           C[pushed] == parent->C[pushed]) {
         continue;
       }
+      if (assignment[pushed] < 0) continue;  // carrier agent
       const auto pushed_goal = ins->tasks[assignment[pushed]];
       if (parent->C[pushed] == pushed_goal) ++settled_pushes;
     }
@@ -127,6 +191,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       assignment_stats(TAPFAssignmentStats()),
       N(ins->N),
       V_size(ins->G.size()),
+      weights(),
       D(TAPFDistTable(ins)),
       C_next(Candidates(N, std::array<Vertex*, 5>())),
       tie_breakers(std::vector<float>(V_size, 0)),
@@ -135,6 +200,17 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       occupied_next(Agents(V_size, nullptr))
 {
   if (stats != nullptr) *stats = TAPFStats();
+  // solver-objective weights (design 5.7, round-2 P2-16b semantics): unit
+  // by default; DD_SOLVER_WEIGHTS=1 folds DD_ALPHA..DD_DELTA into g.
+  // Shelf-free instances never evaluate the carrier cost term.
+  if (const char* e = std::getenv("DD_SOLVER_WEIGHTS")) {
+    if (std::atoi(e) != 0) {
+      if (const char* a = std::getenv("DD_ALPHA")) weights.alpha = atof(a);
+      if (const char* b = std::getenv("DD_BETA")) weights.beta = atof(b);
+      if (const char* c = std::getenv("DD_GAMMA")) weights.gamma = atof(c);
+      if (const char* d = std::getenv("DD_DELTA")) weights.delta = atof(d);
+    }
+  }
 }
 
 Solution TAPFPlanner::solve()
@@ -144,9 +220,12 @@ Solution TAPFPlanner::solve()
   for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
 
   std::vector<TAPFNode*> OPEN;
-  std::unordered_map<Config, TAPFNode*, ConfigHasher> CLOSED;
+  std::unordered_map<SearchKey, TAPFNode*, SearchKeyHasher> CLOSED;
   TAPFNode* S_goal = nullptr;
   auto C_new = Config(N, nullptr);
+  // scratch lookup key reused across iterations (no per-iteration alloc
+  // after warm-up; shelf part is empty for shelf-free instances)
+  SearchKey lookup_key;
 
   auto push_open = [&](TAPFNode* node) {
     if (!node->queued && !node->search_tree.empty()) {
@@ -184,12 +263,12 @@ Solution TAPFPlanner::solve()
   if (!initial_assignment.feasible) return Solution();
 
   auto S_init =
-      new TAPFNode(ins->starts, D, ins, initial_assignment.agent_to_task,
-                   initial_assignment_state);
+      new TAPFNode(ins->starts, initial_shelf_state(*ins), D, ins,
+                   initial_assignment.agent_to_task, initial_assignment_state);
   S_init->h = initial_assignment.cost;
   S_init->f = S_init->g + S_init->h;
   push_open(S_init);
-  CLOSED[S_init->C] = S_init;
+  CLOSED[SearchKey{S_init->C, S_init->shelf}] = S_init;
   if (stats != nullptr) {
     stats->hl_nodes_created = 1;
     stats->open_max_size = 1;
@@ -233,12 +312,12 @@ Solution TAPFPlanner::solve()
       continue;
     }
 
-    if (is_goal_config(S->C)) {
+    if (is_goal_config(S->C, S->shelf)) {
       if (S_goal == nullptr || S->g < S_goal->g) {
         if (stats != nullptr) {
           ++stats->incumbent_updates;
           if (stats->first_solution_cost == 0) {
-            stats->first_solution_cost = S->g;
+            stats->first_solution_cost = (unsigned)std::lround(S->g);
             stats->first_solution_time_ms = elapsed_ms(deadline);
           }
         }
@@ -274,7 +353,11 @@ Solution TAPFPlanner::solve()
 
     for (auto a : A) C_new[a->id] = a->v_next;
 
-    auto iter = CLOSED.find(C_new);
+    // shelf layer of the successor: unchanged until operator effects land
+    // (WP3 computes it from the accepted joint ops)
+    lookup_key.C = C_new;
+    lookup_key.S = S->shelf;
+    auto iter = CLOSED.find(lookup_key);
     if (iter != CLOSED.end()) {
       auto S_known = iter->second;
       S->neighbor.insert(S_known);
@@ -312,12 +395,12 @@ Solution TAPFPlanner::solve()
       }
     }
 
-    auto S_new = new TAPFNode(C_new, D, ins, assignment.agent_to_task,
-                              assignment_state, S);
+    auto S_new = new TAPFNode(C_new, S->shelf, D, ins,
+                              assignment.agent_to_task, assignment_state, S);
     S_new->g = S->g + get_edge_cost(S, S_new);
     S_new->h = assignment.cost;
     S_new->f = S_new->g + S_new->h;
-    CLOSED[S_new->C] = S_new;
+    CLOSED[SearchKey{S_new->C, S_new->shelf}] = S_new;
     if (S_goal == nullptr || S_new->f < S_goal->g) {
       push_open(S_new);
     }
@@ -343,11 +426,13 @@ Solution TAPFPlanner::solve()
     stats->assignment_calls = assignment_stats.calls;
     stats->assignment_time_ms = assignment_stats.time_ms;
     if (!solution.empty()) {
-      stats->solution_cost = S_goal->g;
+      stats->solution_cost = (unsigned)std::lround(S_goal->g);
+      double parent_edge_cost = 0;
       for (size_t step = 1; step < solution_nodes.size(); ++step) {
-        stats->solution_parent_edge_cost +=
+        parent_edge_cost +=
             get_edge_cost(solution_nodes[step - 1], solution_nodes[step]);
       }
+      stats->solution_parent_edge_cost = (unsigned)std::lround(parent_edge_cost);
       stats->solution_depth = solution.size() - 1;
       for (size_t step = 1; step < solution_nodes.size(); ++step) {
         auto changed = false;
@@ -404,22 +489,41 @@ void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
   }
 }
 
-unsigned TAPFPlanner::get_edge_cost(const TAPFNode* from,
-                                    const TAPFNode* to) const
+double TAPFPlanner::get_edge_cost(const TAPFNode* from,
+                                  const TAPFNode* to) const
 {
-  auto cost = 0u;
+  auto cost = 0.0;
   for (size_t i = 0; i < ins->N; ++i) {
     const auto task = to->assignment[i];
+    if (task < 0) continue;  // carrier agent: physical term below
     const auto goal = ins->tasks[task];
     if (from->C[i] != goal || to->C[i] != goal) ++cost;
+  }
+  // physical carrier term (design 2.3, mapping M5): loaded/free moves,
+  // lift/drop, anonymous-carry moves.  kappa is empty on shelf-free
+  // instances, so this loop is structurally skipped there.
+  for (size_t i = 0; i < from->shelf.kappa.size(); ++i) {
+    const int k_from = from->shelf.kappa[i];
+    const int k_to = to->shelf.kappa[i];
+    if (from->C[i] != to->C[i]) {  // MOVE (kappa preserved by moves)
+      if (k_from == KAPPA_FREE) {
+        if (to->assignment[i] < 0) cost += weights.beta;
+      } else {
+        cost += weights.alpha;
+        if (k_from == KAPPA_ANON) cost += weights.delta;
+      }
+    } else if (k_from != k_to) {  // LIFT or DROP (same cell)
+      cost += weights.gamma;
+    }
   }
   return cost;
 }
 
-unsigned TAPFPlanner::get_h_value(const Config& C)
+double TAPFPlanner::get_h_value(const Config& C)
 {
-  auto cost = 0u;
+  auto cost = 0.0;
   for (size_t i = 0; i < ins->N; ++i) {
+    if (ins->allowed[i].empty()) continue;  // carrier agent: no task h
     auto best = D.K;
     for (size_t j = 0; j < ins->tasks.size(); ++j) {
       if (!ins->allowed[i][j]) continue;
@@ -430,10 +534,14 @@ unsigned TAPFPlanner::get_h_value(const Config& C)
   return cost;
 }
 
-bool TAPFPlanner::is_goal_config(const Config& C) const
+bool TAPFPlanner::is_goal_config(const Config& C, const ShelfState& S) const
 {
+  // agent-task part: identical to the original for every agent that HAS
+  // an allowed task (is_valid guarantees that on shelf-free instances);
+  // carrier agents (empty allowed row) are terminally unconstrained.
   auto used = std::vector<bool>(ins->tasks.size(), false);
   for (size_t i = 0; i < ins->N; ++i) {
+    if (ins->allowed[i].empty()) continue;
     auto matched = false;
     for (size_t j = 0; j < ins->tasks.size(); ++j) {
       if (used[j] || !ins->allowed[i][j] || C[i] != ins->tasks[j]) continue;
@@ -443,6 +551,11 @@ bool TAPFPlanner::is_goal_config(const Config& C) const
     }
     if (!matched) return false;
   }
+  // carrier part (design 2.2, D10): every target grounded at its goal
+  for (size_t b = 0; b < ins->target_goals.size(); ++b)
+    if (S.target_pos[b] != ins->target_goals[b]) return false;
+  for (const int k : S.kappa)
+    if (k >= 0) return false;  // a carried target is not grounded
   return true;
 }
 

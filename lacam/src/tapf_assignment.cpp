@@ -100,6 +100,21 @@ TAPFAssignmentResult invalid_result()
                               false};
 }
 
+// carrier form (design.md v3, M1/M5): agents of a two-deck instance have
+// no instance tasks — the trivial empty assignment is feasible with zero
+// cost.  Unreachable for shelf-free TAPF instances (is_valid requires
+// tasks >= N there).
+bool carrier_form(const TAPFInstance& ins, const Config& C)
+{
+  return ins.tasks.empty() && !ins.target_starts.empty() &&
+         C.size() == ins.N;
+}
+
+TAPFAssignmentResult carrier_trivial_result(const TAPFInstance& ins)
+{
+  return TAPFAssignmentResult{std::vector<int>(ins.N, -1), 0, true};
+}
+
 bool invalid_input(const TAPFInstance& ins, const Config& C)
 {
   return ins.tasks.size() < ins.N || C.size() != ins.N;
@@ -146,6 +161,11 @@ TAPFAssignmentResult assign_tapf_tasks(
   const auto t_start = Time::now();
   if (stats != nullptr) ++stats->calls;
 
+  if (carrier_form(ins, C)) {
+    record_assignment_time(t_start, stats);
+    return carrier_trivial_result(ins);
+  }
+
   if (invalid_input(ins, C)) {
     record_assignment_time(t_start, stats);
     return invalid_result();
@@ -166,6 +186,11 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
 {
   const auto t_start = Time::now();
   if (stats != nullptr) ++stats->calls;
+
+  if (carrier_form(ins, C)) {
+    record_assignment_time(t_start, stats);
+    return carrier_trivial_result(ins);
+  }
 
   if (invalid_input(ins, C)) {
     record_assignment_time(t_start, stats);

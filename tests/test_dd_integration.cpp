@@ -80,3 +80,73 @@ TEST(dd_integration, tapf_instance_without_tasks_or_targets_stays_invalid)
                          std::vector<std::vector<int>>{{}});
   EXPECT_FALSE(ins.is_valid());
 }
+
+// ---------- WP2: state / key / goal / cost (mapping M2, M5) ----------
+
+namespace {
+DDInstance tiny_dd(bool target_at_goal)
+{
+  DDInstance dd;
+  dd.grid = DDGrid({"....", "...."});
+  dd.robots = {dd.grid.idx(1, 0)};
+  dd.shelves = {dd.grid.idx(0, 1), dd.grid.idx(1, 3)};
+  dd.target_starts = {dd.grid.idx(0, 1)};
+  dd.target_goals = {target_at_goal ? dd.grid.idx(0, 1) : dd.grid.idx(0, 3)};
+  dd.finalize();
+  return dd;
+}
+}  // namespace
+
+TEST(dd_integration, initial_shelf_state_mirrors_instance)
+{
+  const TAPFInstance ins(tiny_dd(false));
+  const auto S = initial_shelf_state(ins);
+  ASSERT_EQ(S.target_pos.size(), 1u);
+  EXPECT_EQ(S.target_pos[0], 4 * 0 + 1);
+  ASSERT_EQ(S.anon_occ.size(), 1u);  // the non-target shelf
+  EXPECT_EQ(S.anon_occ[0], 4 * 1 + 3);
+  ASSERT_EQ(S.kappa.size(), 1u);
+  EXPECT_EQ(S.kappa[0], KAPPA_FREE);
+
+  // shelf-free instances carry an EMPTY layer (natural degradation)
+  const TAPFInstance plain(
+      "./assets/empty-8-8.map", std::vector<int>{0},
+      std::vector<std::vector<int>>{{63}});
+  const auto S0 = initial_shelf_state(plain);
+  EXPECT_TRUE(S0.target_pos.empty());
+  EXPECT_TRUE(S0.anon_occ.empty());
+  EXPECT_TRUE(S0.kappa.empty());
+}
+
+TEST(dd_integration, carrier_goal_condition_requires_grounded)
+{
+  // D10: a target CARRIED on its goal cell is not a goal state
+  const TAPFInstance ins(tiny_dd(false));
+  TAPFPlanner planner(&ins, nullptr, nullptr);
+
+  auto S = initial_shelf_state(ins);
+  Config C = ins.starts;
+
+  // not at goal yet
+  EXPECT_FALSE(planner.is_goal_config(C, S));
+
+  // grounded at goal -> goal
+  S.target_pos[0] = ins.target_goals[0];
+  EXPECT_TRUE(planner.is_goal_config(C, S));
+
+  // carried at goal -> NOT goal
+  S.kappa[0] = 0;
+  EXPECT_FALSE(planner.is_goal_config(C, S));
+}
+
+TEST(dd_integration, solve_tapf_trivial_carrier_instance_single_step)
+{
+  // target already grounded at its goal: the root configuration is the
+  // goal, so the ORIGINAL TAPF loop must return a size-1 solution.
+  const TAPFInstance ins(tiny_dd(true));
+  ASSERT_TRUE(ins.is_valid());
+  std::mt19937 mt(0);
+  const auto sol = solve_tapf(ins, 0, nullptr, &mt);
+  ASSERT_EQ(sol.size(), 1u);
+  EXPECT_TRUE(is_same_config(sol.front(), ins.starts));
+}
