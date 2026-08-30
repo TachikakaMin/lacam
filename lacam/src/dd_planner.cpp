@@ -1450,10 +1450,26 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
     auto it = explored.find(X_new);
     if (it != explored.end()) {
       if (stats) stats->duplicate_configs++;
+      Node* ex = it->second;
+      // LaCAM*-style relax/rewire (design 4.3, round-2 P2-14): a CHEAPER
+      // route into an explored configuration updates its g and parent edge
+      // and reopens it, so descendants get relaxed transitively through
+      // further duplicate hits.  Restores the eventually-better anytime
+      // behaviour that first-visit locking forfeited.
+      const double g_new = nd->g_cost + dd_edge_cost(nd->X, ops);
+      if (g_new < ex->g_cost - 1e-9) {
+        ex->g_cost = g_new;
+        parent_edge[ex] = {nd, {ops}};
+        if (stats) stats->g_relaxed++;
+        if (is_dd_goal(ins, ex->X)) {
+          on_goal(ex);
+        } else if (open.empty() || open.back() != ex) {
+          open.push_back(ex);  // reopen with the cheaper prefix
+        }
+      }
       // LaCAM revisit semantics + M1 livelock signal (design 5.5): on heavy
       // revisiting, re-match rho with the node's current pairs tabooed and
       // reshuffle the intra-class order.  Ordering only — completeness kept.
-      Node* ex = it->second;
       ex->revisits++;
       // legal diversification (D11-compliant): allow a FRESH macro rollout
       // on heavy revisiting — rng has advanced, so the probe differs; the
@@ -1547,6 +1563,7 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
     stats->pibt_calls += st2.pibt_calls;
     stats->duplicate_configs += st2.duplicate_configs;
     stats->f_pruned += st2.f_pruned;
+    stats->g_relaxed += st2.g_relaxed;
     if (st2.incumbent_updates > 0) {
       stats->incumbent_updates += st2.incumbent_updates;
       stats->best_soc = inc2;

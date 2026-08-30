@@ -23,6 +23,8 @@ struct DDStats {
   long macro_steps = 0;       // total primitive steps inside macro edges
   long macro_after_first = 0; // macro successors inserted AFTER the first
                               // solution (two-phase policy: must stay 0)
+  long g_relaxed = 0;         // duplicate hits relaxed to a cheaper g
+                              // (LaCAM*-style rewire, round-2 P2-14)
   long guidance_builds = 0;
   long path_recomputes = 0;
   long path_cache_hits = 0;
