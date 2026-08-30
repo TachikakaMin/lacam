@@ -41,14 +41,7 @@ struct SocWeights {
 SocWeights soc_weights_from_env()
 {
   SocWeights w;
-  if (const char* e = std::getenv("DD_SOLVER_WEIGHTS")) {
-    if (std::atoi(e) != 0) {
-      if (const char* a = std::getenv("DD_ALPHA")) w.alpha = atof(a);
-      if (const char* b = std::getenv("DD_BETA")) w.beta = atof(b);
-      if (const char* c = std::getenv("DD_GAMMA")) w.gamma = atof(c);
-      if (const char* d = std::getenv("DD_DELTA")) w.delta = atof(d);
-    }
-  }
+  carrier_detail::load_solver_weights(w);  // same parser as the planner
   return w;
 }
 
@@ -567,8 +560,8 @@ namespace {
 // drain one node's operator-constraint tree through the production
 // expansion + generation (G1 conformance, debug.md P0-1/P0-2/P0-5 lineage)
 std::vector<PhysConfig> drain_node(const TAPFInstance& view,
-                                   const DDInstance& ins, const PhysConfig& X,
-                                   int seed, int n_reguides,
+                                   const PhysConfig& X, int seed,
+                                   int n_reguides,
                                    std::vector<int>* order_before,
                                    std::vector<int>* order_after)
 {
@@ -628,7 +621,7 @@ std::vector<PhysConfig> dd_enumerate_node_successors(const DDInstance& ins,
                                                      int seed)
 {
   const TAPFInstance view(ins);
-  return drain_node(view, ins, X, seed, 0, nullptr, nullptr);
+  return drain_node(view, X, seed, 0, nullptr, nullptr);
 }
 
 std::vector<PhysConfig> dd_enumerate_node_successors_reguided(
@@ -637,7 +630,7 @@ std::vector<PhysConfig> dd_enumerate_node_successors_reguided(
     std::vector<int>* constraint_order_after)
 {
   const TAPFInstance view(ins);
-  return drain_node(view, ins, X, seed, n_reguides, constraint_order_before,
+  return drain_node(view, X, seed, n_reguides, constraint_order_before,
                     constraint_order_after);
 }
 

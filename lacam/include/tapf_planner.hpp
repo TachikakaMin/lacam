@@ -194,12 +194,12 @@ struct TAPFPlanner {
   // guidance engine (M6): distance caches, path cache, occupancy scratch
   struct CarrierEngine;
   std::unique_ptr<CarrierEngine> carrier;
-  // per-node occupancy scratch (grounded shelf id + upper base counts)
+  // per-node occupancy scratch: carrier_grounded doubles as the grounded
+  // upper-deck occupancy at t+1 (0 none / -1 anon / b+1 target b);
+  // delta counters hold tentative carried-shelf reservations
   const TAPFNode* carrier_scratch_node = nullptr;
-  const ShelfState* cur_shelf = nullptr;  // shelf layer of the node in gen
-  std::vector<int> carrier_grounded;    // 0 none / -1 anon / b+1 target b
-  std::vector<int> carrier_upper_base;  // grounded occupancy at t+1
-  std::vector<int> carrier_upper_delta; // carried-shelf reservations
+  std::vector<int> carrier_grounded;
+  std::vector<int> carrier_upper_delta;
   std::vector<int> carrier_upper_touched;
   ShelfState shelf_next_scratch;        // successor layer of the last gen
   std::vector<Op> ops_scratch;          // assembled joint op
@@ -266,7 +266,7 @@ struct TAPFPlanner {
   void build_op_candidates(TAPFNode* S, int i, std::vector<OpCand>& out);
   bool is_goal_config(const Config& C, const ShelfState& S) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
-  void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
+  void rewrite(TAPFNode* from, TAPFNode* goal,
                std::vector<TAPFNode*>& OPEN);
   double get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
   double get_h_value(const Config& C);

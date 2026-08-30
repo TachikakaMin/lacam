@@ -6,7 +6,9 @@
  *
  * Everything here operates on the conformance-oracle view (DDInstance /
  * PhysConfig, identical cell-index encoding as Vertex::index) and is
- * ordering-only; none of it executes on shelf-free instances.
+ * ordering-only; none of it executes on shelf-free instances.  Called
+ * from TAPFPlanner::attach_carrier_guidance (production) and from the
+ * carrier adapters/test probes in dd_planner.cpp.
  */
 #pragma once
 
@@ -34,6 +36,20 @@ inline int env_int(const char* k, int dflt)
 {
   const char* v = std::getenv(k);
   return v ? std::atoi(v) : dflt;
+}
+
+// solver-objective weight loader (design 5.7): ONE parser for the planner
+// g-weights and the adapter reporting weights (they must always agree).
+// W needs fields alpha/beta/gamma/delta defaulting to 1.
+template <typename W>
+inline void load_solver_weights(W& w)
+{
+  const char* e = std::getenv("DD_SOLVER_WEIGHTS");
+  if (e == nullptr || std::atoi(e) == 0) return;
+  if (const char* a = std::getenv("DD_ALPHA")) w.alpha = atof(a);
+  if (const char* b = std::getenv("DD_BETA")) w.beta = atof(b);
+  if (const char* c = std::getenv("DD_GAMMA")) w.gamma = atof(c);
+  if (const char* d = std::getenv("DD_DELTA")) w.delta = atof(d);
 }
 
 // lower-deck distance provider: exact Manhattan on wall-free grids,

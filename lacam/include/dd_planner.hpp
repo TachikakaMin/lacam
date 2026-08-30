@@ -1,5 +1,7 @@
 /*
- * dd_planner: Carrier-LaCAM search (design.md section 5, milestone M1).
+ * dd_planner: carrier (two-deck) entry adapters and test-support probes
+ * over the integrated LaCAM-TAPF planner (design.md v3 section 10).
+ * The ONE solve loop lives in tapf_planner.cpp; nothing here searches.
  */
 #pragma once
 
@@ -53,8 +55,9 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
 DDPlan solve_carrier_rollout(const DDInstance& ins, double time_limit_sec,
                              int seed, DDStats* stats = nullptr);
 
-// admissible SOC-style heuristic at the initial configuration
-// (design 5.7 h_soc); used by tests and f-pruning.
+// admissible SOC-style heuristic at the initial configuration (design
+// 5.7 h_soc): test oracle for the production f-bound (the planner folds
+// the same term into node h via attach_carrier_guidance).
 double dd_root_admissible_h(const DDInstance& ins);
 
 // B1 baseline (design 8.1): 2-stage — shelf paths fixed ONCE at the start

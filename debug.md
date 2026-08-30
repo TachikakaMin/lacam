@@ -216,6 +216,19 @@ test_tapf_compat.cpp（golden 特征化）、WP1-WP5 各 RED 测试、
   +2992/−2223；逐文件对照 M1-M17 映射；无平行 solve loop、无
   fallback、无 benchmark hack；search_kernel 死代码已删；诊断计数器
   guidance_builds/path_* 接回真实值）
+- [x] WP7b 独立精简 review（GPT-5.6 Sol high，22 项裁决）并实施全部
+  REMOVE/SIMPLIFY：死函数 is_open_viable、死成员 CarrierEngine::cand、
+  3 个无用 include、carrier_ops_cost/rewrite/drain_node 无用参数、
+  carrier_upper_base ≡ (carrier_grounded != 0) 等价谓词合并、
+  cur_shelf 别名删除、不可达 macro_after_first 增量删除、
+  solver 权重解析去重（load_solver_weights 单一实现）、
+  park 纪元注释与 dd_planner.hpp 旧架构注释修正。
+  KEEP 裁决要点：get_h_value（既有上游 API 面）、splitmix/zmix
+  （oracle 边界两侧不同键域）、B1 guidance 块（刻意不同的基线语义）、
+  全部 dd_* 测试探针（protected 消费者）、上游 3 参 Constraint ctor
+  的 ops.push_back（堆布局扰动风险 > 2 行收益）。
+  验证：109 C++ + 57 Python 全绿；dev 9 例 makespan 与精简前
+  逐一相同（4/7/41/12/24/81/605/1264/1259）——零行为变化。
 
 维护约定：每完成一项勾选并附 commit hash 与测试名；新发现问题追加
 到对应 WP；protected 测试改动需独立 subagent APPROVE。

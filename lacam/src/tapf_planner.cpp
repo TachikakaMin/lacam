@@ -1,10 +1,7 @@
 #include "../include/tapf_planner.hpp"
 
-#include <climits>
 #include <cmath>
 #include <cstdlib>
-#include <deque>
-#include <limits>
 #include <queue>
 #include <unordered_set>
 
@@ -13,12 +10,6 @@
 
 namespace
 {
-  bool is_open_viable(const TAPFNode* node, const TAPFNode* goal)
-  {
-    return !node->search_tree.empty() &&
-           (goal == nullptr || node->f < goal->g);
-  }
-
   double focal_score(const TAPFNode* node, TAPFFocalTieBreak tie_break)
   {
     switch (tie_break) {
@@ -105,7 +96,6 @@ struct TAPFPlanner::CarrierEngine {
   PathCache paths;
   Scratch sc;
   PhysConfig phys;  // scratch physical view of the node in processing
-  std::vector<std::pair<Vertex*, uint8_t>> cand;  // funcPIBT op scratch
 
   explicit CarrierEngine(const DDInstance& dd)
       : lower(dd.grid), sc(dd.grid.size())
@@ -365,14 +355,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
   // solver-objective weights (design 5.7, round-2 P2-16b semantics): unit
   // by default; DD_SOLVER_WEIGHTS=1 folds DD_ALPHA..DD_DELTA into g.
   // Shelf-free instances never evaluate the carrier cost term.
-  if (const char* e = std::getenv("DD_SOLVER_WEIGHTS")) {
-    if (std::atoi(e) != 0) {
-      if (const char* a = std::getenv("DD_ALPHA")) weights.alpha = atof(a);
-      if (const char* b = std::getenv("DD_BETA")) weights.beta = atof(b);
-      if (const char* c = std::getenv("DD_GAMMA")) weights.gamma = atof(c);
-      if (const char* d = std::getenv("DD_DELTA")) weights.delta = atof(d);
-    }
-  }
+  carrier_detail::load_solver_weights(weights);
   // carrier layer (M4): the conformance-oracle view and the occupancy
   // scratch exist only when the instance HAS a shelf layer
   if (!ins->shelf_cells.empty()) {
@@ -389,7 +372,6 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     dd_view->finalize();
     const size_t n_cells = ins->G.U.size();
     carrier_grounded.assign(n_cells, 0);
-    carrier_upper_base.assign(n_cells, 0);
     carrier_upper_delta.assign(n_cells, 0);
     carrier = std::make_unique<CarrierEngine>(*dd_view);
   }
@@ -580,7 +562,8 @@ Solution TAPFPlanner::solve()
             if (stats != nullptr) {
               ++stats->hl_nodes_created;
               ++stats->macro_successors;
-              if (S_goal != nullptr) ++stats->macro_after_first;
+              // macro_after_first stays 0 by construction: this block is
+              // gated on S_goal == nullptr (two-phase policy, D14)
             }
             continue;  // S stays queued; DFS tries the macro child first
           }
@@ -629,7 +612,7 @@ Solution TAPFPlanner::solve()
     if (iter != CLOSED.end()) {
       auto S_known = iter->second;
       S->neighbor.insert(S_known);
-      rewrite(S, S_known, S_goal, OPEN);
+      rewrite(S, S_goal, OPEN);
       auto S_insert = S_known;
       if (MT != nullptr && get_random_float(MT) < restart_rate) {
         S_insert = S_init;
@@ -659,7 +642,7 @@ Solution TAPFPlanner::solve()
 
     auto changed_agents = std::vector<int>();
     changed_agents.reserve(N);
-    for (size_t i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
       if (C_new[i] != S->C[i]) changed_agents.push_back(i);
     }
 
@@ -801,7 +784,7 @@ Solution TAPFPlanner::solve()
   return solution;
 }
 
-void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
+void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* goal,
                           std::vector<TAPFNode*>& OPEN)
 {
   auto Q = std::queue<TAPFNode*>({from});
@@ -998,9 +981,10 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
   const auto K = ai->v_now->neighbor.size();
   const auto task_id = assignment[i];
   // carrier role of this agent (KAPPA_FREE on shelf-free instances)
-  const int kappa_i =
-      cur_shelf != nullptr && !cur_shelf->kappa.empty() ? cur_shelf->kappa[i]
-                                                        : KAPPA_FREE;
+  const int kappa_i = carrier_scratch_node != nullptr &&
+                              !carrier_scratch_node->shelf.kappa.empty()
+                          ? carrier_scratch_node->shelf.kappa[i]
+                          : KAPPA_FREE;
   const bool loaded = kappa_i != KAPPA_FREE;
   const CarrierGuidance* guide =
       carrier_scratch_node != nullptr ? carrier_scratch_node->guide.get()
@@ -1183,7 +1167,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
   //                  pushes fail far more often than task pushes), and
   //                  the wait fallback SUCCEEDS when feasible.
   const bool carrier_role =
-      task_id < 0 && cur_shelf != nullptr && !cur_shelf->kappa.empty();
+      task_id < 0 && carrier_scratch_node != nullptr &&
+      !carrier_scratch_node->shelf.kappa.empty();
   for (size_t k = 0; k < cand.size(); ++k) {
     auto u = cand[k].first;
     const uint8_t kind = cand[k].second;
@@ -1355,7 +1340,6 @@ long TAPFPlanner::carrier_path_cache_hits() const
 void TAPFPlanner::invalidate_carrier_scratch()
 {
   carrier_scratch_node = nullptr;
-  cur_shelf = nullptr;
   if (carrier != nullptr) carrier->sc.occ_node = nullptr;
 }
 
@@ -1363,27 +1347,21 @@ void TAPFPlanner::refresh_carrier_scratch(const TAPFNode* S)
 {
   if (carrier_scratch_node == S) return;
   carrier_scratch_node = S;
-  cur_shelf = &S->shelf;
   if (S->shelf.kappa.empty()) return;  // no shelf layer: nothing to fill
   std::fill(carrier_grounded.begin(), carrier_grounded.end(), 0);
-  std::fill(carrier_upper_base.begin(), carrier_upper_base.end(), 0);
-  for (const int p : S->shelf.anon_occ) {
-    carrier_grounded[p] = -1;
-    carrier_upper_base[p] = 1;
-  }
+  for (const int p : S->shelf.anon_occ) carrier_grounded[p] = -1;
   std::vector<char> carried(ins->target_starts.size(), 0);
   for (const int k : S->shelf.kappa)
     if (k >= 0) carried[k] = 1;
-  for (size_t b = 0; b < S->shelf.target_pos.size(); ++b) {
-    if (carried[b]) continue;
-    carrier_grounded[S->shelf.target_pos[b]] = (int)b + 1;
-    carrier_upper_base[S->shelf.target_pos[b]] = 1;
-  }
+  for (size_t b = 0; b < S->shelf.target_pos.size(); ++b)
+    if (!carried[b]) carrier_grounded[S->shelf.target_pos[b]] = (int)b + 1;
 }
 
 bool TAPFPlanner::carrier_upper_taken(int cell) const
 {
-  return carrier_upper_base[cell] + carrier_upper_delta[cell] > 0;
+  // grounded shelves occupy their cell at t+1 (carrier_grounded != 0);
+  // carried-shelf destination reservations live in the delta counters
+  return carrier_grounded[cell] != 0 || carrier_upper_delta[cell] > 0;
 }
 
 void TAPFPlanner::carrier_upper_add(int cell)
@@ -1489,8 +1467,8 @@ std::vector<std::vector<Op>> derive_carrier_ops(
 
 // physical cost of one joint op (design 2.3; solver weights)
 static double carrier_ops_cost(const TAPFPlanner::Weights& w,
-                               const ShelfState& from, const Config& c_from,
-                               const Config& c_to, const std::vector<Op>& ops)
+                               const ShelfState& from,
+                               const std::vector<Op>& ops)
 {
   double c = 0;
   for (size_t i = 0; i < ops.size(); ++i) {
@@ -1501,8 +1479,6 @@ static double carrier_ops_cost(const TAPFPlanner::Weights& w,
       c += w.gamma;
     }
   }
-  (void)c_from;
-  (void)c_to;
   return c;
 }
 
@@ -1555,7 +1531,7 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
     const auto ops = ops_scratch;  // copy (assembled by carrier effects)
     if (!local_seen.insert(state_hash(C_step, shelf_next_scratch)).second)
       return out;  // local cycle
-    out.cost += carrier_ops_cost(weights, curS, cur, C_step, ops);
+    out.cost += carrier_ops_cost(weights, curS, ops);
     out.ops.push_back(ops);
     out.configs.push_back(C_step);
     out.shelves.push_back(shelf_next_scratch);
