@@ -154,13 +154,24 @@ void fill_occupancy_if_needed(const DDInstance& ins, const PhysConfig& s,
 
 std::vector<int> least_blocking_path(const DDGrid& g, int src, int dst,
                                      const std::vector<uint8_t>& occupied,
-                                     int exclude, Scratch& sc)
+                                     int exclude, Scratch& sc,
+                                     const std::vector<int>* prev_path = nullptr)
 {
   if (src == dst) return {src};
   std::fill(sc.dist.begin(), sc.dist.end(), INT_MAX / 2);
   auto& dist = sc.dist;
   auto& prev = sc.prev;
   prev[src] = -1;
+  // path inertia (round-2 P2-13c): scale base costs by 2N and give cells
+  // of the PREVIOUS path a -1 discount.  Total discount over any path is
+  // < N < 2N = one base unit, so inertia is a strict tie-break — it can
+  // never trade away real cost.  Ordering-only (guidance path shape).
+  const int scale = 2 * (int)g.size();
+  std::vector<uint8_t> on_prev;
+  if (prev_path && !prev_path->empty()) {
+    on_prev.assign(g.size(), 0);
+    for (int c : *prev_path) on_prev[c] = 1;
+  }
   using QE = std::pair<int, int>;  // (dist, cell)
   std::priority_queue<QE, std::vector<QE>, std::greater<QE>> pq;
   dist[src] = 0;
@@ -175,7 +186,8 @@ std::vector<int> least_blocking_path(const DDGrid& g, int src, int dst,
     for (int k = 0; k < n; ++k) {
       const int v = nb[k];
       const bool occ = v != exclude && occupied[v];
-      const int w = 1 + (occ ? LAMBDA_BLK : 0);
+      int w = (1 + (occ ? LAMBDA_BLK : 0)) * scale;
+      if (!on_prev.empty() && on_prev[v]) w -= 1;
       if (dist[v] > d + w) {
         dist[v] = d + w;
         prev[v] = u;
@@ -253,7 +265,11 @@ struct PathCache {
     Entry e;
     e.src = src;
     g_path_recomputes++;
-    e.path = least_blocking_path(g, src, dst, occupied, exclude, sc);
+    const std::vector<int>* prev_path = nullptr;
+    if (it != by_target.end() && !it->second.path.empty())
+      prev_path = &it->second.path;  // inertia: stale route as tie baseline
+    e.path = least_blocking_path(g, src, dst, occupied, exclude, sc,
+                                 prev_path);
     e.occ_snapshot.resize(e.path.size());
     for (size_t i = 0; i < e.path.size(); ++i) {
       const int c = e.path[i];
@@ -365,7 +381,8 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
                         std::vector<DistCache>& target_goal_dist,
                         LowerDist& lower_dist, PathCache& paths, Scratch& sc,
                         const void* node_key, std::vector<int>& park_registry,
-                        const std::vector<std::pair<int, int>>* taboo = nullptr)
+                        const std::vector<std::pair<int, int>>* taboo = nullptr,
+                        const Guidance* parent_guide = nullptr)
 {
   g_guidance_builds++;
   Guidance g;
@@ -567,6 +584,12 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
     else
       ++free_left;
   }
+  // eta hysteresis (design 5.3(4), round-2 P2-13b): keeping the parent's
+  // (robot, request-cell) pair earns a distance discount, so near-tie
+  // re-matches stop flipping every node (reversal jitter).  Ordering-only.
+  const int ETA = env_int("DD_ETA", 2);
+  const bool use_hyst = parent_guide != nullptr &&
+                        parent_guide->free_goal.size() == R && ETA > 0;
   for (int ri : req_order) {
     if (free_left == 0) break;
     const auto& req = g.requests[ri];
@@ -579,7 +602,10 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
           banned |= (rb == (int)i && cell == req.cell);
         if (banned) continue;
       }
-      const int dd = lower_dist.dist(req.cell, s.robots[i]);
+      int dd = lower_dist.dist(req.cell, s.robots[i]);
+      if (use_hyst && parent_guide->rho[i] >= 0 &&
+          parent_guide->free_goal[i] == req.cell)
+        dd -= ETA;
       if (dd < bestd) {
         bestd = dd;
         best = (int)i;
@@ -835,8 +861,23 @@ struct PIBTContext {
         auto d_of = [&](int c) { return lower_dist.dist(goal, c); };
         push_moves_sorted_by(d_of, /*loaded=*/false);
         cand.push_back(Op::make_wait());
+      } else if (sc.protect[q] && env_int("DD_IDLE_AVOID", 1)) {
+        // idle ON an active path / requested-shelf / goal cell (design
+        // 5.4, round-2 P2-13d): step OFF the corridor first — waiting here
+        // means being pushed every step (reversal jitter) and physically
+        // blocking lifts.  Prefer un-protected neighbors, then wait, then
+        // protected moves (still pushable).
+        auto d_of = [&](int c) { return sc.protect[c] ? 1 : 0; };
+        push_moves_sorted_by(d_of, /*loaded=*/false);
+        // insert Wait before the protected fallback moves
+        size_t first_prot = 0;
+        while (first_prot < cand.size() &&
+               !(cand[first_prot].kind == Op::MOVE &&
+                 sc.protect[cand[first_prot].to]))
+          ++first_prot;
+        cand.insert(cand.begin() + first_prot, Op::make_wait());
       } else {
-        // idle: prefer to stay put; move only when pushed (M1 avoidance)
+        // idle off-corridor: prefer to stay put; move only when pushed
         cand.push_back(Op::make_wait());
         push_moves_sorted_by([](int) { return 0; }, /*loaded=*/false);
       }
@@ -1065,8 +1106,10 @@ RolloutResult rollout_from(const DDInstance& ins, const PhysConfig& X0,
       // guidance frozen within the chunk (ordering-only staleness);
       // occupancy is refreshed every step below.
       sc.occ_node = nullptr;
+      Guidance prev_guide = std::move(tmp.guide);
       tmp.guide = build_guidance(ins, tmp.X, tgd, ld, paths, sc, &tmp,
-                                 park_registry);
+                                 park_registry, nullptr,
+                                 step > 0 ? &prev_guide : nullptr);
       tmp.order = make_order(ins, tmp.X, tmp.guide, tgd);
       tmp.constraint_order = tmp.order;
     }
@@ -1214,7 +1257,9 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
     }
     nd->guide = build_guidance(ins, nd->X, target_goal_dist, lower_dist,
                                path_cache, scratch, nd, park_registry,
-                               livelock ? &taboo : nullptr);
+                               livelock ? &taboo : nullptr,
+                               (!livelock && parent) ? &parent->guide
+                                                     : nullptr);
     nd->order = make_order(ins, nd->X, nd->guide, target_goal_dist);
     nd->constraint_order = nd->order;  // frozen for the node's lifetime
     if (livelock) {
@@ -1969,4 +2014,71 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
                                X.target_pos[0], scratch);
   }
   return node.guide.target_park;
+}
+
+std::vector<int> dd_match_free_goals(const DDInstance& ins,
+                                     const PhysConfig& X,
+                                     const std::vector<int>* parent_free_goal)
+{
+  std::vector<DistCache> target_goal_dist;
+  target_goal_dist.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    target_goal_dist.emplace_back(ins.grid);
+  LowerDist lower_dist(ins.grid);
+  PathCache path_cache;
+  Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+  Guidance parent;
+  const Guidance* pg = nullptr;
+  if (parent_free_goal) {
+    parent.free_goal = *parent_free_goal;
+    parent.rho.assign(ins.n_robots(), -1);
+    for (size_t i = 0; i < ins.n_robots(); ++i)
+      if ((*parent_free_goal)[i] >= 0) parent.rho[i] = 0;  // any valid idx
+    pg = &parent;
+  }
+  Node node;
+  node.X = X;
+  scratch.occ_node = nullptr;
+  scratch.pibt_node = nullptr;
+  node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                              path_cache, scratch, &node, park_registry,
+                              nullptr, pg);
+  return node.guide.free_goal;
+}
+
+std::vector<int> dd_least_blocking_path(const DDGrid& g, int src, int dst,
+                                        const std::vector<uint8_t>& occupied,
+                                        const std::vector<int>* prev_path)
+{
+  Scratch sc(g.size());
+  return least_blocking_path(g, src, dst, occupied, /*exclude=*/-1, sc,
+                             prev_path);
+}
+
+std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
+                                  int seed)
+{
+  std::mt19937 rng(seed);
+  std::vector<DistCache> target_goal_dist;
+  target_goal_dist.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    target_goal_dist.emplace_back(ins.grid);
+  LowerDist lower_dist(ins.grid);
+  PathCache path_cache;
+  Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+  Node node;
+  node.X = X;
+  scratch.occ_node = nullptr;
+  scratch.pibt_node = nullptr;
+  node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                              path_cache, scratch, &node, park_registry);
+  node.order = make_order(ins, node.X, node.guide, target_goal_dist);
+  node.constraint_order = node.order;
+  Constraint root;
+  auto res = carrier_pibt(ins, node, &root, target_goal_dist, lower_dist,
+                          rng, scratch, nullptr);
+  if (!res.has_value()) return {};
+  return res->second;
 }

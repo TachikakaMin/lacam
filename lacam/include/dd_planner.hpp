@@ -94,3 +94,23 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
                                      const PhysConfig& X,
                                      int warm_block_cell, bool strict_inval,
                                      std::vector<int>* path_out = nullptr);
+
+// TEST SUPPORT (debug.md round-2 P2-13b): run the production rho matching
+// for X and return per-robot free_goal cells.  parent_free_goal, if given,
+// simulates the parent node's assignment (cell per robot, -1 = none) for
+// the eta-hysteresis term (design 5.3(4), DD_ETA).
+std::vector<int> dd_match_free_goals(const DDInstance& ins,
+                                     const PhysConfig& X,
+                                     const std::vector<int>* parent_free_goal);
+
+// TEST SUPPORT (debug.md round-2 P2-13c): production least-blocking path
+// with optional previous-path inertia bias (ties break toward prev; total
+// discount strictly below one base cost unit).
+std::vector<int> dd_least_blocking_path(const DDGrid& g, int src, int dst,
+                                        const std::vector<uint8_t>& occupied,
+                                        const std::vector<int>* prev_path);
+
+// TEST SUPPORT (debug.md round-2 P2-13d): run one unconstrained
+// Carrier-PIBT step from X and return the chosen joint ops.
+std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
+                                  int seed);

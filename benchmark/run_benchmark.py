@@ -43,6 +43,7 @@ FIELDS = [
     "instance", "family", "method", "success", "executed_makespan",
     "weighted_soc", "loaded_moves", "free_moves", "lift_drop",
     "shelf_switches", "robot_utilization", "first_solution_ms",
+    "reversals",
     "runtime_sec", "status", "raw",
 ]
 
@@ -74,7 +75,7 @@ def run_external(cmd, timeout):
 
 
 def _blank_extra():
-    return dict(shelf_switches="", robot_utilization="",
+    return dict(shelf_switches="", robot_utilization="", reversals="",
                 first_solution_ms="")
 
 
@@ -100,6 +101,7 @@ def row_b4(ins, name, family, timeout):
                 weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
                 free_moves=c["free_moves"], lift_drop=c["lift_drop"],
                 shelf_switches=c["shelf_switches"],
+                reversals=c["reversals"],
                 robot_utilization=round(c["robot_utilization"], 4),
                 first_solution_ms="",
                 runtime_sec=round(runtime, 3), status="ok", raw="")
@@ -256,6 +258,7 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
                 weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
                 free_moves=c["free_moves"], lift_drop=c["lift_drop"],
                 shelf_switches=c["shelf_switches"],
+                reversals=c["reversals"],
                 robot_utilization=round(c["robot_utilization"], 4),
                 first_solution_ms=metrics.get("first_solution_ms", ""),
                 runtime_sec=round(rt, 3), status="ok", raw="")

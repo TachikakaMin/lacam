@@ -236,11 +236,14 @@ def plan_cost(
     s = initial_state(s0_ins)
     loaded_moves = free_moves = liftdrops = anon_moves = 0
     shelf_switches = 0
+    reversals = 0
+    prev_pos = list(s.robots)      # position at t-1
+    prev_prev = list(s.robots)     # position at t-2
+    executed_makespan = None       # FIRST time the goal holds
     lift_counts = {}       # shelf identity -> number of lifts so far
     anon_id_at = {}        # cell -> anon identity (custody chain)
     carrier_custody = {}   # robot i -> identity currently carried
     next_anon_id = [0]
-    executed_makespan = 0
     for t, joint in enumerate(plan):
         for i, act in enumerate(joint):
             if act[0] == "lift":
@@ -272,11 +275,22 @@ def plan_cost(
                     if key is not None and key[0] == "anon":
                         anon_id_at[s.robots[i]] = key[1]
         s = apply_joint_action(s0_ins, s, joint)
-        if is_goal(s0_ins, s):
+        # oscillation metric (design 8.3 addition, round-2 P2-13a):
+        # immediate A->B->A flips in the position history — moved at t-1
+        # AND back on the t-2 position now.  Wait in between doesn't count.
+        if t >= 1:
+            for i, q in enumerate(s.robots):
+                if prev_pos[i] != prev_prev[i] and q == prev_prev[i]:
+                    reversals += 1
+        prev_prev = prev_pos
+        prev_pos = list(s.robots)
+        if executed_makespan is None and is_goal(s0_ins, s):
             executed_makespan = t + 1
-            # keep going; makespan is FIRST time goal holds
-            break
-    else:
+            # makespan is the FIRST time the goal holds; the replay keeps
+            # going so metrics cover the WHOLE plan (matches the long-
+            # standing comment; the old `break` truncated counters and made
+            # zero-target fixtures degenerate)
+    if executed_makespan is None:
         executed_makespan = len(plan)
     # shelf switches (design 8.3): re-lifts, i.e. lift events beyond each
     # shelf's first lift.  Track identity for targets; anonymous shelves are
@@ -288,6 +302,7 @@ def plan_cost(
         "lift_drop": liftdrops,
         "anon_moves": anon_moves,
         "shelf_switches": shelf_switches,
+        "reversals": reversals,
         "robot_utilization": (
             loaded_moves / (len(s0_ins.robots) * executed_makespan)
             if executed_makespan > 0 else 0.0
