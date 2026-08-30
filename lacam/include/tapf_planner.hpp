@@ -52,12 +52,41 @@ struct ShelfState {
 // root shelf state of an instance (empty layer for shelf-free TAPF)
 ShelfState initial_shelf_state(const TAPFInstance& ins);
 
+// ---- carrier guidance (design 5.3/5.4a/5.5, mapping M6/M8) ----
+// Per-node, ordering-only; NEVER part of the search key.  Absent (null)
+// on shelf-free instances.
+struct CarrierRequest {
+  enum Kind { SERVE, CLEAR } kind;
+  int target = -1;   // for SERVE: target idx; for CLEAR: blocked target
+  int cell = -1;     // shelf cell to lift
+  int priority = 0;  // higher first (chain head highest)
+};
+
+struct CarrierGuidance {
+  std::vector<CarrierRequest> requests;
+  std::vector<int> rho;           // robot -> request index (or -1)
+  std::vector<int> free_goal;     // per-robot request cell (or -1)
+  std::vector<int> parking_cell;  // for parked/anon carriers
+  std::vector<int> target_next;   // next cell on each target's path
+  bool plan_bound = false;        // B1: fixed plan is a HARD constraint
+  std::vector<uint8_t> target_park;  // design 5.4a park flags
+  std::vector<int> park_owner;
+};
+
 struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {
   const ShelfState shelf;  // two-deck layer (empty on shelf-free instances)
   // FROZEN variable order for constraint-tree expansion (design D11,
   // mapping M3): copied from `order` at creation.  Livelock handling (M9)
   // may perturb `order` (PIBT preference) but never this.
   std::vector<int> constraint_order;
+  // carrier guidance + livelock signals (M6/M9); guide is null and the
+  // counters stay 0 on shelf-free instances
+  std::unique_ptr<CarrierGuidance> guide;
+  long h_guidance = 0;
+  long best_h = 0;
+  int no_progress = 0;
+  int revisits = 0;
+  bool macro_tried = false;
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
@@ -145,6 +174,9 @@ struct TAPFPlanner {
   // conformance-oracle view of the instance (final arbiter of every joint
   // op with a shelf layer, exactly the pre-integration architecture)
   std::unique_ptr<DDInstance> dd_view;
+  // guidance engine (M6): distance caches, path cache, occupancy scratch
+  struct CarrierEngine;
+  std::unique_ptr<CarrierEngine> carrier;
   // per-node occupancy scratch (grounded shelf id + upper base counts)
   const TAPFNode* carrier_scratch_node = nullptr;
   const ShelfState* cur_shelf = nullptr;  // shelf layer of the node in gen
@@ -154,6 +186,9 @@ struct TAPFPlanner {
   std::vector<int> carrier_upper_touched;
   ShelfState shelf_next_scratch;        // successor layer of the last gen
   std::vector<Op> ops_scratch;          // assembled joint op
+  // funcPIBT op-candidate scratch (unified try loop; task agents
+  // materialize the original sorted vertex candidates into it)
+  std::vector<std::pair<Vertex*, uint8_t>> pibt_cand;
   // solution shelf chain (parallel to the returned Solution; empty layers
   // on shelf-free instances) — consumed by the carrier adapters/tests
   std::vector<ShelfState> solution_shelves;
@@ -163,7 +198,13 @@ struct TAPFPlanner {
               float _restart_rate = 0.001f, bool _anytime = true,
               TAPFStats* _stats = nullptr,
               TAPFSearchConfig _search_config = TAPFSearchConfig());
+  ~TAPFPlanner();  // out-of-line: CarrierEngine is defined in the .cpp
   Solution solve();
+  // guidance hook at node creation (M6/M9): builds requests/rho/park,
+  // layers the PIBT order by carrier class, freezes constraint_order,
+  // folds the admissible shelf h into node->h/f, and applies the
+  // livelock diversification.  Immediate no-op without targets.
+  void attach_carrier_guidance(TAPFNode* nd, bool reguide = false);
   bool is_goal_config(const Config& C, const ShelfState& S) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,

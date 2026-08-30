@@ -264,3 +264,17 @@ TEST(dd_integration, solve_tapf_two_robots_two_targets)
   ASSERT_FALSE(plan.empty());
   expect_oracle_valid_plan(dd, plan);
 }
+
+// ---------- WP4: guidance stack (mapping M6/M7/M8/M9) ----------
+
+TEST(dd_integration, solve_tapf_m1_scale_fixture_within_10s)
+{
+  // design.md M1 exit criterion instance (20x20, 52 shelves, 10 robots,
+  // 13 targets): needs the full guidance stack (requests/rho/paths);
+  // blind operator search cannot touch this
+  const auto dd =
+      load_dd_instance(kFix + "m1_exit_20x20_s52_r10.yaml");
+  const auto plan = solve_dd_via_tapf(dd, 0, 10.0);
+  ASSERT_FALSE(plan.empty());
+  expect_oracle_valid_plan(dd, plan);
+}
