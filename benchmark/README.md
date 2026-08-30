@@ -267,3 +267,28 @@ Observations:
   shelves per robot).
 - **CLI**: `dd_benchmark` now echoes `mode=` and rejects unknown modes
   (exit 2) instead of silently falling back to `lacam`.
+
+### Final round-2 results (2026-08-30, results_final_v4, jobs=16 physical cores)
+
+164 instances (162 + two 1:50-tier), unified 10 s, one seed:
+
+| method | solved | notes |
+|---|---|---|
+| carrier (ours) | **162/164** | r2r 25/25 mk 548 (crest_base parity: 546), dne 24/25, s2w 25/25 |
+| carrier_b0 | 147/164 | no-search ablation |
+| b4 | 115/164 | single-robot; paper-scale mostly timeout |
+| crest_base | 81/164 | best external; r2r-only at paper scale + 19 dne |
+| carrier_b1 | 77/164 | frozen-plan ablation; 0/75 paper |
+| crest_full | 38/164 | |
+| natcbs | 21/164 | optimal, small maps only |
+
+carrier quality evolution on identical paper instances (makespan mean):
+r2r 1673 -> 548 (3.1x), dne 4024 -> 1473 (2.7x), s2w 3288 -> 1277 (2.6x)
+vs the pre-round-2 defaults.  Open: dneM_seed22 (solvable only with
+Hungarian rho above the 256-target regime boundary — uniform-boundary
+trade-off), one std scramble.
+
+Timing record: full 1148-task suite 470 s wall at jobs=16; 99-task
+ablation 46 s (parallelized runner).  Benchmarks are pinned to PHYSICAL
+cores (16) — hyper-threaded oversubscription (jobs=27) starved 9s-tail
+tasks and produced false timeouts (s2w 12/25 vs 25/25).

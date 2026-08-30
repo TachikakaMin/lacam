@@ -179,5 +179,17 @@ commit 98516f7 及其前后)。
 7. P2-14/15/16 按 M4/论文需要排期
 
 ---
+完成记录(2026-08-30,round-2 全部落地):P0 1-5、P1 6-12、P2 13-16
+全部 [x](16 的 LNS/ITA-τ/robot 匿名化按本清单排期维持 design §7
+扩展记录)。最终验证:C++ 13 target 68 测试 + Python 57 测试全绿;
+164 实例 × 7 方法统一 10s(results_final_v4,jobs=16 物理核):
+carrier 162/164(r2r 25/25 且 mk 548 与 crest_base 546 打平、
+s2w 25/25、dne 24/25),对比 b4 115、crest_base 81、natcbs 21;
+论文级质量对 v2 默认 2.6–3.1×。遗留:dneM_seed22(统一规模域
+边界的已记录代价)、1 个 std scramble、strict_inv 诊断模式变重
+(7/9,全局快照代价)。耗时记录:全量 470s、ablation 46s(16 路)。
+教训入档:benchmark 并行度必须钉在物理核数(HT 超订制造假超时);
+与计时基准并行跑测试套件会污染判定(v4 首跑作废重跑)。
+
 维护约定:每完成一项勾选 [x] 并附 commit hash 与测试名;新发现的
 问题追加到对应优先级段落;protected 测试改动需独立 subagent APPROVE。

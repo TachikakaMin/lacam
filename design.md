@@ -700,9 +700,9 @@ cost,moved-row 增量)。放 phase 3 或独立扩展章节,保持 v1 故事紧�
 full method=`carrier`;B0=`carrier_b0`;B1=`carrier_b1`;
 B2=`crest_base`(论文两阶段)与 `crest_full`(含执行期修补);
 B3=`natcbs`(≤150 格小实例);B4=`b4`。官方全量结果:
-`results_final_v2/rows.csv`(162 实例 × 7 方法,统一 10s)+
-`results_final_v3/rows.csv`(carrier 在 D14 两阶段配置下的重跑,
-158/162、论文级质量 2.5–3×,当前默认配置以 v3 为准)。
+`results_final_v4/rows.csv`(164 实例 × 7 方法,统一 10s,jobs=16
+物理核;carrier 162/164,r2r 质量与 crest_base 打平)。历史:v2(旧
+默认)、v3(两阶段)保留作演进对照。
 
 ### 8.2 自变量 sweep(优势应最大的两条轴放前面)
 
@@ -812,9 +812,12 @@ re-match 实证够用,Hungarian 移入扩展),其余(blocking-aware field、
 dead-cell v1 形态、FOCAL/anytime、Zobrist)完成;M3 的 B0-B4 完成,
 sweep/ablation 覆盖范围见 §8.2/§8.4 如实标注;M4 中 macro rollout 已
 提前落地并固化为 D14 两阶段规则,LNS/wait-for/ITA-τ 未做。
-最终数字(统一 10s,162 实例):carrier 158/162(论文级三套件
-73/75–75/75 视配置,质量见 §7.1),对比 b4 112、crest_base 67、
-crest_full 37、natcbs 21。
+最终数字(统一 10s,164 实例,round-2 完成后):carrier 162/164
+(r2r 25/25 mk 548 ≈ crest_base 546、dne 24/25、s2w 25/25),对比
+carrier_b0 147、b4 115、crest_base 81、carrier_b1 77、crest_full 38、
+natcbs 21。round-2 新增默认:η 迟滞、路径惯性、idle 避让、
+g-relax/rewire、wait-for 定向禁忌、Hungarian ρ(≤256 targets 规模域,
+DD_RHO_HUNGARIAN_TGT)。
 
 代码落点:fork `lacam/src/tapf_planner.cpp` → `dd_planner.cpp`;
 `PhysConfig {Config robots; ShelfOcc shelves; vector<int8> kappa;}`
