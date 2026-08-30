@@ -50,8 +50,7 @@ namespace
 TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
                    std::vector<int> _assignment,
                    TAPFAssignmentState _assignment_state, TAPFNode* _parent)
-    : C(_C),
-      parent(_parent),
+    : LacamNodeCore<TAPFConstraint, TAPFNode>(_C, _parent),
       neighbor(std::set<TAPFNode*>()),
       assignment(_assignment),
       assignment_state(_assignment_state),
@@ -63,23 +62,11 @@ TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
       non_goal_waits(parent == nullptr ? 0 : parent->non_goal_waits),
       reversals(parent == nullptr ? 0 : parent->reversals),
       distance_increases(parent == nullptr ? 0 : parent->distance_increases),
-      settled_pushes(parent == nullptr ? 0 : parent->settled_pushes),
-      priorities(C.size(), 0),
-      order(C.size(), 0),
-      search_tree(std::queue<TAPFConstraint*>())
+      settled_pushes(parent == nullptr ? 0 : parent->settled_pushes)
 {
-  search_tree.push(new TAPFConstraint());
   if (parent != nullptr) parent->neighbor.insert(this);
   refresh_priority(D);
   refresh_search_metrics(D, ins);
-}
-
-TAPFNode::~TAPFNode()
-{
-  while (!search_tree.empty()) {
-    delete search_tree.front();
-    search_tree.pop();
-  }
 }
 
 void TAPFNode::discard_search_tree()
@@ -89,24 +76,9 @@ void TAPFNode::discard_search_tree()
 
 void TAPFNode::refresh_priority(TAPFDistTable& D)
 {
-  const auto N = C.size();
-  if (parent == nullptr) {
-    for (size_t i = 0; i < N; ++i) {
-      priorities[i] = (float)D.get(assignment[i], C[i]) / N;
-    }
-  } else {
-    for (size_t i = 0; i < N; ++i) {
-      if (D.get(assignment[i], C[i]) != 0) {
-        priorities[i] = parent->priorities[i] + 1;
-      } else {
-        priorities[i] = parent->priorities[i] - (int)parent->priorities[i];
-      }
-    }
-  }
-
-  std::iota(order.begin(), order.end(), 0);
-  std::sort(order.begin(), order.end(),
-            [&](int i, int j) { return priorities[i] > priorities[j]; });
+  // shared core machinery, task-keyed distance (node-skeleton audit 5)
+  init_priorities_and_order(
+      [&](size_t i) { return D.get(assignment[i], C[i]); });
 }
 
 void TAPFNode::refresh_search_metrics(TAPFDistTable& D,

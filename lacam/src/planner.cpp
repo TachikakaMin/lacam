@@ -16,42 +16,9 @@ Constraint::Constraint(Constraint* parent, int i, Vertex* v)
 Constraint::~Constraint(){};
 
 Node::Node(Config _C, DistTable& D, Node* _parent)
-    : C(_C),
-      parent(_parent),
-      priorities(C.size(), 0),
-      order(C.size(), 0),
-      search_tree(std::queue<Constraint*>())
+    : LacamNodeCore<Constraint, Node>(_C, _parent)
 {
-  search_tree.push(new Constraint());
-  const auto N = C.size();
-
-  // set priorities
-  if (parent == nullptr) {
-    // initialize
-    for (size_t i = 0; i < N; ++i) priorities[i] = (float)D.get(i, C[i]) / N;
-  } else {
-    // dynamic priorities, akin to PIBT
-    for (size_t i = 0; i < N; ++i) {
-      if (D.get(i, C[i]) != 0) {
-        priorities[i] = parent->priorities[i] + 1;
-      } else {
-        priorities[i] = parent->priorities[i] - (int)parent->priorities[i];
-      }
-    }
-  }
-
-  // set order
-  std::iota(order.begin(), order.end(), 0);
-  std::sort(order.begin(), order.end(),
-            [&](int i, int j) { return priorities[i] > priorities[j]; });
-}
-
-Node::~Node()
-{
-  while (!search_tree.empty()) {
-    delete search_tree.front();
-    search_tree.pop();
-  }
+  init_priorities_and_order([&](size_t i) { return D.get(i, C[i]); });
 }
 
 Planner::Planner(const Instance* _ins, const Deadline* _deadline,

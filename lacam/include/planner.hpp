@@ -18,18 +18,12 @@ struct Constraint {
   ~Constraint();
 };
 
-// high-level search node
-struct Node {
-  const Config C;
-  Node* parent;
+#include "search_kernel.hpp"
 
-  // for low-level search
-  std::vector<float> priorities;
-  std::vector<int> order;
-  std::queue<Constraint*> search_tree;
-
+// high-level search node — fields/priority machinery live in the shared
+// LacamNodeCore (node-skeleton audit step 5)
+struct Node : LacamNodeCore<Constraint, Node> {
   Node(Config _C, DistTable& D, Node* _parent = nullptr);
-  ~Node();
 };
 using Nodes = std::vector<Node*>;
 

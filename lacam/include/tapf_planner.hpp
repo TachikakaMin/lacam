@@ -32,9 +32,7 @@ struct TAPFSearchConfig {
 // byte-identical twin of planner.hpp's Constraint — now ONE type.
 using TAPFConstraint = Constraint;
 
-struct TAPFNode {
-  const Config C;
-  TAPFNode* parent;
+struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
@@ -47,14 +45,10 @@ struct TAPFNode {
   unsigned reversals;
   unsigned distance_increases;
   unsigned settled_pushes;
-  std::vector<float> priorities;
-  std::vector<int> order;
-  std::queue<TAPFConstraint*> search_tree;
 
   TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
            std::vector<int> _assignment, TAPFAssignmentState _assignment_state,
            TAPFNode* _parent = nullptr);
-  ~TAPFNode();
   void discard_search_tree();
   void refresh_priority(TAPFDistTable& D);
   void refresh_search_metrics(TAPFDistTable& D, const TAPFInstance* ins);

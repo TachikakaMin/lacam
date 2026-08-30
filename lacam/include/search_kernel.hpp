@@ -26,7 +26,13 @@
  */
 #pragma once
 
+#include <algorithm>
 #include <memory>
+#include <numeric>
+#include <queue>
+#include <vector>
+
+#include "graph.hpp"
 
 // Two constraint representations coexist in this codebase and each gets a
 // shared expansion driver (node-skeleton audit 2026-08-30):
@@ -156,3 +162,61 @@ inline size_t focal_select_index(const std::vector<NodeP>& open,
   }
   return best == open.size() ? open.size() - 1 : best;
 }
+
+// LacamNodeCore: the high-level search node fields and priority machinery
+// shared VERBATIM by the upstream Node (planner.cpp) and TAPFNode
+// (tapf_planner.cpp) — previously duplicated twins (node-skeleton audit
+// step 5).  Derived supplies the distance keyed however it likes (agent id
+// upstream, task assignment for TAPF) via init_priorities_and_order.
+// The DD planner's Node keeps its own configuration type (PhysConfig);
+// unifying it here is blocked by the Config(Vertex*)-vs-cell-int gulf —
+// recorded divergence, see design.md §10.
+template <typename ConstraintT, typename Derived>
+struct LacamNodeCore {
+  const Config C;
+  Derived* parent;
+  std::vector<float> priorities;
+  std::vector<int> order;
+  std::queue<ConstraintT*> search_tree;
+
+  LacamNodeCore(Config _C, Derived* _parent)
+      : C(_C),
+        parent(_parent),
+        priorities(C.size(), 0),
+        order(C.size(), 0),
+        search_tree(std::queue<ConstraintT*>())
+  {
+    search_tree.push(new ConstraintT());
+  }
+
+  ~LacamNodeCore()
+  {
+    while (!search_tree.empty()) {
+      delete search_tree.front();
+      search_tree.pop();
+    }
+  }
+
+  // verbatim upstream priority inheritance (PIBT-style) + order sort;
+  // dist_of(i) = remaining distance of robot/agent i at C[i]
+  template <typename DistOf>
+  void init_priorities_and_order(DistOf&& dist_of)
+  {
+    const auto N = C.size();
+    if (parent == nullptr) {
+      for (size_t i = 0; i < N; ++i)
+        priorities[i] = (float)dist_of(i) / N;
+    } else {
+      for (size_t i = 0; i < N; ++i) {
+        if (dist_of(i) != 0) {
+          priorities[i] = parent->priorities[i] + 1;
+        } else {
+          priorities[i] = parent->priorities[i] - (int)parent->priorities[i];
+        }
+      }
+    }
+    std::iota(order.begin(), order.end(), 0);
+    std::sort(order.begin(), order.end(),
+              [&](int i, int j) { return priorities[i] > priorities[j]; });
+  }
+};

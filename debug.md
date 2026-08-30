@@ -217,6 +217,29 @@ DistTable 直接复用" 的既定方针。按审计的最小代价路径逐组�
    两侧 schema 本质不同(movingAI .map vs YAML 行),按审计"避免为
    形式统一引入 variant"不强并。
 
+## P1-18 Node 骨架深化(2026-08-30 第四轮审计,fable-5 high)
+
+审计发现:search_kernel 两驱动当时是**伪共享**(仅 DD 使用),
+pibt_recurse 对上游 funcPIBT 三处语义不忠实;Node/Constraint/主循环
+仍是 dd_planner 内独立体系。按其推荐顺序处置:
+
+1. [x] Deadline/RNG 对齐:DD phase 计时改用上游 utils Deadline。
+2. [x] Constraint 双胞胎合并:TAPFConstraint = using 别名 → planner.hpp
+   Constraint 单一类型,重复实现删除。
+3. [x] 约束树展开驱动真三方共享:lacam_expand_constraint_vec(vector-
+   copy 形)由 planner.cpp 与 tapf_planner.cpp 双双调用;DD 用
+   parent-chain 形 dd_expand_constraint,两形并存且在 kernel 头文档化。
+4. [x] FOCAL 真三方共享:focal_select_index 单一实现,tapf
+   select_open_index 与 DD 选点块均改调(语义双侧不变)。
+5. [x] Node 公共核心:LacamNodeCore<ConstraintT,Derived>(C/parent/
+   priorities/order/search_tree + 逐字节等价的 priority 继承/析构)
+   由上游 Node 与 TAPFNode 双双继承,双胞胎字段与构造逻辑去重。
+   **DD Node 保持独立**:Config(Vertex*) vs PhysConfig(int 双层状态)
+   的类型鸿沟使继承同一核心 = 全实例类型重写(第三轮审计标记的
+   最高风险路径),作为记录在案的分歧保留(design §10)。
+6. [x] pibt_recurse 注释改为如实 lineage 记录(三处语义差异 + 上游
+   采用前置条件),消除"upstream can adopt"的不实声明。
+
 官方结果版本:results_final_v5/rows.csv = 当前默认配置(原版
 weighted-FOCAL w=1.5 + 全部骨架回迁)下 carrier 164 套跑,162/164、
 分组与 v4 完全一致(r2r 25/25 mk548)。
