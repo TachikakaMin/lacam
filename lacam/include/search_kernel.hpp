@@ -28,8 +28,14 @@
 
 #include <memory>
 
-// ConstraintT contract: parent/depth/who/what fields + kids (owning) —
-// exactly the DD Constraint and (payload aside) the upstream one.
+// Two constraint representations coexist in this codebase and each gets a
+// shared expansion driver (node-skeleton audit 2026-08-30):
+//   - vector-copy form (upstream planner.cpp / tapf_planner.cpp Constraint:
+//     who/where vectors copied per child)  -> lacam_expand_constraint_vec
+//   - parent-chain form (DD Constraint: single who/what + owning kids)
+//     -> dd_expand_constraint
+// ConstraintT contract for dd_expand_constraint: parent/depth/who/what
+// fields + kids (owning).
 template <typename ConstraintT, typename Payload, typename LegalOps,
           typename Fifo>
 inline void dd_expand_constraint(ConstraintT* c, int var,
@@ -49,9 +55,20 @@ inline void dd_expand_constraint(ConstraintT* c, int var,
 // pibt_recurse(): the PIBT reserve/recurse/backtrack frame — candidates in
 // preference order, feasibility veto, tentative reservation, immediate
 // recursion on an undecided occupant of a move destination, backtrack to
-// the next candidate on failure, wait as the last resort.  This is the
-// upstream funcPIBT control shape (planner.cpp / tapf_planner.cpp) with
-// every domain decision behind Ctx hooks:
+// the next candidate on failure, wait as the last resort.
+//
+// HONEST LINEAGE NOTE (node-skeleton audit 2026-08-30): this follows the
+// funcPIBT control IDEA but is NOT semantically interchangeable with the
+// upstream implementations; documented deltas:
+//   - on occupant-recursion failure DD un-reserves and tries the next
+//     candidate (upstream keeps the occupied_next reservation);
+//   - the wait fallback returns true here (upstream reserves v_now and
+//     returns false, letting the pusher retry);
+//   - no LaCAM2 swap hook (DD covers head-ons via yield/wait-for instead).
+// Upstream funcPIBT therefore does NOT call this frame yet; making it
+// faithful (reservation-keeping + wait-fail + swap hook) is the recorded
+// precondition for upstream adoption (debug.md P1-17 #6 后续).
+// Domain decisions behind Ctx hooks:
 //   candidates(robot) / feasible(robot, op) / fix / unfix
 //   move_dest(op) -> destination cell or -1   (non-moves)
 //   undecided_occupant(cell, robot) -> robot id or -1
@@ -99,4 +116,43 @@ bool pibt_recurse(Ctx& ctx, const std::vector<int>& order, int i,
     return true;
   }
   return false;
+}
+
+// vector-copy form driver (upstream Constraint semantics): children are
+// heap-allocated, caller owns collection (upstream GC vector).  Candidate
+// container is prepared (incl. shuffle) by the caller.
+template <typename ConstraintT, typename Cand, typename Queue>
+inline void lacam_expand_constraint_vec(ConstraintT* M, int agent,
+                                        const Cand& candidates, Queue& q)
+{
+  for (auto u : candidates) q.push(new ConstraintT(M, agent, u));
+}
+
+// FOCAL open-list selection (upstream tapf_planner select_open_index
+// shape, node-skeleton audit step 4): among viable nodes compute f_min,
+// admit f <= focal_weight * f_min, pick the tie-break winner; fall back to
+// the stack top (open.size()-1) when nothing qualifies.  Shared verbatim
+// by tapf_planner (unsigned f, focal_better ties) and the DD planner
+// (double g+h_adm, min-h ties).
+template <typename NodeP, typename FVal, typename Viable, typename Better>
+inline size_t focal_select_index(const std::vector<NodeP>& open,
+                                 double focal_weight, FVal&& f_of,
+                                 Viable&& viable, Better&& better)
+{
+  double f_min = -1;
+  for (const auto& n : open) {
+    if (!viable(n)) continue;
+    const double f = f_of(n);
+    if (f_min < 0 || f < f_min) f_min = f;
+  }
+  if (f_min < 0) return open.size() - 1;
+  const double bound = focal_weight * f_min;
+  size_t best = open.size();
+  for (size_t idx = 0; idx < open.size(); ++idx) {
+    const auto& n = open[idx];
+    if (!viable(n)) continue;
+    if (f_of(n) > bound + 1e-9) continue;
+    if (best == open.size() || better(n, open[best])) best = idx;
+  }
+  return best == open.size() ? open.size() - 1 : best;
 }

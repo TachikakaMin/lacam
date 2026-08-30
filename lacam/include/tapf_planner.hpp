@@ -28,14 +28,9 @@ struct TAPFSearchConfig {
   double focal_weight = 1.5;
 };
 
-struct TAPFConstraint {
-  std::vector<int> who;
-  Vertices where;
-  const int depth;
-  TAPFConstraint();
-  TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v);
-  ~TAPFConstraint();
-};
+// skeleton dedup (node-skeleton audit 2026-08-30): TAPFConstraint was a
+// byte-identical twin of planner.hpp's Constraint — now ONE type.
+using TAPFConstraint = Constraint;
 
 struct TAPFNode {
   const Config C;

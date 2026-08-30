@@ -1,5 +1,7 @@
 #include "../include/planner.hpp"
 
+#include "../include/search_kernel.hpp"
+
 Constraint::Constraint() : who(std::vector<int>()), where(Vertices()), depth(0)
 {
 }
@@ -122,7 +124,7 @@ Solution Planner::solve()
       auto C = S->C[i]->neighbor;
       C.push_back(S->C[i]);
       if (MT != nullptr) std::shuffle(C.begin(), C.end(), *MT);  // randomize
-      for (auto u : C) S->search_tree.push(new Constraint(M, i, u));
+      lacam_expand_constraint_vec<Constraint>(M, i, C, S->search_tree);
     }
 
     // create successors at the high-level search

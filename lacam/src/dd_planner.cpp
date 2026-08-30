@@ -9,6 +9,7 @@
 #include "../include/tapf_assignment.hpp"
 #include "../include/dd_dist_adapters.hpp"
 #include "../include/search_kernel.hpp"
+#include "../include/utils.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -1322,8 +1323,15 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
                              DDStats* stats, DDPlan* best_effort,
                              const PhaseOpts& opt, double* incumbent_out)
 {
+  // skeleton alignment (node-skeleton audit step 1): the upstream utils
+  // Deadline is the timing primitive; the hard end passed by the two-phase
+  // wrapper is converted once.
   const auto t_start = Clock::now();
-  auto expired = [&]() { return Clock::now() >= t_hard_end; };
+  const double remain_ms =
+      std::chrono::duration<double, std::milli>(t_hard_end - t_start)
+          .count();
+  Deadline deadline(remain_ms > 0 ? remain_ms : 0);
+  auto expired = [&]() { return is_expired(&deadline); };
   std::mt19937 rng(seed);
   const size_t R = ins.n_robots();
 
@@ -1510,27 +1518,18 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
     Node* nd = open.back();
     if (incumbent >= 0) {
       if (FOCAL_W > 0) {
-        double f_min = 1e18;
-        for (const Node* n2 : open) {
-          const double f = n2->g_cost + n2->h_adm;
-          if (f < incumbent - 1e-9) f_min = std::min(f_min, f);
-        }
-        if (f_min < 1e18) {
-          const double bound = FOCAL_W * f_min;
-          size_t best_i = open.size();
-          for (size_t j = 0; j < open.size(); ++j) {
-            const double f = open[j]->g_cost + open[j]->h_adm;
-            if (f >= incumbent - 1e-9 || f > bound + 1e-9) continue;
-            if (best_i == open.size() ||
-                open[j]->h_adm < open[best_i]->h_adm) {
-              best_i = j;
-            }
-          }
-          if (best_i != open.size()) {
-            nd = open[best_i];
-            open.erase(open.begin() + best_i);
-            open.push_back(nd);
-          }
+        // shared FOCAL kernel (search_kernel.hpp), same as tapf_planner
+        const size_t best_i = focal_select_index(
+            open, FOCAL_W,
+            [](const Node* n2) { return n2->g_cost + n2->h_adm; },
+            [&](const Node* n2) {
+              return n2->g_cost + n2->h_adm < incumbent - 1e-9;
+            },
+            [](const Node* a, const Node* b) { return a->h_adm < b->h_adm; });
+        if (best_i != open.size() - 1) {
+          nd = open[best_i];
+          open.erase(open.begin() + best_i);
+          open.push_back(nd);
         }
       } else {
         const size_t K = std::min<size_t>(open.size(), 32);

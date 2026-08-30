@@ -2,6 +2,8 @@
 
 #include <limits>
 
+#include "../include/search_kernel.hpp"
+
 namespace
 {
   bool is_open_viable(const TAPFNode* node, const TAPFNode* goal)
@@ -44,19 +46,6 @@ namespace
   }
 }  // namespace
 
-TAPFConstraint::TAPFConstraint()
-    : who(std::vector<int>()), where(Vertices()), depth(0)
-{
-}
-
-TAPFConstraint::TAPFConstraint(TAPFConstraint* parent, int i, Vertex* v)
-    : who(parent->who), where(parent->where), depth(parent->depth + 1)
-{
-  who.push_back(i);
-  where.push_back(v);
-}
-
-TAPFConstraint::~TAPFConstraint(){};
 
 TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
                    std::vector<int> _assignment,
@@ -203,25 +192,14 @@ Solution TAPFPlanner::solve()
     if (search_config.mode == TAPFSearchMode::DFS || S_goal == nullptr) {
       return OPEN.size() - 1;
     }
-
-    auto f_min = std::numeric_limits<unsigned>::max();
-    for (auto node : OPEN) {
-      if (is_open_viable(node, S_goal)) f_min = std::min(f_min, node->f);
-    }
-    if (f_min == std::numeric_limits<unsigned>::max()) return OPEN.size() - 1;
-
-    auto best = OPEN.size();
-    const auto bound = search_config.focal_weight * static_cast<double>(f_min);
-    for (size_t idx = 0; idx < OPEN.size(); ++idx) {
-      auto node = OPEN[idx];
-      if (!is_open_viable(node, S_goal)) continue;
-      if (static_cast<double>(node->f) > bound + 1e-9) continue;
-      if (best == OPEN.size() ||
-          focal_better(node, OPEN[best], search_config.focal_tie_break)) {
-        best = idx;
-      }
-    }
-    return best == OPEN.size() ? OPEN.size() - 1 : best;
+    // shared FOCAL kernel (search_kernel.hpp) — same semantics as before
+    return focal_select_index(
+        OPEN, search_config.focal_weight,
+        [](const TAPFNode* n) { return static_cast<double>(n->f); },
+        [&](const TAPFNode* n) { return is_open_viable(n, S_goal); },
+        [&](const TAPFNode* a, const TAPFNode* b) {
+          return focal_better(a, b, search_config.focal_tie_break);
+        });
   };
 
   auto initial_assignment_state = TAPFAssignmentState();
@@ -311,10 +289,8 @@ Solution TAPFPlanner::solve()
       auto C = S->C[i]->neighbor;
       C.push_back(S->C[i]);
       if (MT != nullptr) std::shuffle(C.begin(), C.end(), *MT);
-      for (auto u : C) {
-        S->search_tree.push(new TAPFConstraint(M, i, u));
-        if (stats != nullptr) ++stats->constraints_generated;
-      }
+      lacam_expand_constraint_vec<TAPFConstraint>(M, i, C, S->search_tree);
+      if (stats != nullptr) stats->constraints_generated += C.size();
     }
 
     if (!get_new_config(S, M)) {
