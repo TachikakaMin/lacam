@@ -12,7 +12,7 @@
 //   - multi-component graphs: unreachable cells return the sentinel.
 #include <climits>
 #include <dd_carrier.hpp>
-#include <lazy_dist.hpp>
+#include <dd_dist_adapters.hpp>
 
 #include <queue>
 #include <vector>

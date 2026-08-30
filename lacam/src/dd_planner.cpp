@@ -7,7 +7,7 @@
 // generated joint operator vector (G1).
 #include "../include/dd_planner.hpp"
 #include "../include/tapf_assignment.hpp"
-#include "../include/lazy_dist.hpp"
+#include "../include/dd_dist_adapters.hpp"
 
 #include <algorithm>
 #include <chrono>
