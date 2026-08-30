@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include <map>
 #include <memory>
 #include <set>
 #include <vector>
@@ -27,6 +28,12 @@ struct TAPFSearchConfig {
   TAPFSearchMode mode = TAPFSearchMode::DFS;
   TAPFFocalTieBreak focal_tie_break = TAPFFocalTieBreak::H;
   double focal_weight = 1.5;
+  // carrier two-phase anytime (design D14, M10/M11).  Defaults preserve
+  // the original TAPF behavior: macro is structurally inert without
+  // unfinished shelf targets, and the two bounds below are disabled.
+  bool macro_enabled = true;   // event-bounded rollout successors
+  bool stop_at_first = false;  // phase 1: return at the first incumbent
+  double incumbent_init = -1;  // phase 2: external upper bound (f-pruning)
 };
 
 // skeleton dedup (node-skeleton audit 2026-08-30): TAPFConstraint was a
@@ -133,6 +140,12 @@ struct TAPFStats {
   // carrier layer (M4): joint ops rejected by the conformance-oracle
   // arbiter (0 on shelf-free instances — the arbiter is never invoked)
   int carrier_validator_rejects = 0;
+  int carrier_g1_rejects = 0;  // fully-constrained combos the oracle
+                               // rejected (expected: exhaustive trees)
+  // macro rollout (design 7.1/D14, M10); all 0 on shelf-free instances
+  long macro_successors = 0;
+  long macro_steps = 0;
+  long macro_after_first = 0;  // two-phase policy: must stay 0
   unsigned solution_cost = 0;
   unsigned first_solution_cost = 0;
   unsigned solution_parent_edge_cost = 0;
@@ -193,6 +206,31 @@ struct TAPFPlanner {
   // solution shelf chain (parallel to the returned Solution; empty layers
   // on shelf-free instances) — consumed by the carrier adapters/tests
   std::vector<ShelfState> solution_shelves;
+  // multi-step macro edges (M10), keyed (from, to): physical cost and the
+  // INTERMEDIATE states (exclusive of endpoints) for extraction/rewrite.
+  // Always empty on shelf-free instances.
+  struct MacroEdge {
+    double cost = 0;
+    std::vector<Config> configs;
+    std::vector<ShelfState> shelves;
+  };
+  std::map<std::pair<const TAPFNode*, const TAPFNode*>, MacroEdge>
+      macro_edges;
+
+  // unconstrained rollout from a configuration (design 7.1/D13, M10):
+  // the SHARED core of the macro successor and the B0 baseline.  Stops on
+  // goal, lift/drop event (after min_chunk, when stop_on_event), step cap,
+  // local cycle, or generator failure.
+  struct CarrierRollout {
+    std::vector<std::vector<Op>> ops;   // per executed step
+    std::vector<Config> configs;       // states incl. start (ops.size()+1)
+    std::vector<ShelfState> shelves;
+    double cost = 0;
+    bool reached_goal = false;
+  };
+  CarrierRollout carrier_rollout(const Config& C0, const ShelfState& S0,
+                                 int max_steps, int min_chunk,
+                                 bool stop_on_event);
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
@@ -205,7 +243,11 @@ struct TAPFPlanner {
   // layers the PIBT order by carrier class, freezes constraint_order,
   // folds the admissible shelf h into node->h/f, and applies the
   // livelock diversification.  Immediate no-op without targets.
-  void attach_carrier_guidance(TAPFNode* nd, bool reguide = false);
+  // rollout_parent_guide supplies the eta-hysteresis ancestor for
+  // parentless rollout probes.
+  void attach_carrier_guidance(
+      TAPFNode* nd, bool reguide = false,
+      const CarrierGuidance* rollout_parent_guide = nullptr);
   bool is_goal_config(const Config& C, const ShelfState& S) const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,

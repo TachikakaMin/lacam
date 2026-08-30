@@ -714,7 +714,8 @@ struct TAPFPlanner::CarrierEngine {
 
 TAPFPlanner::~TAPFPlanner() = default;
 
-void TAPFPlanner::attach_carrier_guidance(TAPFNode* nd, bool reguide)
+void TAPFPlanner::attach_carrier_guidance(
+    TAPFNode* nd, bool reguide, const CarrierGuidance* rollout_parent_guide)
 {
   if (ins->target_starts.empty()) return;  // natural degradation
   auto& eng = *carrier;
@@ -769,6 +770,8 @@ void TAPFPlanner::attach_carrier_guidance(TAPFNode* nd, bool reguide)
   }
   const CarrierGuidance* parent_guide =
       (!livelock && par != nullptr) ? par->guide.get() : nullptr;
+  if (parent_guide == nullptr && !livelock)
+    parent_guide = rollout_parent_guide;  // parentless rollout probes
   nd->guide = std::make_unique<CarrierGuidance>(
       build_guidance(dd, phys, eng.target_goal_dist, eng.lower, eng.paths,
                      eng.sc, nd, livelock ? &taboo : nullptr, parent_guide));
@@ -997,15 +1000,27 @@ Solution TAPFPlanner::solve()
     OPEN.erase(OPEN.begin() + index);
   };
 
+  // pruning bound (M11): the incumbent's g, or the externally supplied
+  // phase-2 upper bound; -1 = none.  Defaults reproduce the original
+  // S_goal-only conditions exactly.
+  auto current_bound = [&]() -> double {
+    if (S_goal != nullptr) return S_goal->g;
+    return search_config.incumbent_init;
+  };
+
   auto select_open_index = [&]() -> size_t {
-    if (search_config.mode == TAPFSearchMode::DFS || S_goal == nullptr) {
+    if (search_config.mode == TAPFSearchMode::DFS ||
+        (S_goal == nullptr && search_config.incumbent_init < 0)) {
       return OPEN.size() - 1;
     }
     // shared FOCAL kernel (search_kernel.hpp) — same semantics as before
     return focal_select_index(
         OPEN, search_config.focal_weight,
         [](const TAPFNode* n) { return static_cast<double>(n->f); },
-        [&](const TAPFNode* n) { return is_open_viable(n, S_goal); },
+        [&](const TAPFNode* n) {
+          const double b = current_bound();
+          return !n->search_tree.empty() && (b < 0 || n->f < b);
+        },
         [&](const TAPFNode* a, const TAPFNode* b) {
           return focal_better(a, b, search_config.focal_tie_break);
         });
@@ -1066,13 +1081,20 @@ Solution TAPFPlanner::solve()
       continue;
     }
 
-    if (S_goal != nullptr && S->f >= S_goal->g) {
-      erase_open(open_index);
-      continue;
+    {
+      const double bound = current_bound();
+      if (bound >= 0 && S->f >= bound) {
+        erase_open(open_index);
+        continue;
+      }
     }
 
     if (is_goal_config(S->C, S->shelf)) {
-      if (S_goal == nullptr || S->g < S_goal->g) {
+      const bool improves =
+          (S_goal == nullptr || S->g < S_goal->g) &&
+          (search_config.incumbent_init < 0 ||
+           S->g < search_config.incumbent_init);
+      if (improves) {
         if (stats != nullptr) {
           ++stats->incumbent_updates;
           if (stats->first_solution_cost == 0) {
@@ -1085,10 +1107,59 @@ Solution TAPFPlanner::solve()
         info(1, verbose, "elapsed:", elapsed_ms(deadline),
              "ms\tfound TAPF solution\tcost:", S_goal->g);
       }
-      if (!anytime || deadline == nullptr || S_goal->g <= initial_lower_bound) {
+      if (search_config.stop_at_first && S_goal != nullptr) break;
+      if (!anytime || deadline == nullptr ||
+          (S_goal != nullptr && S_goal->g <= initial_lower_bound)) {
         break;
       }
       continue;
+    }
+
+    // macro successor probe (design 7.1/D13/D14, M10): on the node's
+    // FIRST expansion, before any incumbent, within the carrier scale
+    // regime, roll the unconstrained generator to the next lift/drop
+    // event and push the terminal state as an extra DFS-top successor.
+    // The node's constraint tree is untouched (completeness free);
+    // structurally unreachable on shelf-free instances (h_guidance == 0).
+    if (search_config.macro_enabled && S_goal == nullptr &&
+        !S->macro_tried && S->h_guidance > 0 && ins->tasks.empty() &&
+        env_int("DD_MACRO_CAP", 64) > 0 &&
+        (int)ins->target_starts.size() <= env_int("DD_MACRO_TGT", 64)) {
+      const int msparse = env_int("DD_MACRO_SPARSE", 1);
+      if (msparse <= 1 || S->depth % msparse == 0) {
+        S->macro_tried = true;
+        const int min_chunk = (int)ins->target_starts.size() > 64
+                                  ? env_int("DD_MACRO_MIN", 15)
+                                  : 0;
+        auto r = carrier_rollout(S->C, S->shelf, env_int("DD_MACRO_CAP", 64),
+                                 min_chunk, /*stop_on_event=*/true);
+        if (r.ops.size() >= 2) {
+          lookup_key.C = r.configs.back();
+          lookup_key.S = r.shelves.back();
+          if (CLOSED.find(lookup_key) == CLOSED.end()) {
+            auto S_macro =
+                new TAPFNode(r.configs.back(), r.shelves.back(), D, ins,
+                             std::vector<int>(N, -1), S->assignment_state, S);
+            S_macro->g = S->g + r.cost;
+            S_macro->h = 0;
+            S_macro->f = S_macro->g + S_macro->h;
+            attach_carrier_guidance(S_macro);
+            CLOSED[SearchKey{S_macro->C, S_macro->shelf}] = S_macro;
+            MacroEdge edge;
+            edge.cost = r.cost;
+            edge.configs.assign(r.configs.begin() + 1, r.configs.end() - 1);
+            edge.shelves.assign(r.shelves.begin() + 1, r.shelves.end() - 1);
+            macro_edges[{S, S_macro}] = std::move(edge);
+            push_open(S_macro);
+            if (stats != nullptr) {
+              ++stats->hl_nodes_created;
+              ++stats->macro_successors;
+              if (S_goal != nullptr) ++stats->macro_after_first;
+            }
+            continue;  // S stays queued; DFS tries the macro child first
+          }
+        }
+      }
     }
 
     auto M = S->search_tree.front();
@@ -1128,6 +1199,7 @@ Solution TAPFPlanner::solve()
       if (stats != nullptr) ++stats->constraint_failures;
       continue;
     }
+    const auto M_depth = M->depth;  // for the reject-counter split below
     delete M;
 
     for (auto a : A) C_new[a->id] = a->v_next;
@@ -1136,7 +1208,12 @@ Solution TAPFPlanner::solve()
     // conformance oracle arbitrate; fills shelf_next_scratch.  Trivially
     // true (layer copied) on shelf-free instances.
     if (!apply_carrier_effects(S)) {
-      if (stats != nullptr) ++stats->carrier_validator_rejects;
+      if (stats != nullptr) {
+        if (M_depth == N)
+          ++stats->carrier_g1_rejects;  // exhaustive-tree combos (G1)
+        else
+          ++stats->carrier_validator_rejects;
+      }
       continue;
     }
 
@@ -1151,10 +1228,13 @@ Solution TAPFPlanner::solve()
       if (MT != nullptr && get_random_float(MT) < restart_rate) {
         S_insert = S_init;
       }
-      if ((S_goal == nullptr || S_insert->f < S_goal->g) &&
-          !S_insert->queued && !S_insert->search_tree.empty()) {
-        push_open(S_insert);
-        if (stats != nullptr) ++stats->hl_reinsertions;
+      {
+        const double b = current_bound();
+        if ((b < 0 || S_insert->f < b) && !S_insert->queued &&
+            !S_insert->search_tree.empty()) {
+          push_open(S_insert);
+          if (stats != nullptr) ++stats->hl_reinsertions;
+        }
       }
       if (stats != nullptr) ++stats->hl_duplicate_configs;
       // carrier livelock diversification on heavy revisiting (design 5.5
@@ -1198,8 +1278,11 @@ Solution TAPFPlanner::solve()
     S_new->f = S_new->g + S_new->h;
     attach_carrier_guidance(S_new);
     CLOSED[SearchKey{S_new->C, S_new->shelf}] = S_new;
-    if (S_goal == nullptr || S_new->f < S_goal->g) {
-      push_open(S_new);
+    {
+      const double b = current_bound();
+      if (b < 0 || S_new->f < b) {
+        push_open(S_new);
+      }
     }
     if (stats != nullptr) ++stats->hl_nodes_created;
   }
@@ -1213,6 +1296,18 @@ Solution TAPFPlanner::solve()
       solution_nodes.push_back(S);
       solution.push_back(S->C);
       solution_shelves.push_back(S->shelf);
+      // expand a multi-step macro edge into its executed intermediates
+      // (reverse order here; the final reverse restores time order)
+      if (S->parent != nullptr) {
+        const auto it = macro_edges.find({S->parent, S});
+        if (it != macro_edges.end()) {
+          const auto& e = it->second;
+          for (size_t k = e.configs.size(); k-- > 0;) {
+            solution.push_back(e.configs[k]);
+            solution_shelves.push_back(e.shelves[k]);
+          }
+        }
+      }
       S = S->parent;
     }
     std::reverse(solution.begin(), solution.end());
@@ -1292,6 +1387,13 @@ void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
 double TAPFPlanner::get_edge_cost(const TAPFNode* from,
                                   const TAPFNode* to) const
 {
+  // multi-step macro edge (M10): the stored trace cost is authoritative
+  // (the one-step formula below would under-count a multi-cell jump).
+  // The map is always empty on shelf-free instances.
+  if (!macro_edges.empty()) {
+    const auto it = macro_edges.find({from, to});
+    if (it != macro_edges.end()) return it->second.cost;
+  }
   auto cost = 0.0;
   for (size_t i = 0; i < ins->N; ++i) {
     const auto task = to->assignment[i];
@@ -1858,6 +1960,89 @@ std::vector<std::vector<Op>> derive_carrier_ops(
     plan.push_back(std::move(ops));
   }
   return plan;
+}
+
+// physical cost of one joint op (design 2.3; solver weights)
+static double carrier_ops_cost(const TAPFPlanner::Weights& w,
+                               const ShelfState& from, const Config& c_from,
+                               const Config& c_to, const std::vector<Op>& ops)
+{
+  double c = 0;
+  for (size_t i = 0; i < ops.size(); ++i) {
+    if (ops[i].kind == Op::MOVE) {
+      c += from.kappa[i] == KAPPA_FREE ? w.beta : w.alpha;
+      if (from.kappa[i] == KAPPA_ANON) c += w.delta;
+    } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
+      c += w.gamma;
+    }
+  }
+  (void)c_from;
+  (void)c_to;
+  return c;
+}
+
+TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
+                                                         const ShelfState& S0,
+                                                         int max_steps,
+                                                         int min_chunk,
+                                                         bool stop_on_event)
+{
+  CarrierRollout out;
+  out.configs.push_back(C0);
+  out.shelves.push_back(S0);
+  std::unordered_set<uint64_t> local_seen;
+  auto state_hash = [&](const Config& C, const ShelfState& S) {
+    return (uint64_t)ConfigHasher()(C) ^ shelf_layer_hash(S);
+  };
+  local_seen.insert(state_hash(C0, S0));
+  const int GUIDE_EVERY = env_int("DD_GUIDE_EVERY", 8);
+  std::unique_ptr<TAPFNode> prev_node;
+  auto C_step = Config(N, nullptr);
+  for (int step = 0; step < max_steps; ++step) {
+    const Config& cur = out.configs.back();
+    const ShelfState& curS = out.shelves.back();
+    if (is_goal_config(cur, curS)) {
+      out.reached_goal = true;
+      return out;
+    }
+    auto node = std::make_unique<TAPFNode>(cur, curS, D, ins,
+                                           std::vector<int>(N, -1),
+                                           TAPFAssignmentState(), nullptr);
+    if (step % GUIDE_EVERY == 0 || prev_node == nullptr ||
+        prev_node->guide == nullptr) {
+      // guidance frozen within the chunk (ordering-only staleness)
+      carrier->sc.occ_node = nullptr;
+      attach_carrier_guidance(
+          node.get(), false,
+          prev_node != nullptr ? prev_node->guide.get() : nullptr);
+    } else {
+      node->guide = std::move(prev_node->guide);
+      node->order = prev_node->order;
+      node->constraint_order = node->order;
+    }
+    TAPFConstraint root;
+    if (!get_new_config(node.get(), &root)) return out;   // stuck: honest
+    if (!apply_carrier_effects(node.get())) return out;   // oracle reject
+    for (auto a : A) C_step[a->id] = a->v_next;
+    const auto ops = ops_scratch;  // copy (assembled by carrier effects)
+    if (!local_seen.insert(state_hash(C_step, shelf_next_scratch)).second)
+      return out;  // local cycle
+    out.cost += carrier_ops_cost(weights, curS, cur, C_step, ops);
+    out.ops.push_back(ops);
+    out.configs.push_back(C_step);
+    out.shelves.push_back(shelf_next_scratch);
+    if (stats != nullptr) ++stats->macro_steps;
+    prev_node = std::move(node);
+    if (is_goal_config(out.configs.back(), out.shelves.back())) {
+      out.reached_goal = true;
+      return out;
+    }
+    if (stop_on_event && step >= min_chunk) {
+      for (const Op& op : ops)
+        if (op.kind == Op::LIFT || op.kind == Op::DROP) return out;
+    }
+  }
+  return out;
 }
 
 Solution solve_tapf(const TAPFInstance& ins, const int verbose,
