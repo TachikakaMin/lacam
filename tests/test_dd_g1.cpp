@@ -214,3 +214,30 @@ TEST(dd_prop2, zero_empty_cycle_moves_require_following)
       << "found a mover entering a non-vacated cell: the separation "
          "argument would be broken";
 }
+
+// debug.md round-2 P0-5: the livelock re-guidance mutation (taboo rho
+// re-match + PIBT order shuffle, production code path) must NOT change the
+// node's constraint-tree enumeration: constraint_order is frozen and the
+// leaf successor set stays exactly the validator-accepted set.
+TEST(dd_g1_conformance, revisit_reguide_preserves_enumeration)
+{
+  auto ins = make_ins({"...", "...", "..."}, {{0, 0}, {2, 2}, {1, 1}},
+                      {{0, 1}, {1, 0}, {2, 1}},
+                      {{{0, 1}, {2, 0}}, {{2, 1}, {0, 2}}});
+  const auto X = initial_phys_config(ins);
+  const auto oracle = brute_force_successors(ins, X);
+
+  for (int seed : {0, 1, 7}) {
+    std::vector<int> co_before, co_after;
+    const auto produced_vec = dd_enumerate_node_successors_reguided(
+        ins, X, seed, /*n_reguides=*/3, &co_before, &co_after);
+    EXPECT_EQ(co_before, co_after)
+        << "constraint_order changed across re-guidance (seed " << seed
+        << ") — completeness precondition broken";
+    std::set<std::string> produced;
+    for (const auto& s : produced_vec) produced.insert(key_of(s));
+    EXPECT_EQ(produced, oracle)
+        << "successor set drifted after mid-enumeration re-guidance (seed "
+        << seed << ")";
+  }
+}

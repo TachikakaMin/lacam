@@ -31,6 +31,11 @@ int main(int argc, char** argv)
   const std::string plan_out = argv[3];
   const int seed = argc >= 5 ? std::stoi(argv[4]) : 0;
   const std::string mode = argc >= 6 ? argv[5] : "lacam";
+  if (mode != "lacam" && mode != "b0" && mode != "b1") {
+    std::cerr << "unknown MODE '" << mode
+              << "' (expected lacam | b0 | b1)" << std::endl;
+    return 2;  // fail loudly: silent fallback masks typos (debug.md P0-4)
+  }
 
   DDInstance ins;
   try {
@@ -132,6 +137,7 @@ int main(int argc, char** argv)
   const double weighted_soc = alpha * loaded_moves + beta * free_moves +
                               gamma * lift_drop + delta * anon_moves;
 
+  std::cout << "mode=" << mode << "\n";
   std::cout << "solved=" << (valid ? 1 : 0) << "\n";
   std::cout << "makespan=" << (valid ? plan.size() : 0) << "\n";
   std::cout << "loaded_moves=" << loaded_moves << "\n";

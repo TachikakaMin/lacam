@@ -73,3 +73,24 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
 std::vector<PhysConfig> dd_enumerate_node_successors(const DDInstance& ins,
                                                      const PhysConfig& X,
                                                      int seed);
+
+// TEST SUPPORT (debug.md round-2 P0-5): same enumeration, but applies the
+// production livelock re-guidance mutation (taboo rho re-match + order
+// shuffle + class re-sort) `n_reguides` times, interleaved with the tree
+// drain (first application happens mid-drain to model a partially expanded
+// tree).  Outputs the frozen constraint_order before/after for assertion.
+std::vector<PhysConfig> dd_enumerate_node_successors_reguided(
+    const DDInstance& ins, const PhysConfig& X, int seed, int n_reguides,
+    std::vector<int>* constraint_order_before = nullptr,
+    std::vector<int>* constraint_order_after = nullptr);
+
+// TEST SUPPORT (debug.md round-2 P0-2, design 5.4a): compute the park
+// vector for X.  warm_block_cell >= 0 first warms the per-target path
+// cache with that cell forced occupied (occupied->vacated history), then
+// guidance is built on the true X occupancy.  strict_inval selects the
+// D_b invalidation policy (DD_STRICT_INVAL semantics).  path_out, if
+// given, receives target 0's least-blocking path as seen by guidance.
+std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
+                                     const PhysConfig& X,
+                                     int warm_block_cell, bool strict_inval,
+                                     std::vector<int>* path_out = nullptr);

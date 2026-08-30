@@ -194,9 +194,18 @@ std::vector<int> least_blocking_path(const DDGrid& g, int src, int dst,
 // valid while the target position matches and the occupancy status of every
 // path cell is unchanged.
 struct PathCache {
+  // invalidation policy: read once per cache (per solve).  Member rather
+  // than function-static so tests can instantiate both policies in one
+  // process (debug.md round-2 P0-2).
+  bool strict_inval = env_int("DD_STRICT_INVAL", 0) != 0;
   struct Entry {
     std::vector<int> path;
     std::vector<uint8_t> occ_snapshot;  // occupied flag per path cell
+    // strict mode only: FULL effective-occupancy snapshot (exclude applied)
+    // at compute time.  "any change invalidates" must see OFF-path changes
+    // too (audit round-2 P0-2: a detour path is otherwise kept even though
+    // the blocked cell it detoured around was vacated) — epoch-free.
+    std::vector<uint8_t> full_snapshot;
     int src = -1;
   };
   std::unordered_map<int, Entry> by_target;
@@ -216,16 +225,24 @@ struct PathCache {
         if (!e.occ_snapshot.empty()) e.occ_snapshot[0] = 0;
       }
       if (e.src == src) {
-        // design 6.2 lazy invalidation (asymmetric): only NEWLY OCCUPIED
-        // path cells invalidate; cells that were occupied and became free
-        // keep the (conservatively stale, ordering-only) cached path.
-        static const bool strict_inval = env_int("DD_STRICT_INVAL", 0) != 0;
         bool ok = true;
-        for (size_t i = 0; i < e.path.size() && ok; ++i) {
-          const int c = e.path[i];
-          const bool occ_now = c != exclude && occupied[c];
-          ok = strict_inval ? (occ_now == (e.occ_snapshot[i] != 0))
-                            : !(occ_now && e.occ_snapshot[i] == 0);
+        if (strict_inval) {
+          // strict (DD_STRICT_INVAL=1, design 6.2): ANY effective-occupancy
+          // change — on or off the cached path — invalidates.  Epoch-free
+          // by construction: validity depends only on the CURRENT view.
+          for (size_t c = 0; c < occupied.size() && ok; ++c) {
+            const bool occ_now = (int)c != exclude && occupied[c];
+            ok = occ_now == (e.full_snapshot[c] != 0);
+          }
+        } else {
+          // design 6.2 lazy invalidation (asymmetric): only NEWLY OCCUPIED
+          // path cells invalidate; cells that were occupied and became free
+          // keep the (conservatively stale, ordering-only) cached path.
+          for (size_t i = 0; i < e.path.size() && ok; ++i) {
+            const int c = e.path[i];
+            const bool occ_now = c != exclude && occupied[c];
+            ok = !(occ_now && e.occ_snapshot[i] == 0);
+          }
         }
         if (ok) {
           g_path_cache_hits++;
@@ -241,6 +258,11 @@ struct PathCache {
     for (size_t i = 0; i < e.path.size(); ++i) {
       const int c = e.path[i];
       e.occ_snapshot[i] = (c != exclude && occupied[c]) ? 1 : 0;
+    }
+    if (strict_inval) {
+      e.full_snapshot.resize(occupied.size());
+      for (size_t c = 0; c < occupied.size(); ++c)
+        e.full_snapshot[c] = ((int)c != exclude && occupied[c]) ? 1 : 0;
     }
     auto res = by_target.insert_or_assign(b, std::move(e));
     return res.first->second.path;
@@ -1806,4 +1828,147 @@ std::vector<PhysConfig> dd_enumerate_node_successors(const DDInstance& ins,
     if (seen.insert(phys_config_hash(X_new)).second) out.push_back(X_new);
   }
   return out;
+}
+
+std::vector<PhysConfig> dd_enumerate_node_successors_reguided(
+    const DDInstance& ins, const PhysConfig& X, int seed, int n_reguides,
+    std::vector<int>* constraint_order_before,
+    std::vector<int>* constraint_order_after)
+{
+  std::mt19937 rng(seed);
+  std::vector<DistCache> target_goal_dist;
+  target_goal_dist.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    target_goal_dist.emplace_back(ins.grid);
+  LowerDist lower_dist(ins.grid);
+  PathCache path_cache;
+  Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+
+  Node node;
+  node.X = X;
+  node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                              path_cache, scratch, &node, park_registry);
+  node.order = make_order(ins, node.X, node.guide, target_goal_dist);
+  node.constraint_order = node.order;
+  if (constraint_order_before) *constraint_order_before = node.constraint_order;
+  node.tree_root = std::make_unique<Constraint>();
+  node.tree_open.push_back(node.tree_root.get());
+
+  // production re-guidance mutation (verbatim semantics of the revisit
+  // branch in dd_solve_phase): taboo current rho pairs, rebuild guidance,
+  // rebuild + shuffle + class-sort the PIBT order.  constraint_order is
+  // deliberately NOT touched — that is the invariant under test.
+  auto reguide = [&]() {
+    std::vector<std::pair<int, int>> taboo;
+    for (size_t i = 0; i < ins.n_robots(); ++i)
+      if (node.guide.rho[i] >= 0)
+        taboo.emplace_back((int)i, node.guide.free_goal[i]);
+    scratch.occ_node = nullptr;
+    scratch.pibt_node = nullptr;
+    node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                                path_cache, scratch, &node, park_registry,
+                                &taboo);
+    node.order = make_order(ins, node.X, node.guide, target_goal_dist);
+    std::shuffle(node.order.begin(), node.order.end(), rng);
+    std::stable_sort(node.order.begin(), node.order.end(),
+                     [&](int a, int b) {
+                       auto cls = [&](int i) {
+                         if (node.X.kappa[i] >= 0) return 0;
+                         if (node.X.kappa[i] == KAPPA_ANON) return 1;
+                         if (node.guide.rho[i] >= 0) return 2;
+                         return 3;
+                       };
+                       return cls(a) < cls(b);
+                     });
+  };
+
+  std::vector<PhysConfig> out;
+  std::unordered_set<uint64_t> seen;
+  const size_t R = ins.n_robots();
+  size_t pops = 0;
+  int applied = 0;
+  while (!node.tree_open.empty()) {
+    // interleave: first re-guide mid-drain (partially expanded tree), then
+    // every R further pops until n_reguides applications are done.
+    if (applied < n_reguides && pops > 0 && pops % (R + 1) == 0) {
+      reguide();
+      ++applied;
+    }
+    ++pops;
+    Constraint* c = node.tree_open.front();
+    node.tree_open.pop_front();
+    if (c->depth < (int)R) {
+      const int r = node.constraint_order[c->depth];
+      for (const Op& op : legal_local_ops(ins, node.X, r, scratch, &node)) {
+        c->kids.push_back(std::make_unique<Constraint>());
+        Constraint* k = c->kids.back().get();
+        k->parent = c;
+        k->depth = c->depth + 1;
+        k->who = r;
+        k->what = op;
+        node.tree_open.push_back(k);
+      }
+    }
+    auto res = carrier_pibt(ins, node, c, target_goal_dist, lower_dist, rng,
+                            scratch, nullptr);
+    if (!res.has_value()) continue;
+    const auto& X_new = res->first;
+    if (seen.insert(phys_config_hash(X_new)).second) out.push_back(X_new);
+  }
+  while (applied < n_reguides) {  // ensure requested count even on tiny trees
+    reguide();
+    ++applied;
+  }
+  if (constraint_order_after) *constraint_order_after = node.constraint_order;
+  return out;
+}
+
+std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
+                                     const PhysConfig& X,
+                                     int warm_block_cell, bool strict_inval,
+                                     std::vector<int>* path_out)
+{
+  std::vector<DistCache> target_goal_dist;
+  target_goal_dist.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    target_goal_dist.emplace_back(ins.grid);
+  LowerDist lower_dist(ins.grid);
+  PathCache path_cache;
+  path_cache.strict_inval = strict_inval;
+  Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+
+  if (warm_block_cell >= 0) {
+    // occupied->vacated history: warm each unfinished target's cached path
+    // under an occupancy where warm_block_cell is occupied, mirroring the
+    // exact production call shape (self-excluded source cell).
+    std::vector<uint8_t> occ(ins.grid.size(), 0);
+    for (size_t b = 0; b < ins.n_targets(); ++b) occ[X.target_pos[b]] = 1;
+    for (int c : X.anon_occ) occ[c] = 1;
+    occ[warm_block_cell] = 1;
+    for (size_t b = 0; b < ins.n_targets(); ++b) {
+      const bool done = X.target_pos[b] == ins.target_goals[b];
+      if (done) continue;
+      path_cache.get(ins.grid, (int)b, X.target_pos[b], ins.target_goals[b],
+                     occ, X.target_pos[b], scratch);
+    }
+  }
+
+  Node node;
+  node.X = X;
+  scratch.occ_node = nullptr;
+  scratch.pibt_node = nullptr;
+  node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                              path_cache, scratch, &node, park_registry);
+  if (path_out) {
+    path_out->clear();
+    // re-query target 0's path exactly as guidance saw it (cache hit)
+    scratch.occ_node = nullptr;
+    fill_occupancy(ins, node.X, scratch);
+    *path_out = path_cache.get(ins.grid, 0, X.target_pos[0],
+                               ins.target_goals[0], scratch.upper_path,
+                               X.target_pos[0], scratch);
+  }
+  return node.guide.target_park;
 }
