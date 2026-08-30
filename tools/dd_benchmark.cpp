@@ -1,5 +1,6 @@
 // Carrier-LaCAM benchmark driver.
-// usage: dd_benchmark INSTANCE.yaml TIME_LIMIT_SEC PLAN_OUT [SEED]
+// usage: dd_benchmark INSTANCE.yaml TIME_LIMIT_SEC PLAN_OUT [SEED] [MODE]
+//   MODE: lacam (default) | b0 (rollout-only baseline) | b1 (2-stage)
 //
 // stdout metrics: solved, makespan, loaded_moves, free_moves, lift_drop,
 //                 weighted_soc (alpha=beta=gamma=delta=1), runtime_ms,
@@ -29,6 +30,7 @@ int main(int argc, char** argv)
   const double time_limit_sec = std::stod(argv[2]);
   const std::string plan_out = argv[3];
   const int seed = argc >= 5 ? std::stoi(argv[4]) : 0;
+  const std::string mode = argc >= 6 ? argv[5] : "lacam";
 
   DDInstance ins;
   try {
@@ -43,9 +45,15 @@ int main(int argc, char** argv)
   const auto t0 = std::chrono::steady_clock::now();
   DDStats stats;
   DDPlan best_effort;
-  DDPlan plan = solve_carrier_lacam(
-      ins, time_limit_sec, seed, &stats,
-      std::getenv("DD_DEBUG_DUMP") ? &best_effort : nullptr);
+  DDPlan plan;
+  if (mode == "b0")
+    plan = solve_carrier_rollout(ins, time_limit_sec, seed, &stats);
+  else if (mode == "b1")
+    plan = solve_carrier_2stage(ins, time_limit_sec, seed, &stats);
+  else
+    plan = solve_carrier_lacam(
+        ins, time_limit_sec, seed, &stats,
+        std::getenv("DD_DEBUG_DUMP") ? &best_effort : nullptr);
   if (plan.empty() && !best_effort.empty()) {
     std::ofstream out(plan_out + std::string(".best_effort"));
     for (const auto& ops : best_effort) {
@@ -146,6 +154,11 @@ int main(int argc, char** argv)
   std::cout << "duplicate_configs=" << stats.duplicate_configs << "\n";
   std::cout << "timed_out=" << (stats.timed_out ? 1 : 0) << "\n";
   std::cout << "seed=" << seed << "\n";
+  std::cout << "mode=" << mode << "\n";
+  std::cout << "first_solution_ms=" << stats.first_solution_ms << "\n";
+  std::cout << "first_solution_soc=" << stats.first_solution_soc << "\n";
+  std::cout << "best_soc=" << stats.best_soc << "\n";
+  std::cout << "incumbent_updates=" << stats.incumbent_updates << "\n";
   if (!valid && std::getenv("DD_DEBUG_DUMP") &&
       !stats.deepest_config.robots.empty()) {
     const auto& X = stats.deepest_config;
