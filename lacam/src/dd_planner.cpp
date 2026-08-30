@@ -7,6 +7,7 @@
 // generated joint operator vector (G1).
 #include "../include/dd_planner.hpp"
 #include "../include/tapf_assignment.hpp"
+#include "../include/lazy_dist.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -38,39 +39,12 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 // ---------- distance fields ----------
-// BFS over walls only; returns dist vector (INT_MAX/2 unreachable)
-std::vector<int> bfs_dist(const DDGrid& g, int src)
-{
-  std::vector<int> d(g.size(), INT_MAX / 2);
-  std::deque<int> dq;
-  d[src] = 0;
-  dq.push_back(src);
-  int nb[4];
-  while (!dq.empty()) {
-    int u = dq.front();
-    dq.pop_front();
-    const int n = g.neighbors(u, nb);
-    for (int k = 0; k < n; ++k)
-      if (d[nb[k]] > d[u] + 1) {
-        d[nb[k]] = d[u] + 1;
-        dq.push_back(nb[k]);
-      }
-  }
-  return d;
-}
-
-struct DistCache {
-  const DDGrid& g;
-  std::unordered_map<int, std::vector<int>> by_src;
-  explicit DistCache(const DDGrid& g_) : g(g_) {}
-  const std::vector<int>& to(int cell)
-  {
-    auto it = by_src.find(cell);
-    if (it == by_src.end())
-      it = by_src.emplace(cell, bfs_dist(g, cell)).first;
-    return it->second;
-  }
-};
+// skeleton reuse (audit 2026-08-30, refactor #2): the shared resumable
+// lazy-BFS core (lazy_dist.hpp) — the ORIGINAL DistTable semantics — with
+// the DD full-cell adapter.  The old local bfs_dist/DistCache copies are
+// deleted; `.to(goal)[cell]` keeps legacy full-view behavior, `dist()`
+// offers the lazy path for future call-site migration.
+using DistCache = DDDistCache;
 
 // lower-deck distance provider: exact Manhattan on wall-free grids (all
 // benchmark suites), BFS cache otherwise.  Kills the dominant per-rollout

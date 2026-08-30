@@ -181,10 +181,15 @@ DistTable 直接复用" 的既定方针。按审计的最小代价路径逐组�
    契约测试 test_tapf_hungarian_shared 5 用例(矩形/负代价/禁制/
    平局确定性/穷举对照);确定性逐位验证(dev SOC 38178/15801/35949
    与 v4 一致)。
-2. [ ] **共享 lazy distance core**:LazyBfsFields(cell_count +
-   neighbors)+ DistTable/TAPFDistTable/DD DistCache 三方 adapter;
-   保留 LowerDist Manhattan fast path 为策略层;sentinel 统一
-   (INT_MAX/2 vs K);query 计数防 lazy 退化。
+2. [~] **共享 lazy distance core**:lazy_dist.hpp 落地——原 DistTable
+   的 resumable lazy BFS(RRA*)提为拓扑无关模板 LazyBfsField,DD 侧
+   完成接入(DDLazyDist/DDDistCache adapter,旧 bfs_dist/DistCache
+   复制版删除;`.to()` 保 legacy 全量视图、`dist()` 提供 lazy 迁移
+   路径;sentinel 按调用方传入)。契约测试 test_lazy_dist 4 用例
+   (任意查询序等价/可续性 expanded 计数/哨兵/adapter 全量视图);
+   benchmark 数字逐位不变(479/15801/38178/35949)。
+   **待续**:上游 dist_table.cpp / tapf_dist_table.cpp 改挂同一核心
+   (Graph 拓扑 adapter;test_dist_table 门禁)。
 3. [ ] **topology 接口**:非 owning GridTopology 适配 Graph::U 与
    DDGrid;保 DD 邻接序 down/up/right/left(确定性);地图解析工具
    共享。
