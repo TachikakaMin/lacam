@@ -167,13 +167,31 @@ test_tapf_compat.cpp（golden 特征化）、WP1-WP5 各 RED 测试、
 
 ## 8. 进度
 
-- [ ] WP0 golden 特征化
-- [ ] WP1 实例/图层
-- [ ] WP2 状态/键/goal/cost
-- [ ] WP3 生成器
-- [ ] WP4 guidance 全栈
-- [ ] WP5 cutover + 删除旧实现
-- [ ] WP6 benchmark parity（dev → 全量）
+- [x] WP0 golden 特征化（e92c314；tests/test_tapf_compat.cpp 7 用例：
+  deterministic 全轨迹钉扎 + anytime 结果级钉扎；采集自改动前 HEAD
+  双跑验证）
+- [x] WP1 实例/图层（23ce976；Graph inline-rows ctor 共享 builder、
+  TAPFInstance carrier 字段 + DDInstance ctor、carrier-form is_valid;
+  allowed 断言修正经 subagent APPROVE）
+- [x] WP2 状态/键/goal/cost（70c420f；ShelfState、(Config,ShelfState)
+  CLOSED key、goal(D10)、物理 edge-cost 项、double g/h/f、空 task
+  assignment 守卫）
+- [x] WP3 生成器（3b7daa5；Constraint op payload、op 候选展开（同一
+  次 shuffle）、forced-op 前置、S1 PIBT veto、G1 oracle 直通、
+  apply_carrier_effects 裁决、solution shelf 链 + derive_carrier_ops）
+- [x] WP4 guidance 全栈（72a1257 + e278f2e 修复 + a6afe03；
+  requests/ρ(Hungarian+eta)/PathCache/park/yield/waitfor/idle-avoid
+  逐字移植、角色化 funcPIBT 候选、类分层 order + 冻结
+  constraint_order、admissible shelf h、livelock/重访 re-guidance、
+  macro rollout + 两阶段配置字段。教训：共享 PIBT 候选 buffer 被优先
+  级继承递归破坏——per-agent buffer 修复，由 WP0 golden 抓出）
+- [x] WP5 cutover（eadc575；dd_planner.cpp → thin adapter（两阶段
+  D14/B0/B1/全部测试支持探针）、guidance infra → carrier_guidance.hpp
+  （tapf_planner 与 adapter 共用）、search_kernel 死代码删除、
+  test_tools glob 扩展经 subagent APPROVE。13 个 protected DD 套件
+  对集成实现首跑全绿；C++ 106 + Python 57 全绿）
+- [ ] WP6 benchmark parity（dev 9/9 已过：r2r +4.3%/dne +3%/s2w 持平
+  vs 旧实现 dev 锚点；全量 164×7 jobs=14 运行中）
 - [ ] WP7 git diff 审计 + 最终汇报
 
 维护约定：每完成一项勾选并附 commit hash 与测试名；新发现问题追加

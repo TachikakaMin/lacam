@@ -6,6 +6,8 @@
 
 #include "gtest/gtest.h"
 
+#include <dd_planner.hpp>
+
 #ifndef DD_TEST_DIR
 #define DD_TEST_DIR "./tests"
 #endif
@@ -277,4 +279,154 @@ TEST(dd_integration, solve_tapf_m1_scale_fixture_within_10s)
   const auto plan = solve_dd_via_tapf(dd, 0, 10.0);
   ASSERT_FALSE(plan.empty());
   expect_oracle_valid_plan(dd, plan);
+}
+
+// ---------- WP6 regression: allocation-history purity ----------
+//
+// The pre-integration planner arena-allocated its nodes, so pointer-keyed
+// occupancy scratches were never fooled.  The integrated planner FREES
+// rollout/B1 probe nodes mid-solve; the allocator then reuses their
+// addresses for later nodes.  Guidance and the PIBT occupancy scratch
+// must therefore never treat "same node address" as "same node" — the
+// generation for a configuration X must be identical regardless of how
+// many nodes lived and died before it (benchmark symptom: nondeterministic
+// 40x makespan swings on dense ddmapd under different heap histories).
+TEST(dd_integration, generation_is_pure_under_heap_churn)
+{
+  // dense-ish fixture: robot on a shelf cell, one blocker on the path
+  DDInstance dd;
+  dd.grid = DDGrid({".....", ".....", "....."});
+  dd.robots = {dd.grid.idx(1, 1), dd.grid.idx(2, 4)};
+  dd.shelves = {dd.grid.idx(1, 1), dd.grid.idx(1, 2), dd.grid.idx(1, 3)};
+  dd.target_starts = {dd.grid.idx(1, 1)};
+  dd.target_goals = {dd.grid.idx(1, 4)};
+  dd.finalize();
+  const TAPFInstance view(dd);
+
+  // reference: fresh planner, single node for X0
+  const auto reference = dd_root_joint_ops(dd, initial_phys_config(dd), 7);
+  ASSERT_FALSE(reference.empty());
+
+  // churned: same planner first processes a DIFFERENT configuration
+  // (different occupancy!) through nodes that are then freed; the node
+  // for X0 is allocated afterwards (typically at a recycled address).
+  std::mt19937 mt(7);
+  TAPFStats st;
+  TAPFPlanner planner(&view, nullptr, &mt, 0, 0, 0.001f, true, &st);
+  auto X_other = initial_phys_config(dd);
+  // move the anonymous blockers elsewhere: occupancy differs from X0
+  X_other.anon_occ = {dd.grid.idx(0, 0), dd.grid.idx(2, 0)};
+  for (int burn = 0; burn < 3; ++burn) {
+    Config C_o;
+    for (const int cell : X_other.robots) C_o.push_back(view.G.U[cell]);
+    ShelfState S_o;
+    S_o.target_pos = X_other.target_pos;
+    S_o.anon_occ = X_other.anon_occ;
+    S_o.kappa = X_other.kappa;
+    auto tmp = std::make_unique<TAPFNode>(C_o, S_o, planner.D, &view,
+                                          std::vector<int>(2, -1),
+                                          TAPFAssignmentState(), nullptr);
+    planner.attach_carrier_guidance(tmp.get());
+    TAPFConstraint root;
+    ASSERT_TRUE(planner.get_new_config(tmp.get(), &root));
+    // tmp destroyed here -> its address returns to the allocator
+  }
+  // now generate for X0 on the SAME planner (fresh node, likely at a
+  // recycled address) — must match the fresh-planner reference exactly
+  const auto X0 = initial_phys_config(dd);
+  Config C0;
+  for (const int cell : X0.robots) C0.push_back(view.G.U[cell]);
+  ShelfState S0;
+  S0.target_pos = X0.target_pos;
+  S0.anon_occ = X0.anon_occ;
+  S0.kappa = X0.kappa;
+  auto node = std::make_unique<TAPFNode>(C0, S0, planner.D, &view,
+                                         std::vector<int>(2, -1),
+                                         TAPFAssignmentState(), nullptr);
+  planner.attach_carrier_guidance(node.get());
+  {
+    std::mt19937 mt_ref(7);  // align the tie-breaker stream with the
+    planner.MT = &mt_ref;    // fresh-planner reference call
+    TAPFConstraint root;
+    ASSERT_TRUE(planner.get_new_config(node.get(), &root));
+    ASSERT_TRUE(planner.apply_carrier_effects(node.get()));
+    planner.MT = &mt;
+  }
+  ASSERT_EQ(planner.ops_scratch.size(), reference.size());
+  for (size_t i = 0; i < reference.size(); ++i)
+    EXPECT_TRUE(planner.ops_scratch[i] == reference[i]) << "robot " << i;
+}
+
+// The rollout allocates ONE probe node per step and frees it; the heap
+// hands the SAME address to the next step's node.  Pointer-keyed
+// occupancy scratches then claim "already filled for this node" and the
+// generator runs on the PREVIOUS step's occupancy (the pre-integration
+// planner had the same lesson: address-keyed scratch must be invalidated
+// explicitly).  With RNG off and guidance rebuilt every step, the rollout
+// trace must equal an independent fresh-planner generation of each step.
+TEST(dd_integration, rollout_steps_match_fresh_generation)
+{
+  setenv("DD_GUIDE_EVERY", "1", 1);
+  setenv("DD_ETA", "0", 1);  // no cross-step hysteresis
+
+  DDInstance dd;
+  dd.grid = DDGrid({"......", "......", "......"});
+  dd.robots = {dd.grid.idx(0, 0), dd.grid.idx(2, 0)};
+  dd.shelves = {dd.grid.idx(0, 2), dd.grid.idx(1, 3), dd.grid.idx(2, 2)};
+  dd.target_starts = {dd.grid.idx(0, 2), dd.grid.idx(2, 2)};
+  dd.target_goals = {dd.grid.idx(0, 5), dd.grid.idx(2, 5)};
+  dd.finalize();
+  const TAPFInstance view(dd);
+
+  // rolling trace on ONE planner (probe nodes recycle heap addresses)
+  TAPFStats st;
+  TAPFPlanner roller(&view, nullptr, nullptr, 0, 0, 0.001f, true, &st);
+  const auto C0 = view.starts;
+  const auto S0 = initial_shelf_state(view);
+  const auto r = roller.carrier_rollout(C0, S0, 12, 0, false);
+  ASSERT_GE(r.ops.size(), 3u);
+
+  // ground truth: every step generated on a FRESH planner from the same
+  // state (no RNG, guidance rebuilt per step -> semantics identical)
+  for (size_t t = 0; t < r.ops.size(); ++t) {
+    TAPFStats st2;
+    TAPFPlanner fresh(&view, nullptr, nullptr, 0, 0, 0.001f, true, &st2);
+    auto node = std::make_unique<TAPFNode>(
+        r.configs[t], r.shelves[t], fresh.D, &view,
+        std::vector<int>((int)view.N, -1), TAPFAssignmentState(), nullptr);
+    fresh.attach_carrier_guidance(node.get());
+    TAPFConstraint root;
+    ASSERT_TRUE(fresh.get_new_config(node.get(), &root)) << "step " << t;
+    ASSERT_TRUE(fresh.apply_carrier_effects(node.get())) << "step " << t;
+    for (size_t i = 0; i < view.N; ++i)
+      EXPECT_TRUE(fresh.ops_scratch[i] == r.ops[t][i])
+          << "step " << t << " robot " << i;
+  }
+
+  unsetenv("DD_GUIDE_EVERY");
+  unsetenv("DD_ETA");
+}
+
+// Reservation semantics on carrier instances (design 5.4 / debug.md v3
+// section 4 D1): with the upstream "keep the reservation on recursion
+// failure" rule, one failed carrier push poisons every remaining
+// candidate of the step, cascading into thousands of generator failures
+// on dense instances — the SEARCH then returns plans an order of
+// magnitude worse than its own guidance rollout (B0).  Anchor: on the
+// dense d50 fixture, full search must not lose to plain B0 by more than
+// 2x makespan (v5 evidence: search 76 vs B0 ~90; broken shape: 252+).
+TEST(dd_integration, search_not_dominated_by_own_rollout_on_dense)
+{
+  const auto dd = load_dd_instance(kFix + "d50_16x16_r8_seed0.yaml");
+
+  const auto search_plan = solve_dd_via_tapf(dd, 0, 10.0);
+  ASSERT_FALSE(search_plan.empty());
+  expect_oracle_valid_plan(dd, search_plan);
+
+  const auto b0_plan = solve_carrier_rollout(dd, 10.0, 0);
+  ASSERT_FALSE(b0_plan.empty());
+
+  EXPECT_LE(search_plan.size(), 2 * b0_plan.size())
+      << "search mk " << search_plan.size() << " vs B0 mk "
+      << b0_plan.size();
 }

@@ -555,6 +555,9 @@ Solution TAPFPlanner::solve()
                                   : 0;
         auto r = carrier_rollout(S->C, S->shelf, env_int("DD_MACRO_CAP", 64),
                                  min_chunk, /*stop_on_event=*/true);
+        // rollout probes died: their addresses may be recycled by the
+        // nodes created below — stale address-keyed scratches are poison
+        invalidate_carrier_scratch();
         if (r.ops.size() >= 2) {
           lookup_key.C = r.configs.back();
           lookup_key.S = r.shelves.back();
@@ -1168,7 +1171,18 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     }
   }
 
-  // ---- unified try loop (original reservation semantics) ----
+  // ---- unified try loop ----
+  // Reservation semantics are ROLE-dependent (design 5.4; debug.md v3
+  // section 4 D1, regression `search_not_dominated_by_own_rollout_...`):
+  //   task agents  — upstream shape verbatim (keep the reservation on a
+  //                  failed push; wait fallback reserves and FAILS);
+  //   carrier agents — the two-deck generator releases the reservation
+  //                  and tries its next candidate (a failed push must not
+  //                  poison the remaining candidates: S1 makes carrier
+  //                  pushes fail far more often than task pushes), and
+  //                  the wait fallback SUCCEEDS when feasible.
+  const bool carrier_role =
+      task_id < 0 && cur_shelf != nullptr && !cur_shelf->kappa.empty();
   for (size_t k = 0; k < cand.size(); ++k) {
     auto u = cand[k].first;
     const uint8_t kind = cand[k].second;
@@ -1192,7 +1206,15 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
 
     if (ak != nullptr && ak != ai && ak->v_next == nullptr) {
       if (stats != nullptr) ++stats->pibt_recursions;
-      if (!funcPIBT(ak, assignment)) continue;
+      if (!funcPIBT(ak, assignment)) {
+        if (carrier_role) {
+          // release and retry the next candidate (two-deck semantics)
+          if (occupied_next[u->id] == ai) occupied_next[u->id] = nullptr;
+          ai->v_next = nullptr;
+          if (loaded && kind != Op::LIFT) carrier_upper_sub(u->index);
+        }
+        continue;
+      }
     }
 
     if (k == 0 && swap_agent != nullptr && swap_agent->v_next == nullptr &&
@@ -1202,6 +1224,19 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
       occupied_next[swap_agent->v_next->id] = swap_agent;
     }
     return true;
+  }
+
+  if (carrier_role) {
+    // two-deck wait fallback: succeed when feasible, no forced reservation
+    if (occupied_next[ai->v_now->id] == nullptr) {
+      occupied_next[ai->v_now->id] = ai;
+      ai->v_next = ai->v_now;
+      ai->op_kind = Op::WAIT;
+      if (loaded) carrier_upper_add(ai->v_now->index);
+      return true;
+    }
+    if (stats != nullptr) ++stats->pibt_failures;
+    return false;
   }
 
   occupied_next[ai->v_now->id] = ai;
@@ -1306,6 +1341,13 @@ bool TAPFPlanner::is_swap_possible(Vertex* v_pusher_origin,
 
 // ---- carrier layer helpers (M4); all trivial with an empty layer ----
 
+void TAPFPlanner::invalidate_carrier_scratch()
+{
+  carrier_scratch_node = nullptr;
+  cur_shelf = nullptr;
+  if (carrier != nullptr) carrier->sc.occ_node = nullptr;
+}
+
 void TAPFPlanner::refresh_carrier_scratch(const TAPFNode* S)
 {
   if (carrier_scratch_node == S) return;
@@ -1337,6 +1379,11 @@ void TAPFPlanner::carrier_upper_add(int cell)
 {
   ++carrier_upper_delta[cell];
   carrier_upper_touched.push_back(cell);
+}
+
+void TAPFPlanner::carrier_upper_sub(int cell)
+{
+  --carrier_upper_delta[cell];  // touched entry stays; reset zeroes it
 }
 
 // per-kind preconditions of a FORCED op under a partial constraint
@@ -1475,10 +1522,13 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
     auto node = std::make_unique<TAPFNode>(cur, curS, D, ins,
                                            std::vector<int>(N, -1),
                                            TAPFAssignmentState(), nullptr);
+    // probe nodes recycle heap addresses: address-keyed scratches MUST be
+    // invalidated every step (pre-integration rollout lesson; guarded by
+    // dd_integration.rollout_steps_match_fresh_generation)
+    invalidate_carrier_scratch();
     if (step % GUIDE_EVERY == 0 || prev_node == nullptr ||
         prev_node->guide == nullptr) {
       // guidance frozen within the chunk (ordering-only staleness)
-      carrier->sc.occ_node = nullptr;
       attach_carrier_guidance(
           node.get(), false,
           prev_node != nullptr ? prev_node->guide.get() : nullptr);

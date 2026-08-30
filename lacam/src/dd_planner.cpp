@@ -472,6 +472,8 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
     auto node = std::make_unique<TAPFNode>(
         C, S, planner.D, &view, std::vector<int>((int)view.N, -1),
         TAPFAssignmentState(), nullptr);
+    // per-step probe nodes recycle addresses (see carrier_rollout)
+    planner.invalidate_carrier_scratch();
     const auto phys = phys_of(C, S);
     node->guide =
         std::make_unique<CarrierGuidance>(build_2stage_guidance(phys));
@@ -567,6 +569,7 @@ std::vector<PhysConfig> drain_node(const TAPFInstance& view,
   auto node = std::make_unique<TAPFNode>(C, S, planner.D, &view,
                                          std::vector<int>((int)view.N, -1),
                                          TAPFAssignmentState(), nullptr);
+  planner.invalidate_carrier_scratch();
   planner.attach_carrier_guidance(node.get());
   if (order_before != nullptr) *order_before = node->constraint_order;
 

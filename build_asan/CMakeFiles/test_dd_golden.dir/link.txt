@@ -1,0 +1,1 @@
+/usr/bin/c++ -fsanitize=address,undefined -fno-omit-frame-pointer -g -O2 -g -DNDEBUG CMakeFiles/test_dd_golden.dir/tests/test_dd_golden.cpp.o CMakeFiles/test_dd_golden.dir/third_party/googletest/googletest/src/gtest_main.cc.o -o test_dd_golden   -L/home/yimint/.local/lib64  -Wl,-rpath,/home/yimint/.local/lib64 lacam/liblacam.a lib/libgtest.a -lyaml-cpp -lstdc++fs -lpthread 

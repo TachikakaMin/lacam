@@ -271,8 +271,12 @@ struct TAPFPlanner {
   double get_h_value(const Config& C);
   // carrier helpers (M4); all no-ops / trivially true with an empty layer
   void refresh_carrier_scratch(const TAPFNode* S);
+  // address-keyed scratches (occupancy + guidance occ view) must be
+  // dropped whenever node addresses may be recycled (rollout probes)
+  void invalidate_carrier_scratch();
   bool carrier_upper_taken(int cell) const;
   void carrier_upper_add(int cell);
+  void carrier_upper_sub(int cell);
   bool forced_op_feasible(const TAPFNode* S, int i, Vertex* v, uint8_t kind);
   bool apply_carrier_effects(const TAPFNode* S);
   Agent* swap_possible_and_required(Agent* ai,
