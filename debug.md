@@ -1,171 +1,156 @@
-# debug.md — 独立审计返工清单
+# debug.md — 第二轮独立审计返工清单
 
-来源：2026-08-29 独立 subagent 审计（GPT-5.6 Sol, high reasoning），对照
-`design.md` 与实现逐项核查后给出 **REJECT**。本文档记录必修项、design.md
-需修订项与遗留缺失项。修复流程遵循项目规范：**先写 regression test 复现
-（RED）→ 修复（GREEN）→ 保留测试**。protected 测试的修改需独立 subagent
-APPROVE。
+来源:2026-08-30 独立 subagent 审计(GPT-5.6 Sol, high reasoning),对照
+design.md v2.2 与实现逐项核查后给出 **REJECT**。本文件**取代**第一轮
+清单(2026-08-29,14 项全部完成;历史内容与完成记录见 git,
+commit 98516f7 及其前后)。
 
-进度标记：[ ] 未开始 / [x] 完成。
+第二轮审计确认:核心 validator、G1 直通、constraint_order 冻结、flags
+拒载、单位权重 cost、B0/B1/dead-cell/anytime/Zobrist/M1 出口全部真实
+存在且 45 C++ + 39 Python 测试全绿;REJECT 的原因集中在**理论措辞过强、
+文档滞后于代码、一个 no-op 消融、一个提交遗漏、若干勾选项缺其自称的
+回归测试**。
+
+修复流程遵循项目规范:**先写 regression test 复现(RED)→ 修复(GREEN)
+→ 保留测试**;protected 测试的修改需独立 subagent APPROVE。
+进度标记:[ ] 未开始 / [x] 完成(附 commit 与测试名)。
 
 ---
 
-## P0 正确性必修（审计 REJECT 的直接原因）
+## P0 正确性 / 证据完整性
 
-### 1. [x] 约束树变量顺序中途可变，破坏 completeness 前提
-- **位置**：`lacam/src/dd_planner.cpp` duplicate 分支（revisits % 8 时
-  改写 `ex->order` 并 shuffle）；约束树按 `N.order[depth]` 展开。
-- **问题**：同一节点的约束树已按旧 order 部分展开后，order 被改写导致
-  某 depth 对应的 robot 中途变化——可能重复约束某 robot、漏枚举另一
-  robot。违反 design D11（guidance 冻结），§4 completeness 骨架
-  （"最终枚举所有 operator 组合"）不再成立。
-- **修复方向**：为节点引入不可变 `constraint_order`（创建时冻结，
-  约束树只用它）；livelock 扰动只允许改 PIBT 候选排序 / ρ 配对，
-  不得触碰约束树变量顺序。若确需换序，必须销毁该节点约束树从 root
-  重建，并记录 diversification epoch 保证确定性。
-- **测试**：新增 regression test——构造小实例强制走 revisit 路径，
-  断言同一节点约束树枚举的 (robot, op) 集合与冻结 order 一致；
-  加小图穷举对照（见第 2 项）。
+### 1. [x] 定理 1 对多 robot 不成立(理论错误)
+- **位置**:design.md §4.1(原文 "$|R|\ge 1$")。
+- **问题**:审计给出穷举反例——1×2 连通图、2 robot 占满下层、shelf
+  需左→右:upper sequential move 存在,但全系统仅 2 个可达状态,
+  goal 不可达。定理只对 $|R|=1$ 成立。
+- **处置**:design.md v2.3 已改为 $|R|=1$ 并写入反例(本轮完成);
+  **遗留**:反例固化为可执行回归测试(Python validator 穷举可达集
+  断言 goal 不可达 + 同图 $|R|=1$ 时 carrier 可解)。
+- [ ] **遗留测试**:`benchmark/tests/test_theorem1.py`(或并入
+  test_validator.py):反例穷举 + 单 robot 对照。
 
-### 2. [x] G1 未按字面实现：fully constrained 时应直通 validator
-- **位置**：`carrier_pibt`：forced ops 仍逐个过
-  `PIBTContext::feasible/fix`，之后才调 `apply_ops`。
-- **问题**：design §4-G1 要求约束覆盖全部 robots 时走 deterministic
-  validator——"validator 接受的 joint action 必须被接受"。当前依赖
-  第二套未证明等价的 feasibility 逻辑，PIBT 预筛可能拒绝 validator
-  可接受的组合。
-- **修复方向**：`depth == |R|` 时跳过 PIBT，直接组装 ops →
-  `apply_ops` 裁决。
-- **测试**：小网格（如 2×3、2-3 robots）穷举全部 joint operator 组合，
-  断言【约束树完整叶子 + G1 直通】接受集合 == 【validator 逐一枚举】
-  接受集合。该测试同时兜住第 1 项。
+### 2. [ ] park 纯度:same-X/双缓存历史不变性未测,声明已降级
+- **位置**:dd_planner.cpp park/hover 逻辑 + PathCache 非对称失效
+  (§6.2);design.md §5.4a。
+- **问题**:park 实为 (X, D_b 缓存纪元) 的函数,非纯 X 函数——同一 X
+  经不同缓存历史可得不同 owner/park 集。只影响 ordering 可复现性,
+  不影响可行域,但原勾选声明("纯 X 函数")过强。
+- **处置**:design.md v2.3 已把声明降级并说明纪元依赖(本轮完成)。
+- **待办**(二选一,先测后定):
+  - [ ] 写 same-X 双缓存历史测试:同一物理配置,分别经"路径格曾被
+    占后腾空"与"从未被占"两条历史到达,断言 park 集是否一致;
+  - [ ] 若选择严格纯化:park 判定改用对当前 X 严格重算的 path
+    (不走缓存),A/B 验证吞吐代价;若保留纪元依赖,测试固化
+    "不纯但 ordering-only"的边界(DD_STRICT_INVAL=1 下必须一致)。
 
-### 3. [x] C++ weighted_soc 算错：漏 δ·匿名搬运项
-- **位置**：`tools/dd_benchmark.cpp`（`weighted_soc = loaded + free +
-  lift_drop`，无 anon_moves 项）；Python `ddbench/validator.py`
-  的 `plan_cost` 是正确参照。
-- **问题**：design §2.3 cost = α·loaded + β·free + γ·lift/drop +
-  δ·anon。C++ 与 Python 输出不一致，跨 runner 的 SOC 结论无效。
-- **修复方向**：C++ replay 时单独统计 anon_moves（kappa==ANON 的
-  MOVE），支持 αβγδ 参数（默认全 1）；与 Python plan_cost 用共享
-  测试向量交叉校验。
-- **测试**：固定 plan 的 cost 断言（含匿名搬运的用例），Python/C++
-  各一份，数值必须一致。
+### 3. [x] no_astar 消融是 no-op(假对照)
+- **位置**:run_ablations.py(设 `DD_NO_ASTAR=1`);生产代码从不读取
+  该变量,least-blocking 路径本就是 Dijkstra(无 A* 开关)。
+- **问题**:"no_astar 9/9" 不能作为消融证据;§6.2 原文误写 A*。
+- **处置**(本轮完成):变体已从 run_ablations.py 移除;design.md
+  §5.3(2)/§6.2 修正 Dijkstra 措辞;§6.6 记录该历史。
+  results_ablation/ablation_rows.csv 中的 no_astar 行**作废不采信**
+  (其余变体行不受影响,各变体独立运行)。
+- [ ] **可选**:重生成 ablation_rows.csv(6 变体)以移除作废行。
 
-### 4. [x] YAML flags 声明了但 C++ loader 不解析
-- **位置**：`lacam/include/dd_carrier.hpp`（DDInstance 无 flags 字段）、
-  `lacam/src/dd_carrier.cpp::load_dd_instance`（忽略 flags）。
-- **问题**：design §2.2 的 `remove_on_complete` / `robots_return_to_rest`
-  是"默认关"的可选语义，当前状态是"不支持"——文档与实现不符。
-- **修复方向**（二选一，需决策）：
-  - a) v1 明确不支持：从实例格式与 design v1 正文移除，挪到扩展章节；
-    loader 遇到非默认值时报错拒载（fail loudly）。
-  - b) 实现之：state/hash/goal/removal 语义全链路支持 + 完整测试。
-  - 默认建议 a)（M1 范围最小化）。
-- **测试**：a) 路线——loader 对非默认 flags 报错的断言。
+### 4. [x] dd_benchmark MODE 支持未提交(复现性)
+- **位置**:tools/dd_benchmark.cpp 的 b0/b1 分派与 first_solution_ms
+  输出一直是未提交 diff;results_final_v2 的 B0/B1 列无法从干净
+  HEAD 复现。
+- **处置**:已提交(本轮,见 git log "Commit stray dd_benchmark MODE
+  support");runner 传参与 CLI 现在一致。
+- [ ] **遗留测试**:dd_benchmark 对未知 MODE 应报错退出(当前静默
+  回落 lacam);加 CLI 冒烟断言三种 mode 输出 method 可区分。
 
-## P1 设计-实现一致性（写入 design.md 或补机制）
+### 5. [ ] P0-1(第一轮)自称的 revisit 回归测试从未写
+- **位置**:第一轮清单第 1 项承诺"构造小实例强制走 revisit 路径,
+  断言同一节点约束树枚举的 (robot,op) 集合与冻结 order 一致";
+  实际只有 fresh-node 穷举(test_dd_g1),revisit 路径无覆盖。
+- **修复方向**:暴露测试 hook(或经 DDStats 观察),强制同一节点
+  revisits≥8 触发 re-guidance 后,断言 constraint_order 与叶子
+  (robot,op) 集合不变。
+- **测试**:`tests/test_dd_g1.cpp::dd_g1.revisit_preserves_enumeration`。
 
-### 5. [x] sticky park 机制无设计依据且依赖 parent 隐藏状态
-- **位置**：`dd_planner.cpp`（`target_park`/`park_owner` 从 parent
-  guidance 继承直至 owner 完成）。
-- **问题**：机制有效（r2rM 端局死锁靠它解决）但 design 无此规则；
-  同一物理配置经不同 parent 到达会得到不同 guidance——正是 D11 想
-  避免的路径依赖。duplicate re-guidance 不传 parent 又会突然丢失
-  stickiness，行为不确定。
-- **修复方向**：在 design.md 新增小节正式定义：触发条件（goal 在他人
-  活跃路径上）、owner、释放条件（owner 完成）、双向冲突（互为 owner）
-  的裁决、ordering-only 性质声明；实现改为**从当前 X 的依赖关系
-  确定性重建**（不依赖 parent 链），保证同一 X 得到同一 park 集合。
-- **测试**：sticky park 触发/释放/双 owner 三个 regression case。
+## P1 文档-实现一致性(本轮已大部处置)与测试补强
 
-### 6. [x] §5.5 M1 livelock 信号与文档不符且实证不足
-- **位置**：`dd_planner.cpp`（新节点仅看 guidance-h 24 步无降；
-  duplicate 仅看 revisit 计数；guidance-h 为吞吐删掉了 approach 项，
-  违反 §5.7 "matching 成本必须进 guidance-h" 的 plateau 要求）。
-- **问题**：设计要求"h 无下降 **且** configuration 近周期重复"联合
-  条件。DnE-M/S2W-M 0/25 全超时是 M1 信号不足的直接实证。
-- **修复方向**（M2 提前项）：实现 cross-deck wait-for graph（robot
-  等格子 → 格子等 shelf → shelf 等 robot），环检测触发局部
-  re-assignment / 高层回溯；信号维度加入 request 完成率、approach
-  进度、blocker 位移；approach 项以增量方式回到 guidance-h（避免
-  O(B×R) 全量重算）。
-- **测试**：以 dneM_n32_seed0 / s2wM_n32_seed0（已在 protected dev
-  cases）10s 内可解为出口判据。
+### 6. [x] 两阶段 anytime + macro 规模域未入文档
+- **处置**:design.md v2.3 全面同步(§4.2/§4.3/§5.1/§7.1/§8.1/§10/
+  D14/§12);158/162 与质量 2.5–3× 数字已落;§6.6 新增旋钮配置表
+  (DD_MACRO_TGT/CAP/MIN/SPARSE、DD_GUIDE_EVERY、DD_ACTIVE_CAP、
+  DD_STRICT_INVAL、DD_NO_YIELD、DD_ALPHA..DELTA、DD_DEBUG_DUMP)。
+- 回归锚:`test_dd_anytime::macro_disabled_after_first_solution`。
 
-## P2 design.md 文本修订（不改代码）
+### 7. [x] eventually-optimal / D11 / guidance-h MUST 措辞过强
+- **处置**:design.md v2.3——§4.3 撤回 LaCAM* 套用声明(实现无
+  g-relax/rewire,如实记录屏蔽效应);D11 重写(冻结的是
+  constraint_order,guidance 可在 livelock 信号下重建);§5.7
+  guidance-h 按实现描述(approach 项因 O(B×R) 吞吐被移除,plateau
+  由信号兜住);§5.3(4) η hysteresis 标注未实现。
 
-### 7. [x] §5.6 placement 规则改为"被否决的假设"
-- d50 实测：margin/corridor/dead-end 偏好使已解实例回归超时（A/B 数据
-  见开发记录）；现行实现是 nearest-free-off-path。design 应记录该
-  否决结论与数据，新假设（局部连通度/逃逸度/articulation）标注为
-  未验证，待 §8.4 placement ablation。
+### 8. [ ] 跨语言 golden transition corpus 缺失
+- **位置**:第一轮 P2-11 勾选时只建立了"整 plan 重放互查",无共享
+  单转移用例集。
+- **修复方向**:固定 YAML 转移 corpus(合法/非法各若干,覆盖 §3.3
+  全部规则 + §6.5 极限用例),C++ 与 Python validator 各自裁决,
+  断言判定一致。
+- **测试**:`benchmark/tests/test_golden_corpus.py` +
+  `tests/test_dd_carrier.cpp::dd_validator.golden_corpus`。
 
-### 8. [x] 贡献声明降级：v1 = M1 feasibility prototype
-- 当前无 FOCAL/anytime/physical-g/f-剪枝（§5.7、D5 未实现），
-  completeness 待第 1、2 项修复后才可主张。"complete + anytime +
-  scalable" 声明需收窄或标注前提。
+### 9. [ ] 非单位权重 cost 一致性未测
+- **位置**:跨语言 cost 测试只覆盖默认 α=β=γ=δ=1;DD_ALPHA..DELTA
+  非默认值下 C++/Python 无对照。
+- **测试**:同一固定 plan,权重 (2,1,5,3) 下两侧数值一致。
 
-### 9. [x] B4 表述拆分
-- 定理 1 是"给定 sequential pebble plan 可被单 robot 执行"的存在性
-  构造；现实现同时承担"自行找 plan"的启发式职责且可失败。design/
-  README 应区分 B4-executor（定理验证）与 B4-greedy-planner
-  （成功率是观测指标，不 complete）。
+### 10. [ ] sweep 缺 1:50 档
+- **位置**:generate_sweep_instances.py 只有 1:2/1:5/1:10/1:20
+  (20×20 放不下 1:50 的 shelf 数)。
+- **修复方向**:1:50 档改用更大地图(如 40×40)生成,重跑该轴。
+  design §8.2 已如实标注现状。
 
-### 10. [x] 命题 2 补同实例负面对照
-- 现有正例（cycle rotation 单测）+ 异实例负例（CREST 在 scrambler
-  实例失败）不构成同实例分离实证。补固定 zero-empty cycle fixture：
-  carrier 可解 + no-following 语义开关下穷举无后继 + B4 报告无空格
-  失败；PP 若可转换则同 fixture 运行。
+### 11. [ ] 工具类勾选项缺最小自动测试
+- visualizer(ascii/png/web)的 plan 解析与 validator 复核路径、
+  sweep 生成器的轴集合断言、ablation runner 的 env wiring
+  (每个变体对 planner 有可观察配置差异——正是本轮抓出 no_astar
+  的检查)。各加冒烟测试。
 
-### 11. [x] "validator 唯一实现"表述修正
-- 实际架构是 C++ 运行时 validator + Python 独立 conformance oracle
-  （双实现互查，比单实现更强但非"唯一"）。design §6.4 措辞更新，
-  并建立共享 golden transition corpus 防漂移。
+### 12. [ ] 过时注释与 README 数字
+- dd_planner.cpp 中仍有"park pair 记录在 solve-level registry"的
+  旧注释(与实现相反),删除;
+- benchmark/README.md 补 v3(两阶段配置)结果表与 no_astar 作废说明。
 
-### 12. [x] D_b 缓存策略与文档对齐
-- 文档：仅新增占据触发失效、腾空不失效；实现：任意 occupancy 变化
-  即失效（保守但慢）。二选一：改文档 + profile 数据，或实现
-  dirty-set 方案 + stale-but-safe regression。
+## P2 质量改进(非阻塞,按收益排序)
 
-## P3 已知缺失（如实记录，M2/M3 排期）
+### 13. [ ] 往返震荡抑制(可视化实证观察)
+- 三个叠加来源:ρ 无迟滞(η 未实现)、D_b 平局翻转、idle 避让缺失
+  (design §12.5)。
+- 步骤(test-first):(a) validator plan_cost 加 `reversals` 指标
+  (A→B→A 计数)先测基线;(b) η 迟滞;(c) 路径惯性(前路径格
+  微折扣);(d) idle 主动离开活跃 path;每步全量 A/B,质量指标
+  (makespan/SOC/reversals)与成功率都不得回归。
 
-- [x] B0（solve_carrier_rollout，与 macro 共码；commit 22d609a 前置，
-      tests: dd_b0_rollout.*）
-- [x] B1（solve_carrier_2stage，plan_bound 硬约束；e1074ca，
-      tests: dd_b1_2stage.* 含固定计划遵从性与走廊分离对照）
-- [x] dead-cell：v1 双层同墙 ⇒ 形态为 finalize 可达性拒载（fcdeaec，
-      test: dd_dead_cell.*）；Sokoban drop-pruning 留给分层墙扩展
-- [x] anytime / physical g / admissible h / f-剪枝 / FOCAL-lite
-      （22d609a，tests: dd_anytime.*；最优性早停）
-- [x] Zobrist 增量 hash（fcdeaec，无表 splitmix64；test: dd_zobrist.*）
-- [x] 双层可视化 visualize_dd_schedule.py（c32ba67；ascii+png，
-      validator 复核回放）
-- [x] §8.2 sweep（generate_sweep_instances.py：ratio/fill/|B_tgt|/depth
-      四轴；γ 轴以计数器后处理加权，无需重跑）+ §8.3 指标
-      （shelf_switches/robot_utilization/first_solution_ms 已入 rows.csv）
-- [x] §8.4 ablations（run_ablations.py：full/no_macro/strict_inv/
-      no_yield/no_astar/b0/b1 × 9 dev cases）
-- [x] M1 出口字面验证：tests/fixtures/m1_exit_20x20_s52_r10.yaml
-      （2×2 协议下 shelf 数为 4 的倍数，取 52≥50），首解 <2s
-      （test: dd_m1_exit.*）
+### 14. [ ] duplicate g-relax/rewire(恢复 eventually-optimal 的前提)
+- 实现 reopen/relax/rewire 后补穷举小图最优性对照;在此之前
+  §4.3 的收窄措辞保持。
+
+### 15. [ ] wait-for graph(定位:提质量而非修 bug)
+- dev 全集已可解;评估其对 makespan/SOC 的增量收益。
+
+### 16. [ ] 扩展篮子(v2 既定)
+- Hungarian ρ、carrier-aware LNS、ITA-τ 动态 goal、非单位权重进
+  solver 目标、robot 匿名化、no-following 语义开关对齐实验、
+  placement score 新假设的 ablation。
 
 ## 修复顺序建议
 
-1. P0-2（G1 直通 + 穷举对照测试）——它同时是 P0-1 的检测网
-2. P0-1（冻结 constraint_order）
-3. P0-3（cost 修正）、P0-4（flags 决策+处理）
-4. P1-5（sticky park 确定性化 + design 补章）
-5. P1-6（wait-for 机制，目标 DnE/S2W 10s 可解）
-6. P2 文本修订一次性提交
-7. P3 按 M2/M3 排期
+1. P0-5(revisit 回归——完备性主张的最后一块测试空洞)
+2. P0-1 遗留(定理 1 反例测试)、P0-4 遗留(MODE 报错)
+3. P0-2(park 纯度测试,按结果定纯化与否)
+4. P1-8/9(golden corpus + 非单位权重——语义防漂移)
+5. P1-10/11/12(sweep 1:50、工具冒烟测试、注释/README)
+6. P2-13(震荡抑制,用户可见的质量项)
+7. P2-14/15/16 按 M4/论文需要排期
 
 ---
-完成记录（2026-08-29/30）：P0 全部（G1+穷举网 test_dd_g1、
-constraint_order 冻结、cost δ 项+跨语言一致性、flags 双侧拒载）；
-P1-5 park 纯 X 函数化（dd_sticky_park.* 因果断言，subagent APPROVE）；
-P1-6 出口达成：9/9 dev cases 10s 内可解（22d609a，DnE-M 403/403、
-S2W-M 384/384、R2R-M 230/230）——根因为 park registry 跨分支泄漏；
-P2 全部落入 design.md v2.2（d2c2472）；P3 全部完成（上表）。
-维护约定：每完成一项勾选 [x] 并附 commit hash 与测试名；
-新发现的问题追加到对应优先级段落。
+维护约定:每完成一项勾选 [x] 并附 commit hash 与测试名;新发现的
+问题追加到对应优先级段落;protected 测试改动需独立 subagent APPROVE。

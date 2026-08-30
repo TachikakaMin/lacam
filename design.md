@@ -1,6 +1,14 @@
 # Carrier-LaCAM 设计文档 (v2)
 
-状态: draft v2.2, 2026-08-29。
+状态: draft v2.3, 2026-08-30。
+v2.3 变更(吸收第二轮独立审计, 见 debug.md 重写版):定理 1 修正为
+$|R|=1$ 并给出多 robot 反例(§4.1);§4.3/§5.1 撤回 LaCAM* rewiring 与
+eventually-optimal 声明(实现无 g-relax/rewire);新增两阶段 anytime 与
+macro 规模域规则(§7.1, D14);§5.4a park 纯度声明降级为 (X, D_b 缓存纪元)
+的确定性函数;§5.3(4) η hysteresis 标注未实现;§5.7 guidance-h 按实现
+如实描述(approach 项因吞吐被移除);§6.2 修正 A*→Dijkstra;新增 §6.6
+环境旋钮配置表;§8.1 补方法名映射;§8.2/§8.4 标注实际覆盖范围与
+无效 no_astar 消融的处置;§10/§11/§12 状态同步。
 v2.2 变更(吸收实现期独立审计与实证, 见 debug.md):flags 接口移出 v1(§2.2);
 新增 target-as-blocker parking 机制章节(§5.4a);§5.5 更新为已实证的
 多信号方案;§5.6 placement 记录被否决假设;§6.1 Zobrist 落地;§6.2 惰性失效
@@ -199,21 +207,26 @@ shelf 都有 carrier,整体旋转一格是合法的(MAPF cycle rotation,R1/R2/S1
 
 ### 4.1 可行性
 
-**定理 1(单 robot 模拟 ⇒ 可行性下界)。**
-若 lower deck(仅考虑 wall)连通且 $|R|\ge 1$,则:upper deck 上的
+**定理 1(单 robot 模拟 ⇒ 可行性下界;v2.3 修正适用域为 $|R|=1$)。**
+若 lower deck(仅考虑 wall)连通且 $|R|=1$,则:upper deck 上的
 sequential pebble-motion plan(一次一个 block 移一格,目标格为空)可行
 ⟹ Carrier 问题可行。
 *证明梗概:* 单 robot 依 plan 顺序执行:free 驶至 block 下方(free robot
 仅受 wall 限制)→ lift → loaded 移一格(目标格空,S1 满足)→ drop →
 驶向下一 block。每步 precondition 均满足。∎
 
+**$|R|\ge 2$ 时该构造不成立(v2.3,审计反例)**:多余 robot 本身占据
+lower deck,可能使系统自锁。最小反例:1×2 连通图、2 个 robot 占满
+下层、1 个 shelf 需从左格移到右格——upper 层 sequential move 存在,
+但全系统仅 2 个可达物理状态且 goal 不可达(两 robot 无处可让)。
+推广 $|R|>1$ 需附加条件(如 lower deck 恒存在空闲格且可重排),
+v1 不作此主张。原 v2.2 注记仍成立并加强:**可行性对 $|R|$ 不单调**,
+不要顺手声称"更多 robot 不损害可行性"。
+
 定理 1 的构造与 DD-MAPD III-B 的 BASE 算法(单 agent 锁步执行 1-robust
 shelf 轨迹)本质相同,**不作为独立新颖性主张**;它的价值是把可行性接到
 Kornhauser 等的 pebble-motion 多项式刻画上:**可行性判定不是本问题的难点;
 难点在优化**。
-
-注意:可行性对 $|R|$ **不单调**(lower deck 可能被 robot 拥塞甚至自锁),
-不要顺手声称"更多 robot 不损害可行性"。
 
 **命题 2(表达力分离;范围已按 DD-MAPD 原文查证收窄,v2.1)。**
 存在实例——零 empty cell 的全占据 cycle,$|R|\ge$ cycle 长度——使
@@ -265,15 +278,28 @@ AssignAndPlan 第 (3) 步)显式支持"整环同步执行",条件是 $N\ge$ 环�
   shelf"、"只保留 relaxed planner 给出的 move" 都会破坏 completeness,
   一律只能作为 ordering。
 
+**与两阶段 anytime(D14)的关系(v2.3)**:completeness 是**无时限的
+phase 级主张**,不是 10s 预算内的保证。phase 1(macro 开)保留完整
+primitive 约束树,macro 只增不减 successor,故 phase 1 单独即满足上述
+骨架;phase 2 从根重启的 primitive-only 搜索以 phase 1 的 incumbent 作
+$f$ 剪枝上界(admissible-h 下不剪掉更优解),且最终返回两相中的更优
+incumbent——已找到的解不会丢失。因此两阶段结构不削弱 feasibility
+completeness,也不引入新的剪枝风险。
+
 ### 4.3 通往最优性
 
 - $g$ 使用**真实 physical cost**(§5.7),matching 只进 guidance/heuristic
   ——这与现有 LaCAM-TAPF 中 assignment-dependent $g$ 的做法不同,是刻意
   收紧,理论叙述会干净得多;
-- 匿名 shelf 的 quotient space 上,cost 函数对 relabeling 对称,故 canonical
-  representative 保 cost,LaCAM* 的 eventually-optimal 论证可以直接套用;
-- v1 只主张 complete + anytime;optimality 声明放在 admissible-h + LaCAM*
-  配置下作为附带结果。
+- (v2.3 收窄)**当前实现不做 LaCAM* 的 g-relax/rewire**:duplicate
+  命中 EXPLORED 时只做重访计数与 re-guidance,不比较 $g$、不换 parent。
+  后到的更廉价路径会被先占坑的贵路径屏蔽,故 **eventually-optimal 不
+  成立,也不声称**。v1 主张:complete(§4.2 意义)+ anytime 改进
+  (admissible-h 的 $f$ 剪枝保证 incumbent 单调不增,小例上可达最优并
+  以 $f_{\min}$ 早停证书判定,见 `test_dd_anytime`);
+- 匿名 shelf 的 quotient space 上 cost 对 relabeling 对称,canonical
+  representative 保 cost——若未来实现 reopen/relax/rewire,LaCAM* 的
+  eventually-optimal 论证可望恢复(列入扩展,须补穷举小图最优性对照)。
 
 ---
 
@@ -282,18 +308,26 @@ AssignAndPlan 第 (3) 步)显式支持"整环同步执行",条件是 $N\ge$ 环�
 ### 5.1 总览
 
 ```text
+# 外层:两阶段 anytime(D14)
+plan1 = phase(macro=on if |B_tgt| <= DD_MACRO_TGT, stop_at_first=true)
+plan2 = phase(macro=off, incumbent=cost(plan1), 剩余预算)   # 从根重启
+return better(plan1, plan2)
+
+# 单相内部
 OPEN.push(N0)
-loop until timeout:
-    N = OPEN.select()                     # 首解前 DFS(back);首解后 FOCAL
-    if is_goal(N.X): extract & continue   # anytime
+loop until deadline:
+    N = OPEN.select()                     # 首解前 DFS(back);首解后 FOCAL-lite
+    if is_goal(N.X): extract & continue   # anytime;f_min 早停证书
     C = N.tree.pop()                      # partial operator constraint
     if depth(C) < |R|:                    # low-level lazy expansion
-        r = N.order[depth(C)]
+        r = N.constraint_order[depth(C)]  # 创建时冻结(P0-1)
         for op in legal_local_ops(r, N.X):
             N.tree.push(C + {r -> op})
     X' = CarrierPIBT(N, C)                # constraint-respecting generator
     if X' == ⊥: continue
-    if canonical(X') in EXPLORED: relax/rewire (LaCAM* 规则)
+    if canonical(X') in EXPLORED:
+        重访计数 += 1;每 8 次 re-guidance(禁忌配对、允许重试 macro)
+        # v2.3 如实:无 LaCAM* relax/rewire(见 §4.3)
     else: N' = make_node(X'); lazy_guidance(N'); OPEN.push(N')
 ```
 
@@ -325,10 +359,10 @@ phase 3 接入 ITA-LaCAM 的 incremental Hungarian(只有 moved shelf 的 row �
 
 **(2) blocking-aware 距离场 $D_b$。** 对每个未完成 target $b$:
 在 upper deck 上以 edge weight $=1+\lambda_{\mathrm{blk}}\cdot\mathbf 1[\text{occupied}]$
-求 $b\to g_b$ 的 least-blocking 最短路(A*,cache;shelf 布局变化即失效重算,
-profile 后再做增量)。**不要用 1-step lookahead**——高密度下过于短视;
-least-blocking path 与 BR-LaCAM 的 guidance 对齐,且只是 ordering,截断/过期
-都不伤 completeness。
+求 $b\to g_b$ 的 least-blocking 最短路(实现为 Dijkstra,无启发项——
+v2.3 修正措辞,原文误写 A*;cache 与失效策略见 §6.2)。**不要用 1-step
+lookahead**——高密度下过于短视;least-blocking path 与 BR-LaCAM 的
+guidance 对齐,且只是 ordering,截断/过期都不伤 completeness。
 
 **(3) requests $\mathcal M_X$。** 沿每个未完成 target $b$ 的 least-blocking
 path 生成短期 manipulation requests:
@@ -357,7 +391,9 @@ d_{\mathrm{lower}}(q_r,\,\mathrm{cell}(q))
 $$
 
 - $d_{\mathrm{lower}}$ 只看 wall(free robot 穿 shelf 下方),静态可 cache;
-- $\eta$ 抑制逐步换配对(hysteresis);
+- $\eta$ 抑制逐步换配对(hysteresis)——**(v2.3 如实)未实现**:当前为
+  纯 greedy nearest,无 parent 配对记忆;可视化中观察到的机器人往返震荡
+  部分归因于此(配对翻转),η 项列入待验证改进(见 debug.md);
 - loaded robot 不参与 matching——它的 physical binding 由 $\kappa$ 固定,
   只能通过 `Drop` 解除;
 - dummy request 允许 idle。
@@ -401,12 +437,12 @@ PIBT 同步解决(单 timestep)。
 4. §5.5 的 livelock shuffle 只在同类内部扰动,静态类序不破坏
    (让 carrier 给 idle 让位没有意义)。
 
-### 5.4a Target-as-blocker parking(v2.2 正式化;原实现期 ad-hoc 机制)
+### 5.4a Target-as-blocker parking(v2.2 正式化;v2.3 纯度声明修正)
 
 **动机**:target b 的 goal 可能位于另一未完成 target o 的活跃通道上
 (走廊场景):若把 b 直接落位,o 将被 S1 永久阻断。
 
-**定义(纯 X 函数,无搜索历史状态)**:
+**定义**:
 
 - 触发:$g_b$ 落在**另一**未完成 target $o$ 的当前 least-blocking path 上
   (owner=o);此时 b 的载具按 clear 语义走 parking 而非落位;
@@ -416,9 +452,16 @@ PIBT 同步解决(单 timestep)。
 - 释放:owner o 在当前 X 中完成即释放(path 消失);
 - 环打破:park 关系可能成环(互为 owner);沿 owner 链检出环后,
   **最小下标成员解除 park**(确定性);
-- 性质:ordering-only,不改可行域;不依赖 parent 链或全局 registry——
-  实证教训:solve 级 registry 会**跨 DFS 分支泄漏** park 决策,导致
-  大规模实例全局过度 park(r2r/dne/s2w 平台期的总根因,见 debug.md)。
+- 性质(v2.3 修正,第二轮审计):**ordering-only,不改可行域;不依赖
+  parent 链或全局 registry**——实证教训:solve 级 registry 会**跨 DFS
+  分支泄漏** park 决策,导致大规模实例全局过度 park(r2r/dne/s2w
+  平台期的总根因)。但严格地说 park 是 **(X, $D_b$ 缓存纪元)** 的
+  确定性函数而非纯 X 函数:least-blocking path 走 §6.2 的非对称惰性
+  失效缓存(腾空不失效),同一 X 在不同缓存历史下可能取到不同的
+  stale-but-valid path,进而得到不同 owner/park 集。这**只影响
+  ordering 的可复现性,不影响可行域与 completeness**;严格纯化
+  (park 判定用当前 X 重算的 path)的成本与收益待验证,连同
+  same-X/双缓存历史不变性测试列入 debug.md。
 
 回归锚:`tests/test_dd_regression.cpp::dd_sticky_park.*`(走廊触发、
 互锁环、goal 占用不抖动;断言为因果式而非完成时序式)。
@@ -491,13 +534,23 @@ $$
   并在 $f$ 剪枝 / FOCAL 的 $f_{\min}$ 中实际剪掉最优解。
 
 **guidance-h(inadmissible,只用于 ordering / FOCAL tie-break)**:
-admissible 核 + $\rho$ matching cost + congestion 项。
+(v2.3 按实现如实修订)当前实现 = $\sum_{b\ \text{未完成}}$
+($D_b$ 路径长 + 2)——只含 target 侧信号。原 v2 规定 "robot→request
+matching 成本必须进 guidance-h" 以消除 free-robot 空驶期的 h 平台;
+实证中该 approach 项为 $O(|B|\times|R|)$ 全量重算,在 400-target 实例
+上是吞吐瓶颈,被移除后 plateau 改由 §5.5 的 livelock 信号(h 平台
+计数 + 重访计数 + re-guidance)兜住,dev 全集实证可解。**教训取代
+MUST**:matching 项对小实例有益、对大实例是负担;增量式 approach
+(只重算 moved robot/target 的行)列为待验证改进(debug.md)。
+FOCAL 基础设施:首解前 DFS(back),首解后 FOCAL-lite(top-32 按 f 选点);
+tie-break metrics(`loaded_move_ratio`、`shelf_switches`、
+`futile_lift_drop`)已进 rows.csv 作为报表指标,未进选点。
 
-**Plateau 警告(必须处理,不是可选)**:早期大量 timestep 是 free robot 空驶,
-若 h 只含 shelf 距离则长时间无梯度,DFS 会像 TAPF 里那样病态游走。
-**robot→request 的 matching 成本必须进 guidance-h**;FOCAL 基础设施直接复用
-(`lacam_tapf.md` 的两阶段策略:首解前 DFS、首解后 FOCAL),新增 tie-break
-metrics:`loaded_move_ratio`、`shelf_switches`、`futile_lift_drop`。
+**权重范围说明(v2.3)**:αβγδ 是**评价/报表**参数(benchmark 的
+`DD_ALPHA..DD_DELTA`,C++/Python 双侧一致,见跨语言 cost 测试);
+solver 内部的 $g$/admissible-h/rollout 固定单位权重(α=β=γ=δ=1)。
+非单位权重下的 solver 目标函数(权重贯穿 g/h)列为扩展,须补
+非单位权重的跨语言与剪枝一致性测试。
 
 ---
 
@@ -518,7 +571,7 @@ metrics:`loaded_move_ratio`、`shelf_switches`、`futile_lift_drop`。
 |---|---|---|
 | $d^{\mathrm{wall}}_{\mathrm{upper}}(\cdot,g_b)$ | 静态(只依赖 wall) | 复用 `DistTable` 的 lazy BFS,per goal 一张 |
 | $d_{\mathrm{lower}}(\cdot,\text{cell})$ | 静态(free robot 只受 wall) | per-cell lazy BFS + LRU cache(request cell 数量少) |
-| $D_b$(blocking-aware) | 依赖当前 occupancy | **惰性失效(v2.2 已按本行语义落地)**:cache 整条 least-blocking path + 逐格占用快照;查询时仅当某 path 格 **由空变占** 才重算(非对称),腾空不失效(stale 保守无害);另有 head-advance(载具沿 path 前进一格时 O(1) 裁剪)。路径搜索用 A*(Manhattan 启发,代价语义不变) |
+| $D_b$(blocking-aware) | 依赖当前 occupancy | **惰性失效(v2.2 已按本行语义落地)**:cache 整条 least-blocking path + 逐格占用快照;查询时仅当某 path 格 **由空变占** 才重算(非对称),腾空不失效(stale 保守无害);另有 head-advance(载具沿 path 前进一格时 O(1) 裁剪)。路径搜索用 **Dijkstra**(v2.3 修正,原误写 A*;加权格上 Manhattan 需除以 $1+\lambda_{\mathrm{blk}}$ 才 admissible,收益有限,未实现)。注意:非对称失效意味着 guidance 是 (X, 缓存纪元) 的函数,见 §5.4a 纯度讨论;`DD_STRICT_INVAL=1` 可切换为任意变化即失效(慢但纪元无关,ablation 对照 9/9 无成功率差异) |
 
 ### 6.3 复杂度预算(每次 expansion)
 
@@ -540,11 +593,35 @@ planner 运行时的 authoritative arbiter;Python `ddbench.validator` 是
    防止 generator 与 validator 语义漂移;
 3. completeness 证明里 G1 要求的 deterministic fallback。
 
+(v2.3 如实)防漂移现状:C++ 侧 G1 穷举对照(generator vs C++ validator)
+与 Python 侧 plan 重放各自成立,但**跨语言共享 golden transition corpus
+尚未建立**(两个 validator 之间靠"整 plan 重放全过"间接互查),列入
+debug.md。
+
 ### 6.5 极限单测(语义正确性的锚)
 
 - $|R|=1$:解应等价于某个 sequential pebble plan(定理 1 的构造);
 - 全占据 cycle + $|R|=$ cycle 长度:应能解出整体旋转(命题 2);
 - 8×8 手工实例:单 blocker、双 blocker chain、idle robot 挡 lift 位。
+
+### 6.6 环境旋钮配置表(v2.3 新增;默认值即基准配置)
+
+| 变量 | 默认 | 作用域 | 语义 |
+|---|---|---|---|
+| `DD_MACRO_TGT` | 64 | 质量/成功率 | macro 规模域上限:$|B_{\mathrm{tgt}}|>$ 该值时整相禁 macro(D14) |
+| `DD_MACRO_CAP` | 64 | 质量 | 单次 rollout 步数上限;0=全局禁 macro |
+| `DD_MACRO_MIN` | 15 | 质量 | 大实例 rollout 最小 chunk(小实例首事件即停) |
+| `DD_MACRO_SPARSE` | 1 | 质量 | 每隔多少深度尝试一次 macro |
+| `DD_GUIDE_EVERY` | 1 | 吞吐 | guidance 重建的节点间隔 |
+| `DD_ACTIVE_CAP` | 64(仅 $>256$ target 实例启用) | 吞吐 | 活跃 target 集合上限(距完成最近者优先) |
+| `DD_STRICT_INVAL` | 0 | 对照 | 1=$D_b$ 缓存任意变化即失效(纪元无关、慢) |
+| `DD_NO_YIELD` | 0 | 对照 | 1=关闭载具对头 yield 规则 |
+| `DD_ALPHA..DD_DELTA` | 1 | 仅报表 | weighted SOC 权重(不进 solver 目标,见 §5.7) |
+| `DD_DEBUG_DUMP` | 0 | 调试 | 失败时打印最深配置与 best-effort plan |
+
+历史注记:`DD_NO_ASTAR` 从未被生产代码读取(路径搜索本就是 Dijkstra,
+无 A* 开关),曾出现在 ablation 脚本中的该变体是 no-op,对应结果列
+作废(v2.3 审计;脚本已修正,见 debug.md)。
 
 ---
 
@@ -573,6 +650,27 @@ v2 曾定义以单 robot 为中心的 macro(`approach-and-lift` 等),但那留�
 - $k$ 与事件集是多样性旋钮(不同 $k$ 产生不同粒度的 jump successor);
   rollout 的确定性由 D11(guidance 冻结)+ 固定 seed 保证。
 
+**(v2.3, D14)macro 是可行性装置,不是质量装置——两阶段 anytime 与
+规模域规则。** 全量 162 实例 A/B(2026-08-30)实证:macro 的贪心
+trace 被固化进最终 plan,在数百 target 的论文级实例上使 makespan/SOC
+膨胀 2.5–3 倍;而在高密度中型实例(如 16×16/50% 填充)上 macro 是
+凿穿死锁的关键。落地规则:
+
+1. **规模域**:仅 $|B_{\mathrm{tgt}}|\le$ `DD_MACRO_TGT`(默认 64,与
+   `DD_ACTIVE_CAP`/min-chunk 同一边界)时启用 macro;
+2. **相位门控**:macro 只在 incumbent 出现前注入(feasibility 阶段);
+   首解后禁 macro(`test_dd_anytime::macro_disabled_after_first_solution`,
+   `stats.macro_after_first == 0`);
+3. **两阶段重启**:phase 1 带 macro 拿首解即停(快速上界);phase 2 以
+   剩余预算从根重启 primitive-only 搜索,以 phase-1 上界做 $f$ 剪枝;
+   返回两相更优者。completeness 关系见 §4.2。
+
+代价(如实):同实例对比 R2R makespan 1673→614、DnE 3934→1296、
+S2W 3288→1292(2.5–3.0×),small/std/sweep 完全不变;总成功率
+160/162→158/162(DnE seed18/22 需 macro 域才可行,`DD_MACRO_TGT`
+调大可恢复)。先尝试过的"仅相位门控、不重启"无效:首解已被 macro
+trace 填充,改进阶段在剩余预算内翻不了盘——重启是必要的。
+
 ### 7.2 Anytime:carrier-aware LNS
 
 复用现有 repair 实验基础设施:首解后,选 executed-makespan 关键路径上的
@@ -598,12 +696,24 @@ cost,moved-row 增量)。放 phase 3 或独立扩展章节,保持 v1 故事紧�
 | B3: NAT-CBS / MARPF | 小实例 | optimality gap |
 | B4: 单 robot 顺序模拟 | (v2.2 拆分表述)定理 1 本身只断言"给定 sequential pebble plan 可被单 robot 执行";当前实现是 **B4-greedy**:自行用贪心清障构造 plan 并执行,可失败(无空格/递归不收敛时诚实报错),其 success rate 是观测指标而非保证 | 可行性 sanity + 吞吐下界 |
 
+**方法名映射(v2.3;`benchmark/run_benchmark.py` 实际方法集)**:
+full method=`carrier`;B0=`carrier_b0`;B1=`carrier_b1`;
+B2=`crest_base`(论文两阶段)与 `crest_full`(含执行期修补);
+B3=`natcbs`(≤150 格小实例);B4=`b4`。官方全量结果:
+`results_final_v2/rows.csv`(162 实例 × 7 方法,统一 10s)+
+`results_final_v3/rows.csv`(carrier 在 D14 两阶段配置下的重跑,
+158/162、论文级质量 2.5–3×,当前默认配置以 v3 为准)。
+
 ### 8.2 自变量 sweep(优势应最大的两条轴放前面)
 
-1. **robot:shelf 比例** ∈ {1:2, 1:5, 1:10, 1:20, 1:50};
+1. **robot:shelf 比例** ∈ {1:2, 1:5, 1:10, 1:20, 1:50}
+   ——(v2.3 如实)`generate_sweep_instances.py` 当前生成 1:2/1:5/1:10/
+   1:20,**1:50 档未生成**(20×20 下 shelf 数超出可放置空间,需更大
+   地图,列入 debug.md);
 2. **lift/drop overhead**(cost 权重 γ,及 phase 2 的多步 overhead)
    ∈ {0, 1, 2, 5}——CREST 已证明 overhead 越大 decomposition 越吃亏;
    注意 DD-MAPD 原文假设 lift/place **零耗时**,对齐比较必须含 0 档;
+   (v2.3)γ 轴以 rows.csv 计数器后处理加权实现,无需重跑;
 3. shelf 填充率 ∈ {50%…95%}(逼近 puzzle 密度);
 4. **$|B_{\mathrm{tgt}}|$** ∈ {1, 4, 16, 64}(v2.1 补):单 target 是纯
    clear-path regime,多 target 才是 cross-layer priority 与 $\rho$
@@ -629,14 +739,26 @@ loaded/free travel、lift+drop 次数、shelf switching 次数、
 
 ### 8.4 Ablations
 
-- B0 vs full(search 的贡献);
-- deadlock 处理 off/信号版/wait-for 版;
-- dead-cell pruning on/off;
+(v2.3)**已实现**(`run_ablations.py`,9 dev cases):
+
+- B0 vs full(search 的贡献)——已跑:b0 8/9,common-case 质量差 ~44%;
+- B1 vs full(冻结 plan vs 逐配置重算)——已跑:b1 5/9;
+- `strict_inv`($D_b$ 严格失效 vs 惰性)——已跑:9/9 无成功率差;
+- `no_yield`(关载具对头 yield)——已跑:9/9(该 dev 集不触发);
+- `no_macro`——已跑并升级为全量 162 A/B,结论固化为 D14 规模域规则;
+- ~~`no_astar`~~——**作废(v2.3 审计)**:`DD_NO_ASTAR` 从未被生产代码
+  读取,该变体是 no-op,结果列不采信;已从脚本移除。
+
+**计划中(未实现,如实标注)**:
+
+- deadlock 处理 off/信号版/wait-for 版(wait-for 未实现);
+- dead-cell pruning on/off(v1 形态为 load 期拒载,无搜索期开关);
 - blocking-aware field vs 1-step lookahead;
-- $\rho$ matching vs greedy nearest;
+- $\rho$ matching(Hungarian)vs greedy nearest(Hungarian 未实现);
 - **no-following 语义对齐**:给我们的模型加回 no-following,与 BR-LaCAM 公平
   对比,同时展示去掉它的收益(§3.4a);
-- fixed $\rho$(首次配对锁死)vs per-node re-match。
+- fixed $\rho$(首次配对锁死)vs per-node re-match;
+- placement score 变体(§5.6 新假设)。
 
 ---
 
@@ -664,7 +786,8 @@ loaded/free travel、lift+drop 次数、shelf switching 次数、
 | Pebble motion (Kornhauser)、puzzle-based storage (Gue & Kim)、Sokoban 技术 | 定理 1/命题 2 的锚点;dead-cell pruning 与 escort(empty cell)视角的出处 |
 
 **不声称** "首个 joint robot-object planning";声称的是:首个在**每条搜索边
-上保证联合可执行**、同时保持 LaCAM 级 scalability 与 completeness 的方法,
+上保证联合可执行**、同时保持 LaCAM 级 scalability 的方法(completeness
+为 §4.2 意义下的无时限 phase 级主张,optimality 不主张,见 §4.3),
 外加两点理论说明:对 1-robust / no-following 类分解(含 MAPF-DECOMP(PP)、
 BRaP)的**可行域严格分离**(命题 2,精确范围见 §4.1),以及统一模型无需
 no-following 保守约束(§3.4a)。
@@ -681,12 +804,17 @@ no-following 保守约束(§3.4a)。
 | **M3** | 基线接入(B1–B4)+ sweep + 论文图 | §8 全套结果 |
 | **M4**(可选) | macro successors、LNS、wait-for deadlock、ITA τ 层 | 论文扩展章节 / paper 2 |
 
-(v2.2 状态)M0 除双层可视化外完成;M1 完成(出口判据以 20×20/52
-shelves/10 robots 通过,2×2 协议下 shelf 数为 4 的倍数,取 ≥50 最近值);
-M2 的 min-cost ρ(Hungarian)未做(greedy + 禁忌 re-match 实证够用,
-Hungarian 移入扩展),其余(blocking-aware field、dead-cell v1 形态、
-FOCAL/anytime、Zobrist)完成;M3 的 B0-B4 完成,sweep/ablation 见
-benchmark;M4 中 macro rollout 已提前落地,LNS/wait-for/ITA-τ 未做。
+(v2.3 状态)M0 完成(双层可视化已落地:`visualize_dd_schedule.py`
+ascii/png + `generate_web_viz.py` 交互网页);M1 完成(出口判据以
+20×20/52 shelves/10 robots 通过,2×2 协议下 shelf 数为 4 的倍数,取
+≥50 最近值);M2 的 min-cost ρ(Hungarian)未做(greedy + 禁忌
+re-match 实证够用,Hungarian 移入扩展),其余(blocking-aware field、
+dead-cell v1 形态、FOCAL/anytime、Zobrist)完成;M3 的 B0-B4 完成,
+sweep/ablation 覆盖范围见 §8.2/§8.4 如实标注;M4 中 macro rollout 已
+提前落地并固化为 D14 两阶段规则,LNS/wait-for/ITA-τ 未做。
+最终数字(统一 10s,162 实例):carrier 158/162(论文级三套件
+73/75–75/75 视配置,质量见 §7.1),对比 b4 112、crest_base 67、
+crest_full 37、natcbs 21。
 
 代码落点:fork `lacam/src/tapf_planner.cpp` → `dd_planner.cpp`;
 `PhysConfig {Config robots; ShelfOcc shelves; vector<int8> kappa;}`
@@ -709,17 +837,25 @@ benchmark;M4 中 macro rollout 已提前落地,LNS/wait-for/ITA-τ 未做。
 | D8 | v1 无 orientation、4-连通、同步 timestep | 与全部 baseline 对齐;orientation 属产品化 |
 | D9 | carried 匿名 shelf 用 $\textsf{ANON}$ 标记,不带 id | 搬哪个 blocker 等价;进一步收缩状态空间 |
 | D10 | goal condition 要求 target grounded | 否则 "carry 着路过 goal" 会被误判完成 |
-| D11 | **guidance 在 node 创建时冻结**;LaCAM* rewiring 换 parent 后不重算 | guidance 只是 ordering,不影响正确性;冻结换来确定性与可复现调试($\rho$ 的 hysteresis 依赖 parent,同一 $X$ 经不同 parent 到达本会得到不同 guidance) |
+| D11 | (v2.3 重写)**冻结的是约束树枚举序 `constraint_order`**(node 创建时定死,livelock 扰动不得触碰,§4.2 完备性前提);guidance(ρ 配对、PIBT `order`、$D_b$)允许在 livelock 信号下重建(每 8 次重访 re-guidance)。原 "guidance 在 node 创建时冻结" 的表述与实现不符,且 ρ hysteresis 未实现(§5.3(4)) | 完备性只依赖枚举序不变;guidance 重建是合法多样化(ordering-only) |
 | D12 | χ 为 derived view,不进 state/key;`Drop` 不置位 | 见 §3.1;单调存储的 χ 在 dense 场景是正确性 bug |
 | D13 | macro successor := event-bounded Carrier-PIBT rollout | 其他 robot 的动作天然有定义;与 B0 共码;completeness 免费(§7.1) |
+| D14 | (v2.3)**两阶段 anytime + macro 规模域**:macro 仅在 $|B_{\mathrm{tgt}}|\le$ `DD_MACRO_TGT`(64) 且首解前启用;phase 1 首解即停,phase 2 从根 primitive-only 重启并以 phase-1 上界剪枝,取两相更优 | 全量 A/B:论文级质量 2.5–3×,small/std/sweep 不变;代价 -2 成功率(旋钮可恢复);"仅门控不重启"被实证否决(§7.1) |
 
 ---
 
 ## 12. 开放问题
 
 1. wait-for graph 的环检测粒度:每 node 做太贵,livelock 信号触发是否足够?
+   (v2.3 注:dev 全集已可解,wait-for 的定位从"修 bug"变为"提质量");
 2. 高密度下 requests 的 chain 截断 $k$ 与 solution 质量的关系;
 3. lifelong / throughput 版本(接现有 ore workflow)——one-shot 之后的方向;
-4. free-robot 匿名化后的 path reconstruction 与 LaCAM* rewiring 的相容性。
+4. free-robot 匿名化后的 path reconstruction 与 LaCAM* rewiring 的相容性;
+5. (v2.3)**往返震荡抑制**:可视化观察到 robot 反复调头,归因于
+   ρ 无迟滞(η 未实现)、$D_b$ 平局翻转、idle 避让缺失三者叠加;
+   候选手段:η 迟滞、路径惯性(前路径格微折扣)、idle 主动离开活跃
+   path;须先落 `reversals` 指标再 A/B(见 debug.md);
+6. (v2.3)duplicate 的 g-relax/rewire(恢复 eventually-optimal 主张
+   的前提,§4.3);park 判定的严格纯化(§5.4a)。
 
 (v2 的开放问题 "$D_b$ 增量维护" 已由 §6.2 的惰性失效方案关闭。)

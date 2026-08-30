@@ -6,7 +6,6 @@ Variants (all via dd_benchmark; env knobs are ordering-only switches):
   no_macro    DD_MACRO_CAP=0        (B0-vs-full inside the searcher)
   strict_inv  DD_STRICT_INVAL=1     (design-6.2 asymmetric off)
   no_yield    DD_NO_YIELD=1         (head-on carrier yield off)
-  no_astar    DD_NO_ASTAR=1         (Dijkstra instead of A*)
   b0          MODE=b0               (rollout only, no search)
   b1          MODE=b1               (2-stage frozen shelf plans)
 
@@ -30,7 +29,6 @@ VARIANTS = [
     ("no_macro", {"DD_MACRO_CAP": "0"}, "lacam"),
     ("strict_inv", {"DD_STRICT_INVAL": "1"}, "lacam"),
     ("no_yield", {"DD_NO_YIELD": "1"}, "lacam"),
-    ("no_astar", {"DD_NO_ASTAR": "1"}, "lacam"),
     ("b0", {}, "b0"),
     ("b1", {}, "b1"),
 ]
