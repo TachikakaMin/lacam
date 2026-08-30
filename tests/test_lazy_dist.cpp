@@ -92,3 +92,29 @@ TEST(lazy_dist, dd_distcache_adapter_full_vector_view)
   for (size_t c = 0; c < g.size(); ++c)
     if (!g.is_wall((int)c)) EXPECT_EQ(vec[c], oracle[c]) << c;
 }
+
+// skeleton-reuse #3: DDGrid neighbor order is a DETERMINISM contract —
+// benchmark plans and random tie-breaks depend on it.  Golden order:
+// down, up, right, left (see DDGrid::neighbors).  Any topology adapter
+// or future Graph unification must preserve it (or accept a full
+// benchmark re-baseline).
+TEST(lazy_dist, ddgrid_neighbor_order_golden)
+{
+  DDGrid g({"...", "...", "..."});
+  int nb[4];
+  const int n = g.neighbors(g.idx(1, 1), nb);
+  ASSERT_EQ(n, 4);
+  EXPECT_EQ(nb[0], g.idx(2, 1));  // down
+  EXPECT_EQ(nb[1], g.idx(0, 1));  // up
+  EXPECT_EQ(nb[2], g.idx(1, 2));  // right
+  EXPECT_EQ(nb[3], g.idx(1, 0));  // left
+}
+
+TEST(lazy_dist, shared_wall_char_rule)
+{
+  DDGrid g({".@T#"});
+  EXPECT_FALSE(g.is_wall(g.idx(0, 0)));
+  EXPECT_TRUE(g.is_wall(g.idx(0, 1)));
+  EXPECT_TRUE(g.is_wall(g.idx(0, 2)));
+  EXPECT_TRUE(g.is_wall(g.idx(0, 3)));
+}

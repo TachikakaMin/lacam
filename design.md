@@ -833,7 +833,7 @@ DistCache)自成一套,原 Graph/Vertex/DistTable/TAPF* 符号引用为 0。
 | 距离场(DistCache/LowerDist vs DistTable) | 待回迁 | 抽共享 lazy-BFS core,DDGrid/Graph 各挂 adapter;Manhattan fast path 保留为策略层 |
 | 网格拓扑(DDGrid vs Graph) | 待对齐 | 非侵入 topology 接口;注意邻接序(down/up/right/left)决定确定性 |
 | OPEN 选点(FOCAL-lite vs TAPF FOCAL) | **已对齐** | 默认=原版 select_open_index 语义(全 OPEN f_min、bound=1.5·f_min、h 平局;DD_FOCAL_W=0 回退 legacy top-32);门禁 162/164、r2r mk 548 精确达标,dev 中性 |
-| Node/Constraint 骨架 | 部分同形 | driver 可模板化共享;payload(Op vs Vertex)本质不同,保留 |
+| Node/Constraint 骨架 | **driver 已共享(DD 侧)** | search_kernel.hpp:lazy 树展开步单一实现(DD 内 3 份拷贝去重);**三 parent 语义**正式化——search parent(创建者,冻结,喂 guidance 祖先)/solution parent(parent_edge,可被 g-relax/macro 重接,出 plan)/guidance ancestry(只读 search parent,禁随 rewire)。上游反向采用缓行:其 Constraint 为 vector-copy 形态且 get_new_config 直接消费 vector,强改属高风险重写(audit #5 风险提示),留待上游自身重构窗口 |
 | **正当保留的差异** | — | operator constraint、PhysConfig/canonical hash、apply_ops 裁决、constraint_order 冻结、least-blocking PathCache、serve/clear/park/yield/wait-for、macro rollout 与 parent_edge、双层 YAML schema——均为双层语义特有,原骨架无对应物 |
 
 macro rollout 与 B0 共码,可视 M2 进度提前。

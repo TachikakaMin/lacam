@@ -191,22 +191,28 @@ DistTable 直接复用" 的既定方针。按审计的最小代价路径逐组�
    上游已收口:dist_table / tapf_dist_table 均改为 GraphIdTopology
    adapter 挂同一核心(近似逐行重复的两份 BFS 删除;test_all 86 测试
    门禁通过)。**本项完成**(标记改 [x])。
-3. [ ] **topology 接口**:非 owning GridTopology 适配 Graph::U 与
-   DDGrid;保 DD 邻接序 down/up/right/left(确定性);地图解析工具
-   共享。
+3. [x] **topology 接口**:LazyBfsField 模板即拓扑概念,DDGrid 与
+   GraphIdTopology 双双满足(#2 已落);邻接序 down/up/right/left
+   golden 测试钉死(确定性合同);墙字符规则提为 utils.hpp 共享
+   is_map_wall_char(graph.cpp 与 dd_carrier.cpp 同源)。
 4. [x] **FOCAL selector 对齐**:原 tapf_planner select_open_index
    语义(全 OPEN viable f_min、bound=w·f_min、h_adm 平局、栈顶兜底)
    落入 DD;shadow A/B 门禁精确通过(164 套 162/164、r2r mk=548、
    dev 中性 mk 3264 vs 3270)后转正默认(w=1.5;DD_FOCAL_W=0 回退
    legacy top-32)。design §10 表已更新。
-5. [ ] **Node/OPEN 骨架接口层**:模板化 state key/parent/order/
-   constraint FIFO/g-h-f/EXPLORED;先定义"搜索 parent vs solution
-   parent(parent_edge) vs guidance ancestry"三语义再动手。
+5. [x] **Node/OPEN 骨架接口层(切片)**:三 parent 语义正式化
+   (search_kernel.hpp 词汇表 + design §10);lazy 约束树展开步提为
+   共享驱动 dd_expand_constraint(DD 内主循环+两个枚举 API 共 3 份
+   拷贝去重;dd_g1 穷举网+revisit 回归门禁通过,SOC 逐位一致)。
+   上游反向采用缓行(vector-copy Constraint 形态差异,理由记
+   design §10 表)。
 6. [ ] **PIBT 递归框架抽共享**(reserve-next/occupant recursion/
    swap hook),Carrier 语义留 policy;若 benchmark 不稳则保留改造
    fork 并记录理由。
-7. [ ] **loader 解析工具共享**(坐标/inline map/wall 字符),schema
-   保持两套。
+7. [x] **loader 解析工具共享**:wall 字符判定统一(is_map_wall_char,
+   上游 graph.cpp 一并接入,test_all 88 门禁);inline map/坐标解析
+   两侧 schema 本质不同(movingAI .map vs YAML 行),按审计"避免为
+   形式统一引入 variant"不强并。
 
 正当保留差异(审计确认,design §10 表格已记录):operator constraint、
 PhysConfig/canonical+Zobrist hash、apply_ops 裁决、constraint_order、

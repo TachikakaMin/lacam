@@ -51,7 +51,7 @@ Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
     if (*(line.end() - 1) == 0x0d) line.pop_back();
     for (int x = 0; x < width; ++x) {
       char s = line[x];
-      if (s == 'T' or s == '@') continue;  // object
+      if (is_map_wall_char(s)) continue;  // object (shared rule)
       auto index = width * y + x;
       auto v = new Vertex(V.size(), index);
       V.push_back(v);

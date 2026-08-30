@@ -47,3 +47,12 @@ double elapsed_ns(const Deadline* deadline);
 bool is_expired(const Deadline* deadline);
 
 float get_random_float(std::mt19937* MT, float from = 0, float to = 1);
+
+// shared map wall-character rule (skeleton-reuse #3/#7, audit 2026-08-30):
+// '@' and 'T' are the movingAI benchmark conventions; '#' is additionally
+// accepted (DD YAML fixtures).  Both Graph (graph.cpp) and DDGrid
+// (dd_carrier.cpp) parse through this single predicate.
+inline bool is_map_wall_char(char c)
+{
+  return c == '@' || c == 'T' || c == '#';
+}

@@ -2,6 +2,7 @@
 // (design.md sections 2.2, 3.1-3.3).  The validator is the single
 // implementation of the rule table (R1 R2 S1 I1 I2 I3; S2 implied by R2).
 #include "../include/dd_carrier.hpp"
+#include "../include/utils.hpp"
 
 #include <yaml-cpp/yaml.h>
 
@@ -21,7 +22,7 @@ DDGrid::DDGrid(const std::vector<std::string>& rows)
       throw std::invalid_argument("DDGrid: ragged map rows");
     for (int c = 0; c < width; ++c) {
       char ch = rows[r][c];
-      wall[idx(r, c)] = (ch == '@' || ch == 'T' || ch == '#') ? 1 : 0;
+      wall[idx(r, c)] = is_map_wall_char(ch) ? 1 : 0;
     }
   }
 }

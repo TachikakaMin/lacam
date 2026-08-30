@@ -8,6 +8,7 @@
 #include "../include/dd_planner.hpp"
 #include "../include/tapf_assignment.hpp"
 #include "../include/dd_dist_adapters.hpp"
+#include "../include/search_kernel.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -1629,18 +1630,11 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
       }
     }
 
-    // low-level lazy expansion (design 5.1)
+    // low-level lazy expansion (design 5.1) — shared kernel driver
     if (c->depth < (int)R) {
       const int r = nd->constraint_order[c->depth];
-      for (const Op& op : legal_local_ops(ins, nd->X, r, scratch, nd)) {
-        c->kids.push_back(std::make_unique<Constraint>());
-        Constraint* k = c->kids.back().get();
-        k->parent = c;
-        k->depth = c->depth + 1;
-        k->who = r;
-        k->what = op;
-        nd->tree_open.push_back(k);
-      }
+      dd_expand_constraint<Constraint, Op>(
+          c, r, legal_local_ops(ins, nd->X, r, scratch, nd), nd->tree_open);
     }
     // keep node on stack while its tree is non-empty
     auto res = carrier_pibt(ins, *nd, c, target_goal_dist, lower_dist, rng,
@@ -2075,15 +2069,9 @@ std::vector<PhysConfig> dd_enumerate_node_successors(const DDInstance& ins,
     node.tree_open.pop_front();
     if (c->depth < (int)R) {
       const int r = node.constraint_order[c->depth];
-      for (const Op& op : legal_local_ops(ins, node.X, r, scratch, &node)) {
-        c->kids.push_back(std::make_unique<Constraint>());
-        Constraint* k = c->kids.back().get();
-        k->parent = c;
-        k->depth = c->depth + 1;
-        k->who = r;
-        k->what = op;
-        node.tree_open.push_back(k);
-      }
+      dd_expand_constraint<Constraint, Op>(
+          c, r, legal_local_ops(ins, node.X, r, scratch, &node),
+          node.tree_open);
     }
     auto res = carrier_pibt(ins, node, c, target_goal_dist, lower_dist, rng,
                             scratch, nullptr);
@@ -2164,15 +2152,9 @@ std::vector<PhysConfig> dd_enumerate_node_successors_reguided(
     node.tree_open.pop_front();
     if (c->depth < (int)R) {
       const int r = node.constraint_order[c->depth];
-      for (const Op& op : legal_local_ops(ins, node.X, r, scratch, &node)) {
-        c->kids.push_back(std::make_unique<Constraint>());
-        Constraint* k = c->kids.back().get();
-        k->parent = c;
-        k->depth = c->depth + 1;
-        k->who = r;
-        k->what = op;
-        node.tree_open.push_back(k);
-      }
+      dd_expand_constraint<Constraint, Op>(
+          c, r, legal_local_ops(ins, node.X, r, scratch, &node),
+          node.tree_open);
     }
     auto res = carrier_pibt(ins, node, c, target_goal_dist, lower_dist, rng,
                             scratch, nullptr);
