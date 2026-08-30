@@ -1504,29 +1504,68 @@ static DDPlan dd_solve_phase(const DDInstance& ins,
     }
   };
 
+  // skeleton-reuse #4: original tapf_planner weighted-FOCAL selection is
+  // the DEFAULT (gate passed: 162/164, r2r mk 548); DD_FOCAL_W=0 reverts
+  // to the legacy top-32 FOCAL-lite.
+  const double FOCAL_W = [] {
+    const char* e = getenv("DD_FOCAL_W");
+    return e ? atof(e) : 1.5;
+  }();
   while (!open.empty() && !expired() && !stop_now) {
     if (incumbent >= 0 && !best_plan.empty() &&
         incumbent <= root->h_adm + 1e-9) {
       if (incumbent_out) *incumbent_out = incumbent;
       return best_plan;  // incumbent matches the admissible bound: optimal
     }
-    // FOCAL-lite selection after the first solution: among the top of the
-    // stack pick the min-f entry (bounded scan, ordering only)
+    // Post-first-solution OPEN selection.
+    //   legacy (default): FOCAL-lite — min-f among the top-32 of the DFS
+    //     stack (bounded scan, ordering only; NOT the original FOCAL).
+    //   DD_FOCAL_W > 0 (skeleton-reuse #4 shadow mode): the ORIGINAL
+    //     tapf_planner select_open_index shape — full-OPEN f_min over
+    //     viable nodes, focal bound = w * f_min, tie-break = min h_adm
+    //     (goal-closeness, the 'h' focal_tie_break analog); stack top as
+    //     fallback.  Gate for default flip: 164-suite solved >= 162 and
+    //     r2r mean mk <= 548 (audit item 4).
     Node* nd = open.back();
     if (incumbent >= 0) {
-      const size_t K = std::min<size_t>(open.size(), 32);
-      size_t best_i = open.size() - 1;
-      double best_f = 1e18;
-      for (size_t j = open.size() - K; j < open.size(); ++j) {
-        const double f = open[j]->g_cost + open[j]->h_adm;
-        if (f < best_f) {
-          best_f = f;
-          best_i = j;
+      if (FOCAL_W > 0) {
+        double f_min = 1e18;
+        for (const Node* n2 : open) {
+          const double f = n2->g_cost + n2->h_adm;
+          if (f < incumbent - 1e-9) f_min = std::min(f_min, f);
         }
+        if (f_min < 1e18) {
+          const double bound = FOCAL_W * f_min;
+          size_t best_i = open.size();
+          for (size_t j = 0; j < open.size(); ++j) {
+            const double f = open[j]->g_cost + open[j]->h_adm;
+            if (f >= incumbent - 1e-9 || f > bound + 1e-9) continue;
+            if (best_i == open.size() ||
+                open[j]->h_adm < open[best_i]->h_adm) {
+              best_i = j;
+            }
+          }
+          if (best_i != open.size()) {
+            nd = open[best_i];
+            open.erase(open.begin() + best_i);
+            open.push_back(nd);
+          }
+        }
+      } else {
+        const size_t K = std::min<size_t>(open.size(), 32);
+        size_t best_i = open.size() - 1;
+        double best_f = 1e18;
+        for (size_t j = open.size() - K; j < open.size(); ++j) {
+          const double f = open[j]->g_cost + open[j]->h_adm;
+          if (f < best_f) {
+            best_f = f;
+            best_i = j;
+          }
+        }
+        nd = open[best_i];
+        open.erase(open.begin() + best_i);
+        open.push_back(nd);
       }
-      nd = open[best_i];
-      open.erase(open.begin() + best_i);
-      open.push_back(nd);
     }
     // f-pruning: g + admissible h >= incumbent cannot improve
     if (incumbent >= 0 && nd->g_cost + nd->h_adm >= incumbent - 1e-9) {

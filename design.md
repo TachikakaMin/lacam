@@ -832,7 +832,7 @@ DistCache)自成一套,原 Graph/Vertex/DistTable/TAPF* 符号引用为 0。
 | Hungarian | **已回迁** | DD 复制版删除,统一调用 tapf_assignment 的 `tapf_hungarian_row_to_col`(从原匿名类提出;算法与扫描序逐字节一致,benchmark 确定性不变) |
 | 距离场(DistCache/LowerDist vs DistTable) | 待回迁 | 抽共享 lazy-BFS core,DDGrid/Graph 各挂 adapter;Manhattan fast path 保留为策略层 |
 | 网格拓扑(DDGrid vs Graph) | 待对齐 | 非侵入 topology 接口;注意邻接序(down/up/right/left)决定确定性 |
-| OPEN 选点(FOCAL-lite vs TAPF FOCAL) | 待对齐 | 现实现是 top-32 min-f,**不是**原 weighted FOCAL;shadow A/B 后决定切换 |
+| OPEN 选点(FOCAL-lite vs TAPF FOCAL) | **已对齐** | 默认=原版 select_open_index 语义(全 OPEN f_min、bound=1.5·f_min、h 平局;DD_FOCAL_W=0 回退 legacy top-32);门禁 162/164、r2r mk 548 精确达标,dev 中性 |
 | Node/Constraint 骨架 | 部分同形 | driver 可模板化共享;payload(Op vs Vertex)本质不同,保留 |
 | **正当保留的差异** | — | operator constraint、PhysConfig/canonical hash、apply_ops 裁决、constraint_order 冻结、least-blocking PathCache、serve/clear/park/yield/wait-for、macro rollout 与 parent_edge、双层 YAML schema——均为双层语义特有,原骨架无对应物 |
 

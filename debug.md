@@ -194,10 +194,11 @@ DistTable 直接复用" 的既定方针。按审计的最小代价路径逐组�
 3. [ ] **topology 接口**:非 owning GridTopology 适配 Graph::U 与
    DDGrid;保 DD 邻接序 down/up/right/left(确定性);地图解析工具
    共享。
-4. [ ] **FOCAL selector 对齐**:提取 TAPF "首解前 DFS/首解后全局
-   weighted FOCAL" 为泛型 selector;DD 以 shadow A/B 落地,门禁:
-   164 套 solved≥162 且 r2r mk≤548;不达标保留 legacy top-32 并在
-   design 注明非原 FOCAL(已注明)。
+4. [x] **FOCAL selector 对齐**:原 tapf_planner select_open_index
+   语义(全 OPEN viable f_min、bound=w·f_min、h_adm 平局、栈顶兜底)
+   落入 DD;shadow A/B 门禁精确通过(164 套 162/164、r2r mk=548、
+   dev 中性 mk 3264 vs 3270)后转正默认(w=1.5;DD_FOCAL_W=0 回退
+   legacy top-32)。design §10 表已更新。
 5. [ ] **Node/OPEN 骨架接口层**:模板化 state key/parent/order/
    constraint FIFO/g-h-f/EXPLORED;先定义"搜索 parent vs solution
    parent(parent_edge) vs guidance ancestry"三语义再动手。
