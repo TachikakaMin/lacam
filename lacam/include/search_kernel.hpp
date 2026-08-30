@@ -71,9 +71,9 @@ inline size_t focal_select_index(const std::vector<NodeP>& open,
 // (tapf_planner.cpp) — previously duplicated twins (node-skeleton audit
 // step 5).  Derived supplies the distance keyed however it likes (agent id
 // upstream, task assignment for TAPF) via init_priorities_and_order.
-// The DD planner's Node keeps its own configuration type (PhysConfig);
-// unifying it here is blocked by the Config(Vertex*)-vs-cell-int gulf —
-// recorded divergence, see design.md §10.
+// The carrier layer extends TAPFNode with a ShelfState member alongside
+// this core (the former standalone DD Node was deleted at the v3
+// integration cutover — design.md §10).
 template <typename ConstraintT, typename Derived>
 struct LacamNodeCore {
   const Config C;

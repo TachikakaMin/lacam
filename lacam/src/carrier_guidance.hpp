@@ -425,8 +425,10 @@ inline CarrierGuidance build_guidance(
   for (size_t b = 0; b < ins.n_targets(); ++b)
     sc.protect[ins.target_goals[b]] = 1;
 
-  // Park relation (design 5.4a): PURE function of X — park[b] iff goal_b
-  // lies on ANOTHER unfinished target's CURRENT masked path.
+  // Park relation (design 5.4a): computed from X via the CURRENT masked
+  // cached paths — a function of (X, D_b cache epoch) under the default
+  // lazy invalidation; DD_STRICT_INVAL=1 is epoch-independent.  park[b]
+  // iff goal_b lies on ANOTHER unfinished target's current path.
   g.park_owner.assign(ins.n_targets(), -1);
   auto done_in_X = [&](int o) {
     if (s.target_pos[o] != ins.target_goals[o]) return false;

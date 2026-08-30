@@ -300,7 +300,9 @@ original lacam-tapf skeleton: `tapf_hungarian_row_to_col` (the original
 Hungarian, DD copy deleted), `lazy_dist.hpp` (original DistTable
 resumable-BFS semantics; upstream DistTable/TAPFDistTable are adapters
 of the same core), original weighted-FOCAL selection as the DD default
-(DD_FOCAL_W, gate: 162/164 with r2r mk 548 — see results_final_v5/),
+(historical DD_FOCAL_W knob — retired at the v3 integration: selection
+is now the original TAPF weighted FOCAL, w=1.5, always on — see
+results_final_v5/ for the pre-integration gate),
 and `search_kernel.hpp` (constraint-tree expansion driver + PIBT
 recursion frame; Carrier semantics live in policy hooks).  All swaps
 verified bit-identical on benchmark SOC.  Upstream back-adoption of the
