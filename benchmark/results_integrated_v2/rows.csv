@@ -1,0 +1,1149 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,first_solution_ms,reversals,runtime_sec,status,raw
+ddmapd_h10w10r3d30t3_seed0,instances_small_ddmapd,b4,1,79,79.0,35,38,6,0,0.1477,,0,0.003,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_standard_ddmapd,b4,1,79,79.0,35,38,6,0,0.1477,,0,0.003,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_small_ddmapd,carrier,1,41,76.0,55,15,6,0,0.4472,0,18,10.1,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_standard_ddmapd,carrier,1,41,76.0,55,15,6,0,0.4472,0,18,10.11,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_small_ddmapd,carrier_b0,1,45,86.0,67,13,6,0,0.4963,-1,27,0.006,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_standard_ddmapd,carrier_b0,1,45,86.0,67,13,6,0,0.4963,-1,27,0.006,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_small_ddmapd,carrier_b1,1,23,52.0,35,11,6,0,0.5072,-1,0,0.005,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_standard_ddmapd,carrier_b1,1,23,52.0,35,11,6,0,0.5072,-1,0,0.005,ok,
+ddmapd_h10w10r3d30t3_seed0,instances_small_ddmapd,crest_base,1,31,80,43,23,14,,,,,0.01,ok,sum_of_cost : 80 makespan : 31 agent_travel_time : 23 pickup_count : 10 rearrange_shelf_num : 3 pickup_dropoff_overhead : 14
+ddmapd_h10w10r3d30t3_seed0,instances_standard_ddmapd,crest_base,1,31,80,43,23,14,,,,,0.008,ok,sum_of_cost : 80 makespan : 31 agent_travel_time : 23 pickup_count : 10 rearrange_shelf_num : 3 pickup_dropoff_overhead : 14
+ddmapd_h10w10r3d30t3_seed0,instances_small_ddmapd,crest_full,1,28,75,46,19,10,,,,,0.012,ok,sum_of_cost : 75 makespan : 28 agent_travel_time : 19 pickup_count : 8 rearrange_shelf_num : 3 pickup_dropoff_overhead : 10
+ddmapd_h10w10r3d30t3_seed0,instances_standard_ddmapd,crest_full,1,28,75,46,19,10,,,,,0.01,ok,sum_of_cost : 75 makespan : 28 agent_travel_time : 19 pickup_count : 8 rearrange_shelf_num : 3 pickup_dropoff_overhead : 10
+ddmapd_h10w10r3d30t3_seed0,instances_small_ddmapd,natcbs,0,,,,,,,,,,13.287,timeout,"start locations: [(9, 5), (9, 9), (9, 4)] Pickup locations: [(0, 4), (0, 5), (1, 4)] Delivery locations: [(0, 4), (0, 5), (1, 4)]  Time Limit Reached "
+ddmapd_h10w10r3d30t3_seed0,instances_standard_ddmapd,natcbs,0,,,,,,,,,,13.254,timeout,"start locations: [(9, 5), (9, 9), (9, 4)] Pickup locations: [(0, 4), (0, 5), (1, 4)] Delivery locations: [(0, 4), (0, 5), (1, 4)]  Time Limit Reached "
+ddmapd_h10w10r3d30t3_seed1,instances_small_ddmapd,b4,1,136,142.0,55,61,20,2,0.1348,,0,0.006,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_standard_ddmapd,b4,1,136,142.0,55,61,20,2,0.1348,,0,0.006,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_small_ddmapd,carrier,1,44,134.0,96,23,10,0,0.7273,0,38,10.135,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_standard_ddmapd,carrier,1,44,134.0,96,23,10,0,0.7273,0,38,10.129,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_small_ddmapd,carrier_b0,1,46,119.0,87,14,10,1,0.6304,-1,31,0.006,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_standard_ddmapd,carrier_b0,1,46,119.0,87,14,10,1,0.6304,-1,31,0.006,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_small_ddmapd,carrier_b1,1,34,127.0,72,19,7,0,0.7059,-1,25,0.005,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_standard_ddmapd,carrier_b1,1,34,127.0,72,19,7,0,0.7059,-1,25,0.006,ok,
+ddmapd_h10w10r3d30t3_seed1,instances_small_ddmapd,crest_base,1,48,123,72,31,20,,,,,0.027,ok,sum_of_cost : 123 makespan : 48 agent_travel_time : 31 pickup_count : 13 rearrange_shelf_num : 3 pickup_dropoff_overhead : 20
+ddmapd_h10w10r3d30t3_seed1,instances_standard_ddmapd,crest_base,1,48,123,72,31,20,,,,,0.027,ok,sum_of_cost : 123 makespan : 48 agent_travel_time : 31 pickup_count : 13 rearrange_shelf_num : 3 pickup_dropoff_overhead : 20
+ddmapd_h10w10r3d30t3_seed1,instances_small_ddmapd,crest_full,1,51,122,56,44,22,,,,,0.034,ok,sum_of_cost : 122 makespan : 51 agent_travel_time : 44 pickup_count : 14 rearrange_shelf_num : 3 pickup_dropoff_overhead : 22
+ddmapd_h10w10r3d30t3_seed1,instances_standard_ddmapd,crest_full,1,51,122,56,44,22,,,,,0.033,ok,sum_of_cost : 122 makespan : 51 agent_travel_time : 44 pickup_count : 14 rearrange_shelf_num : 3 pickup_dropoff_overhead : 22
+ddmapd_h10w10r3d30t3_seed1,instances_small_ddmapd,natcbs,0,,,,,,,,,,13.21,rc=255,"start locations: [(0, 2), (6, 0), (3, 0)] Pickup locations: [(0, 0), (0, 1), (0, 7)] Delivery locations: [(8, 9), (0, 1), (0, 7)]  Time Limit Reached "
+ddmapd_h10w10r3d30t3_seed1,instances_standard_ddmapd,natcbs,0,,,,,,,,,,13.192,timeout,"start locations: [(0, 2), (6, 0), (3, 0)] Pickup locations: [(0, 0), (0, 1), (0, 7)] Delivery locations: [(8, 9), (0, 1), (0, 7)]  Time Limit Reached "
+ddmapd_h10w10r3d30t3_seed2,instances_small_ddmapd,b4,1,53,53.0,29,18,6,0,0.1824,,0,0.003,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_standard_ddmapd,b4,1,53,53.0,29,18,6,0,0.1824,,0,0.003,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_small_ddmapd,carrier,1,53,124.0,57,41,26,10,0.3585,0,31,10.093,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_standard_ddmapd,carrier,1,53,124.0,57,41,26,10,0.3585,0,31,10.125,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_small_ddmapd,carrier_b0,1,33,76.0,49,21,6,0,0.4949,-1,19,0.005,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_standard_ddmapd,carrier_b0,1,33,76.0,49,21,6,0,0.4949,-1,19,0.005,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_small_ddmapd,carrier_b1,1,38,38.0,23,9,6,0,0.2018,-1,0,0.005,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_standard_ddmapd,carrier_b1,1,38,38.0,23,9,6,0,0.2018,-1,0,0.005,ok,
+ddmapd_h10w10r3d30t3_seed2,instances_small_ddmapd,crest_base,1,22,60,33,25,2,,,,,0.008,ok,sum_of_cost : 60 makespan : 22 agent_travel_time : 25 pickup_count : 4 rearrange_shelf_num : 3 pickup_dropoff_overhead : 2
+ddmapd_h10w10r3d30t3_seed2,instances_standard_ddmapd,crest_base,1,22,60,33,25,2,,,,,0.007,ok,sum_of_cost : 60 makespan : 22 agent_travel_time : 25 pickup_count : 4 rearrange_shelf_num : 3 pickup_dropoff_overhead : 2
+ddmapd_h10w10r3d30t3_seed2,instances_small_ddmapd,crest_full,1,20,58,42,16,0,,,,,0.008,ok,sum_of_cost : 58 makespan : 20 agent_travel_time : 16 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed2,instances_standard_ddmapd,crest_full,1,20,58,42,16,0,,,,,0.007,ok,sum_of_cost : 58 makespan : 20 agent_travel_time : 16 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+ddmapd_h10w10r3d30t3_seed2,instances_small_ddmapd,natcbs,0,,,,,,,,,,10.651,timeout,"start locations: [(0, 7), (0, 9), (0, 0)] Pickup locations: [(0, 1), (0, 2), (1, 1)] Delivery locations: [(0, 1), (0, 2), (1, 1)]  Time Limit Reached "
+ddmapd_h10w10r3d30t3_seed2,instances_standard_ddmapd,natcbs,0,,,,,,,,,,10.668,timeout,"start locations: [(0, 7), (0, 9), (0, 0)] Pickup locations: [(0, 1), (0, 2), (1, 1)] Delivery locations: [(0, 1), (0, 2), (1, 1)]  Time Limit Reached "
+ddmapd_h16w16r4d30t8_seed0,instances_standard_ddmapd,b4,1,222,222.0,118,88,16,0,0.1329,,0,0.018,ok,
+ddmapd_h16w16r4d30t8_seed0,instances_standard_ddmapd,carrier,1,89,303.0,196,77,28,4,0.5506,2,79,10.093,ok,
+ddmapd_h16w16r4d30t8_seed0,instances_standard_ddmapd,carrier_b0,1,164,587.0,451,101,28,4,0.6875,-1,262,0.01,ok,
+ddmapd_h16w16r4d30t8_seed0,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h16w16r4d30t8_seed0,instances_standard_ddmapd,crest_base,1,71,175,105,52,18,,,,,0.014,ok,sum_of_cost : 175 makespan : 71 agent_travel_time : 52 pickup_count : 17 rearrange_shelf_num : 8 pickup_dropoff_overhead : 18
+ddmapd_h16w16r4d30t8_seed0,instances_standard_ddmapd,crest_full,1,79,180,97,65,18,,,,,0.033,ok,sum_of_cost : 180 makespan : 79 agent_travel_time : 65 pickup_count : 17 rearrange_shelf_num : 8 pickup_dropoff_overhead : 18
+ddmapd_h16w16r4d30t8_seed0,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h16w16r4d30t8_seed1,instances_standard_ddmapd,b4,1,181,181.0,86,79,16,0,0.1188,,0,0.014,ok,
+ddmapd_h16w16r4d30t8_seed1,instances_standard_ddmapd,carrier,1,79,277.0,164,97,16,0,0.519,1,73,10.089,ok,
+ddmapd_h16w16r4d30t8_seed1,instances_standard_ddmapd,carrier_b0,1,94,312.0,210,86,16,0,0.5585,-1,115,0.008,ok,
+ddmapd_h16w16r4d30t8_seed1,instances_standard_ddmapd,carrier_b1,1,58,178.0,84,78,16,0,0.3621,-1,0,0.007,ok,
+ddmapd_h16w16r4d30t8_seed1,instances_standard_ddmapd,crest_base,1,52,152,90,54,8,,,,,0.012,ok,sum_of_cost : 152 makespan : 52 agent_travel_time : 54 pickup_count : 12 rearrange_shelf_num : 8 pickup_dropoff_overhead : 8
+ddmapd_h16w16r4d30t8_seed1,instances_standard_ddmapd,crest_full,1,56,158,91,61,6,,,,,0.019,ok,sum_of_cost : 158 makespan : 56 agent_travel_time : 61 pickup_count : 11 rearrange_shelf_num : 8 pickup_dropoff_overhead : 6
+ddmapd_h16w16r4d30t8_seed1,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h16w16r4d30t8_seed2,instances_standard_ddmapd,b4,1,211,212.0,94,99,18,0,0.1114,,0,0.012,ok,
+ddmapd_h16w16r4d30t8_seed2,instances_standard_ddmapd,carrier,1,108,350.0,175,113,62,23,0.4051,2,83,10.087,ok,
+ddmapd_h16w16r4d30t8_seed2,instances_standard_ddmapd,carrier_b0,1,137,494.0,365,105,22,2,0.6661,-1,228,0.009,ok,
+ddmapd_h16w16r4d30t8_seed2,instances_standard_ddmapd,carrier_b1,1,60,198.0,87,95,16,0,0.3625,-1,2,0.007,ok,
+ddmapd_h16w16r4d30t8_seed2,instances_standard_ddmapd,crest_base,1,63,211,104,87,20,,,,,0.014,ok,sum_of_cost : 211 makespan : 63 agent_travel_time : 87 pickup_count : 18 rearrange_shelf_num : 8 pickup_dropoff_overhead : 20
+ddmapd_h16w16r4d30t8_seed2,instances_standard_ddmapd,crest_full,1,49,184,105,59,20,,,,,0.028,ok,sum_of_cost : 184 makespan : 49 agent_travel_time : 59 pickup_count : 18 rearrange_shelf_num : 8 pickup_dropoff_overhead : 20
+ddmapd_h16w16r4d30t8_seed2,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h16w16r8d50t8_seed0,instances_standard_ddmapd,b4,1,678,758.0,189,335,154,26,0.0348,,0,0.071,ok,
+ddmapd_h16w16r8d50t8_seed0,instances_standard_ddmapd,carrier,1,81,581.0,299,178,48,5,0.4614,3,150,10.13,ok,
+ddmapd_h16w16r8d50t8_seed0,instances_standard_ddmapd,carrier_b0,1,131,849.0,558,152,46,4,0.5324,-1,341,0.011,ok,
+ddmapd_h16w16r8d50t8_seed0,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.007,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h16w16r8d50t8_seed0,instances_standard_ddmapd,crest_base,0,,,,,,,,,,10.283,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed0,instances_standard_ddmapd,crest_full,0,,,,,,,,,,10.278,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed0,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h16w16r8d50t8_seed1,instances_standard_ddmapd,b4,1,376,403.0,126,186,64,8,0.0419,,0,0.041,ok,
+ddmapd_h16w16r8d50t8_seed1,instances_standard_ddmapd,carrier,1,71,412.0,234,115,26,0,0.412,2,125,10.115,ok,
+ddmapd_h16w16r8d50t8_seed1,instances_standard_ddmapd,carrier_b0,1,114,623.0,442,116,42,9,0.4846,-1,254,0.01,ok,
+ddmapd_h16w16r8d50t8_seed1,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.007,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h16w16r8d50t8_seed1,instances_standard_ddmapd,crest_base,1,48,261,154,83,24,,,,,0.095,ok,sum_of_cost : 261 makespan : 48 agent_travel_time : 83 pickup_count : 20 rearrange_shelf_num : 8 pickup_dropoff_overhead : 24
+ddmapd_h16w16r8d50t8_seed1,instances_standard_ddmapd,crest_full,1,70,264,159,87,18,,,,,0.133,ok,sum_of_cost : 264 makespan : 70 agent_travel_time : 87 pickup_count : 17 rearrange_shelf_num : 8 pickup_dropoff_overhead : 18
+ddmapd_h16w16r8d50t8_seed1,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h16w16r8d50t8_seed2,instances_standard_ddmapd,b4,1,365,399.0,107,192,66,4,0.0366,,0,0.029,ok,
+ddmapd_h16w16r8d50t8_seed2,instances_standard_ddmapd,carrier,1,69,437.0,209,138,60,15,0.3786,2,66,10.128,ok,
+ddmapd_h16w16r8d50t8_seed2,instances_standard_ddmapd,carrier_b0,1,203,1125.0,721,180,94,29,0.444,-1,465,0.013,ok,
+ddmapd_h16w16r8d50t8_seed2,instances_standard_ddmapd,carrier_b1,1,95,939.0,457,101,21,0,0.6013,-1,334,0.009,ok,
+ddmapd_h16w16r8d50t8_seed2,instances_standard_ddmapd,crest_base,0,,,,,,,,,,10.397,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed2,instances_standard_ddmapd,crest_full,0,,,,,,,,,,10.398,rc=1,Failed to find solutions in Run 0 
+ddmapd_h16w16r8d50t8_seed2,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h24w24r12d60t16_seed0,instances_standard_ddmapd,b4,1,2235,2518.0,552,1169,514,72,0.0206,,0,0.377,ok,
+ddmapd_h24w24r12d60t16_seed0,instances_standard_ddmapd,carrier,1,231,2915.0,1709,588,190,44,0.6165,26,996,10.217,ok,
+ddmapd_h24w24r12d60t16_seed0,instances_standard_ddmapd,carrier_b0,1,525,5693.0,3817,820,200,44,0.6059,-1,2891,0.066,ok,
+ddmapd_h24w24r12d60t16_seed0,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.011,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r12d60t16_seed0,instances_standard_ddmapd,crest_base,0,,,,,,,,,,10.43,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed0,instances_standard_ddmapd,crest_full,0,,,,,,,,,,10.42,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed0,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h24w24r12d60t16_seed1,instances_standard_ddmapd,b4,1,2324,2631.0,588,1204,532,87,0.0211,,0,0.356,ok,
+ddmapd_h24w24r12d60t16_seed1,instances_standard_ddmapd,carrier,1,540,8033.0,4163,1138,618,246,0.6424,107,3483,10.269,ok,
+ddmapd_h24w24r12d60t16_seed1,instances_standard_ddmapd,carrier_b0,1,427,4797.0,3085,822,184,32,0.6021,-1,2238,0.056,ok,
+ddmapd_h24w24r12d60t16_seed1,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.01,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r12d60t16_seed1,instances_standard_ddmapd,crest_base,0,,,,,,,,,,10.364,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed1,instances_standard_ddmapd,crest_full,0,,,,,,,,,,10.361,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed1,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h24w24r12d60t16_seed2,instances_standard_ddmapd,b4,1,2033,2315.0,586,989,458,81,0.024,,0,0.357,ok,
+ddmapd_h24w24r12d60t16_seed2,instances_standard_ddmapd,carrier,1,1711,11146.0,6847,1046,2208,1058,0.3335,243,4815,10.272,ok,
+ddmapd_h24w24r12d60t16_seed2,instances_standard_ddmapd,carrier_b0,0,,,,,,,,,,0.091,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r12d60t16_seed2,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.018,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r12d60t16_seed2,instances_standard_ddmapd,crest_base,0,,,,,,,,,,10.372,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed2,instances_standard_ddmapd,crest_full,0,,,,,,,,,,10.362,rc=1,Failed to find solutions in Run 0 
+ddmapd_h24w24r12d60t16_seed2,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h24w24r8d40t16_seed0,instances_standard_ddmapd,b4,1,766,775.0,375,337,54,2,0.0612,,0,0.082,ok,
+ddmapd_h24w24r8d40t16_seed0,instances_standard_ddmapd,carrier,1,183,1170.0,834,234,86,23,0.5697,16,366,10.174,ok,
+ddmapd_h24w24r8d40t16_seed0,instances_standard_ddmapd,carrier_b0,1,297,1970.0,1611,268,68,14,0.678,-1,983,0.035,ok,
+ddmapd_h24w24r8d40t16_seed0,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.011,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r8d40t16_seed0,instances_standard_ddmapd,crest_base,1,116,780,404,296,80,,,,,0.066,ok,sum_of_cost : 780 makespan : 116 agent_travel_time : 296 pickup_count : 56 rearrange_shelf_num : 16 pickup_dropoff_overhead : 80
+ddmapd_h24w24r8d40t16_seed0,instances_standard_ddmapd,crest_full,1,100,600,394,158,48,,,,,0.447,ok,sum_of_cost : 600 makespan : 100 agent_travel_time : 158 pickup_count : 40 rearrange_shelf_num : 16 pickup_dropoff_overhead : 48
+ddmapd_h24w24r8d40t16_seed0,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h24w24r8d40t16_seed1,instances_standard_ddmapd,b4,1,779,791.0,365,354,60,5,0.0586,,0,0.077,ok,
+ddmapd_h24w24r8d40t16_seed1,instances_standard_ddmapd,carrier,1,285,1987.0,1556,296,94,28,0.6825,20,990,10.157,ok,
+ddmapd_h24w24r8d40t16_seed1,instances_standard_ddmapd,carrier_b0,1,385,2527.0,2159,294,66,15,0.701,-1,1499,0.042,ok,
+ddmapd_h24w24r8d40t16_seed1,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.011,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r8d40t16_seed1,instances_standard_ddmapd,crest_base,1,118,696,379,271,46,,,,,0.053,ok,sum_of_cost : 696 makespan : 118 agent_travel_time : 271 pickup_count : 39 rearrange_shelf_num : 16 pickup_dropoff_overhead : 46
+ddmapd_h24w24r8d40t16_seed1,instances_standard_ddmapd,crest_full,1,162,610,392,178,40,,,,,0.289,ok,sum_of_cost : 610 makespan : 162 agent_travel_time : 178 pickup_count : 36 rearrange_shelf_num : 16 pickup_dropoff_overhead : 40
+ddmapd_h24w24r8d40t16_seed1,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h24w24r8d40t16_seed2,instances_standard_ddmapd,b4,1,764,770.0,420,306,38,0,0.0687,,0,0.062,ok,
+ddmapd_h24w24r8d40t16_seed2,instances_standard_ddmapd,carrier,1,407,3090.0,2417,376,270,115,0.7423,39,1697,10.149,ok,
+ddmapd_h24w24r8d40t16_seed2,instances_standard_ddmapd,carrier_b0,0,,,,,,,,,,0.032,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r8d40t16_seed2,instances_standard_ddmapd,carrier_b1,0,,,,,,,,,,0.011,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+ddmapd_h24w24r8d40t16_seed2,instances_standard_ddmapd,crest_base,1,109,666,344,252,70,,,,,0.121,ok,sum_of_cost : 666 makespan : 109 agent_travel_time : 252 pickup_count : 51 rearrange_shelf_num : 16 pickup_dropoff_overhead : 70
+ddmapd_h24w24r8d40t16_seed2,instances_standard_ddmapd,crest_full,1,94,662,349,251,62,,,,,0.332,ok,sum_of_cost : 662 makespan : 94 agent_travel_time : 251 pickup_count : 47 rearrange_shelf_num : 16 pickup_dropoff_overhead : 62
+ddmapd_h24w24r8d40t16_seed2,instances_standard_ddmapd,natcbs,0,,,,,,,,,,0,skipped_too_large,
+ddmapd_h8w8r2d20t2_seed0,instances_small_ddmapd,b4,1,21,21.0,6,11,4,0,0.1429,,0,0.001,ok,
+ddmapd_h8w8r2d20t2_seed0,instances_small_ddmapd,carrier,1,16,16.0,6,6,4,0,0.1875,0,0,0.094,ok,
+ddmapd_h8w8r2d20t2_seed0,instances_small_ddmapd,carrier_b0,1,13,21.0,6,11,4,0,0.2308,-1,0,0.006,ok,
+ddmapd_h8w8r2d20t2_seed0,instances_small_ddmapd,carrier_b1,1,13,20.0,6,10,4,0,0.2308,-1,0,0.004,ok,
+ddmapd_h8w8r2d20t2_seed0,instances_small_ddmapd,crest_base,1,12,18,10,8,0,,,,,0.006,ok,sum_of_cost : 18 makespan : 12 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed0,instances_small_ddmapd,crest_full,1,12,18,10,8,0,,,,,0.006,ok,sum_of_cost : 18 makespan : 12 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed0,instances_small_ddmapd,natcbs,1,9,,,,,,,,,1.439,ok," {7: (5, 4), 8: (5, 5), 9: (5, 6)} Obs 8: {3: (6, 3)} Obs 9: {2: (6, 4)} Obs 10: {2: (7, 3)} Obs 11: {1: (7, 4)} Makespan: 9 Elapsed time: 1.386 sec  "
+ddmapd_h8w8r2d20t2_seed1,instances_small_ddmapd,b4,1,26,26.0,9,11,6,1,0.1731,,0,0.001,ok,
+ddmapd_h8w8r2d20t2_seed1,instances_small_ddmapd,carrier,1,23,28.0,9,15,4,0,0.1957,0,0,9.189,ok,
+ddmapd_h8w8r2d20t2_seed1,instances_small_ddmapd,carrier_b0,1,22,41.0,17,20,4,0,0.3864,-1,9,0.006,ok,
+ddmapd_h8w8r2d20t2_seed1,instances_small_ddmapd,carrier_b1,1,18,32.0,9,19,4,0,0.25,-1,1,0.005,ok,
+ddmapd_h8w8r2d20t2_seed1,instances_small_ddmapd,crest_base,1,15,28,13,15,0,,,,,0.006,ok,sum_of_cost : 28 makespan : 15 agent_travel_time : 15 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed1,instances_small_ddmapd,crest_full,1,15,28,13,15,0,,,,,0.006,ok,sum_of_cost : 28 makespan : 15 agent_travel_time : 15 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed1,instances_small_ddmapd,natcbs,0,,,,,,,,,,10.071,timeout,"2 Num of tasks: 2 Agent start locations: [(7, 2), (0, 3)] Pickup locations: [(1, 4), (1, 5)] Delivery locations: [(1, 4), (1, 5)]  Time Limit Reached "
+ddmapd_h8w8r2d20t2_seed2,instances_small_ddmapd,b4,1,29,29.0,8,17,4,0,0.1379,,0,0.001,ok,
+ddmapd_h8w8r2d20t2_seed2,instances_small_ddmapd,carrier,1,18,22.0,8,10,4,0,0.2222,0,0,1.034,ok,
+ddmapd_h8w8r2d20t2_seed2,instances_small_ddmapd,carrier_b0,1,15,23.0,8,11,4,0,0.2667,-1,0,0.005,ok,
+ddmapd_h8w8r2d20t2_seed2,instances_small_ddmapd,carrier_b1,1,15,22.0,8,10,4,0,0.2667,-1,0,0.004,ok,
+ddmapd_h8w8r2d20t2_seed2,instances_small_ddmapd,crest_base,1,14,20,12,8,0,,,,,0.006,ok,sum_of_cost : 20 makespan : 14 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed2,instances_small_ddmapd,crest_full,1,14,20,12,8,0,,,,,0.006,ok,sum_of_cost : 20 makespan : 14 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+ddmapd_h8w8r2d20t2_seed2,instances_small_ddmapd,natcbs,1,13,,,,,,,,,0.085,ok,"{8: (1, 3)} Obs 8: {2: (6, 6)} Obs 9: {3: (6, 7), 4: (5, 7), 5: (5, 6)} Obs 10: {1: (7, 6)} Obs 11: {2: (7, 7)} Makespan: 13 Elapsed time: 0.048 sec  "
+dneM_n32_seed0,instances_paper_dne_m,b4,1,33903,34094.0,14180,17771,1952,444,0.0131,,0,14.947,ok,
+dneM_n32_seed0,instances_paper_dne_m,carrier,1,1264,37024.0,27971,8247,806,0,0.6915,6071,11300,10.231,ok,
+dneM_n32_seed0,instances_paper_dne_m,carrier_b0,1,12322,379253.0,360422,14328,4498,1845,0.9141,-1,300194,8.217,ok,
+dneM_n32_seed0,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.109,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed0,instances_paper_dne_m,crest_base,1,921,28630,13614,10522,4494,,,,,8.536,ok,sum_of_cost : 28630 makespan : 921 agent_travel_time : 10522 pickup_count : 2650 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4494
+dneM_n32_seed0,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed0,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed1,instances_paper_dne_m,b4,1,32604,32790.0,14100,16694,1810,395,0.0135,,0,13.614,ok,
+dneM_n32_seed1,instances_paper_dne_m,carrier,1,1689,52172.0,42744,8612,816,5,0.7909,6422,23429,10.265,ok,
+dneM_n32_seed1,instances_paper_dne_m,carrier_b0,1,15798,489568.0,470810,13870,4880,2036,0.9313,-1,389643,8.396,ok,
+dneM_n32_seed1,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.128,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed1,instances_paper_dne_m,crest_base,1,971,30320,14196,11200,4924,,,,,10.623,ok,sum_of_cost : 30320 makespan : 971 agent_travel_time : 11200 pickup_count : 2865 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4924
+dneM_n32_seed1,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed1,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed10,instances_paper_dne_m,b4,1,28010,28014.0,14317,12851,842,15,0.016,,0,9.994,ok,
+dneM_n32_seed10,instances_paper_dne_m,carrier,1,1127,33925.0,24923,8194,808,1,0.6911,5894,7619,10.224,ok,
+dneM_n32_seed10,instances_paper_dne_m,carrier_b0,1,10048,304778.0,286626,14231,3916,1554,0.8914,-1,235574,6.681,ok,
+dneM_n32_seed10,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.105,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed10,instances_paper_dne_m,crest_base,1,987,30762,14602,11514,4646,,,,,9.632,ok,sum_of_cost : 30762 makespan : 987 agent_travel_time : 11514 pickup_count : 2726 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4646
+dneM_n32_seed10,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed10,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed11,instances_paper_dne_m,b4,1,34428,34718.0,13843,18177,2408,660,0.0126,,0,15.536,ok,
+dneM_n32_seed11,instances_paper_dne_m,carrier,1,1266,38137.0,29075,8252,810,2,0.7177,5616,13067,10.239,ok,
+dneM_n32_seed11,instances_paper_dne_m,carrier_b0,1,10695,327838.0,311325,12807,3704,1448,0.9097,-1,258335,6.876,ok,
+dneM_n32_seed11,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.111,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed11,instances_paper_dne_m,crest_base,1,916,27413,12863,10202,4348,,,,,7.255,ok,sum_of_cost : 27413 makespan : 916 agent_travel_time : 10202 pickup_count : 2577 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4348
+dneM_n32_seed11,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed11,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed12,instances_paper_dne_m,b4,1,40284,40751.0,15317,21731,3236,1011,0.0119,,0,19.177,ok,
+dneM_n32_seed12,instances_paper_dne_m,carrier,1,1373,42021.0,32536,8580,813,3,0.7405,6123,14520,10.24,ok,
+dneM_n32_seed12,instances_paper_dne_m,carrier_b0,1,11463,355295.0,338220,14237,2838,1016,0.922,-1,284661,7.217,ok,
+dneM_n32_seed12,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.101,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed12,instances_paper_dne_m,crest_base,1,1037,30355,13647,11680,5028,,,,,10.813,ok,sum_of_cost : 30355 makespan : 1037 agent_travel_time : 11680 pickup_count : 2917 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5028
+dneM_n32_seed12,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed12,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed13,instances_paper_dne_m,b4,1,35060,35305.0,14445,18387,2228,562,0.0129,,0,15.458,ok,
+dneM_n32_seed13,instances_paper_dne_m,carrier,1,1126,33408.0,24368,8230,810,2,0.6763,5375,7689,10.234,ok,
+dneM_n32_seed13,instances_paper_dne_m,carrier_b0,1,6961,212581.0,195987,13703,2870,1031,0.8798,-1,155640,5.562,ok,
+dneM_n32_seed13,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.093,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed13,instances_paper_dne_m,crest_base,1,977,29432,13492,11198,4742,,,,,8.247,ok,sum_of_cost : 29432 makespan : 977 agent_travel_time : 11198 pickup_count : 2774 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4742
+dneM_n32_seed13,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed13,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed14,instances_paper_dne_m,b4,1,37111,37397.0,14772,19733,2606,745,0.0124,,0,16.846,ok,
+dneM_n32_seed14,instances_paper_dne_m,carrier,1,1373,41564.0,32780,7976,808,1,0.7461,6333,15218,10.235,ok,
+dneM_n32_seed14,instances_paper_dne_m,carrier_b0,0,,,,,,,,,,0.276,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed14,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.14,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed14,instances_paper_dne_m,crest_base,1,991,30570,14112,11458,5000,,,,,9.766,ok,sum_of_cost : 30570 makespan : 991 agent_travel_time : 11458 pickup_count : 2903 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5000
+dneM_n32_seed14,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed14,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed15,instances_paper_dne_m,b4,1,37231,37550.0,14590,19961,2680,758,0.0122,,0,17.698,ok,
+dneM_n32_seed15,instances_paper_dne_m,carrier,1,1641,50808.0,41483,8513,812,3,0.79,7232,21935,10.243,ok,
+dneM_n32_seed15,instances_paper_dne_m,carrier_b0,1,13082,401378.0,382999,14373,4006,1600,0.9149,-1,316034,7.766,ok,
+dneM_n32_seed15,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.116,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed15,instances_paper_dne_m,crest_base,1,963,29037,13808,10603,4626,,,,,8.548,ok,sum_of_cost : 29037 makespan : 963 agent_travel_time : 10603 pickup_count : 2716 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4626
+dneM_n32_seed15,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed15,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed16,instances_paper_dne_m,b4,1,34982,35236.0,14516,18296,2170,527,0.013,,0,15.266,ok,
+dneM_n32_seed16,instances_paper_dne_m,carrier,1,5396,170966.0,160885,8998,894,43,0.9317,9951,121124,11.057,ok,
+dneM_n32_seed16,instances_paper_dne_m,carrier_b0,0,,,,,,,,,,2.345,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed16,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.08,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed16,instances_paper_dne_m,crest_base,1,959,29230,13475,10703,5052,,,,,9.193,ok,sum_of_cost : 29230 makespan : 959 agent_travel_time : 10703 pickup_count : 2929 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5052
+dneM_n32_seed16,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed16,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed17,instances_paper_dne_m,b4,1,39270,39685.0,15036,21224,3010,911,0.012,,0,17.93,ok,
+dneM_n32_seed17,instances_paper_dne_m,carrier,1,1597,46610.0,37421,8383,806,0,0.7323,6088,18149,10.258,ok,
+dneM_n32_seed17,instances_paper_dne_m,carrier_b0,0,,,,,,,,,,10.51,timeout,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=1 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed17,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.13,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed17,instances_paper_dne_m,crest_base,1,933,28774,13514,10258,5002,,,,,9.009,ok,sum_of_cost : 28774 makespan : 933 agent_travel_time : 10258 pickup_count : 2904 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5002
+dneM_n32_seed17,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed17,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed18,instances_paper_dne_m,b4,1,37395,37757.0,15767,19014,2614,731,0.0132,,0,17.152,ok,
+dneM_n32_seed18,instances_paper_dne_m,carrier,0,,,,,,,,,,10.056,timeout, best_targets_done=373 duplicate_configs=109 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed18,instances_paper_dne_m,carrier_b0,0,,,,,,,,,,0.263,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed18,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.156,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed18,instances_paper_dne_m,crest_base,1,1067,31879,14336,12747,4796,,,,,12.661,ok,sum_of_cost : 31879 makespan : 1067 agent_travel_time : 12747 pickup_count : 2801 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4796
+dneM_n32_seed18,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed18,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed19,instances_paper_dne_m,b4,1,30075,30161.0,14027,14716,1332,202,0.0146,,0,11.776,ok,
+dneM_n32_seed19,instances_paper_dne_m,carrier,1,1231,36665.0,27103,8752,810,2,0.688,6174,10065,10.229,ok,
+dneM_n32_seed19,instances_paper_dne_m,carrier_b0,1,13267,412122.0,392749,15727,3638,1414,0.9251,-1,333839,8.814,ok,
+dneM_n32_seed19,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.15,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed19,instances_paper_dne_m,crest_base,1,1022,30505,14160,11717,4628,,,,,8.998,ok,sum_of_cost : 30505 makespan : 1022 agent_travel_time : 11717 pickup_count : 2717 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4628
+dneM_n32_seed19,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed19,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed2,instances_paper_dne_m,b4,1,33487,33756.0,14632,16735,2120,516,0.0137,,0,14.291,ok,
+dneM_n32_seed2,instances_paper_dne_m,carrier,1,2059,63416.0,54235,8367,814,4,0.8231,6719,33643,10.299,ok,
+dneM_n32_seed2,instances_paper_dne_m,carrier_b0,0,,,,,,,,,,0.885,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed2,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.139,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed2,instances_paper_dne_m,crest_base,1,981,29651,13916,10853,4882,,,,,10.638,ok,sum_of_cost : 29651 makespan : 981 agent_travel_time : 10853 pickup_count : 2844 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4882
+dneM_n32_seed2,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed2,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed20,instances_paper_dne_m,b4,1,36464,36744.0,15043,19015,2406,624,0.0129,,0,16.055,ok,
+dneM_n32_seed20,instances_paper_dne_m,carrier,1,1713,50542.0,41138,8408,809,1,0.7505,6784,22743,10.26,ok,
+dneM_n32_seed20,instances_paper_dne_m,carrier_b0,0,,,,,,,,,,1.731,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed20,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.106,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed20,instances_paper_dne_m,crest_base,1,948,28821,13371,10702,4748,,,,,8.863,ok,sum_of_cost : 28821 makespan : 948 agent_travel_time : 10702 pickup_count : 2777 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4748
+dneM_n32_seed20,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed20,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed21,instances_paper_dne_m,b4,1,29843,29962.0,14172,14165,1506,280,0.0148,,0,11.62,ok,
+dneM_n32_seed21,instances_paper_dne_m,carrier,1,1838,56866.0,47143,8909,814,4,0.8015,7010,27391,10.27,ok,
+dneM_n32_seed21,instances_paper_dne_m,carrier_b0,1,9952,304703.0,286709,14580,3414,1304,0.9003,-1,236649,6.904,ok,
+dneM_n32_seed21,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.086,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed21,instances_paper_dne_m,crest_base,1,984,30290,13902,11348,5040,,,,,10.782,ok,sum_of_cost : 30290 makespan : 984 agent_travel_time : 11348 pickup_count : 2923 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5040
+dneM_n32_seed21,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed21,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed22,instances_paper_dne_m,b4,1,34779,35048.0,14983,17622,2174,537,0.0135,,0,14.97,ok,
+dneM_n32_seed22,instances_paper_dne_m,carrier,1,3925,122561.0,112327,9254,837,15,0.8943,9015,85795,10.417,ok,
+dneM_n32_seed22,instances_paper_dne_m,carrier_b0,0,,,,,,,,,,1.89,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed22,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.105,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed22,instances_paper_dne_m,crest_base,1,1009,30486,14192,11364,4930,,,,,9.602,ok,sum_of_cost : 30486 makespan : 1009 agent_travel_time : 11364 pickup_count : 2868 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4930
+dneM_n32_seed22,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed22,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed23,instances_paper_dne_m,b4,1,34130,34288.0,14083,18081,1966,472,0.0129,,0,14.248,ok,
+dneM_n32_seed23,instances_paper_dne_m,carrier,1,1165,34701.0,25455,8440,806,0,0.6828,5174,9240,10.236,ok,
+dneM_n32_seed23,instances_paper_dne_m,carrier_b0,1,7267,219554.0,203501,13053,3000,1097,0.8751,-1,164032,5.664,ok,
+dneM_n32_seed23,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.091,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed23,instances_paper_dne_m,crest_base,1,952,29225,13546,10937,4742,,,,,8.417,ok,sum_of_cost : 29225 makespan : 952 agent_travel_time : 10937 pickup_count : 2774 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4742
+dneM_n32_seed23,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed23,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed24,instances_paper_dne_m,b4,1,40591,41046.0,15360,21977,3254,1018,0.0118,,0,19.341,ok,
+dneM_n32_seed24,instances_paper_dne_m,carrier,1,1318,39532.0,30241,8471,820,7,0.717,6127,13023,10.231,ok,
+dneM_n32_seed24,instances_paper_dne_m,carrier_b0,1,13913,432384.0,416577,12363,3444,1319,0.9357,-1,341963,7.887,ok,
+dneM_n32_seed24,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.104,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed24,instances_paper_dne_m,crest_base,1,974,29900,14225,10769,4906,,,,,9.889,ok,sum_of_cost : 29900 makespan : 974 agent_travel_time : 10769 pickup_count : 2856 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4906
+dneM_n32_seed24,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed24,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed3,instances_paper_dne_m,b4,1,34150,34342.0,14132,18044,1974,455,0.0129,,0,14.472,ok,
+dneM_n32_seed3,instances_paper_dne_m,carrier,1,1682,51394.0,41542,9044,808,1,0.7718,6651,23268,10.256,ok,
+dneM_n32_seed3,instances_paper_dne_m,carrier_b0,1,12195,373814.0,353610,15720,4484,1839,0.9061,-1,297838,7.547,ok,
+dneM_n32_seed3,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.108,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed3,instances_paper_dne_m,crest_base,1,978,28563,13435,10614,4514,,,,,8.416,ok,sum_of_cost : 28563 makespan : 978 agent_travel_time : 10614 pickup_count : 2660 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4514
+dneM_n32_seed3,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed3,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed4,instances_paper_dne_m,b4,1,33542,33747.0,14487,17035,2020,478,0.0135,,0,14.39,ok,
+dneM_n32_seed4,instances_paper_dne_m,carrier,1,1225,36561.0,27482,8267,812,3,0.7011,6461,10685,10.218,ok,
+dneM_n32_seed4,instances_paper_dne_m,carrier_b0,1,10249,314536.0,296917,14142,3438,1314,0.9053,-1,251274,7.217,ok,
+dneM_n32_seed4,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.095,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed4,instances_paper_dne_m,crest_base,1,996,30448,14171,11217,5060,,,,,10.156,ok,sum_of_cost : 30448 makespan : 996 agent_travel_time : 11217 pickup_count : 2933 rearrange_shelf_num : 403 pickup_dropoff_overhead : 5060
+dneM_n32_seed4,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed4,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed5,instances_paper_dne_m,b4,1,36645,36952.0,15078,19069,2498,692,0.0129,,0,16.097,ok,
+dneM_n32_seed5,instances_paper_dne_m,carrier,1,1169,35708.0,26565,8335,808,1,0.7101,6280,9515,10.214,ok,
+dneM_n32_seed5,instances_paper_dne_m,carrier_b0,1,11614,358329.0,340703,13902,3720,1456,0.9167,-1,283092,8.283,ok,
+dneM_n32_seed5,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.117,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed5,instances_paper_dne_m,crest_base,0,,,,,,,,,,3.13,rc=1,Error : can not find path for agent 18 taskID 365 at step 0 try to pickup the shelf again 
+dneM_n32_seed5,instances_paper_dne_m,crest_full,0,,,,,,,,,,13.352,rc=1,Error : can not find path for agent 18 taskID 365 at step 0 try to pickup the shelf again 
+dneM_n32_seed5,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed6,instances_paper_dne_m,b4,1,31568,31729.0,14168,15694,1706,342,0.014,,0,12.665,ok,
+dneM_n32_seed6,instances_paper_dne_m,carrier,1,1156,34101.0,25151,8140,810,2,0.6799,6133,8220,10.224,ok,
+dneM_n32_seed6,instances_paper_dne_m,carrier_b0,1,5658,171147.0,156282,12488,2352,772,0.8632,-1,124777,5.548,ok,
+dneM_n32_seed6,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.098,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed6,instances_paper_dne_m,crest_base,0,,,,,,,,,,2.594,rc=1,Error : can not find path for agent 14 taskID 198 at step 0 try to pickup the shelf again 
+dneM_n32_seed6,instances_paper_dne_m,crest_full,0,,,,,,,,,,26.961,rc=1,Error : can not find path for agent 14 taskID 198 at step 0 try to pickup the shelf again 
+dneM_n32_seed6,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed7,instances_paper_dne_m,b4,1,36662,36982.0,14548,19498,2616,743,0.0124,,0,16.315,ok,
+dneM_n32_seed7,instances_paper_dne_m,carrier,1,1218,36630.0,27138,8686,806,0,0.6963,5344,10566,10.238,ok,
+dneM_n32_seed7,instances_paper_dne_m,carrier_b0,1,11796,365500.0,348090,13924,3486,1340,0.9222,-1,290674,6.812,ok,
+dneM_n32_seed7,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.096,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed7,instances_paper_dne_m,crest_base,1,970,28578,13333,10783,4462,,,,,7.858,ok,sum_of_cost : 28578 makespan : 970 agent_travel_time : 10783 pickup_count : 2634 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4462
+dneM_n32_seed7,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed7,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed8,instances_paper_dne_m,b4,1,34175,34399.0,14828,17307,2040,501,0.0136,,0,15.391,ok,
+dneM_n32_seed8,instances_paper_dne_m,carrier,1,1195,36366.0,27348,8206,812,3,0.7152,6049,9834,10.224,ok,
+dneM_n32_seed8,instances_paper_dne_m,carrier_b0,1,11519,354550.0,335480,15010,4060,1627,0.9101,-1,281120,7.944,ok,
+dneM_n32_seed8,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.094,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed8,instances_paper_dne_m,crest_base,1,1017,30966,14206,11784,4976,,,,,9.915,ok,sum_of_cost : 30966 makespan : 1017 agent_travel_time : 11784 pickup_count : 2891 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4976
+dneM_n32_seed8,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed8,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+dneM_n32_seed9,instances_paper_dne_m,b4,1,33640,33804.0,14355,17401,1884,416,0.0133,,0,14.401,ok,
+dneM_n32_seed9,instances_paper_dne_m,carrier,1,1074,31736.0,22677,8247,812,3,0.6598,5485,6561,10.221,ok,
+dneM_n32_seed9,instances_paper_dne_m,carrier_b0,1,8493,261226.0,244822,13597,2804,998,0.9008,-1,204254,6.651,ok,
+dneM_n32_seed9,instances_paper_dne_m,carrier_b1,0,,,,,,,,,,0.14,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+dneM_n32_seed9,instances_paper_dne_m,crest_base,1,994,29982,13871,11117,4994,,,,,10.041,ok,sum_of_cost : 29982 makespan : 994 agent_travel_time : 11117 pickup_count : 2900 rearrange_shelf_num : 403 pickup_dropoff_overhead : 4994
+dneM_n32_seed9,instances_paper_dne_m,crest_full,0,,,,,,,,,,40.0,timeout,
+dneM_n32_seed9,instances_paper_dne_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed0,instances_paper_r2r_m,b4,1,15976,15984.0,7673,7835,468,0,0.015,,0,4.293,ok,
+r2rM_n32_seed0,instances_paper_r2r_m,carrier,1,605,16483.0,11714,4027,585,62,0.6051,2964,2706,10.191,ok,
+r2rM_n32_seed0,instances_paper_r2r_m,carrier_b0,1,2772,73308.0,64872,6013,2418,978,0.7313,-1,44857,2.349,ok,
+r2rM_n32_seed0,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.078,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed0,instances_paper_r2r_m,crest_base,1,523,14248,7634,5132,1482,,,,,1.955,ok,sum_of_cost : 14248 makespan : 523 agent_travel_time : 5132 pickup_count : 971 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1482
+r2rM_n32_seed0,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed0,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed1,instances_paper_r2r_m,b4,1,16218,16233.0,7920,7772,526,22,0.0153,,0,4.537,ok,
+r2rM_n32_seed1,instances_paper_r2r_m,carrier,1,524,14976.0,10427,3859,462,0,0.6218,3013,1161,10.178,ok,
+r2rM_n32_seed1,instances_paper_r2r_m,carrier_b0,1,2685,67673.0,59354,6220,2066,797,0.6908,-1,40554,2.464,ok,
+r2rM_n32_seed1,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.083,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed1,instances_paper_r2r_m,crest_base,1,527,14913,7861,5222,1830,,,,,2.246,ok,sum_of_cost : 14913 makespan : 527 agent_travel_time : 5222 pickup_count : 1145 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1830
+r2rM_n32_seed1,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed1,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed10,instances_paper_r2r_m,b4,1,15305,15307.0,7754,7087,464,0,0.0158,,0,4.113,ok,
+r2rM_n32_seed10,instances_paper_r2r_m,carrier,1,602,15901.0,11378,3912,461,0,0.5906,3430,1894,10.184,ok,
+r2rM_n32_seed10,instances_paper_r2r_m,carrier_b0,1,2598,72699.0,64752,5945,2000,768,0.7789,-1,46126,2.74,ok,
+r2rM_n32_seed10,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.077,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed10,instances_paper_r2r_m,crest_base,1,564,15047,7858,5371,1818,,,,,2.262,ok,sum_of_cost : 15047 makespan : 564 agent_travel_time : 5371 pickup_count : 1139 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1818
+r2rM_n32_seed10,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed10,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed11,instances_paper_r2r_m,b4,1,16884,16921.0,7662,8560,662,72,0.0142,,0,5.008,ok,
+r2rM_n32_seed11,instances_paper_r2r_m,carrier,1,710,17317.0,11872,4072,852,195,0.5225,3016,3193,10.199,ok,
+r2rM_n32_seed11,instances_paper_r2r_m,carrier_b0,1,2539,69826.0,61874,6083,1846,687,0.7615,-1,43628,2.279,ok,
+r2rM_n32_seed11,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.116,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed11,instances_paper_r2r_m,crest_base,1,519,14604,7620,5308,1676,,,,,2.307,ok,sum_of_cost : 14604 makespan : 519 agent_travel_time : 5308 pickup_count : 1068 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1676
+r2rM_n32_seed11,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed11,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed12,instances_paper_r2r_m,b4,1,17185,17231.0,8121,8412,652,61,0.0148,,0,5.491,ok,
+r2rM_n32_seed12,instances_paper_r2r_m,carrier,1,568,16863.0,11739,4045,555,45,0.6459,3382,2165,10.18,ok,
+r2rM_n32_seed12,instances_paper_r2r_m,carrier_b0,1,3553,98118.0,88115,7077,2908,1220,0.775,-1,64710,3.098,ok,
+r2rM_n32_seed12,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.072,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed12,instances_paper_r2r_m,crest_base,1,599,15584,8142,5440,2002,,,,,2.865,ok,sum_of_cost : 15584 makespan : 599 agent_travel_time : 5440 pickup_count : 1231 rearrange_shelf_num : 230 pickup_dropoff_overhead : 2002
+r2rM_n32_seed12,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed12,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed13,instances_paper_r2r_m,b4,1,15804,15805.0,7725,7617,462,0,0.0153,,0,4.277,ok,
+r2rM_n32_seed13,instances_paper_r2r_m,carrier,1,534,14211.0,9961,3658,463,1,0.5829,2816,1129,10.188,ok,
+r2rM_n32_seed13,instances_paper_r2r_m,carrier_b0,1,2572,68452.0,60811,5952,1674,602,0.7389,-1,42995,2.31,ok,
+r2rM_n32_seed13,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.081,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed13,instances_paper_r2r_m,crest_base,1,559,14398,7708,4932,1758,,,,,2.822,ok,sum_of_cost : 14398 makespan : 559 agent_travel_time : 4932 pickup_count : 1109 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1758
+r2rM_n32_seed13,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed13,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed14,instances_paper_r2r_m,b4,1,15902,15904.0,7959,7477,466,1,0.0156,,0,4.319,ok,
+r2rM_n32_seed14,instances_paper_r2r_m,carrier,1,640,17199.0,12069,4188,594,66,0.5893,3280,2606,10.185,ok,
+r2rM_n32_seed14,instances_paper_r2r_m,carrier_b0,1,2604,73184.0,64491,6327,2330,932,0.7739,-1,44635,2.565,ok,
+r2rM_n32_seed14,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.083,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed14,instances_paper_r2r_m,crest_base,1,581,15383,7991,5626,1766,,,,,2.226,ok,sum_of_cost : 15383 makespan : 581 agent_travel_time : 5626 pickup_count : 1113 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1766
+r2rM_n32_seed14,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed14,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed15,instances_paper_r2r_m,b4,1,15146,15146.0,7497,7189,460,0,0.0155,,0,4.112,ok,
+r2rM_n32_seed15,instances_paper_r2r_m,carrier,1,509,14190.0,10112,3514,463,1,0.6208,2883,1294,10.181,ok,
+r2rM_n32_seed15,instances_paper_r2r_m,carrier_b0,1,2377,60855.0,53649,5136,2056,795,0.7053,-1,35507,2.261,ok,
+r2rM_n32_seed15,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.098,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed15,instances_paper_r2r_m,crest_base,1,526,13852,7566,4534,1752,,,,,2.138,ok,sum_of_cost : 13852 makespan : 526 agent_travel_time : 4534 pickup_count : 1106 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1752
+r2rM_n32_seed15,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed15,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed16,instances_paper_r2r_m,b4,1,15931,15931.0,8215,7256,460,0,0.0161,,0,4.299,ok,
+r2rM_n32_seed16,instances_paper_r2r_m,carrier,1,604,16537.0,12001,4076,460,0,0.6209,3500,1734,10.177,ok,
+r2rM_n32_seed16,instances_paper_r2r_m,carrier_b0,0,,,,,,,,,,2.731,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed16,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.096,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed16,instances_paper_r2r_m,crest_base,1,703,16320,8234,6122,1964,,,,,2.472,ok,sum_of_cost : 16320 makespan : 703 agent_travel_time : 6122 pickup_count : 1212 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1964
+r2rM_n32_seed16,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed16,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed17,instances_paper_r2r_m,b4,1,15761,15761.0,7885,7414,462,1,0.0156,,0,4.292,ok,
+r2rM_n32_seed17,instances_paper_r2r_m,carrier,1,528,14459.0,10111,3888,460,0,0.5984,3139,1079,10.183,ok,
+r2rM_n32_seed17,instances_paper_r2r_m,carrier_b0,1,2408,65171.0,57846,5510,1782,657,0.7507,-1,39494,2.398,ok,
+r2rM_n32_seed17,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.114,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed17,instances_paper_r2r_m,crest_base,1,584,14744,7786,5074,1884,,,,,2.291,ok,sum_of_cost : 14744 makespan : 584 agent_travel_time : 5074 pickup_count : 1172 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1884
+r2rM_n32_seed17,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed17,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed18,instances_paper_r2r_m,b4,1,15564,15566.0,7840,7248,476,7,0.0157,,0,4.207,ok,
+r2rM_n32_seed18,instances_paper_r2r_m,carrier,1,548,14217.0,10158,3597,462,1,0.5793,2991,1125,10.182,ok,
+r2rM_n32_seed18,instances_paper_r2r_m,carrier_b0,1,2404,60215.0,52639,5657,1898,716,0.6843,-1,34571,2.37,ok,
+r2rM_n32_seed18,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.092,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed18,instances_paper_r2r_m,crest_base,1,600,15046,7983,5305,1758,,,,,2.239,ok,sum_of_cost : 15046 makespan : 600 agent_travel_time : 5305 pickup_count : 1109 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1758
+r2rM_n32_seed18,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed18,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed19,instances_paper_r2r_m,b4,1,15703,15709.0,7706,7479,518,23,0.0153,,0,4.439,ok,
+r2rM_n32_seed19,instances_paper_r2r_m,carrier,1,567,15285.0,10863,3689,462,0,0.5987,3215,1561,10.186,ok,
+r2rM_n32_seed19,instances_paper_r2r_m,carrier_b0,1,3069,83935.0,75079,6339,2480,1004,0.7645,-1,53908,2.75,ok,
+r2rM_n32_seed19,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.079,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed19,instances_paper_r2r_m,crest_base,1,532,14913,7789,5262,1862,,,,,2.395,ok,sum_of_cost : 14913 makespan : 532 agent_travel_time : 5262 pickup_count : 1161 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1862
+r2rM_n32_seed19,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed19,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed2,instances_paper_r2r_m,b4,1,15484,15493.0,7673,7307,504,17,0.0155,,0,4.232,ok,
+r2rM_n32_seed2,instances_paper_r2r_m,carrier,1,566,15142.0,10878,3799,463,1,0.6006,2901,2124,10.191,ok,
+r2rM_n32_seed2,instances_paper_r2r_m,carrier_b0,1,2905,75293.0,67423,5677,2188,863,0.7253,-1,47878,2.417,ok,
+r2rM_n32_seed2,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.078,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed2,instances_paper_r2r_m,crest_base,1,509,14753,7648,5303,1802,,,,,2.196,ok,sum_of_cost : 14753 makespan : 509 agent_travel_time : 5303 pickup_count : 1131 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1802
+r2rM_n32_seed2,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed2,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed20,instances_paper_r2r_m,b4,1,16185,16191.0,8180,7523,482,5,0.0158,,0,4.452,ok,
+r2rM_n32_seed20,instances_paper_r2r_m,carrier,1,563,15010.0,10509,3702,462,0,0.5833,3160,1476,10.186,ok,
+r2rM_n32_seed20,instances_paper_r2r_m,carrier_b0,1,2550,64065.0,56327,5877,1846,691,0.6903,-1,38169,2.479,ok,
+r2rM_n32_seed20,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.081,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed20,instances_paper_r2r_m,crest_base,1,577,15224,8217,5213,1794,,,,,2.31,ok,sum_of_cost : 15224 makespan : 577 agent_travel_time : 5213 pickup_count : 1127 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1794
+r2rM_n32_seed20,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed20,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed21,instances_paper_r2r_m,b4,1,15701,15702.0,7673,7564,464,1,0.0153,,0,4.225,ok,
+r2rM_n32_seed21,instances_paper_r2r_m,carrier,1,555,14853.0,10277,3707,608,73,0.5787,2879,1322,10.19,ok,
+r2rM_n32_seed21,instances_paper_r2r_m,carrier_b0,1,2431,60391.0,53166,5327,1886,711,0.6834,-1,35350,2.207,ok,
+r2rM_n32_seed21,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.086,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed21,instances_paper_r2r_m,crest_base,1,532,14497,7862,5067,1568,,,,,2.056,ok,sum_of_cost : 14497 makespan : 532 agent_travel_time : 5067 pickup_count : 1014 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1568
+r2rM_n32_seed21,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed21,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed22,instances_paper_r2r_m,b4,1,16180,16190.0,7762,7900,518,20,0.015,,0,4.533,ok,
+r2rM_n32_seed22,instances_paper_r2r_m,carrier,1,510,14383.0,10116,3564,577,58,0.6199,3042,1133,10.181,ok,
+r2rM_n32_seed22,instances_paper_r2r_m,carrier_b0,1,2441,66306.0,58456,5758,2052,792,0.7484,-1,39426,2.428,ok,
+r2rM_n32_seed22,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.094,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed22,instances_paper_r2r_m,crest_base,0,,,,,,,,,,0.625,rc=1,Error : can not find path for agent 30 taskID 441 at step 0 try to pickup the shelf again 
+r2rM_n32_seed22,instances_paper_r2r_m,crest_full,0,,,,,,,,,,15.793,rc=1,Error : can not find path for agent 30 taskID 53 at step 0 try to pickup the shelf again 
+r2rM_n32_seed22,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed23,instances_paper_r2r_m,b4,1,15878,15881.0,7537,7875,466,1,0.0148,,0,4.403,ok,
+r2rM_n32_seed23,instances_paper_r2r_m,carrier,1,565,14880.0,10172,3765,465,1,0.5626,2635,1543,10.191,ok,
+r2rM_n32_seed23,instances_paper_r2r_m,carrier_b0,1,2307,58990.0,51609,5556,1806,669,0.6991,-1,34911,1.995,ok,
+r2rM_n32_seed23,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.092,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed23,instances_paper_r2r_m,crest_base,1,487,14156,7449,4995,1712,,,,,2.08,ok,sum_of_cost : 14156 makespan : 487 agent_travel_time : 4995 pickup_count : 1086 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1712
+r2rM_n32_seed23,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed23,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed24,instances_paper_r2r_m,b4,1,16153,16154.0,7761,7930,462,0,0.015,,0,4.468,ok,
+r2rM_n32_seed24,instances_paper_r2r_m,carrier,1,530,15399.0,10480,3949,466,1,0.6179,2920,1721,10.173,ok,
+r2rM_n32_seed24,instances_paper_r2r_m,carrier_b0,1,2342,62134.0,54451,5890,1740,636,0.7266,-1,37149,2.331,ok,
+r2rM_n32_seed24,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.085,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed24,instances_paper_r2r_m,crest_base,1,511,15009,7825,5268,1916,,,,,2.329,ok,sum_of_cost : 15009 makespan : 511 agent_travel_time : 5268 pickup_count : 1188 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1916
+r2rM_n32_seed24,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed24,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed3,instances_paper_r2r_m,b4,1,14982,14982.0,7406,7112,464,2,0.0154,,0,4.13,ok,
+r2rM_n32_seed3,instances_paper_r2r_m,carrier,1,507,13788.0,9684,3644,460,0,0.5969,2536,977,10.191,ok,
+r2rM_n32_seed3,instances_paper_r2r_m,carrier_b0,1,2176,56996.0,49886,5586,1514,525,0.7164,-1,33940,1.951,ok,
+r2rM_n32_seed3,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.055,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed3,instances_paper_r2r_m,crest_base,1,499,13936,7451,4771,1714,,,,,2.031,ok,sum_of_cost : 13936 makespan : 499 agent_travel_time : 4771 pickup_count : 1087 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1714
+r2rM_n32_seed3,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed3,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed4,instances_paper_r2r_m,b4,1,15615,15632.0,7378,7717,520,17,0.0148,,0,4.312,ok,
+r2rM_n32_seed4,instances_paper_r2r_m,carrier,1,477,13773.0,9480,3652,462,0,0.6211,2637,927,10.187,ok,
+r2rM_n32_seed4,instances_paper_r2r_m,carrier_b0,1,2482,63327.0,56009,5750,1558,547,0.7052,-1,39628,2.105,ok,
+r2rM_n32_seed4,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.062,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed4,instances_paper_r2r_m,crest_base,1,485,13700,7329,4679,1692,,,,,2.045,ok,sum_of_cost : 13700 makespan : 485 agent_travel_time : 4679 pickup_count : 1076 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1692
+r2rM_n32_seed4,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed4,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed5,instances_paper_r2r_m,b4,1,16205,16213.0,7853,7850,502,14,0.0151,,0,4.474,ok,
+r2rM_n32_seed5,instances_paper_r2r_m,carrier,1,640,16316.0,11185,3859,836,187,0.5461,3257,2150,10.185,ok,
+r2rM_n32_seed5,instances_paper_r2r_m,carrier_b0,1,2513,69129.0,61433,5664,2014,774,0.7639,-1,42389,2.524,ok,
+r2rM_n32_seed5,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.077,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed5,instances_paper_r2r_m,crest_base,1,561,14988,7956,5272,1760,,,,,2.277,ok,sum_of_cost : 14988 makespan : 561 agent_travel_time : 5272 pickup_count : 1110 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1760
+r2rM_n32_seed5,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed5,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed6,instances_paper_r2r_m,b4,1,15767,15771.0,7737,7550,480,7,0.0153,,0,4.392,ok,
+r2rM_n32_seed6,instances_paper_r2r_m,carrier,1,578,15181.0,10694,3761,585,62,0.5782,2851,1485,10.192,ok,
+r2rM_n32_seed6,instances_paper_r2r_m,carrier_b0,1,2370,62399.0,54651,5788,1954,745,0.7206,-1,36693,2.269,ok,
+r2rM_n32_seed6,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.096,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed6,instances_paper_r2r_m,crest_base,1,522,14476,7871,4955,1650,,,,,2.386,ok,sum_of_cost : 14476 makespan : 522 agent_travel_time : 4955 pickup_count : 1055 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1650
+r2rM_n32_seed6,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed6,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed7,instances_paper_r2r_m,b4,1,15823,15832.0,7825,7506,492,10,0.0155,,0,4.254,ok,
+r2rM_n32_seed7,instances_paper_r2r_m,carrier,1,595,15925.0,11248,3888,627,83,0.5908,3168,2111,10.181,ok,
+r2rM_n32_seed7,instances_paper_r2r_m,carrier_b0,1,2477,68157.0,60354,5959,1818,673,0.7614,-1,42469,2.449,ok,
+r2rM_n32_seed7,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.091,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed7,instances_paper_r2r_m,crest_base,1,521,14263,7838,4673,1752,,,,,2.289,ok,sum_of_cost : 14263 makespan : 521 agent_travel_time : 4673 pickup_count : 1106 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1752
+r2rM_n32_seed7,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed7,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed8,instances_paper_r2r_m,b4,1,16112,16129.0,7670,7910,532,21,0.0149,,0,4.746,ok,
+r2rM_n32_seed8,instances_paper_r2r_m,carrier,1,532,14557.0,10405,3688,464,2,0.6112,2760,1344,10.188,ok,
+r2rM_n32_seed8,instances_paper_r2r_m,carrier_b0,1,2299,58722.0,51581,5377,1764,652,0.7011,-1,33825,2.125,ok,
+r2rM_n32_seed8,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.075,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed8,instances_paper_r2r_m,crest_base,1,586,14822,7902,5148,1772,,,,,2.243,ok,sum_of_cost : 14822 makespan : 586 agent_travel_time : 5148 pickup_count : 1116 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1772
+r2rM_n32_seed8,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed8,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+r2rM_n32_seed9,instances_paper_r2r_m,b4,1,15846,15848.0,7712,7658,476,7,0.0152,,0,4.284,ok,
+r2rM_n32_seed9,instances_paper_r2r_m,carrier,1,542,15219.0,10681,3825,462,0,0.6158,2815,1795,10.187,ok,
+r2rM_n32_seed9,instances_paper_r2r_m,carrier_b0,1,3037,85585.0,76821,6447,2292,910,0.7905,-1,56667,2.45,ok,
+r2rM_n32_seed9,instances_paper_r2r_m,carrier_b1,0,,,,,,,,,,0.111,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+r2rM_n32_seed9,instances_paper_r2r_m,crest_base,1,499,14459,7556,5155,1748,,,,,2.106,ok,sum_of_cost : 14459 makespan : 499 agent_travel_time : 5155 pickup_count : 1104 rearrange_shelf_num : 230 pickup_dropoff_overhead : 1748
+r2rM_n32_seed9,instances_paper_r2r_m,crest_full,0,,,,,,,,,,40.0,timeout,
+r2rM_n32_seed9,instances_paper_r2r_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed0,instances_paper_s2w_m,b4,1,40240,40240.0,16598,20370,3272,1252,0.0129,,0,13.321,ok,
+s2wM_n32_seed0,instances_paper_s2w_m,carrier,1,1259,36368.0,21880,13720,768,0,0.5431,8551,3093,10.139,ok,
+s2wM_n32_seed0,instances_paper_s2w_m,carrier_b0,1,4113,116892.0,97882,15724,3286,1259,0.7437,-1,64184,5.286,ok,
+s2wM_n32_seed0,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.12,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed0,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.726,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed0,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.766,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed0,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed1,instances_paper_s2w_m,b4,1,38893,38893.0,16096,19493,3304,1268,0.0129,,0,12.456,ok,
+s2wM_n32_seed1,instances_paper_s2w_m,carrier,1,1299,38526.0,23864,13890,772,2,0.5741,9243,4115,10.119,ok,
+s2wM_n32_seed1,instances_paper_s2w_m,carrier_b0,1,4667,133884.0,113734,16602,3548,1390,0.7616,-1,76679,5.414,ok,
+s2wM_n32_seed1,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.112,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed1,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.341,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed1,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.37,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed1,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed10,instances_paper_s2w_m,b4,1,40703,40703.0,16426,20529,3748,1490,0.0126,,0,13.025,ok,
+s2wM_n32_seed10,instances_paper_s2w_m,carrier,1,1290,38126.0,23292,14064,770,1,0.5642,8762,3960,10.13,ok,
+s2wM_n32_seed10,instances_paper_s2w_m,carrier_b0,1,4355,124816.0,103738,17532,3546,1389,0.7444,-1,68128,5.104,ok,
+s2wM_n32_seed10,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.142,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed10,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.85,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed10,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.877,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed10,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed11,instances_paper_s2w_m,b4,1,38986,38986.0,16176,19428,3382,1307,0.013,,0,12.676,ok,
+s2wM_n32_seed11,instances_paper_s2w_m,carrier,1,1241,37229.0,22064,14387,778,5,0.5556,8724,3618,10.134,ok,
+s2wM_n32_seed11,instances_paper_s2w_m,carrier_b0,1,4104,114104.0,95122,15838,3144,1188,0.7243,-1,62205,4.851,ok,
+s2wM_n32_seed11,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.105,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed11,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.752,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed11,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.768,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed11,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed12,instances_paper_s2w_m,b4,1,36811,36811.0,15640,18405,2766,999,0.0133,,0,11.525,ok,
+s2wM_n32_seed12,instances_paper_s2w_m,carrier,1,1205,35204.0,20774,13658,772,2,0.5387,8754,2594,10.129,ok,
+s2wM_n32_seed12,instances_paper_s2w_m,carrier_b0,1,4155,115812.0,96516,16116,3180,1206,0.7259,-1,63186,5.141,ok,
+s2wM_n32_seed12,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.133,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed12,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.218,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed12,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.211,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed12,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed13,instances_paper_s2w_m,b4,1,43232,43232.0,16876,21966,4390,1811,0.0122,,0,14.337,ok,
+s2wM_n32_seed13,instances_paper_s2w_m,carrier,1,1361,39307.0,24428,14107,772,2,0.5609,9068,4677,10.128,ok,
+s2wM_n32_seed13,instances_paper_s2w_m,carrier_b0,1,4340,123980.0,104816,16076,3088,1160,0.7547,-1,70240,5.175,ok,
+s2wM_n32_seed13,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.082,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed13,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.805,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed13,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.834,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed13,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed14,instances_paper_s2w_m,b4,1,40297,40297.0,16612,20121,3564,1398,0.0129,,0,13.408,ok,
+s2wM_n32_seed14,instances_paper_s2w_m,carrier,1,1304,36818.0,22150,13900,768,0,0.5308,8729,3956,10.137,ok,
+s2wM_n32_seed14,instances_paper_s2w_m,carrier_b0,1,4276,119681.0,100870,15785,3026,1129,0.7372,-1,67366,5.045,ok,
+s2wM_n32_seed14,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.116,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed14,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.839,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed14,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.825,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed14,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed15,instances_paper_s2w_m,b4,1,39094,39094.0,15952,19916,3226,1229,0.0128,,0,12.197,ok,
+s2wM_n32_seed15,instances_paper_s2w_m,carrier,1,1204,35645.0,21036,13839,770,1,0.546,8432,3257,10.139,ok,
+s2wM_n32_seed15,instances_paper_s2w_m,carrier_b0,1,4121,117061.0,98586,15827,2648,940,0.7476,-1,66350,5.079,ok,
+s2wM_n32_seed15,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.145,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed15,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.972,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed15,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.977,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed15,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed16,instances_paper_s2w_m,b4,1,39433,39433.0,16480,19781,3172,1202,0.0131,,0,12.601,ok,
+s2wM_n32_seed16,instances_paper_s2w_m,carrier,1,1264,37075.0,22556,13751,768,0,0.5577,8281,3533,10.146,ok,
+s2wM_n32_seed16,instances_paper_s2w_m,carrier_b0,1,4481,129573.0,109552,16561,3460,1346,0.764,-1,72553,5.323,ok,
+s2wM_n32_seed16,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.092,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed16,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.806,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed16,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.846,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed16,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed17,instances_paper_s2w_m,b4,1,40754,40754.0,16514,20584,3656,1444,0.0127,,0,13.29,ok,
+s2wM_n32_seed17,instances_paper_s2w_m,carrier,1,1247,37312.0,22502,14040,770,1,0.5639,9040,3195,10.121,ok,
+s2wM_n32_seed17,instances_paper_s2w_m,carrier_b0,1,4259,121858.0,102198,16718,2942,1087,0.7499,-1,69293,5.176,ok,
+s2wM_n32_seed17,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.103,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed17,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.148,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed17,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.168,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed17,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed18,instances_paper_s2w_m,b4,1,39918,39918.0,16126,20418,3374,1303,0.0126,,0,13.281,ok,
+s2wM_n32_seed18,instances_paper_s2w_m,carrier,1,1242,36181.0,21542,13869,770,1,0.542,8802,2763,10.131,ok,
+s2wM_n32_seed18,instances_paper_s2w_m,carrier_b0,1,4640,128395.0,108308,16329,3758,1495,0.7294,-1,72056,5.416,ok,
+s2wM_n32_seed18,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.143,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed18,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.467,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed18,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.466,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed18,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed19,instances_paper_s2w_m,b4,1,39029,39029.0,16172,19353,3504,1368,0.0129,,0,12.8,ok,
+s2wM_n32_seed19,instances_paper_s2w_m,carrier,1,1208,35448.0,20560,14118,770,1,0.5319,8567,2958,10.135,ok,
+s2wM_n32_seed19,instances_paper_s2w_m,carrier_b0,1,3904,111543.0,93148,15721,2674,953,0.7456,-1,61250,5.023,ok,
+s2wM_n32_seed19,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.113,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed19,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.134,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed19,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.198,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed19,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed2,instances_paper_s2w_m,b4,1,38812,38812.0,15806,19770,3236,1234,0.0127,,0,12.786,ok,
+s2wM_n32_seed2,instances_paper_s2w_m,carrier,1,1248,34916.0,20280,13866,770,1,0.5078,8644,2528,10.134,ok,
+s2wM_n32_seed2,instances_paper_s2w_m,carrier_b0,1,3738,106260.0,88354,15370,2536,884,0.7386,-1,57285,4.863,ok,
+s2wM_n32_seed2,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.169,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed2,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.144,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed2,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.176,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed2,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed20,instances_paper_s2w_m,b4,1,36662,36662.0,16120,17970,2572,902,0.0137,,0,11.834,ok,
+s2wM_n32_seed20,instances_paper_s2w_m,carrier,1,1351,39809.0,25172,13863,774,3,0.5823,8775,5888,10.136,ok,
+s2wM_n32_seed20,instances_paper_s2w_m,carrier_b0,1,4482,128341.0,108396,16471,3474,1353,0.7558,-1,72599,5.399,ok,
+s2wM_n32_seed20,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.122,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed20,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.265,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed20,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.319,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed20,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed21,instances_paper_s2w_m,b4,1,38909,38909.0,16428,19381,3100,1166,0.0132,,0,12.677,ok,
+s2wM_n32_seed21,instances_paper_s2w_m,carrier,1,1267,37473.0,22802,13901,770,1,0.5624,8707,3830,10.137,ok,
+s2wM_n32_seed21,instances_paper_s2w_m,carrier_b0,1,4125,115227.0,95988,16061,3178,1205,0.7272,-1,62698,5.227,ok,
+s2wM_n32_seed21,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.083,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed21,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.984,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed21,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.999,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed21,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed22,instances_paper_s2w_m,b4,1,38021,38021.0,15684,19333,3004,1118,0.0129,,0,12.0,ok,
+s2wM_n32_seed22,instances_paper_s2w_m,carrier,1,1296,37319.0,22538,14013,768,0,0.5435,9447,3404,10.11,ok,
+s2wM_n32_seed22,instances_paper_s2w_m,carrier_b0,1,4343,116960.0,97520,16404,3036,1134,0.7017,-1,64403,5.055,ok,
+s2wM_n32_seed22,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.119,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed22,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.986,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed22,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.98,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed22,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed23,instances_paper_s2w_m,b4,1,39186,39186.0,16642,19272,3272,1252,0.0133,,0,12.458,ok,
+s2wM_n32_seed23,instances_paper_s2w_m,carrier,1,1264,36448.0,21838,13842,768,0,0.5399,8653,3113,10.128,ok,
+s2wM_n32_seed23,instances_paper_s2w_m,carrier_b0,1,4080,114822.0,95972,15844,3006,1119,0.7351,-1,63440,4.889,ok,
+s2wM_n32_seed23,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.104,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed23,instances_paper_s2w_m,crest_base,0,,,,,,,,,,10.755,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed23,instances_paper_s2w_m,crest_full,0,,,,,,,,,,10.756,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed23,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed24,instances_paper_s2w_m,b4,1,40849,40849.0,16566,20643,3640,1436,0.0127,,0,13.264,ok,
+s2wM_n32_seed24,instances_paper_s2w_m,carrier,0,,,,,,,,,,10.025,timeout,=0 best_targets_done=360 duplicate_configs=0 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed24,instances_paper_s2w_m,carrier_b0,1,4131,116901.0,97106,16789,3006,1119,0.7346,-1,64201,5.143,ok,
+s2wM_n32_seed24,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.091,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed24,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.557,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed24,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.555,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed24,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed3,instances_paper_s2w_m,b4,1,40768,40768.0,16464,20482,3822,1527,0.0126,,0,13.01,ok,
+s2wM_n32_seed3,instances_paper_s2w_m,carrier,1,1360,39976.0,25406,13796,774,3,0.5838,8774,5100,10.138,ok,
+s2wM_n32_seed3,instances_paper_s2w_m,carrier_b0,1,4935,138808.0,117768,17064,3976,1604,0.7457,-1,78664,5.426,ok,
+s2wM_n32_seed3,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.159,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed3,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.655,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed3,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.654,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed3,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed4,instances_paper_s2w_m,b4,1,38267,38267.0,16092,19105,3070,1151,0.0131,,0,12.046,ok,
+s2wM_n32_seed4,instances_paper_s2w_m,carrier,1,1264,37463.0,22770,13921,772,2,0.5629,9730,3348,10.099,ok,
+s2wM_n32_seed4,instances_paper_s2w_m,carrier_b0,1,4206,118454.0,99098,16338,3018,1125,0.7363,-1,66221,5.273,ok,
+s2wM_n32_seed4,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.114,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed4,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.75,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed4,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.769,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed4,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed5,instances_paper_s2w_m,b4,1,40294,40294.0,16308,20398,3588,1410,0.0126,,0,12.926,ok,
+s2wM_n32_seed5,instances_paper_s2w_m,carrier,1,1301,38399.0,23670,13959,770,1,0.5686,8911,3929,10.126,ok,
+s2wM_n32_seed5,instances_paper_s2w_m,carrier_b0,1,4178,117884.0,98514,15886,3484,1358,0.7369,-1,63370,4.815,ok,
+s2wM_n32_seed5,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.09,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed5,instances_paper_s2w_m,crest_base,0,,,,,,,,,,11.436,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed5,instances_paper_s2w_m,crest_full,0,,,,,,,,,,11.468,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed5,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed6,instances_paper_s2w_m,b4,1,38731,38731.0,15804,19707,3220,1226,0.0128,,0,12.823,ok,
+s2wM_n32_seed6,instances_paper_s2w_m,carrier,1,1231,35355.0,20758,13827,770,1,0.527,8622,2612,10.132,ok,
+s2wM_n32_seed6,instances_paper_s2w_m,carrier_b0,1,3997,113875.0,95306,15655,2914,1073,0.7451,-1,62964,4.994,ok,
+s2wM_n32_seed6,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.103,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed6,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.44,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed6,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.418,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed6,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed7,instances_paper_s2w_m,b4,1,40877,40877.0,16434,20729,3714,1473,0.0126,,0,13.575,ok,
+s2wM_n32_seed7,instances_paper_s2w_m,carrier,1,1214,35151.0,20154,14229,768,0,0.5188,8279,2392,10.147,ok,
+s2wM_n32_seed7,instances_paper_s2w_m,carrier_b0,1,4013,113977.0,94936,16181,2860,1046,0.7393,-1,62120,4.824,ok,
+s2wM_n32_seed7,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.126,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed7,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.462,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed7,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.505,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed7,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed8,instances_paper_s2w_m,b4,1,43847,43847.0,17194,22113,4540,1886,0.0123,,0,13.771,ok,
+s2wM_n32_seed8,instances_paper_s2w_m,carrier,1,1292,37503.0,22626,14101,776,4,0.5473,8974,3529,10.127,ok,
+s2wM_n32_seed8,instances_paper_s2w_m,carrier_b0,1,4340,127623.0,107816,16781,3026,1129,0.7763,-1,73431,5.294,ok,
+s2wM_n32_seed8,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.115,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed8,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.102,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed8,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.092,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed8,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+s2wM_n32_seed9,instances_paper_s2w_m,b4,1,37946,37946.0,16256,18676,3014,1123,0.0134,,0,12.379,ok,
+s2wM_n32_seed9,instances_paper_s2w_m,carrier,1,1314,37468.0,22772,13928,768,0,0.5416,8604,4365,10.143,ok,
+s2wM_n32_seed9,instances_paper_s2w_m,carrier_b0,1,4127,118470.0,99908,15760,2802,1017,0.7565,-1,67423,4.965,ok,
+s2wM_n32_seed9,instances_paper_s2w_m,carrier_b1,0,,,,,,,,,,0.071,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+s2wM_n32_seed9,instances_paper_s2w_m,crest_base,0,,,,,,,,,,12.26,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed9,instances_paper_s2w_m,crest_full,0,,,,,,,,,,12.3,rc=1,Failed to find solutions in Run 0 
+s2wM_n32_seed9,instances_paper_s2w_m,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h12w12r20s40t8k160_seed0,sweep_ratio_r20,b4,1,121,126.0,23,74,24,0,0.0095,,0,0.006,ok,
+scramble_h12w12r20s40t8k160_seed0,sweep_ratio_r20,carrier,1,14,128.0,45,36,22,0,0.1607,0,16,10.178,ok,
+scramble_h12w12r20s40t8k160_seed0,sweep_ratio_r20,carrier_b0,1,23,155.0,64,45,26,2,0.1391,-1,33,0.049,ok,
+scramble_h12w12r20s40t8k160_seed0,sweep_ratio_r20,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+scramble_h12w12r20s40t8k160_seed0,sweep_ratio_r20,crest_base,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 24 
+scramble_h12w12r20s40t8k160_seed0,sweep_ratio_r20,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 24 
+scramble_h12w12r20s40t8k160_seed0,sweep_ratio_r20,natcbs,0,,,,,,,,,,10.711,timeout,"6), (7, 7), (9, 0), (11, 1), (8, 2), (7, 6), (6, 5), (8, 7), (8, 11), (10, 9), (9, 8), (9, 9), (10, 2), (11, 4), (11, 5), (9, 7)]  Time Limit Reached "
+scramble_h12w12r20s40t8k160_seed1,sweep_ratio_r20,b4,1,129,132.0,26,83,20,0,0.0101,,0,0.007,ok,
+scramble_h12w12r20s40t8k160_seed1,sweep_ratio_r20,carrier,1,11,75.0,27,24,20,0,0.1227,0,0,10.151,ok,
+scramble_h12w12r20s40t8k160_seed1,sweep_ratio_r20,carrier_b0,1,25,143.0,76,28,20,0,0.152,-1,42,0.008,ok,
+scramble_h12w12r20s40t8k160_seed1,sweep_ratio_r20,carrier_b1,1,11,100.0,41,24,17,0,0.1864,-1,5,0.006,ok,
+scramble_h12w12r20s40t8k160_seed1,sweep_ratio_r20,crest_base,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r20s40t8k160_seed1,sweep_ratio_r20,crest_full,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r20s40t8k160_seed1,sweep_ratio_r20,natcbs,0,,,,,,,,,,11.77,timeout,", 2), (5, 5), (5, 7), (6, 3), (7, 3), (8, 6), (6, 11), (8, 3), (9, 4), (7, 8), (11, 6), (2, 10), (8, 1), (9, 7), (9, 8), (9, 10)]  Time Limit Reached "
+scramble_h12w12r2s40t8k160_seed1,sweep_ratio_r2,b4,1,7,7.0,1,4,2,0,0.0714,,0,0.0,ok,
+scramble_h12w12r2s40t8k160_seed1,sweep_ratio_r2,carrier,1,7,7.0,1,4,2,0,0.0714,0,0,0.065,ok,
+scramble_h12w12r2s40t8k160_seed1,sweep_ratio_r2,carrier_b0,1,7,7.0,1,4,2,0,0.0714,-1,0,0.017,ok,
+scramble_h12w12r2s40t8k160_seed1,sweep_ratio_r2,carrier_b1,1,7,7.0,1,4,2,0,0.0714,-1,0,0.006,ok,
+scramble_h12w12r2s40t8k160_seed1,sweep_ratio_r2,crest_base,1,26,51,29,22,0,,,,,0.008,ok,sum_of_cost : 51 makespan : 26 agent_travel_time : 22 pickup_count : 10 rearrange_shelf_num : 10 pickup_dropoff_overhead : 0
+scramble_h12w12r2s40t8k160_seed1,sweep_ratio_r2,crest_full,1,26,51,29,22,0,,,,,0.011,ok,sum_of_cost : 51 makespan : 26 agent_travel_time : 22 pickup_count : 10 rearrange_shelf_num : 10 pickup_dropoff_overhead : 0
+scramble_h12w12r2s40t8k160_seed1,sweep_ratio_r2,natcbs,0,,,,,,,,,,10.418,timeout," 2), (1, 4), (1, 5), (2, 3)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (2, 5), (0, 7), (1, 1), (1, 4), (2, 4), (2, 3)]  Time Limit Reached "
+scramble_h12w12r2s40t8k160_seed7919,sweep_ratio_r2,b4,1,13,13.0,2,7,4,0,0.0769,,0,0.001,ok,
+scramble_h12w12r2s40t8k160_seed7919,sweep_ratio_r2,carrier,1,10,10.0,2,4,4,0,0.1,0,0,0.068,ok,
+scramble_h12w12r2s40t8k160_seed7919,sweep_ratio_r2,carrier_b0,1,12,20.0,2,14,4,0,0.0833,-1,1,0.006,ok,
+scramble_h12w12r2s40t8k160_seed7919,sweep_ratio_r2,carrier_b1,1,13,21.0,2,15,4,0,0.0769,-1,0,0.006,ok,
+scramble_h12w12r2s40t8k160_seed7919,sweep_ratio_r2,crest_base,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r2s40t8k160_seed7919,sweep_ratio_r2,crest_full,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r2s40t8k160_seed7919,sweep_ratio_r2,natcbs,0,,,,,,,,,,10.19,timeout," locations: [(0, 2), (0, 3), (1, 0), (1, 2), (1, 4), (1, 5)] Delivery locations: [(0, 2), (0, 3), (1, 0), (1, 2), (1, 4), (1, 5)]  Time Limit Reached "
+scramble_h12w12r4s100t8k160_seed0,sweep_fill_70,b4,1,28,28.0,2,22,4,0,0.0179,,0,0.002,ok,
+scramble_h12w12r4s100t8k160_seed0,sweep_fill_70,carrier,1,11,16.0,2,10,4,0,0.0455,0,0,10.135,ok,
+scramble_h12w12r4s100t8k160_seed0,sweep_fill_70,carrier_b0,1,11,20.0,2,14,4,0,0.0455,-1,3,0.007,ok,
+scramble_h12w12r4s100t8k160_seed0,sweep_fill_70,carrier_b1,1,11,15.0,2,9,4,0,0.0455,-1,0,0.007,ok,
+scramble_h12w12r4s100t8k160_seed0,sweep_fill_70,crest_base,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 No path exists for agent 48 
+scramble_h12w12r4s100t8k160_seed0,sweep_fill_70,crest_full,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 No path exists for agent 48 
+scramble_h12w12r4s100t8k160_seed0,sweep_fill_70,natcbs,0,,,,,,,,,,10.158,timeout,"(0, 1), (0, 2), (0, 4), (0, 5), (0, 7), (0, 8), (0, 9), (0, 11), (1, 0), (1, 1), (1, 3), (1, 6), (0, 10), (2, 0), (2, 2), (2, 4)]  Time Limit Reached "
+scramble_h12w12r4s100t8k160_seed7920,sweep_fill_70,b4,1,19,21.0,5,8,6,0,0.0658,,0,0.001,ok,
+scramble_h12w12r4s100t8k160_seed7920,sweep_fill_70,carrier,1,11,14.0,4,5,4,0,0.0909,0,0,10.119,ok,
+scramble_h12w12r4s100t8k160_seed7920,sweep_fill_70,carrier_b0,1,19,23.0,5,12,4,0,0.0658,-1,0,0.008,ok,
+scramble_h12w12r4s100t8k160_seed7920,sweep_fill_70,carrier_b1,1,20,56.0,21,14,3,0,0.2625,-1,15,0.007,ok,
+scramble_h12w12r4s100t8k160_seed7920,sweep_fill_70,crest_base,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 No path exists for agent 68 
+scramble_h12w12r4s100t8k160_seed7920,sweep_fill_70,crest_full,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 No path exists for agent 68 
+scramble_h12w12r4s100t8k160_seed7920,sweep_fill_70,natcbs,0,,,,,,,,,,11.555,timeout,"6)] Delivery locations: [(0, 0), (0, 1), (0, 3), (0, 4), (0, 5), (0, 6), (0, 8), (0, 11), (1, 1), (1, 2), (1, 3), (1, 5), (1, 6)]  Time Limit Reached "
+scramble_h12w12r4s122t8k160_seed1,sweep_fill_85,b4,1,8,8.0,1,5,2,0,0.0312,,0,0.001,ok,
+scramble_h12w12r4s122t8k160_seed1,sweep_fill_85,carrier,1,4,4.0,1,1,2,0,0.0625,0,0,0.069,ok,
+scramble_h12w12r4s122t8k160_seed1,sweep_fill_85,carrier_b0,1,4,4.0,1,1,2,0,0.0625,-1,0,0.007,ok,
+scramble_h12w12r4s122t8k160_seed1,sweep_fill_85,carrier_b1,1,4,4.0,1,1,2,0,0.0625,-1,0,0.007,ok,
+scramble_h12w12r4s122t8k160_seed1,sweep_fill_85,crest_base,1,26,48,24,24,0,,,,,0.014,ok,sum_of_cost : 48 makespan : 26 agent_travel_time : 24 pickup_count : 10 rearrange_shelf_num : 10 pickup_dropoff_overhead : 0
+scramble_h12w12r4s122t8k160_seed1,sweep_fill_85,crest_full,1,26,48,24,24,0,,,,,0.018,ok,sum_of_cost : 48 makespan : 26 agent_travel_time : 24 pickup_count : 10 rearrange_shelf_num : 10 pickup_dropoff_overhead : 0
+scramble_h12w12r4s122t8k160_seed1,sweep_fill_85,natcbs,0,,,,,,,,,,13.327,timeout,"), (0, 7), (0, 9), (0, 10)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 5), (0, 6), (0, 7), (0, 8), (0, 10)]  Time Limit Reached "
+scramble_h12w12r4s122t8k160_seed7919,sweep_fill_85,b4,1,10,10.0,1,7,2,0,0.025,,0,0.001,ok,
+scramble_h12w12r4s122t8k160_seed7919,sweep_fill_85,carrier,1,10,10.0,1,7,2,0,0.025,0,0,10.131,ok,
+scramble_h12w12r4s122t8k160_seed7919,sweep_fill_85,carrier_b0,1,10,10.0,1,7,2,0,0.025,-1,0,0.009,ok,
+scramble_h12w12r4s122t8k160_seed7919,sweep_fill_85,carrier_b1,1,10,10.0,1,7,2,0,0.025,-1,0,0.007,ok,
+scramble_h12w12r4s122t8k160_seed7919,sweep_fill_85,crest_base,0,,,,,,,,,,0.01,rc=1,Failed to find solutions in Run 0 No path exists for agent 34 
+scramble_h12w12r4s122t8k160_seed7919,sweep_fill_85,crest_full,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 No path exists for agent 34 
+scramble_h12w12r4s122t8k160_seed7919,sweep_fill_85,natcbs,0,,,,,,,,,,10.506,timeout,", (0, 11)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11)]  Time Limit Reached "
+scramble_h12w12r4s136t8k160_seed63352,sweep_fill_95,b4,1,17,17.0,1,14,2,0,0.0147,,0,0.001,ok,
+scramble_h12w12r4s136t8k160_seed63352,sweep_fill_95,carrier,1,4,4.0,1,1,2,0,0.0625,0,0,0.026,ok,
+scramble_h12w12r4s136t8k160_seed63352,sweep_fill_95,carrier_b0,1,4,4.0,1,1,2,0,0.0625,-1,0,0.007,ok,
+scramble_h12w12r4s136t8k160_seed63352,sweep_fill_95,carrier_b1,1,4,4.0,1,1,2,0,0.0625,-1,0,0.007,ok,
+scramble_h12w12r4s136t8k160_seed63352,sweep_fill_95,crest_base,0,,,,,,,,,,0.01,rc=1,Failed to find solutions in Run 0 No path exists for agent 81 
+scramble_h12w12r4s136t8k160_seed63352,sweep_fill_95,crest_full,0,,,,,,,,,,0.01,rc=1,Failed to find solutions in Run 0 No path exists for agent 81 
+scramble_h12w12r4s136t8k160_seed63352,sweep_fill_95,natcbs,0,,,,,,,,,,14.464,timeout,"Agent start locations: [(1, 10), (1, 1), (11, 8), (0, 7)] Pickup locations: [(0, 0), (0, 1)] Delivery locations: [(0, 0), (0, 1)]  Time Limit Reached "
+scramble_h12w12r4s136t8k160_seed7920,sweep_fill_95,b4,1,22,23.0,2,16,4,0,0.0227,,0,0.001,ok,
+scramble_h12w12r4s136t8k160_seed7920,sweep_fill_95,carrier,1,9,12.0,2,5,4,0,0.0556,0,0,10.098,ok,
+scramble_h12w12r4s136t8k160_seed7920,sweep_fill_95,carrier_b0,1,10,14.0,3,5,4,0,0.075,-1,0,0.01,ok,
+scramble_h12w12r4s136t8k160_seed7920,sweep_fill_95,carrier_b1,1,9,21.0,7,5,3,0,0.1944,-1,4,0.008,ok,
+scramble_h12w12r4s136t8k160_seed7920,sweep_fill_95,crest_base,1,17,39,21,18,0,,,,,0.016,ok,sum_of_cost : 39 makespan : 17 agent_travel_time : 18 pickup_count : 8 rearrange_shelf_num : 8 pickup_dropoff_overhead : 0
+scramble_h12w12r4s136t8k160_seed7920,sweep_fill_95,crest_full,1,17,39,21,18,0,,,,,0.013,ok,sum_of_cost : 39 makespan : 17 agent_travel_time : 18 pickup_count : 8 rearrange_shelf_num : 8 pickup_dropoff_overhead : 0
+scramble_h12w12r4s136t8k160_seed7920,sweep_fill_95,natcbs,0,,,,,,,,,,12.205,timeout," 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7)]  Time Limit Reached "
+scramble_h12w12r4s28t8k120_seed0,instances_standard_scramble,b4,1,22,22.0,7,11,4,0,0.0795,,0,0.001,ok,
+scramble_h12w12r4s28t8k120_seed0,instances_standard_scramble,carrier,1,12,17.0,7,6,4,0,0.1458,0,0,9.176,ok,
+scramble_h12w12r4s28t8k120_seed0,instances_standard_scramble,carrier_b0,1,10,20.0,9,7,4,0,0.225,-1,2,0.006,ok,
+scramble_h12w12r4s28t8k120_seed0,instances_standard_scramble,carrier_b1,1,10,17.0,7,6,4,0,0.175,-1,0,0.006,ok,
+scramble_h12w12r4s28t8k120_seed0,instances_standard_scramble,crest_base,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h12w12r4s28t8k120_seed0,instances_standard_scramble,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h12w12r4s28t8k120_seed0,instances_standard_scramble,natcbs,0,,,,,,,,,,10.15,timeout,"), (2, 1), (3, 5), (3, 8), (4, 3), (4, 7)] Delivery locations: [(3, 3), (0, 10), (1, 6), (2, 0), (5, 6), (2, 11), (1, 0), (4, 7)]  Time Limit Reached "
+scramble_h12w12r4s28t8k120_seed1,instances_standard_scramble,b4,1,20,20.0,2,14,4,0,0.025,,0,0.001,ok,
+scramble_h12w12r4s28t8k120_seed1,instances_standard_scramble,carrier,1,10,20.0,2,14,4,0,0.05,0,0,10.122,ok,
+scramble_h12w12r4s28t8k120_seed1,instances_standard_scramble,carrier_b0,1,10,20.0,2,14,4,0,0.05,-1,0,0.006,ok,
+scramble_h12w12r4s28t8k120_seed1,instances_standard_scramble,carrier_b1,1,10,19.0,2,13,4,0,0.05,-1,0,0.007,ok,
+scramble_h12w12r4s28t8k120_seed1,instances_standard_scramble,crest_base,1,30,99,52,41,6,,,,,0.008,ok,sum_of_cost : 99 makespan : 30 agent_travel_time : 41 pickup_count : 17 rearrange_shelf_num : 14 pickup_dropoff_overhead : 6
+scramble_h12w12r4s28t8k120_seed1,instances_standard_scramble,crest_full,1,30,99,60,39,0,,,,,0.015,ok,sum_of_cost : 99 makespan : 30 agent_travel_time : 39 pickup_count : 14 rearrange_shelf_num : 14 pickup_dropoff_overhead : 0
+scramble_h12w12r4s28t8k120_seed1,instances_standard_scramble,natcbs,0,,,,,,,,,,10.128,timeout,"very locations: [(0, 3), (0, 2), (0, 0), (1, 1), (1, 4), (0, 7), (2, 5), (2, 0), (2, 10), (3, 4), (2, 6), (5, 5), (4, 5), (6, 3)]  Time Limit Reached "
+scramble_h12w12r4s28t8k120_seed2,instances_standard_scramble,b4,1,25,25.0,5,16,4,0,0.05,,0,0.002,ok,
+scramble_h12w12r4s28t8k120_seed2,instances_standard_scramble,carrier,1,10,19.0,9,6,4,0,0.225,0,4,10.199,ok,
+scramble_h12w12r4s28t8k120_seed2,instances_standard_scramble,carrier_b0,1,12,21.0,11,6,4,0,0.2292,-1,6,0.006,ok,
+scramble_h12w12r4s28t8k120_seed2,instances_standard_scramble,carrier_b1,1,8,14.0,5,5,4,0,0.1562,-1,0,0.008,ok,
+scramble_h12w12r4s28t8k120_seed2,instances_standard_scramble,crest_base,0,,,,,,,,,,0.007,rc=-6,e_node_by_d>; A1 = boost::parameter::void_; A2 = boost::parameter::void_; A3 = boost::parameter::void_; A4 = boost::parameter::void_; const_reference = ECBSNode* const&]: Assertion `!empty()' failed. 
+scramble_h12w12r4s28t8k120_seed2,instances_standard_scramble,crest_full,0,,,,,,,,,,0.007,rc=-6,e_node_by_d>; A1 = boost::parameter::void_; A2 = boost::parameter::void_; A3 = boost::parameter::void_; A4 = boost::parameter::void_; const_reference = ECBSNode* const&]: Assertion `!empty()' failed. 
+scramble_h12w12r4s28t8k120_seed2,instances_standard_scramble,natcbs,0,,,,,,,,,,10.118,timeout,"), (1, 9), (1, 11), (3, 2), (3, 4)] Delivery locations: [(0, 4), (0, 9), (0, 3), (1, 2), (4, 6), (1, 9), (1, 11), (4, 0), (3, 4)]  Time Limit Reached "
+scramble_h12w12r4s40t8k160_seed0,sweep_ratio_r4,b4,1,5,5.0,1,2,2,0,0.05,,0,0.0,ok,
+scramble_h12w12r4s40t8k160_seed0,sweep_ratio_r4,carrier,1,4,4.0,1,1,2,0,0.0625,0,0,0.016,ok,
+scramble_h12w12r4s40t8k160_seed0,sweep_ratio_r4,carrier_b0,1,4,4.0,1,1,2,0,0.0625,-1,0,0.032,ok,
+scramble_h12w12r4s40t8k160_seed0,sweep_ratio_r4,carrier_b1,1,4,4.0,1,1,2,0,0.0625,-1,0,0.044,ok,
+scramble_h12w12r4s40t8k160_seed0,sweep_ratio_r4,crest_base,1,33,54,25,31,-2,,,,,0.008,ok,sum_of_cost : 54 makespan : 33 agent_travel_time : 31 pickup_count : 8 rearrange_shelf_num : 9 pickup_dropoff_overhead : -2
+scramble_h12w12r4s40t8k160_seed0,sweep_ratio_r4,crest_full,1,33,55,25,30,0,,,,,0.009,ok,sum_of_cost : 55 makespan : 33 agent_travel_time : 30 pickup_count : 9 rearrange_shelf_num : 9 pickup_dropoff_overhead : 0
+scramble_h12w12r4s40t8k160_seed0,sweep_ratio_r4,natcbs,0,,,,,,,,,,10.296,timeout,", (2, 10), (3, 3), (3, 4), (3, 6)] Delivery locations: [(1, 0), (0, 9), (0, 10), (1, 6), (2, 0), (2, 11), (3, 3), (3, 4), (3, 6)]  Time Limit Reached "
+scramble_h12w12r4s40t8k160_seed1,sweep_ratio_r4,b4,1,12,12.0,1,9,2,0,0.0208,,0,0.001,ok,
+scramble_h12w12r4s40t8k160_seed1,sweep_ratio_r4,carrier,1,10,10.0,1,7,2,0,0.025,0,0,10.119,ok,
+scramble_h12w12r4s40t8k160_seed1,sweep_ratio_r4,carrier_b0,1,10,10.0,1,7,2,0,0.025,-1,0,0.006,ok,
+scramble_h12w12r4s40t8k160_seed1,sweep_ratio_r4,carrier_b1,1,10,10.0,1,7,2,0,0.025,-1,0,0.006,ok,
+scramble_h12w12r4s40t8k160_seed1,sweep_ratio_r4,crest_base,0,,,,,,,,,,0.028,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r4s40t8k160_seed1,sweep_ratio_r4,crest_full,0,,,,,,,,,,0.028,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r4s40t8k160_seed1,sweep_ratio_r4,natcbs,0,,,,,,,,,,10.089,timeout,"ations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 7), (1, 1), (1, 4), (2, 5), (2, 6), (2, 0), (2, 3), (2, 4), (2, 10), (4, 0), (3, 4)]  Time Limit Reached "
+scramble_h12w12r4s43t8k160_seed0,sweep_depth_160,b4,1,55,55.0,5,44,6,0,0.0227,,0,0.003,ok,
+scramble_h12w12r4s43t8k160_seed0,sweep_depth_160,carrier,1,9,23.0,5,12,6,0,0.1389,0,0,10.134,ok,
+scramble_h12w12r4s43t8k160_seed0,sweep_depth_160,carrier_b0,1,9,26.0,5,15,6,0,0.1389,-1,1,0.006,ok,
+scramble_h12w12r4s43t8k160_seed0,sweep_depth_160,carrier_b1,1,9,21.0,5,10,6,0,0.1389,-1,0,0.006,ok,
+scramble_h12w12r4s43t8k160_seed0,sweep_depth_160,crest_base,0,,,,,,,,,,0.028,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r4s43t8k160_seed0,sweep_depth_160,crest_full,0,,,,,,,,,,0.124,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r4s43t8k160_seed0,sweep_depth_160,natcbs,0,,,,,,,,,,10.205,timeout,"(2, 11), (1, 6), (0, 9), (0, 10), (2, 0), (1, 0), (2, 2), (5, 1), (3, 3), (3, 4), (3, 6), (7, 3), (4, 7), (3, 9), (5, 0), (5, 4)]  Time Limit Reached "
+scramble_h12w12r4s43t8k160_seed1,sweep_depth_160,b4,1,58,59.0,7,43,8,0,0.0302,,0,0.003,ok,
+scramble_h12w12r4s43t8k160_seed1,sweep_depth_160,carrier,1,9,33.0,8,15,8,0,0.2222,0,0,10.122,ok,
+scramble_h12w12r4s43t8k160_seed1,sweep_depth_160,carrier_b0,1,10,42.0,12,18,8,0,0.3,-1,6,0.008,ok,
+scramble_h12w12r4s43t8k160_seed1,sweep_depth_160,carrier_b1,1,9,34.0,10,13,7,0,0.2778,-1,1,0.04,ok,
+scramble_h12w12r4s43t8k160_seed1,sweep_depth_160,crest_base,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 No path exists for agent 21 
+scramble_h12w12r4s43t8k160_seed1,sweep_depth_160,crest_full,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 No path exists for agent 21 
+scramble_h12w12r4s43t8k160_seed1,sweep_depth_160,natcbs,0,,,,,,,,,,10.265,timeout,"0)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 7), (1, 1), (1, 4), (2, 5), (2, 6), (2, 0), (2, 3), (2, 4), (2, 10)]  Time Limit Reached "
+scramble_h12w12r4s43t8k40_seed0,sweep_depth_40,b4,1,15,15.0,1,12,2,0,0.0167,,0,0.001,ok,
+scramble_h12w12r4s43t8k40_seed0,sweep_depth_40,carrier,1,5,5.0,1,2,2,0,0.05,0,0,0.211,ok,
+scramble_h12w12r4s43t8k40_seed0,sweep_depth_40,carrier_b0,1,5,5.0,1,2,2,0,0.05,-1,0,0.006,ok,
+scramble_h12w12r4s43t8k40_seed0,sweep_depth_40,carrier_b1,1,5,5.0,1,2,2,0,0.05,-1,0,0.006,ok,
+scramble_h12w12r4s43t8k40_seed0,sweep_depth_40,crest_base,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r4s43t8k40_seed0,sweep_depth_40,crest_full,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r4s43t8k40_seed0,sweep_depth_40,natcbs,0,,,,,,,,,,10.265,timeout,"ocations: [(0, 9), (0, 10), (1, 0), (1, 6), (2, 0), (2, 2)] Delivery locations: [(0, 9), (0, 10), (1, 0), (1, 6), (2, 0), (2, 2)]  Time Limit Reached "
+scramble_h12w12r4s43t8k40_seed1,sweep_depth_40,b4,1,33,33.0,3,26,4,0,0.0227,,0,0.002,ok,
+scramble_h12w12r4s43t8k40_seed1,sweep_depth_40,carrier,1,6,9.0,3,2,4,0,0.125,0,0,0.4,ok,
+scramble_h12w12r4s43t8k40_seed1,sweep_depth_40,carrier_b0,1,5,10.0,3,3,4,0,0.15,-1,0,0.006,ok,
+scramble_h12w12r4s43t8k40_seed1,sweep_depth_40,carrier_b1,1,5,9.0,3,2,4,0,0.15,-1,0,0.006,ok,
+scramble_h12w12r4s43t8k40_seed1,sweep_depth_40,crest_base,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r4s43t8k40_seed1,sweep_depth_40,crest_full,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r4s43t8k40_seed1,sweep_depth_40,natcbs,1,5,,,,,,,,,0.181,ok,"1), 4: (10, 10), 5: (9, 10)} Obs 39: {4: (11, 4)} Obs 40: {5: (11, 5)} Obs 41: {6: (11, 6)} Obs 42: {6: (11, 7)} Makespan: 5 Elapsed time: 0.141 sec  "
+scramble_h12w12r4s43t8k640_seed0,sweep_depth_640,b4,1,55,55.0,12,33,10,0,0.0545,,0,0.003,ok,
+scramble_h12w12r4s43t8k640_seed0,sweep_depth_640,carrier,1,18,49.0,12,27,10,0,0.1667,0,0,10.111,ok,
+scramble_h12w12r4s43t8k640_seed0,sweep_depth_640,carrier_b0,1,20,53.0,12,31,10,0,0.15,-1,1,0.006,ok,
+scramble_h12w12r4s43t8k640_seed0,sweep_depth_640,carrier_b1,1,16,47.0,12,25,10,0,0.1875,-1,0,0.006,ok,
+scramble_h12w12r4s43t8k640_seed0,sweep_depth_640,crest_base,0,,,,,,,,,,0.007,rc=-6,"nes/CREST/src/CBS/CBSHeuristic.cpp:685: bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode&, const std::vector<int>&, std::vector<int>&, int&): Assertion `get<2>(rst) >= min_f_vals[a2]' failed. "
+scramble_h12w12r4s43t8k640_seed0,sweep_depth_640,crest_full,0,,,,,,,,,,0.009,rc=-6,"nes/CREST/src/CBS/CBSHeuristic.cpp:685: bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode&, const std::vector<int>&, std::vector<int>&, int&): Assertion `get<2>(rst) >= min_f_vals[a2]' failed. "
+scramble_h12w12r4s43t8k640_seed0,sweep_depth_640,natcbs,0,,,,,,,,,,15.173,timeout,"5, 4), (5, 6), (5, 10), (7, 6), (5, 0), (6, 6), (5, 11), (9, 0), (8, 2), (6, 5), (3, 6), (7, 7), (6, 9), (8, 7), (7, 9), (11, 1)]  Time Limit Reached "
+scramble_h12w12r4s43t8k640_seed1,sweep_depth_640,b4,1,98,99.0,18,62,18,1,0.0459,,0,0.004,ok,
+scramble_h12w12r4s43t8k640_seed1,sweep_depth_640,carrier,1,24,91.0,36,36,18,1,0.375,0,7,10.098,ok,
+scramble_h12w12r4s43t8k640_seed1,sweep_depth_640,carrier_b0,1,34,113.0,53,42,16,0,0.3897,-1,28,0.007,ok,
+scramble_h12w12r4s43t8k640_seed1,sweep_depth_640,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+scramble_h12w12r4s43t8k640_seed1,sweep_depth_640,crest_base,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r4s43t8k640_seed1,sweep_depth_640,crest_full,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r4s43t8k640_seed1,sweep_depth_640,natcbs,0,,,,,,,,,,10.639,timeout," (2, 0), (4, 0), (2, 3), (2, 4), (5, 5), (4, 5), (3, 4), (6, 3), (4, 6), (2, 10), (8, 3), (5, 7), (5, 8), (5, 9), (7, 3), (9, 7)]  Time Limit Reached "
+scramble_h12w12r4s72t8k160_seed0,sweep_fill_50,b4,1,61,64.0,9,38,14,0,0.0369,,0,0.003,ok,
+scramble_h12w12r4s72t8k160_seed0,sweep_fill_50,carrier,1,27,125.0,39,53,12,0,0.3611,0,34,10.119,ok,
+scramble_h12w12r4s72t8k160_seed0,sweep_fill_50,carrier_b0,1,25,112.0,35,49,11,0,0.35,-1,27,0.006,ok,
+scramble_h12w12r4s72t8k160_seed0,sweep_fill_50,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+scramble_h12w12r4s72t8k160_seed0,sweep_fill_50,crest_base,0,,,,,,,,,,0.008,rc=-6,"nes/CREST/src/CBS/CBSHeuristic.cpp:679: bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode&, const std::vector<int>&, std::vector<int>&, int&): Assertion `get<1>(rst) >= min_f_vals[a1]' failed. "
+scramble_h12w12r4s72t8k160_seed0,sweep_fill_50,crest_full,0,,,,,,,,,,0.009,rc=-6,"nes/CREST/src/CBS/CBSHeuristic.cpp:679: bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode&, const std::vector<int>&, std::vector<int>&, int&): Assertion `get<1>(rst) >= min_f_vals[a1]' failed. "
+scramble_h12w12r4s72t8k160_seed0,sweep_fill_50,natcbs,0,,,,,,,,,,10.163,timeout,"(0, 11), (1, 0), (2, 6), (1, 6), (0, 8), (0, 9), (2, 11), (2, 0), (2, 2), (2, 4), (2, 7), (2, 9), (3, 9), (5, 0), (3, 3), (3, 5)]  Time Limit Reached "
+scramble_h12w12r4s72t8k160_seed1,sweep_fill_50,b4,1,79,83.0,15,42,22,5,0.0475,,0,0.003,ok,
+scramble_h12w12r4s72t8k160_seed1,sweep_fill_50,carrier,1,14,46.0,7,25,12,0,0.125,0,0,10.137,ok,
+scramble_h12w12r4s72t8k160_seed1,sweep_fill_50,carrier_b0,1,17,57.0,9,32,12,0,0.1324,-1,3,0.007,ok,
+scramble_h12w12r4s72t8k160_seed1,sweep_fill_50,carrier_b1,1,19,89.0,29,26,10,0,0.3816,-1,23,0.007,ok,
+scramble_h12w12r4s72t8k160_seed1,sweep_fill_50,crest_base,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r4s72t8k160_seed1,sweep_fill_50,crest_full,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r4s72t8k160_seed1,sweep_fill_50,natcbs,0,,,,,,,,,,10.655,timeout,"(0, 3), (0, 4), (0, 7), (1, 0), (1, 1), (1, 3), (1, 4), (2, 6), (3, 8), (1, 11), (2, 0), (2, 3), (2, 4), (2, 5), (2, 10), (3, 0)]  Time Limit Reached "
+scramble_h12w12r6s43t8k160_seed0,instances_standard_scramble,b4,1,47,47.0,12,25,10,1,0.0426,,0,0.002,ok,
+scramble_h12w12r6s43t8k160_seed0,instances_standard_scramble,carrier,1,11,39.0,8,23,8,0,0.1212,0,0,10.159,ok,
+scramble_h12w12r6s43t8k160_seed0,instances_standard_scramble,carrier_b0,1,19,51.0,16,27,8,0,0.1404,-1,6,0.006,ok,
+scramble_h12w12r6s43t8k160_seed0,instances_standard_scramble,carrier_b1,1,17,36.0,8,20,8,0,0.0784,-1,0,0.006,ok,
+scramble_h12w12r6s43t8k160_seed0,instances_standard_scramble,crest_base,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r6s43t8k160_seed0,instances_standard_scramble,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 
+scramble_h12w12r6s43t8k160_seed0,instances_standard_scramble,natcbs,0,,,,,,,,,,10.351,timeout,"(1, 0), (1, 6), (0, 9), (3, 9), (2, 2), (2, 11), (2, 0), (3, 4), (3, 3), (3, 6), (4, 7), (5, 0), (5, 1), (5, 6), (5, 8), (5, 11)]  Time Limit Reached "
+scramble_h12w12r6s43t8k160_seed1,instances_standard_scramble,b4,1,12,12.0,4,6,2,0,0.0556,,0,0.001,ok,
+scramble_h12w12r6s43t8k160_seed1,instances_standard_scramble,carrier,1,11,11.0,4,5,2,0,0.0606,0,0,10.189,ok,
+scramble_h12w12r6s43t8k160_seed1,instances_standard_scramble,carrier_b0,1,11,11.0,4,5,2,0,0.0606,-1,0,0.006,ok,
+scramble_h12w12r6s43t8k160_seed1,instances_standard_scramble,carrier_b1,1,11,11.0,4,5,2,0,0.0606,-1,0,0.006,ok,
+scramble_h12w12r6s43t8k160_seed1,instances_standard_scramble,crest_base,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed1,instances_standard_scramble,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed1,instances_standard_scramble,natcbs,0,,,,,,,,,,10.193,timeout," (0, 1), (0, 2), (0, 3), (0, 7), (1, 1), (2, 0), (1, 4), (2, 3), (2, 4), (2, 6), (5, 9), (2, 10), (3, 4), (2, 5), (4, 0), (5, 3)]  Time Limit Reached "
+scramble_h12w12r6s43t8k160_seed2,instances_standard_scramble,b4,1,17,17.0,5,8,4,0,0.049,,0,0.001,ok,
+scramble_h12w12r6s43t8k160_seed2,instances_standard_scramble,carrier,1,9,16.0,5,7,4,0,0.0926,0,0,10.157,ok,
+scramble_h12w12r6s43t8k160_seed2,instances_standard_scramble,carrier_b0,1,11,19.0,7,8,4,0,0.1061,-1,2,0.006,ok,
+scramble_h12w12r6s43t8k160_seed2,instances_standard_scramble,carrier_b1,1,9,15.0,5,6,4,0,0.0926,-1,0,0.006,ok,
+scramble_h12w12r6s43t8k160_seed2,instances_standard_scramble,crest_base,0,,,,,,,,,,0.008,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed2,instances_standard_scramble,crest_full,0,,,,,,,,,,0.01,rc=1,Failed to find solutions in Run 0 No path exists for agent 13 
+scramble_h12w12r6s43t8k160_seed2,instances_standard_scramble,natcbs,0,,,,,,,,,,10.285,timeout,", 3), (0, 4), (0, 9), (1, 10), (1, 2), (1, 5), (3, 10), (1, 9), (2, 5), (2, 6), (4, 11), (3, 4), (4, 6), (3, 7), (1, 11), (3, 5)]  Time Limit Reached "
+scramble_h12w12r6s72t16k160_seed0,sweep_ntgt_16,b4,1,65,65.0,11,38,16,0,0.0282,,0,0.003,ok,
+scramble_h12w12r6s72t16k160_seed0,sweep_ntgt_16,carrier,1,15,61.0,11,34,16,0,0.1222,0,2,10.17,ok,
+scramble_h12w12r6s72t16k160_seed0,sweep_ntgt_16,carrier_b0,1,17,63.0,13,34,16,0,0.1275,-1,8,0.024,ok,
+scramble_h12w12r6s72t16k160_seed0,sweep_ntgt_16,carrier_b1,1,13,53.0,11,26,16,0,0.141,-1,1,0.007,ok,
+scramble_h12w12r6s72t16k160_seed0,sweep_ntgt_16,crest_base,1,33,139,96,47,-4,,,,,0.011,ok,sum_of_cost : 139 makespan : 33 agent_travel_time : 47 pickup_count : 27 rearrange_shelf_num : 29 pickup_dropoff_overhead : -4
+scramble_h12w12r6s72t16k160_seed0,sweep_ntgt_16,crest_full,1,33,141,96,49,-4,,,,,0.025,ok,sum_of_cost : 141 makespan : 33 agent_travel_time : 49 pickup_count : 27 rearrange_shelf_num : 29 pickup_dropoff_overhead : -4
+scramble_h12w12r6s72t16k160_seed0,sweep_ntgt_16,natcbs,0,,,,,,,,,,10.564,timeout," (2, 7), (2, 9), (2, 11), (3, 3), (3, 4), (2, 6), (3, 6), (3, 9), (4, 3), (5, 6), (4, 7), (4, 8), (4, 9), (2, 0), (5, 1), (5, 3)]  Time Limit Reached "
+scramble_h12w12r6s72t16k160_seed1,sweep_ntgt_16,b4,1,123,124.0,21,80,22,2,0.0285,,0,0.006,ok,
+scramble_h12w12r6s72t16k160_seed1,sweep_ntgt_16,carrier,1,16,85.0,26,39,18,0,0.2708,0,9,10.162,ok,
+scramble_h12w12r6s72t16k160_seed1,sweep_ntgt_16,carrier_b0,1,22,100.0,36,40,18,0,0.2727,-1,15,0.007,ok,
+scramble_h12w12r6s72t16k160_seed1,sweep_ntgt_16,carrier_b1,1,25,90.0,28,35,17,0,0.1867,-1,8,0.007,ok,
+scramble_h12w12r6s72t16k160_seed1,sweep_ntgt_16,crest_base,0,,,,,,,,,,0.03,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t16k160_seed1,sweep_ntgt_16,crest_full,0,,,,,,,,,,0.032,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t16k160_seed1,sweep_ntgt_16,natcbs,0,,,,,,,,,,10.599,timeout,"(1, 11), (2, 0), (2, 3), (2, 4), (2, 5), (2, 6), (0, 7), (3, 8), (3, 0), (3, 1), (3, 2), (3, 4), (4, 6), (3, 6), (5, 10), (4, 0)]  Time Limit Reached "
+scramble_h12w12r6s72t1k160_seed0,sweep_ntgt_1,b4,1,9,9.0,1,6,2,0,0.0185,,0,0.0,ok,
+scramble_h12w12r6s72t1k160_seed0,sweep_ntgt_1,carrier,1,4,4.0,1,1,2,0,0.0417,0,0,10.24,ok,
+scramble_h12w12r6s72t1k160_seed0,sweep_ntgt_1,carrier_b0,1,4,4.0,1,1,2,0,0.0417,-1,0,0.006,ok,
+scramble_h12w12r6s72t1k160_seed0,sweep_ntgt_1,carrier_b1,1,4,4.0,1,1,2,0,0.0417,-1,0,0.006,ok,
+scramble_h12w12r6s72t1k160_seed0,sweep_ntgt_1,crest_base,1,36,141,100,47,-6,,,,,0.01,ok,sum_of_cost : 141 makespan : 36 agent_travel_time : 47 pickup_count : 26 rearrange_shelf_num : 29 pickup_dropoff_overhead : -6
+scramble_h12w12r6s72t1k160_seed0,sweep_ntgt_1,crest_full,1,36,146,99,53,-6,,,,,0.02,ok,sum_of_cost : 146 makespan : 36 agent_travel_time : 53 pickup_count : 26 rearrange_shelf_num : 29 pickup_dropoff_overhead : -6
+scramble_h12w12r6s72t1k160_seed0,sweep_ntgt_1,natcbs,0,,,,,,,,,,10.569,timeout," (2, 7), (2, 9), (2, 11), (3, 3), (3, 4), (2, 6), (3, 6), (3, 9), (4, 3), (5, 6), (4, 7), (4, 8), (4, 9), (2, 0), (5, 1), (5, 3)]  Time Limit Reached "
+scramble_h12w12r6s72t1k160_seed1,sweep_ntgt_1,b4,1,13,13.0,3,8,2,0,0.0385,,0,0.001,ok,
+scramble_h12w12r6s72t1k160_seed1,sweep_ntgt_1,carrier,1,9,9.0,3,4,2,0,0.0556,0,0,10.245,ok,
+scramble_h12w12r6s72t1k160_seed1,sweep_ntgt_1,carrier_b0,1,9,9.0,3,4,2,0,0.0556,-1,0,0.007,ok,
+scramble_h12w12r6s72t1k160_seed1,sweep_ntgt_1,carrier_b1,1,9,9.0,3,4,2,0,0.0556,-1,0,0.007,ok,
+scramble_h12w12r6s72t1k160_seed1,sweep_ntgt_1,crest_base,0,,,,,,,,,,0.03,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t1k160_seed1,sweep_ntgt_1,crest_full,0,,,,,,,,,,0.03,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t1k160_seed1,sweep_ntgt_1,natcbs,0,,,,,,,,,,10.608,timeout,"(1, 11), (2, 0), (2, 3), (2, 4), (2, 5), (2, 6), (0, 7), (3, 8), (3, 0), (3, 1), (3, 2), (3, 4), (4, 6), (3, 6), (5, 10), (4, 0)]  Time Limit Reached "
+scramble_h12w12r6s72t4k160_seed0,sweep_ntgt_4,b4,1,20,20.0,2,14,4,0,0.0167,,0,0.001,ok,
+scramble_h12w12r6s72t4k160_seed0,sweep_ntgt_4,carrier,1,7,12.0,2,6,4,0,0.0476,0,0,10.187,ok,
+scramble_h12w12r6s72t4k160_seed0,sweep_ntgt_4,carrier_b0,1,7,14.0,2,8,4,0,0.0476,-1,1,0.007,ok,
+scramble_h12w12r6s72t4k160_seed0,sweep_ntgt_4,carrier_b1,1,7,11.0,2,5,4,0,0.0476,-1,0,0.006,ok,
+scramble_h12w12r6s72t4k160_seed0,sweep_ntgt_4,crest_base,0,,,,,,,,,,0.009,rc=-6,"nes/CREST/src/CBS/CBSHeuristic.cpp:679: bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode&, const std::vector<int>&, std::vector<int>&, int&): Assertion `get<1>(rst) >= min_f_vals[a1]' failed. "
+scramble_h12w12r6s72t4k160_seed0,sweep_ntgt_4,crest_full,0,,,,,,,,,,0.009,rc=-6,"nes/CREST/src/CBS/CBSHeuristic.cpp:679: bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode&, const std::vector<int>&, std::vector<int>&, int&): Assertion `get<1>(rst) >= min_f_vals[a1]' failed. "
+scramble_h12w12r6s72t4k160_seed0,sweep_ntgt_4,natcbs,0,,,,,,,,,,10.559,timeout," (2, 7), (2, 9), (2, 11), (3, 3), (3, 4), (2, 6), (3, 6), (3, 9), (4, 3), (5, 6), (4, 7), (4, 8), (4, 9), (2, 0), (5, 1), (5, 3)]  Time Limit Reached "
+scramble_h12w12r6s72t4k160_seed1,sweep_ntgt_4,b4,1,19,19.0,5,10,4,0,0.0439,,0,0.001,ok,
+scramble_h12w12r6s72t4k160_seed1,sweep_ntgt_4,carrier,1,9,15.0,5,6,4,0,0.0926,0,0,10.178,ok,
+scramble_h12w12r6s72t4k160_seed1,sweep_ntgt_4,carrier_b0,1,11,19.0,7,8,4,0,0.1061,-1,2,0.008,ok,
+scramble_h12w12r6s72t4k160_seed1,sweep_ntgt_4,carrier_b1,1,9,14.0,5,5,4,0,0.0926,-1,0,0.007,ok,
+scramble_h12w12r6s72t4k160_seed1,sweep_ntgt_4,crest_base,0,,,,,,,,,,0.03,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t4k160_seed1,sweep_ntgt_4,crest_full,0,,,,,,,,,,0.03,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t4k160_seed1,sweep_ntgt_4,natcbs,0,,,,,,,,,,10.601,timeout,"(1, 11), (2, 0), (2, 3), (2, 4), (2, 5), (2, 6), (0, 7), (3, 8), (3, 0), (3, 1), (3, 2), (3, 4), (4, 6), (3, 6), (5, 10), (4, 0)]  Time Limit Reached "
+scramble_h12w12r6s72t64k160_seed0,sweep_ntgt_64,b4,1,339,340.0,50,227,62,3,0.0246,,0,0.025,ok,
+scramble_h12w12r6s72t64k160_seed0,sweep_ntgt_64,carrier,1,73,360.0,96,159,80,12,0.2192,2,51,10.153,ok,
+scramble_h12w12r6s72t64k160_seed0,sweep_ntgt_64,carrier_b0,1,73,317.0,77,180,58,1,0.1758,-1,48,0.009,ok,
+scramble_h12w12r6s72t64k160_seed0,sweep_ntgt_64,carrier_b1,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+scramble_h12w12r6s72t64k160_seed0,sweep_ntgt_64,crest_base,1,33,146,97,53,-4,,,,,0.01,ok,sum_of_cost : 146 makespan : 33 agent_travel_time : 53 pickup_count : 27 rearrange_shelf_num : 29 pickup_dropoff_overhead : -4
+scramble_h12w12r6s72t64k160_seed0,sweep_ntgt_64,crest_full,1,33,141,98,49,-6,,,,,0.021,ok,sum_of_cost : 141 makespan : 33 agent_travel_time : 49 pickup_count : 26 rearrange_shelf_num : 29 pickup_dropoff_overhead : -6
+scramble_h12w12r6s72t64k160_seed0,sweep_ntgt_64,natcbs,0,,,,,,,,,,10.61,timeout," (2, 7), (2, 9), (2, 11), (3, 3), (3, 4), (2, 6), (3, 6), (3, 9), (4, 3), (5, 6), (4, 7), (4, 8), (4, 9), (2, 0), (5, 1), (5, 3)]  Time Limit Reached "
+scramble_h12w12r6s72t64k160_seed1,sweep_ntgt_64,b4,1,361,361.0,60,227,74,12,0.0277,,0,0.033,ok,
+scramble_h12w12r6s72t64k160_seed1,sweep_ntgt_64,carrier,1,70,348.0,118,152,78,14,0.281,2,55,10.135,ok,
+scramble_h12w12r6s72t64k160_seed1,sweep_ntgt_64,carrier_b0,1,108,411.0,168,179,64,7,0.2593,-1,93,0.01,ok,
+scramble_h12w12r6s72t64k160_seed1,sweep_ntgt_64,carrier_b1,0,,,,,,,,,,0.029,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+scramble_h12w12r6s72t64k160_seed1,sweep_ntgt_64,crest_base,0,,,,,,,,,,0.029,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t64k160_seed1,sweep_ntgt_64,crest_full,0,,,,,,,,,,0.033,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h12w12r6s72t64k160_seed1,sweep_ntgt_64,natcbs,0,,,,,,,,,,10.616,timeout,"(1, 11), (2, 0), (2, 3), (2, 4), (2, 5), (2, 6), (0, 7), (3, 8), (3, 0), (3, 1), (3, 2), (3, 4), (4, 6), (3, 6), (5, 10), (4, 0)]  Time Limit Reached "
+scramble_h12w12r8s40t8k160_seed0,sweep_ratio_r8,b4,1,23,23.0,4,15,4,0,0.0217,,0,0.001,ok,
+scramble_h12w12r8s40t8k160_seed0,sweep_ratio_r8,carrier,1,6,12.0,4,4,4,0,0.0833,0,0,10.19,ok,
+scramble_h12w12r8s40t8k160_seed0,sweep_ratio_r8,carrier_b0,1,6,12.0,4,4,4,0,0.0833,-1,0,0.006,ok,
+scramble_h12w12r8s40t8k160_seed0,sweep_ratio_r8,carrier_b1,1,6,11.0,4,3,4,0,0.0833,-1,0,0.006,ok,
+scramble_h12w12r8s40t8k160_seed0,sweep_ratio_r8,crest_base,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 6 
+scramble_h12w12r8s40t8k160_seed0,sweep_ratio_r8,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 No path exists for agent 6 
+scramble_h12w12r8s40t8k160_seed0,sweep_ratio_r8,natcbs,0,,,,,,,,,,10.086,timeout,"(5, 0), (1, 6), (2, 0), (2, 11), (6, 0), (3, 6), (3, 3), (3, 4), (4, 7), (5, 6), (3, 9), (5, 11), (6, 5), (6, 6), (5, 8), (6, 9)]  Time Limit Reached "
+scramble_h12w12r8s40t8k160_seed1,sweep_ratio_r8,b4,1,41,42.0,6,25,10,0,0.0183,,0,0.002,ok,
+scramble_h12w12r8s40t8k160_seed1,sweep_ratio_r8,carrier,1,7,35.0,9,12,10,0,0.1607,0,0,10.094,ok,
+scramble_h12w12r8s40t8k160_seed1,sweep_ratio_r8,carrier_b0,1,14,50.0,12,21,10,0,0.1071,-1,5,0.006,ok,
+scramble_h12w12r8s40t8k160_seed1,sweep_ratio_r8,carrier_b1,1,9,40.0,12,12,9,0,0.1667,-1,2,0.006,ok,
+scramble_h12w12r8s40t8k160_seed1,sweep_ratio_r8,crest_base,0,,,,,,,,,,0.007,rc=-6,e_node_by_d>; A1 = boost::parameter::void_; A2 = boost::parameter::void_; A3 = boost::parameter::void_; A4 = boost::parameter::void_; const_reference = ECBSNode* const&]: Assertion `!empty()' failed. 
+scramble_h12w12r8s40t8k160_seed1,sweep_ratio_r8,crest_full,0,,,,,,,,,,0.009,rc=-6,e_node_by_d>; A1 = boost::parameter::void_; A2 = boost::parameter::void_; A3 = boost::parameter::void_; A4 = boost::parameter::void_; const_reference = ECBSNode* const&]: Assertion `!empty()' failed. 
+scramble_h12w12r8s40t8k160_seed1,sweep_ratio_r8,natcbs,0,,,,,,,,,,10.126,timeout," (0, 2), (0, 3), (0, 7), (1, 1), (1, 4), (2, 6), (2, 0), (2, 3), (2, 4), (2, 5), (4, 6), (4, 0), (3, 4), (2, 10), (4, 5), (5, 7)]  Time Limit Reached "
+scramble_h16w16r8s128t16k320_seed0,instances_standard_scramble,b4,1,196,200.0,33,135,28,2,0.021,,0,0.013,ok,
+scramble_h16w16r8s128t16k320_seed0,instances_standard_scramble,carrier,1,24,142.0,50,63,24,1,0.2604,0,14,10.16,ok,
+scramble_h16w16r8s128t16k320_seed0,instances_standard_scramble,carrier_b0,1,48,222.0,104,89,24,1,0.2708,-1,58,0.009,ok,
+scramble_h16w16r8s128t16k320_seed0,instances_standard_scramble,carrier_b1,1,28,135.0,39,69,19,0,0.1741,-1,1,0.008,ok,
+scramble_h16w16r8s128t16k320_seed0,instances_standard_scramble,crest_base,0,,,,,,,,,,0.015,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed0,instances_standard_scramble,crest_full,0,,,,,,,,,,0.012,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed0,instances_standard_scramble,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h16w16r8s128t16k320_seed1,instances_standard_scramble,b4,1,104,104.0,16,74,14,1,0.0192,,0,0.007,ok,
+scramble_h16w16r8s128t16k320_seed1,instances_standard_scramble,carrier,1,11,50.0,16,20,14,1,0.1818,0,0,10.176,ok,
+scramble_h16w16r8s128t16k320_seed1,instances_standard_scramble,carrier_b0,1,21,74.0,32,30,12,0,0.1905,-1,21,0.008,ok,
+scramble_h16w16r8s128t16k320_seed1,instances_standard_scramble,carrier_b1,1,14,37.0,14,11,12,0,0.125,-1,0,0.008,ok,
+scramble_h16w16r8s128t16k320_seed1,instances_standard_scramble,crest_base,0,,,,,,,,,,0.013,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed1,instances_standard_scramble,crest_full,0,,,,,,,,,,0.013,rc=1,Failed to find solutions in Run 0 No path exists for agent 41 
+scramble_h16w16r8s128t16k320_seed1,instances_standard_scramble,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h16w16r8s128t16k320_seed2,instances_standard_scramble,b4,1,116,123.0,22,70,24,0,0.0237,,0,0.007,ok,
+scramble_h16w16r8s128t16k320_seed2,instances_standard_scramble,carrier,1,24,121.0,35,60,18,0,0.1823,0,10,10.15,ok,
+scramble_h16w16r8s128t16k320_seed2,instances_standard_scramble,carrier_b0,1,39,157.0,55,69,17,0,0.1763,-1,30,0.009,ok,
+scramble_h16w16r8s128t16k320_seed2,instances_standard_scramble,carrier_b1,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+scramble_h16w16r8s128t16k320_seed2,instances_standard_scramble,crest_base,0,,,,,,,,,,0.017,rc=1,Failed to find solutions in Run 0 No path exists for agent 98 
+scramble_h16w16r8s128t16k320_seed2,instances_standard_scramble,crest_full,0,,,,,,,,,,0.013,rc=1,Failed to find solutions in Run 0 No path exists for agent 98 
+scramble_h16w16r8s128t16k320_seed2,instances_standard_scramble,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h16w16r8s76t16k240_seed0,instances_standard_scramble,b4,1,127,128.0,24,87,16,0,0.0236,,0,0.007,ok,
+scramble_h16w16r8s76t16k240_seed0,instances_standard_scramble,carrier,1,15,66.0,20,27,16,0,0.1667,0,2,10.18,ok,
+scramble_h16w16r8s76t16k240_seed0,instances_standard_scramble,carrier_b0,1,17,81.0,23,38,16,0,0.1691,-1,8,0.009,ok,
+scramble_h16w16r8s76t16k240_seed0,instances_standard_scramble,carrier_b1,1,19,83.0,29,25,15,0,0.1908,-1,11,0.008,ok,
+scramble_h16w16r8s76t16k240_seed0,instances_standard_scramble,crest_base,0,,,,,,,,,,0.011,rc=1,Failed to find solutions in Run 0 No path exists for agent 48 
+scramble_h16w16r8s76t16k240_seed0,instances_standard_scramble,crest_full,0,,,,,,,,,,0.011,rc=1,Failed to find solutions in Run 0 No path exists for agent 48 
+scramble_h16w16r8s76t16k240_seed0,instances_standard_scramble,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h16w16r8s76t16k240_seed1,instances_standard_scramble,b4,1,120,122.0,26,74,20,0,0.0271,,0,0.007,ok,
+scramble_h16w16r8s76t16k240_seed1,instances_standard_scramble,carrier,1,20,137.0,48,67,20,0,0.3,0,17,10.153,ok,
+scramble_h16w16r8s76t16k240_seed1,instances_standard_scramble,carrier_b0,1,32,179.0,77,73,20,0,0.3008,-1,34,0.01,ok,
+scramble_h16w16r8s76t16k240_seed1,instances_standard_scramble,carrier_b1,1,18,122.0,34,60,18,0,0.2361,-1,4,0.008,ok,
+scramble_h16w16r8s76t16k240_seed1,instances_standard_scramble,crest_base,0,,,,,,,,,,0.011,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed1,instances_standard_scramble,crest_full,0,,,,,,,,,,0.012,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed1,instances_standard_scramble,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h16w16r8s76t16k240_seed2,instances_standard_scramble,b4,1,184,188.0,31,131,22,1,0.0211,,0,0.01,ok,
+scramble_h16w16r8s76t16k240_seed2,instances_standard_scramble,carrier,1,24,109.0,30,56,18,0,0.1562,0,2,10.143,ok,
+scramble_h16w16r8s76t16k240_seed2,instances_standard_scramble,carrier_b0,1,43,236.0,100,79,18,0,0.2907,-1,62,0.008,ok,
+scramble_h16w16r8s76t16k240_seed2,instances_standard_scramble,carrier_b1,1,21,110.0,36,47,16,0,0.2143,-1,7,0.008,ok,
+scramble_h16w16r8s76t16k240_seed2,instances_standard_scramble,crest_base,0,,,,,,,,,,0.011,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed2,instances_standard_scramble,crest_full,0,,,,,,,,,,0.01,rc=1,Failed to find solutions in Run 0 No path exists for agent 39 
+scramble_h16w16r8s76t16k240_seed2,instances_standard_scramble,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h40w40r4s200t8k320_seed1,sweep_ratio_r4x50,b4,1,15,15.0,3,10,2,0,0.05,,0,0.001,ok,
+scramble_h40w40r4s200t8k320_seed1,sweep_ratio_r4x50,carrier,1,12,12.0,3,7,2,0,0.0625,0,0,10.104,ok,
+scramble_h40w40r4s200t8k320_seed1,sweep_ratio_r4x50,carrier_b0,1,12,12.0,3,7,2,0,0.0625,-1,0,0.009,ok,
+scramble_h40w40r4s200t8k320_seed1,sweep_ratio_r4x50,carrier_b1,1,12,12.0,3,7,2,0,0.0625,-1,0,0.009,ok,
+scramble_h40w40r4s200t8k320_seed1,sweep_ratio_r4x50,crest_base,1,41,126,52,76,-2,,,,,0.063,ok,sum_of_cost : 126 makespan : 41 agent_travel_time : 76 pickup_count : 15 rearrange_shelf_num : 16 pickup_dropoff_overhead : -2
+scramble_h40w40r4s200t8k320_seed1,sweep_ratio_r4x50,crest_full,1,41,126,52,76,-2,,,,,0.076,ok,sum_of_cost : 126 makespan : 41 agent_travel_time : 76 pickup_count : 15 rearrange_shelf_num : 16 pickup_dropoff_overhead : -2
+scramble_h40w40r4s200t8k320_seed1,sweep_ratio_r4x50,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h40w40r4s200t8k320_seed7919,sweep_ratio_r4x50,b4,1,5,5.0,2,1,2,0,0.1,,0,0.0,ok,
+scramble_h40w40r4s200t8k320_seed7919,sweep_ratio_r4x50,carrier,1,5,5.0,2,1,2,0,0.1,0,0,0.033,ok,
+scramble_h40w40r4s200t8k320_seed7919,sweep_ratio_r4x50,carrier_b0,1,5,5.0,2,1,2,0,0.1,-1,0,0.009,ok,
+scramble_h40w40r4s200t8k320_seed7919,sweep_ratio_r4x50,carrier_b1,1,5,5.0,2,1,2,0,0.1,-1,0,0.008,ok,
+scramble_h40w40r4s200t8k320_seed7919,sweep_ratio_r4x50,crest_base,0,,,,,,,,,,0.057,rc=1,Failed to find solutions in Run 0 No path exists for agent 45 
+scramble_h40w40r4s200t8k320_seed7919,sweep_ratio_r4x50,crest_full,0,,,,,,,,,,0.07,rc=1,Failed to find solutions in Run 0 No path exists for agent 45 
+scramble_h40w40r4s200t8k320_seed7919,sweep_ratio_r4x50,natcbs,0,,,,,,,,,,0,skipped_too_large,
+scramble_h6w6r1s4t2k20_seed0,instances_small_scramble,b4,1,5,5.0,2,1,2,0,0.4,,0,0.0,ok,
+scramble_h6w6r1s4t2k20_seed0,instances_small_scramble,carrier,1,5,5.0,2,1,2,0,0.4,0,0,0.005,ok,
+scramble_h6w6r1s4t2k20_seed0,instances_small_scramble,carrier_b0,1,5,5.0,2,1,2,0,0.4,-1,0,0.004,ok,
+scramble_h6w6r1s4t2k20_seed0,instances_small_scramble,carrier_b1,1,5,5.0,2,1,2,0,0.4,-1,0,0.005,ok,
+scramble_h6w6r1s4t2k20_seed0,instances_small_scramble,crest_base,1,4,4,4,0,0,,,,,0.006,ok,sum_of_cost : 4 makespan : 4 agent_travel_time : 0 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r1s4t2k20_seed0,instances_small_scramble,crest_full,1,4,4,4,0,0,,,,,0.006,ok,sum_of_cost : 4 makespan : 4 agent_travel_time : 0 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r1s4t2k20_seed0,instances_small_scramble,natcbs,1,3,,,,,,,,,0.048,ok,"0), 3: (4, 0)} Obs 0: {5: (0, 2)} Obs 1: {5: (2, 4)} Obs 2: {1: (4, 2)} Obs 3: {1: (5, 1), 2: (5, 0), 3: (4, 0)} Makespan: 3 Elapsed time: 0.000 sec  "
+scramble_h6w6r1s4t2k20_seed110868,instances_small_scramble,b4,1,5,5.0,3,0,2,0,0.6,,0,0.0,ok,
+scramble_h6w6r1s4t2k20_seed110868,instances_small_scramble,carrier,1,5,5.0,3,0,2,0,0.6,0,0,0.005,ok,
+scramble_h6w6r1s4t2k20_seed110868,instances_small_scramble,carrier_b0,1,5,5.0,3,0,2,0,0.6,-1,0,0.005,ok,
+scramble_h6w6r1s4t2k20_seed110868,instances_small_scramble,carrier_b1,1,5,5.0,3,0,2,0,0.6,-1,0,0.004,ok,
+scramble_h6w6r1s4t2k20_seed110868,instances_small_scramble,crest_base,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed110868,instances_small_scramble,crest_full,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed110868,instances_small_scramble,natcbs,1,3,,,,,,,,,0.05,ok,"1)} Obs 0: {4: (1, 0)} Obs 1: {6: (2, 5)} Obs 2: {0: (4, 1), 1: (3, 1), 2: (2, 1), 3: (1, 1)} Obs 3: {1: (4, 2)} Makespan: 3 Elapsed time: 0.000 sec  "
+scramble_h6w6r1s4t2k20_seed39596,instances_small_scramble,b4,1,7,7.0,5,0,2,0,0.7143,,0,0.0,ok,
+scramble_h6w6r1s4t2k20_seed39596,instances_small_scramble,carrier,1,7,7.0,5,0,2,0,0.7143,0,0,0.005,ok,
+scramble_h6w6r1s4t2k20_seed39596,instances_small_scramble,carrier_b0,1,7,7.0,5,0,2,0,0.7143,-1,0,0.004,ok,
+scramble_h6w6r1s4t2k20_seed39596,instances_small_scramble,carrier_b1,1,7,7.0,5,0,2,0,0.7143,-1,0,0.004,ok,
+scramble_h6w6r1s4t2k20_seed39596,instances_small_scramble,crest_base,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed39596,instances_small_scramble,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r1s4t2k20_seed39596,instances_small_scramble,natcbs,1,5,,,,,,,,,0.06,ok," Obs 1: {5: (4, 0)} Obs 2: {2: (4, 3)} Obs 3: {0: (4, 5), 1: (4, 4), 2: (3, 4), 3: (3, 3), 4: (3, 2), 5: (4, 2)} Makespan: 5 Elapsed time: 0.002 sec  "
+scramble_h6w6r2s4t2k20_seed0,instances_small_scramble,b4,1,8,8.0,3,3,2,0,0.1875,,0,0.0,ok,
+scramble_h6w6r2s4t2k20_seed0,instances_small_scramble,carrier,1,7,7.0,3,2,2,0,0.2143,0,0,0.006,ok,
+scramble_h6w6r2s4t2k20_seed0,instances_small_scramble,carrier_b0,1,7,7.0,3,2,2,0,0.2143,-1,0,0.005,ok,
+scramble_h6w6r2s4t2k20_seed0,instances_small_scramble,carrier_b1,1,7,7.0,3,2,2,0,0.2143,-1,0,0.005,ok,
+scramble_h6w6r2s4t2k20_seed0,instances_small_scramble,crest_base,1,6,7,6,1,0,,,,,0.006,ok,sum_of_cost : 7 makespan : 6 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed0,instances_small_scramble,crest_full,1,6,7,6,1,0,,,,,0.012,ok,sum_of_cost : 7 makespan : 6 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed0,instances_small_scramble,natcbs,1,5,,,,,,,,,0.048,ok,"0)} Obs 0: {5: (0, 2)} Obs 1: {2: (2, 4)} Obs 2: {1: (4, 2)} Obs 3: {2: (5, 2), 3: (5, 1), 4: (5, 0), 5: (4, 0)} Makespan: 5 Elapsed time: 0.002 sec  "
+scramble_h6w6r2s4t2k20_seed15839,instances_small_scramble,b4,1,6,6.0,2,2,2,0,0.1667,,0,0.0,ok,
+scramble_h6w6r2s4t2k20_seed15839,instances_small_scramble,carrier,1,6,6.0,2,2,2,0,0.1667,0,0,0.005,ok,
+scramble_h6w6r2s4t2k20_seed15839,instances_small_scramble,carrier_b0,1,6,6.0,2,2,2,0,0.1667,-1,0,0.004,ok,
+scramble_h6w6r2s4t2k20_seed15839,instances_small_scramble,carrier_b1,1,6,6.0,2,2,2,0,0.1667,-1,0,0.004,ok,
+scramble_h6w6r2s4t2k20_seed15839,instances_small_scramble,crest_base,0,,,,,,,,,,0.005,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h6w6r2s4t2k20_seed15839,instances_small_scramble,crest_full,0,,,,,,,,,,0.005,rc=1,Failed to find solutions in Run 0 No path exists for agent 3 
+scramble_h6w6r2s4t2k20_seed15839,instances_small_scramble,natcbs,1,4,,,,,,,,,0.037,ok,"4), 4: (3, 4)} Obs 0: {4: (1, 2)} Obs 1: {3: (2, 5)} Obs 2: {1: (4, 4)} Obs 3: {2: (5, 2), 3: (5, 3), 4: (4, 3)} Makespan: 4 Elapsed time: 0.001 sec  "
+scramble_h6w6r2s4t2k20_seed15840,instances_small_scramble,b4,1,6,6.0,1,3,2,0,0.0833,,0,0.0,ok,
+scramble_h6w6r2s4t2k20_seed15840,instances_small_scramble,carrier,1,6,6.0,1,3,2,0,0.0833,0,0,0.008,ok,
+scramble_h6w6r2s4t2k20_seed15840,instances_small_scramble,carrier_b0,1,6,6.0,1,3,2,0,0.0833,-1,0,0.004,ok,
+scramble_h6w6r2s4t2k20_seed15840,instances_small_scramble,carrier_b1,1,6,6.0,1,3,2,0,0.0833,-1,0,0.004,ok,
+scramble_h6w6r2s4t2k20_seed15840,instances_small_scramble,crest_base,1,5,6,4,2,0,,,,,0.005,ok,sum_of_cost : 6 makespan : 5 agent_travel_time : 2 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed15840,instances_small_scramble,crest_full,1,5,6,4,2,0,,,,,0.006,ok,sum_of_cost : 6 makespan : 5 agent_travel_time : 2 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s4t2k20_seed15840,instances_small_scramble,natcbs,1,4,,,,,,,,,0.038,ok,"3), 3: (0, 3), 4: (0, 3)} Obs 0: {1: (1, 5)} Obs 1: {0: (3, 4)} Obs 2: {4: (4, 1)} Obs 3: {3: (5, 3), 4: (5, 2)} Makespan: 4 Elapsed time: 0.001 sec  "
+scramble_h6w6r2s8t2k20_seed2,instances_standard_scramble,b4,1,6,6.0,1,3,2,0,0.0833,,0,0.0,ok,
+scramble_h6w6r2s8t2k20_seed2,instances_standard_scramble,carrier,1,6,6.0,1,3,2,0,0.0833,0,0,0.009,ok,
+scramble_h6w6r2s8t2k20_seed2,instances_standard_scramble,carrier_b0,1,6,6.0,1,3,2,0,0.0833,-1,0,0.006,ok,
+scramble_h6w6r2s8t2k20_seed2,instances_standard_scramble,carrier_b1,1,6,6.0,1,3,2,0,0.0833,-1,0,0.006,ok,
+scramble_h6w6r2s8t2k20_seed2,instances_standard_scramble,crest_base,1,10,14,9,5,0,,,,,0.007,ok,sum_of_cost : 14 makespan : 10 agent_travel_time : 5 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed2,instances_standard_scramble,crest_full,1,10,14,9,5,0,,,,,0.008,ok,sum_of_cost : 14 makespan : 10 agent_travel_time : 5 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed2,instances_standard_scramble,natcbs,1,7,,,,,,,,,0.176,ok,"5), 4: (2, 5), 5: (3, 5)} Obs 4: {6: (3, 4), 7: (3, 3)} Obs 5: {4: (4, 1)} Obs 6: {4: (5, 2)} Obs 7: {2: (5, 4)} Makespan: 7 Elapsed time: 0.137 sec  "
+scramble_h6w6r2s8t2k20_seed47515,instances_standard_scramble,b4,1,11,11.0,4,5,2,0,0.1818,,0,0.0,ok,
+scramble_h6w6r2s8t2k20_seed47515,instances_standard_scramble,carrier,1,8,8.0,4,2,2,0,0.25,0,0,0.03,ok,
+scramble_h6w6r2s8t2k20_seed47515,instances_standard_scramble,carrier_b0,1,8,8.0,4,2,2,0,0.25,-1,0,0.03,ok,
+scramble_h6w6r2s8t2k20_seed47515,instances_standard_scramble,carrier_b1,1,8,8.0,4,2,2,0,0.25,-1,0,0.007,ok,
+scramble_h6w6r2s8t2k20_seed47515,instances_standard_scramble,crest_base,1,7,8,7,1,0,,,,,0.008,ok,sum_of_cost : 8 makespan : 7 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed47515,instances_standard_scramble,crest_full,1,7,8,7,1,0,,,,,0.007,ok,sum_of_cost : 8 makespan : 7 agent_travel_time : 1 pickup_count : 1 rearrange_shelf_num : 1 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k20_seed47515,instances_standard_scramble,natcbs,1,6,,,,,,,,,0.066,ok,"{3: (2, 1)} Obs 5: {2: (2, 2), 3: (3, 2), 4: (3, 1), 5: (4, 1), 6: (5, 1)} Obs 6: {2: (2, 4)} Obs 7: {3: (5, 3)} Makespan: 6 Elapsed time: 0.004 sec  "
+scramble_h6w6r2s8t2k20_seed7919,instances_standard_scramble,b4,1,12,12.0,2,8,2,0,0.0833,,0,0.0,ok,
+scramble_h6w6r2s8t2k20_seed7919,instances_standard_scramble,carrier,1,4,4.0,2,0,2,0,0.25,0,0,0.005,ok,
+scramble_h6w6r2s8t2k20_seed7919,instances_standard_scramble,carrier_b0,1,4,4.0,2,0,2,0,0.25,-1,0,0.006,ok,
+scramble_h6w6r2s8t2k20_seed7919,instances_standard_scramble,carrier_b1,1,4,4.0,2,0,2,0,0.25,-1,0,0.006,ok,
+scramble_h6w6r2s8t2k20_seed7919,instances_standard_scramble,crest_base,0,,,,,,,,,,0.009,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r2s8t2k20_seed7919,instances_standard_scramble,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 
+scramble_h6w6r2s8t2k20_seed7919,instances_standard_scramble,natcbs,1,2,,,,,,,,,0.041,ok,"3: {0: (3, 1), 1: (4, 1), 2: (5, 1)} Obs 4: {2: (3, 4)} Obs 5: {2: (4, 2)} Obs 6: {2: (4, 3)} Obs 7: {2: (4, 5)} Makespan: 2 Elapsed time: 0.000 sec  "
+scramble_h6w6r2s8t2k40_seed1,instances_small_scramble,b4,1,7,7.0,1,4,2,0,0.0714,,0,0.0,ok,
+scramble_h6w6r2s8t2k40_seed1,instances_small_scramble,carrier,1,4,4.0,1,1,2,0,0.125,0,0,0.005,ok,
+scramble_h6w6r2s8t2k40_seed1,instances_small_scramble,carrier_b0,1,4,4.0,1,1,2,0,0.125,-1,0,0.004,ok,
+scramble_h6w6r2s8t2k40_seed1,instances_small_scramble,carrier_b1,1,4,4.0,1,1,2,0,0.125,-1,0,0.004,ok,
+scramble_h6w6r2s8t2k40_seed1,instances_small_scramble,crest_base,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 No path exists for agent 1 
+scramble_h6w6r2s8t2k40_seed1,instances_small_scramble,crest_full,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 No path exists for agent 1 
+scramble_h6w6r2s8t2k40_seed1,instances_small_scramble,natcbs,0,,,,,,,,,,10.733,timeout,"cations: [(1, 4), (0, 4)] Pickup locations: [(0, 5), (1, 1), (1, 2), (1, 4)] Delivery locations: [(0, 4), (1, 1), (1, 2), (2, 4)]  Time Limit Reached "
+scramble_h6w6r2s8t2k40_seed2,instances_small_scramble,b4,1,9,9.0,1,6,2,0,0.0556,,0,0.0,ok,
+scramble_h6w6r2s8t2k40_seed2,instances_small_scramble,carrier,1,7,7.0,1,4,2,0,0.0714,0,0,0.021,ok,
+scramble_h6w6r2s8t2k40_seed2,instances_small_scramble,carrier_b0,1,7,7.0,1,4,2,0,0.0714,-1,0,0.031,ok,
+scramble_h6w6r2s8t2k40_seed2,instances_small_scramble,carrier_b1,1,7,7.0,1,4,2,0,0.0714,-1,0,0.026,ok,
+scramble_h6w6r2s8t2k40_seed2,instances_small_scramble,crest_base,0,,,,,,,,,,0.014,rc=1,Failed to find solutions in Run 0 No path exists for agent 7 
+scramble_h6w6r2s8t2k40_seed2,instances_small_scramble,crest_full,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 No path exists for agent 7 
+scramble_h6w6r2s8t2k40_seed2,instances_small_scramble,natcbs,0,,,,,,,,,,10.109,timeout,"cations: [(3, 1), (3, 3)] Pickup locations: [(0, 4), (0, 5), (1, 4), (1, 5)] Delivery locations: [(0, 3), (0, 5), (1, 4), (3, 5)]  Time Limit Reached "
+scramble_h6w6r2s8t2k40_seed7919,instances_small_scramble,b4,1,11,11.0,2,7,2,0,0.0909,,0,0.0,ok,
+scramble_h6w6r2s8t2k40_seed7919,instances_small_scramble,carrier,1,5,5.0,2,1,2,0,0.2,0,0,0.005,ok,
+scramble_h6w6r2s8t2k40_seed7919,instances_small_scramble,carrier_b0,1,5,5.0,2,1,2,0,0.2,-1,0,0.006,ok,
+scramble_h6w6r2s8t2k40_seed7919,instances_small_scramble,carrier_b1,1,5,5.0,2,1,2,0,0.2,-1,0,0.005,ok,
+scramble_h6w6r2s8t2k40_seed7919,instances_small_scramble,crest_base,1,4,7,7,0,0,,,,,0.006,ok,sum_of_cost : 7 makespan : 4 agent_travel_time : 0 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k40_seed7919,instances_small_scramble,crest_full,1,4,7,7,0,0,,,,,0.006,ok,sum_of_cost : 7 makespan : 4 agent_travel_time : 0 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h6w6r2s8t2k40_seed7919,instances_small_scramble,natcbs,1,3,,,,,,,,,0.049,ok,"4)} Obs 4: {1: (4, 0), 2: (4, 1), 3: (5, 1)} Obs 5: {3: (4, 2)} Obs 6: {2: (4, 3)} Obs 7: {2: (4, 4), 3: (4, 5)} Makespan: 3 Elapsed time: 0.001 sec  "
+scramble_h8w8r2s12t4k40_seed1,instances_standard_scramble,b4,1,4,4.0,2,0,2,0,0.25,,0,0.0,ok,
+scramble_h8w8r2s12t4k40_seed1,instances_standard_scramble,carrier,1,4,4.0,2,0,2,0,0.25,0,0,0.006,ok,
+scramble_h8w8r2s12t4k40_seed1,instances_standard_scramble,carrier_b0,1,4,4.0,2,0,2,0,0.25,-1,0,0.01,ok,
+scramble_h8w8r2s12t4k40_seed1,instances_standard_scramble,carrier_b1,1,4,4.0,2,0,2,0,0.25,-1,0,0.006,ok,
+scramble_h8w8r2s12t4k40_seed1,instances_standard_scramble,crest_base,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s12t4k40_seed1,instances_standard_scramble,crest_full,0,,,,,,,,,,0.007,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s12t4k40_seed1,instances_standard_scramble,natcbs,1,7,,,,,,,,,0.048,ok," 7)} Obs 7: {3: (4, 4)} Obs 8: {6: (6, 1), 7: (6, 0)} Obs 9: {4: (6, 3)} Obs 10: {7: (6, 6)} Obs 11: {5: (7, 3)} Makespan: 7 Elapsed time: 0.010 sec  "
+scramble_h8w8r2s12t4k40_seed2,instances_standard_scramble,b4,1,6,6.0,1,3,2,0,0.0833,,0,0.0,ok,
+scramble_h8w8r2s12t4k40_seed2,instances_standard_scramble,carrier,1,6,6.0,1,3,2,0,0.0833,0,0,0.013,ok,
+scramble_h8w8r2s12t4k40_seed2,instances_standard_scramble,carrier_b0,1,6,6.0,1,3,2,0,0.0833,-1,0,0.008,ok,
+scramble_h8w8r2s12t4k40_seed2,instances_standard_scramble,carrier_b1,1,6,6.0,1,3,2,0,0.0833,-1,0,0.006,ok,
+scramble_h8w8r2s12t4k40_seed2,instances_standard_scramble,crest_base,1,5,10,7,3,0,,,,,0.007,ok,sum_of_cost : 10 makespan : 5 agent_travel_time : 3 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed2,instances_standard_scramble,crest_full,1,5,10,7,3,0,,,,,0.007,ok,sum_of_cost : 10 makespan : 5 agent_travel_time : 3 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed2,instances_standard_scramble,natcbs,1,4,,,,,,,,,0.063,ok," {2: (6, 1), 3: (6, 2), 4: (5, 2)} Obs 8: {2: (6, 3)} Obs 9: {4: (6, 5)} Obs 10: {5: (6, 6)} Obs 11: {4: (7, 6)} Makespan: 4 Elapsed time: 0.002 sec  "
+scramble_h8w8r2s12t4k40_seed7919,instances_standard_scramble,b4,1,6,6.0,3,1,2,0,0.25,,0,0.0,ok,
+scramble_h8w8r2s12t4k40_seed7919,instances_standard_scramble,carrier,1,6,6.0,3,1,2,0,0.25,0,0,0.006,ok,
+scramble_h8w8r2s12t4k40_seed7919,instances_standard_scramble,carrier_b0,1,6,6.0,3,1,2,0,0.25,-1,0,0.005,ok,
+scramble_h8w8r2s12t4k40_seed7919,instances_standard_scramble,carrier_b1,1,6,6.0,3,1,2,0,0.25,-1,0,0.006,ok,
+scramble_h8w8r2s12t4k40_seed7919,instances_standard_scramble,crest_base,1,8,13,10,3,0,,,,,0.011,ok,sum_of_cost : 13 makespan : 8 agent_travel_time : 3 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed7919,instances_standard_scramble,crest_full,1,8,13,10,3,0,,,,,0.007,ok,sum_of_cost : 13 makespan : 8 agent_travel_time : 3 pickup_count : 3 rearrange_shelf_num : 3 pickup_dropoff_overhead : 0
+scramble_h8w8r2s12t4k40_seed7919,instances_standard_scramble,natcbs,1,7,,,,,,,,,0.147,ok,"} Obs 8: {1: (6, 3), 2: (6, 4), 3: (7, 4), 4: (7, 5)} Obs 9: {3: (6, 5)} Obs 10: {2: (7, 1)} Obs 11: {4: (7, 7)} Makespan: 7 Elapsed time: 0.106 sec  "
+scramble_h8w8r2s8t4k40_seed0,instances_small_scramble,b4,1,9,9.0,1,6,2,0,0.0556,,0,0.0,ok,
+scramble_h8w8r2s8t4k40_seed0,instances_small_scramble,carrier,1,3,3.0,1,0,2,0,0.1667,0,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed0,instances_small_scramble,carrier_b0,1,3,3.0,1,0,2,0,0.1667,-1,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed0,instances_small_scramble,carrier_b1,1,3,3.0,1,0,2,0,0.1667,-1,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed0,instances_small_scramble,crest_base,0,,,,,,,,,,0.01,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed0,instances_small_scramble,crest_full,0,,,,,,,,,,0.005,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed0,instances_small_scramble,natcbs,1,1,,,,,,,,,0.046,ok,"3, 2)} Obs 3: {8: (3, 7)} Obs 4: {2: (4, 0)} Obs 5: {0: (5, 1), 1: (6, 1)} Obs 6: {2: (6, 0)} Obs 7: {3: (7, 0)} Makespan: 1 Elapsed time: 0.000 sec  "
+scramble_h8w8r2s8t4k40_seed15839,instances_small_scramble,b4,1,6,6.0,4,0,2,0,0.3333,,0,0.0,ok,
+scramble_h8w8r2s8t4k40_seed15839,instances_small_scramble,carrier,1,6,6.0,4,0,2,0,0.3333,0,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed15839,instances_small_scramble,carrier_b0,1,6,6.0,4,0,2,0,0.3333,-1,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed15839,instances_small_scramble,carrier_b1,1,6,6.0,4,0,2,0,0.3333,-1,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed15839,instances_small_scramble,crest_base,0,,,,,,,,,,0.005,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed15839,instances_small_scramble,crest_full,0,,,,,,,,,,0.006,rc=1,Failed to find solutions in Run 0 
+scramble_h8w8r2s8t4k40_seed15839,instances_small_scramble,natcbs,1,4,,,,,,,,,0.038,ok,"{0: (5, 4), 1: (5, 5), 2: (5, 6), 3: (5, 7), 4: (6, 7)} Obs 5: {3: (6, 1)} Obs 6: {1: (6, 4)} Obs 7: {3: (7, 0)} Makespan: 4 Elapsed time: 0.003 sec  "
+scramble_h8w8r2s8t4k40_seed31678,instances_small_scramble,b4,1,8,8.0,3,3,2,0,0.1875,,0,0.0,ok,
+scramble_h8w8r2s8t4k40_seed31678,instances_small_scramble,carrier,1,8,8.0,3,3,2,0,0.1875,0,0,0.006,ok,
+scramble_h8w8r2s8t4k40_seed31678,instances_small_scramble,carrier_b0,1,8,8.0,3,3,2,0,0.1875,-1,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed31678,instances_small_scramble,carrier_b1,1,8,8.0,3,3,2,0,0.1875,-1,0,0.004,ok,
+scramble_h8w8r2s8t4k40_seed31678,instances_small_scramble,crest_base,1,8,16,8,8,0,,,,,0.006,ok,sum_of_cost : 16 makespan : 8 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s8t4k40_seed31678,instances_small_scramble,crest_full,1,8,16,8,8,0,,,,,0.005,ok,sum_of_cost : 16 makespan : 8 agent_travel_time : 8 pickup_count : 2 rearrange_shelf_num : 2 pickup_dropoff_overhead : 0
+scramble_h8w8r2s8t4k40_seed31678,instances_small_scramble,natcbs,1,7,,,,,,,,,0.073,ok,"{5: (3, 5)} Obs 5: {4: (5, 2), 5: (5, 3), 6: (5, 4), 7: (4, 4)} Obs 6: {4: (6, 4)} Obs 7: {6: (6, 6), 7: (5, 6)} Makespan: 7 Elapsed time: 0.023 sec  "
+scramble_h8w8r4s12t4k80_seed0,instances_small_scramble,b4,1,16,16.0,5,9,2,0,0.0781,,0,0.001,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_standard_scramble,b4,1,16,16.0,5,9,2,0,0.0781,,0,0.001,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_small_scramble,carrier,1,7,7.0,5,0,2,0,0.1786,0,0,0.004,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_standard_scramble,carrier,1,7,7.0,5,0,2,0,0.1786,0,0,0.007,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_small_scramble,carrier_b0,1,7,7.0,5,0,2,0,0.1786,-1,0,0.007,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_standard_scramble,carrier_b0,1,7,7.0,5,0,2,0,0.1786,-1,0,0.024,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_small_scramble,carrier_b1,1,7,7.0,5,0,2,0,0.1786,-1,0,0.03,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_standard_scramble,carrier_b1,1,7,7.0,5,0,2,0,0.1786,-1,0,0.046,ok,
+scramble_h8w8r4s12t4k80_seed0,instances_small_scramble,crest_base,0,,,,,,,,,,0.022,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,instances_standard_scramble,crest_base,0,,,,,,,,,,0.035,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,instances_small_scramble,crest_full,0,,,,,,,,,,0.045,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,instances_standard_scramble,crest_full,0,,,,,,,,,,0.043,rc=-11,Solution cost exceeds the sub-optimality bound! Solution invalid!!! 
+scramble_h8w8r4s12t4k80_seed0,instances_small_scramble,natcbs,0,,,,,,,,,,10.136,timeout,", (0, 4)] Pickup locations: [(0, 2), (0, 4), (1, 7), (2, 0), (2, 1)] Delivery locations: [(0, 2), (3, 2), (3, 7), (2, 0), (3, 1)]  Time Limit Reached "
+scramble_h8w8r4s12t4k80_seed0,instances_standard_scramble,natcbs,0,,,,,,,,,,10.133,timeout,", (0, 4)] Pickup locations: [(0, 2), (0, 4), (1, 7), (2, 0), (2, 1)] Delivery locations: [(0, 2), (3, 2), (3, 7), (2, 0), (3, 1)]  Time Limit Reached "
+scramble_h8w8r4s12t4k80_seed1,instances_small_scramble,b4,1,13,13.0,3,8,2,0,0.0577,,0,0.001,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_standard_scramble,b4,1,13,13.0,3,8,2,0,0.0577,,0,0.001,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_small_scramble,carrier,1,7,7.0,3,2,2,0,0.1071,0,0,0.119,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_standard_scramble,carrier,1,7,7.0,3,2,2,0,0.1071,0,0,0.103,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_small_scramble,carrier_b0,1,7,7.0,3,2,2,0,0.1071,-1,0,0.015,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_standard_scramble,carrier_b0,1,7,7.0,3,2,2,0,0.1071,-1,0,0.023,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_small_scramble,carrier_b1,1,7,7.0,3,2,2,0,0.1071,-1,0,0.006,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_standard_scramble,carrier_b1,1,7,7.0,3,2,2,0,0.1071,-1,0,0.009,ok,
+scramble_h8w8r4s12t4k80_seed1,instances_small_scramble,crest_base,1,15,34,25,9,0,,,,,0.006,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,instances_standard_scramble,crest_base,1,15,34,25,9,0,,,,,0.008,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,instances_small_scramble,crest_full,1,15,34,25,9,0,,,,,0.006,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,instances_standard_scramble,crest_full,1,15,34,25,9,0,,,,,0.008,ok,sum_of_cost : 34 makespan : 15 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed1,instances_small_scramble,natcbs,1,12,,,,,,,,,0.878,ok,", 3), 9: (5, 2), 10: (6, 2), 11: (6, 1), 12: (6, 0)} Obs 9: {1: (6, 3)} Obs 10: {4: (6, 6)} Obs 11: {0: (7, 3)} Makespan: 12 Elapsed time: 0.838 sec  "
+scramble_h8w8r4s12t4k80_seed1,instances_standard_scramble,natcbs,1,12,,,,,,,,,0.879,ok,", 3), 9: (5, 2), 10: (6, 2), 11: (6, 1), 12: (6, 0)} Obs 9: {1: (6, 3)} Obs 10: {4: (6, 6)} Obs 11: {0: (7, 3)} Makespan: 12 Elapsed time: 0.841 sec  "
+scramble_h8w8r4s12t4k80_seed7921,instances_small_scramble,b4,1,35,37.0,8,19,8,0,0.0571,,0,0.001,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_standard_scramble,b4,1,35,37.0,8,19,8,0,0.0571,,0,0.002,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_small_scramble,carrier,1,11,27.0,7,13,6,0,0.1591,0,0,10.062,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_standard_scramble,carrier,1,11,27.0,7,13,6,0,0.1591,0,0,10.063,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_small_scramble,carrier_b0,1,15,36.0,13,14,6,0,0.2167,-1,3,0.005,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_standard_scramble,carrier_b0,1,15,36.0,13,14,6,0,0.2167,-1,3,0.007,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_small_scramble,carrier_b1,1,11,35.0,11,14,5,0,0.25,-1,3,0.005,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_standard_scramble,carrier_b1,1,11,35.0,11,14,5,0,0.25,-1,3,0.006,ok,
+scramble_h8w8r4s12t4k80_seed7921,instances_small_scramble,crest_base,1,20,41,32,9,0,,,,,0.006,ok,sum_of_cost : 41 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,instances_standard_scramble,crest_base,1,20,41,32,9,0,,,,,0.008,ok,sum_of_cost : 41 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,instances_small_scramble,crest_full,1,20,36,27,9,0,,,,,0.007,ok,sum_of_cost : 36 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,instances_standard_scramble,crest_full,1,20,36,27,9,0,,,,,0.007,ok,sum_of_cost : 36 makespan : 20 agent_travel_time : 9 pickup_count : 4 rearrange_shelf_num : 4 pickup_dropoff_overhead : 0
+scramble_h8w8r4s12t4k80_seed7921,instances_small_scramble,natcbs,0,,,,,,,,,,10.138,timeout,", (0, 6), (6, 0), (3, 3)] Pickup locations: [(0, 5), (1, 4), (2, 0), (4, 0)] Delivery locations: [(1, 0), (1, 4), (2, 0), (4, 0)]  Time Limit Reached "
+scramble_h8w8r4s12t4k80_seed7921,instances_standard_scramble,natcbs,0,,,,,,,,,,10.146,timeout,", (0, 6), (6, 0), (3, 3)] Pickup locations: [(0, 5), (1, 4), (2, 0), (4, 0)] Delivery locations: [(1, 0), (1, 4), (2, 0), (4, 0)]  Time Limit Reached "
