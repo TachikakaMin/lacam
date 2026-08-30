@@ -8,13 +8,23 @@
 #include "instance.hpp"
 #include "utils.hpp"
 
+// operator-constraint candidate (design 5.2, mapping M3): a vertex plus
+// the primitive-operator kind.  Plain vertex candidates (upstream MAPF /
+// shelf-free TAPF) map to MOVE-or-stay and never read the kind.
+struct OpCand {
+  Vertex* v;
+  uint8_t kind;  // Op::Kind
+};
+
 // low-level search node
 struct Constraint {
   std::vector<int> who;
   Vertices where;
+  std::vector<uint8_t> ops;  // Op::Kind per fixed agent (M3); MOVE default
   const int depth;
   Constraint();
   Constraint(Constraint* parent, int i, Vertex* v);  // who and where
+  Constraint(Constraint* parent, int i, OpCand c);   // + operator kind
   ~Constraint();
 };
 
@@ -30,9 +40,11 @@ using Nodes = std::vector<Node*>;
 // PIBT agent
 struct Agent {
   const int id;
-  Vertex* v_now;   // current location
-  Vertex* v_next;  // next location
-  Agent(int _id) : id(_id), v_now(nullptr), v_next(nullptr) {}
+  Vertex* v_now;    // current location
+  Vertex* v_next;   // next location
+  uint8_t op_kind;  // Op::Kind of the reserved action (carrier layer, M3);
+                    // upstream MAPF never reads it
+  Agent(int _id) : id(_id), v_now(nullptr), v_next(nullptr), op_kind(0) {}
 };
 using Agents = std::vector<Agent*>;
 

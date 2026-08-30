@@ -126,6 +126,7 @@ TAPFNode::TAPFNode(Config _C, ShelfState _shelf, TAPFDistTable& D,
   if (parent != nullptr) parent->neighbor.insert(this);
   refresh_priority(D);
   refresh_search_metrics(D, ins);
+  constraint_order = order;  // frozen for the node's lifetime (D11, M3)
 }
 
 void TAPFNode::discard_search_tree()
@@ -210,6 +211,25 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       if (const char* c = std::getenv("DD_GAMMA")) weights.gamma = atof(c);
       if (const char* d = std::getenv("DD_DELTA")) weights.delta = atof(d);
     }
+  }
+  // carrier layer (M4): the conformance-oracle view and the occupancy
+  // scratch exist only when the instance HAS a shelf layer
+  if (!ins->shelf_cells.empty()) {
+    dd_view = std::make_unique<DDInstance>();
+    dd_view->grid.height = ins->G.height;
+    dd_view->grid.width = ins->G.width;
+    dd_view->grid.wall.assign(ins->G.height * ins->G.width, 0);
+    for (int c = 0; c < (int)dd_view->grid.wall.size(); ++c)
+      dd_view->grid.wall[c] = ins->G.U[c] == nullptr ? 1 : 0;
+    for (const auto* v : ins->starts) dd_view->robots.push_back(v->index);
+    dd_view->shelves = ins->shelf_cells;
+    dd_view->target_starts = ins->target_starts;
+    dd_view->target_goals = ins->target_goals;
+    dd_view->finalize();
+    const size_t n_cells = ins->G.U.size();
+    carrier_grounded.assign(n_cells, 0);
+    carrier_upper_base.assign(n_cells, 0);
+    carrier_upper_delta.assign(n_cells, 0);
   }
 }
 
@@ -336,12 +356,32 @@ Solution TAPFPlanner::solve()
     S->search_tree.pop();
     if (stats != nullptr) ++stats->constraints_popped;
     if (M->depth < N) {
-      auto i = S->order[M->depth];
+      auto i = S->constraint_order[M->depth];
       auto C = S->C[i]->neighbor;
       C.push_back(S->C[i]);
       if (MT != nullptr) std::shuffle(C.begin(), C.end(), *MT);
-      lacam_expand_constraint_vec<TAPFConstraint>(M, i, C, S->search_tree);
-      if (stats != nullptr) stats->constraints_generated += C.size();
+      // operator candidates (design 5.2, M3): every vertex candidate is a
+      // MOVE (or WAIT at the own cell); LIFT/DROP append — their guards
+      // are structurally false on shelf-free instances, so the candidate
+      // set, order and RNG consumption stay exactly the original there.
+      auto ops_cand = std::vector<OpCand>();
+      ops_cand.reserve(C.size() + 2);
+      for (auto u : C)
+        ops_cand.push_back(OpCand{
+            u, (uint8_t)(u == S->C[i] ? Op::WAIT : Op::MOVE)});
+      if (!S->shelf.kappa.empty()) {
+        refresh_carrier_scratch(S);
+        const int cell = S->C[i]->index;
+        if (S->shelf.kappa[i] == KAPPA_FREE) {
+          if (carrier_grounded[cell] != 0)
+            ops_cand.push_back(OpCand{S->C[i], (uint8_t)Op::LIFT});
+        } else {
+          ops_cand.push_back(OpCand{S->C[i], (uint8_t)Op::DROP});
+        }
+      }
+      lacam_expand_constraint_vec<TAPFConstraint>(M, i, ops_cand,
+                                                  S->search_tree);
+      if (stats != nullptr) stats->constraints_generated += ops_cand.size();
     }
 
     if (!get_new_config(S, M)) {
@@ -353,10 +393,16 @@ Solution TAPFPlanner::solve()
 
     for (auto a : A) C_new[a->id] = a->v_next;
 
-    // shelf layer of the successor: unchanged until operator effects land
-    // (WP3 computes it from the accepted joint ops)
+    // carrier layer successor (M4): assemble the joint op and let the
+    // conformance oracle arbitrate; fills shelf_next_scratch.  Trivially
+    // true (layer copied) on shelf-free instances.
+    if (!apply_carrier_effects(S)) {
+      if (stats != nullptr) ++stats->carrier_validator_rejects;
+      continue;
+    }
+
     lookup_key.C = C_new;
-    lookup_key.S = S->shelf;
+    lookup_key.S = shelf_next_scratch;
     auto iter = CLOSED.find(lookup_key);
     if (iter != CLOSED.end()) {
       auto S_known = iter->second;
@@ -395,7 +441,7 @@ Solution TAPFPlanner::solve()
       }
     }
 
-    auto S_new = new TAPFNode(C_new, S->shelf, D, ins,
+    auto S_new = new TAPFNode(C_new, shelf_next_scratch, D, ins,
                               assignment.agent_to_task, assignment_state, S);
     S_new->g = S->g + get_edge_cost(S, S_new);
     S_new->h = assignment.cost;
@@ -409,15 +455,18 @@ Solution TAPFPlanner::solve()
 
   auto solution = Solution();
   auto solution_nodes = std::vector<TAPFNode*>();
+  solution_shelves.clear();
   if (S_goal != nullptr) {
     auto S = S_goal;
     while (S != nullptr) {
       solution_nodes.push_back(S);
       solution.push_back(S->C);
+      solution_shelves.push_back(S->shelf);
       S = S->parent;
     }
     std::reverse(solution.begin(), solution.end());
     std::reverse(solution_nodes.begin(), solution_nodes.end());
+    std::reverse(solution_shelves.begin(), solution_shelves.end());
   }
 
   if (stats != nullptr) {
@@ -561,6 +610,7 @@ bool TAPFPlanner::is_goal_config(const Config& C, const ShelfState& S) const
 
 bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
 {
+  refresh_carrier_scratch(S);
   for (auto a : A) {
     if (a->v_now != nullptr && occupied_now[a->v_now->id] == a) {
       occupied_now[a->v_now->id] = nullptr;
@@ -573,19 +623,41 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
     a->v_now = S->C[a->id];
     occupied_now[a->v_now->id] = a;
   }
+  // reset carried-shelf reservations of the previous generation
+  for (const int c : carrier_upper_touched) carrier_upper_delta[c] = 0;
+  carrier_upper_touched.clear();
+
+  // G1 (design 4.2, M4): with a shelf layer and a FULLY constrained joint
+  // op, the conformance oracle is the sole arbiter — inline generator
+  // checks must not stand in the way.  Shelf-free instances keep the
+  // original inline checks as their (complete) arbiter.
+  const bool oracle_decides =
+      !S->shelf.kappa.empty() && M->depth == (int)ins->N;
 
   for (auto k = 0; k < M->depth; ++k) {
     const auto i = M->who[k];
     const auto l = M->where[k]->id;
+    const auto kind =
+        k < (int)M->ops.size() ? M->ops[k] : (uint8_t)Op::MOVE;
 
-    if (occupied_next[l] != nullptr) return false;
-    auto l_pre = S->C[i]->id;
-    if (occupied_next[l_pre] != nullptr && occupied_now[l] != nullptr &&
-        occupied_next[l_pre]->id == occupied_now[l]->id)
-      return false;
+    if (!oracle_decides) {
+      if (occupied_next[l] != nullptr) return false;
+      auto l_pre = S->C[i]->id;
+      if (occupied_next[l_pre] != nullptr && occupied_now[l] != nullptr &&
+          occupied_next[l_pre]->id == occupied_now[l]->id)
+        return false;
+      if (!S->shelf.kappa.empty() &&
+          !forced_op_feasible(S, i, M->where[k], kind))
+        return false;
+    }
 
     A[i]->v_next = M->where[k];
+    A[i]->op_kind = kind;
     occupied_next[l] = A[i];
+    // a carried shelf occupies the destination upper cell at t+1
+    if (!S->shelf.kappa.empty() && S->shelf.kappa[i] != KAPPA_FREE &&
+        kind != Op::LIFT)
+      carrier_upper_add(M->where[k]->index);
   }
 
   for (auto k : S->order) {
@@ -601,6 +673,11 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
   const auto i = ai->id;
   const auto K = ai->v_now->neighbor.size();
   const auto task_id = assignment[i];
+  // carrier role of this agent (KAPPA_FREE on shelf-free instances)
+  const int kappa_i =
+      cur_shelf != nullptr && !cur_shelf->kappa.empty() ? cur_shelf->kappa[i]
+                                                        : KAPPA_FREE;
+  const bool loaded = kappa_i != KAPPA_FREE;
   auto neighbor_agents = std::array<Agent*, 4>();
   auto neighbor_agent_count = 0u;
 
@@ -623,6 +700,7 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
       auto aj = neighbor_agents[n];
       if (aj->v_now == u) continue;
       const auto neighbor_task = assignment[aj->id];
+      if (neighbor_task < 0) continue;  // carrier agent: no task field
       if (D.get(neighbor_task, u) < D.get(neighbor_task, aj->v_now)) {
         ++count;
       }
@@ -630,10 +708,16 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     return count;
   };
 
+  // remaining-distance key: instance task (original semantics) — carrier
+  // agents get their direction from the guidance layer (M6/M7)
+  auto dist_of = [&](Vertex* v) -> int {
+    return task_id >= 0 ? (int)D.get(task_id, v) : 0;
+  };
+
   std::sort(C_next[i].begin(), C_next[i].begin() + K + 1,
             [&](Vertex* const v, Vertex* const u) {
-              const auto dv = D.get(task_id, v);
-              const auto du = D.get(task_id, u);
+              const auto dv = dist_of(v);
+              const auto du = dist_of(u);
               if (dv != du) return dv < du;
               const auto hv = get_hindrance(v);
               const auto hu = get_hindrance(u);
@@ -656,8 +740,14 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     auto& ak = occupied_now[u->id];
     if (ak != nullptr && ak->v_next == ai->v_now) continue;
 
+    // S1 (M4): a loaded robot cannot take its shelf into an occupied
+    // upper cell (never triggers with an empty shelf layer)
+    if (loaded && u != ai->v_now && carrier_upper_taken(u->index)) continue;
+
     occupied_next[u->id] = ai;
     ai->v_next = u;
+    ai->op_kind = u == ai->v_now ? Op::WAIT : Op::MOVE;
+    if (loaded) carrier_upper_add(u->index);
 
     if (ak != nullptr && ak != ai && ak->v_next == nullptr) {
       if (stats != nullptr) ++stats->pibt_recursions;
@@ -667,6 +757,7 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     if (k == 0 && swap_agent != nullptr && swap_agent->v_next == nullptr &&
         occupied_next[ai->v_now->id] == nullptr) {
       swap_agent->v_next = ai->v_now;
+      swap_agent->op_kind = Op::MOVE;
       occupied_next[swap_agent->v_next->id] = swap_agent;
     }
     return true;
@@ -674,6 +765,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
 
   occupied_next[ai->v_now->id] = ai;
   ai->v_next = ai->v_now;
+  ai->op_kind = Op::WAIT;
+  if (loaded) carrier_upper_add(ai->v_now->index);
   if (stats != nullptr) ++stats->pibt_failures;
   return false;
 }
@@ -683,10 +776,14 @@ Agent* TAPFPlanner::swap_possible_and_required(
 {
   if (stats != nullptr) ++stats->swap_checks;
   const auto i = ai->id;
+  // LaCAM2 swap reasoning is defined over instance-task distance fields;
+  // carrier agents (no task) are covered by the yield/park machinery
+  // instead (design 5.5, M8)
+  if (assignment[i] < 0) return nullptr;
   if (C_next[i][0] == ai->v_now) return nullptr;
 
   auto aj = occupied_now[C_next[i][0]->id];
-  if (aj != nullptr && aj->v_next == nullptr &&
+  if (aj != nullptr && aj->v_next == nullptr && assignment[aj->id] >= 0 &&
       is_swap_required(ai->id, aj->id, ai->v_now, aj->v_now, assignment) &&
       is_swap_possible(aj->v_now, ai->v_now, assignment)) {
     return aj;
@@ -695,6 +792,7 @@ Agent* TAPFPlanner::swap_possible_and_required(
   for (auto u : ai->v_now->neighbor) {
     auto ak = occupied_now[u->id];
     if (ak == nullptr || C_next[i][0] == ak->v_now) continue;
+    if (assignment[ak->id] < 0) continue;
     if (is_swap_required(ak->id, ai->id, ai->v_now, C_next[i][0], assignment) &&
         is_swap_possible(C_next[i][0], ai->v_now, assignment)) {
       return ak;
@@ -719,8 +817,9 @@ bool TAPFPlanner::is_swap_required(const int pusher, const int puller,
     auto n = v_puller->neighbor.size();
     for (auto u : v_puller->neighbor) {
       auto a = occupied_now[u->id];
-      if (u == v_pusher || (u->neighbor.size() == 1 && a != nullptr &&
-                            ins->tasks[assignment[a->id]] == u)) {
+      if (u == v_pusher ||
+          (u->neighbor.size() == 1 && a != nullptr &&
+           assignment[a->id] >= 0 && ins->tasks[assignment[a->id]] == u)) {
         --n;
       } else {
         tmp = u;
@@ -748,8 +847,9 @@ bool TAPFPlanner::is_swap_possible(Vertex* v_pusher_origin,
     auto n = v_puller->neighbor.size();
     for (auto u : v_puller->neighbor) {
       auto a = occupied_now[u->id];
-      if (u == v_pusher || (u->neighbor.size() == 1 && a != nullptr &&
-                            ins->tasks[assignment[a->id]] == u)) {
+      if (u == v_pusher ||
+          (u->neighbor.size() == 1 && a != nullptr &&
+           assignment[a->id] >= 0 && ins->tasks[assignment[a->id]] == u)) {
         --n;
       } else {
         tmp = u;
@@ -761,6 +861,136 @@ bool TAPFPlanner::is_swap_possible(Vertex* v_pusher_origin,
     v_puller = tmp;
   }
   return false;
+}
+
+// ---- carrier layer helpers (M4); all trivial with an empty layer ----
+
+void TAPFPlanner::refresh_carrier_scratch(const TAPFNode* S)
+{
+  if (carrier_scratch_node == S) return;
+  carrier_scratch_node = S;
+  cur_shelf = &S->shelf;
+  if (S->shelf.kappa.empty()) return;  // no shelf layer: nothing to fill
+  std::fill(carrier_grounded.begin(), carrier_grounded.end(), 0);
+  std::fill(carrier_upper_base.begin(), carrier_upper_base.end(), 0);
+  for (const int p : S->shelf.anon_occ) {
+    carrier_grounded[p] = -1;
+    carrier_upper_base[p] = 1;
+  }
+  std::vector<char> carried(ins->target_starts.size(), 0);
+  for (const int k : S->shelf.kappa)
+    if (k >= 0) carried[k] = 1;
+  for (size_t b = 0; b < S->shelf.target_pos.size(); ++b) {
+    if (carried[b]) continue;
+    carrier_grounded[S->shelf.target_pos[b]] = (int)b + 1;
+    carrier_upper_base[S->shelf.target_pos[b]] = 1;
+  }
+}
+
+bool TAPFPlanner::carrier_upper_taken(int cell) const
+{
+  return carrier_upper_base[cell] + carrier_upper_delta[cell] > 0;
+}
+
+void TAPFPlanner::carrier_upper_add(int cell)
+{
+  ++carrier_upper_delta[cell];
+  carrier_upper_touched.push_back(cell);
+}
+
+// per-kind preconditions of a FORCED op under a partial constraint
+// (final arbitration is the oracle's; a wrong veto here only delays the
+// combination to a deeper constraint — G1 keeps completeness)
+bool TAPFPlanner::forced_op_feasible(const TAPFNode* S, int i, Vertex* v,
+                                     uint8_t kind)
+{
+  const int kappa_i = S->shelf.kappa[i];
+  switch (kind) {
+    case Op::MOVE:
+      if (kappa_i != KAPPA_FREE && carrier_upper_taken(v->index))
+        return false;  // S1
+      return true;
+    case Op::LIFT:
+      return kappa_i == KAPPA_FREE && carrier_grounded[S->C[i]->index] != 0;
+    case Op::DROP:
+      if (kappa_i == KAPPA_FREE) return false;
+      if (kappa_i == KAPPA_ANON && carrier_upper_taken(v->index))
+        return false;  // another shelf occupies the cell at t+1
+      return true;
+    case Op::WAIT:
+    default:
+      return true;
+  }
+}
+
+bool TAPFPlanner::apply_carrier_effects(const TAPFNode* S)
+{
+  if (S->shelf.kappa.empty()) {
+    shelf_next_scratch = S->shelf;  // empty layer: carried over as-is
+    return true;
+  }
+  // assemble the joint op from the agents' reservations
+  ops_scratch.resize(N);
+  for (const auto a : A) {
+    switch (a->op_kind) {
+      case Op::MOVE:
+        ops_scratch[a->id] = a->v_next == a->v_now
+                                 ? Op::make_wait()
+                                 : Op::make_move(a->v_next->index);
+        break;
+      case Op::LIFT:
+        ops_scratch[a->id] = Op::make_lift();
+        break;
+      case Op::DROP:
+        ops_scratch[a->id] = Op::make_drop();
+        break;
+      case Op::WAIT:
+      default:
+        ops_scratch[a->id] = Op::make_wait();
+        break;
+    }
+  }
+  // conformance oracle = final arbiter (design 6.4, M4)
+  PhysConfig phys;
+  phys.robots.resize(N);
+  for (int i = 0; i < N; ++i) phys.robots[i] = S->C[i]->index;
+  phys.target_pos = S->shelf.target_pos;
+  phys.anon_occ = S->shelf.anon_occ;
+  phys.kappa = S->shelf.kappa;
+  const auto nxt = apply_ops(*dd_view, phys, ops_scratch);
+  if (!nxt.has_value()) return false;
+  shelf_next_scratch.target_pos = nxt->target_pos;
+  shelf_next_scratch.anon_occ = nxt->anon_occ;
+  shelf_next_scratch.kappa = nxt->kappa;
+  return true;
+}
+
+std::vector<std::vector<Op>> derive_carrier_ops(
+    const TAPFInstance& ins, const Solution& sol,
+    const std::vector<ShelfState>& shelves)
+{
+  std::vector<std::vector<Op>> plan;
+  if (sol.size() < 2) return plan;
+  plan.reserve(sol.size() - 1);
+  for (size_t t = 1; t < sol.size(); ++t) {
+    std::vector<Op> ops(ins.N, Op::make_wait());
+    for (size_t i = 0; i < ins.N; ++i) {
+      if (sol[t][i] != sol[t - 1][i]) {
+        ops[i] = Op::make_move(sol[t][i]->index);
+        continue;
+      }
+      const int k_from =
+          shelves[t - 1].kappa.empty() ? KAPPA_FREE : shelves[t - 1].kappa[i];
+      const int k_to =
+          shelves[t].kappa.empty() ? KAPPA_FREE : shelves[t].kappa[i];
+      if (k_from == KAPPA_FREE && k_to != KAPPA_FREE)
+        ops[i] = Op::make_lift();
+      else if (k_from != KAPPA_FREE && k_to == KAPPA_FREE)
+        ops[i] = Op::make_drop();
+    }
+    plan.push_back(std::move(ops));
+  }
+  return plan;
 }
 
 Solution solve_tapf(const TAPFInstance& ins, const int verbose,

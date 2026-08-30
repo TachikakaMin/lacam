@@ -150,3 +150,117 @@ TEST(dd_integration, solve_tapf_trivial_carrier_instance_single_step)
   ASSERT_EQ(sol.size(), 1u);
   EXPECT_TRUE(is_same_config(sol.front(), ins.starts));
 }
+
+// ---------- WP3: operator generator (mapping M3/M4) ----------
+
+namespace {
+// replay a derived op plan through the CONFORMANCE ORACLE (dd_carrier
+// apply_ops) and require goal at the end.
+void expect_oracle_valid_plan(const DDInstance& dd,
+                              const std::vector<std::vector<Op>>& plan,
+                              bool expect_goal = true)
+{
+  auto s = initial_phys_config(dd);
+  for (const auto& ops : plan) {
+    auto nxt = apply_ops(dd, s, ops);
+    ASSERT_TRUE(nxt.has_value()) << "oracle rejected a step";
+    s = *nxt;
+  }
+  if (expect_goal) EXPECT_TRUE(is_dd_goal(dd, s));
+}
+
+// solve a DD instance THROUGH the TAPF planner and return the derived
+// per-timestep joint ops (empty on failure)
+std::vector<std::vector<Op>> solve_dd_via_tapf(const DDInstance& dd, int seed,
+                                               double limit_sec = 10.0)
+{
+  const TAPFInstance ins(dd);
+  std::mt19937 mt(seed);
+  Deadline dl(limit_sec * 1000);
+  TAPFPlanner planner(&ins, &dl, &mt);
+  const auto sol = planner.solve();
+  if (sol.empty()) return {};
+  EXPECT_EQ(planner.solution_shelves.size(), sol.size());
+  return derive_carrier_ops(ins, sol, planner.solution_shelves);
+}
+}  // namespace
+
+TEST(dd_integration, derive_carrier_ops_detects_lift_move_drop)
+{
+  const auto dd = tiny_dd(false);
+  const TAPFInstance ins(dd);
+  // hand-built two-step chain: robot walks (1,0)->(0,0), then (0,0)->(0,1)
+  Solution sol;
+  std::vector<ShelfState> shelves;
+  Config c0 = ins.starts;
+  Config c1{ins.G.U[0]};
+  Config c2{ins.G.U[1]};
+  auto s0 = initial_shelf_state(ins);
+  auto s2 = s0;
+  sol = {c0, c1, c2};
+  shelves = {s0, s0, s2};
+  auto plan = derive_carrier_ops(ins, sol, shelves);
+  ASSERT_EQ(plan.size(), 2u);
+  EXPECT_EQ(plan[0][0], Op::make_move(0));
+  EXPECT_EQ(plan[1][0], Op::make_move(1));
+
+  // lift in place: same cell, kappa FREE -> target 0
+  auto s_lift = s0;
+  s_lift.kappa[0] = 0;
+  plan = derive_carrier_ops(ins, {c2, c2}, {s0, s_lift});
+  ASSERT_EQ(plan.size(), 1u);
+  EXPECT_EQ(plan[0][0], Op::make_lift());
+
+  // drop in place: kappa target 0 -> FREE
+  plan = derive_carrier_ops(ins, {c2, c2}, {s_lift, s0});
+  ASSERT_EQ(plan.size(), 1u);
+  EXPECT_EQ(plan[0][0], Op::make_drop());
+
+  // pure wait
+  plan = derive_carrier_ops(ins, {c2, c2}, {s0, s0});
+  ASSERT_EQ(plan.size(), 1u);
+  EXPECT_EQ(plan[0][0], Op::make_wait());
+}
+
+TEST(dd_integration, solve_tapf_carries_target_to_goal)
+{
+  // one robot, target (0,1) -> (0,3), free upper path: needs approach,
+  // lift, two loaded moves, drop — pure operator-tree search, no guidance
+  const auto dd = tiny_dd(false);
+  const auto plan = solve_dd_via_tapf(dd, 0);
+  ASSERT_FALSE(plan.empty());
+  expect_oracle_valid_plan(dd, plan);
+}
+
+TEST(dd_integration, solve_tapf_clears_blocker_on_path)
+{
+  // anonymous blocker sits ON the target's only row-0 path: the robot
+  // must relocate it (lift/carry/drop) before delivering the target
+  DDInstance dd;
+  dd.grid = DDGrid({"....", "...."});
+  dd.robots = {dd.grid.idx(1, 0)};
+  dd.shelves = {dd.grid.idx(0, 1), dd.grid.idx(0, 2)};
+  dd.target_starts = {dd.grid.idx(0, 1)};
+  dd.target_goals = {dd.grid.idx(0, 3)};
+  dd.finalize();
+
+  const auto plan = solve_dd_via_tapf(dd, 0);
+  ASSERT_FALSE(plan.empty());
+  expect_oracle_valid_plan(dd, plan);
+}
+
+TEST(dd_integration, solve_tapf_two_robots_two_targets)
+{
+  // two robots, two labeled targets crossing on a 3x4 grid
+  DDInstance dd;
+  dd.grid = DDGrid({"....", "....", "...."});
+  dd.robots = {dd.grid.idx(1, 0), dd.grid.idx(1, 3)};
+  dd.shelves = {dd.grid.idx(0, 0), dd.grid.idx(2, 3)};
+  dd.target_starts = {dd.grid.idx(0, 0), dd.grid.idx(2, 3)};
+  dd.target_goals = {dd.grid.idx(0, 3), dd.grid.idx(2, 0)};
+  dd.finalize();
+
+  const auto plan = solve_dd_via_tapf(dd, 0);
+  ASSERT_FALSE(plan.empty());
+  expect_oracle_valid_plan(dd, plan);
+}

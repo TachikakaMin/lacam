@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include <memory>
 #include <set>
 #include <vector>
 
@@ -53,6 +54,10 @@ ShelfState initial_shelf_state(const TAPFInstance& ins);
 
 struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {
   const ShelfState shelf;  // two-deck layer (empty on shelf-free instances)
+  // FROZEN variable order for constraint-tree expansion (design D11,
+  // mapping M3): copied from `order` at creation.  Livelock handling (M9)
+  // may perturb `order` (PIBT preference) but never this.
+  std::vector<int> constraint_order;
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
@@ -96,6 +101,9 @@ struct TAPFStats {
   int incumbent_updates = 0;
   int swap_checks = 0;
   int swap_applied = 0;
+  // carrier layer (M4): joint ops rejected by the conformance-oracle
+  // arbiter (0 on shelf-free instances — the arbiter is never invoked)
+  int carrier_validator_rejects = 0;
   unsigned solution_cost = 0;
   unsigned first_solution_cost = 0;
   unsigned solution_parent_edge_cost = 0;
@@ -117,7 +125,7 @@ struct TAPFPlanner {
   TAPFStats* stats;
   TAPFAssignmentStats assignment_stats;
 
-  const int N;
+  const int N;  // number of agents
   const int V_size;
   // physical cost weights (design 2.3/5.7, mapping M5): unit by default;
   // DD_SOLVER_WEIGHTS=1 folds DD_ALPHA..DD_DELTA into g.  Shelf-free edge
@@ -133,6 +141,23 @@ struct TAPFPlanner {
   Agents occupied_now;
   Agents occupied_next;
 
+  // ---- carrier layer (M2/M4): allocated only when shelves exist ----
+  // conformance-oracle view of the instance (final arbiter of every joint
+  // op with a shelf layer, exactly the pre-integration architecture)
+  std::unique_ptr<DDInstance> dd_view;
+  // per-node occupancy scratch (grounded shelf id + upper base counts)
+  const TAPFNode* carrier_scratch_node = nullptr;
+  const ShelfState* cur_shelf = nullptr;  // shelf layer of the node in gen
+  std::vector<int> carrier_grounded;    // 0 none / -1 anon / b+1 target b
+  std::vector<int> carrier_upper_base;  // grounded occupancy at t+1
+  std::vector<int> carrier_upper_delta; // carried-shelf reservations
+  std::vector<int> carrier_upper_touched;
+  ShelfState shelf_next_scratch;        // successor layer of the last gen
+  std::vector<Op> ops_scratch;          // assembled joint op
+  // solution shelf chain (parallel to the returned Solution; empty layers
+  // on shelf-free instances) — consumed by the carrier adapters/tests
+  std::vector<ShelfState> solution_shelves;
+
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,
               float _restart_rate = 0.001f, bool _anytime = true,
@@ -145,6 +170,12 @@ struct TAPFPlanner {
                std::vector<TAPFNode*>& OPEN);
   double get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
   double get_h_value(const Config& C);
+  // carrier helpers (M4); all no-ops / trivially true with an empty layer
+  void refresh_carrier_scratch(const TAPFNode* S);
+  bool carrier_upper_taken(int cell) const;
+  void carrier_upper_add(int cell);
+  bool forced_op_feasible(const TAPFNode* S, int i, Vertex* v, uint8_t kind);
+  bool apply_carrier_effects(const TAPFNode* S);
   Agent* swap_possible_and_required(Agent* ai,
                                     const std::vector<int>& assignment);
   bool is_swap_required(const int pusher, const int puller,
@@ -161,3 +192,10 @@ Solution solve_tapf(const TAPFInstance& ins, const int verbose = 0,
                     TAPFStats* stats = nullptr, bool anytime = true,
                     bool force_full_assignment = false,
                     TAPFSearchConfig search_config = TAPFSearchConfig());
+
+// Derive the per-timestep joint primitive ops from a solved carrier
+// chain (M3): consecutive (Config, ShelfState) pairs uniquely determine
+// WAIT / MOVE / LIFT / DROP per robot (kappa is part of the state).
+std::vector<std::vector<Op>> derive_carrier_ops(
+    const TAPFInstance& ins, const Solution& sol,
+    const std::vector<ShelfState>& shelves);
