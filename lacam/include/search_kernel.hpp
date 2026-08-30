@@ -45,3 +45,58 @@ inline void dd_expand_constraint(ConstraintT* c, int var,
     fifo.push_back(k);
   }
 }
+
+// pibt_recurse(): the PIBT reserve/recurse/backtrack frame — candidates in
+// preference order, feasibility veto, tentative reservation, immediate
+// recursion on an undecided occupant of a move destination, backtrack to
+// the next candidate on failure, wait as the last resort.  This is the
+// upstream funcPIBT control shape (planner.cpp / tapf_planner.cpp) with
+// every domain decision behind Ctx hooks:
+//   candidates(robot) / feasible(robot, op) / fix / unfix
+//   move_dest(op) -> destination cell or -1   (non-moves)
+//   undecided_occupant(cell, robot) -> robot id or -1
+//   wait_op()
+// DD supplies the two-deck Carrier policy; upstream can adopt with a
+// Vertex-payload context (deferred, same vector-form reason as the
+// constraint driver — see design.md §10).
+template <typename Ctx, typename OpT>
+bool pibt_recurse(Ctx& ctx, const std::vector<int>& order, int i,
+                  const std::vector<OpT>* forced, int depth_guard,
+                  int max_depth)
+{
+  if (depth_guard > max_depth) return false;
+  const int robot = order[i];
+  if (ctx.decided(robot)) return true;
+
+  std::vector<OpT> cand;
+  if (forced && ctx.has_forced(*forced, robot)) {
+    cand = {(*forced)[robot]};
+  } else {
+    cand = ctx.candidates(robot);
+  }
+  for (const OpT& op : cand) {
+    if (!ctx.feasible(robot, op)) continue;
+    const int dest = ctx.move_dest(op);
+    const int occupant =
+        dest >= 0 ? ctx.undecided_occupant(dest, robot) : -1;
+    ctx.fix(robot, op);
+    if (occupant >= 0) {
+      int occ_pos = -1;
+      for (size_t k2 = 0; k2 < order.size(); ++k2)
+        if (order[k2] == occupant) occ_pos = (int)k2;
+      if (occ_pos < 0 || !pibt_recurse<Ctx, OpT>(ctx, order, occ_pos, forced,
+                                                 depth_guard + 1,
+                                                 max_depth)) {
+        ctx.unfix(robot, op);
+        continue;
+      }
+    }
+    return true;
+  }
+  const OpT w = ctx.wait_op();
+  if (ctx.feasible(robot, w)) {
+    ctx.fix(robot, w);
+    return true;
+  }
+  return false;
+}

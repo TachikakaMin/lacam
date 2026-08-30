@@ -206,13 +206,20 @@ DistTable 直接复用" 的既定方针。按审计的最小代价路径逐组�
    拷贝去重;dd_g1 穷举网+revisit 回归门禁通过,SOC 逐位一致)。
    上游反向采用缓行(vector-copy Constraint 形态差异,理由记
    design §10 表)。
-6. [ ] **PIBT 递归框架抽共享**(reserve-next/occupant recursion/
-   swap hook),Carrier 语义留 policy;若 benchmark 不稳则保留改造
-   fork 并记录理由。
+6. [x] **PIBT 递归框架抽共享**:pibt_recurse 落入 search_kernel.hpp
+   (上游 funcPIBT 控制形:候选序→feasible 否决→暂定预留→occupant
+   立即递归→回溯→wait 兜底);双层 Carrier 语义全部留在 PIBTContext
+   hooks(decided/has_forced/move_dest/undecided_occupant/wait_op)。
+   13 target 门禁绿,SOC 逐位一致(479/15801/38178/35949)。上游
+   funcPIBT 反向采用与 #5 同理由缓行。
 7. [x] **loader 解析工具共享**:wall 字符判定统一(is_map_wall_char,
    上游 graph.cpp 一并接入,test_all 88 门禁);inline map/坐标解析
    两侧 schema 本质不同(movingAI .map vs YAML 行),按审计"避免为
    形式统一引入 variant"不强并。
+
+官方结果版本:results_final_v5/rows.csv = 当前默认配置(原版
+weighted-FOCAL w=1.5 + 全部骨架回迁)下 carrier 164 套跑,162/164、
+分组与 v4 完全一致(r2r 25/25 mk548)。
 
 正当保留差异(审计确认,design §10 表格已记录):operator constraint、
 PhysConfig/canonical+Zobrist hash、apply_ops 裁决、constraint_order、

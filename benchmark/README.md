@@ -292,3 +292,18 @@ Timing record: full 1148-task suite 470 s wall at jobs=16; 99-task
 ablation 46 s (parallelized runner).  Benchmarks are pinned to PHYSICAL
 cores (16) — hyper-threaded oversubscription (jobs=27) starved 9s-tail
 tasks and produced false timeouts (s2w 12/25 vs 25/25).
+
+### Skeleton-reuse migration (2026-08-30, audit-driven)
+
+DD now runs on components shared with (or extracted verbatim from) the
+original lacam-tapf skeleton: `tapf_hungarian_row_to_col` (the original
+Hungarian, DD copy deleted), `lazy_dist.hpp` (original DistTable
+resumable-BFS semantics; upstream DistTable/TAPFDistTable are adapters
+of the same core), original weighted-FOCAL selection as the DD default
+(DD_FOCAL_W, gate: 162/164 with r2r mk 548 — see results_final_v5/),
+and `search_kernel.hpp` (constraint-tree expansion driver + PIBT
+recursion frame; Carrier semantics live in policy hooks).  All swaps
+verified bit-identical on benchmark SOC.  Upstream back-adoption of the
+kernel by planner.cpp/tapf_planner.cpp is deferred with recorded
+reasons (vector-form Constraint), per the audit's staged-migration
+recommendation.

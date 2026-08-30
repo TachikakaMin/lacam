@@ -1017,6 +1017,25 @@ struct PIBTContext {
     return cand;
   }
 
+  // ---- pibt_recurse frame hooks (search_kernel.hpp) ----
+  bool decided(int robot) const { return next_cell[robot] != -1; }
+  static bool has_forced(const std::vector<Op>& forced, int robot)
+  {
+    return !(forced[robot] == Op{Op::WAIT, -2});
+  }
+  static int move_dest(const Op& op)
+  {
+    return op.kind == Op::MOVE ? op.to : -1;
+  }
+  int undecided_occupant(int cell, int robot) const
+  {
+    for (size_t j = 0; j < ins.n_robots(); ++j)
+      if ((int)j != robot && s.robots[j] == cell && next_cell[j] == -1)
+        return (int)j;
+    return -1;
+  }
+  static Op wait_op() { return Op::make_wait(); }
+
   // try to fix robot i to op; returns false on conflict with already-fixed
   bool feasible(int i, const Op& op) const
   {
@@ -1075,50 +1094,11 @@ struct PIBTContext {
 bool pibt_fix(PIBTContext& ctx, const std::vector<int>& order, int i,
               const std::vector<Op>* forced, int depth_guard)
 {
-  if (depth_guard > (int)ctx.ins.n_robots() * 4) return false;
-  const int robot = order[i];
-  if (ctx.next_cell[robot] != -1) return true;  // already fixed
-
-  std::vector<Op> cand;
-  if (forced && !((*forced)[robot] == Op{Op::WAIT, -2})) {
-    cand = {(*forced)[robot]};
-  } else {
-    cand = ctx.candidates(robot);
-  }
-  for (const Op& op : cand) {
-    if (!ctx.feasible(robot, op)) continue;
-    // standard PIBT: if MOVE destination currently hosts an UNDECIDED robot,
-    // fix us tentatively and immediately recurse on the occupant; backtrack
-    // to our next candidate if the occupant cannot be placed.
-    int occupant = -1;
-    if (op.kind == Op::MOVE) {
-      for (size_t j = 0; j < ctx.ins.n_robots(); ++j)
-        if ((int)j != robot && ctx.s.robots[j] == op.to &&
-            ctx.next_cell[j] == -1) {
-          occupant = (int)j;
-          break;
-        }
-    }
-    ctx.fix(robot, op);
-    if (occupant >= 0) {
-      int occ_pos = -1;
-      for (size_t k2 = 0; k2 < order.size(); ++k2)
-        if (order[k2] == occupant) occ_pos = (int)k2;
-      if (occ_pos < 0 ||
-          !pibt_fix(ctx, order, occ_pos, forced, depth_guard + 1)) {
-        ctx.unfix(robot, op);
-        continue;
-      }
-    }
-    return true;
-  }
-  // last resort: wait (if wait cell not taken by someone else this step)
-  Op w = Op::make_wait();
-  if (ctx.feasible(robot, w)) {
-    ctx.fix(robot, w);
-    return true;
-  }
-  return false;
+  // skeleton-reuse #6: the recursion frame lives in search_kernel.hpp
+  // (pibt_recurse) — the upstream funcPIBT control shape; the two-deck
+  // Carrier policy stays entirely in PIBTContext hooks.
+  return pibt_recurse<PIBTContext, Op>(ctx, order, i, forced, depth_guard,
+                                       (int)ctx.ins.n_robots() * 4);
 }
 
 // generate successor configuration honoring constraint chain (nullopt if
