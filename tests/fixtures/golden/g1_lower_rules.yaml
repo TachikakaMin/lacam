@@ -1,0 +1,21 @@
+name: ''
+map: '....
+
+  '
+robots:
+- - 0
+  - 0
+- - 0
+  - 1
+shelves:
+- - 0
+  - 2
+targets:
+- id: b0
+  start:
+  - 0
+  - 2
+  goal:
+  - 0
+  - 3
+flags: {}

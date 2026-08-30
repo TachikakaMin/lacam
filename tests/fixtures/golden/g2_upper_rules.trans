@@ -1,0 +1,12 @@
+# upper-deck conflict rules (S1/S2-via-R2), D1 upper following, I3 hover
+legal   l ; l ; w          # both carriers lift
+illegal m 0 1 ; w ; w      # S1: b0 into cell where b1 hovers (static)
+illegal w ; m 0 2 ; w      # S1: b1 into grounded anon shelf cell
+legal   m 0 1 ; m 1 1 ; w  # D1: upper following — b0 enters cell b1 vacates THIS step
+illegal m 1 1 ; m 0 1 ; w  # R2 (implies S2): two loaded robots swap
+legal   w ; w ; m 1 2      # plain free move
+legal   m 0 0 ; d ; w      # b0 hovers back; b1 grounded at (1,1)
+legal   w ; w ; m 0 2      # I3: free robot moves UNDER grounded anon shelf
+illegal w ; m 0 1 ; m 0 1  # R1: two free robots race into (0,1)
+legal   m 1 0 ; w ; w      # b0 delivered over its goal cell
+legal   d ; w ; w          # ground b0 at goal

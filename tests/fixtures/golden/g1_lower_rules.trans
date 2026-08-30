@@ -1,0 +1,11 @@
+# lower-deck conflict rules + lift/drop preconditions (design 3.3 / 6.5)
+illegal m 0 1 ; w        # R1: vertex conflict (r0 into r1's cell)
+illegal m 0 1 ; m 0 0    # R2: swap conflict
+legal   m 0 1 ; m 0 2    # lower-deck FOLLOWING is legal (standard MAPF)
+illegal l ; w            # I1: lift with no shelf overhead (r0 at (0,1))
+illegal w ; d            # drop while carrying nothing
+illegal m 0 3 ; w        # non-adjacent move rejected
+legal   w ; l            # r1 under grounded b0: lift ok
+legal   w ; m 0 3        # loaded move into empty upper cell
+legal   w ; d            # drop at goal
+illegal w ; d            # drop while empty (post-drop)

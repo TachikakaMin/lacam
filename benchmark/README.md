@@ -244,3 +244,26 @@ Observations:
 - b4 fails on dense instances (fill ≥50%, ddmapd d≥0.5): its greedy clearing
   can displace completed targets and does not re-serve them. Its success rate
   *is* the measurement; do not tune it into a real solver.
+
+## Round-2 audit follow-ups (2026-08-30)
+
+- **Current default config = two-phase anytime + macro scale regime**
+  (design.md §7.1/D14, commit 6670e22): phase 1 finds a fast upper bound
+  (macro only when `|B_tgt| <= DD_MACRO_TGT` = 64), phase 2 restarts a
+  primitive-only quality search from the root with that bound.
+  `results_final_v3/rows.csv` (carrier only, unified 10 s) vs the older
+  `results_final_v2` defaults on identical instances: R2R makespan
+  1673→614, DnE 3934→1296, S2W 3288→1292 (2.5–3.0×); small/std/sweep
+  unchanged; totals 158/162 vs 160/162 (dneM seed18/22 need the macro
+  regime — recoverable via `DD_MACRO_TGT`).
+- **`no_astar` ablation voided**: `DD_NO_ASTAR` was never read by any
+  production source (guidance paths are plain Dijkstra; there is no A*
+  toggle).  The variant was removed from `run_ablations.py`; `no_astar`
+  rows in older `results_ablation/ablation_rows.csv` are not to be cited.
+  `tests/test_tools.py::TestAblationEnvWiring` now statically checks that
+  every knob the ablation runner sets is read by production code.
+- **Sweep 1:50 tier added**: `instances_sweep/ratio_r4x50` (40×40, 4
+  robots, 200 shelves, 8 targets; the 12×12 base map cannot hold 50
+  shelves per robot).
+- **CLI**: `dd_benchmark` now echoes `mode=` and rejects unknown modes
+  (exit 2) instead of silently falling back to `lacam`.

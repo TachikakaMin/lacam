@@ -290,9 +290,9 @@ struct Guidance {
   bool plan_bound = false;  // B1: fixed shelf plan is a HARD constraint
   // per-target: true when the target's goal lies on ANOTHER unfinished
   // target's active path — its carrier must PARK it (clear semantics)
-  // instead of delivering into the busy corridor (design 5.3 clear).
-  // Sticky (hysteresis, design 5.3(4)): once parked for owner b, stays
-  // parked until b completes, preventing deliver/park flip-flop.
+  // instead of delivering into the busy corridor (design 5.4a).  Computed
+  // per configuration from the CURRENT masked paths (no parent chain, no
+  // registry); deliver/park flip-flop is killed by the carried-hover mask.
   std::vector<uint8_t> target_park;
   std::vector<int> park_owner;  // target idx whose path forced the park
 };
@@ -468,15 +468,13 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
   for (size_t b = 0; b < ins.n_targets(); ++b)
     sc.protect[ins.target_goals[b]] = 1;
 
-  // Park relation (debug.md P1-5).  Semantics (also documented in
-  // design.md "target-as-blocker parking"):
+  // Park relation (design.md 5.4a).  Semantics:
   //   trigger  — goal_b lies on ANOTHER unfinished target o's active
   //              least-blocking path (detected from the CURRENT X);
-  //   sticky   — the pair (b -> o) is recorded in a solve-level registry so
-  //              the decision cannot flip with path-cache retie-breaks;
-  //   release  — as soon as o is complete in the CURRENT X.
-  // Same-X consistency: EXPLORED dedup guarantees guidance is built once
-  // per configuration, so identical X always sees identical park state.
+  //   release  — as soon as o is complete in the CURRENT X;
+  //   cycles   — broken deterministically below (min-index un-parks).
+  // Determinism boundary: park is a function of (X, D_b cache epoch) —
+  // see tests/test_dd_park_purity.cpp and design.md 5.4a (v2.3).
   g.park_owner.assign(ins.n_targets(), -1);
   auto done_in_X = [&](int o) {
     if (s.target_pos[o] != ins.target_goals[o]) return false;

@@ -1,0 +1,37 @@
+m 9 6;m 8 9;m 9 3
+m 9 7;m 7 9;m 9 2
+l;m 6 9;m 9 1
+m 9 6;m 5 9;l
+m 8 6;m 4 9;m 9 0
+m 8 5;m 3 9;m 9 1
+m 8 6;l;m 9 0
+m 8 5;m 2 9;m 8 0
+m 8 6;m 2 8;m 7 0
+m 8 5;m 2 7;m 6 0
+m 8 6;m 3 7;m 6 1
+m 8 5;m 4 7;m 5 1
+m 8 6;d;m 4 1
+m 8 5;w;m 4 0
+m 8 4;w;m 3 0
+m 8 5;w;m 2 0
+m 8 4;w;m 1 0
+m 8 5;w;m 0 0
+m 8 4;w;m 0 1
+m 8 5;w;d
+m 8 4;w;w
+m 8 3;w;w
+m 7 3;w;w
+m 6 3;w;w
+m 5 3;w;w
+m 4 3;w;w
+m 4 4;w;w
+m 4 5;w;w
+m 4 6;w;w
+m 3 6;w;w
+m 3 7;w;w
+m 2 7;w;w
+m 1 7;w;w
+m 0 7;w;w
+m 0 8;w;w
+m 0 9;w;w
+d;w;w

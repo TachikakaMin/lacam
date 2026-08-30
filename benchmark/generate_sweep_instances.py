@@ -3,6 +3,8 @@
 
 Axes (2 seeds each, 12x12 scrambler base unless noted):
   ratio  robot:shelf in {1:2, 1:5, 1:10, 1:20}   (shelves fixed at 40)
+         plus 1:50 on a 40x40 map (200 shelves, 4 robots) — the 12x12 map
+         cannot hold 50 shelves per robot (design 8.2 tier, round-2 P1-10)
   fill   shelf fill rate in {50, 70, 85, 95}%     (4 robots, t=8)
   ntgt   |B_tgt| in {1, 4, 16, 64}                (fill 50%, 6 robots)
   depth  scramble k in {40, 160, 640}             (fill 30%, 4 robots)
@@ -42,6 +44,11 @@ def main():
         gen(f"ratio_r{r}", height=12, width=12, n_robots=r, n_shelves=40,
             n_targets=8, k=160)
         n += SEEDS
+    # 1:50 tier needs a bigger map: 40x40 (1600 cells), 4 robots, 200
+    # shelves (12.5% fill), 8 targets
+    gen("ratio_r4x50", height=40, width=40, n_robots=4, n_shelves=200,
+        n_targets=8, k=320)
+    n += SEEDS
     # fill axis: 144 cells -> shelves 72/100/122/136
     for fill, s in ((50, 72), (70, 100), (85, 122), (95, 136)):
         gen(f"fill_{fill}", height=12, width=12, n_robots=4, n_shelves=s,
