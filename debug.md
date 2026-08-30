@@ -168,6 +168,44 @@ commit 98516f7 及其前后)。
 - [ → design §7] LNS、ITA-τ、robot 匿名化:按本清单原文"按 M4/
   论文需要排期",维持 design.md §7/§12 扩展记录,不属本轮范围。
 
+## P1-17 骨架回迁(2026-08-30 第三轮独立审计,GPT-5.6 Sol high)
+
+审计结论:dd_planner 属**另起炉灶**(置信 95%)——架构形状可追溯
+LaCAM,但对原骨架符号引用为 0;自写 Hungarian 与 tapf_assignment 原版
+token 相似率 72.4%(复制而非调用)。违反 design §10 "fork tapf_planner、
+DistTable 直接复用" 的既定方针。按审计的最小代价路径逐组件回迁
+(全程 125+ 测试全绿 + 164 套件性能不回退为门禁):
+
+1. [x] **Hungarian 复用**:原匿名 HungarianAssignment 提为公开
+   `tapf_hungarian_row_to_col`,TAPF 原类改薄包装,DD 复制版删除;
+   契约测试 test_tapf_hungarian_shared 5 用例(矩形/负代价/禁制/
+   平局确定性/穷举对照);确定性逐位验证(dev SOC 38178/15801/35949
+   与 v4 一致)。
+2. [ ] **共享 lazy distance core**:LazyBfsFields(cell_count +
+   neighbors)+ DistTable/TAPFDistTable/DD DistCache 三方 adapter;
+   保留 LowerDist Manhattan fast path 为策略层;sentinel 统一
+   (INT_MAX/2 vs K);query 计数防 lazy 退化。
+3. [ ] **topology 接口**:非 owning GridTopology 适配 Graph::U 与
+   DDGrid;保 DD 邻接序 down/up/right/left(确定性);地图解析工具
+   共享。
+4. [ ] **FOCAL selector 对齐**:提取 TAPF "首解前 DFS/首解后全局
+   weighted FOCAL" 为泛型 selector;DD 以 shadow A/B 落地,门禁:
+   164 套 solved≥162 且 r2r mk≤548;不达标保留 legacy top-32 并在
+   design 注明非原 FOCAL(已注明)。
+5. [ ] **Node/OPEN 骨架接口层**:模板化 state key/parent/order/
+   constraint FIFO/g-h-f/EXPLORED;先定义"搜索 parent vs solution
+   parent(parent_edge) vs guidance ancestry"三语义再动手。
+6. [ ] **PIBT 递归框架抽共享**(reserve-next/occupant recursion/
+   swap hook),Carrier 语义留 policy;若 benchmark 不稳则保留改造
+   fork 并记录理由。
+7. [ ] **loader 解析工具共享**(坐标/inline map/wall 字符),schema
+   保持两套。
+
+正当保留差异(审计确认,design §10 表格已记录):operator constraint、
+PhysConfig/canonical+Zobrist hash、apply_ops 裁决、constraint_order、
+least-blocking PathCache、serve/clear/park/yield/wait-for、macro
+rollout+parent_edge、两阶段 anytime、DD YAML schema。
+
 ## 修复顺序建议
 
 1. P0-5(revisit 回归——完备性主张的最后一块测试空洞)

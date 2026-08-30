@@ -20,6 +20,15 @@ struct TAPFAssignmentResult {
   bool feasible;
 };
 
+// Shared O(n^3) potentials Hungarian (rows <= cols rectangular), extracted
+// from the original anonymous HungarianAssignment so BOTH the TAPF
+// assignment layer and the DD (Carrier-LaCAM) rho matching reuse ONE
+// implementation (skeleton audit 2026-08-30).  Returns per-row assigned
+// column.  Negative costs allowed; forbidden pairs are the CALLER's
+// convention (large sentinel, filter the result).
+std::vector<int> tapf_hungarian_row_to_col(
+    const std::vector<std::vector<int> >& cost);
+
 struct TAPFAssignmentStats {
   int calls = 0;
   double time_ms = 0;

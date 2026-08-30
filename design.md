@@ -819,10 +819,24 @@ natcbs 21。round-2 新增默认:η 迟滞、路径惯性、idle 避让、
 g-relax/rewire、wait-for 定向禁忌、Hungarian ρ(≤256 targets 规模域,
 DD_RHO_HUNGARIAN_TGT)。
 
-代码落点:fork `lacam/src/tapf_planner.cpp` → `dd_planner.cpp`;
-`PhysConfig {Config robots; ShelfOcc shelves; vector<int8> kappa;}`
-(χ 为 node 内缓存的 derived 字段,不进 hash/比较);
-`DistTable` 直接复用。macro rollout 与 B0 共码,可视 M2 进度提前。
+代码落点(v2.4 按 2026-08-30 骨架审计修正;原文声称 "fork
+tapf_planner.cpp、DistTable 直接复用" 与实现不符):dd_planner.cpp 是
+**以 LaCAM 思路为参照的独立实现**——Constraint→lazy tree→PIBT 补全→
+DFS/EXPLORED 的架构形状可追溯到原骨架,但类型体系(DDGrid/PhysConfig/
+DistCache)自成一套,原 Graph/Vertex/DistTable/TAPF* 符号引用为 0。
+现按"逐组件回迁"路线向原 lacam-tapf 骨架对齐(见 debug.md 骨架回迁
+清单):
+
+| 组件 | 状态 | 说明 |
+|---|---|---|
+| Hungarian | **已回迁** | DD 复制版删除,统一调用 tapf_assignment 的 `tapf_hungarian_row_to_col`(从原匿名类提出;算法与扫描序逐字节一致,benchmark 确定性不变) |
+| 距离场(DistCache/LowerDist vs DistTable) | 待回迁 | 抽共享 lazy-BFS core,DDGrid/Graph 各挂 adapter;Manhattan fast path 保留为策略层 |
+| 网格拓扑(DDGrid vs Graph) | 待对齐 | 非侵入 topology 接口;注意邻接序(down/up/right/left)决定确定性 |
+| OPEN 选点(FOCAL-lite vs TAPF FOCAL) | 待对齐 | 现实现是 top-32 min-f,**不是**原 weighted FOCAL;shadow A/B 后决定切换 |
+| Node/Constraint 骨架 | 部分同形 | driver 可模板化共享;payload(Op vs Vertex)本质不同,保留 |
+| **正当保留的差异** | — | operator constraint、PhysConfig/canonical hash、apply_ops 裁决、constraint_order 冻结、least-blocking PathCache、serve/clear/park/yield/wait-for、macro rollout 与 parent_edge、双层 YAML schema——均为双层语义特有,原骨架无对应物 |
+
+macro rollout 与 B0 共码,可视 M2 进度提前。
 
 ---
 

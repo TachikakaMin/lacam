@@ -6,6 +6,7 @@
 // requests (5.3).  The dd_carrier validator is the final arbiter for every
 // generated joint operator vector (G1).
 #include "../include/dd_planner.hpp"
+#include "../include/tapf_assignment.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -463,58 +464,6 @@ static std::vector<int> waitfor_cycles(const DDInstance& ins,
 }
 
 
-// O(n^3) potentials Hungarian on a rows<=cols rectangular cost matrix;
-// returns per-row assigned column.  Small sizes only (rho A/B knob).
-static std::vector<int> hungarian_min_cost(
-    const std::vector<std::vector<int>>& cost)
-{
-  const int n = (int)cost.size();
-  if (n == 0) return {};
-  const int m = (int)cost[0].size();
-  const int INF = INT_MAX / 4;
-  std::vector<int> u(n + 1, 0), v(m + 1, 0), p(m + 1, 0), way(m + 1, 0);
-  for (int i = 1; i <= n; ++i) {
-    p[0] = i;
-    int j0 = 0;
-    std::vector<int> minv(m + 1, INF);
-    std::vector<char> used(m + 1, 0);
-    do {
-      used[j0] = 1;
-      const int i0 = p[j0];
-      int delta = INF, j1 = -1;
-      for (int j = 1; j <= m; ++j) {
-        if (used[j]) continue;
-        const int cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
-        if (cur < minv[j]) {
-          minv[j] = cur;
-          way[j] = j0;
-        }
-        if (minv[j] < delta) {
-          delta = minv[j];
-          j1 = j;
-        }
-      }
-      for (int j = 0; j <= m; ++j) {
-        if (used[j]) {
-          u[p[j]] += delta;
-          v[j] -= delta;
-        } else {
-          minv[j] -= delta;
-        }
-      }
-      j0 = j1;
-    } while (p[j0] != 0);
-    do {
-      const int j1 = way[j0];
-      p[j0] = p[j1];
-      j0 = j1;
-    } while (j0);
-  }
-  std::vector<int> row_to_col(n, -1);
-  for (int j = 1; j <= m; ++j)
-    if (p[j] > 0) row_to_col[p[j] - 1] = j - 1;
-  return row_to_col;
-}
 
 Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
                         std::vector<DistCache>& target_goal_dist,
@@ -766,7 +715,9 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
         cost[a][b2] = dd;
       }
     }
-    const auto row_to_col = hungarian_min_cost(cost);
+    // skeleton reuse (audit 2026-08-30): the ORIGINAL lacam-tapf
+    // Hungarian (tapf_assignment), not a copy.
+    const auto row_to_col = tapf_hungarian_row_to_col(cost);
     for (size_t a = 0; a < rows.size(); ++a) {
       const int c = row_to_col[a];
       if (c < 0 || cost[a][c] >= INT_MAX / 8) continue;
