@@ -190,9 +190,32 @@ test_tapf_compat.cpp（golden 特征化）、WP1-WP5 各 RED 测试、
   （tapf_planner 与 adapter 共用）、search_kernel 死代码删除、
   test_tools glob 扩展经 subagent APPROVE。13 个 protected DD 套件
   对集成实现首跑全绿；C++ 106 + Python 57 全绿）
-- [ ] WP6 benchmark parity（dev 9/9 已过：r2r +4.3%/dne +3%/s2w 持平
-  vs 旧实现 dev 锚点；全量 164×7 jobs=14 运行中）
-- [ ] WP7 git diff 审计 + 最终汇报
+- [x] WP6 benchmark parity（86e6e85；官方结果
+  benchmark/results_integrated_v2/rows.csv，164×7 统一 10s jobs=14，
+  wall 533s）。**carrier 162/164 = v5 持平**（成功集 ±2：新解
+  dneM_seed22 与 ddmapd_h24d60t16_seed2；丢 dneM_seed18 与
+  s2wM_seed24——种子敏感互换）；carrier_b0 154（v4 147 ↑）、
+  carrier_b1 74（v4 77 −3）、b4 115/crest_base 80/crest_full 38/
+  natcbs 21 全部复现。共同解出实例家族均值 mk：r2r 1.03、s2w 0.99、
+  standard_ddmapd 1.00、standard_scramble 1.00、全部 sweep 除两个
+  n=2 家族的 ±1 步噪声（depth_40 5.5v5.0、fill_50 20.5v19.5、
+  ntgt_64 71.5v63）外 ≤1.00；**唯一实质偏差：dne_m 1.12（+12%，
+  超 +5% gate，如实记录为遗留）**。
+  期间修复两个真 bug（先 RED regression 再修）：
+  (a) 地址键 scratch 跨 rollout 探针回收污染（跨进程 40x mk 漂移；
+  `rollout_steps_match_fresh_generation` + `generation_is_pure_under_
+  heap_churn`；修复=rollout/B1 每步与 macro 返回后
+  invalidate_carrier_scratch——旧实现同款教训）；
+  (b) 预约语义级联（§4-D1 风险实锤）：上游"失败保留预约"使一次
+  carrier push 失败毒化本步全部剩余候选（h24 实例 8760 次生成失败、
+  搜索输给自家 B0）；修复=**角色化预约语义**——carrier agent 失败
+  即释放并重试下一候选、wait 兜底可行即成功（dd 生成器原语义），
+  task agent 上游逐字保留（golden 钉死）；
+  `search_not_dominated_by_own_rollout_on_dense` 锚定。
+- [x] WP7 git diff 审计 + 最终汇报（核心 diff 15 文件
+  +2992/−2223；逐文件对照 M1-M17 映射；无平行 solve loop、无
+  fallback、无 benchmark hack；search_kernel 死代码已删；诊断计数器
+  guidance_builds/path_* 接回真实值）
 
 维护约定：每完成一项勾选并附 commit hash 与测试名；新发现问题追加
 到对应 WP；protected 测试改动需独立 subagent APPROVE。

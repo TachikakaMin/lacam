@@ -167,6 +167,8 @@ inline std::vector<int> least_blocking_path(
 // (design 6.2; DD_STRICT_INVAL=1 -> full-snapshot epoch-free mode)
 struct PathCache {
   bool strict_inval = env_int("DD_STRICT_INVAL", 0) != 0;
+  long recomputes = 0;  // diagnostics (DDStats.path_recomputes)
+  long hits = 0;        // diagnostics (DDStats.path_cache_hits)
   struct Entry {
     std::vector<int> path;
     std::vector<uint8_t> occ_snapshot;
@@ -202,11 +204,15 @@ struct PathCache {
             ok = !(occ_now && e.occ_snapshot[i] == 0);
           }
         }
-        if (ok) return e.path;
+        if (ok) {
+          ++hits;
+          return e.path;
+        }
       }
     }
     Entry e;
     e.src = src;
+    ++recomputes;
     const std::vector<int>* prev_path = nullptr;
     if (it != by_target.end() && !it->second.path.empty())
       prev_path = &it->second.path;  // inertia baseline

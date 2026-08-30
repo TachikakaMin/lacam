@@ -48,3 +48,4 @@ baselines/
 benchmark/instances_*/
 benchmark/results_*/work/
 nohup.out
+build_asan*/

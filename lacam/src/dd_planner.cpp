@@ -125,6 +125,15 @@ void map_stats(const TAPFStats& t, DDStats* out)
   out->g_relaxed += t.g_relaxed;
   out->f_pruned += t.f_pruned;
   out->incumbent_updates += t.incumbent_updates;
+  out->guidance_builds += t.guidance_builds;
+}
+
+// path-cache diagnostics (engine-internal counters via the planner)
+void fold_path_stats(const TAPFPlanner& planner, DDStats* out)
+{
+  if (out == nullptr) return;
+  out->path_recomputes += planner.carrier_path_recomputes();
+  out->path_cache_hits += planner.carrier_path_cache_hits();
 }
 
 // one phase = one TAPFPlanner::solve() run (M11)
@@ -146,6 +155,7 @@ DDPlan run_phase(const TAPFInstance& view, const DDInstance& ins,
                       cfg);
   const auto sol = planner.solve();
   map_stats(tstats, stats);
+  fold_path_stats(planner, stats);
   if (max_depth != nullptr)
     *max_depth = std::max<long>(*max_depth, planner.deepest_depth);
   if (targets_done != nullptr)

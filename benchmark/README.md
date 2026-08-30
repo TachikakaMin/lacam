@@ -307,3 +307,18 @@ verified bit-identical on benchmark SOC.  Upstream back-adoption of the
 kernel by planner.cpp/tapf_planner.cpp is deferred with recorded
 reasons (vector-form Constraint), per the audit's staged-migration
 recommendation.
+
+
+## Integrated planner results (design.md v3, 2026-08-30)
+
+The carrier planner is now an incremental extension of the LaCAM-TAPF
+planner (single solve loop `TAPFPlanner::solve()`; `dd_planner.cpp` is a
+thin adapter layer).  Shelf-free TAPF behavior is pinned bit-for-bit by
+`tests/test_tapf_compat.cpp`.  Official post-integration results:
+`results_integrated_v2/rows.csv` (164 instances x 7 methods, unified 10 s,
+jobs=14 physical cores): carrier 162/164 (= pre-integration v5; success
+set differs by +dneM_seed22 +ddmapd_h24d60t16_seed2 / -dneM_seed18
+-s2wM_seed24), carrier_b0 154, b4 115, crest_base 80, carrier_b1 74,
+crest_full 38, natcbs 21.  Family-mean makespan on commonly solved
+instances is at parity with v5 (r2r 1.03, s2w 0.99, standard_ddmapd 1.00)
+except DnE-M at +12% (recorded as an open regression in debug.md WP6).

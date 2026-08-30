@@ -194,6 +194,7 @@ void TAPFPlanner::attach_carrier_guidance(
   nd->guide = std::make_unique<CarrierGuidance>(
       build_guidance(dd, phys, eng.target_goal_dist, eng.lower, eng.paths,
                      eng.sc, nd, livelock ? &taboo : nullptr, parent_guide));
+  if (stats != nullptr) ++stats->guidance_builds;
 
   // PIBT order: class layering (design 5.4 N.order): loaded-target >
   // loaded-anon/parked > free-assigned > free-idle; within class by
@@ -1340,6 +1341,16 @@ bool TAPFPlanner::is_swap_possible(Vertex* v_pusher_origin,
 }
 
 // ---- carrier layer helpers (M4); all trivial with an empty layer ----
+
+long TAPFPlanner::carrier_path_recomputes() const
+{
+  return carrier != nullptr ? carrier->paths.recomputes : 0;
+}
+
+long TAPFPlanner::carrier_path_cache_hits() const
+{
+  return carrier != nullptr ? carrier->paths.hits : 0;
+}
 
 void TAPFPlanner::invalidate_carrier_scratch()
 {

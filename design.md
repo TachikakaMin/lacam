@@ -870,10 +870,15 @@ pipeline、独立算法框架,或以大量独立函数/文件绕开原逻辑。*
   PIBTContext、search_kernel.hpp 中 cutover 后无使用者的
   dd_expand_constraint/pibt_recurse、dd_dist_adapters.hpp(同条件)。
 
-集成后 DD 侧行为不承诺与旧实现 bit 相同(旧实现删除;PIBT 递归语义、
-邻接序、类内 tie-break、hindrance/swap 覆盖面均迁就原 LaCAM-TAPF,
-见 debug.md §4),仅承诺 benchmark gate:carrier ≥162/164、论文家族
-质量 ≤ v5+5%、TAPF golden 逐位不变。
+集成后 DD 侧行为不承诺与旧实现 bit 相同(旧实现删除;邻接序、类内
+tie-break、swap 覆盖面迁就原 LaCAM-TAPF;PIBT 预约语义实测后按角色
+分派——task agent 上游逐字、carrier agent 保留两层生成器的
+释放-重试语义,见 debug.md §4-D1 与 WP6 修复记录),承诺并达成的
+benchmark gate:carrier 162/164(=v5,成功集 ±2 种子互换)、
+r2r 1.03/s2w 0.99/standard 全 1.00、TAPF golden 逐位不变;
+**遗留:DnE-M 家族 +12%**(共同解出 23 例均值,超 +5% 线,
+如实记录——debug.md WP6)。官方结果:
+benchmark/results_integrated_v2/rows.csv(164×7,统一 10s,jobs=14)。
 
 ---
 

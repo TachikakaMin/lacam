@@ -148,6 +148,7 @@ struct TAPFStats {
   long macro_after_first = 0;  // two-phase policy: must stay 0
   long f_pruned = 0;    // nodes discarded by the incumbent/f bound
   long g_relaxed = 0;   // duplicate-hit g relaxations (rewrite propagation)
+  long guidance_builds = 0;  // carrier guidance constructions (M6)
   unsigned solution_cost = 0;
   unsigned first_solution_cost = 0;
   double first_solution_g = -1;  // exact double (carrier weighted soc)
@@ -274,6 +275,9 @@ struct TAPFPlanner {
   // address-keyed scratches (occupancy + guidance occ view) must be
   // dropped whenever node addresses may be recycled (rollout probes)
   void invalidate_carrier_scratch();
+  // path-cache diagnostics (engine-internal; 0 without a shelf layer)
+  long carrier_path_recomputes() const;
+  long carrier_path_cache_hits() const;
   bool carrier_upper_taken(int cell) const;
   void carrier_upper_add(int cell);
   void carrier_upper_sub(int cell);
