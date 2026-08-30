@@ -934,7 +934,8 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       tie_breakers(std::vector<float>(V_size, 0)),
       A(Agents(N, nullptr)),
       occupied_now(Agents(V_size, nullptr)),
-      occupied_next(Agents(V_size, nullptr))
+      occupied_next(Agents(V_size, nullptr)),
+      pibt_cand(N)
 {
   if (stats != nullptr) *stats = TAPFStats();
   // solver-objective weights (design 5.7, round-2 P2-16b semantics): unit
@@ -1433,8 +1434,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
                                       : nullptr;
 
   Agent* swap_agent = nullptr;
-  // preference-ordered op candidates for the unified try loop
-  auto& cand = pibt_cand;
+  // preference-ordered op candidates (per-agent buffer: recursion-safe)
+  auto& cand = pibt_cand[i];
   cand.clear();
 
   if (task_id >= 0) {

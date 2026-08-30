@@ -186,9 +186,10 @@ struct TAPFPlanner {
   std::vector<int> carrier_upper_touched;
   ShelfState shelf_next_scratch;        // successor layer of the last gen
   std::vector<Op> ops_scratch;          // assembled joint op
-  // funcPIBT op-candidate scratch (unified try loop; task agents
-  // materialize the original sorted vertex candidates into it)
-  std::vector<std::pair<Vertex*, uint8_t>> pibt_cand;
+  // funcPIBT op-candidate scratch, PER AGENT (funcPIBT recurses via
+  // priority inheritance — a shared buffer would be clobbered mid-loop;
+  // same recursion-safety shape as C_next)
+  std::vector<std::vector<std::pair<Vertex*, uint8_t>>> pibt_cand;
   // solution shelf chain (parallel to the returned Solution; empty layers
   // on shelf-free instances) — consumed by the carrier adapters/tests
   std::vector<ShelfState> solution_shelves;
