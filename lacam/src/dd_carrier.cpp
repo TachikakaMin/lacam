@@ -270,6 +270,41 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
         return std::nullopt;
     }
   }
+  // --- optional BRaP-conservative semantics (round-2 P2-16c, design
+  // 3.4a alignment experiment): DD_NO_FOLLOWING=1 rejects entering any
+  // cell being VACATED this step, on both decks.  Never on by default.
+  if (const char* nf = std::getenv("DD_NO_FOLLOWING"); nf && atoi(nf) != 0) {
+    // lower deck: robot i enters a cell some robot j (!= i) leaves
+    std::unordered_map<int, int> was_at;  // old cell -> robot
+    for (size_t i = 0; i < R; ++i) was_at[s.robots[i]] = (int)i;
+    for (size_t i = 0; i < R; ++i) {
+      if (nxt.robots[i] == s.robots[i]) continue;
+      auto it = was_at.find(nxt.robots[i]);
+      if (it != was_at.end() && it->second != (int)i) return std::nullopt;
+    }
+    // upper deck: shelf cell entered while being vacated this step
+    std::unordered_set<int> shelf_was;  // occupied upper cells at t
+    for (int p : s.anon_occ) shelf_was.insert(p);
+    for (size_t b = 0; b < ins.n_targets(); ++b)
+      shelf_was.insert(s.target_pos[b]);
+    for (size_t i = 0; i < R; ++i)
+      if (s.kappa[i] == KAPPA_ANON) shelf_was.insert(s.robots[i]);
+    // next shelf cells that MOVED into a previously-occupied cell
+    auto entered_occupied = [&](int now, int before) {
+      return now != before && shelf_was.count(now) > 0;
+    };
+    for (size_t b = 0; b < ins.n_targets(); ++b) {
+      // carried targets move with their carrier
+      int before = s.target_pos[b];
+      if (entered_occupied(nxt.target_pos[b], before)) return std::nullopt;
+    }
+    for (size_t i = 0; i < R; ++i) {
+      if (nxt.kappa[i] == KAPPA_ANON && s.kappa[i] == KAPPA_ANON &&
+          entered_occupied(nxt.robots[i], s.robots[i]))
+        return std::nullopt;
+    }
+  }
+
   // --- S1: shelf vertex conflict at t+1 ---
   {
     std::unordered_set<int> upper;

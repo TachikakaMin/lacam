@@ -239,3 +239,41 @@ TEST(dd_oscillation, hungarian_rho_beats_greedy_on_crossing_fixture)
   EXPECT_EQ(opt[0], B) << "min-cost rho must swap the crossing pair";
   EXPECT_EQ(opt[1], A);
 }
+
+// P2-16d — placement score variant (design 5.6 NEW hypothesis, untested
+// there): among nearest parking candidates, prefer the cell with the
+// higher ESCAPE DEGREE (free upper-deck neighbors) so parked shelves do
+// not wall themselves in.  Distance stays primary (the v2.2-rejected
+// margin/corridor scoring traded distance and regressed d50).
+TEST(dd_oscillation, placement_escape_degree_tiebreak)
+{
+  // o's path runs along row 1 (protected); the anon carrier hovers at
+  // (0,2) OFF that path so the hover mask cannot reroute it.  Depth-1
+  // parking candidates: (0,3) first in BFS order (down,up,right,left)
+  // with escape degree 1 (boxed by the anon at (0,4) + hover), and (0,1)
+  // with escape degree 2.  Default = nearest-first -> (0,3); the
+  // DD_PLACE_ESCAPE tie-break must pick (0,1).
+  DDInstance ins;
+  ins.grid = DDGrid({".....", ".....", "....."});
+  ins.robots.push_back(ins.grid.idx(0, 2));   // anon carrier
+  ins.robots.push_back(ins.grid.idx(2, 4));   // spare robot
+  ins.target_starts.push_back(ins.grid.idx(1, 0));
+  ins.target_goals.push_back(ins.grid.idx(1, 4));
+  ins.shelves.push_back(ins.grid.idx(1, 0));
+  ins.shelves.push_back(ins.grid.idx(0, 4));  // boxes in (0,3)
+  ins.shelves.push_back(ins.grid.idx(0, 2));  // the shelf r0 carries
+  ins.finalize();
+  auto X = initial_phys_config(ins);
+  X.kappa[0] = KAPPA_ANON;
+  X.anon_occ.erase(std::find(X.anon_occ.begin(), X.anon_occ.end(),
+                             ins.grid.idx(0, 2)));
+
+  unsetenv("DD_PLACE_ESCAPE");
+  EXPECT_EQ(dd_parking_cell(ins, X, 0), ins.grid.idx(0, 3));
+
+  setenv("DD_PLACE_ESCAPE", "1", 1);
+  const int esc = dd_parking_cell(ins, X, 0);
+  unsetenv("DD_PLACE_ESCAPE");
+  EXPECT_EQ(esc, ins.grid.idx(0, 1))
+      << "escape-degree tie-break must prefer the open cell";
+}

@@ -811,25 +811,44 @@ Guidance build_guidance(const DDInstance& ins, const PhysConfig& s,
         s.kappa[i] >= 0 && g.target_park[s.kappa[i]];
     if (!anon_carrier && !parked_target_carrier) continue;
     int found = -1, fallback = -1;
-    std::fill(sc.prev.begin(), sc.prev.end(), 0);  // visited flags
+    // P2-16d knob: escape-degree tie-break among SAME-DEPTH candidates
+    // (distance stays primary — the v2.2-rejected scoring traded it away).
+    const bool esc_tb = env_int("DD_PLACE_ESCAPE", 0) != 0;
+    const int rstart = s.robots[i];
+    std::fill(sc.prev.begin(), sc.prev.end(), -1);  // BFS depth marks
     std::deque<int> dq;
-    dq.push_back(s.robots[i]);
-    sc.prev[s.robots[i]] = 1;
+    dq.push_back(rstart);
+    sc.prev[rstart] = 0;
     int nb[4];
-    while (!dq.empty() && found < 0) {
+    int found_depth = -1, found_escape = -1;
+    while (!dq.empty()) {
       int u = dq.front();
       dq.pop_front();
-      if (u != s.robots[i] && !sc.upper[u]) {
+      const int du = sc.prev[u];
+      if (found >= 0 && du > found_depth) break;  // finished the tie layer
+      if (u != rstart && !sc.upper[u]) {
         if (!sc.protect[u]) {
-          found = u;
-          break;
+          if (!esc_tb) {
+            found = u;
+            break;
+          }
+          int escd = 0;
+          const int n2 = ins.grid.neighbors(u, nb);
+          for (int k = 0; k < n2; ++k)
+            if (!sc.upper[nb[k]]) ++escd;
+          if (found < 0 || escd > found_escape) {
+            found = u;
+            found_depth = du;
+            found_escape = escd;
+          }
+        } else if (fallback < 0 && !is_goal_cell[u]) {
+          fallback = u;
         }
-        if (fallback < 0 && !is_goal_cell[u]) fallback = u;
       }
       const int n = ins.grid.neighbors(u, nb);
       for (int k = 0; k < n; ++k)
-        if (!sc.prev[nb[k]]) {
-          sc.prev[nb[k]] = 1;
+        if (sc.prev[nb[k]] < 0) {
+          sc.prev[nb[k]] = du + 1;
           dq.push_back(nb[k]);
         }
     }
@@ -2334,4 +2353,23 @@ std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
   scratch.occ_node = nullptr;
   fill_occupancy(ins, node.X, scratch);
   return waitfor_cycles(ins, node.X, node.guide, lower_dist, scratch);
+}
+
+int dd_parking_cell(const DDInstance& ins, const PhysConfig& X, int robot)
+{
+  std::vector<DistCache> target_goal_dist;
+  target_goal_dist.reserve(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    target_goal_dist.emplace_back(ins.grid);
+  LowerDist lower_dist(ins.grid);
+  PathCache path_cache;
+  Scratch scratch(ins.grid.size());
+  std::vector<int> park_registry(ins.n_targets(), -1);
+  Node node;
+  node.X = X;
+  scratch.occ_node = nullptr;
+  scratch.pibt_node = nullptr;
+  node.guide = build_guidance(ins, node.X, target_goal_dist, lower_dist,
+                              path_cache, scratch, &node, park_registry);
+  return node.guide.parking_cell[robot];
 }

@@ -123,3 +123,7 @@ std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
 // deadlock detected).
 std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
                                          const PhysConfig& X);
+
+// TEST SUPPORT (debug.md round-2 P2-16d): the parking cell guidance picks
+// for robot i in X (DD_PLACE_ESCAPE selects the escape-degree tie-break).
+int dd_parking_cell(const DDInstance& ins, const PhysConfig& X, int robot);
