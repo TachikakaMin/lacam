@@ -7,6 +7,7 @@ Gate A: singleton parity — per-instance carrier rows of results_gateA vs
 Gate B: BRaP-B dynamic tau vs the three static controls.
 """
 import csv
+import re
 import sys
 from pathlib import Path
 
@@ -62,6 +63,26 @@ def gate_b():
     r1_pool = {k: r for k, r in pool.items() if not k.endswith("_pool")}
     sp = sum(r["success"] == "1" for r in b_pool.values())
     print(f"B-type pool: {sp}/{len(b_pool)} solved")
+    # mechanical size gate (design_final 8.2 / debug.md v4 section 6):
+    # the success gate is defined on <=10x10 ONLY; >=20x20 is the
+    # declared horizon-wall regime (record-only, no gate)
+    def size_of(name):
+        m = re.match(r"brap_h(\d+)w(\d+)_", name)
+        return (int(m[1]), int(m[2]))
+    small = {k: r for k, r in pool.items()
+             if max(size_of(k)) <= 10}
+    large = {k: r for k, r in pool.items()
+             if max(size_of(k)) > 10}
+    s_small = sum(r["success"] == "1" for r in small.values())
+    s_large = sum(r["success"] == "1" for r in large.values())
+    sb = sum(r["success"] == "1" for k, r in small.items()
+             if k.endswith("_pool"))
+    nb = sum(1 for k in small if k.endswith("_pool"))
+    print(f"<=10x10 (GATED): {s_small}/{len(small)} solved "
+          f"(B-type {sb}/{nb}); gate: >= 34 -> "
+          f"{'PASS' if s_small >= 34 else 'FAIL'}")
+    print(f">=20x20 (record-only, horizon wall): "
+          f"{s_large}/{len(large)} solved")
     ss = 0
     mk_rows = []
     for k, r in sorted(b_pool.items()):

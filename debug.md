@@ -157,8 +157,19 @@ per-target `target_goal_dist` 向量；主生成器路径里的静态配对。
     > static-greedy 17）；common-solved makespan：vs static-greedy
     mean **0.275×**（16/17 更优；含 goal-set 语义红利极例——target
     已在边界 ⇒ mk 1 vs 24774）；vs near-boundary mean 0.851×/median
-    0.510×（15/18 更优，3 例更差含一小易例 6× 波动）；R1 单点集
+    0.510×（审计修正计数：14 优 / 1 平 / 3 劣，即 15/18 不劣；
+    3 劣中含一小易例 6× 波动）；R1 单点集
     对照 34 行 **0 漂移**（Gate A 的 within-suite 复核）。
+  - **独立审计（2026-08-31，GPT-5.6 Sol subagent）**：判定 CONFORMS
+    ——35/68 的正确读法是 **≤10×10（gated 区间）35/36=97.2%
+    （B 型 18/18=100% vs static 17/18）+ ≥20×20（声明的 horizon 墙、
+    不设 gate）0/32（新旧套件同为 0/32）**；裸 35/68 是分母混入
+    declared-unreachable 区间的口径效应。审计压力测试：20×20 e100
+    B 型 pool 例 60s 预算仍无首解（best_targets_done 28/40、
+    hl_nodes 81315）——墙的结论在 6× 预算下经受住检验（单例证据，
+    非无限预算证明）。审计发现的两处报告瑕疵已修：report_gates.py
+    增加机械尺寸过滤 + 显式 PASS/FAIL（输出 35/36 PASS / 0/32
+    record-only）；near-boundary 严格计数改为 14 优/1 平/3 劣。
   - **Gate C PASS**（results_gateC_frozen，DD_TAU_FREEZE=1 同套件）：
     dynamic 18/34 > frozen 17/34；common 17 例 mk dynamic/frozen
     mean **0.742×** / median 0.619×（frozen 仅 4/17 占优）——
