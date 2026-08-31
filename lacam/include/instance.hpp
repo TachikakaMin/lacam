@@ -54,7 +54,11 @@ struct TAPFInstance {
   // flag.  Cells use the Vertex::index encoding (width * y + x).
   std::vector<int> shelf_cells;    // ALL shelf cells incl. target starts
   std::vector<int> target_starts;  // by target index
-  std::vector<int> target_goals;   // by target index
+  std::vector<int> target_goals;   // representative view (sorted-first)
+  // eligible goal set per target (design_final 2.1, T1/T2): sorted
+  // unique; singleton {target_goals[b]} on fixed-goal instances; empty
+  // (like the other carrier fields) on shelf-free TAPF instances.
+  std::vector<std::vector<int> > target_goal_sets;
 
   TAPFInstance(const std::string& map_filename,
                const std::vector<int>& start_indexes,

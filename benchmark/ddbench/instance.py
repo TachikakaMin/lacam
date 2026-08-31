@@ -36,7 +36,15 @@ Cell = Tuple[int, int]  # (row, col)
 class Target:
     id: str
     start: Cell
-    goal: Cell
+    goal: Cell  # representative view: sorted-first of the eligible set
+    # eligible goal set (design_final 2.1, T1): sorted unique cells; None
+    # on old fixed-goal targets (eligible == [goal]).
+    goals: Optional[List[Cell]] = None
+
+    def eligible_goals(self) -> List[Cell]:
+        if self.goals is not None:
+            return self.goals
+        return [tuple(self.goal)]
 
 
 @dataclass
@@ -47,6 +55,8 @@ class Instance:
     targets: List[Target]
     flags: Dict[str, bool] = field(default_factory=dict)
     name: str = ""
+    # shared goal pool (design_final 2.1): sorted unique cells, or None
+    goal_pool: Optional[List[Cell]] = None
     # Optional hint for full-goal-layout baselines (CREST/NAT-CBS): exact
     # witness pairing [(anon_start, anon_goal), ...] such that the combined
     # layout {target goals} + anon goals is realizable (scrambler witness).
@@ -103,18 +113,44 @@ class Instance:
                 errors.append(f"shelves overlap at {p}")
             seen_s.add(p)
         seen_ids = set()
-        seen_goals = set()
         for t in self.targets:
             if t.id in seen_ids:
                 errors.append(f"duplicate target id {t.id}")
             seen_ids.add(t.id)
             if tuple(t.start) not in seen_s:
                 errors.append(f"target {t.id} start {t.start} is not a shelf cell")
-            if not self.in_bounds(t.goal) or self.is_wall(t.goal):
-                errors.append(f"target {t.id} goal {t.goal} invalid")
-            if tuple(t.goal) in seen_goals:
-                errors.append(f"duplicate target goal {t.goal}")
-            seen_goals.add(tuple(t.goal))
+            for g in t.eligible_goals():
+                if not self.in_bounds(g) or self.is_wall(g):
+                    errors.append(f"target {t.id} goal {g} invalid")
+        # covering matching (design_final 2.1 loader contract, D15): an
+        # injective target->goal assignment must exist over the eligible
+        # sets (subsumes the old duplicate-fixed-goal rejection).
+        if self.targets:
+            cols: Dict[Cell, int] = {}
+            adj = []
+            for t in self.targets:
+                row = []
+                for g in t.eligible_goals():
+                    row.append(cols.setdefault(tuple(g), len(cols)))
+                adj.append(row)
+            match = [-1] * len(cols)
+
+            def aug(row: int, vis: List[bool]) -> bool:
+                for c in adj[row]:
+                    if vis[c]:
+                        continue
+                    vis[c] = True
+                    if match[c] < 0 or aug(match[c], vis):
+                        match[c] = row
+                        return True
+                return False
+
+            for i in range(len(self.targets)):
+                if not aug(i, [False] * len(cols)):
+                    errors.append(
+                        "no covering goal matching over target goal sets"
+                    )
+                    break
         return errors
 
 
@@ -140,10 +176,32 @@ def load_instance(path) -> Instance:
     grid = parse_map_str(data["map"])
     robots = [tuple(x) for x in data.get("robots", [])]
     shelves = [tuple(x) for x in data.get("shelves", [])]
-    targets = [
-        Target(id=str(t["id"]), start=tuple(t["start"]), goal=tuple(t["goal"]))
-        for t in data.get("targets", [])
-    ]
+    pool = (
+        sorted(tuple(x) for x in data["goal_pool"])
+        if data.get("goal_pool")
+        else None
+    )
+    targets = []
+    for t in data.get("targets", []):
+        goals = None
+        if "goals" in t:
+            if isinstance(t["goals"], str):
+                if t["goals"] != "pool":
+                    raise ValueError(
+                        "load_instance: target `goals` must be a list or 'pool'"
+                    )
+                if not pool:
+                    raise ValueError(
+                        "load_instance: `goals: pool` without a goal_pool"
+                    )
+                goals = list(pool)
+            else:
+                goals = sorted({tuple(g) for g in t["goals"]})
+        rep = goals[0] if goals else tuple(t["goal"])
+        targets.append(
+            Target(id=str(t["id"]), start=tuple(t["start"]), goal=rep,
+                   goals=goals)
+        )
     return Instance(
         grid=grid,
         robots=robots,
@@ -151,6 +209,7 @@ def load_instance(path) -> Instance:
         targets=targets,
         flags=dict(data.get("flags", {})),
         name=str(data.get("name", Path(path).stem)),
+        goal_pool=pool,
         anon_goals=[
             (tuple(pair[0]), tuple(pair[1])) for pair in data["anon_goals"]
         ]
@@ -160,17 +219,25 @@ def load_instance(path) -> Instance:
 
 
 def save_instance(ins: Instance, path) -> None:
+    def target_entry(t: Target):
+        entry = {"id": t.id, "start": list(t.start), "goal": list(t.goal)}
+        if t.goals is not None and len(t.goals) > 1:
+            if ins.goal_pool is not None and list(t.goals) == list(ins.goal_pool):
+                entry["goals"] = "pool"
+            else:
+                entry["goals"] = [list(g) for g in t.goals]
+        return entry
+
     data = {
         "name": ins.name,
         "map": dump_map_str(ins.grid) + "\n",
         "robots": [list(q) for q in ins.robots],
         "shelves": [list(p) for p in ins.shelves],
-        "targets": [
-            {"id": t.id, "start": list(t.start), "goal": list(t.goal)}
-            for t in ins.targets
-        ],
+        "targets": [target_entry(t) for t in ins.targets],
         "flags": ins.flags,
     }
+    if ins.goal_pool is not None:
+        data["goal_pool"] = [list(g) for g in ins.goal_pool]
     if ins.anon_goals is not None:
         data["anon_goals"] = [
             [list(pair[0]), list(pair[1])] for pair in ins.anon_goals

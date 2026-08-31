@@ -1,0 +1,27 @@
+# goal-set instance format fixture (design_final 2.1, debug.md v4 T1).
+# Mixes all three target goal forms: old singleton `goal`, explicit
+# `goals` list (deliberately unsorted), and shared-`pool` reference.
+name: dd_goalset_fixture
+map: |
+  .....
+  .....
+  .....
+robots:
+  - [2, 0]
+shelves:
+  - [0, 1]
+  - [0, 2]
+  - [1, 1]
+goal_pool:
+  - [2, 4]
+  - [2, 3]
+targets:
+  - id: 0
+    start: [0, 1]
+    goal: [0, 4]
+  - id: 1
+    start: [0, 2]
+    goals: [[1, 4], [1, 3]]
+  - id: 2
+    start: [1, 1]
+    goals: pool

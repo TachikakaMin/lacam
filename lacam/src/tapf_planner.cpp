@@ -881,9 +881,13 @@ bool TAPFPlanner::is_goal_config(const Config& C, const ShelfState& S) const
     }
     if (!matched) return false;
   }
-  // carrier part (design 2.2, D10): every target grounded at its goal
-  for (size_t b = 0; b < ins->target_goals.size(); ++b)
-    if (S.target_pos[b] != ins->target_goals[b]) return false;
+  // carrier part (design_final 2.2/Prop 3, D10): every target grounded on
+  // an ELIGIBLE goal cell (set membership; singleton == old equality)
+  for (size_t b = 0; b < ins->target_goal_sets.size(); ++b) {
+    const auto& set = ins->target_goal_sets[b];
+    if (!std::binary_search(set.begin(), set.end(), S.target_pos[b]))
+      return false;
+  }
   for (const int k : S.kappa)
     if (k >= 0) return false;  // a carried target is not grounded
   return true;

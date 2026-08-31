@@ -52,13 +52,14 @@ def initial_state(ins: Instance) -> State:
 
 
 def is_goal(ins: Instance, s: State) -> bool:
-    """Goal (design.md 2.2): every target at its goal AND grounded."""
+    """Goal (design_final 2.2/Prop 3): every target grounded on an
+    ELIGIBLE goal cell (set membership; singleton == old equality)."""
     carried = s.carried_shelves()
     pos = s.targets()
     for t in ins.targets:
         if t.id in carried:
             return False
-        if pos.get(t.id) != tuple(t.goal):
+        if pos.get(t.id) not in t.eligible_goals():
             return False
     return True
 

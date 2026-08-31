@@ -1,0 +1,21 @@
+# Uncoverable goal-set fixture (debug.md v4 T1): two targets share a
+# single-cell pool -> no injective covering matching -> loader must
+# fail loudly at finalize.
+name: dd_goalset_uncoverable
+map: |
+  ....
+  ....
+robots:
+  - [1, 0]
+shelves:
+  - [0, 0]
+  - [0, 1]
+goal_pool:
+  - [0, 3]
+targets:
+  - id: 0
+    start: [0, 0]
+    goals: pool
+  - id: 1
+    start: [0, 1]
+    goals: pool

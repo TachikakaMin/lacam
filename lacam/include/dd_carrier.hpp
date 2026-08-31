@@ -37,7 +37,14 @@ struct DDInstance {
   std::vector<int> robots;         // start cells (labeled, YAML order)
   std::vector<int> shelves;        // ALL shelf cells incl. target starts
   std::vector<int> target_starts;  // by target index
-  std::vector<int> target_goals;   // by target index
+  std::vector<int> target_goals;   // representative view: sorted-first of
+                                   // the goal set (== the goal for
+                                   // singleton/old-format instances)
+  // eligible goal set per target (design_final 2.1, T1): sorted unique,
+  // wall-component filtered by finalize().  Old fixed-goal instances are
+  // singleton sets {target_goals[b]} (materialized by finalize when the
+  // caller only filled target_goals).
+  std::vector<std::vector<int>> target_goal_sets;
   std::string name;
 
   size_t n_robots() const { return robots.size(); }

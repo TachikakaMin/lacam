@@ -198,7 +198,8 @@ TAPFInstance::TAPFInstance(const DDInstance& dd)
       N(dd.robots.size()),
       shelf_cells(dd.shelves),
       target_starts(dd.target_starts),
-      target_goals(dd.target_goals)
+      target_goals(dd.target_goals),
+      target_goal_sets(dd.target_goal_sets)
 {
   for (auto cell : dd.robots) starts.push_back(G.U[cell]);
 }

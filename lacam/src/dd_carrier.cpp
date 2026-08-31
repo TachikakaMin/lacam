@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <algorithm>
+#include <functional>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_map>
@@ -59,15 +60,23 @@ void DDInstance::finalize()
     if (!seen_s.insert(p).second)
       throw std::invalid_argument("finalize: shelves overlap");
   }
-  if (target_starts.size() != target_goals.size())
+  // goal-set layer (design_final 2.1, T1): materialize singleton sets when
+  // the caller only filled target_goals (all pre-goal-set construction
+  // paths); otherwise the sets are authoritative and target_goals becomes
+  // the representative view (sorted-first), resynced below.
+  if (target_goal_sets.empty() && !target_goals.empty()) {
+    if (target_starts.size() != target_goals.size())
+      throw std::invalid_argument("finalize: target starts/goals mismatch");
+    for (const int g : target_goals) target_goal_sets.push_back({g});
+  }
+  if (target_starts.size() != target_goal_sets.size())
     throw std::invalid_argument("finalize: target starts/goals mismatch");
-  std::unordered_set<int> seen_g;
   for (size_t b = 0; b < target_starts.size(); ++b) {
     if (!seen_s.count(target_starts[b]))
       throw std::invalid_argument("finalize: target start is not a shelf");
-    check_cell(target_goals[b], "goal");
-    if (!seen_g.insert(target_goals[b]).second)
-      throw std::invalid_argument("finalize: duplicate target goal");
+    if (target_goal_sets[b].empty())
+      throw std::invalid_argument("finalize: empty target goal set");
+    for (const int g : target_goal_sets[b]) check_cell(g, "goal");
   }
 
   // dead-cell / feasibility analysis (design 5.6, v1 form): both decks share
@@ -93,11 +102,61 @@ void DDInstance::finalize()
       }
       ++nc;
     }
-    for (size_t b = 0; b < target_starts.size(); ++b)
-      if (comp[target_starts[b]] != comp[target_goals[b]])
+    for (size_t b = 0; b < target_starts.size(); ++b) {
+      // filter each goal set to the start's wall component (unreachable
+      // eligible cells can never be used); loud failure when none remain
+      // (same condition/message as the old singleton rule)
+      auto& set = target_goal_sets[b];
+      set.erase(std::remove_if(set.begin(), set.end(),
+                               [&](int g) {
+                                 return comp[g] != comp[target_starts[b]];
+                               }),
+                set.end());
+      if (set.empty())
         throw std::invalid_argument(
             "finalize: target goal unreachable from its start "
             "(different wall components)");
+      std::sort(set.begin(), set.end());
+      set.erase(std::unique(set.begin(), set.end()), set.end());
+    }
+  }
+  // representative view: sorted-first of each set (== the goal for
+  // singleton/old-format instances)
+  target_goals.resize(target_goal_sets.size());
+  for (size_t b = 0; b < target_goal_sets.size(); ++b)
+    target_goals[b] = target_goal_sets[b].front();
+
+  // covering matching check (design_final 2.1 loader contract, D15): an
+  // injective target->goal assignment must exist (Kuhn's augmenting
+  // paths; subsumes the old duplicate-fixed-goal rejection).
+  {
+    std::unordered_map<int, int> col_of;  // goal cell -> column id
+    std::vector<std::vector<int>> adj(target_goal_sets.size());
+    for (size_t b = 0; b < target_goal_sets.size(); ++b)
+      for (const int g : target_goal_sets[b]) {
+        const auto it = col_of.emplace(g, (int)col_of.size()).first;
+        adj[b].push_back(it->second);
+      }
+    std::vector<int> match_row(col_of.size(), -1);  // column -> row
+    std::vector<char> vis;
+    std::function<bool(int)> aug = [&](int row) {
+      for (const int c : adj[row]) {
+        if (vis[c]) continue;
+        vis[c] = 1;
+        if (match_row[c] < 0 || aug(match_row[c])) {
+          match_row[c] = row;
+          return true;
+        }
+      }
+      return false;
+    };
+    for (size_t b = 0; b < target_goal_sets.size(); ++b) {
+      vis.assign(col_of.size(), 0);
+      if (!aug((int)b))
+        throw std::invalid_argument(
+            "finalize: no covering goal matching over target goal sets "
+            "(Hall violation)");
+    }
   }
 }
 
@@ -143,12 +202,36 @@ DDInstance load_dd_instance(const std::string& yaml_path)
   if (doc["shelves"])
     for (const auto& n : doc["shelves"])
       ins.shelves.push_back(ins.grid.idx(n[0].as<int>(), n[1].as<int>()));
+  // goal-set forms (design_final 2.1, T1): top-level `goal_pool` +
+  // per-target `goals: [[r,c],...]` (explicit set) or `goals: pool`
+  // (shared pool reference); old `goal: [r,c]` stays the singleton form.
+  std::vector<int> pool;
+  if (doc["goal_pool"])
+    for (const auto& n : doc["goal_pool"])
+      pool.push_back(ins.grid.idx(n[0].as<int>(), n[1].as<int>()));
   if (doc["targets"])
     for (const auto& t : doc["targets"]) {
       ins.target_starts.push_back(
           ins.grid.idx(t["start"][0].as<int>(), t["start"][1].as<int>()));
-      ins.target_goals.push_back(
-          ins.grid.idx(t["goal"][0].as<int>(), t["goal"][1].as<int>()));
+      std::vector<int> set;
+      if (t["goals"]) {
+        if (t["goals"].IsScalar()) {
+          if (t["goals"].as<std::string>() != "pool")
+            throw std::invalid_argument(
+                "load_dd_instance: target `goals` must be a list or 'pool'");
+          if (pool.empty())
+            throw std::invalid_argument(
+                "load_dd_instance: `goals: pool` without a goal_pool");
+          set = pool;
+        } else {
+          for (const auto& n : t["goals"])
+            set.push_back(ins.grid.idx(n[0].as<int>(), n[1].as<int>()));
+        }
+      } else {
+        set.push_back(
+            ins.grid.idx(t["goal"][0].as<int>(), t["goal"][1].as<int>()));
+      }
+      ins.target_goal_sets.push_back(std::move(set));
     }
   ins.finalize();
   return ins;
@@ -170,8 +253,13 @@ PhysConfig initial_phys_config(const DDInstance& ins)
 
 bool is_dd_goal(const DDInstance& ins, const PhysConfig& s)
 {
-  for (size_t b = 0; b < ins.n_targets(); ++b)
-    if (s.target_pos[b] != ins.target_goals[b]) return false;
+  // Prop 3 (design_final 4.1): membership in the eligible set is exact
+  // (S1 makes b -> p_b injective, so tau(b) := p_b witnesses a matching)
+  for (size_t b = 0; b < ins.n_targets(); ++b) {
+    const auto& set = ins.target_goal_sets[b];
+    if (!std::binary_search(set.begin(), set.end(), s.target_pos[b]))
+      return false;
+  }
   for (int k : s.kappa)
     if (k >= 0) return false;  // carried target is not grounded (D10)
   return true;
