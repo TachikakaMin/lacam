@@ -324,3 +324,37 @@ set differs by +dneM_seed22 +ddmapd_h24d60t16_seed2 / -dneM_seed18
 crest_full 38, natcbs 21.  Family-mean makespan on commonly solved
 instances is at parity with v5 (r2r 1.03, s2w 0.99, standard_ddmapd 1.00)
 except DnE-M at +12% (recorded as an open regression in debug.md WP6).
+
+
+## BRaP-protocol suite (arXiv:2509.01022, AAAI-26)
+
+`generate_brap_instances.py` replicates the paper's layout protocol
+(Table 2 + Figure 6): grids 4x10 .. 80x80, bottom-right square obstacle of
+side L/5, EVERY non-obstacle cell filled with a shelf except 1..25%|V|
+empties (sliding-puzzle density), assigned targets <= 12.5%|V| (Goal B
+additionally capped at 2x height), goal types B (boundary) and R1 (random
+cells), 2 seeds per combo (68 instances, deterministic).  Honest
+adaptations to the two-deck carrier model: robots added
+(max(2, assigned/8), cap 32) since BRaP blocks move themselves; the
+interchangeable goal SET is fixed to per-target goals by deterministic
+greedy nearest matching (mirrors BR-PIBT's closest-goal allocation); we
+allow following (design 3.4a) where BRaP forbids it; completed targets
+stay liftable (D2) instead of becoming obstacles.
+
+Results (results_brap/rows.csv, unified 10 s, jobs=14): carrier 34/68 —
+all of 4x10/6x10/8x10 (24/24) and 10/12 of 10x10 including the paper's
+"deeply buried single block, one empty" case (fig 6h); ALL other methods
+collapse at this density (b4 6/68, B0/B1/CREST/NAT-CBS 0/68).  Nothing
+solves >= 20x20 within 10 s: at 93-97% fill an EXECUTABLE plan has a
+horizon of tens of thousands of robot timesteps (our solved 4x10..10x10
+instances average makespan 28k-74k), whereas BRaP's 80x80 solvability is
+a property of its non-executable abstraction (blocks teleport one cell
+per move, no robot layer, cost counts block moves only).  Probes
+confirmed the wall is not tunable: more robots hurt (16 robots -> 7/40
+targets vs 5 robots -> 14/40 on 20x20; extra bodies clog the empties),
+and opening the macro scale regime (DD_MACRO_TGT=1000, DD_ACTIVE_CAP=32)
+does not reach a first solution either.  Interpretation: this suite
+quantifies exactly the executability price the design.md thesis is
+about — block-abstraction methods "solve" large dense grids by never
+paying robot travel; every plan our method reports replays through the
+two-deck validator.

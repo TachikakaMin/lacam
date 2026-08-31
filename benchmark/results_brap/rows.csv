@@ -1,0 +1,477 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,first_solution_ms,reversals,runtime_sec,status,raw
+brap_h10w10_a12_e3_B_seed0,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (2, 3)"
+brap_h10w10_a12_e3_B_seed0,g10x10,carrier,1,119589,181234.0,7518,116096,53417,26616,0.0314,9694,21843,14.54,ok,
+brap_h10w10_a12_e3_B_seed0,g10x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_B_seed0,g10x10,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_B_seed0,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_B_seed0,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_B_seed0,g10x10,natcbs,0,,,,,,,,,,12.684,timeout," 4), (0, 5), (0, 6), (0, 7), (0, 8)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 8), (0, 8)]  Time Limit Reached "
+brap_h10w10_a12_e3_B_seed1,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (5, 8)"
+brap_h10w10_a12_e3_B_seed1,g10x10,carrier,0,,,,,,,,,,10.922,timeout,est_targets_done=10 duplicate_configs=215465 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_B_seed1,g10x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_B_seed1,g10x10,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_B_seed1,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_B_seed1,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_B_seed1,g10x10,natcbs,0,,,,,,,,,,12.839,timeout," 6), (0, 7), (0, 8), (0, 9)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9)]  Time Limit Reached "
+brap_h10w10_a12_e3_R1_seed0,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (8, 6)"
+brap_h10w10_a12_e3_R1_seed0,g10x10,carrier,1,93255,143574.0,3531,92114,45900,22857,0.0189,7747,16637,10.991,ok,
+brap_h10w10_a12_e3_R1_seed0,g10x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_R1_seed0,g10x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_R1_seed0,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_R1_seed0,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_R1_seed0,g10x10,natcbs,0,,,,,,,,,,3.937,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h10w10_a12_e3_R1_seed1,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (2, 4)"
+brap_h10w10_a12_e3_R1_seed1,g10x10,carrier,0,,,,,,,,,,10.925,timeout,best_targets_done=8 duplicate_configs=226449 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_R1_seed1,g10x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_R1_seed1,g10x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e3_R1_seed1,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_R1_seed1,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e3_R1_seed1,g10x10,natcbs,0,,,,,,,,,,13.075,timeout," 4), (0, 5), (0, 6), (0, 7), (0, 8)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8)]  Time Limit Reached "
+brap_h10w10_a12_e8_B_seed0,g10x10,b4,0,,,,,,,,,,0.018,failed,"no parking cell reachable from (8, 3)"
+brap_h10w10_a12_e8_B_seed0,g10x10,carrier,1,73039,119541.0,6247,70889,39389,19607,0.0428,4540,16062,10.696,ok,
+brap_h10w10_a12_e8_B_seed0,g10x10,carrier_b0,0,,,,,,,,,,0.012,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_B_seed0,g10x10,carrier_b1,0,,,,,,,,,,0.018,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_B_seed0,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_B_seed0,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_B_seed0,g10x10,natcbs,0,,,,,,,,,,12.792,timeout," 0), (1, 1)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 2), (0, 7), (0, 8), (0, 9), (1, 0), (1, 1)]  Time Limit Reached "
+brap_h10w10_a12_e8_B_seed1,g10x10,b4,0,,,,,,,,,,0.003,failed,"no parking cell reachable from (5, 7)"
+brap_h10w10_a12_e8_B_seed1,g10x10,carrier,1,78177,127004.0,10049,71989,39682,19753,0.0643,5329,17117,10.768,ok,
+brap_h10w10_a12_e8_B_seed1,g10x10,carrier_b0,0,,,,,,,,,,0.03,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_B_seed1,g10x10,carrier_b1,0,,,,,,,,,,0.074,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_B_seed1,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_B_seed1,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_B_seed1,g10x10,natcbs,0,,,,,,,,,,12.984,timeout," 9), (1, 0), (1, 1)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 4), (0, 4), (0, 5), (0, 7), (0, 0), (0, 9), (1, 0), (1, 1)]  Time Limit Reached "
+brap_h10w10_a12_e8_R1_seed0,g10x10,b4,0,,,,,,,,,,0.028,failed,"no parking cell reachable from (6, 8)"
+brap_h10w10_a12_e8_R1_seed0,g10x10,carrier,1,81686,137227.0,11408,76663,44292,22061,0.0698,5245,18831,10.853,ok,
+brap_h10w10_a12_e8_R1_seed0,g10x10,carrier_b0,0,,,,,,,,,,0.022,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_R1_seed0,g10x10,carrier_b1,0,,,,,,,,,,0.025,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_R1_seed0,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_R1_seed0,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_R1_seed0,g10x10,natcbs,0,,,,,,,,,,10.106,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h10w10_a12_e8_R1_seed1,g10x10,b4,0,,,,,,,,,,0.004,failed,"no parking cell reachable from (7, 7)"
+brap_h10w10_a12_e8_R1_seed1,g10x10,carrier,1,52880,87336.0,6585,49736,27212,13518,0.0623,3514,11664,10.522,ok,
+brap_h10w10_a12_e8_R1_seed1,g10x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_R1_seed1,g10x10,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a12_e8_R1_seed1,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_R1_seed1,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a12_e8_R1_seed1,g10x10,natcbs,0,,,,,,,,,,12.28,timeout," 1), (1, 2)] Delivery locations: [(0, 0), (0, 1), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (1, 0), (1, 1), (1, 2)]  Time Limit Reached "
+brap_h10w10_a1_e1_B_seed0,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (7, 1)"
+brap_h10w10_a1_e1_B_seed0,g10x10,carrier,1,17423,25740.0,340,17816,7318,3572,0.0098,1801,2915,10.216,ok,
+brap_h10w10_a1_e1_B_seed0,g10x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_B_seed0,g10x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_B_seed0,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_B_seed0,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_B_seed0,g10x10,natcbs,0,,,,,,,,,,12.58,timeout," of obstacles: 95 Num of tasks: 1 Agent start locations: [(6, 9), (6, 4)] Pickup locations: [(0, 0)] Delivery locations: [(0, 0)]  Time Limit Reached "
+brap_h10w10_a1_e1_B_seed1,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (5, 2)"
+brap_h10w10_a1_e1_B_seed1,g10x10,carrier,1,24774,31593.0,654,23776,6688,3252,0.0132,2088,2655,10.289,ok,
+brap_h10w10_a1_e1_B_seed1,g10x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_B_seed1,g10x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_B_seed1,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_B_seed1,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_B_seed1,g10x10,natcbs,0,,,,,,,,,,18.174,timeout," of obstacles: 95 Num of tasks: 1 Agent start locations: [(7, 1), (1, 0)] Pickup locations: [(0, 0)] Delivery locations: [(0, 0)]  Time Limit Reached "
+brap_h10w10_a1_e1_R1_seed0,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (6, 9)"
+brap_h10w10_a1_e1_R1_seed0,g10x10,carrier,1,21251,25994.0,429,20160,5120,2468,0.0101,1788,1893,10.255,ok,
+brap_h10w10_a1_e1_R1_seed0,g10x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_R1_seed0,g10x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_R1_seed0,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_R1_seed0,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_R1_seed0,g10x10,natcbs,0,,,,,,,,,,16.208,timeout," of obstacles: 95 Num of tasks: 1 Agent start locations: [(4, 1), (9, 1)] Pickup locations: [(0, 0)] Delivery locations: [(0, 0)]  Time Limit Reached "
+brap_h10w10_a1_e1_R1_seed1,g10x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (9, 3)"
+brap_h10w10_a1_e1_R1_seed1,g10x10,carrier,1,50099,75175.0,1080,51396,21922,10866,0.0108,5433,9271,10.519,ok,
+brap_h10w10_a1_e1_R1_seed1,g10x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_R1_seed1,g10x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h10w10_a1_e1_R1_seed1,g10x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_R1_seed1,g10x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h10w10_a1_e1_R1_seed1,g10x10,natcbs,0,,,,,,,,,,13.216,timeout," of obstacles: 95 Num of tasks: 1 Agent start locations: [(1, 6), (8, 6)] Pickup locations: [(0, 0)] Delivery locations: [(0, 0)]  Time Limit Reached "
+brap_h20w20_a40_e100_B_seed0,g20x20,b4,0,,,,,,,,,,0.607,failed,plan finished but goal not reached
+brap_h20w20_a40_e100_B_seed0,g20x20,carrier,0,,,,,,,,,,10.484,timeout,best_targets_done=14 duplicate_configs=73021 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_B_seed0,g20x20,carrier_b0,0,,,,,,,,,,0.01,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_B_seed0,g20x20,carrier_b1,0,,,,,,,,,,0.011,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_B_seed0,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_B_seed0,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_B_seed0,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h20w20_a40_e100_B_seed1,g20x20,b4,1,6254,7138.0,1350,3310,1594,563,0.0432,,0,0.535,ok,
+brap_h20w20_a40_e100_B_seed1,g20x20,carrier,0,,,,,,,,,,10.467,timeout,best_targets_done=12 duplicate_configs=79656 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_B_seed1,g20x20,carrier_b0,0,,,,,,,,,,0.01,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_B_seed1,g20x20,carrier_b1,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_B_seed1,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_B_seed1,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_B_seed1,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h20w20_a40_e100_R1_seed0,g20x20,b4,1,6166,7084.0,1347,3189,1630,577,0.0437,,0,0.52,ok,
+brap_h20w20_a40_e100_R1_seed0,g20x20,carrier,0,,,,,,,,,,10.463,timeout,best_targets_done=18 duplicate_configs=65706 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_R1_seed0,g20x20,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_R1_seed0,g20x20,carrier_b1,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_R1_seed0,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_R1_seed0,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_R1_seed0,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h20w20_a40_e100_R1_seed1,g20x20,b4,0,,,,,,,,,,0.337,failed,plan finished but goal not reached
+brap_h20w20_a40_e100_R1_seed1,g20x20,carrier,0,,,,,,,,,,10.423,timeout,best_targets_done=24 duplicate_configs=63493 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_R1_seed1,g20x20,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_R1_seed1,g20x20,carrier_b1,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e100_R1_seed1,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_R1_seed1,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e100_R1_seed1,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h20w20_a40_e10_B_seed0,g20x20,b4,0,,,,,,,,,,0.006,failed,"no parking cell reachable from (2, 8)"
+brap_h20w20_a40_e10_B_seed0,g20x20,carrier,0,,,,,,,,,,10.355,timeout, best_targets_done=6 duplicate_configs=94044 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_B_seed0,g20x20,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_B_seed0,g20x20,carrier_b1,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_B_seed0,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_B_seed0,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_B_seed0,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h20w20_a40_e10_B_seed1,g20x20,b4,0,,,,,,,,,,0.004,failed,"no parking cell reachable from (4, 2)"
+brap_h20w20_a40_e10_B_seed1,g20x20,carrier,0,,,,,,,,,,10.386,timeout, best_targets_done=5 duplicate_configs=96500 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_B_seed1,g20x20,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_B_seed1,g20x20,carrier_b1,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_B_seed1,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_B_seed1,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_B_seed1,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h20w20_a40_e10_R1_seed0,g20x20,b4,0,,,,,,,,,,0.004,failed,"no parking cell reachable from (10, 2)"
+brap_h20w20_a40_e10_R1_seed0,g20x20,carrier,0,,,,,,,,,,10.375,timeout, best_targets_done=5 duplicate_configs=95191 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_R1_seed0,g20x20,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_R1_seed0,g20x20,carrier_b1,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_R1_seed0,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_R1_seed0,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_R1_seed0,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h20w20_a40_e10_R1_seed1,g20x20,b4,0,,,,,,,,,,0.005,failed,"no parking cell reachable from (1, 18)"
+brap_h20w20_a40_e10_R1_seed1,g20x20,carrier,0,,,,,,,,,,10.436,timeout, best_targets_done=6 duplicate_configs=89284 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_R1_seed1,g20x20,carrier_b0,0,,,,,,,,,,0.012,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_R1_seed1,g20x20,carrier_b1,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h20w20_a40_e10_R1_seed1,g20x20,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_R1_seed1,g20x20,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h20w20_a40_e10_R1_seed1,g20x20,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a160_e400_R1_seed0,g40x40,b4,0,,,,,,,,,,5.582,failed,plan finished but goal not reached
+brap_h40w40_a160_e400_R1_seed0,g40x40,carrier,0,,,,,,,,,,10.264,timeout,best_targets_done=46 duplicate_configs=41661 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e400_R1_seed0,g40x40,carrier_b0,0,,,,,,,,,,0.038,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e400_R1_seed0,g40x40,carrier_b1,0,,,,,,,,,,0.027,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e400_R1_seed0,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e400_R1_seed0,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e400_R1_seed0,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a160_e400_R1_seed1,g40x40,b4,0,,,,,,,,,,5.878,failed,plan finished but goal not reached
+brap_h40w40_a160_e400_R1_seed1,g40x40,carrier,0,,,,,,,,,,10.282,timeout,best_targets_done=34 duplicate_configs=22050 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e400_R1_seed1,g40x40,carrier_b0,0,,,,,,,,,,0.2,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e400_R1_seed1,g40x40,carrier_b1,0,,,,,,,,,,0.024,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e400_R1_seed1,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e400_R1_seed1,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e400_R1_seed1,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a160_e40_R1_seed0,g40x40,b4,0,,,,,,,,,,0.219,failed,"no parking cell reachable from (3, 26)"
+brap_h40w40_a160_e40_R1_seed0,g40x40,carrier,0,,,,,,,,,,10.144,timeout,best_targets_done=19 duplicate_configs=45194 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e40_R1_seed0,g40x40,carrier_b0,0,,,,,,,,,,0.034,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e40_R1_seed0,g40x40,carrier_b1,0,,,,,,,,,,0.041,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e40_R1_seed0,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e40_R1_seed0,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e40_R1_seed0,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a160_e40_R1_seed1,g40x40,b4,0,,,,,,,,,,0.183,failed,"no parking cell reachable from (2, 16)"
+brap_h40w40_a160_e40_R1_seed1,g40x40,carrier,0,,,,,,,,,,10.24,timeout,best_targets_done=16 duplicate_configs=39026 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e40_R1_seed1,g40x40,carrier_b0,0,,,,,,,,,,0.038,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e40_R1_seed1,g40x40,carrier_b1,0,,,,,,,,,,0.03,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a160_e40_R1_seed1,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e40_R1_seed1,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a160_e40_R1_seed1,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a80_e400_B_seed0,g40x40,b4,1,29332,33403.0,5798,16740,6794,2504,0.0198,,0,7.618,ok,
+brap_h40w40_a80_e400_B_seed0,g40x40,carrier,0,,,,,,,,,,10.206,timeout,best_targets_done=15 duplicate_configs=41957 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e400_B_seed0,g40x40,carrier_b0,0,,,,,,,,,,0.034,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e400_B_seed0,g40x40,carrier_b1,0,,,,,,,,,,0.028,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e400_B_seed0,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e400_B_seed0,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e400_B_seed0,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a80_e400_B_seed1,g40x40,b4,0,,,,,,,,,,8.524,failed,plan finished but goal not reached
+brap_h40w40_a80_e400_B_seed1,g40x40,carrier,0,,,,,,,,,,10.31,timeout,best_targets_done=13 duplicate_configs=38584 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e400_B_seed1,g40x40,carrier_b0,0,,,,,,,,,,0.033,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e400_B_seed1,g40x40,carrier_b1,0,,,,,,,,,,0.022,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e400_B_seed1,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e400_B_seed1,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e400_B_seed1,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a80_e40_B_seed0,g40x40,b4,0,,,,,,,,,,0.026,failed,"no parking cell reachable from (0, 38)"
+brap_h40w40_a80_e40_B_seed0,g40x40,carrier,0,,,,,,,,,,10.117,timeout, best_targets_done=5 duplicate_configs=42300 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e40_B_seed0,g40x40,carrier_b0,0,,,,,,,,,,0.026,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e40_B_seed0,g40x40,carrier_b1,0,,,,,,,,,,0.038,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e40_B_seed0,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e40_B_seed0,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e40_B_seed0,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h40w40_a80_e40_B_seed1,g40x40,b4,0,,,,,,,,,,0.212,failed,"no parking cell reachable from (17, 37)"
+brap_h40w40_a80_e40_B_seed1,g40x40,carrier,0,,,,,,,,,,10.158,timeout, best_targets_done=2 duplicate_configs=46609 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e40_B_seed1,g40x40,carrier_b0,0,,,,,,,,,,0.034,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e40_B_seed1,g40x40,carrier_b1,0,,,,,,,,,,0.025,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h40w40_a80_e40_B_seed1,g40x40,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e40_B_seed1,g40x40,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h40w40_a80_e40_B_seed1,g40x40,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h4w10_a5_e10_B_seed0,g4x10,b4,1,210,240.0,49,107,54,11,0.1167,,0,0.006,ok,
+brap_h4w10_a5_e10_B_seed0,g4x10,carrier,1,455,620.0,85,405,106,40,0.0934,9,65,10.103,ok,
+brap_h4w10_a5_e10_B_seed0,g4x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_B_seed0,g4x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_B_seed0,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_B_seed0,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_B_seed0,g4x10,natcbs,0,,,,,,,,,,1.21,rc=-6,| negative_vertex_constraints.at(e_constraint.time + 1).find(e_constraint.to) == negative_vertex_constraints.at(e_constraint.time + 1).end()' failed. 
+brap_h4w10_a5_e10_B_seed1,g4x10,b4,0,,,,,,,,,,0.005,failed,"no parking cell reachable from (0, 8)"
+brap_h4w10_a5_e10_B_seed1,g4x10,carrier,1,720,1470.0,451,442,338,156,0.3132,21,275,10.098,ok,
+brap_h4w10_a5_e10_B_seed1,g4x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_B_seed1,g4x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_B_seed1,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_B_seed1,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_B_seed1,g4x10,natcbs,0,,,,,,,,,,11.188,timeout,"3 Agent start locations: [(1, 6), (1, 2)] Pickup locations: [(0, 0), (0, 1), (0, 4)] Delivery locations: [(0, 0), (0, 1), (0, 4)]  Time Limit Reached "
+brap_h4w10_a5_e10_R1_seed0,g4x10,b4,0,,,,,,,,,,0.014,failed,"no parking cell reachable from (2, 1)"
+brap_h4w10_a5_e10_R1_seed0,g4x10,carrier,1,6580,11494.0,1844,5452,3230,1589,0.1401,176,1839,10.116,ok,
+brap_h4w10_a5_e10_R1_seed0,g4x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_R1_seed0,g4x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_R1_seed0,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_R1_seed0,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_R1_seed0,g4x10,natcbs,0,,,,,,,,,,0.549,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h4w10_a5_e10_R1_seed1,g4x10,b4,0,,,,,,,,,,0.002,failed,"no parking cell reachable from (0, 1)"
+brap_h4w10_a5_e10_R1_seed1,g4x10,carrier,1,781,1422.0,344,565,330,154,0.2202,19,243,10.091,ok,
+brap_h4w10_a5_e10_R1_seed1,g4x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_R1_seed1,g4x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e10_R1_seed1,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_R1_seed1,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e10_R1_seed1,g4x10,natcbs,0,,,,,,,,,,11.965,timeout,"3 Agent start locations: [(1, 4), (3, 2)] Pickup locations: [(0, 1), (0, 2), (0, 4)] Delivery locations: [(0, 1), (0, 2), (1, 1)]  Time Limit Reached "
+brap_h4w10_a5_e1_B_seed0,g4x10,b4,0,,,,,,,,,,0.0,failed,"no parking cell reachable from (3, 2)"
+brap_h4w10_a5_e1_B_seed0,g4x10,carrier,1,66704,102430.0,3148,70265,27104,13517,0.0236,2818,15046,10.309,ok,
+brap_h4w10_a5_e1_B_seed0,g4x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_B_seed0,g4x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_B_seed0,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_B_seed0,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_B_seed0,g4x10,natcbs,0,,,,,,,,,,12.568,timeout,"3 Agent start locations: [(0, 6), (0, 0)] Pickup locations: [(0, 0), (0, 1), (0, 2)] Delivery locations: [(0, 0), (0, 9), (0, 2)]  Time Limit Reached "
+brap_h4w10_a5_e1_B_seed1,g4x10,b4,0,,,,,,,,,,0.0,failed,"no parking cell reachable from (2, 4)"
+brap_h4w10_a5_e1_B_seed1,g4x10,carrier,1,85389,129242.0,4047,88172,35000,17465,0.0237,3453,17673,10.383,ok,
+brap_h4w10_a5_e1_B_seed1,g4x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_B_seed1,g4x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_B_seed1,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_B_seed1,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_B_seed1,g4x10,natcbs,0,,,,,,,,,,0.59,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h4w10_a5_e1_R1_seed0,g4x10,b4,0,,,,,,,,,,0.0,failed,"no parking cell reachable from (3, 5)"
+brap_h4w10_a5_e1_R1_seed0,g4x10,carrier,1,162215,233343.0,6961,169101,52950,26440,0.0215,7641,31215,11.313,ok,
+brap_h4w10_a5_e1_R1_seed0,g4x10,carrier_b0,0,,,,,,,,,,0.007,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_R1_seed0,g4x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_R1_seed0,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_R1_seed0,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_R1_seed0,g4x10,natcbs,0,,,,,,,,,,13.303,timeout,"cations: [(3, 3), (1, 2)] Pickup locations: [(0, 0), (0, 1), (0, 2), (0, 3)] Delivery locations: [(2, 7), (0, 1), (0, 2), (0, 3)]  Time Limit Reached "
+brap_h4w10_a5_e1_R1_seed1,g4x10,b4,0,,,,,,,,,,0.0,failed,"no parking cell reachable from (1, 2)"
+brap_h4w10_a5_e1_R1_seed1,g4x10,carrier,1,21185,31786.0,1180,22338,7696,3813,0.0278,819,4371,10.149,ok,
+brap_h4w10_a5_e1_R1_seed1,g4x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_R1_seed1,g4x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h4w10_a5_e1_R1_seed1,g4x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_R1_seed1,g4x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h4w10_a5_e1_R1_seed1,g4x10,natcbs,0,,,,,,,,,,0.044,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h6w10_a6_e15_B_seed0,g6x10,b4,0,,,,,,,,,,0.027,failed,"no parking cell reachable from (3, 1)"
+brap_h6w10_a6_e15_B_seed0,g6x10,carrier,1,1059,1964.0,532,750,508,235,0.2512,31,402,10.086,ok,
+brap_h6w10_a6_e15_B_seed0,g6x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_B_seed0,g6x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_B_seed0,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_B_seed0,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_B_seed0,g6x10,natcbs,0,,,,,,,,,,12.949,timeout,", (0, 7)] Pickup locations: [(0, 0), (0, 2), (0, 3), (0, 4), (0, 6)] Delivery locations: [(0, 0), (0, 2), (0, 3), (0, 4), (0, 6)]  Time Limit Reached "
+brap_h6w10_a6_e15_B_seed1,g6x10,b4,0,,,,,,,,,,0.008,failed,"no parking cell reachable from (3, 7)"
+brap_h6w10_a6_e15_B_seed1,g6x10,carrier,1,4046,7115.0,1348,3175,1848,895,0.1666,249,1079,10.13,ok,
+brap_h6w10_a6_e15_B_seed1,g6x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_B_seed1,g6x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_B_seed1,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_B_seed1,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_B_seed1,g6x10,natcbs,0,,,,,,,,,,13.375,timeout,"cations: [(1, 4), (5, 2)] Pickup locations: [(0, 1), (0, 3), (0, 4), (0, 5)] Delivery locations: [(0, 1), (0, 3), (0, 4), (0, 5)]  Time Limit Reached "
+brap_h6w10_a6_e15_R1_seed0,g6x10,b4,0,,,,,,,,,,0.006,failed,"no parking cell reachable from (0, 1)"
+brap_h6w10_a6_e15_R1_seed0,g6x10,carrier,1,2250,4254.0,996,1672,1052,503,0.2213,76,727,10.101,ok,
+brap_h6w10_a6_e15_R1_seed0,g6x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_R1_seed0,g6x10,carrier_b1,0,,,,,,,,,,0.004,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_R1_seed0,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_R1_seed0,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_R1_seed0,g6x10,natcbs,0,,,,,,,,,,4.108,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h6w10_a6_e15_R1_seed1,g6x10,b4,0,,,,,,,,,,0.011,failed,"no parking cell reachable from (2, 3)"
+brap_h6w10_a6_e15_R1_seed1,g6x10,carrier,1,3272,6020.0,1036,2774,1546,745,0.1583,111,946,10.092,ok,
+brap_h6w10_a6_e15_R1_seed1,g6x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_R1_seed1,g6x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e15_R1_seed1,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_R1_seed1,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e15_R1_seed1,g6x10,natcbs,0,,,,,,,,,,7.133,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h6w10_a6_e1_B_seed0,g6x10,b4,0,,,,,,,,,,0.0,failed,"no parking cell reachable from (0, 6)"
+brap_h6w10_a6_e1_B_seed0,g6x10,carrier,1,60706,91839.0,1650,62312,26896,13393,0.0136,3488,11656,10.379,ok,
+brap_h6w10_a6_e1_B_seed0,g6x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_B_seed0,g6x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_B_seed0,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_B_seed0,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_B_seed0,g6x10,natcbs,0,,,,,,,,,,13.002,timeout," locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 6)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 6)]  Time Limit Reached "
+brap_h6w10_a6_e1_B_seed1,g6x10,b4,0,,,,,,,,,,0.0,failed,"no parking cell reachable from (3, 5)"
+brap_h6w10_a6_e1_B_seed1,g6x10,carrier,1,46096,66655.0,774,45963,19448,9669,0.0084,2432,7692,10.314,ok,
+brap_h6w10_a6_e1_B_seed1,g6x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_B_seed1,g6x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_B_seed1,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_B_seed1,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_B_seed1,g6x10,natcbs,0,,,,,,,,,,17.612,timeout,", (0, 7)] Pickup locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)]  Time Limit Reached "
+brap_h6w10_a6_e1_R1_seed0,g6x10,b4,0,,,,,,,,,,0.0,failed,"no parking cell reachable from (4, 7)"
+brap_h6w10_a6_e1_R1_seed0,g6x10,carrier,1,125370,190946.0,3780,132169,52888,26389,0.0151,7196,24708,10.73,ok,
+brap_h6w10_a6_e1_R1_seed0,g6x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_R1_seed0,g6x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_R1_seed0,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_R1_seed0,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_R1_seed0,g6x10,natcbs,0,,,,,,,,,,17.546,timeout," locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]  Time Limit Reached "
+brap_h6w10_a6_e1_R1_seed1,g6x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (1, 2)"
+brap_h6w10_a6_e1_R1_seed1,g6x10,carrier,1,165728,252212.0,4814,172874,71776,35833,0.0145,9284,31411,12.793,ok,
+brap_h6w10_a6_e1_R1_seed1,g6x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_R1_seed1,g6x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h6w10_a6_e1_R1_seed1,g6x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_R1_seed1,g6x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h6w10_a6_e1_R1_seed1,g6x10,natcbs,0,,,,,,,,,,12.238,timeout," locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)] Delivery locations: [(4, 7), (0, 1), (0, 2), (0, 3), (0, 4), (0, 9)]  Time Limit Reached "
+brap_h80w80_a128_e1600_B_seed0,g80x80,b4,0,,,,,,,,,,89.036,failed,plan finished but goal not reached
+brap_h80w80_a128_e1600_B_seed0,g80x80,carrier,0,,,,,,,,,,10.116,timeout,6 best_targets_done=6 duplicate_configs=1106 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_B_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.197,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_B_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.106,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_B_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_B_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_B_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a128_e1600_B_seed1,g80x80,b4,0,,,,,,,,,,119.679,failed,plan finished but goal not reached
+brap_h80w80_a128_e1600_B_seed1,g80x80,carrier,0,,,,,,,,,,10.104,timeout,15 best_targets_done=9 duplicate_configs=949 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_B_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.155,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_B_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.109,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_B_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_B_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_B_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a128_e1600_R1_seed0,g80x80,b4,1,36724,42275.0,7357,21015,8352,1816,0.0125,,0,46.434,ok,
+brap_h80w80_a128_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.197,timeout, best_targets_done=12 duplicate_configs=3174 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_R1_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.192,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_R1_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.09,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_R1_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_R1_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_R1_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a128_e1600_R1_seed1,g80x80,b4,1,28508,32397.0,5398,17008,6102,1105,0.0118,,0,33.849,ok,
+brap_h80w80_a128_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.218,timeout, best_targets_done=20 duplicate_configs=5656 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_R1_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.114,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_R1_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.079,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e1600_R1_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_R1_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e1600_R1_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a128_e160_B_seed0,g80x80,b4,0,,,,,,,,,,18.366,failed,"no parking cell reachable from (0, 75)"
+brap_h80w80_a128_e160_B_seed0,g80x80,carrier,0,,,,,,,,,,10.182,timeout, best_targets_done=5 duplicate_configs=12234 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_B_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.158,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_B_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.162,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_B_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_B_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_B_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a128_e160_B_seed1,g80x80,b4,0,,,,,,,,,,2.474,failed,"no parking cell reachable from (78, 36)"
+brap_h80w80_a128_e160_B_seed1,g80x80,carrier,0,,,,,,,,,,10.121,timeout, best_targets_done=3 duplicate_configs=11485 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_B_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.185,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_B_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.138,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_B_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_B_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_B_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a128_e160_R1_seed0,g80x80,b4,0,,,,,,,,,,0.891,failed,"no parking cell reachable from (78, 12)"
+brap_h80w80_a128_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.125,timeout, best_targets_done=4 duplicate_configs=14486 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_R1_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.111,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_R1_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.116,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_R1_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_R1_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_R1_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a128_e160_R1_seed1,g80x80,b4,0,,,,,,,,,,3.057,failed,"no parking cell reachable from (0, 75)"
+brap_h80w80_a128_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.132,timeout, best_targets_done=6 duplicate_configs=13688 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_R1_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.117,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_R1_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.172,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a128_e160_R1_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_R1_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a128_e160_R1_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a160_e1600_B_seed0,g80x80,b4,0,,,,,,,,,,123.035,failed,plan finished but goal not reached
+brap_h80w80_a160_e1600_B_seed0,g80x80,carrier,0,,,,,,,,,,10.104,timeout,97 best_targets_done=7 duplicate_configs=659 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e1600_B_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.185,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e1600_B_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.092,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e1600_B_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e1600_B_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e1600_B_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a160_e1600_B_seed1,g80x80,b4,0,,,,,,,,,,146.957,failed,plan finished but goal not reached
+brap_h80w80_a160_e1600_B_seed1,g80x80,carrier,0,,,,,,,,,,10.092,timeout,30 best_targets_done=4 duplicate_configs=488 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e1600_B_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.249,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e1600_B_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.104,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e1600_B_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e1600_B_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e1600_B_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a160_e160_B_seed0,g80x80,b4,0,,,,,,,,,,1.599,failed,"no parking cell reachable from (70, 62)"
+brap_h80w80_a160_e160_B_seed0,g80x80,carrier,0,,,,,,,,,,10.109,timeout, best_targets_done=2 duplicate_configs=12550 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e160_B_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.16,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e160_B_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.17,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e160_B_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e160_B_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e160_B_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a160_e160_B_seed1,g80x80,b4,0,,,,,,,,,,2.433,failed,"no parking cell reachable from (67, 41)"
+brap_h80w80_a160_e160_B_seed1,g80x80,carrier,0,,,,,,,,,,10.143,timeout, best_targets_done=8 duplicate_configs=13837 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e160_B_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.146,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e160_B_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.161,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a160_e160_B_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e160_B_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a160_e160_B_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a800_e1600_R1_seed0,g80x80,b4,0,,,,,,,,,,279.595,failed,max steps exceeded
+brap_h80w80_a800_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.134,timeout,est_targets_done=161 duplicate_configs=15321 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e1600_R1_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.497,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e1600_R1_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.181,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e1600_R1_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e1600_R1_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e1600_R1_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a800_e1600_R1_seed1,g80x80,b4,0,,,,,,,,,,168.186,failed,plan finished but goal not reached
+brap_h80w80_a800_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.168,timeout,est_targets_done=173 duplicate_configs=13280 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e1600_R1_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.291,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e1600_R1_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.227,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e1600_R1_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e1600_R1_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e1600_R1_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a800_e160_R1_seed0,g80x80,b4,0,,,,,,,,,,5.575,failed,"no parking cell reachable from (14, 40)"
+brap_h80w80_a800_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.339,timeout, best_targets_done=93 duplicate_configs=8528 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e160_R1_seed0,g80x80,carrier_b0,0,,,,,,,,,,0.212,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e160_R1_seed0,g80x80,carrier_b1,0,,,,,,,,,,0.184,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e160_R1_seed0,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e160_R1_seed0,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e160_R1_seed0,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h80w80_a800_e160_R1_seed1,g80x80,b4,0,,,,,,,,,,9.287,failed,"no parking cell reachable from (72, 57)"
+brap_h80w80_a800_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.219,timeout,est_targets_done=111 duplicate_configs=10739 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e160_R1_seed1,g80x80,carrier_b0,0,,,,,,,,,,0.2,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e160_R1_seed1,g80x80,carrier_b1,0,,,,,,,,,,0.169,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h80w80_a800_e160_R1_seed1,g80x80,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e160_R1_seed1,g80x80,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h80w80_a800_e160_R1_seed1,g80x80,natcbs,0,,,,,,,,,,0,skipped_too_large,
+brap_h8w10_a10_e20_B_seed0,g8x10,b4,0,,,,,,,,,,0.038,failed,"no parking cell reachable from (6, 1)"
+brap_h8w10_a10_e20_B_seed0,g8x10,carrier,1,13116,23409.0,3776,11449,6740,3328,0.1439,480,3823,10.169,ok,
+brap_h8w10_a10_e20_B_seed0,g8x10,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_B_seed0,g8x10,carrier_b1,0,,,,,,,,,,0.007,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_B_seed0,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_B_seed0,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_B_seed0,g8x10,natcbs,0,,,,,,,,,,13.306,timeout," 0), (0, 3), (0, 4), (0, 5), (0, 7), (0, 8), (0, 9)] Delivery locations: [(0, 0), (7, 6), (0, 4), (0, 5), (0, 7), (0, 8), (0, 9)]  Time Limit Reached "
+brap_h8w10_a10_e20_B_seed1,g8x10,b4,1,1124,1300.0,276,526,322,111,0.1228,,0,0.063,ok,
+brap_h8w10_a10_e20_B_seed1,g8x10,carrier,1,2084,3790.0,787,1672,996,465,0.1888,141,627,10.093,ok,
+brap_h8w10_a10_e20_B_seed1,g8x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_B_seed1,g8x10,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_B_seed1,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_B_seed1,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_B_seed1,g8x10,natcbs,0,,,,,,,,,,12.936,timeout," 9), (1, 0), (1, 1), (1, 2)] Delivery locations: [(0, 0), (0, 1), (0, 3), (0, 5), (0, 7), (0, 8), (0, 8), (0, 0), (1, 1), (1, 2)]  Time Limit Reached "
+brap_h8w10_a10_e20_R1_seed0,g8x10,b4,1,706,818.0,176,324,206,61,0.1246,,0,0.027,ok,
+brap_h8w10_a10_e20_R1_seed0,g8x10,carrier,1,3148,5963.0,1217,2450,1635,782,0.1933,133,973,10.119,ok,
+brap_h8w10_a10_e20_R1_seed0,g8x10,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_R1_seed0,g8x10,carrier_b1,0,,,,,,,,,,0.007,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_R1_seed0,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_R1_seed0,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_R1_seed0,g8x10,natcbs,0,,,,,,,,,,13.116,timeout," 5), (0, 8), (0, 9), (1, 0), (1, 1), (1, 2)] Delivery locations: [(0, 0), (0, 2), (4, 0), (0, 8), (0, 9), (1, 0), (1, 1), (1, 2)]  Time Limit Reached "
+brap_h8w10_a10_e20_R1_seed1,g8x10,b4,0,,,,,,,,,,0.018,failed,"no parking cell reachable from (7, 4)"
+brap_h8w10_a10_e20_R1_seed1,g8x10,carrier,1,1752,3216.0,797,1225,946,443,0.2275,63,568,10.092,ok,
+brap_h8w10_a10_e20_R1_seed1,g8x10,carrier_b0,0,,,,,,,,,,0.009,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_R1_seed1,g8x10,carrier_b1,0,,,,,,,,,,0.007,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e20_R1_seed1,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_R1_seed1,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e20_R1_seed1,g8x10,natcbs,0,,,,,,,,,,6.087,rc=-6,s.find(v_constraint.time) == positive_vertex_constraints.end() || positive_vertex_constraints.at(v_constraint.time) != v_constraint.location' failed. 
+brap_h8w10_a10_e2_B_seed0,g8x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (3, 6)"
+brap_h8w10_a10_e2_B_seed0,g8x10,carrier,1,113696,173083.0,3869,110897,55920,27886,0.017,6851,19914,10.824,ok,
+brap_h8w10_a10_e2_B_seed0,g8x10,carrier_b0,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_B_seed0,g8x10,carrier_b1,0,,,,,,,,,,0.006,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_B_seed0,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_B_seed0,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_B_seed0,g8x10,natcbs,0,,,,,,,,,,12.255,timeout," 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6)]  Time Limit Reached "
+brap_h8w10_a10_e2_B_seed1,g8x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (5, 2)"
+brap_h8w10_a10_e2_B_seed1,g8x10,carrier,1,103372,156135.0,2808,103641,47949,23901,0.0136,6458,18962,10.757,ok,
+brap_h8w10_a10_e2_B_seed1,g8x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_B_seed1,g8x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_B_seed1,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_B_seed1,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_B_seed1,g8x10,natcbs,0,,,,,,,,,,12.588,timeout," 4), (0, 5), (0, 6), (0, 7), (0, 8)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (3, 9)]  Time Limit Reached "
+brap_h8w10_a10_e2_R1_seed0,g8x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (5, 2)"
+brap_h8w10_a10_e2_R1_seed0,g8x10,carrier,1,87611,127368.0,4507,84757,35638,17745,0.0257,5124,14087,10.635,ok,
+brap_h8w10_a10_e2_R1_seed0,g8x10,carrier_b0,0,,,,,,,,,,0.008,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_R1_seed0,g8x10,carrier_b1,0,,,,,,,,,,0.007,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_R1_seed0,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_R1_seed0,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_R1_seed0,g8x10,natcbs,0,,,,,,,,,,12.903,timeout," 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7)]  Time Limit Reached "
+brap_h8w10_a10_e2_R1_seed1,g8x10,b4,0,,,,,,,,,,0.001,failed,"no parking cell reachable from (5, 2)"
+brap_h8w10_a10_e2_R1_seed1,g8x10,carrier,1,61672,95448.0,2856,61024,30072,14962,0.0232,3839,11774,10.476,ok,
+brap_h8w10_a10_e2_R1_seed1,g8x10,carrier_b0,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b0 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_R1_seed1,g8x10,carrier_b1,0,,,,,,,,,,0.005,failed,_hits=0 best_targets_done=0 duplicate_configs=0 timed_out=0 seed=0 mode=b1 first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+brap_h8w10_a10_e2_R1_seed1,g8x10,crest_base,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_R1_seed1,g8x10,crest_full,0,,,,,,,,,,0,conversion_error,CREST executor does not model walls; instance must be wall-free
+brap_h8w10_a10_e2_R1_seed1,g8x10,natcbs,0,,,,,,,,,,13.092,timeout," 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6)] Delivery locations: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 4), (0, 8)]  Time Limit Reached "
