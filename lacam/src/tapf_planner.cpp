@@ -91,18 +91,19 @@ namespace
 
 // out-of-line: CarrierEngine is an implementation type
 struct TAPFPlanner::CarrierEngine {
-  std::vector<DDDistCache> target_goal_dist;  // per target (oracle grid)
+  // upper-deck wall distance (design_final 6.2/D21): ONE shared
+  // dest-keyed cache — the field depends only on (walls, dest), so
+  // per-target copies were redundant and would duplicate massively
+  // under shared goal pools.
+  DDDistCache upper_wall;
   LowerDist lower;
   PathCache paths;
   Scratch sc;
   PhysConfig phys;  // scratch physical view of the node in processing
 
   explicit CarrierEngine(const DDInstance& dd)
-      : lower(dd.grid), sc(dd.grid.size())
+      : upper_wall(dd.grid), lower(dd.grid), sc(dd.grid.size())
   {
-    target_goal_dist.reserve(dd.n_targets());
-    for (size_t b = 0; b < dd.n_targets(); ++b)
-      target_goal_dist.emplace_back(dd.grid);
   }
 
   // physical view of a node (oracle coordinates)
@@ -142,7 +143,7 @@ void TAPFPlanner::attach_carrier_guidance(
       const bool done =
           !carried[b] && phys.target_pos[b] == dd.target_goals[b];
       if (done) continue;
-      const auto& d = eng.target_goal_dist[b].to(dd.target_goals[b]);
+      const auto& d = eng.upper_wall.to(dd.target_goals[b]);
       hg += d[phys.target_pos[b]] + 2;
     }
   }
@@ -182,7 +183,7 @@ void TAPFPlanner::attach_carrier_guidance(
   if (parent_guide == nullptr && !livelock)
     parent_guide = rollout_parent_guide;  // parentless rollout probes
   nd->guide = std::make_unique<CarrierGuidance>(
-      build_guidance(dd, phys, eng.target_goal_dist, eng.lower, eng.paths,
+      build_guidance(dd, phys, eng.upper_wall, eng.lower, eng.paths,
                      eng.sc, nd, livelock ? &taboo : nullptr, parent_guide));
   if (stats != nullptr) ++stats->guidance_builds;
 
@@ -200,7 +201,7 @@ void TAPFPlanner::attach_carrier_guidance(
   auto rem = [&](int i) -> int {
     const int k = phys.kappa[i];
     if (k >= 0) {
-      const auto& d = eng.target_goal_dist[k].to(dd.target_goals[k]);
+      const auto& d = eng.upper_wall.to(dd.target_goals[k]);
       return d[phys.robots[i]];
     }
     return 0;
@@ -230,7 +231,7 @@ void TAPFPlanner::attach_carrier_guidance(
       const bool done =
           !carried[b] && phys.target_pos[b] == dd.target_goals[b];
       if (done) continue;
-      const auto& d = eng.target_goal_dist[b].to(dd.target_goals[b]);
+      const auto& d = eng.upper_wall.to(dd.target_goals[b]);
       h_shelf += weights.alpha * d[phys.target_pos[b]];
       h_shelf += weights.gamma * (carried[b] ? 1 : 2);
     }
@@ -1074,7 +1075,7 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     if (kappa_i >= 0 && guide != nullptr && !guide->target_park[kappa_i]) {
       // loaded with an unparked target
       const int b = kappa_i;
-      const auto& dgoal = eng.target_goal_dist[b].to(ins->target_goals[b]);
+      const auto& dgoal = eng.upper_wall.to(ins->target_goals[b]);
       if (q == ins->target_goals[b]) {
         cand.push_back({ai->v_now, (uint8_t)Op::DROP});
         cand.push_back({ai->v_now, (uint8_t)Op::WAIT});

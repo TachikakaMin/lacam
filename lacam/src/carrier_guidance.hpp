@@ -332,7 +332,7 @@ inline std::vector<int> waitfor_cycles(const DDInstance& ins, const PhysConfig& 
 // rho via the SHARED Hungarian + eta hysteresis, parking placement)
 inline CarrierGuidance build_guidance(
     const DDInstance& ins, const PhysConfig& s,
-    std::vector<DDDistCache>& target_goal_dist, LowerDist& lower_dist,
+    DDDistCache& upper_wall, LowerDist& lower_dist,
     PathCache& paths, Scratch& sc, const void* node_key,
     const std::vector<std::pair<int, int>>* taboo = nullptr,
     const CarrierGuidance* parent_guide = nullptr)
@@ -374,8 +374,8 @@ inline CarrierGuidance build_guidance(
         rest.push_back((int)b);
     }
     std::stable_sort(rest.begin(), rest.end(), [&](int a, int b2) {
-      const auto& da = target_goal_dist[a].to(ins.target_goals[a]);
-      const auto& db = target_goal_dist[b2].to(ins.target_goals[b2]);
+      const auto& da = upper_wall.to(ins.target_goals[a]);
+      const auto& db = upper_wall.to(ins.target_goals[b2]);
       return da[s.target_pos[a]] < db[s.target_pos[b2]];
     });
     for (int b : rest) {
@@ -454,8 +454,8 @@ inline CarrierGuidance build_guidance(
         const int nb2 = g.target_next[b2];
         if (nb2 < 0) continue;
         if (na == s.target_pos[b2] && nb2 == s.target_pos[a]) {
-          const auto& da = target_goal_dist[a].to(ins.target_goals[a]);
-          const auto& db = target_goal_dist[b2].to(ins.target_goals[b2]);
+          const auto& da = upper_wall.to(ins.target_goals[a]);
+          const auto& db = upper_wall.to(ins.target_goals[b2]);
           const int ra = da[s.target_pos[a]], rb = db[s.target_pos[b2]];
           const size_t yield_b = (ra > rb || (ra == rb)) ? a : b2;
           g.target_park[yield_b] = 1;

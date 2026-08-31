@@ -288,9 +288,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
   TAPFStats tstats;
   TAPFPlanner planner(&view, &deadline, &mt, 0, 0, 0.001f, true, &tstats);
 
-  std::vector<DDDistCache> tgd;
-  tgd.reserve(ins.n_targets());
-  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
   Scratch sc(ins.grid.size());
 
@@ -484,7 +482,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
     };
     auto rem = [&](int i) -> int {
       const int k = S.kappa[i];
-      if (k >= 0) return tgd[k].to(ins.target_goals[k])[phys.robots[i]];
+      if (k >= 0) return tgd.to(ins.target_goals[k])[phys.robots[i]];
       return 0;
     };
     std::iota(node->order.begin(), node->order.end(), 0);
@@ -526,9 +524,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
 double dd_root_admissible_h(const DDInstance& ins)
 {
   const SocWeights w = soc_weights_from_env();
-  std::vector<DDDistCache> tgd;
-  tgd.reserve(ins.n_targets());
-  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  DDDistCache tgd(ins.grid);
   const auto X = initial_phys_config(ins);
   std::vector<char> carried(ins.n_targets(), 0);
   for (int k : X.kappa)
@@ -537,7 +533,7 @@ double dd_root_admissible_h(const DDInstance& ins)
   for (size_t b = 0; b < ins.n_targets(); ++b) {
     const bool done = !carried[b] && X.target_pos[b] == ins.target_goals[b];
     if (done) continue;
-    const auto& d = tgd[b].to(ins.target_goals[b]);
+    const auto& d = tgd.to(ins.target_goals[b]);
     h += w.alpha * d[X.target_pos[b]];
     h += w.gamma * (carried[b] ? 1 : 2);
   }
@@ -632,9 +628,7 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
                                      int warm_block_cell, bool strict_inval,
                                      std::vector<int>* path_out)
 {
-  std::vector<DDDistCache> tgd;
-  tgd.reserve(ins.n_targets());
-  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
   PathCache pc;
   pc.strict_inval = strict_inval;
@@ -672,9 +666,7 @@ std::vector<int> dd_match_free_goals(const DDInstance& ins,
                                      const PhysConfig& X,
                                      const std::vector<int>* parent_free_goal)
 {
-  std::vector<DDDistCache> tgd;
-  tgd.reserve(ins.n_targets());
-  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
   PathCache pc;
   Scratch sc(ins.grid.size());
@@ -723,9 +715,7 @@ std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
 std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
                                          const PhysConfig& X)
 {
-  std::vector<DDDistCache> tgd;
-  tgd.reserve(ins.n_targets());
-  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
   PathCache pc;
   Scratch sc(ins.grid.size());
@@ -739,9 +729,7 @@ std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
 
 int dd_parking_cell(const DDInstance& ins, const PhysConfig& X, int robot)
 {
-  std::vector<DDDistCache> tgd;
-  tgd.reserve(ins.n_targets());
-  for (size_t b = 0; b < ins.n_targets(); ++b) tgd.emplace_back(ins.grid);
+  DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
   PathCache pc;
   Scratch sc(ins.grid.size());
