@@ -56,14 +56,18 @@ TEMPLATE = r"""<!DOCTYPE html>
   <span class="sw" style="background:#555"></span>墙
   <span class="sw" style="background:#8b5a2b"></span>匿名货架
   <span class="sw" style="background:#f59e0b"></span>目标货架
-  <span class="sw" style="border:2px solid #22c55e"></span>goal
+  <span class="sw" style="border:2px solid #22c55e"></span>goal（多个绿框=任一即可）
   <span class="sw" style="background:#3b82f6;border-radius:50%"></span>空载机器人
   <span class="sw" style="background:#ef4444;border-radius:50%"></span>载货机器人
+  <span class="sw" style="border:2px solid #fff;background:#8b5a2b"></span>被举起的货架（白边，随机器人移动）
   <span class="sw" style="background:#16a34a"></span>已完成的目标货架
 </div>
 <script>
 const D = __DATA__;
 const H = D.h, W = D.w;
+const gsets = D.targets.map(x => new Set(x.gs.map(p => p[0] * W + p[1])));
+const goalUnion = new Set();
+for (const gs of gsets) for (const k of gs) goalUnion.add(k);
 const cell = Math.max(6, Math.min(28, Math.floor(1200 / W)));
 const cv = document.getElementById("cv");
 cv.width = W * cell; cv.height = H * cell;
@@ -116,20 +120,35 @@ function draw() {
     cx.strokeRect(c * cell, r * cell, cell, cell);
     if (D.walls[r][c]) drawCellRect(r, c, "#555", 0);
   }
-  // goals
+  // goals: union of the eligible sets (a goal-POOL instance outlines
+  // every eligible cell — any of them is a valid exit)
   cx.lineWidth = Math.max(1.5, cell * 0.09);
-  for (const g of D.targets) {
-    cx.strokeStyle = "#22c55e";
-    cx.strokeRect(g.g[1] * cell + 1.5, g.g[0] * cell + 1.5, cell - 3, cell - 3);
-  }
+  cx.strokeStyle = "#22c55e";
+  for (const k of goalUnion)
+    cx.strokeRect((k % W) * cell + 1.5, Math.floor(k / W) * cell + 1.5,
+                  cell - 3, cell - 3);
   // anon shelves
   for (const k of anon) drawCellRect(Math.floor(k / W), k % W, "#8b5a2b", cell * 0.18);
-  // target shelves (green when completed & grounded)
+  // target shelves (green once grounded on ANY eligible goal cell)
   const carried = new Set(kappa.filter(k => k >= 0));
   D.targets.forEach((g, b) => {
-    const done = !carried.has(b) && tpos[b][0] === g.g[0] && tpos[b][1] === g.g[1];
+    const done = !carried.has(b) && gsets[b].has(key(tpos[b]));
     drawCellRect(tpos[b][0], tpos[b][1], done ? "#16a34a" : "#f59e0b", cell * 0.18);
   });
+  // carried shelves ride ON their robot: anon carried shelves are not in
+  // `anon` while airborne — draw them at the carrier cell, plus a white
+  // "lifted" outline for every carried shelf (target or anon)
+  for (let i = 0; i < robots.length; i++) {
+    if (kappa[i] === -2)
+      drawCellRect(robots[i][0], robots[i][1], "#8b5a2b", cell * 0.18);
+    if (kappa[i] !== -1) {
+      cx.strokeStyle = "#ffffff";
+      cx.lineWidth = Math.max(1, cell * 0.06);
+      cx.strokeRect(robots[i][1] * cell + cell * 0.18,
+                    robots[i][0] * cell + cell * 0.18,
+                    cell * 0.64, cell * 0.64);
+    }
+  }
   // robots
   for (let i = 0; i < robots.length; i++) {
     cx.fillStyle = kappa[i] === -1 ? "#3b82f6" : "#ef4444";
@@ -141,7 +160,7 @@ function draw() {
   // stats
   let done = 0;
   D.targets.forEach((g, b) => {
-    if (!carried.has(b) && tpos[b][0] === g.g[0] && tpos[b][1] === g.g[1]) done++;
+    if (!carried.has(b) && gsets[b].has(key(tpos[b]))) done++;
   });
   document.getElementById("stats").textContent =
     `t=${t}/${D.plan.length}  完成 ${done}/${D.targets.length}  载运中 ${carried.size}`;
@@ -221,7 +240,8 @@ def main():
                   for r in range(ins.height)],
         "robots": [list(q) for q in ins.robots],
         "anon": [list(p) for p in ins.shelves if tuple(p) not in tset],
-        "targets": [{"id": t.id, "s": list(t.start), "g": list(t.goal)}
+        "targets": [{"id": t.id, "s": list(t.start),
+                     "gs": [list(g) for g in t.eligible_goals()]}
                     for t in ins.targets],
         "plan": [
             [["w"] if a[0] == "wait" else
