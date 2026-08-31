@@ -139,3 +139,45 @@ class TestAblationEnvWiring(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBrapGoalSetMode(unittest.TestCase):
+    """WP-E T10 (design_final 8.2 Gate B): the BRaP generator's goal-set
+    mode — SAME layout RNG stream as the static suite, but B-type targets
+    carry the FULL boundary pool instead of a fixed static pairing."""
+
+    def test_pool_mode_same_layout_full_boundary_sets(self):
+        sys.path.insert(0, str(BENCH))
+        import generate_brap_instances as gbi
+        from ddbench.instance import load_instance
+
+        _, text_s = gbi.gen_instance(4, 10, 5, 1, "B", 0)
+        _, text_p = gbi.gen_instance(4, 10, 5, 1, "B", 0, goal_mode="pool")
+        with tempfile.TemporaryDirectory() as tmp:
+            ps = Path(tmp) / "s.yaml"
+            ps.write_text(text_s)
+            pp = Path(tmp) / "p.yaml"
+            pp.write_text(text_p)
+            a = load_instance(ps)
+            b = load_instance(pp)
+        # identical layout (empties/shelves/targets/robots byte-for-byte)
+        self.assertEqual(a.robots, b.robots)
+        self.assertEqual(a.shelves, b.shelves)
+        self.assertEqual([t.start for t in a.targets],
+                         [t.start for t in b.targets])
+        # static = singletons; pool = FULL boundary set on every target
+        self.assertTrue(all(t.goals is None for t in a.targets))
+        boundary = sorted(gbi.boundary_cells(4, 10,
+                                             gbi.obstacle_cells(4, 10)))
+        for t in b.targets:
+            self.assertEqual(t.eligible_goals(), boundary)
+        self.assertEqual(b.validate_static(), [])
+        # R1 (random single cells) stays singleton in pool mode: the
+        # within-suite fixed-goal control group
+        _, text_r = gbi.gen_instance(4, 10, 5, 1, "R1", 0,
+                                     goal_mode="pool")
+        self.assertNotIn("goal_pool", text_r)
+        # the static mode is byte-identical under the new parameter
+        self.assertEqual(text_s,
+                         gbi.gen_instance(4, 10, 5, 1, "B", 0,
+                                          goal_mode="static")[1])

@@ -87,7 +87,19 @@ def greedy_nearest_match(starts, goals):
     return pairs
 
 
-def gen_instance(h, w, n_assigned, n_empty, goal_type, seed):
+def gen_instance(h, w, n_assigned, n_empty, goal_type, seed,
+                 goal_mode="static"):
+    """goal_mode (design_final 8.2, debug.md v4 T10):
+      - "static": the original suite — deterministic greedy pairing over a
+        random boundary subset (kept byte-identical as the ablation
+        control);
+      - "pool":   B-type targets carry the FULL boundary pool
+        (`goals: pool`, the paper's true Goal-B semantics; dynamic tau
+        picks the exits during search).  The layout RNG stream is kept
+        IDENTICAL to the static suite (the subset sample is still drawn,
+        just unused), so pool instances differ ONLY in goal structure.
+        R1 targets stay singletons: the within-suite fixed-goal control.
+    """
     rng = random.Random((h * 1000003 + w * 1009 + n_assigned * 97 +
                          n_empty * 13 + (7 if goal_type == "B" else 11)) *
                         1000 + seed)
@@ -114,39 +126,70 @@ def gen_instance(h, w, n_assigned, n_empty, goal_type, seed):
         goals_set = rng.sample(free, n_assigned)  # R1: random cells, 1x
     pairs = greedy_nearest_match(assigned, goals_set)
 
+    use_pool = goal_mode == "pool" and goal_type == "B"
+
     n_robots = max(2, min(32, n_assigned // 8))
     robots = rng.sample(free, n_robots)  # may start under shelves (I3)
 
     rows = ["".join("@" if (r, c) in obst else "." for c in range(w))
             for r in range(h)]
     name = f"brap_h{h}w{w}_a{n_assigned}_e{n_empty}_{goal_type}_seed{seed}"
+    if use_pool:
+        name += "_pool"
     y = [f"name: {name}", "map: |"]
     y += [f"  {row}" for row in rows]
     y.append("robots:")
     y += [f"  - [{r}, {c}]" for r, c in robots]
     y.append("shelves:")
     y += [f"  - [{r}, {c}]" for r, c in shelves]
+    if use_pool:
+        y.append("goal_pool:")
+        y += [f"  - [{g[0]}, {g[1]}]" for g in sorted(goal_pool)]
     y.append("targets:")
-    for k, (s, g) in enumerate(pairs):
-        y.append(f"  - id: b{k}")
-        y.append(f"    start: [{s[0]}, {s[1]}]")
-        y.append(f"    goal: [{g[0]}, {g[1]}]")
+    if use_pool:
+        for k, (s, _) in enumerate(pairs):
+            y.append(f"  - id: b{k}")
+            y.append(f"    start: [{s[0]}, {s[1]}]")
+            y.append("    goals: pool")
+    else:
+        for k, (s, g) in enumerate(pairs):
+            y.append(f"  - id: b{k}")
+            y.append(f"    start: [{s[0]}, {s[1]}]")
+            y.append(f"    goal: [{g[0]}, {g[1]}]")
     return name, "\n".join(y) + "\n"
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--goal-mode", choices=("static", "pool"),
+                    default="static",
+                    help="static = original fixed-pairing suite "
+                         "(byte-identical, ablation control); pool = "
+                         "B-type targets carry the full boundary pool "
+                         "(dynamic tau picks the exits)")
+    ap.add_argument("--out", type=Path, default=None,
+                    help="output root (default: instances_brap for "
+                         "static, instances_brap_pool for pool)")
+    args = ap.parse_args()
+    out = args.out
+    if out is None:
+        out = OUT if args.goal_mode == "static" else \
+            Path(__file__).parent / "instances_brap_pool"
     n = 0
     for h, w, combos in GRIDS:
         for n_assigned, n_empty in combos:
             for goal_type in ("B", "R1"):
-                group = OUT / f"g{h}x{w}"
+                group = out / f"g{h}x{w}"
                 group.mkdir(parents=True, exist_ok=True)
                 for seed in SEEDS:
                     name, text = gen_instance(h, w, n_assigned, n_empty,
-                                              goal_type, seed)
+                                              goal_type, seed,
+                                              goal_mode=args.goal_mode)
                     (group / f"{name}.yaml").write_text(text)
                     n += 1
-    print(f"generated {n} BRaP-protocol instances under {OUT}/")
+    print(f"generated {n} BRaP-protocol instances under {out}/ "
+          f"(goal mode: {args.goal_mode})")
 
 
 if __name__ == "__main__":
