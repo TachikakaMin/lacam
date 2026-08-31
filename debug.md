@@ -57,7 +57,7 @@ planner。`dd_planner.hpp` 的全部 API（solve_carrier_lacam/rollout/
 | M6 | §5.3 guidance：D_b/requests/ρ/parking/ACTIVE_CAP | build_guidance / PathCache / LowerDist / make_order | tapf_planner.cpp :: guidance 模块（同文件；TAPFNode 创建路径调用）：PathCache/least_blocking_path/park/yield/parking 逐一平移；ρ 复用 `tapf_hungarian_row_to_col`（已共享）+ eta 迟滞；request-cell 与 target-goal 距离场由 `CarrierEngine` 持有（DDDistCache/LowerDist over oracle grid，均为共享 LazyBfsField 核心的 adapter；wallfree Manhattan fast-path 在 LowerDist）；TAPFDistTable 保持 task 场族原样不扩展（实施时的落点修正，语义等价） | targets 空 ⇒ requests 空 ⇒ 整个模块零调用（数据驱动，无开关） |
 | M7 | §5.4 Carrier-PIBT 候选序 | PIBTContext::candidates | tapf_planner.cpp :: `funcPIBT` — 候选构造按**角色**分派：task agent = 原代码路径逐字（dist+hindrance+tie_breakers+swap）；**carrier 角色（含 free-with-request）走 §5.4 表的载具候选构造**（request/park 目标按 lower-dist 排序 + shuffle 平局，不含 task-hindrance/swap）；loaded：path-next 优先、S1 预过滤、结构阻塞时 Drop 前置；idle：避让 protect 格。**递归/预留语义按角色分派（WP6 修复 b）**：task agent 上游逐字（失败保留预约、wait=预约+false）；carrier agent 释放-重试 + wait 可行即成功（两层生成器原语义） | 全部 agent 都是 free-with-task ⇒ 原路径逐字执行 |
 | M8 | §5.4a target-as-blocker park + 载具对头 yield | build_guidance 中段 | guidance 模块内平移；(X, D_b 缓存纪元) 语义（同 design §5.4a v2.3 降级声明）、carried-hover mask、环打破（最小下标）、DD_NO_YIELD 旋钮全部保持 | 无 target ⇒ 不执行 |
-| M9 | §5.5 livelock 信号 / wait-for / 重访 re-guidance | make_node 信号 + solve 重访分支 + waitfor_cycles | tapf_planner.cpp :: 节点创建路径挂 `h_guidance/best_h/no_progress`（**仅 h_guidance>0 时累计**）；solve() duplicate 分支挂 revisit 计数与 re-guidance（requests 非空才有动作/抽签）；waitfor_cycles 平移 | h_guidance≡0 ⇒ 信号永不触发 ⇒ 无新增 RNG 消耗 |
+| M9 | §5.5 livelock 信号 / wait-for / 重访 re-guidance | make_node 信号 + solve 重访分支 + waitfor_cycles | tapf_planner.cpp :: 节点创建路径挂 `h_guidance/best_h/no_progress`（**仅 h_guidance>0 时累计**）；solve() duplicate 分支挂 revisit 计数与 re-guidance——**门为 `guide != nullptr`（⟺ 实例有 target）**：requests 为空的 carrier 节点仍可 re-guidance（合法多样化，ordering-only）；纯 TAPF 节点 guide 恒 null ⇒ 零动作零抽签（semantic invariant 由此保证，而非 requests 判空）；waitfor_cycles 平移 | h_guidance≡0 ⇒ 信号永不触发 ⇒ 无新增 RNG 消耗 |
 | M10 | §7.1 macro rollout（与 B0 共码，D13） | rollout_from / solve_carrier_rollout | tapf_planner.cpp :: `TAPFPlanner` 新增无约束单步生成（复用 get_new_config 路径）+ rollout 循环；solve() 在节点首扩注入 macro child（条件：存在未完成 target ∧ 规模域 ∧ 首解前）；macro 边的多步 trace 与 cost 存 parent-edge 附注（供 rewrite/抽取） | 未完成 target = 0 ⇒ 永不注入（macro 事件语义定义在 shelf 事件上） |
 | M11 | D14 两阶段 anytime | solve_carrier_lacam wrapper | tapf_planner.hpp :: `TAPFSearchConfig` 增 `{stop_at_first, incumbent_init, macro_enabled}`（默认值 = 现 TAPF 行为）；DD 入口按 D14 两次调用 solve_tapf，取更优 | 默认配置下 solve() 控制流与现在 bit 相同 |
 | M12 | §4.3 duplicate g-relax/rewire | explored 命中 g_new<g 分支 | **已存在**：`TAPFPlanner::rewrite()` 即该机制（neighbor 集 + 传播 + 重入 OPEN）；macro 边 cost 从 trace 附注读取 | 原样 |
@@ -112,8 +112,10 @@ DDDistCache/LowerDist 挂共享 LazyBfsField 核心，非仅测试引用，
   `test_dd_integration.search_not_dominated_by_own_rollout_on_dense`；
 - D2 邻接序 DDGrid(下/上/右/左) → Graph::neighbor(左/右/上/下)，
   tie-break 平移；
-- D3 类内序从 (余距,id) 改为 TAPF 优先级继承（design §5.4 N.order
-  第 3 条"no-progress 提升"的原生实现即此机制）；
+- D3（实施后如实）类内序**保持 dd 原语义 (类, 余距, 稳定 id)**
+  （attach_carrier_guidance 的 stable_sort）；计划中的"改用 TAPF
+  优先级继承"未采用——carrier agent 的 dist_of 恒 0 使继承机制
+  无信号，plateau 多样化由节点级 guidance-h 计数驱动（§5.5）；
 - D4（修正）free 载具候选**未**获得 task-hindrance/swap——它们走
   carrier 角色分支（lower-dist 排序）；hindrance/swap 仅作用于有实例
   task 的 agent（纯 TAPF / 混合实例）；
@@ -166,6 +168,9 @@ DDDistCache/LowerDist 挂共享 LazyBfsField 核心，非仅测试引用，
   家族平均 executed makespan ≤ v5 对应值 +5%；carrier_b0/b1 保持
   各自基线语义（共码退化关系不变）。
 - 未达 gate：先固化 regression test，再调查；结果如实入报告。
+- **执行结果（2026-08-31 合规审计确认）**：成功数 gate 达成
+  （162/164）；家族质量 gate 对 DnE 未达（1.12×，未豁免）——
+  见 §8 WP6 [!] 与 §9 遗留 1，为当前唯一未关闭的 gate 项。
 
 ## 7. Protected 清单增量
 
@@ -249,6 +254,17 @@ test_tapf_compat.cpp（golden 特征化）、WP1-WP5 各 RED 测试、
   search_kernel 旧 DD-Node 段、README DD_FOCAL_W 退役说明）。
   审计确认：109 C++ + 57 Python 全绿；benchmark 后处理口径
   （b4/crest 按 wall 10.6s 重分类）与公布数字精确复现。
+
+- [x] WP7d 独立 diff 合规审查（GPT-5.6 Sol high，对比 lacam-tapf
+  基点 2577f3f 全量 diff vs 本文件要求）：**全部代码 hunk 可归因
+  M1-M17/WP6/WP7b/WP7c，无越权增量**；§0 架构约束（唯一 loop、
+  无 fallback、数据驱动退化、TAPFSearchConfig 判定为 M11 合法配置面
+  而非兼容开关）、§3 兼容机制、§7 protected（唯一改动 test_tools
+  glob 与 APPROVE 范围精确一致；dd_benchmark/runner/dev_cases 字节
+  未动）、删除清单全 PASS；发现并已修正两处本文件措辞-实现错位
+  （D3 类内序、M9 re-guidance 门条件）；§6 DnE 质量 gate 判 FAIL
+  维持不豁免（见 §9）。审计自行复跑：compat 7/7、integration 14/14、
+  Python 57/57。
 
 ## 9. 遗留（如实）
 
