@@ -329,7 +329,6 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
     std::fill(sc.protect.begin(), sc.protect.end(), 0);
     g.target_next.assign(ins.n_targets(), -1);
     g.target_park.assign(ins.n_targets(), 0);
-    g.park_owner.assign(ins.n_targets(), -1);
     auto done_in_X = [&](int o) {
       if (s.target_pos[o] != ins.target_goals[o]) return false;
       for (int k : s.kappa)
@@ -352,18 +351,14 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
         sc.protect[fixed[b][j]] = 1;
       if (idx[b] + 1 < fixed[b].size())
         g.target_next[b] = fixed[b][idx[b] + 1];
-      if (park[b] && park_owner[b] >= 0 && !done_in_X(park_owner[b])) {
+      if (park[b] && park_owner[b] >= 0 && !done_in_X(park_owner[b]))
         g.target_park[b] = 1;
-        g.park_owner[b] = park_owner[b];
-      }
       const int nxt = g.target_next[b];
       const bool head_free = nxt >= 0 && sc.grounded[nxt] == 0;
       if (!carried && head_free && !g.target_park[b]) {
         CarrierRequest r;
-        r.kind = CarrierRequest::SERVE;
-        r.target = (int)b;
         r.cell = s.target_pos[b];
-        r.priority = 100;
+        r.priority = 100;  // serve
         g.requests.push_back(r);
       }
       int emitted = 0;
@@ -373,10 +368,8 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
         const int gr = sc.grounded[cur];
         if (gr == -1 || (gr > 0 && gr - 1 != (int)b)) {
           CarrierRequest r;
-          r.kind = CarrierRequest::CLEAR;
-          r.target = (int)b;
           r.cell = cur;
-          r.priority = 50 - emitted;
+          r.priority = 50 - emitted;  // clear
           g.requests.push_back(r);
           ++emitted;
         }

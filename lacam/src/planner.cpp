@@ -12,7 +12,8 @@ Constraint::Constraint(Constraint* parent, int i, Vertex* v)
 {
   who.push_back(i);
   where.push_back(v);
-  ops.push_back(Op::MOVE);  // move-or-stay; kind is never read upstream
+  // ops deliberately not extended: plain-vertex chains never read kinds
+  // (readers fall back to MOVE when ops is shorter than depth)
 }
 
 Constraint::Constraint(Constraint* parent, int i, OpCand c)

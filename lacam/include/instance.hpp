@@ -67,8 +67,6 @@ struct TAPFInstance {
   ~TAPFInstance() {}
 
   bool is_valid(const int verbose = 0) const;
-
-  size_t n_targets() const { return target_starts.size(); }
 };
 
 // solution: a sequence of configurations

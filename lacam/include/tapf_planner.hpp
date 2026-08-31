@@ -63,10 +63,8 @@ ShelfState initial_shelf_state(const TAPFInstance& ins);
 // Per-node, ordering-only; NEVER part of the search key.  Absent (null)
 // on shelf-free instances.
 struct CarrierRequest {
-  enum Kind { SERVE, CLEAR } kind;
-  int target = -1;   // for SERVE: target idx; for CLEAR: blocked target
-  int cell = -1;     // shelf cell to lift
-  int priority = 0;  // higher first (chain head highest)
+  int cell = -1;     // shelf cell to lift (serve: target pos; clear: blocker)
+  int priority = 0;  // higher first (100 serve; 50-k clear chain)
 };
 
 struct CarrierGuidance {
@@ -77,7 +75,6 @@ struct CarrierGuidance {
   std::vector<int> target_next;   // next cell on each target's path
   bool plan_bound = false;        // B1: fixed plan is a HARD constraint
   std::vector<uint8_t> target_park;  // design 5.4a park flags
-  std::vector<int> park_owner;
 };
 
 struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {

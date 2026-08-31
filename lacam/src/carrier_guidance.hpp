@@ -401,10 +401,8 @@ inline CarrierGuidance build_guidance(
     const bool head_free = path.size() >= 2 && sc.grounded[path[1]] == 0;
     if (!carried && head_free) {
       CarrierRequest r;
-      r.kind = CarrierRequest::SERVE;
-      r.target = (int)b;
       r.cell = s.target_pos[b];
-      r.priority = 100;
+      r.priority = 100;  // serve
       g.requests.push_back(r);
     }
     int emitted = 0;
@@ -413,10 +411,8 @@ inline CarrierGuidance build_guidance(
       const int gr__ = sc.grounded[cur];
       if (gr__ == -1 || (gr__ > 0 && gr__ - 1 != (int)b)) {
         CarrierRequest r;
-        r.kind = CarrierRequest::CLEAR;
-        r.target = (int)b;
         r.cell = cur;
-        r.priority = 50 - emitted;
+        r.priority = 50 - emitted;  // clear, chain head higher
         g.requests.push_back(r);
         ++emitted;
       }
@@ -429,7 +425,7 @@ inline CarrierGuidance build_guidance(
   // cached paths — a function of (X, D_b cache epoch) under the default
   // lazy invalidation; DD_STRICT_INVAL=1 is epoch-independent.  park[b]
   // iff goal_b lies on ANOTHER unfinished target's current path.
-  g.park_owner.assign(ins.n_targets(), -1);
+  std::vector<int> park_owner(ins.n_targets(), -1);  // build-local
   auto done_in_X = [&](int o) {
     if (s.target_pos[o] != ins.target_goals[o]) return false;
     for (int k : s.kappa)
@@ -440,7 +436,7 @@ inline CarrierGuidance build_guidance(
     const int ow__ = sc.owner[ins.target_goals[b]];
     if (ow__ > 0 && ow__ - 1 != (int)b && !done_in_X(ow__ - 1)) {
       g.target_park[b] = 1;
-      g.park_owner[b] = ow__ - 1;
+      park_owner[b] = ow__ - 1;
     }
   }
   // carrier head-on yield (design 5.5): the one farther from its goal
@@ -463,7 +459,7 @@ inline CarrierGuidance build_guidance(
           const int ra = da[s.target_pos[a]], rb = db[s.target_pos[b2]];
           const size_t yield_b = (ra > rb || (ra == rb)) ? a : b2;
           g.target_park[yield_b] = 1;
-          g.park_owner[yield_b] = (int)(yield_b == a ? b2 : a);
+          park_owner[yield_b] = (int)(yield_b == a ? b2 : a);
         }
       }
     }
@@ -476,7 +472,7 @@ inline CarrierGuidance build_guidance(
     bool cycle = false;
     for (size_t guard = 0; guard <= ins.n_targets(); ++guard) {
       chain.push_back(cur);
-      const int nxt = g.target_park[cur] ? g.park_owner[cur] : -1;
+      const int nxt = g.target_park[cur] ? park_owner[cur] : -1;
       if (nxt < 0) break;
       if (nxt == (int)b) {
         cycle = true;
@@ -487,7 +483,7 @@ inline CarrierGuidance build_guidance(
     if (cycle) {
       const int drop = *std::min_element(chain.begin(), chain.end());
       g.target_park[drop] = 0;
-      g.park_owner[drop] = -1;
+      park_owner[drop] = -1;
     }
   }
 
