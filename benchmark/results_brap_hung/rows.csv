@@ -1,0 +1,69 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,first_solution_ms,reversals,runtime_sec,status,raw
+braph_h10w10_a12_e3_B_seed0,g10x10,carrier,0,,,,,,,,,,10.776,timeout,best_targets_done=8 duplicate_configs=202738 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h10w10_a12_e3_B_seed1,g10x10,carrier,0,,,,,,,,,,10.918,timeout,best_targets_done=9 duplicate_configs=220158 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h10w10_a12_e3_R1_seed0,g10x10,carrier,1,60678,92860.0,1947,59840,29766,14790,0.016,4879,10795,10.616,ok,
+braph_h10w10_a12_e3_R1_seed1,g10x10,carrier,1,90334,138821.0,4592,89097,43172,21493,0.0254,6982,16734,10.884,ok,
+braph_h10w10_a12_e8_B_seed0,g10x10,carrier,1,77985,126847.0,8461,73372,41498,20661,0.0542,5245,17167,10.747,ok,
+braph_h10w10_a12_e8_B_seed1,g10x10,carrier,1,92947,148437.0,8753,90114,44350,22087,0.0471,5918,20917,10.891,ok,
+braph_h10w10_a12_e8_R1_seed0,g10x10,carrier,1,90479,149217.0,11341,84445,48328,24076,0.0627,6122,19864,10.842,ok,
+braph_h10w10_a12_e8_R1_seed1,g10x10,carrier,1,59056,90008.0,4852,55494,26934,13379,0.0411,3795,10925,10.581,ok,
+braph_h10w10_a1_e1_B_seed0,g10x10,carrier,1,17423,25740.0,340,17816,7318,3572,0.0098,1803,2915,10.231,ok,
+braph_h10w10_a1_e1_B_seed1,g10x10,carrier,1,24774,31593.0,654,23776,6688,3252,0.0132,2090,2655,10.306,ok,
+braph_h10w10_a1_e1_R1_seed0,g10x10,carrier,1,21251,25994.0,429,20160,5120,2468,0.0101,1741,1893,10.266,ok,
+braph_h10w10_a1_e1_R1_seed1,g10x10,carrier,1,50099,75175.0,1080,51396,21922,10866,0.0108,5275,9271,10.516,ok,
+braph_h20w20_a40_e100_B_seed0,g20x20,carrier,0,,,,,,,,,,10.287,timeout,best_targets_done=15 duplicate_configs=35787 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h20w20_a40_e100_B_seed1,g20x20,carrier,0,,,,,,,,,,10.547,timeout,est_targets_done=15 duplicate_configs=130765 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h20w20_a40_e100_R1_seed0,g20x20,carrier,0,,,,,,,,,,10.49,timeout,est_targets_done=17 duplicate_configs=105304 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h20w20_a40_e100_R1_seed1,g20x20,carrier,0,,,,,,,,,,10.425,timeout,best_targets_done=23 duplicate_configs=56886 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h20w20_a40_e10_B_seed0,g20x20,carrier,0,,,,,,,,,,10.401,timeout, best_targets_done=6 duplicate_configs=85942 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h20w20_a40_e10_B_seed1,g20x20,carrier,0,,,,,,,,,,10.436,timeout, best_targets_done=4 duplicate_configs=76399 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h20w20_a40_e10_R1_seed0,g20x20,carrier,0,,,,,,,,,,10.321,timeout, best_targets_done=7 duplicate_configs=81040 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h20w20_a40_e10_R1_seed1,g20x20,carrier,0,,,,,,,,,,10.397,timeout, best_targets_done=8 duplicate_configs=82514 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a160_e400_R1_seed0,g40x40,carrier,0,,,,,,,,,,10.437,timeout, best_targets_done=30 duplicate_configs=5370 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a160_e400_R1_seed1,g40x40,carrier,0,,,,,,,,,,10.364,timeout,best_targets_done=50 duplicate_configs=23788 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a160_e40_R1_seed0,g40x40,carrier,0,,,,,,,,,,10.389,timeout,best_targets_done=18 duplicate_configs=22865 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a160_e40_R1_seed1,g40x40,carrier,0,,,,,,,,,,10.219,timeout,best_targets_done=11 duplicate_configs=39174 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a80_e400_B_seed0,g40x40,carrier,0,,,,,,,,,,10.231,timeout,best_targets_done=14 duplicate_configs=54466 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a80_e400_B_seed1,g40x40,carrier,0,,,,,,,,,,10.236,timeout,best_targets_done=15 duplicate_configs=56818 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a80_e40_B_seed0,g40x40,carrier,0,,,,,,,,,,10.27,timeout, best_targets_done=3 duplicate_configs=38480 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h40w40_a80_e40_B_seed1,g40x40,carrier,0,,,,,,,,,,10.215,timeout, best_targets_done=1 duplicate_configs=43481 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h4w10_a5_e10_B_seed0,g4x10,carrier,1,455,620.0,85,405,106,40,0.0934,9,65,10.092,ok,
+braph_h4w10_a5_e10_B_seed1,g4x10,carrier,1,720,1470.0,451,442,338,156,0.3132,17,275,10.088,ok,
+braph_h4w10_a5_e10_R1_seed0,g4x10,carrier,1,3733,5896.0,662,3190,1768,860,0.0887,98,826,10.096,ok,
+braph_h4w10_a5_e10_R1_seed1,g4x10,carrier,1,366,629.0,151,266,140,58,0.2063,8,95,10.081,ok,
+braph_h4w10_a5_e1_B_seed0,g4x10,carrier,1,36145,54936.0,1654,36463,15932,7931,0.0229,1430,7555,10.19,ok,
+braph_h4w10_a5_e1_B_seed1,g4x10,carrier,1,60526,90674.0,2429,63172,23612,11771,0.0201,2470,12719,10.278,ok,
+braph_h4w10_a5_e1_R1_seed0,g4x10,carrier,1,61659,78337.0,2601,56647,17136,8533,0.0211,2823,7077,10.28,ok,
+braph_h4w10_a5_e1_R1_seed1,g4x10,carrier,1,18329,26132.0,686,18232,6812,3371,0.0187,667,3230,10.133,ok,
+braph_h6w10_a6_e15_B_seed0,g6x10,carrier,1,868,1656.0,419,586,426,192,0.2414,28,279,10.08,ok,
+braph_h6w10_a6_e15_B_seed1,g6x10,carrier,1,2675,5248.0,1172,2074,1412,681,0.2191,88,869,10.092,ok,
+braph_h6w10_a6_e15_R1_seed0,g6x10,carrier,1,943,1735.0,305,745,556,255,0.1617,32,275,10.089,ok,
+braph_h6w10_a6_e15_R1_seed1,g6x10,carrier,1,3214,5494.0,716,2882,1486,713,0.1114,98,937,10.084,ok,
+braph_h6w10_a6_e1_B_seed0,g6x10,carrier,1,130046,197277.0,3405,139284,52714,26302,0.0131,6994,25092,10.749,ok,
+braph_h6w10_a6_e1_B_seed1,g6x10,carrier,1,59006,88695.0,1756,63199,22780,11335,0.0149,3599,11771,10.377,ok,
+braph_h6w10_a6_e1_R1_seed0,g6x10,carrier,1,104215,152772.0,3069,109717,38180,19035,0.0147,5930,19111,10.637,ok,
+braph_h6w10_a6_e1_R1_seed1,g6x10,carrier,0,,,,,,,,,,11.09,timeout,best_targets_done=5 duplicate_configs=423590 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e1600_B_seed0,g80x80,carrier,0,,,,,,,,,,10.14,timeout,2 best_targets_done=6 duplicate_configs=1524 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e1600_B_seed1,g80x80,carrier,0,,,,,,,,,,10.113,timeout,24 best_targets_done=6 duplicate_configs=958 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.252,timeout, best_targets_done=12 duplicate_configs=6721 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.294,timeout, best_targets_done=22 duplicate_configs=5588 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e160_B_seed0,g80x80,carrier,0,,,,,,,,,,10.092,timeout, best_targets_done=3 duplicate_configs=11187 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e160_B_seed1,g80x80,carrier,0,,,,,,,,,,10.182,timeout, best_targets_done=2 duplicate_configs=13577 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.15,timeout, best_targets_done=4 duplicate_configs=14409 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a128_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.156,timeout, best_targets_done=5 duplicate_configs=12775 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a160_e1600_B_seed0,g80x80,carrier,0,,,,,,,,,,10.118,timeout,59 best_targets_done=5 duplicate_configs=599 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a160_e1600_B_seed1,g80x80,carrier,0,,,,,,,,,,10.098,timeout,21 best_targets_done=2 duplicate_configs=685 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a160_e160_B_seed0,g80x80,carrier,0,,,,,,,,,,10.177,timeout, best_targets_done=2 duplicate_configs=13360 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a160_e160_B_seed1,g80x80,carrier,0,,,,,,,,,,10.111,timeout, best_targets_done=7 duplicate_configs=12834 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a800_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.185,timeout,est_targets_done=134 duplicate_configs=11385 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a800_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.167,timeout,est_targets_done=135 duplicate_configs=12788 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a800_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.272,timeout, best_targets_done=87 duplicate_configs=9701 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h80w80_a800_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.139,timeout,est_targets_done=101 duplicate_configs=13530 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 
+braph_h8w10_a10_e20_B_seed0,g8x10,carrier,1,4051,7650.0,2415,2670,1938,938,0.2981,179,1520,10.117,ok,
+braph_h8w10_a10_e20_B_seed1,g8x10,carrier,1,2172,3693.0,434,1995,1000,460,0.0999,85,562,10.084,ok,
+braph_h8w10_a10_e20_R1_seed0,g8x10,carrier,1,4448,7673.0,1021,3797,2408,1169,0.1148,179,1145,10.113,ok,
+braph_h8w10_a10_e20_R1_seed1,g8x10,carrier,1,3546,6487.0,1298,2870,1794,860,0.183,137,1102,10.108,ok,
+braph_h8w10_a10_e2_B_seed0,g8x10,carrier,1,158788,241440.0,5032,156008,77268,38560,0.0158,9373,28919,13.043,ok,
+braph_h8w10_a10_e2_B_seed1,g8x10,carrier,1,121680,181021.0,2278,122380,54848,27350,0.0094,7379,21042,10.857,ok,
+braph_h8w10_a10_e2_R1_seed0,g8x10,carrier,1,149680,222704.0,4984,147871,67018,33435,0.0166,9347,24705,12.84,ok,
+braph_h8w10_a10_e2_R1_seed1,g8x10,carrier,0,,,,,,,,,,11.001,timeout,best_targets_done=8 duplicate_configs=312767 timed_out=1 seed=0 mode=lacam first_solution_ms=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 

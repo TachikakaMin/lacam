@@ -375,3 +375,20 @@ Dynamic shelf-goal assignment (goal sets + per-node tau matching,
 design section 7.3 ITA layer) is the real feature this motivates; the
 solver today only does dynamic ROBOT-to-request assignment (Hungarian
 per node), not shelf-to-goal.
+
+### Pairing-algorithm ablation (greedy vs Hungarian, same sampled sets)
+
+`generate_brap_hung_variant.py` regenerates the ORIGINAL suite with one
+controlled change: the static start->goal pairing uses an optimal
+min-total-Manhattan Hungarian assignment instead of greedy nearest
+(identical RNG streams, so empties/targets/goal pools/robots are
+byte-identical to instances_brap).  Hungarian wins on paper — total
+pairing distance 55717 -> 47599 (-14.6%) — but NOT in execution
+(results_brap_hung/, carrier, 10 s): solved 34 -> 32 (loses one 6x10 and
+one 8x10), makespan mixed (4x10 43004->22742 better, 8x10 48306->63481
+WORSE).  Interpretation: at puzzle density the executed cost is dominated
+by clearance topology (path crossings through the few empties), which
+min-SUM Manhattan pairing does not model; greedy's closest-pairs-first
+bias toward zero/short pairs is accidentally a decent proxy.  Another
+data point for design section 7.3: no static matcher fixes this — the
+assignment must be revisable during search (dynamic tau).
