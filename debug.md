@@ -230,8 +230,33 @@ goal-set 套件实例与生成器语义。
 3. 集成 rollout 未接增量 hash（吞吐机会）。
 4. 报表口径随结果目录引用：carrier 系按内部 deadline；b4/crest 按
    wall+0.6s 重分类。
-5. ≥20×20 puzzle 密度 horizon 墙（design_final §12.6，超本轮范围）：
-   pool 模式下 ≥20×20 仍 0 解（预期内，horizon 不是 goal 结构问题）。
+5. ≥20×20 puzzle 密度失败根因（2026-08-31 独立深析 agent，fable-5，
+   代码级 + 插桩实验；**修正此前"纯 horizon 墙"的读法**）——
+   四因子乘积，前两项是硬成本、后两项是正反馈卡死：
+   (a) 链式 DFS：失败运行 hl_nodes == depth+1（零分叉链），节点数 =
+   已执行物理步数，e100 需 ~9 万步 / e10 需 ~36 万步；
+   (b) 每链步 750-1036μs：attach_carrier_guidance 占 60% 墙钟（其中
+   solve_tau 40×69 Hungarian 每节点重解 + livelock taboo 再解占 53%），
+   apply_ops 每次现建 unordered_map/set（284-374 shelves）占 ~25%
+   ——与 10s 预算差 1.5-2 个数量级；
+   (c) event-bounded macro 在高 lift/drop 事件密度下退化（平均 rollout
+   仅 2.66 步；DD_MACRO_MIN 在 targets≤64 被硬编码清零，
+   tapf_planner.cpp:566-568）；
+   (d) **占用盲 tau lb() + 词典序 η_B 无力 → 每节点 τ 重配翻转
+   target_next/park → PIBT 举起-放下循环（尾段 4703 步零交付）→
+   73% duplicate → reguide 正反馈；且 h_guidance 用当前 tau_vec 计算
+   使重配人为压低 hg、livelock 检测器被致盲**——进展曲线硬卡死在
+   28-29/40（10s→240s 不动），末态 16 个 pool 空格恰好=16 个剩余
+   target（算法卡死，非物理死锁）。全部 60s 单旋钮实验
+   （CLEAR_FRONTIER/GUIDE_EVERY/MACRO 参数/ETA_B=50/TAU_FREEZE）
+   无一移动卡死点；TAU_FREEZE 使 path_recomputes −81% 但更差（21/40）
+   ——耦合病而非单参数病。
+   后续工作包候选（三层，均已给出不变量风险评估）：吞吐层
+   solve_tau 增量化/apply_ops scratch 化/接增量 hash；算法层
+   多事件 macro chunk + MACRO_MIN 门修复、livelock 信号与 τ 解耦
+   （hg 用重配不变参考）、占用感知 τ 排序（仅排序项，h 保持
+   unrestricted admissible）；语义层 parking 惩罚 pool 邻域、
+   η_B 改加权和（h 仍取主序值）。
 6. τ 增量修复（repair_rows）未接：见 §8 WP-C 落点修正——需先解决
    hysteresis 行失效语义才能安全增量；规模域内 solve_full 实测无
    吞吐问题（Gate A wall 107.5s vs v2 同口径），列为吞吐扩展。
