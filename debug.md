@@ -1,281 +1,180 @@
-# debug.md — Carrier-LaCAM → LaCAM-TAPF 增量集成计划（v3 重写）
+# debug.md — Goal-Set τ 层集成计划（v4 重写）
 
-来源：2026-08-30 用户指令。本文件**取代**第二轮审计返工清单（其 16 项
-已全部完成，历史见 git：98516f7 → 2577f3f）。第三轮独立审计已判定
-dd_planner.cpp 属**另起炉灶**（架构形状可追溯 LaCAM，但对原骨架符号
-引用为 0）；此前的"骨架回迁"（P1-17/P1-18）只共享了 kernel 零件
-（Hungarian/lazy-BFS/FOCAL/LacamNodeCore），solve loop、状态类型、
-PIBT、guidance 仍是独立体系。**本轮任务：消除独立体系，把 DD 机制
-重建为现有 LaCAM-TAPF（tapf_planner.cpp）execution path 上的增量扩展。**
+来源：2026-08-31 用户指令。本文件**取代** v3 集成计划（其 WP0-WP7d
+已全部完成，历史见 git：e92c314 → 65eea5f；官方结果
+`results_integrated_v2`，carrier 162/164，TAPF golden 逐位不变）。
+本轮任务：按 `design_final.md`（取代 design.md/designv2.md）落地
+**M5 = goal-set 实例格式 + 动态 τ（shelf→goal matching）层 +
+frontier-aware requests + BRaP-B 评估**。设计依据与决策记录见
+design_final §1.2/§4.3/§5.3/§5.4/§8.2 与 D15-D23。
 
 ---
 
-## 0. 最高约束（用户指令，不可协商）
+## 0. 最高约束（继承 + 本轮新增，不可协商）
 
-1. **禁止平行 planner / 第二套 search pipeline / 独立算法框架**。
-   终态仓库里只有一个 solve loop：`TAPFPlanner::solve()`。
-   dd_planner.cpp 的独立 loop、独立 Node/Constraint/PIBT 全部删除，
-   其公开 API 降级为 thin adapter。
-2. **Semantic invariant（spec 级）**：零 shelf（无 pick/place）实例上，
-   扩展后的 `solve_tapf` 与修改前**行为和结果一致**（解序列、搜索轨迹、
-   RNG 消耗流全部不变）。兼容性必须来自**保守扩展**（空数据结构 ⇒ 空
-   循环 ⇒ 原代码路径逐字执行），禁止 feature flag / legacy mode /
-   fallback / "检测无 pick/place 后切换 baseline"。
-3. 开发流程严格 **test → RED → implementation → GREEN → benchmark →
+1. **唯一 solve loop**：`TAPFPlanner::solve()`。禁止平行 planner/
+   第二套 pipeline/独立框架；τ 层是 `attach_carrier_guidance` 路径上
+   的增量，不是新模块体系。
+2. **双退化不变量（spec 级，禁 feature flag/fallback/检测切换）**：
+   - **零 shelf**：`solve_tapf` 与现 HEAD 行为逐位一致（解序列、
+     搜索轨迹、RNG 流）——由既有 golden 特征化测试
+     `test_tapf_compat`（protected）持续钉死；
+   - **单点集 goal（|G_b|≡1，即全部既有 carrier 实例）**：τ 层必须
+     结构性退化为恒等 matching（矩阵每行一个有限元 ⇒ repair 无行
+     可变 ⇒ h_shelf 同现值 ⇒ 零额外 RNG 消耗），dev 9 例与全量
+     164 例数字不回归（§6 gate）。
+3. **loader 契约（D15）**：goal-set 实例只保存 pool + eligibility +
+   load 期覆盖匹配检查；**禁止**静态采样/greedy/Hungarian 固化配对
+   写进实例或 loader。benchmark 生成器的静态配对逻辑降级为消融专用。
+4. 开发流程严格 **test → RED → implementation → GREEN → benchmark →
    regression test → debug**；发现 bug 先写 regression test 复现再修。
-4. 新增 tests / benchmark cases 一经创建即 **protected**；修改需独立
-   subagent（GPT-5.6 Sol, high reasoning）明确 APPROVE。既有 protected
-   资产（全部 test_dd_*、benchmark/tests/*、dev_cases.txt、benchmark
+5. 新增 tests / benchmark cases 一经创建即 **protected**；修改需
+   独立 subagent（GPT-5.6 Sol, high reasoning）明确 APPROVE。既有
+   protected 资产（23 个 C++ 测试 target、benchmark/tests/* 11 个
+   Python 套件、dev_cases.txt、dd_benchmark CLI 合同、benchmark
    语义）继续受保护。
-5. Benchmark：与 baseline 相同 dataset/seed/metric/success 语义，每
-   testcase 严格 10s；并行度钉在物理核数且留 1–2 核（本机 16 物理核
-   ⇒ 全量跑 jobs=14）；单 testcase 内不超订。
+6. Benchmark：与既有协议同 dataset/seed/metric/success 语义，每
+   testcase 严格 10s；jobs=14（16 物理核留 2）；benchmark 运行期间
+   不并行跑测试套件（历史教训）。
+7. Admissibility 纪律：h_shelf 只能用 LB 主序值（design_final §4.3
+   引理 1 + §5.3 D17 编码）；任何 blocking/hysteresis 项不得进入
+   h 的数值（D18）。
 
 ## 1. 目标架构（一段话）
 
-唯一 solve loop = `TAPFPlanner::solve()`。状态 = `Config`（robots，
-`vector<Vertex*>`，原样）+ `ShelfState{target_pos, anon_occ, kappa}`
-（零 shelf 时三个 vector 全空）。**角色模型**：**有实例 task 的 agent** ≡ 原 TAPF agent（候选排序、
-hindrance、swap、优先级继承逐字保留）；carrier 实例的 robot 无实例
-task，free robot 由 guidance 派发 request cell 并走载具角色候选分支
-（lower-dist 排序，无 task-hindrance/swap，见 M7）；
-loaded robot 与 Lift/Drop 是新增的 operator 维度；shelf 是被 robot op
-驱动的状态变量（design §0）。`dd_carrier.cpp`（PhysConfig/apply_ops/
-load_dd_instance）保留为 conformance oracle 与实例格式层，不是第二个
-planner。`dd_planner.hpp` 的全部 API（solve_carrier_lacam/rollout/
-2stage + 测试支持 API）变为集成机制的 adapter（类型换算 + 转发）。
+goal 结构从 `target_goals[b]`（单格）推广为 per-target 候选集
+G_b（共享池是特例）。terminal = 逐 target `p_b ∈ G_b ∧ grounded`
+（命题 3，τ-free）。每个 node 在 build_guidance 之前用共享
+`TAPFAssignmentState`（第二实例化；第一实例是 agent-task 层，第三
+是 ρ 的 row_to_col）对 (B_tgt × G_pool) 求/修 τ：主序 = admissible
+LB 矩阵，副序 = η_B hysteresis，第三序 = engine tie_hash；Hungarian
+最优值 / S 即 h_shelf。guidance 全栈（path dst、requests、park、
+yield、waitfor、funcPIBT loaded 分支、guidance-h）把 `goals[b]`
+替换为 `τ_N(b)`；clear 优先级加 movability bonus（frontier-first，
+DD_CLEAR_FRONTIER=1）。key、转移合法性、macro/D14、FOCAL、rewire
+全部不动。B1 的 τ 冻结为根节点值（D23）。
 
-## 2. 集成映射表（design.md 机制 → LaCAM-TAPF 修改位置）
+## 2. 集成映射表（design_final 机制 → 修改位置）
 
-| # | design.md 机制 | 现 dd_planner.cpp 位置 | 集成落点（文件 :: 函数/结构） | 零 shelf 退化论证 |
-|---|---|---|---|---|
-| M1 | §2.1/§2.2 双层实例 + goal 条件 | DDInstance / load_dd_instance / is_dd_goal | instance.hpp/.cpp :: `TAPFInstance` 增 `shelf_cells / target_starts / target_goals`（默认空）+ 新 ctor `TAPFInstance(const DDInstance&)`；graph.hpp/.cpp :: `Graph(rows)` inline-map ctor；tapf_planner.cpp :: `is_goal_config` = 原 task 匹配（仅遍历**有 allowed task** 的 agent）∧ 所有 target grounded@goal | 字段空；TAPF 实例每个 agent 都有 task（is_valid 保证），量词范围与原实现相同 |
-| M2 | §3.1 状态 X=(Q^R,Q^B,κ) | PhysConfig | tapf_planner.hpp :: `TAPFNode` 增 `ShelfState`；solve() 的 CLOSED：`unordered_map<Config,·>` → `unordered_map<XKey{C,shelf},·>`，hasher = ConfigHasher(C) ⊕ shelf-hash（空 shelf ⇒ ⊕0） | shelf 恒空 ⇒ key 等价性与桶行为 ≡ Config |
-| M3 | §3.2 primitive ops + §5.2 operator 约束树 | Op / legal_local_ops / Constraint(parent-chain) | planner.hpp :: `Constraint` 增 op payload（与 who/where 平行；上游 `Constraint(parent,i,v)` ctor 语义不变）；tapf_planner.cpp solve() 展开处：候选 = 邻居+self（原顺序、同一次 shuffle）∪ 条件追加（free 且站在 grounded shelf 上 → LIFT；carrying → DROP）；search_kernel.hpp :: `lacam_expand_constraint_vec` 携带 payload | 追加条件永不成立 ⇒ 候选集合、长度、RNG 消耗与原实现一致 |
-| M4 | §3.3 转移合法性（R1/R2/S1/I1-I3）+ G1 直通 | carrier_pibt 末端 apply_ops | tapf_planner.cpp :: `get_new_config` — 部分约束下 forced-op 内联检查（R1/R2 原有 + 上层前置条件）；`funcPIBT` feasibility 增上层占用计数（S1）；**shelf 实例且 M.depth==N 全约束时跳过内联检查、oracle（apply_ops）独裁（G1 直通，实现为 oracle_decides）**；与 oracle 的一致性由 test_dd_g1 穷举对照钉住 | upper 结构恒空，新检查是空操作；R1/R2 路径逐字保留 |
-| M5 | §2.3/§5.7 cost 与 admissible h | dd_edge_cost / dd_admissible_h | tapf_planner.cpp :: `get_edge_cost` = 原 task 项（对**有 task** 的 agent）+ 物理项（loaded/free move、lift/drop、anon，unit 权重；DD_SOLVER_WEIGHTS 语义保留）；TAPFNode g/h/f `unsigned`→`double`（整数值在 double 中精确，比较行为不变）；h = assignment.cost + h_shelf（dd_admissible_h 平移） | 物理项对有 task 的 agent 恒 0（无 loaded/lift/drop/taskless）；double 化不改变整数比较 |
-| M6 | §5.3 guidance：D_b/requests/ρ/parking/ACTIVE_CAP | build_guidance / PathCache / LowerDist / make_order | tapf_planner.cpp :: guidance 模块（同文件；TAPFNode 创建路径调用）：PathCache/least_blocking_path/park/yield/parking 逐一平移；ρ 复用 `tapf_hungarian_row_to_col`（已共享）+ eta 迟滞；request-cell 与 target-goal 距离场由 `CarrierEngine` 持有（DDDistCache/LowerDist over oracle grid，均为共享 LazyBfsField 核心的 adapter；wallfree Manhattan fast-path 在 LowerDist）；TAPFDistTable 保持 task 场族原样不扩展（实施时的落点修正，语义等价） | targets 空 ⇒ requests 空 ⇒ 整个模块零调用（数据驱动，无开关） |
-| M7 | §5.4 Carrier-PIBT 候选序 | PIBTContext::candidates | tapf_planner.cpp :: `funcPIBT` — 候选构造按**角色**分派：task agent = 原代码路径逐字（dist+hindrance+tie_breakers+swap）；**carrier 角色（含 free-with-request）走 §5.4 表的载具候选构造**（request/park 目标按 lower-dist 排序 + shuffle 平局，不含 task-hindrance/swap）；loaded：path-next 优先、S1 预过滤、结构阻塞时 Drop 前置；idle：避让 protect 格。**递归/预留语义按角色分派（WP6 修复 b）**：task agent 上游逐字（失败保留预约、wait=预约+false）；carrier agent 释放-重试 + wait 可行即成功（两层生成器原语义） | 全部 agent 都是 free-with-task ⇒ 原路径逐字执行 |
-| M8 | §5.4a target-as-blocker park + 载具对头 yield | build_guidance 中段 | guidance 模块内平移；(X, D_b 缓存纪元) 语义（同 design §5.4a v2.3 降级声明）、carried-hover mask、环打破（最小下标）、DD_NO_YIELD 旋钮全部保持 | 无 target ⇒ 不执行 |
-| M9 | §5.5 livelock 信号 / wait-for / 重访 re-guidance | make_node 信号 + solve 重访分支 + waitfor_cycles | tapf_planner.cpp :: 节点创建路径挂 `h_guidance/best_h/no_progress`（**仅 h_guidance>0 时累计**）；solve() duplicate 分支挂 revisit 计数与 re-guidance——**门为 `guide != nullptr`（⟺ 实例有 target）**：requests 为空的 carrier 节点仍可 re-guidance（合法多样化，ordering-only）；纯 TAPF 节点 guide 恒 null ⇒ 零动作零抽签（semantic invariant 由此保证，而非 requests 判空）；waitfor_cycles 平移 | h_guidance≡0 ⇒ 信号永不触发 ⇒ 无新增 RNG 消耗 |
-| M10 | §7.1 macro rollout（与 B0 共码，D13） | rollout_from / solve_carrier_rollout | tapf_planner.cpp :: `TAPFPlanner` 新增无约束单步生成（复用 get_new_config 路径）+ rollout 循环；solve() 在节点首扩注入 macro child（条件：存在未完成 target ∧ 规模域 ∧ 首解前）；macro 边的多步 trace 与 cost 存 parent-edge 附注（供 rewrite/抽取） | 未完成 target = 0 ⇒ 永不注入（macro 事件语义定义在 shelf 事件上） |
-| M11 | D14 两阶段 anytime | solve_carrier_lacam wrapper | tapf_planner.hpp :: `TAPFSearchConfig` 增 `{stop_at_first, incumbent_init, macro_enabled}`（默认值 = 现 TAPF 行为）；DD 入口按 D14 两次调用 solve_tapf，取更优 | 默认配置下 solve() 控制流与现在 bit 相同 |
-| M12 | §4.3 duplicate g-relax/rewire | explored 命中 g_new<g 分支 | **已存在**：`TAPFPlanner::rewrite()` 即该机制（neighbor 集 + 传播 + 重入 OPEN）；macro 边 cost 从 trace 附注读取 | 原样 |
-| M13 | §5.7 FOCAL / anytime 选点 / f 剪枝 / 早停 | focal_select_index 调用块 | **已存在**：tapf select_open_index / incumbent / `S->f >= S_goal->g` 剪枝 / `S_goal->g <= initial_lower_bound` 早停；DD 的 h_adm 进 h | 原样 |
-| M14 | §6.1 canonical hash / Zobrist | phys_config_hash(_incremental) | XKey hasher = ConfigHasher ⊕ shelf Zobrist（splitmix64 派生）；oracle 侧 phys_config_hash(_incremental) 保留并有性质测试；**集成 rollout 的局部去重用全量 (ConfigHasher ⊕ shelf-hash) 重算**（增量版未接入该路径——落点修正，正确性不受影响） | ⊕0，桶行为不变 |
-| M15 | §8.1 B1（2-stage） | solve_carrier_2stage | 入口 adapter：stage-1 冻结 least-blocking 计划 → guidance.plan_bound 硬约束；执行走同一 funcPIBT | — |
-| M16 | 测试支持 API（G1 枚举/park/rho/path/waitfor/parking…） | dd_planner.hpp 全部 | 签名不变；dd_planner.cpp 变 thin adapter（DDInstance/PhysConfig ↔ TAPFInstance/Config+ShelfState 视图换算），转发到集成机制的**生产代码** | — |
-| M17 | dd_benchmark CLI（MODE/统计/plan 格式） | tools/dd_benchmark.cpp | 外部合同不变（benchmark/tests/test_cli.py protected）；内部走 adapter | — |
+| # | 机制 | 落点（文件 :: 函数/结构） | 单点集退化论证 |
+|---|---|---|---|
+| T1 | §2.1 goal pool + eligibility + 覆盖匹配检查 + YAML 兼容 | dd_carrier.hpp/.cpp :: `DDInstance` 增 `goal_pool`/`per-target goal 集`（旧 `[start,goal]` ⇒ 单点集）；`finalize()` 增二部匹配可行性拒载；`TAPFInstance(const DDInstance&)` 透传 | 旧格式加载结果与现 HEAD 字段逐位相同（target_goals 向量保留为单点集视图） |
+| T2 | §2.2/命题 3 terminal | dd_carrier.cpp :: `is_dd_goal`；tapf_planner.cpp :: `is_goal_config`（per-target goal bitset 预构建）；ddbench/validator.py 同步 | 单点集 bitset 恰含原 goal ⇒ 判定值逐状态相同 |
+| T3 | §5.3/D17 τ matching + repair + h_shelf | carrier_guidance.hpp :: CarrierEngine 增 τ 引擎（LB·S+pen 编码、`solve_full`/`repair_rows`）；tapf_planner.cpp :: `attach_carrier_guidance` 在 build_guidance 前求 τ、moved-target 行修复、h_shelf=主序值；TAPFNode 增 `tau`（vector<int>）+ `tau_state`（与 assignment_state 同拷贝模式） | 每行单有限元 ⇒ τ 恒等/repair 空转/h_shelf 同现公式值；无 RNG 消耗 |
+| T4 | §5.4 requests 的 τ 间接 + frontier 优先级 + §5.6 park/yield/waitfor 替换 | carrier_guidance.hpp :: `build_guidance`（dst=τ(b)；protect 只标 τ 指派格；movable bonus）；`waitfor_cycles`（同替换） | τ 恒等 ⇒ dst 同今值；movable(path[1]) 低填充恒真 ⇒ 优先级序不变（dev 9 例逐例核对） |
+| T5 | §6.2 PathCache dst 失效（正确性项） | carrier_guidance.hpp :: PathCache::Entry 增 `dst`，miss 条件加 `dst 不匹配` | 单点集 dst 恒定 ⇒ 永不因 dst 失效 |
+| T6 | §6.2/D21 共享 upper-wall 距离缓存 | carrier_guidance.hpp + tapf_planner.cpp :: `target_goal_dist[b]` → 单 `DDDistCache upper_wall`（先行独立重构） | 值域相同（dest-keyed 精确 BFS）；固定 goal 行为不变 |
+| T7 | §5.6 funcPIBT loaded 分支 d(·,τ(b)) | tapf_planner.cpp :: funcPIBT（经 guide 读 τ；planner 不直读 goal 集） | 同 T3 |
+| T8 | §5.6 livelock 的 τ-taboo re-guidance + guidance-h 随 τ | tapf_planner.cpp :: attach_carrier_guidance（taboo 集扩展到 (b,goal) 对；重访/plateau 时 repair 禁忌行；**|G_b|=1 行豁免禁忌**——否则行被 sentinel 清空致 matching 不可行） | 单点行全部豁免 ⇒ 禁忌集恒空 ⇒ 零动作（须测试钉住） |
+| T9 | D23 B1 冻结 τ | dd_planner.cpp :: B1 入口取根 τ 后 plan_bound | B1 语义独立，不影响 full |
+| T10 | §8.2 BRaP-B goal-set 套件 + 消融 | benchmark :: generate_brap_instances.py 增 goal-set 输出模式（原静态配对模式保留为消融变体）；run_ablations.py 增 frozen-τ/no-η_B/head-first 变体 | 生成器变更不触 solver |
 
-**删除清单（终态不得残留）**：dd_planner.cpp 独立 solve loop、DD 私有
-Node/Constraint/PIBTContext/pibt_recurse 调用、search_kernel.hpp 的
-`dd_expand_constraint` 与 `pibt_recurse`（cutover 后无使用者即删）、
-dd_dist_adapters.hpp——**结果：保留为生产依赖**（CarrierEngine 的
-DDDistCache/LowerDist 挂共享 LazyBfsField 核心，非仅测试引用，
-不满足删除条件）。
+**删除/替换清单（终态不得残留）**：solver 侧对 `target_goals[b]`
+的直接语义依赖（全部经 τ 或 goal-set 查询；grep 审计清单）；
+per-target `target_goal_dist` 向量；主生成器路径里的静态配对。
 
-## 3. 向后兼容逐点论证（golden 特征化测试钉死）
+## 3. 向后兼容逐点论证（golden + parity 钉死）
 
-1. **RNG 流**：展开 shuffle 作用于同长度同内容候选列表；funcPIBT
-   tie_breakers 抽签次数不变；restart_rate 抽签位置不变；livelock/
-   re-guidance/macro 的抽签被数据条件（h_guidance>0 / requests 非空 /
-   未完成 target>0）自然屏蔽。
-2. **order**：`init_priorities_and_order` 原样；角色分类排序对全同类
-   agent 用 stable_sort ⇒ 原序保持；`constraint_order` = 创建时 order
-   拷贝（冻结，D11），TAPF 原实现本就从不在创建后改 order，语义一致。
-3. **类型**：g/h/f unsigned→double，整数值精确表示，所有比较/剪枝/
-   早停判定不变。
-4. **CLOSED**：XKey 等价 ⇔ Config 等价（shelf 空）；hash 值 = 原
-   ConfigHasher 值 ⊕ 0。
-5. **goal / edge cost / h**：量词范围"有 task 的 agent" = 原全体。
-6. **get_new_config / funcPIBT**：新增检查全部以 shelf 数据为条件；
-   upper 数组零元素。swap/hindrance 路径不动。
-7. **assignment 层**：零 task 时不调用 Hungarian（空 universe 直接
-   feasible/cost0）——仅 DD 实例可达（TAPF is_valid 要求 task≥N）。
-8. **Solution 抽取 / post_processing / tapf_benchmark CLI**：不动。
-9. **planner.cpp（上游 MAPF）**：共享 Constraint 增 payload 但默认
-   ctor 语义不变；main.cpp 路径 golden 覆盖。
-10. **验证手段**：WP0 golden 特征化测试（多实例×多 seed：解全序列
-    hash + soc + makespan + hl_loop_iterations + hl_nodes_created），
-    先于一切改动落地，全程必须绿。
+1. **RNG 流**：τ 层（Hungarian/repair/bitset 判定）零随机；requests/
+   park/order/livelock 的抽签位置不变；frontier bonus 只改确定性
+   优先级数值。零 shelf 路径无一行新代码执行。
+2. **key/CLOSED**：SearchKey 不变（τ 不进 key，design_final §3.1）。
+3. **h/f/剪枝**：单点集 h_shelf 数值 = 现公式值（T3）；FOCAL/早停/
+   f 剪枝判定输入不变。
+4. **goal 判定**：单点集 bitset ⇔ 原等式（T2）。
+5. **oracle/validator**：apply_ops 与转移规则零改动；is_dd_goal 按
+   T2 同步，golden corpus 的转移用例不受影响（终止用例新增双侧）。
+6. **adapters/CLI**：dd_planner 探针签名、dd_benchmark 合同、
+   run_benchmark 方法集不变。
+7. **验证手段**：`test_tapf_compat` 全绿（零 shelf 逐位）；dev 9 例
+   makespan 逐例相同（单点集结构退化）；全量 164 例 parity（§6）。
 
-## 4. 已知 DD 侧语义变化（诚实清单；由 benchmark gate 裁决）
+## 4. 已知语义变化（诚实清单；仅 goal-set 实例可达）
 
-集成后 DD 行为不承诺与旧 dd_planner bit 相同（旧实现删除），仅承诺
-成功率/质量 gate（§6）。变化源：
-
-- D1 PIBT 递归语义：**实测后按角色分派**（WP6 修复 b）——task agent
-  上游逐字（占位保留、wait=预约+false）；carrier agent 保留 dd 生成器
-  原语义（失败释放预约重试下一候选、wait 可行即成功）。全采上游被
-  benchmark 否决：S1 使 carrier push 失败率远高于 task push，保留失败
-  预约会级联毒化整步候选（dense 实例搜索劣于自家 B0）。回归：
-  `test_dd_integration.search_not_dominated_by_own_rollout_on_dense`；
-- D2 邻接序 DDGrid(下/上/右/左) → Graph::neighbor(左/右/上/下)，
-  tie-break 平移；
-- D3（实施后如实）类内序**保持 dd 原语义 (类, 余距, 稳定 id)**
-  （attach_carrier_guidance 的 stable_sort）；计划中的"改用 TAPF
-  优先级继承"未采用——carrier agent 的 dist_of 恒 0 使继承机制
-  无信号，plateau 多样化由节点级 guidance-h 计数驱动（§5.5）；
-- D4（修正）free 载具候选**未**获得 task-hindrance/swap——它们走
-  carrier 角色分支（lower-dist 排序）；hindrance/swap 仅作用于有实例
-  task 的 agent（纯 TAPF / 混合实例）；
-- D5 duplicate 命中的 restart_rate 抽签对 DD 生效；
-- D6 goal 判定含 target grounded 条件平移（D10 不变）。
-
-任何 gate 未达 → 按 regression-test-first 流程定位；候选回旋手段
-（按 design 语义合法、非 hack）：候选序微调、swap 对 DD 关闭须以
-"载具语义不满足 swap 前置"论证而非开关、类内序恢复余距键等。
+- V1 terminal 从"到达指定格"变为"到达任一 eligible 格"——仅新格式
+  实例；旧实例语义逐位不变。
+- V2 done ≠ settled（design_final §5.3）：goal-set 实例中已 done 的
+  target 可被 τ 改派并再次搬运（D2 可逆性的新形态）；报表的
+  shelf_switches/robot_utilization 语义不变，新增 park 触发率与
+  τ 改派次数观测列（rows.csv 追加列，不改既有列语义）。
+- V3 protect 只标 τ 指派格（非全池）——单点集下与现行为相同。
+- V4 B1 在 goal-set 实例上 = 静态 τ + 冻结 plan（D23），与 full 的
+  对照变量是"逐节点重算 vs 全冻结"。
 
 ## 5. 工作包（WP）与出口判据
 
-- **WP0 golden 特征化（先于一切代码改动）**
-  新 test_tapf_compat.cpp：固定 (实例,seed) 组 × {solve_tapf, solve}
-  → 全解 hash/soc/makespan/关键 stats 常量断言（常量由改动前 HEAD
-  运行采集）。出口：当前 HEAD 上全绿；此后每个 WP 结束必须仍全绿。
-- **WP1 实例/图层（M1）**：DD YAML → TAPFInstance（经 DDInstance）；
-  Graph inline ctor；is_valid 规则。RED：加载 DD fixture 断言字段。
-- **WP2 状态/键/goal/cost（M2/M5/M14 + M11 config 字段）**：
-  ShelfState、XKey CLOSED、goal、edge cost、h、double 化、空 task
-  assignment 守卫。RED：已解 DD 实例 solve_tapf 返回单步；goal/cost
-  单元；golden 全绿。
-- **WP3 生成器（M3/M4 + plan 导出）**：op 约束、展开追加、forced-op
-  上层检查、funcPIBT 上层 veto + lift/drop、G1、(C,shelf) 链 → DDPlan
-  导出。RED：单 blocker / 双 blocker chain / corridor 小 fixture 经
-  solve_tapf 解出且 oracle 重放通过。
-- **WP4 guidance 全栈（M6/M7/M8/M9/M10 部分）**：requests/ρ(Hungarian
-  +eta)/PathCache/park/yield/order 类/livelock/waitfor/idle 避让/
-  parking/ACTIVE_CAP/rollout 单步。RED：dev 小例（scramble_h6w6 等）
-  经 solve_tapf 10s 内解出。
-- **WP5 cutover（M10/M11/M15/M16/M17）**：两阶段入口、B0/B1、全部
-  dd_* API 转 adapter，删除旧 loop 与死代码。出口：**全部 C++ 测试 target + Python 套件绿**（WP5 当时 13 个
-  dd/tapf target；终态 CMake 共 23 个独立 target、109 用例）；
-  dev 9/9 within 10s。
-- **WP6 benchmark parity**：dev → 全量 164×7（jobs=14，统一 10s，
-  baseline 同批重跑）。gate 见 §6。回归→regression test→修。
-- **WP7 审计与汇报**：git diff 逐项对照本映射表；无 dead code/平行
-  实现/特殊分支；文档同步；最终报告。
+- **WP-R0 基线快照（先于一切代码改动）**：记录当前 HEAD 的 dev 9 例
+  makespan/soc/首解时延与 `results_integrated_v2` 引用数字；跑通
+  23 C++ + 11 Py 套件基线绿。出口：快照入本文件 §8。
+- **WP-A 实例层（T1/T2）**：RED = 新格式 fixture 加载断言（pool/
+  eligibility/覆盖检查拒载不可行实例）+ 旧格式字段逐位 + 终止判定
+  双侧（C++/Python）新 fixture（含"done 于非指派 goal"用例）。
+  GREEN 后：golden corpus 增终止判定用例（protected）。
+- **WP-B 距离缓存重构（T6，独立先行）**：RED = 共享缓存值与
+  per-target 缓存逐 dest 相等的性质测试；dev 9 例 makespan 不变。
+  （风险隔离：此步零语义变化，先行合并可缩小 WP-C diff。）
+- **WP-C τ 引擎（T3/T5/T7）**：RED = (a) 词典序编码性质测试（构造
+  矩阵：主序最优被 pen 破坏当且仅当编码错误；h= result.cost/S 与
+  brute-force min-LB 相等，含 carried/grounded opLB 分支）；(b) 单点
+  集退化测试（τ 恒等 + h 同旧公式 + repair 空转）；(c) 2×2 共享池
+  手工实例：τ 全局最优避免"最后一个 shelf 被迫走 8 格"（designv2
+  §9 场景缩小版）；(d) PathCache dst 失效回归；(e) rollout 地址
+  失效：τ/tau_state 若有 address-keyed 缓存必须挂
+  invalidate_carrier_scratch（复用既有回归测试形状）。
+- **WP-D guidance 全栈替换（T4/T8）**：RED = park owner 经 τ 的
+  走廊 fixture（τ 改派消解 park 的用例 + 单点集 park 行为不变
+  用例）；τ-taboo re-guidance 单点集零动作测试；frontier 优先级
+  one-empty fixture（movable 链叶先获派）+ 低填充序不变测试。
+- **WP-E 入口/基线/生成器（T9/T10）**：B1 冻结 τ 测试；生成器
+  goal-set 模式 + 静态模式消融保留；`test_tools` 覆盖新轴。
+- **WP-F benchmark 与消融**：§6 全部 gate；run_ablations 增
+  frozen-τ/no-η_B/head-first；报表更新。
+- **WP-G 审计与文档**：git diff 逐项对照 §2 映射表（独立 subagent）；
+  删除清单核销；design_final/本文件状态同步；最终汇报。
 
 ## 6. Benchmark 协议与 gate
 
-- dev cases：benchmark/dev_cases.txt 9 例（protected，不变），10s。
-- 全量：instances_full2 全套（small/standard/paper/sweep，164 实例）×
-  7 方法（carrier/carrier_b0/carrier_b1/b4/crest_base/crest_full/
-  natcbs），统一 10s，jobs=14（16 物理核留 2），LD_LIBRARY_PATH 直跑
-  二进制；**benchmark 运行期间不并行跑测试套件**（历史教训）。
-- 对照基准：results_final_v5（旧实现官方数字：carrier 162/164，
-  r2r 25/25 mk 548，dne 24/25，s2w 25/25）。
-- **gate**：TAPF golden 全等；DD carrier 解出数 ≥162/164；r2r/s2w/dne
-  家族平均 executed makespan ≤ v5 对应值 +5%；carrier_b0/b1 保持
-  各自基线语义（共码退化关系不变）。
+- dev cases：benchmark/dev_cases.txt 9 例（protected 不变），10s。
+- **Gate A（singleton parity，硬）**：instances_full2 全 164 例 ×
+  carrier：成功集与逐例 makespan 与 `results_integrated_v2` 一致
+  （种子敏感 ±2 例互换的既有容差沿用；makespan 逐例相等——τ 层在
+  单点集下结构退化，任何漂移都是 bug）。TAPF golden 全绿。
+- **Gate B（BRaP-B 动态 τ 主实验）**：B 型 goal-set 套件 vs 三个
+  静态对照（greedy 34/68、Hungarian 32/68、near-boundary 18 例
+  carrier-only）：≤10×10 成功数 ≥ 34 基线不回归；common-solved
+  makespan ≤ near-boundary 静态（在其 8.5× 改进之上继续改进）；
+  ≥20×20 不设成功 gate（horizon 墙，如实记录）。R1 型（单点集）
+  逐例与原 results_brap 相等（Gate A 的 within-suite 复核）。
+- **Gate C（消融方向性）**：frozen-τ 不优于 dynamic-τ（common
+  solved mk）；违反则如实记录并调查（不得静默调参掩盖）。
 - 未达 gate：先固化 regression test，再调查；结果如实入报告。
-- **执行结果（2026-08-31 合规审计确认）**：成功数 gate 达成
-  （162/164）；家族质量 gate 对 DnE 未达（1.12×，未豁免）——
-  见 §8 WP6 [!] 与 §9 遗留 1，为当前唯一未关闭的 gate 项。
 
 ## 7. Protected 清单增量
 
 既有全部 protected 资产不变。本轮新增（创建即 protected）：
-test_tapf_compat.cpp（golden 特征化）、WP1-WP5 各 RED 测试、
-（若新增 benchmark case 则同样 protected）。
+WP-A/B/C/D/E 的全部 RED 测试、goal-set golden 终止用例、BRaP-B
+goal-set 套件实例与生成器语义。
 
 ## 8. 进度
 
-- [x] WP0 golden 特征化（e92c314；tests/test_tapf_compat.cpp 7 用例：
-  deterministic 全轨迹钉扎 + anytime 结果级钉扎；采集自改动前 HEAD
-  双跑验证）
-- [x] WP1 实例/图层（23ce976；Graph inline-rows ctor 共享 builder、
-  TAPFInstance carrier 字段 + DDInstance ctor、carrier-form is_valid;
-  allowed 断言修正经 subagent APPROVE）
-- [x] WP2 状态/键/goal/cost（70c420f；ShelfState、(Config,ShelfState)
-  CLOSED key、goal(D10)、物理 edge-cost 项、double g/h/f、空 task
-  assignment 守卫）
-- [x] WP3 生成器（3b7daa5；Constraint op payload、op 候选展开（同一
-  次 shuffle）、forced-op 前置、S1 PIBT veto、G1 oracle 直通、
-  apply_carrier_effects 裁决、solution shelf 链 + derive_carrier_ops）
-- [x] WP4 guidance 全栈（72a1257 + e278f2e 修复 + a6afe03；
-  requests/ρ(Hungarian+eta)/PathCache/park/yield/waitfor/idle-avoid
-  逐字移植、角色化 funcPIBT 候选、类分层 order + 冻结
-  constraint_order、admissible shelf h、livelock/重访 re-guidance、
-  macro rollout + 两阶段配置字段。教训：共享 PIBT 候选 buffer 被优先
-  级继承递归破坏——per-agent buffer 修复，由 WP0 golden 抓出）
-- [x] WP5 cutover（eadc575；dd_planner.cpp → thin adapter（两阶段
-  D14/B0/B1/全部测试支持探针）、guidance infra → carrier_guidance.hpp
-  （tapf_planner 与 adapter 共用）、search_kernel 死代码删除、
-  test_tools glob 扩展经 subagent APPROVE。13 个 protected DD 套件
-  对集成实现首跑全绿；C++ 106 + Python 57 全绿）
-- [!] WP6 benchmark parity——**部分达成**（成功数 gate 达成；家族
-  质量 gate 对 DnE 未达，见文末遗留）（86e6e85；官方结果
-  benchmark/results_integrated_v2/rows.csv，164×7 统一 10s jobs=14，
-  wall 533s）。**carrier 162/164 = v5 持平**（成功集 ±2：新解
-  dneM_seed22 与 ddmapd_h24d60t16_seed2；丢 dneM_seed18 与
-  s2wM_seed24——种子敏感互换）；carrier_b0 154（v4 147 ↑）、
-  carrier_b1 74（v4 77 −3）、b4 115/crest_base 80/crest_full 38/
-  natcbs 21 全部复现。共同解出实例家族均值 mk：r2r 1.03、s2w 0.99、
-  standard_ddmapd 1.00、standard_scramble 1.00、全部 sweep 除两个
-  n=2 家族的 ±1 步噪声（depth_40 5.5v5.0、fill_50 20.5v19.5、
-  ntgt_64 71.5v63）外 ≤1.00；**唯一实质偏差：dne_m 1.12（+12%，
-  超 +5% gate，如实记录为遗留）**。
-  期间修复两个真 bug（先 RED regression 再修）：
-  (a) 地址键 scratch 跨 rollout 探针回收污染（跨进程 40x mk 漂移；
-  `rollout_steps_match_fresh_generation` + `generation_is_pure_under_
-  heap_churn`；修复=rollout/B1 每步与 macro 返回后
-  invalidate_carrier_scratch——旧实现同款教训）；
-  (b) 预约语义级联（§4-D1 风险实锤）：上游"失败保留预约"使一次
-  carrier push 失败毒化本步全部剩余候选（h24 实例 8760 次生成失败、
-  搜索输给自家 B0）；修复=**角色化预约语义**——carrier agent 失败
-  即释放并重试下一候选、wait 兜底可行即成功（dd 生成器原语义），
-  task agent 上游逐字保留（golden 钉死）；
-  `search_not_dominated_by_own_rollout_on_dense` 锚定。
-- [x] WP7 git diff 审计 + 最终汇报（核心 diff 15 文件
-  +2992/−2223；逐文件对照 M1-M17 映射；无平行 solve loop、无
-  fallback、无 benchmark hack；search_kernel 死代码已删；诊断计数器
-  guidance_builds/path_* 接回真实值）。注：当时声明的"文档同步"
-  不完整——round-2/WP6 之后的状态漂移由 WP7c 审计逐项修正
-- [x] WP7b 独立精简 review（GPT-5.6 Sol high，22 项裁决）并实施全部
-  REMOVE/SIMPLIFY：死函数 is_open_viable、死成员 CarrierEngine::cand、
-  3 个无用 include、carrier_ops_cost/rewrite/drain_node 无用参数、
-  carrier_upper_base ≡ (carrier_grounded != 0) 等价谓词合并、
-  cur_shelf 别名删除、不可达 macro_after_first 增量删除、
-  solver 权重解析去重（load_solver_weights 单一实现）、
-  park 纪元注释与 dd_planner.hpp 旧架构注释修正。
-  KEEP 裁决要点：get_h_value（既有上游 API 面）、splitmix/zmix
-  （oracle 边界两侧不同键域）、B1 guidance 块（刻意不同的基线语义）、
-  全部 dd_* 测试探针（protected 消费者）、上游 3 参 Constraint ctor
-  的 ops.push_back（堆布局扰动风险 > 2 行收益）。
-  验证：109 C++ + 57 Python 全绿；dev 9 例 makespan 与精简前
-  逐一相同（4/7/41/12/24/81/605/1264/1259）——零行为变化。
+- [ ] WP-R0 基线快照
+- [ ] WP-A 实例层（T1/T2）
+- [ ] WP-B 距离缓存重构（T6）
+- [ ] WP-C τ 引擎（T3/T5/T7）
+- [ ] WP-D guidance 全栈替换（T4/T8）
+- [ ] WP-E 入口/基线/生成器（T9/T10）
+- [ ] WP-F benchmark 与消融（Gate A/B/C）
+- [ ] WP-G 审计与文档
 
-- [x] WP7c 独立文档-实现一致性审计（GPT-5.6 Sol high，62 项裁决）：
-  实现侧 M1-M17 与删除清单全部 VERIFIED-DONE（M4/M6/M7/M8/M14 为
-  文档措辞漂移，已按裁决改正本文件与 design.md；两处为此前静默失败
-  的文本替换——教训：文档替换必须 assert 命中）；诚实性修正：
-  WP6 降级为 [!] 部分达成（DnE 质量 gate 未达）、WP7"文档同步"
-  声明加注；残留源码注释修正（carrier_guidance park 纪元、
-  search_kernel 旧 DD-Node 段、README DD_FOCAL_W 退役说明）。
-  审计确认：109 C++ + 57 Python 全绿；benchmark 后处理口径
-  （b4/crest 按 wall 10.6s 重分类）与公布数字精确复现。
+## 9. 继承遗留（v3 结转，如实）
 
-- [x] WP7d 独立 diff 合规审查（GPT-5.6 Sol high，对比 lacam-tapf
-  基点 2577f3f 全量 diff vs 本文件要求）：**全部代码 hunk 可归因
-  M1-M17/WP6/WP7b/WP7c，无越权增量**；§0 架构约束（唯一 loop、
-  无 fallback、数据驱动退化、TAPFSearchConfig 判定为 M11 合法配置面
-  而非兼容开关）、§3 兼容机制、§7 protected（唯一改动 test_tools
-  glob 与 APPROVE 范围精确一致；dd_benchmark/runner/dev_cases 字节
-  未动）、删除清单全 PASS；发现并已修正两处本文件措辞-实现错位
-  （D3 类内序、M9 re-guidance 门条件）；§6 DnE 质量 gate 判 FAIL
-  维持不豁免（见 §9）。审计自行复跑：compat 7/7、integration 14/14、
-  Python 57/57。
-
-## 9. 遗留（如实）
-
-1. **DnE-M 家族质量 gate 未达**：共同解出 23 例均值 mk 1.12×v5
-   （gate ≤1.05）；ntgt_64（n=2）1.13。需要性能工作 + 重跑方可关闭，
-   或正式豁免该 gate——当前选择如实记录不豁免。
-2. carrier_b1 74 vs 旧 v4 77（B1 为刻意不完备基线，语义共码保持）。
-3. 集成 rollout 未接增量 hash（正确性无影响，吞吐机会）。
-4. 报表后处理口径需随结果目录一同引用：carrier 系按内部 deadline
-   判定成功；b4/crest 按 wall+0.6s 重分类（复现 v5/v2 公布数字的
-   同一规则）。
+1. **DnE-M 家族质量 gate 未达**（+12% vs v5，gate ≤1.05；未豁免）：
+   固定 goal 家族，τ 层不触及——需独立性能工作，保持记录。
+2. carrier_b1 74 vs 旧 77（刻意不完备基线，语义共码保持）。
+3. 集成 rollout 未接增量 hash（吞吐机会）。
+4. 报表口径随结果目录引用：carrier 系按内部 deadline；b4/crest 按
+   wall+0.6s 重分类。
+5. ≥20×20 puzzle 密度 horizon 墙（design_final §12.6，超本轮范围）。
 
 维护约定：每完成一项勾选并附 commit hash 与测试名；新发现问题追加
 到对应 WP；protected 测试改动需独立 subagent APPROVE。
