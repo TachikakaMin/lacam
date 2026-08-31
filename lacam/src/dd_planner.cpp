@@ -93,6 +93,17 @@ PhysConfig phys_of(const Config& C, const ShelfState& S)
   return X;
 }
 
+// production tau at X (design_final 5.3) on fresh local caches; used by
+// the probes and by B1's frozen ROOT matching (D23)
+std::vector<int> tau_of(const DDInstance& ins, const PhysConfig& X)
+{
+  const SocWeights w = soc_weights_from_env();
+  DDDistCache uw(ins.grid);
+  carrier_detail::TauEngine te;
+  return carrier_detail::solve_tau(ins, X, uw, te, w.alpha, w.gamma,
+                                   nullptr, nullptr, nullptr);
+}
+
 DDPlan plan_of(const TAPFInstance& view, const Solution& sol,
                const std::vector<ShelfState>& shelves)
 {
@@ -293,12 +304,15 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
   Scratch sc(ins.grid.size());
 
   // ---- stage 1: freeze per-target least-blocking paths at X0 ----
+  // B1's tau is the ROOT matching, frozen (D23): the honest "decide
+  // goals once, then execute" decomposition baseline.
   PhysConfig X = initial_phys_config(ins);
-  fill_occupancy(ins, X, sc);
+  const std::vector<int> tau_root = tau_of(ins, X);
+  fill_occupancy(ins, X, sc, tau_root);
   std::vector<std::vector<int>> fixed(ins.n_targets());
   for (size_t b = 0; b < ins.n_targets(); ++b) {
     fixed[b] = least_blocking_path(ins.grid, ins.target_starts[b],
-                                   ins.target_goals[b], sc.upper,
+                                   tau_root[b], sc.upper,
                                    ins.target_starts[b], sc);
     if (fixed[b].empty()) return {};  // no wall-feasible path
   }
@@ -310,7 +324,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
     for (size_t o = 0; o < ins.n_targets(); ++o) {
       if (o == b) continue;
       for (int c : fixed[o])
-        if (c == ins.target_goals[b]) {
+        if (c == tau_root[b]) {
           park[b] = 1;
           park_owner[b] = (int)o;
           break;
@@ -322,13 +336,14 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
 
   auto build_2stage_guidance = [&](const PhysConfig& s) {
     CarrierGuidance g;
+    g.tau = tau_root;  // frozen (D23)
     const size_t R = ins.n_robots();
-    fill_occupancy(ins, s, sc);
+    fill_occupancy(ins, s, sc, tau_root);
     std::fill(sc.protect.begin(), sc.protect.end(), 0);
     g.target_next.assign(ins.n_targets(), -1);
     g.target_park.assign(ins.n_targets(), 0);
     auto done_in_X = [&](int o) {
-      if (s.target_pos[o] != ins.target_goals[o]) return false;
+      if (s.target_pos[o] != tau_root[o]) return false;
       for (int k : s.kappa)
         if (k == o) return false;
       return true;
@@ -343,7 +358,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
           if (k == (int)b) return true;
         return false;
       }();
-      const bool done = !carried && s.target_pos[b] == ins.target_goals[b];
+      const bool done = !carried && s.target_pos[b] == tau_root[b];
       if (done) continue;
       for (size_t j = idx[b]; j < fixed[b].size(); ++j)
         sc.protect[fixed[b][j]] = 1;
@@ -374,7 +389,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
       }
     }
     for (size_t b = 0; b < ins.n_targets(); ++b)
-      sc.protect[ins.target_goals[b]] = 1;
+      sc.protect[tau_root[b]] = 1;
     // rho greedy off the fixed plan
     g.rho.assign(R, -1);
     g.free_goal.assign(R, -1);
@@ -433,7 +448,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
           if (fallback < 0) {
             bool is_goal = false;
             for (size_t b2 = 0; b2 < ins.n_targets(); ++b2)
-              if (ins.target_goals[b2] == u) {
+              if (tau_root[b2] == u) {
                 is_goal = true;
                 break;
               }
@@ -482,7 +497,7 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
     };
     auto rem = [&](int i) -> int {
       const int k = S.kappa[i];
-      if (k >= 0) return tgd.to(ins.target_goals[k])[phys.robots[i]];
+      if (k >= 0) return tgd.to(tau_root[k])[phys.robots[i]];
       return 0;
     };
     std::iota(node->order.begin(), node->order.end(), 0);
@@ -523,20 +538,15 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
 
 double dd_root_admissible_h(const DDInstance& ins)
 {
+  // design_final 4.3: the admissible LB-MATCHING value — exactly what
+  // the planner folds into node h (singleton path == the old formula)
   const SocWeights w = soc_weights_from_env();
-  DDDistCache tgd(ins.grid);
+  DDDistCache uw(ins.grid);
+  carrier_detail::TauEngine te;
   const auto X = initial_phys_config(ins);
-  std::vector<char> carried(ins.n_targets(), 0);
-  for (int k : X.kappa)
-    if (k >= 0) carried[k] = 1;
   double h = 0;
-  for (size_t b = 0; b < ins.n_targets(); ++b) {
-    const bool done = !carried[b] && X.target_pos[b] == ins.target_goals[b];
-    if (done) continue;
-    const auto& d = tgd.to(ins.target_goals[b]);
-    h += w.alpha * d[X.target_pos[b]];
-    h += w.gamma * (carried[b] ? 1 : 2);
-  }
+  carrier_detail::solve_tau(ins, X, uw, te, w.alpha, w.gamma, nullptr,
+                            nullptr, &h);
   return h;
 }
 
@@ -633,6 +643,7 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
   PathCache pc;
   pc.strict_inval = strict_inval;
   Scratch sc(ins.grid.size());
+  const auto tau = tau_of(ins, X);
 
   if (warm_block_cell >= 0) {
     // occupied->vacated history: warm each unfinished target's cached path
@@ -642,21 +653,21 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
     for (int c : X.anon_occ) occ[c] = 1;
     occ[warm_block_cell] = 1;
     for (size_t b = 0; b < ins.n_targets(); ++b) {
-      const bool done = X.target_pos[b] == ins.target_goals[b];
+      const bool done = X.target_pos[b] == tau[b];
       if (done) continue;
-      pc.get(ins.grid, (int)b, X.target_pos[b], ins.target_goals[b], occ,
+      pc.get(ins.grid, (int)b, X.target_pos[b], tau[b], occ,
              X.target_pos[b], sc);
     }
   }
 
   sc.occ_node = nullptr;
   const int key = 1;  // any non-null key
-  const auto g = build_guidance(ins, X, tgd, ld, pc, sc, &key);
+  const auto g = build_guidance(ins, X, tau, tgd, ld, pc, sc, &key);
   if (path_out) {
     path_out->clear();
     sc.occ_node = nullptr;
-    fill_occupancy(ins, X, sc);
-    *path_out = pc.get(ins.grid, 0, X.target_pos[0], ins.target_goals[0],
+    fill_occupancy(ins, X, sc, tau);
+    *path_out = pc.get(ins.grid, 0, X.target_pos[0], tau[0],
                        sc.upper_path, X.target_pos[0], sc);
   }
   return g.target_park;
@@ -681,7 +692,9 @@ std::vector<int> dd_match_free_goals(const DDInstance& ins,
   }
   sc.occ_node = nullptr;
   const int key = 1;
-  const auto g = build_guidance(ins, X, tgd, ld, pc, sc, &key, nullptr, pg);
+  const auto tau = tau_of(ins, X);
+  const auto g =
+      build_guidance(ins, X, tau, tgd, ld, pc, sc, &key, nullptr, pg);
   return g.free_goal;
 }
 
@@ -721,9 +734,10 @@ std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
   Scratch sc(ins.grid.size());
   sc.occ_node = nullptr;
   const int key = 1;
-  const auto g = build_guidance(ins, X, tgd, ld, pc, sc, &key);
+  const auto tau = tau_of(ins, X);
+  const auto g = build_guidance(ins, X, tau, tgd, ld, pc, sc, &key);
   sc.occ_node = nullptr;
-  fill_occupancy(ins, X, sc);
+  fill_occupancy(ins, X, sc, tau);
   return waitfor_cycles(ins, X, g, ld, sc);
 }
 
@@ -735,7 +749,8 @@ int dd_parking_cell(const DDInstance& ins, const PhysConfig& X, int robot)
   Scratch sc(ins.grid.size());
   sc.occ_node = nullptr;
   const int key = 1;
-  const auto g = build_guidance(ins, X, tgd, ld, pc, sc, &key);
+  const auto tau = tau_of(ins, X);
+  const auto g = build_guidance(ins, X, tau, tgd, ld, pc, sc, &key);
   return g.parking_cell[robot];
 }
 
@@ -761,7 +776,7 @@ std::vector<int> dd_pathcache_dst_probe(const DDInstance& ins,
   // WP-C T5: exercise the production PathCache with a dst change.
   PathCache pc;
   Scratch sc(ins.grid.size());
-  carrier_detail::fill_occupancy(ins, X, sc);
+  carrier_detail::fill_occupancy(ins, X, sc, tau_of(ins, X));
   pc.get(ins.grid, b, X.target_pos[b], dst1, sc.upper_path,
          X.target_pos[b], sc);
   const auto path = pc.get(ins.grid, b, X.target_pos[b], dst2, sc.upper_path,

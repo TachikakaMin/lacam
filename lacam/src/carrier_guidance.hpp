@@ -96,7 +96,8 @@ struct Scratch {
   }
 };
 
-inline void fill_occupancy(const DDInstance& ins, const PhysConfig& s, Scratch& sc)
+inline void fill_occupancy(const DDInstance& ins, const PhysConfig& s,
+                           Scratch& sc, const std::vector<int>& tau)
 {
   std::fill(sc.upper.begin(), sc.upper.end(), 0);
   std::fill(sc.grounded.begin(), sc.grounded.end(), 0);
@@ -113,22 +114,24 @@ inline void fill_occupancy(const DDInstance& ins, const PhysConfig& s, Scratch& 
   }
   for (size_t i = 0; i < s.kappa.size(); ++i)
     if (s.kappa[i] == KAPPA_ANON) sc.upper[s.robots[i]] = 1;
-  // path view: mask a target's own goal cell ONLY while that target is
-  // CARRIED and hovering on the goal — kills the park/deliver circular
-  // dependency (design 5.4a) while grounded targets stay real blockers.
+  // path view: mask a target's own ASSIGNED goal cell (tau) ONLY while
+  // that target is CARRIED and hovering on it — kills the park/deliver
+  // circular dependency (design 5.4a); grounded targets stay real
+  // blockers.  tau == the fixed goal on singleton instances.
   sc.upper_path = sc.upper;
   for (size_t i = 0; i < s.kappa.size(); ++i) {
     const int k = s.kappa[i];
-    if (k >= 0 && s.target_pos[k] == ins.target_goals[k])
-      sc.upper_path[ins.target_goals[k]] = 0;
+    if (k >= 0 && s.target_pos[k] == tau[k]) sc.upper_path[tau[k]] = 0;
   }
 }
 
-inline void fill_occupancy_if_needed(const DDInstance& ins, const PhysConfig& s,
-                              Scratch& sc, const void* key)
+inline void fill_occupancy_if_needed(const DDInstance& ins,
+                                     const PhysConfig& s, Scratch& sc,
+                                     const std::vector<int>& tau,
+                                     const void* key)
 {
   if (sc.occ_node == key && key != nullptr) return;
-  fill_occupancy(ins, s, sc);
+  fill_occupancy(ins, s, sc, tau);
   sc.occ_node = key;
 }
 
@@ -507,15 +510,16 @@ inline std::vector<int> waitfor_cycles(const DDInstance& ins, const PhysConfig& 
 // guidance construction (design 5.3/5.4a; ported: requests, park/yield,
 // rho via the SHARED Hungarian + eta hysteresis, parking placement)
 inline CarrierGuidance build_guidance(
-    const DDInstance& ins, const PhysConfig& s,
+    const DDInstance& ins, const PhysConfig& s, const std::vector<int>& tau,
     DDDistCache& upper_wall, LowerDist& lower_dist,
     PathCache& paths, Scratch& sc, const void* node_key,
     const std::vector<std::pair<int, int>>* taboo = nullptr,
     const CarrierGuidance* parent_guide = nullptr)
 {
   CarrierGuidance g;
+  g.tau = tau;
   const size_t R = ins.n_robots();
-  fill_occupancy_if_needed(ins, s, sc, node_key);
+  fill_occupancy_if_needed(ins, s, sc, tau, node_key);
   std::fill(sc.protect.begin(), sc.protect.end(), 0);
   std::fill(sc.owner.begin(), sc.owner.end(), 0);
   g.target_next.assign(ins.n_targets(), -1);
@@ -528,7 +532,7 @@ inline CarrierGuidance build_guidance(
     for (int k : s.kappa)
       if (k >= 0) cf[k] = 1;
     for (size_t b = 0; b < ins.n_targets(); ++b)
-      if (cf[b] || s.target_pos[b] != ins.target_goals[b]) ++n;
+      if (cf[b] || s.target_pos[b] != tau[b]) ++n;
     return n;
   }();
   const size_t ACTIVE_CAP = n_unf_precount > 256
@@ -541,8 +545,7 @@ inline CarrierGuidance build_guidance(
       if (k >= 0) carried_flag[k] = 1;
     std::vector<int> rest;
     for (size_t b = 0; b < ins.n_targets(); ++b) {
-      const bool done =
-          !carried_flag[b] && s.target_pos[b] == ins.target_goals[b];
+      const bool done = !carried_flag[b] && s.target_pos[b] == tau[b];
       if (done) continue;
       if (carried_flag[b])
         active_targets.push_back((int)b);
@@ -550,8 +553,8 @@ inline CarrierGuidance build_guidance(
         rest.push_back((int)b);
     }
     std::stable_sort(rest.begin(), rest.end(), [&](int a, int b2) {
-      const auto& da = upper_wall.to(ins.target_goals[a]);
-      const auto& db = upper_wall.to(ins.target_goals[b2]);
+      const auto& da = upper_wall.to(tau[a]);
+      const auto& db = upper_wall.to(tau[b2]);
       return da[s.target_pos[a]] < db[s.target_pos[b2]];
     });
     for (int b : rest) {
@@ -563,10 +566,10 @@ inline CarrierGuidance build_guidance(
     const size_t b = (size_t)b_int;
     bool carried = std::any_of(s.kappa.begin(), s.kappa.end(),
                                [&](int k) { return k == (int)b; });
-    const bool done = !carried && s.target_pos[b] == ins.target_goals[b];
+    const bool done = !carried && s.target_pos[b] == tau[b];
     if (done) continue;
     const auto& path =
-        paths.get(ins.grid, (int)b, s.target_pos[b], ins.target_goals[b],
+        paths.get(ins.grid, (int)b, s.target_pos[b], tau[b],
                   sc.upper_path, s.target_pos[b], sc);
     if (path.size() >= 2) g.target_next[b] = path[1];
     for (int c : path) {
@@ -582,6 +585,13 @@ inline CarrierGuidance build_guidance(
       g.requests.push_back(r);
     }
     int emitted = 0;
+    // movability bonus (design_final 5.4/D20): a blocker adjacent to an
+    // upper-deck vacancy is the executable frontier — in the one-empty
+    // regime it is the ONLY manipulable link of the chain.  Default OFF:
+    // the singleton-parity gate (debug.md v4 section 0.2) is spec-level,
+    // and at 50% fill the bonus reorders clears (dev ddmapd_h16 makespan
+    // 81 -> 91).  Enable for puzzle-density goal-set runs / ablations.
+    const bool frontier_on = env_int("DD_CLEAR_FRONTIER", 0) != 0;
     for (size_t pi = 1; pi < path.size() && emitted < CLEAR_CHAIN_K; ++pi) {
       const int cur = path[pi];
       const int gr__ = sc.grounded[cur];
@@ -589,13 +599,21 @@ inline CarrierGuidance build_guidance(
         CarrierRequest r;
         r.cell = cur;
         r.priority = 50 - emitted;  // clear, chain head higher
+        if (frontier_on) {
+          int nb__[4];
+          const int nn__ = ins.grid.neighbors(cur, nb__);
+          bool movable = false;
+          for (int tt = 0; tt < nn__; ++tt)
+            movable = movable || sc.upper[nb__[tt]] == 0;
+          if (movable) r.priority += 25;
+        }
         g.requests.push_back(r);
         ++emitted;
       }
     }
   }
   for (size_t b = 0; b < ins.n_targets(); ++b)
-    sc.protect[ins.target_goals[b]] = 1;
+    sc.protect[tau[b]] = 1;  // only the tau-assigned cells (not the pool)
 
   // Park relation (design 5.4a): computed from X via the CURRENT masked
   // cached paths — a function of (X, D_b cache epoch) under the default
@@ -603,13 +621,13 @@ inline CarrierGuidance build_guidance(
   // iff goal_b lies on ANOTHER unfinished target's current path.
   std::vector<int> park_owner(ins.n_targets(), -1);  // build-local
   auto done_in_X = [&](int o) {
-    if (s.target_pos[o] != ins.target_goals[o]) return false;
+    if (s.target_pos[o] != tau[o]) return false;
     for (int k : s.kappa)
       if (k == o) return false;
     return true;
   };
   for (size_t b = 0; b < ins.n_targets(); ++b) {
-    const int ow__ = sc.owner[ins.target_goals[b]];
+    const int ow__ = sc.owner[tau[b]];
     if (ow__ > 0 && ow__ - 1 != (int)b && !done_in_X(ow__ - 1)) {
       g.target_park[b] = 1;
       park_owner[b] = ow__ - 1;
@@ -630,8 +648,8 @@ inline CarrierGuidance build_guidance(
         const int nb2 = g.target_next[b2];
         if (nb2 < 0) continue;
         if (na == s.target_pos[b2] && nb2 == s.target_pos[a]) {
-          const auto& da = upper_wall.to(ins.target_goals[a]);
-          const auto& db = upper_wall.to(ins.target_goals[b2]);
+          const auto& da = upper_wall.to(tau[a]);
+          const auto& db = upper_wall.to(tau[b2]);
           const int ra = da[s.target_pos[a]], rb = db[s.target_pos[b2]];
           const size_t yield_b = (ra > rb || (ra == rb)) ? a : b2;
           g.target_park[yield_b] = 1;
@@ -756,7 +774,7 @@ inline CarrierGuidance build_guidance(
   // DD_PLACE_ESCAPE selects the escape-degree tie-break (default off)
   std::vector<uint8_t> is_goal_cell(ins.grid.size(), 0);
   for (size_t b = 0; b < ins.n_targets(); ++b)
-    is_goal_cell[ins.target_goals[b]] = 1;
+    is_goal_cell[tau[b]] = 1;  // tau-assigned cells only (design V3)
   for (size_t i = 0; i < R; ++i) {
     const bool anon_carrier = s.kappa[i] == KAPPA_ANON;
     const bool parked_target_carrier =

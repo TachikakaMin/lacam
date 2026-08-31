@@ -202,3 +202,56 @@ TEST(dd_tau_cache, pathcache_dst_change_is_a_miss)
   EXPECT_EQ(path.back(), ins.grid.idx(2, 4));  // stale dst1 path is a bug
   EXPECT_EQ(recomputes, 2);                    // dst change == cache miss
 }
+
+// ---- WP-D (T4/T7): guidance consumers driven by tau ----
+
+TEST(dd_tau_guidance, pool_instance_delivers_to_near_goals)
+{
+  // shared 3-cell pool; the sorted-first representative (0,0) is FAR
+  // from both targets, the two other pool cells are adjacent to them.
+  // tau-driven guidance must deliver to the near cells; representative-
+  // driven guidance would push both toward (0,0) (contention + detour).
+  auto ins = tau_ins(
+      {"......", "......", "......"}, {{2, 0}},
+      {{1, 2}, {1, 3}},
+      {{{0, 0}, {1, 4}, {2, 3}}, {{0, 0}, {1, 4}, {2, 3}}});
+  DDStats st;
+  const auto plan = solve_carrier_lacam(ins, 5.0, 0, &st);
+  ASSERT_FALSE(plan.empty());
+  auto s = initial_phys_config(ins);
+  for (const auto& ops : plan) {
+    auto nxt = apply_ops(ins, s, ops);
+    ASSERT_TRUE(nxt.has_value());
+    s = *nxt;
+  }
+  EXPECT_TRUE(is_dd_goal(ins, s));
+  const int FARC = ins.grid.idx(0, 0);
+  EXPECT_NE(s.target_pos[0], FARC);  // nobody hauled to the far cell
+  EXPECT_NE(s.target_pos[1], FARC);
+  EXPECT_LE(plan.size(), 14u);  // tau-direct horizon (near cells only)
+}
+
+TEST(dd_tau_guidance, frontier_movable_clear_outranks_chain_head)
+{
+  // 1-row corridor, single empty at (0,3): the only executable
+  // manipulation is the blocker ADJACENT to the vacancy (c2), not the
+  // chain head next to the target (c1).  With DD_CLEAR_FRONTIER=1 the
+  // lone free robot must be matched to c2 (design_final 5.4/D20); the
+  // default (0, singleton-parity gate) keeps the head-first order.
+  DDInstance ins;
+  ins.grid = DDGrid({"....."});
+  ins.robots.push_back(ins.grid.idx(0, 4));
+  for (int c : {0, 1, 2}) ins.shelves.push_back(ins.grid.idx(0, c));
+  ins.target_starts.push_back(ins.grid.idx(0, 0));
+  ins.target_goals.push_back(ins.grid.idx(0, 4));
+  ins.finalize();
+  const auto X = initial_phys_config(ins);
+  const auto fg_default = dd_match_free_goals(ins, X, nullptr);
+  ASSERT_EQ(fg_default.size(), 1u);
+  EXPECT_EQ(fg_default[0], ins.grid.idx(0, 1));  // head-first (default)
+  setenv("DD_CLEAR_FRONTIER", "1", 1);
+  const auto fg = dd_match_free_goals(ins, X, nullptr);
+  unsetenv("DD_CLEAR_FRONTIER");
+  ASSERT_EQ(fg.size(), 1u);
+  EXPECT_EQ(fg[0], ins.grid.idx(0, 2));  // movable frontier blocker c2
+}

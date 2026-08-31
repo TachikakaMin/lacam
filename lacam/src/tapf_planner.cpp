@@ -132,9 +132,30 @@ void TAPFPlanner::attach_carrier_guidance(
   auto& eng = *carrier;
   const auto& dd = *dd_view;
   const auto& phys = eng.phys_view(nd);
+  const TAPFNode* par = nd->parent;
 
-  // guidance-h (design 5.5 livelock signal; ordering only): sum of goal
-  // distances (+2 lift/drop proxy) over unfinished targets
+  // tau FIRST (design_final 5.3/5.6, T3/T4): every guidance consumer
+  // below (guidance-h, paths, park, order, PIBT) reads the ASSIGNED
+  // goal.  Hysteresis follows the parent/rollout guide (own guide when
+  // re-guiding) — independent of the livelock state; diversification
+  // under livelock happens via the tau taboo below, never via h.
+  const CarrierGuidance* tau_hyst = nullptr;
+  if (reguide && nd->guide != nullptr)
+    tau_hyst = nd->guide.get();
+  else if (par != nullptr && par->guide != nullptr)
+    tau_hyst = par->guide.get();
+  else
+    tau_hyst = rollout_parent_guide;
+  double h_shelf_tau = 0;
+  auto tau_vec = solve_tau(
+      dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
+      weights.gamma,
+      tau_hyst != nullptr && !tau_hyst->tau.empty() ? &tau_hyst->tau
+                                                    : nullptr,
+      nullptr, &h_shelf_tau);
+
+  // guidance-h (design 5.5 livelock signal; ordering only): sum of
+  // ASSIGNED-goal distances (+2 lift/drop proxy) over unsettled targets
   long hg = 0;
   {
     std::vector<char> carried(dd.n_targets(), 0);
@@ -142,14 +163,13 @@ void TAPFPlanner::attach_carrier_guidance(
       if (k >= 0) carried[k] = 1;
     for (size_t b = 0; b < dd.n_targets(); ++b) {
       const bool done =
-          !carried[b] && phys.target_pos[b] == dd.target_goals[b];
+          !carried[b] && phys.target_pos[b] == tau_vec[b];
       if (done) continue;
-      const auto& d = eng.upper_wall.to(dd.target_goals[b]);
+      const auto& d = eng.upper_wall.to(tau_vec[b]);
       hg += d[phys.target_pos[b]] + 2;
     }
   }
   nd->h_guidance = hg;
-  const TAPFNode* par = nd->parent;
   if (!reguide) {
     nd->best_h = par ? std::min(par->best_h, hg) : hg;
     nd->no_progress = (par != nullptr && hg > 0 && hg >= par->best_h)
@@ -167,7 +187,7 @@ void TAPFPlanner::attach_carrier_guidance(
         // wait-for refinement (M9): taboo only the cycle members' rho
         // pairs when a structural cycle exists; blanket taboo otherwise
         eng.sc.occ_node = nullptr;
-        fill_occupancy(dd, phys, eng.sc);
+        fill_occupancy(dd, phys, eng.sc, tau_vec);
         const auto cyc = waitfor_cycles(dd, phys, *src, eng.lower, eng.sc);
         for (const int i : cyc)
           if (src->rho[i] >= 0) taboo.emplace_back(i, src->free_goal[i]);
@@ -178,27 +198,31 @@ void TAPFPlanner::attach_carrier_guidance(
             taboo.emplace_back((int)i, src->free_goal[i]);
       }
     }
+    // tau taboo (design_final 5.6, T8): diversify the pairing itself —
+    // ban the current multi-goal pairs and re-match (ordering only; the
+    // admissible h keeps the UNRESTRICTED value).  |G_b|=1 rows are
+    // exempt inside solve_tau, so this is structurally empty (zero
+    // extra work, zero behavior change) on fixed-goal instances.
+    std::vector<std::pair<int, int>> tau_taboo;
+    for (size_t b = 0; b < tau_vec.size(); ++b)
+      if (dd.target_goal_sets[b].size() > 1)
+        tau_taboo.emplace_back((int)b, tau_vec[b]);
+    if (!tau_taboo.empty())
+      tau_vec = solve_tau(
+          dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
+          weights.gamma,
+          tau_hyst != nullptr && !tau_hyst->tau.empty() ? &tau_hyst->tau
+                                                        : nullptr,
+          &tau_taboo, nullptr);
   }
   const CarrierGuidance* parent_guide =
       (!livelock && par != nullptr) ? par->guide.get() : nullptr;
   if (parent_guide == nullptr && !livelock)
     parent_guide = rollout_parent_guide;  // parentless rollout probes
-  // tau: shelf->goal matching (design_final 5.3, T3).  Forced identity
-  // (and the exact pre-goal-set h arithmetic) on singleton instances;
-  // one lexicographic Hungarian otherwise.  h_shelf_tau is the
-  // admissible LB-matching value folded into node h below.
-  double h_shelf_tau = 0;
-  auto tau_vec = solve_tau(
-      dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
-      weights.gamma,
-      parent_guide != nullptr && !parent_guide->tau.empty()
-          ? &parent_guide->tau
-          : nullptr,
-      nullptr, &h_shelf_tau);
   nd->guide = std::make_unique<CarrierGuidance>(
-      build_guidance(dd, phys, eng.upper_wall, eng.lower, eng.paths,
-                     eng.sc, nd, livelock ? &taboo : nullptr, parent_guide));
-  nd->guide->tau = std::move(tau_vec);
+      build_guidance(dd, phys, tau_vec, eng.upper_wall, eng.lower,
+                     eng.paths, eng.sc, nd, livelock ? &taboo : nullptr,
+                     parent_guide));
   if (stats != nullptr) ++stats->guidance_builds;
 
   // PIBT order: class layering (design 5.4 N.order): loaded-target >
@@ -215,7 +239,7 @@ void TAPFPlanner::attach_carrier_guidance(
   auto rem = [&](int i) -> int {
     const int k = phys.kappa[i];
     if (k >= 0) {
-      const auto& d = eng.upper_wall.to(dd.target_goals[k]);
+      const auto& d = eng.upper_wall.to(g.tau[k]);
       return d[phys.robots[i]];
     }
     return 0;
@@ -374,6 +398,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     dd_view->shelves = ins->shelf_cells;
     dd_view->target_starts = ins->target_starts;
     dd_view->target_goals = ins->target_goals;
+    dd_view->target_goal_sets = ins->target_goal_sets;  // T1: eligibility
     dd_view->finalize();
     const size_t n_cells = ins->G.U.size();
     carrier_grounded.assign(n_cells, 0);
@@ -681,7 +706,10 @@ Solution TAPFPlanner::solve()
       for (size_t b = 0; b < S_new->shelf.target_pos.size(); ++b) {
         bool carried = false;
         for (const int k : S_new->shelf.kappa) carried |= (k == (int)b);
-        if (!carried && S_new->shelf.target_pos[b] == ins->target_goals[b])
+        if (!carried &&
+            std::binary_search(ins->target_goal_sets[b].begin(),
+                               ins->target_goal_sets[b].end(),
+                               S_new->shelf.target_pos[b]))
           ++done;
       }
       best_targets_done = std::max(best_targets_done, done);
@@ -1079,8 +1107,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     if (kappa_i >= 0 && guide != nullptr && !guide->target_park[kappa_i]) {
       // loaded with an unparked target
       const int b = kappa_i;
-      const auto& dgoal = eng.upper_wall.to(ins->target_goals[b]);
-      if (q == ins->target_goals[b]) {
+      const auto& dgoal = eng.upper_wall.to(guide->tau[b]);
+      if (q == guide->tau[b]) {
         cand.push_back({ai->v_now, (uint8_t)Op::DROP});
         cand.push_back({ai->v_now, (uint8_t)Op::WAIT});
       } else if (guide->plan_bound) {
