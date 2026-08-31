@@ -1,0 +1,13 @@
+{
+  "wall_time_sec": 107.5,
+  "jobs": 14,
+  "n_tasks": 164,
+  "timeout_per_run_sec": 10.0,
+  "methods": {
+    "carrier": {
+      "solved": 162,
+      "total": 164,
+      "solver_time_sum_sec": 1342.8
+    }
+  }
+}

@@ -600,7 +600,8 @@ DD_NO_FOLLOWING、DD_DEBUG_DUMP），新增：
 |---|---|---|
 | `DD_TAU_HUNGARIAN_TGT` | 256 | τ exact matching 的规模域上限；超出走 §4.3 无匹配松弛 h + 行内最近 goal 的 greedy τ（consistency：单点集下两者同型） |
 | `DD_ETA_B` | 2 | τ hysteresis（词典序副序，§5.3） |
-| `DD_CLEAR_FRONTIER` | 1 | 0 = 关闭 movability-aware clear 优先级（§5.4 消融） |
+| `DD_CLEAR_FRONTIER` | 0（实施期修订，见 D20） | 1 = movability-aware clear 优先级（§5.4 frontier-first；BRaP 密度/消融用） |
+| `DD_TAU_FREEZE` | 0 | 1 = τ 冻结为根节点值（Gate C 消融：dynamic vs frozen；h 保持未冻结的 admissible 值） |
 
 历史注记（DD_NO_ASTAR 从未存在于生产代码、DD_FOCAL_W 已退役）继承。
 
@@ -751,7 +752,7 @@ event-bounded macro、两阶段 anytime）。新增：
 | D17 | τ 与 admissible h 用**一次** Hungarian：主序 = LB（admissible 值），副序 = η_B hysteresis，第三序 engine tie_hash | 两个矩阵两次求解的开销减半；主序/副序词典分离同时保住 admissibility 与稳定性（§5.3 编码） |
 | D18 | blocking-aware τ cost 不进 v1 主序 | 进主序破坏 h admissibility；blocking 感知已由下游 path/requests/候选序承担；plateau 由 τ-taboo re-guidance 兜底；完整形留扩展消融 |
 | D19 | τ hysteresis 默认开（η_B=2） | 与 ρ 的 DD_ETA 同族经验；等价 goal 间震荡在共享池下是必然模式，必须默认抑制 |
-| D20 | clear 优先级 movability-aware（frontier-first），旋钮可回退 | one-empty regime 唯一可执行 manipulation 在链叶；head-first 在 puzzle 密度下让 robot 空等（§5.4）；低填充下两者行为几乎相同 |
+| D20 | clear 优先级 movability-aware（frontier-first）机制落地，**默认关**（DD_CLEAR_FRONTIER=0，实施期修订） | one-empty regime 唯一可执行 manipulation 在链叶（机制与单测保留）；但实测 50% 填充的 dev ddmapd_h16 上 bonus 重排 clear 序使 makespan 81→91——singleton-parity gate（debug.md v4 §0.2）是 spec 级，故默认关闭；BRaP 密度 goal-set 运行与消融按需开启 |
 | D21 | upper-wall 距离场合并为单 dest-keyed 共享缓存 | 字段只依赖 wall+dest；per-target 对象在共享 goal 池下产生 O(|B|·|pool|) 重复 BFS/内存 |
 | D22 | 单点集退化 = 结构等价（禁 flag）；既有 164 例套件作 parity gate | 与零 shelf 退化同一纪律：兼容性来自数据形状；回归风险由 benchmark 复跑钉死 |
 | D23 | B1 的 τ 取根节点静态值 | B1 是 decomposition 对照基线——goal 也静态才是对"先定后执行"的忠实模拟，与 full method 的差异变量保持干净（"逐 configuration 重算" vs "冻结"） |

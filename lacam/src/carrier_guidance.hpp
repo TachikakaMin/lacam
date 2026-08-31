@@ -196,6 +196,7 @@ struct TauEngine {
   std::vector<int> cols;                  // column id -> goal cell
   std::vector<std::vector<char>> elig;    // per target: eligibility by col
   TAPFAssignmentState state;
+  std::vector<int> frozen;  // DD_TAU_FREEZE=1: root matching, frozen
   long eta_b = 2;
   long S = 1;  // hysteresis scale: eta_b * n + 1 (sum of pens < S)
   long q = 1;  // LB quantization (1 for integral weights)
@@ -279,6 +280,17 @@ inline std::vector<int> solve_tau(
       if (tb == (int)b && tg == g) return true;
     return false;
   };
+  // Gate C ablation (design_final 6.5, DD_TAU_FREEZE=1): the RETURNED
+  // matching is frozen at the engine's first (root) solve; h_out keeps
+  // the live UNRESTRICTED admissible value (freezing h would overstate
+  // the lower bound).  Ordering-only, like every guidance knob.
+  auto freeze_tail = [&](std::vector<int>& t) {
+    if (env_int("DD_TAU_FREEZE", 0) == 0) return;
+    if (te.frozen.empty())
+      te.frozen = t;
+    else
+      t = te.frozen;
+  };
 
   if ((int)n > env_int("DD_TAU_HUNGARIAN_TGT", 256)) {
     // scale-regime relaxation (design_final 4.3): row-wise nearest
@@ -317,6 +329,7 @@ inline std::vector<int> solve_tau(
       h += best;  // unbiased row minimum (admissible)
     }
     if (h_out != nullptr) *h_out = h;
+    freeze_tail(tau);
     return tau;
   }
 
@@ -352,6 +365,7 @@ inline std::vector<int> solve_tau(
   // sum(pen) <= eta_b * n < S  =>  integer division recovers sum(LBq)
   if (h_out != nullptr)
     *h_out = (double)((long)res.cost / te.S) / (double)te.q;
+  freeze_tail(tau);
   return tau;
 }
 

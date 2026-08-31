@@ -148,6 +148,21 @@ per-target `target_goal_dist` 向量；主生成器路径里的静态配对。
 - **Gate C（消融方向性）**：frozen-τ 不优于 dynamic-τ（common
   solved mk）；违反则如实记录并调查（不得静默调参掩盖）。
 - 未达 gate：先固化 regression test，再调查；结果如实入报告。
+- **执行结果（2026-08-31）**：
+  - **Gate A PASS**（results_gateA，164×carrier 统一 10s jobs=14，
+    wall 107.5s）：162/164 = v2；成功集 0 丢 0 增；common solved
+    162/162 **逐例 makespan 完全相等**（report_gates.py）。
+  - **Gate B PASS**（results_gateB，instances_brap_pool 68×carrier）：
+    套件总成功 35/68 ≥ 34 基线（+1）；B 型 18/34（= near-boundary 18，
+    > static-greedy 17）；common-solved makespan：vs static-greedy
+    mean **0.275×**（16/17 更优；含 goal-set 语义红利极例——target
+    已在边界 ⇒ mk 1 vs 24774）；vs near-boundary mean 0.851×/median
+    0.510×（15/18 更优，3 例更差含一小易例 6× 波动）；R1 单点集
+    对照 34 行 **0 漂移**（Gate A 的 within-suite 复核）。
+  - **Gate C PASS**（results_gateC_frozen，DD_TAU_FREEZE=1 同套件）：
+    dynamic 18/34 > frozen 17/34；common 17 例 mk dynamic/frozen
+    mean **0.742×** / median 0.619×（frozen 仅 4/17 占优）——
+    "每节点重算"的贡献被隔离证实。
 
 ## 7. Protected 清单增量
 
@@ -157,14 +172,44 @@ goal-set 套件实例与生成器语义。
 
 ## 8. 进度
 
-- [ ] WP-R0 基线快照
-- [ ] WP-A 实例层（T1/T2）
-- [ ] WP-B 距离缓存重构（T6）
-- [ ] WP-C τ 引擎（T3/T5/T7）
-- [ ] WP-D guidance 全栈替换（T4/T8）
-- [ ] WP-E 入口/基线/生成器（T9/T10）
-- [ ] WP-F benchmark 与消融（Gate A/B/C）
-- [ ] WP-G 审计与文档
+- [x] WP-R0 基线快照（HEAD 185d073：24 C++ target 全绿 + Python OK；
+  dev 9 makespan 4/7/41/12/24/81/605/1264/1259 —— 全程 parity 基准）
+- [x] WP-A 实例层 T1/T2（69c476e；`test_dd_goalset` 7/7 +
+  `tests/test_goalset.py` 6/6，RED→GREEN；finalize 物化/组件过滤/
+  Kuhn 覆盖检查；is_dd_goal/is_goal_config/Python is_goal 集合成员判定；
+  dev parity 逐位）
+- [x] WP-B 距离缓存重构 T6（a8f7443；`test_dd_tau` 共享 dest-keyed
+  性质 pin；CarrierEngine::upper_wall 单缓存 + 6 个 adapter 站点；
+  零行为变化）
+- [x] WP-C τ 引擎 T3/T5/T7（6ca3243；`test_dd_tau` 10 用例中 8 个：
+  singleton==root-h 精确、injective contention、暴力最小匹配相等、
+  hysteresis 仅平局、opLB 分支、taboo+单点豁免、dst miss；
+  **落点修正（如实）**：per-node `tau_state`+`repair_rows` 方案未采用
+  —— hysteresis pen 随 parent 配对变化使"只有 moved rows 变化"前提
+  不成立（增广路径会重排其它行），增量修复对 h 可采纳性不安全；
+  实现为 CarrierEngine 级单一 TAPFAssignmentState 每节点 solve_full
+  （规模域 ≤256 实测可承受），增量列为吞吐扩展）
+- [x] WP-D guidance 全栈 T4/T7/T8（a990160；τ 先行→hg/paths/park/
+  yield/waitfor/funcPIBT/order 全部经 τ；τ-taboo 于 livelock+reguide
+  两路触发（单点行豁免 ⇒ 固定 goal 实例零动作）；dd_view 补拷
+  target_goal_sets（RED pool 测试抓出的真 bug）；
+  **D20 实施期修订（如实）**：DD_CLEAR_FRONTIER 默认 0 —— bonus 在
+  50% 填充 dev6 (ddmapd_h16) 上重排 clear 序致 makespan 81→91，
+  §0.2 singleton-parity 为 spec 级故默认关；机制+双默认断言保留
+  （`frontier_movable_clear_outranks_chain_head`）；design_final
+  D20/§6.5 已同步修订）
+- [x] WP-E 入口/基线/生成器 T9/T10（T9 已随 WP-D 落地：B1 冻结根 τ
+  per D23；63d1830：generate_brap_instances.py --goal-mode
+  {static,pool}，static 全量 diff 字节相同，pool 同布局 RNG 流仅
+  goal 结构变化；instances_brap_pool 68 例；
+  `test_tools.TestBrapGoalSetMode` RED→GREEN）
+- [x] WP-F benchmark 与 Gate A/B/C（见 §6 执行结果；DD_TAU_FREEZE
+  消融旋钮进 solve_tau（h 保持未冻结 admissible 值）；
+  **偏差（如实）**：run_ablations.py 未扩展 —— dev 9 例全为单点集，
+  frozen-τ/η_B/frontier 在其上结构性 no-op；Gate C 改在 pool 套件
+  （旋钮真正生效处）手动执行并存档 results_gateC_frozen）
+- [x] WP-G 进度同步 + 里程碑 commit（本条）；26 个 C++ 测试二进制
+  全绿 + Python 套件 OK + dev 9 parity 逐位（最终复验）
 
 ## 9. 继承遗留（v3 结转，如实）
 
@@ -174,7 +219,13 @@ goal-set 套件实例与生成器语义。
 3. 集成 rollout 未接增量 hash（吞吐机会）。
 4. 报表口径随结果目录引用：carrier 系按内部 deadline；b4/crest 按
    wall+0.6s 重分类。
-5. ≥20×20 puzzle 密度 horizon 墙（design_final §12.6，超本轮范围）。
+5. ≥20×20 puzzle 密度 horizon 墙（design_final §12.6，超本轮范围）：
+   pool 模式下 ≥20×20 仍 0 解（预期内，horizon 不是 goal 结构问题）。
+6. τ 增量修复（repair_rows）未接：见 §8 WP-C 落点修正——需先解决
+   hysteresis 行失效语义才能安全增量；规模域内 solve_full 实测无
+   吞吐问题（Gate A wall 107.5s vs v2 同口径），列为吞吐扩展。
+7. run_ablations.py 的 goal-set 变体（frozen-τ/η_B/frontier on pool
+   suite）未脚本化——Gate C 手动流程与命令已记录，脚本化留后续。
 
 维护约定：每完成一项勾选并附 commit hash 与测试名；新发现问题追加
 到对应 WP；protected 测试改动需独立 subagent APPROVE。
