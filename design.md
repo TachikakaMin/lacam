@@ -721,6 +721,11 @@ robot/shelf 子集 + 时间窗,固定其余,局部重搜。很可能是论文第
 
 ### 7.3 ITA 层:动态 $\tau$
 
+(v3.1 动机实证)BRaP-B 协议消融:goal 由"随机边界子集静态匹配"改为
+"全边界池最近去重匹配"(仍是 v1 固定 goal 语义),小图 makespan 最多
+好 8.5×、首解快 9×、多解 1 例(benchmark/README BRaP 节)——静态
+goal 选择的质量上限已经摸到,候选集 + 动态 τ 是下一个真收益点。
+
 goal 候选集 + incremental Hungarian(静态 $d^{\mathrm{wall}}_{\mathrm{upper}}$
 cost,moved-row 增量)。放 phase 3 或独立扩展章节,保持 v1 故事紧凑:
 "carrier-aware" 是主线,"assignment-aware" 是已被 ITA-LaCAM 建立的旧线。

@@ -358,3 +358,20 @@ quantifies exactly the executability price the design.md thesis is
 about — block-abstraction methods "solve" large dense grids by never
 paying robot travel; every plan our method reports replays through the
 two-deck validator.
+
+### Goal-fixing ablation (near-boundary matching)
+
+BRaP Goal-B semantics let a shelf exit at ANY boundary cell; our v1 model
+needs one FIXED goal per target, so the generator matches statically.
+`instances_brap_nearb/` re-fixes the B-type goals by nearest-distinct
+matching against the FULL boundary pool (the best static approximation of
+"any exit"; the original suite matched a random boundary SUBSET, ~1.8-8.6x
+distance inflation).  Carrier-only rerun (results_brap_nearb/): solved
+17->18 (recovers 10x10_seed1), makespan up to 8.5x better (4x10:
+38317->4508; 8x10: 58067->24148; 10x10: 62600->46782), first solution up
+to 9x faster (1575->166 ms).  >=20x20 remains 0/…: the wall is the
+intrinsic executable-plan horizon at puzzle density, not goal placement.
+Dynamic shelf-goal assignment (goal sets + per-node tau matching,
+design section 7.3 ITA layer) is the real feature this motivates; the
+solver today only does dynamic ROBOT-to-request assignment (Hungarian
+per node), not shelf-to-goal.
