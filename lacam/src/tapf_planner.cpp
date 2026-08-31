@@ -99,6 +99,7 @@ struct TAPFPlanner::CarrierEngine {
   LowerDist lower;
   PathCache paths;
   Scratch sc;
+  TauEngine tau_engine;  // shelf->goal matching state (T3)
   PhysConfig phys;  // scratch physical view of the node in processing
 
   explicit CarrierEngine(const DDInstance& dd)
@@ -182,9 +183,22 @@ void TAPFPlanner::attach_carrier_guidance(
       (!livelock && par != nullptr) ? par->guide.get() : nullptr;
   if (parent_guide == nullptr && !livelock)
     parent_guide = rollout_parent_guide;  // parentless rollout probes
+  // tau: shelf->goal matching (design_final 5.3, T3).  Forced identity
+  // (and the exact pre-goal-set h arithmetic) on singleton instances;
+  // one lexicographic Hungarian otherwise.  h_shelf_tau is the
+  // admissible LB-matching value folded into node h below.
+  double h_shelf_tau = 0;
+  auto tau_vec = solve_tau(
+      dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
+      weights.gamma,
+      parent_guide != nullptr && !parent_guide->tau.empty()
+          ? &parent_guide->tau
+          : nullptr,
+      nullptr, &h_shelf_tau);
   nd->guide = std::make_unique<CarrierGuidance>(
       build_guidance(dd, phys, eng.upper_wall, eng.lower, eng.paths,
                      eng.sc, nd, livelock ? &taboo : nullptr, parent_guide));
+  nd->guide->tau = std::move(tau_vec);
   if (stats != nullptr) ++stats->guidance_builds;
 
   // PIBT order: class layering (design 5.4 N.order): loaded-target >
@@ -222,20 +236,10 @@ void TAPFPlanner::attach_carrier_guidance(
   }
   if (!reguide) {
     nd->constraint_order = nd->order;  // frozen at creation (D11, M3)
-    // admissible shelf h (design 5.7) folded into node h/f (M5)
-    double h_shelf = 0;
-    std::vector<char> carried(dd.n_targets(), 0);
-    for (int k : phys.kappa)
-      if (k >= 0) carried[k] = 1;
-    for (size_t b = 0; b < dd.n_targets(); ++b) {
-      const bool done =
-          !carried[b] && phys.target_pos[b] == dd.target_goals[b];
-      if (done) continue;
-      const auto& d = eng.upper_wall.to(dd.target_goals[b]);
-      h_shelf += weights.alpha * d[phys.target_pos[b]];
-      h_shelf += weights.gamma * (carried[b] ? 1 : 2);
-    }
-    nd->h += h_shelf;
+    // admissible shelf h (design_final 4.3/5.3): the LB-matching value
+    // from solve_tau — bit-identical to the old per-target formula on
+    // singleton instances (forced assignment, same arithmetic)
+    nd->h += h_shelf_tau;
     nd->f = nd->g + nd->h;
   }
 }

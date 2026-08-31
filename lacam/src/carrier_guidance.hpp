@@ -14,9 +14,11 @@
 
 #include <algorithm>
 #include <climits>
+#include <cmath>
 #include <cstdlib>
 #include <deque>
 #include <queue>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
@@ -179,6 +181,177 @@ inline std::vector<int> least_blocking_path(
   return path;
 }
 
+// ---- tau: shelf->goal matching (design_final 5.3, D17/D19) ----
+// ONE Hungarian per node: primary lexicographic order = admissible LB
+// matrix (its optimal sum IS h_shelf), secondary = eta_B hysteresis
+// toward the parent assignment, third = the engine's deterministic tie
+// hash.  Structural degeneration on all-singleton (fixed-goal)
+// instances: forced assignment + the exact pre-goal-set h arithmetic.
+struct TauEngine {
+  bool inited = false;
+  bool all_singleton = false;
+  std::vector<int> cols;                  // column id -> goal cell
+  std::vector<std::vector<char>> elig;    // per target: eligibility by col
+  TAPFAssignmentState state;
+  long eta_b = 2;
+  long S = 1;  // hysteresis scale: eta_b * n + 1 (sum of pens < S)
+  long q = 1;  // LB quantization (1 for integral weights)
+};
+
+inline void tau_init(TauEngine& te, const DDInstance& ins, double alpha,
+                     double gamma)
+{
+  te.inited = true;
+  te.eta_b = env_int("DD_ETA_B", 2);
+  te.all_singleton = true;
+  for (const auto& set : ins.target_goal_sets)
+    te.all_singleton = te.all_singleton && set.size() == 1;
+  if (te.all_singleton) return;
+  const size_t n = ins.n_targets();
+  std::unordered_map<int, int> col_of;
+  std::vector<std::vector<int>> col_ids(n);
+  for (size_t b = 0; b < n; ++b)
+    for (const int g : ins.target_goal_sets[b]) {
+      const auto it = col_of.emplace(g, (int)col_of.size()).first;
+      col_ids[b].push_back(it->second);
+    }
+  te.cols.resize(col_of.size());
+  for (const auto& [cell, c] : col_of) te.cols[c] = cell;
+  te.elig.assign(n, std::vector<char>(te.cols.size(), 0));
+  for (size_t b = 0; b < n; ++b)
+    for (const int c : col_ids[b]) te.elig[b][c] = 1;
+  te.S = te.eta_b * (long)n + 1;
+  const bool integral_w =
+      alpha == std::floor(alpha) && gamma == std::floor(gamma);
+  te.q = integral_w ? 1 : 256;
+  te.state.init((int)n, (int)te.cols.size());
+}
+
+inline std::vector<int> solve_tau(
+    const DDInstance& ins, const PhysConfig& s, DDDistCache& upper_wall,
+    TauEngine& te, double alpha, double gamma,
+    const std::vector<int>* parent_tau,
+    const std::vector<std::pair<int, int>>* taboo, double* h_out)
+{
+  const size_t n = ins.n_targets();
+  std::vector<int> tau(n, -1);
+  if (n == 0) {
+    if (h_out != nullptr) *h_out = 0;
+    return tau;
+  }
+  if (!te.inited) tau_init(te, ins, alpha, gamma);
+  std::vector<char> carried(n, 0);
+  for (const int k : s.kappa)
+    if (k >= 0) carried[k] = 1;
+  // per-pair admissible lower bound (design_final 4.3 Lemma 1)
+  auto lb = [&](size_t b, int g) -> double {
+    double v = alpha * upper_wall.to(g)[s.target_pos[b]];
+    if (carried[b])
+      v += gamma;  // >= 1 drop
+    else if (s.target_pos[b] != g)
+      v += 2 * gamma;  // >= 1 lift + 1 drop
+    return v;
+  };
+
+  if (te.all_singleton) {
+    // structural degeneration (D22): forced tau; h via the EXACT
+    // pre-goal-set arithmetic (same loop shape, same skip of done)
+    double h = 0;
+    for (size_t b = 0; b < n; ++b) {
+      const int g = ins.target_goal_sets[b][0];
+      tau[b] = g;
+      const bool done = !carried[b] && s.target_pos[b] == g;
+      if (done) continue;
+      h += alpha * upper_wall.to(g)[s.target_pos[b]];
+      h += gamma * (carried[b] ? 1 : 2);
+    }
+    if (h_out != nullptr) *h_out = h;
+    return tau;
+  }
+
+  auto banned = [&](size_t b, int g) {
+    if (taboo == nullptr) return false;
+    if (ins.target_goal_sets[b].size() <= 1) return false;  // exempt
+    for (const auto& [tb, tg] : *taboo)
+      if (tb == (int)b && tg == g) return true;
+    return false;
+  };
+
+  if ((int)n > env_int("DD_TAU_HUNGARIAN_TGT", 256)) {
+    // scale-regime relaxation (design_final 4.3): row-wise nearest
+    // eligible goal; h ignores injectivity (still admissible, weaker).
+    // Hysteresis: stick to the parent goal within an eta_B slack.
+    double h = 0;
+    for (size_t b = 0; b < n; ++b) {
+      const auto& set = ins.target_goal_sets[b];
+      double best = -1;
+      int best_g = -1;
+      for (const int g : set) {
+        if (banned(b, g)) continue;
+        const double v = lb(b, g);
+        if (best_g < 0 || v < best) {
+          best = v;
+          best_g = g;
+        }
+      }
+      if (best_g < 0) {  // fully tabooed row: fall back to the raw min
+        for (const int g : set) {
+          const double v = lb(b, g);
+          if (best_g < 0 || v < best) {
+            best = v;
+            best_g = g;
+          }
+        }
+      }
+      if (parent_tau != nullptr) {
+        const int pg = (*parent_tau)[b];
+        if (pg >= 0 && pg != best_g && !banned(b, pg) &&
+            std::binary_search(set.begin(), set.end(), pg) &&
+            lb(b, pg) <= best + (double)te.eta_b)
+          best_g = pg;
+      }
+      tau[b] = best_g;
+      h += best;  // unbiased row minimum (admissible)
+    }
+    if (h_out != nullptr) *h_out = h;
+    return tau;
+  }
+
+  // exact regime: one Hungarian, lexicographic (LB, hysteresis, tie)
+  const long INF = kTapfAssignmentInfCost;
+  const long enc_cap =
+      std::min<long>(INF / 2 - 1, (long)INT_MAX / (long)(n + 1));
+  auto make_cost = [&](bool use_taboo) {
+    return [&, use_taboo](int row, int col) -> int {
+      if (!te.elig[row][col]) return (int)INF;
+      const int g = te.cols[col];
+      if (use_taboo && banned((size_t)row, g)) return (int)INF;
+      const double v = lb((size_t)row, g);
+      const long lbq = (long)std::floor(v * (double)te.q + 1e-9);
+      long pen = 0;
+      if (parent_tau != nullptr && (*parent_tau)[row] != g) pen = te.eta_b;
+      const long enc = lbq * te.S + pen;
+      if (enc > enc_cap)
+        throw std::runtime_error(
+            "solve_tau: cost encoding overflow (weights too large for "
+            "the goal-set matching regime)");
+      return (int)enc;
+    };
+  };
+  auto res = te.state.solve_full(make_cost(true));
+  if (!res.feasible && taboo != nullptr)
+    res = te.state.solve_full(make_cost(false));  // taboo cornered: drop it
+  if (!res.feasible)
+    throw std::logic_error(
+        "solve_tau: infeasible matching (covering checked at load)");
+  for (size_t b = 0; b < n; ++b) tau[b] = te.cols[res.agent_to_task[b]];
+  // decode the primary value: res.cost = S * sum(LBq) + sum(pen),
+  // sum(pen) <= eta_b * n < S  =>  integer division recovers sum(LBq)
+  if (h_out != nullptr)
+    *h_out = (double)((long)res.cost / te.S) / (double)te.q;
+  return tau;
+}
+
 // per-target cached least-blocking path, lazy asymmetric invalidation
 // (design 6.2; DD_STRICT_INVAL=1 -> full-snapshot epoch-free mode)
 struct PathCache {
@@ -190,6 +363,7 @@ struct PathCache {
     std::vector<uint8_t> occ_snapshot;
     std::vector<uint8_t> full_snapshot;  // strict mode only
     int src = -1;
+    int dst = -1;  // T5: tau can reassign goals; a dst change is a MISS
   };
   std::unordered_map<int, Entry> by_target;
 
@@ -198,7 +372,7 @@ struct PathCache {
                               int exclude, Scratch& sc)
   {
     auto it = by_target.find(b);
-    if (it != by_target.end()) {
+    if (it != by_target.end() && it->second.dst == dst) {
       auto& e = it->second;
       if (e.src != src && e.path.size() >= 2 && e.path[1] == src) {
         e.path.erase(e.path.begin());
@@ -228,10 +402,12 @@ struct PathCache {
     }
     Entry e;
     e.src = src;
+    e.dst = dst;
     ++recomputes;
     const std::vector<int>* prev_path = nullptr;
-    if (it != by_target.end() && !it->second.path.empty())
-      prev_path = &it->second.path;  // inertia baseline
+    if (it != by_target.end() && !it->second.path.empty() &&
+        it->second.dst == dst)
+      prev_path = &it->second.path;  // inertia baseline (same dst only)
     e.path =
         least_blocking_path(g, src, dst, occupied, exclude, sc, prev_path);
     e.occ_snapshot.resize(e.path.size());

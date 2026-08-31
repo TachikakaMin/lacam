@@ -75,6 +75,9 @@ struct CarrierGuidance {
   std::vector<int> target_next;   // next cell on each target's path
   bool plan_bound = false;        // B1: fixed plan is a HARD constraint
   std::vector<uint8_t> target_park;  // design 5.4a park flags
+  // shelf->goal matching (design_final 5.3, T3): per-target assigned
+  // goal CELL.  Identity view on fixed-goal (singleton) instances.
+  std::vector<int> tau;
 };
 
 struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {

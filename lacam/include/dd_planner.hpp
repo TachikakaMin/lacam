@@ -70,6 +70,26 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
                             int seed, DDStats* stats = nullptr,
                             std::vector<std::vector<int>>* fixed_paths = nullptr);
 
+// TEST SUPPORT (debug.md v4 WP-C T3, design_final 5.3/D17): run the
+// production shelf->goal tau matching for X.  Returns the per-target
+// assigned goal CELL; h_out (if given) receives the admissible
+// LB-matching h_shelf (primary lexicographic value).  parent_tau
+// exercises the eta_B hysteresis tie layer; taboo pairs (target,
+// goal-cell) are excluded from matching (|G_b|=1 rows exempt).
+std::vector<int> dd_solve_tau(
+    const DDInstance& ins, const PhysConfig& X,
+    const std::vector<int>* parent_tau = nullptr, double* h_out = nullptr,
+    const std::vector<std::pair<int, int>>* taboo = nullptr);
+
+// TEST SUPPORT (debug.md v4 WP-C T5): query the production PathCache for
+// target b twice — dst1 then dst2 — on the same X occupancy.  Returns
+// the SECOND path; recomputes_out receives the cache's recompute count.
+// A dst change must be a cache miss (stale dst1 paths are a correctness
+// bug once tau can reassign goals).
+std::vector<int> dd_pathcache_dst_probe(const DDInstance& ins,
+                                        const PhysConfig& X, int b, int dst1,
+                                        int dst2, long* recomputes_out);
+
 // TEST SUPPORT (G1/completeness conformance, debug.md P0-1/P0-2):
 // drain ONE node's operator-constraint tree through the production
 // machinery (tree expansion + Carrier-PIBT + validator) and return every

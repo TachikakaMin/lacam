@@ -738,3 +738,34 @@ int dd_parking_cell(const DDInstance& ins, const PhysConfig& X, int robot)
   const auto g = build_guidance(ins, X, tgd, ld, pc, sc, &key);
   return g.parking_cell[robot];
 }
+
+std::vector<int> dd_solve_tau(const DDInstance& ins, const PhysConfig& X,
+                              const std::vector<int>* parent_tau,
+                              double* h_out,
+                              const std::vector<std::pair<int, int>>* taboo)
+{
+  const SocWeights w = soc_weights_from_env();
+  DDDistCache uw(ins.grid);
+  carrier_detail::TauEngine te;
+  double h = 0;
+  auto tau = carrier_detail::solve_tau(ins, X, uw, te, w.alpha, w.gamma,
+                                       parent_tau, taboo, &h);
+  if (h_out != nullptr) *h_out = h;
+  return tau;
+}
+
+std::vector<int> dd_pathcache_dst_probe(const DDInstance& ins,
+                                        const PhysConfig& X, int b, int dst1,
+                                        int dst2, long* recomputes_out)
+{
+  // WP-C T5: exercise the production PathCache with a dst change.
+  PathCache pc;
+  Scratch sc(ins.grid.size());
+  carrier_detail::fill_occupancy(ins, X, sc);
+  pc.get(ins.grid, b, X.target_pos[b], dst1, sc.upper_path,
+         X.target_pos[b], sc);
+  const auto path = pc.get(ins.grid, b, X.target_pos[b], dst2, sc.upper_path,
+                           X.target_pos[b], sc);
+  if (recomputes_out != nullptr) *recomputes_out = pc.recomputes;
+  return path;
+}
