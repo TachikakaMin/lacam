@@ -759,8 +759,7 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
 std::vector<int> dd_match_free_goals(const DDInstance& ins,
                                      const PhysConfig& X,
                                      const std::vector<int>* parent_free_goal)
-{
-  DDDistCache tgd(ins.grid);
+{  DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
   PathCache pc;
   Scratch sc(ins.grid.size());
@@ -788,6 +787,24 @@ std::vector<int> dd_least_blocking_path(const DDGrid& g, int src, int dst,
   Scratch sc(g.size());
   return least_blocking_path(g, src, dst, occupied, /*exclude=*/-1, sc,
                              prev_path);
+}
+
+std::vector<ManipulationTask> dd_build_tasks(const DDInstance& ins,
+                                             const PhysConfig& X,
+                                             std::vector<int>* rho_task_out)
+{
+  // v3.0 §3/§5 probe: the PRODUCTION guidance builder's task pool for X
+  // (fresh caches, same construction as the other guidance probes).
+  DDDistCache tgd(ins.grid);
+  LowerDist ld(ins.grid);
+  PathCache pc;
+  Scratch sc(ins.grid.size());
+  sc.occ_node = nullptr;
+  const int key = 1;
+  const auto tau = tau_of(ins, X);
+  auto g = build_guidance(ins, X, tau, tgd, ld, pc, sc, &key);
+  if (rho_task_out != nullptr) *rho_task_out = g.rho_task;
+  return std::move(g.tasks);
 }
 
 std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,

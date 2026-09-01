@@ -176,6 +176,15 @@ std::vector<int> dd_match_free_goals(const DDInstance& ins,
                                      const PhysConfig& X,
                                      const std::vector<int>* parent_free_goal);
 
+// TEST SUPPORT (design_final v3.0 §3/§5, debug.md §7.2 tests 4/5): run the
+// production guidance for X and return its ManipulationTask pool
+// (tapf_planner.hpp).  rho_task_out, if given, receives the per-robot task
+// binding; requests are the pool's pickup projection.
+struct ManipulationTask;
+std::vector<ManipulationTask> dd_build_tasks(
+    const DDInstance& ins, const PhysConfig& X,
+    std::vector<int>* rho_task_out = nullptr);
+
 // TEST SUPPORT (debug.md round-2 P2-13c): production least-blocking path
 // with optional previous-path inertia bias (ties break toward prev; total
 // discount strictly below one base cost unit).

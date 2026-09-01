@@ -67,9 +67,33 @@ struct CarrierRequest {
   int priority = 0;  // higher first (100 serve; 50-k clear chain)
 };
 
+// Manipulation task (design_final v3.0 §3): one explicit shelf state
+// change MoveShelf(s, from -> to, root = b -> g).  Labeled targets carry
+// their index in shelf_target; anonymous shelves are identified by their
+// current cell (equivalence-class semantics, custody tracked by the
+// assigned robot's kappa episode).  Ordering-only guidance metadata:
+// never part of the search key.
+struct ManipulationTask {
+  int shelf_target = -1;  // >=0: labeled target index; -1: anon (cell id)
+  int from = -1;          // precise pickup cell (shelf's current cell)
+  int to = -1;            // drop cell; -1 while the destination is still
+                          // carrier-chosen parking (pre-frontier-compiler)
+  int root_target = -1;   // which shelf-goal objective this serves
+  int root_goal = -1;
+  int priority = 0;       // rho ordering (100 serve; 50-k clear chain)
+  int depth = 0;          // dependency depth from the root objective
+  uint64_t id = 0;        // stable TaskId: hash of (shelf, from, root);
+                          // `to` excluded so identity survives frontier
+                          // refinement of the drop cell
+};
+
 struct CarrierGuidance {
   std::vector<CarrierRequest> requests;
+  // v3.0 task pool: requests are a PROJECTION of tasks (request k is
+  // task k's pickup view); rho binds tasks, request indices follow.
+  std::vector<ManipulationTask> tasks;
   std::vector<int> rho;           // robot -> request index (or -1)
+  std::vector<int> rho_task;      // robot -> task pool index (or -1)
   std::vector<int> free_goal;     // per-robot request cell (or -1)
   std::vector<int> parking_cell;  // for parked/anon carriers
   std::vector<int> target_next;   // next cell on each target's path

@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <deque>
 #include <queue>
@@ -88,6 +89,27 @@ constexpr int ASSIGNMENT_EXACT_LIMIT = 256;
 constexpr int ACTIVE_TARGET_LIMIT = 256;
 constexpr int ACTIVE_TARGET_CAP = 64;
 constexpr int ASSIGNMENT_HYSTERESIS = 2;
+
+// Stable TaskId (design_final v3.0 §3): identity = (shelf, from, root).
+// `to` is deliberately EXCLUDED: a clear task keeps its identity while
+// the frontier compiler refines the drop cell, so rho hysteresis
+// survives vacancy churn.  Anonymous shelves pass shelf_target = -1 and
+// are distinguished by `from` (cell-equivalence-class semantics).
+inline uint64_t task_ident_hash(int shelf_target, int from,
+                                int root_target, int root_goal)
+{
+  auto mix = [](uint64_t x) {
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
+  };
+  uint64_t h = mix((uint64_t)(uint32_t)(shelf_target + 2));
+  h ^= mix(((uint64_t)1 << 40) ^ (uint64_t)(uint32_t)from);
+  h ^= mix(((uint64_t)2 << 40) ^ (uint64_t)(uint32_t)(root_target + 1));
+  h ^= mix(((uint64_t)3 << 40) ^ (uint64_t)(uint32_t)root_goal);
+  return h == 0 ? 1 : h;  // 0 stays "invalid"
+}
 
 inline bool target_on_eligible_goal(const DDInstance& ins,
                                     const PhysConfig& s, size_t b)
@@ -732,20 +754,39 @@ inline CarrierGuidance build_guidance(
 
     const bool head_free = path.size() >= 2 && sc.grounded[path[1]] == 0;
     if (!carried && head_free) {
-      CarrierRequest r;
-      r.cell = s.target_pos[b];
-      r.priority = 100;  // serve
-      g.requests.push_back(r);
+      // v3.0 §3: the request is the pickup projection of a serve task
+      // MoveShelf(b, pos -> assigned goal, root = b -> tau[b]).
+      ManipulationTask mt;
+      mt.shelf_target = (int)b;
+      mt.from = s.target_pos[b];
+      mt.to = tau[b];
+      mt.root_target = (int)b;
+      mt.root_goal = tau[b];
+      mt.priority = 100;  // serve
+      mt.depth = 0;
+      mt.id = task_ident_hash((int)b, mt.from, (int)b, tau[b]);
+      g.tasks.push_back(mt);
+      g.requests.push_back(CarrierRequest{mt.from, mt.priority});
     }
     int emitted = 0;
     for (size_t pi = 1; pi < path.size() && emitted < CLEAR_CHAIN_K; ++pi) {
       const int cur = path[pi];
       const int gr__ = sc.grounded[cur];
       if (gr__ == -1 || (gr__ > 0 && gr__ - 1 != (int)b)) {
-        CarrierRequest r;
-        r.cell = cur;
-        r.priority = 50 - emitted;  // clear, chain head higher
-        g.requests.push_back(r);
+        // v3.0 §3: clear task MoveShelf(s*, blocker cell -> to, root =
+        // b -> tau[b]).  `to` stays carrier-chosen (-1) until the
+        // frontier compiler (step 2) fixes it; identity excludes `to`.
+        ManipulationTask mt;
+        mt.shelf_target = gr__ > 0 ? gr__ - 1 : -1;
+        mt.from = cur;
+        mt.to = -1;
+        mt.root_target = (int)b;
+        mt.root_goal = tau[b];
+        mt.priority = 50 - emitted;  // clear, chain head higher
+        mt.depth = emitted + 1;
+        mt.id = task_ident_hash(mt.shelf_target, cur, (int)b, tau[b]);
+        g.tasks.push_back(mt);
+        g.requests.push_back(CarrierRequest{mt.from, mt.priority});
         ++emitted;
       }
     }
@@ -819,7 +860,10 @@ inline CarrierGuidance build_guidance(
 
   // rho matching: Hungarian (SHARED tapf implementation) within the
   // scale regime, greedy nearest otherwise; eta hysteresis on both.
+  // v3.0 §5: rho binds the TASK (stable TaskId); the request index and
+  // free_goal are derived views (request k is task k's pickup projection).
   g.rho.assign(R, -1);
+  g.rho_task.assign(R, -1);
   g.free_goal.assign(R, -1);
   g.parking_cell.assign(R, -1);
   std::vector<int> req_order(g.requests.size());
@@ -838,6 +882,20 @@ inline CarrierGuidance build_guidance(
   const int ETA = ASSIGNMENT_HYSTERESIS;
   const bool use_hyst = parent_guide != nullptr &&
                         parent_guide->free_goal.size() == R && ETA > 0;
+  // task-switch hysteresis by TASK IDENTITY (v3.0 §5): a robot keeps its
+  // eta discount only toward the SAME task (shelf, from, root), not any
+  // task that happens to share a pickup cell.  Parents without a task
+  // pool (B1, legacy probes) fall back to the historical cell view.
+  const auto same_task_as_parent = [&](size_t i, int req_idx) -> bool {
+    if (!use_hyst || parent_guide->rho[i] < 0) return false;
+    if (parent_guide->rho_task.size() == R &&
+        parent_guide->rho_task[i] >= 0 &&
+        parent_guide->rho_task[i] < (int)parent_guide->tasks.size() &&
+        req_idx < (int)g.tasks.size())
+      return parent_guide->tasks[parent_guide->rho_task[i]].id ==
+             g.tasks[req_idx].id;
+    return parent_guide->free_goal[i] == g.requests[req_idx].cell;
+  };
   if (ins.n_targets() <= (size_t)ASSIGNMENT_EXACT_LIMIT &&
       free_left > 0 && !req_order.empty()) {
     std::vector<int> free_ids;
@@ -859,9 +917,7 @@ inline CarrierGuidance build_guidance(
           for (auto& [rb, cell] : *taboo)
             banned |= (rb == i && cell == req.cell);
         int dd = banned ? INT_MAX / 8 : lower_dist.dist(req.cell, s.robots[i]);
-        if (!banned && use_hyst && parent_guide->rho[i] >= 0 &&
-            parent_guide->free_goal[i] == req.cell)
-          dd -= ETA;
+        if (!banned && same_task_as_parent(i, rows[a])) dd -= ETA;
         cost[a][b2] = dd;
       }
     }
@@ -873,6 +929,7 @@ inline CarrierGuidance build_guidance(
       robot_used[i] = true;
       --free_left;
       g.rho[i] = rows[a];
+      g.rho_task[i] = rows[a];
       g.free_goal[i] = g.requests[rows[a]].cell;
     }
   } else
@@ -889,9 +946,7 @@ inline CarrierGuidance build_guidance(
           if (banned) continue;
         }
         int dd = lower_dist.dist(req.cell, s.robots[i]);
-        if (use_hyst && parent_guide->rho[i] >= 0 &&
-            parent_guide->free_goal[i] == req.cell)
-          dd -= ETA;
+        if (same_task_as_parent(i, ri)) dd -= ETA;
         if (dd < bestd) {
           bestd = dd;
           best = (int)i;
@@ -901,6 +956,7 @@ inline CarrierGuidance build_guidance(
         robot_used[best] = true;
         --free_left;
         g.rho[best] = ri;
+        g.rho_task[best] = ri;
         g.free_goal[best] = req.cell;
       }
     }

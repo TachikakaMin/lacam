@@ -972,6 +972,20 @@ dd_plan_repair.repaired_soc_never_exceeds_raw_under_any_weights  修补 SOC 契�
 DuplicateTargetStartTest (Python)                          loader 对齐
 ```
 
+v3.0 step 1（task 层，RED->GREEN 已落地）：`ManipulationTask` 池由
+`build_guidance` 在原 serve/clear 生成点发射，request 是 task 的
+pickup 投影，`rho_task` 绑定池索引，hysteresis 按 TaskId
+（shelf, from, root）判定；保护测试
+`dd_tasks.{serve_task_carries_shelf_root_and_projection,
+clear_task_identifies_blocker_and_root,
+task_id_stable_across_robot_motion,
+rho_binds_task_and_requests_follow}`。step-1 gate
+（`results_v3_step1_tasks`）：36/68、小图 36/36，共同成功集 mk/SOC
+几何比 1.006988/1.005509（7/22/7），总 makespan 34,860 -> 35,029——
+hysteresis 从 cell 视图收紧为 task 身份后，跨 root 共享 cell 的折扣
+消失所致；作为 step 2/3 的基础被接受，最终 v3.0 与 baseline 的对比在
+§11.6 验收时整体评估。
+
 ---
 
 ## 13. 边界与后续研究
