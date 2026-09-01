@@ -1,5 +1,4 @@
-// PROTECTED tests: physical g, admissible h, FOCAL/anytime after first
-// solution, f-pruning (design 5.7 / D5; debug.md P3).  TDD RED first.
+// Physical-cost accounting, admissible h, and pre-incumbent macro policy.
 #include <dd_carrier.hpp>
 #include <dd_planner.hpp>
 
@@ -117,7 +116,7 @@ double optimal_soc(const DDInstance& ins)
 
 }  // namespace
 
-TEST(dd_anytime, first_solution_recorded_and_incumbent_improves_or_equal)
+TEST(dd_anytime, first_solution_and_repaired_cost_are_recorded)
 {
   auto ins = make_ins({".....", "....."}, {{1, 0}, {1, 4}},
                       {{0, 0}, {0, 1}, {0, 2}}, {{{0, 0}, {0, 4}}});
@@ -128,18 +127,17 @@ TEST(dd_anytime, first_solution_recorded_and_incumbent_improves_or_equal)
   EXPECT_GT(st.first_solution_soc, 0);
   EXPECT_GT(st.best_soc, 0);
   EXPECT_LE(st.best_soc, st.first_solution_soc)
-      << "anytime incumbent must never be worse than the first solution";
+      << "output repair must not cost more than the raw first solution";
   EXPECT_GE(st.incumbent_updates, 1);
   const double soc = plan_soc(ins, plan);
   EXPECT_NEAR(soc, st.best_soc, 1e-6)
-      << "returned plan must BE the best incumbent";
+      << "returned-plan accounting must match replay";
 }
 
-TEST(dd_anytime, anytime_reaches_optimal_on_tiny_instance)
+TEST(dd_anytime, first_incumbent_is_optimal_on_tiny_instance)
 {
-  // tiny instance solvable optimally by brute force; with generous time the
-  // anytime loop must reach the optimum (eventually-optimal behavior on a
-  // finite space with f-pruning).
+  // This tiny deterministic fixture reaches the brute-force optimum in its
+  // first incumbent. This is a regression property, not a general claim.
   auto ins = make_ins({"...", "..."}, {{1, 0}}, {{0, 1}},
                       {{{0, 1}, {0, 2}}});
   const double opt = optimal_soc(ins);
@@ -148,7 +146,7 @@ TEST(dd_anytime, anytime_reaches_optimal_on_tiny_instance)
   auto plan = solve_carrier_lacam(ins, 3.0, 0, &st);
   ASSERT_FALSE(plan.empty());
   EXPECT_NEAR(plan_soc(ins, plan), opt, 1e-6)
-      << "anytime search failed to reach the brute-force optimum";
+      << "tiny first incumbent drifted from the brute-force optimum";
 }
 
 TEST(dd_anytime, admissible_h_never_exceeds_true_cost)
@@ -180,11 +178,8 @@ TEST(dd_anytime, admissible_h_never_exceeds_true_cost)
 
 TEST(dd_anytime, macro_disabled_after_first_solution)
 {
-  // Two-phase policy (ablation-驱动): macro rollout is a FEASIBILITY device
-  // — greedy multi-step traces committed into the plan pad the cost at
-  // scale (full-suite A/B: paper-suite makespan 2.5-3x worse with macro in
-  // the improvement phase).  After the first solution the anytime phase
-  // must therefore never insert macro successors.
+  // Macro rollout is a pre-incumbent feasibility device within each search
+  // pass. This singleton-goal case has no assignment-refinement restart.
   auto ins = make_ins(
       {"............", "............", "..@@........", "..@@........",
        "............", "............", "............", "............",
@@ -198,5 +193,5 @@ TEST(dd_anytime, macro_disabled_after_first_solution)
   EXPECT_GT(st.macro_successors, 0)
       << "macro must still fire BEFORE the first solution";
   EXPECT_EQ(st.macro_after_first, 0)
-      << "macro successors inserted during the anytime phase";
+      << "macro successors inserted after the first incumbent";
 }

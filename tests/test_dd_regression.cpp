@@ -92,8 +92,9 @@ TEST(dd_regression, generator_throughput_dense_blocks)
   auto plan = solve_carrier_lacam(ins, 5.0, 0, &st);
   ASSERT_FALSE(plan.empty());
   EXPECT_TRUE(plan_is_valid(ins, plan));
-  EXPECT_LT(st.generator_failures, st.hl_expanded / 2)
-      << "generator failing on most expansions (Bug A)";
+  EXPECT_GT(st.macro_steps + st.hl_expanded, 0);
+  EXPECT_EQ(st.generator_failures, 0)
+      << "the shared rollout/search generator failed on the dense fixture";
 }
 
 TEST(dd_regression, carried_shelf_positions_block_s1_in_generator)

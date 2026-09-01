@@ -89,7 +89,8 @@ bool is_dd_goal(const DDInstance& ins, const PhysConfig& s);
 // two-deck transition validator (design 3.3 rule table).  Returns the
 // successor configuration, or nullopt if any rule/precondition is violated.
 std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
-                                    const std::vector<Op>& ops);
+                                    const std::vector<Op>& ops,
+                                    bool allow_following = true);
 
 uint64_t phys_config_hash(const PhysConfig& s);
 

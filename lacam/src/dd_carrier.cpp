@@ -266,7 +266,8 @@ bool is_dd_goal(const DDInstance& ins, const PhysConfig& s)
 }
 
 std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
-                                    const std::vector<Op>& ops)
+                                    const std::vector<Op>& ops,
+                                    bool allow_following)
 {
   const size_t R = ins.n_robots();
   if (ops.size() != R || s.robots.size() != R) return std::nullopt;
@@ -359,10 +360,9 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
         return std::nullopt;
     }
   }
-  // --- optional BRaP-conservative semantics (round-2 P2-16c, design
-  // 3.4a alignment experiment): DD_NO_FOLLOWING=1 rejects entering any
-  // cell being VACATED this step, on both decks.  Never on by default.
-  if (const char* nf = std::getenv("DD_NO_FOLLOWING"); nf && atoi(nf) != 0) {
+  // Explicit BRaP-conservative oracle variant used by conformance tests.
+  // Production calls use the physical default (following allowed).
+  if (!allow_following) {
     // lower deck: robot i enters a cell some robot j (!= i) leaves
     std::unordered_map<int, int> was_at;  // old cell -> robot
     for (size_t i = 0; i < R; ++i) was_at[s.robots[i]] = (int)i;

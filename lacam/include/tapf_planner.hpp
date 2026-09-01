@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 #include "planner.hpp"
@@ -28,12 +29,11 @@ struct TAPFSearchConfig {
   TAPFSearchMode mode = TAPFSearchMode::DFS;
   TAPFFocalTieBreak focal_tie_break = TAPFFocalTieBreak::H;
   double focal_weight = 1.5;
-  // carrier two-phase anytime (design D14, M10/M11).  Defaults preserve
-  // the original TAPF behavior: macro is structurally inert without
-  // unfinished shelf targets, and the two bounds below are disabled.
+  // Search-kernel controls. Carrier production uses one macro-assisted
+  // first-incumbent pass; generic TAPF callers may still run anytime.
   bool macro_enabled = true;   // event-bounded rollout successors
-  bool stop_at_first = false;  // phase 1: return at the first incumbent
-  double incumbent_init = -1;  // phase 2: external upper bound (f-pruning)
+  bool stop_at_first = false;
+  double incumbent_init = -1;  // optional external upper bound
 };
 
 // skeleton dedup (node-skeleton audit 2026-08-30): TAPFConstraint was a
@@ -145,10 +145,28 @@ struct TAPFStats {
   // macro rollout (design 7.1/D14, M10); all 0 on shelf-free instances
   long macro_successors = 0;
   long macro_steps = 0;
-  long macro_after_first = 0;  // two-phase policy: must stay 0
+  long macro_after_first = 0;  // macro insertion is pre-incumbent only
+  long macro_shelf_motion_successors = 0;
+  long macro_robot_only_successors = 0;
+  long rollout_calls = 0;
+  long rollout_cycles = 0;
+  long rollout_shelf_motion_steps = 0;
+  // New-state transitions split by their highest-level physical effect.
+  long robot_only_successors = 0;
+  long manipulation_successors = 0;  // lift/drop, no shelf displacement
+  long shelf_motion_successors = 0;
+  // Carrier assignment stability. Pair counts are more informative than
+  // generic TAPF assignment_changes, whose carrier rows are all unbound.
+  long tau_change_builds = 0;
+  long tau_pair_changes = 0;
+  long rho_change_builds = 0;
+  long rho_pair_changes = 0;
   long f_pruned = 0;    // nodes discarded by the incumbent/f bound
   long g_relaxed = 0;   // duplicate-hit g relaxations (rewrite propagation)
   long guidance_builds = 0;  // carrier guidance constructions (M6)
+  double tau_time_ms = 0;
+  double guidance_time_ms = 0;
+  long futile_lift_demotions = 0;
   unsigned solution_cost = 0;
   unsigned first_solution_cost = 0;
   double first_solution_g = -1;  // exact double (carrier weighted soc)
@@ -173,9 +191,9 @@ struct TAPFPlanner {
 
   const int N;  // number of agents
   const int V_size;
-  // physical cost weights (design 2.3/5.7, mapping M5): unit by default;
-  // DD_SOLVER_WEIGHTS=1 folds DD_ALPHA..DD_DELTA into g.  Shelf-free edge
-  // costs never read these (the carrier term loops over an empty kappa).
+  // Physical cost weights (design 2.3/5.7, mapping M5): unit by default;
+  // numeric objective inputs DD_ALPHA..DD_DELTA override them. Shelf-free
+  // edge costs never read these (the carrier term loops over empty kappa).
   struct Weights {
     double alpha = 1, beta = 1, gamma = 1, delta = 1;
   };
@@ -217,6 +235,7 @@ struct TAPFPlanner {
   long best_targets_done = 0;
   Solution best_effort_solution;
   std::vector<ShelfState> best_effort_shelves;
+  std::vector<int> best_effort_tau;
   // multi-step macro edges (M10), keyed (from, to): physical cost and the
   // INTERMEDIATE states (exclusive of endpoints) for extraction/rewrite.
   // Always empty on shelf-free instances.
@@ -238,10 +257,24 @@ struct TAPFPlanner {
     std::vector<ShelfState> shelves;
     double cost = 0;
     bool reached_goal = false;
+    bool shelf_moved = false;
   };
   CarrierRollout carrier_rollout(const Config& C0, const ShelfState& S0,
                                  int max_steps, int min_chunk,
                                  bool stop_on_event);
+
+  // Cross-node memory of repeated immediate lift/drop pairs.  Observation
+  // and expiry are automatic; LIFT is only demoted in guidance, so the
+  // exhaustive constraint tree is intact.
+  long futile_clock = 0;
+  std::unordered_map<uint64_t, std::pair<long, long>>
+      lift_futile;  // key -> (recent count, last tick)
+  void note_lift_cycle(const Config& before_lift_C,
+                       const ShelfState& before_lift_S,
+                       const Config& loaded_C, const ShelfState& loaded_S,
+                       const Config& after_drop_C,
+                       const ShelfState& after_drop_S);
+  bool lift_on_cooldown(int cell) const;
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,

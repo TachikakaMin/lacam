@@ -154,3 +154,30 @@ TEST(dd_goalset, already_on_eligible_goal_is_trivially_solved)
   }
   EXPECT_TRUE(is_dd_goal(ins, s));
 }
+
+TEST(dd_goalset, dynamic_first_solution_restarts_with_fixed_assignment)
+{
+  // The first solution may choose either eligible goal. Its terminal choice
+  // becomes a singleton assignment for one automatic root restart.
+  auto ins = make_set_ins({".....", "....."}, {{1, 0}}, {{0, 3}},
+                          {{0, 3}}, {{{0, 2}, {0, 3}}});
+  DDStats st;
+  const auto plan = solve_carrier_lacam(ins, 1.0, 0, &st);
+  ASSERT_FALSE(plan.empty());
+  EXPECT_EQ(st.assignment_restarts, 1);
+  EXPECT_EQ(st.assignment_second_solved, 1);
+  EXPECT_EQ(st.assignment_improvements, 0);
+  EXPECT_GE(st.assignment_second_solution_ms, st.first_solution_ms);
+}
+
+TEST(dd_goalset, singleton_assignment_skips_second_search)
+{
+  auto ins = make_set_ins({".....", "....."}, {{1, 0}}, {{0, 3}},
+                          {{0, 3}}, {{{0, 3}}});
+  DDStats st;
+  const auto plan = solve_carrier_lacam(ins, 1.0, 0, &st);
+  ASSERT_FALSE(plan.empty());
+  EXPECT_EQ(st.assignment_restarts, 0);
+  EXPECT_EQ(st.assignment_second_solved, 0);
+  EXPECT_EQ(st.assignment_improvements, 0);
+}

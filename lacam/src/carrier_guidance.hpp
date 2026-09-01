@@ -34,20 +34,12 @@ namespace carrier_detail {
 // this executes on shelf-free instances (no targets -> no engine).
 // =====================================================================
 
-inline int env_int(const char* k, int dflt)
-{
-  const char* v = std::getenv(k);
-  return v ? std::atoi(v) : dflt;
-}
-
 // solver-objective weight loader (design 5.7): ONE parser for the planner
 // g-weights and the adapter reporting weights (they must always agree).
 // W needs fields alpha/beta/gamma/delta defaulting to 1.
 template <typename W>
 inline void load_solver_weights(W& w)
 {
-  const char* e = std::getenv("DD_SOLVER_WEIGHTS");
-  if (e == nullptr || std::atoi(e) == 0) return;
   if (const char* a = std::getenv("DD_ALPHA")) w.alpha = atof(a);
   if (const char* b = std::getenv("DD_BETA")) w.beta = atof(b);
   if (const char* c = std::getenv("DD_GAMMA")) w.gamma = atof(c);
@@ -77,6 +69,17 @@ struct LowerDist {
 constexpr int LAMBDA_BLK = 8;
 constexpr int CLEAR_CHAIN_K = 3;
 constexpr int LIVELOCK_WINDOW = 24;
+constexpr int ASSIGNMENT_EXACT_LIMIT = 256;
+constexpr int ACTIVE_TARGET_LIMIT = 256;
+constexpr int ACTIVE_TARGET_CAP = 64;
+constexpr int ASSIGNMENT_HYSTERESIS = 2;
+
+inline bool target_on_eligible_goal(const DDInstance& ins,
+                                    const PhysConfig& s, size_t b)
+{
+  const auto& goals = ins.target_goal_sets[b];
+  return std::binary_search(goals.begin(), goals.end(), s.target_pos[b]);
+}
 
 // grid-sized scratch buffers reused across nodes (single-threaded)
 struct Scratch {
@@ -84,9 +87,11 @@ struct Scratch {
   std::vector<uint8_t> protect;
   std::vector<int> grounded;  // 0 none; -1 anon; b+1 grounded target b
   std::vector<int> owner;
-  std::vector<int> dist;
+  std::vector<long long> dist;
   std::vector<int> prev;
-  std::vector<uint8_t> upper_path;  // carried-hover mask view (5.4a)
+  // Path occupancy view. Completed targets remain ordinary reversible
+  // blockers; task-level stability is handled by tau, not by path costs.
+  std::vector<uint8_t> upper_path;
   std::vector<uint8_t> on_prev;     // path-inertia scratch
   const void* occ_node = nullptr;
   explicit Scratch(int n)
@@ -141,7 +146,8 @@ inline std::vector<int> least_blocking_path(
     const std::vector<int>* prev_path = nullptr)
 {
   if (src == dst) return {src};
-  std::fill(sc.dist.begin(), sc.dist.end(), INT_MAX / 2);
+  constexpr long long PATH_INF = LLONG_MAX / 4;
+  std::fill(sc.dist.begin(), sc.dist.end(), PATH_INF);
   auto& dist = sc.dist;
   auto& prev = sc.prev;
   prev[src] = -1;
@@ -154,7 +160,7 @@ inline std::vector<int> least_blocking_path(
     std::fill(on_prev.begin(), on_prev.end(), 0);
     for (int c : *prev_path) on_prev[c] = 1;
   }
-  using QE = std::pair<int, int>;
+  using QE = std::pair<long long, int>;
   std::priority_queue<QE, std::vector<QE>, std::greater<QE>> pq;
   dist[src] = 0;
   pq.push({0, src});
@@ -167,8 +173,9 @@ inline std::vector<int> least_blocking_path(
     const int n = g.neighbors(u, nb);
     for (int k = 0; k < n; ++k) {
       const int v = nb[k];
-      const bool occ = v != exclude && occupied[v];
-      int w = (1 + (occ ? LAMBDA_BLK : 0)) * scale;
+      const uint8_t occ = v != exclude ? occupied[v] : 0;
+      const int base = 1 + (occ ? LAMBDA_BLK : 0);
+      long long w = (long long)base * scale;
       if (use_prev && on_prev[v]) w -= 1;
       if (dist[v] > d + w) {
         dist[v] = d + w;
@@ -177,7 +184,7 @@ inline std::vector<int> least_blocking_path(
       }
     }
   }
-  if (dist[dst] >= INT_MAX / 2) return {};
+  if (dist[dst] >= PATH_INF) return {};
   std::vector<int> path;
   for (int c = dst; c != -1; c = prev[c]) path.push_back(c);
   std::reverse(path.begin(), path.end());
@@ -196,8 +203,7 @@ struct TauEngine {
   std::vector<int> cols;                  // column id -> goal cell
   std::vector<std::vector<char>> elig;    // per target: eligibility by col
   TAPFAssignmentState state;
-  std::vector<int> frozen;  // DD_TAU_FREEZE=1: root matching, frozen
-  long eta_b = 2;
+  long eta_b = ASSIGNMENT_HYSTERESIS;
   long S = 1;  // hysteresis scale: eta_b * n + 1 (sum of pens < S)
   long q = 1;  // LB quantization (1 for integral weights)
 };
@@ -206,7 +212,6 @@ inline void tau_init(TauEngine& te, const DDInstance& ins, double alpha,
                      double gamma)
 {
   te.inited = true;
-  te.eta_b = env_int("DD_ETA_B", 2);
   te.all_singleton = true;
   for (const auto& set : ins.target_goal_sets)
     te.all_singleton = te.all_singleton && set.size() == 1;
@@ -235,7 +240,8 @@ inline std::vector<int> solve_tau(
     const DDInstance& ins, const PhysConfig& s, DDDistCache& upper_wall,
     TauEngine& te, double alpha, double gamma,
     const std::vector<int>* parent_tau,
-    const std::vector<std::pair<int, int>>* taboo, double* h_out)
+    const std::vector<std::pair<int, int>>* taboo, double* h_out,
+    bool preserve_parent = false)
 {
   const size_t n = ins.n_targets();
   std::vector<int> tau(n, -1);
@@ -247,6 +253,9 @@ inline std::vector<int> solve_tau(
   std::vector<char> carried(n, 0);
   for (const int k : s.kappa)
     if (k >= 0) carried[k] = 1;
+  std::vector<char> settled(n, 0);
+  for (size_t b = 0; b < n; ++b)
+    settled[b] = !carried[b] && target_on_eligible_goal(ins, s, b);
   // per-pair admissible lower bound (design_final 4.3 Lemma 1)
   auto lb = [&](size_t b, int g) -> double {
     double v = alpha * upper_wall.to(g)[s.target_pos[b]];
@@ -255,6 +264,18 @@ inline std::vector<int> solve_tau(
     else if (s.target_pos[b] != g)
       v += 2 * gamma;  // >= 1 lift + 1 drop
     return v;
+  };
+  auto relaxed_h = [&]() {
+    double h = 0;
+    for (size_t b = 0; b < n; ++b) {
+      double best = -1;
+      for (const int g : ins.target_goal_sets[b]) {
+        const double v = lb(b, g);
+        if (best < 0 || v < best) best = v;
+      }
+      h += best;
+    }
+    return h;
   };
 
   if (te.all_singleton) {
@@ -273,32 +294,48 @@ inline std::vector<int> solve_tau(
     return tau;
   }
 
+  // A shelf-goal assignment is a task-level commitment, not a primitive
+  // motion preference. Between task boundaries the physical LB matrix may
+  // change as a carried shelf moves, but changing its destination every
+  // timestep disconnects robot execution from shelf planning. Reuse the
+  // parent assignment and retain an admissible row-relaxed lower bound;
+  // callers explicitly disable this at drop/reguidance boundaries.
+  if (preserve_parent && parent_tau != nullptr &&
+      parent_tau->size() == n) {
+    bool valid = true;
+    for (size_t b = 0; b < n; ++b) {
+      valid &= std::binary_search(ins.target_goal_sets[b].begin(),
+                                  ins.target_goal_sets[b].end(),
+                                  (*parent_tau)[b]);
+      valid &= !settled[b] || (*parent_tau)[b] == s.target_pos[b];
+    }
+    if (valid) {
+      tau = *parent_tau;
+      if (h_out != nullptr) *h_out = relaxed_h();
+      return tau;
+    }
+  }
+
   auto banned = [&](size_t b, int g) {
     if (taboo == nullptr) return false;
     if (ins.target_goal_sets[b].size() <= 1) return false;  // exempt
+    if (carried[b] || settled[b]) return false;
     for (const auto& [tb, tg] : *taboo)
       if (tb == (int)b && tg == g) return true;
     return false;
   };
-  // Gate C ablation (design_final 6.5, DD_TAU_FREEZE=1): the RETURNED
-  // matching is frozen at the engine's first (root) solve; h_out keeps
-  // the live UNRESTRICTED admissible value (freezing h would overstate
-  // the lower bound).  Ordering-only, like every guidance knob.
-  auto freeze_tail = [&](std::vector<int>& t) {
-    if (env_int("DD_TAU_FREEZE", 0) == 0) return;
-    if (te.frozen.empty())
-      te.frozen = t;
-    else
-      t = te.frozen;
-  };
-
-  if ((int)n > env_int("DD_TAU_HUNGARIAN_TGT", 256)) {
+  if ((int)n > ASSIGNMENT_EXACT_LIMIT) {
     // scale-regime relaxation (design_final 4.3): row-wise nearest
     // eligible goal; h ignores injectivity (still admissible, weaker).
     // Hysteresis: stick to the parent goal within an eta_B slack.
     double h = 0;
     for (size_t b = 0; b < n; ++b) {
       const auto& set = ins.target_goal_sets[b];
+      double h_best = -1;
+      for (const int g : set) {
+        const double v = lb(b, g);
+        if (h_best < 0 || v < h_best) h_best = v;
+      }
       double best = -1;
       int best_g = -1;
       for (const int g : set) {
@@ -318,7 +355,12 @@ inline std::vector<int> solve_tau(
           }
         }
       }
-      if (parent_tau != nullptr) {
+      if (settled[b]) {
+        best_g = s.target_pos[b];
+      } else if (carried[b] && parent_tau != nullptr &&
+          std::binary_search(set.begin(), set.end(), (*parent_tau)[b])) {
+        best_g = (*parent_tau)[b];
+      } else if (parent_tau != nullptr) {
         const int pg = (*parent_tau)[b];
         if (pg >= 0 && pg != best_g && !banned(b, pg) &&
             std::binary_search(set.begin(), set.end(), pg) &&
@@ -326,10 +368,9 @@ inline std::vector<int> solve_tau(
           best_g = pg;
       }
       tau[b] = best_g;
-      h += best;  // unbiased row minimum (admissible)
+      h += h_best;  // unrestricted row minimum (admissible)
     }
     if (h_out != nullptr) *h_out = h;
-    freeze_tail(tau);
     return tau;
   }
 
@@ -337,9 +378,44 @@ inline std::vector<int> solve_tau(
   const long INF = kTapfAssignmentInfCost;
   const long enc_cap =
       std::min<long>(INF / 2 - 1, (long)INT_MAX / (long)(n + 1));
-  auto make_cost = [&](bool use_taboo) {
-    return [&, use_taboo](int row, int col) -> int {
+  std::vector<int> locked_col(n, -1);
+  std::vector<int> locked_owner(te.cols.size(), -1);
+  std::vector<uint8_t> lock_kind(n, 0);  // 1 carried, 2 settled
+  // Prefer terminal placement over historical intent: a grounded target on
+  // any eligible goal owns that cell whenever the partial matching extends.
+  // An in-flight target reroutes on such a commitment conflict.
+  for (size_t b = 0; b < n; ++b) {
+    if (!settled[b]) continue;
+    const auto it =
+        std::find(te.cols.begin(), te.cols.end(), s.target_pos[b]);
+    if (it == te.cols.end()) continue;
+    const int col = static_cast<int>(it - te.cols.begin());
+    locked_col[b] = col;
+    locked_owner[col] = (int)b;
+    lock_kind[b] = 2;
+  }
+  if (parent_tau != nullptr && parent_tau->size() == n) {
+    for (size_t b = 0; b < n; ++b) {
+      if (!carried[b] || settled[b]) continue;
+      const auto it = std::find(te.cols.begin(), te.cols.end(),
+                                (*parent_tau)[b]);
+      if (it == te.cols.end()) continue;
+      const int col = static_cast<int>(it - te.cols.begin());
+      if (!te.elig[b][col] ||
+          locked_owner[col] >= 0)
+        continue;
+      locked_col[b] = col;
+      locked_owner[col] = (int)b;
+      lock_kind[b] = 1;
+    }
+  }
+  auto make_cost = [&](bool use_taboo, bool use_locks) {
+    return [&, use_taboo, use_locks](int row, int col) -> int {
       if (!te.elig[row][col]) return (int)INF;
+      if (use_locks &&
+          ((locked_col[row] >= 0 && locked_col[row] != col) ||
+           (locked_owner[col] >= 0 && locked_owner[col] != row)))
+        return (int)INF;
       const int g = te.cols[col];
       if (use_taboo && banned((size_t)row, g)) return (int)INF;
       const double v = lb((size_t)row, g);
@@ -354,27 +430,74 @@ inline std::vector<int> solve_tau(
       return (int)enc;
     };
   };
-  auto res = te.state.solve_full(make_cost(true));
-  if (!res.feasible && taboo != nullptr)
-    res = te.state.solve_full(make_cost(false));  // taboo cornered: drop it
+  auto unrestricted = te.state.solve_full(make_cost(false, false));
+  if (!unrestricted.feasible)
+    throw std::logic_error(
+        "solve_tau: infeasible matching (covering checked at load)");
+  if (h_out != nullptr)
+    *h_out =
+        (double)((long)unrestricted.cost / te.S) / (double)te.q;
+
+  auto rebuild_locked_owner = [&]() {
+    std::fill(locked_owner.begin(), locked_owner.end(), -1);
+    for (size_t b = 0; b < n; ++b)
+      if (locked_col[b] >= 0) locked_owner[locked_col[b]] = (int)b;
+  };
+  auto solve_with_locks = [&]() {
+    auto candidate =
+        te.state.solve_full(make_cost(taboo != nullptr, true));
+    if (!candidate.feasible && taboo != nullptr)
+      candidate = te.state.solve_full(make_cost(false, true));
+    return candidate;
+  };
+  const bool have_locks =
+      std::any_of(locked_col.begin(), locked_col.end(),
+                  [](int col) { return col >= 0; });
+  auto res = (!have_locks && taboo == nullptr) ? unrestricted
+                                               : solve_with_locks();
+  if (!res.feasible) {
+    // A set of individually valid carried commitments need not extend to a
+    // complete matching. Settled rows have priority, so release carried
+    // locks first and retain every settled placement when feasible.
+    for (size_t b = 0; b < n; ++b)
+      if (lock_kind[b] == 1) {
+        locked_col[b] = -1;
+        lock_kind[b] = 0;
+      }
+    rebuild_locked_owner();
+    res = solve_with_locks();
+  }
+  if (!res.feasible) {
+    // A currently settled placement can also be non-extendable (for
+    // example, a flexible target occupies another target's singleton
+    // goal). Keep the settled rows retained by the unrestricted matching;
+    // that matching witnesses feasibility of this reduced lock set.
+    for (size_t b = 0; b < n; ++b) {
+      const int col = unrestricted.agent_to_task[b];
+      const bool retained =
+          settled[b] && col >= 0 && col < (int)te.cols.size() &&
+          te.cols[col] == s.target_pos[b];
+      locked_col[b] = retained ? col : -1;
+      lock_kind[b] = retained ? 2 : 0;
+    }
+    rebuild_locked_owner();
+    res = solve_with_locks();
+  }
   if (!res.feasible)
     throw std::logic_error(
         "solve_tau: infeasible matching (covering checked at load)");
   for (size_t b = 0; b < n; ++b) tau[b] = te.cols[res.agent_to_task[b]];
-  // decode the primary value: res.cost = S * sum(LBq) + sum(pen),
-  // sum(pen) <= eta_b * n < S  =>  integer division recovers sum(LBq)
-  if (h_out != nullptr)
-    *h_out = (double)((long)res.cost / te.S) / (double)te.q;
-  freeze_tail(tau);
   return tau;
 }
 
 // per-target cached least-blocking path, lazy asymmetric invalidation
-// (design 6.2; DD_STRICT_INVAL=1 -> full-snapshot epoch-free mode)
+// (design 6.2).  Strict snapshots remain available to the cache-purity
+// test probe, but production uses the cheaper path-local invalidation.
 struct PathCache {
-  bool strict_inval = env_int("DD_STRICT_INVAL", 0) != 0;
+  bool strict_inval;
   long recomputes = 0;  // diagnostics (DDStats.path_recomputes)
   long hits = 0;        // diagnostics (DDStats.path_cache_hits)
+  explicit PathCache(bool strict = false) : strict_inval(strict) {}
   struct Entry {
     std::vector<int> path;
     std::vector<uint8_t> occ_snapshot;
@@ -401,14 +524,15 @@ struct PathCache {
         bool ok = true;
         if (strict_inval) {
           for (size_t c = 0; c < occupied.size() && ok; ++c) {
-            const bool occ_now = (int)c != exclude && occupied[c];
-            ok = occ_now == (e.full_snapshot[c] != 0);
+            const uint8_t occ_now =
+                (int)c != exclude ? occupied[c] : 0;
+            ok = occ_now == e.full_snapshot[c];
           }
         } else {
           for (size_t i = 0; i < e.path.size() && ok; ++i) {
             const int c = e.path[i];
-            const bool occ_now = c != exclude && occupied[c];
-            ok = !(occ_now && e.occ_snapshot[i] == 0);
+            const uint8_t occ_now = c != exclude ? occupied[c] : 0;
+            ok = occ_now <= e.occ_snapshot[i];
           }
         }
         if (ok) {
@@ -430,12 +554,12 @@ struct PathCache {
     e.occ_snapshot.resize(e.path.size());
     for (size_t i = 0; i < e.path.size(); ++i) {
       const int c = e.path[i];
-      e.occ_snapshot[i] = (c != exclude && occupied[c]) ? 1 : 0;
+      e.occ_snapshot[i] = c != exclude ? occupied[c] : 0;
     }
     if (strict_inval) {
       e.full_snapshot.resize(occupied.size());
       for (size_t c = 0; c < occupied.size(); ++c)
-        e.full_snapshot[c] = ((int)c != exclude && occupied[c]) ? 1 : 0;
+        e.full_snapshot[c] = (int)c != exclude ? occupied[c] : 0;
     }
     auto res = by_target.insert_or_assign(b, std::move(e));
     return res.first->second.path;
@@ -549,9 +673,9 @@ inline CarrierGuidance build_guidance(
       if (cf[b] || s.target_pos[b] != tau[b]) ++n;
     return n;
   }();
-  const size_t ACTIVE_CAP = n_unf_precount > 256
-                                ? (size_t)env_int("DD_ACTIVE_CAP", 64)
-                                : n_unf_precount;
+  const size_t ACTIVE_CAP =
+      n_unf_precount > ACTIVE_TARGET_LIMIT ? ACTIVE_TARGET_CAP
+                                           : n_unf_precount;
   std::vector<int> active_targets;
   {
     std::vector<char> carried_flag(ins.n_targets(), 0);
@@ -599,13 +723,6 @@ inline CarrierGuidance build_guidance(
       g.requests.push_back(r);
     }
     int emitted = 0;
-    // movability bonus (design_final 5.4/D20): a blocker adjacent to an
-    // upper-deck vacancy is the executable frontier — in the one-empty
-    // regime it is the ONLY manipulable link of the chain.  Default OFF:
-    // the singleton-parity gate (debug.md v4 section 0.2) is spec-level,
-    // and at 50% fill the bonus reorders clears (dev ddmapd_h16 makespan
-    // 81 -> 91).  Enable for puzzle-density goal-set runs / ablations.
-    const bool frontier_on = env_int("DD_CLEAR_FRONTIER", 0) != 0;
     for (size_t pi = 1; pi < path.size() && emitted < CLEAR_CHAIN_K; ++pi) {
       const int cur = path[pi];
       const int gr__ = sc.grounded[cur];
@@ -613,14 +730,6 @@ inline CarrierGuidance build_guidance(
         CarrierRequest r;
         r.cell = cur;
         r.priority = 50 - emitted;  // clear, chain head higher
-        if (frontier_on) {
-          int nb__[4];
-          const int nn__ = ins.grid.neighbors(cur, nb__);
-          bool movable = false;
-          for (int tt = 0; tt < nn__; ++tt)
-            movable = movable || sc.upper[nb__[tt]] == 0;
-          if (movable) r.priority += 25;
-        }
         g.requests.push_back(r);
         ++emitted;
       }
@@ -631,7 +740,7 @@ inline CarrierGuidance build_guidance(
 
   // Park relation (design 5.4a): computed from X via the CURRENT masked
   // cached paths — a function of (X, D_b cache epoch) under the default
-  // lazy invalidation; DD_STRICT_INVAL=1 is epoch-independent.  park[b]
+  // lazy invalidation; strict test-probe mode is epoch-independent. park[b]
   // iff goal_b lies on ANOTHER unfinished target's current path.
   std::vector<int> park_owner(ins.n_targets(), -1);  // build-local
   auto done_in_X = [&](int o) {
@@ -649,26 +758,24 @@ inline CarrierGuidance build_guidance(
   }
   // carrier head-on yield (design 5.5): the one farther from its goal
   // parks (deterministic tie-break)
-  if (env_int("DD_NO_YIELD", 0) == 0) {
-    std::vector<int> carrier_of(ins.n_targets(), -1);
-    for (size_t i = 0; i < R; ++i)
-      if (s.kappa[i] >= 0) carrier_of[s.kappa[i]] = (int)i;
-    for (size_t a = 0; a < ins.n_targets(); ++a) {
-      if (carrier_of[a] < 0 || g.target_park[a]) continue;
-      const int na = g.target_next[a];
-      if (na < 0) continue;
-      for (size_t b2 = a + 1; b2 < ins.n_targets(); ++b2) {
-        if (carrier_of[b2] < 0 || g.target_park[b2]) continue;
-        const int nb2 = g.target_next[b2];
-        if (nb2 < 0) continue;
-        if (na == s.target_pos[b2] && nb2 == s.target_pos[a]) {
-          const auto& da = upper_wall.to(tau[a]);
-          const auto& db = upper_wall.to(tau[b2]);
-          const int ra = da[s.target_pos[a]], rb = db[s.target_pos[b2]];
-          const size_t yield_b = (ra > rb || (ra == rb)) ? a : b2;
-          g.target_park[yield_b] = 1;
-          park_owner[yield_b] = (int)(yield_b == a ? b2 : a);
-        }
+  std::vector<int> carrier_of(ins.n_targets(), -1);
+  for (size_t i = 0; i < R; ++i)
+    if (s.kappa[i] >= 0) carrier_of[s.kappa[i]] = (int)i;
+  for (size_t a = 0; a < ins.n_targets(); ++a) {
+    if (carrier_of[a] < 0 || g.target_park[a]) continue;
+    const int na = g.target_next[a];
+    if (na < 0) continue;
+    for (size_t b2 = a + 1; b2 < ins.n_targets(); ++b2) {
+      if (carrier_of[b2] < 0 || g.target_park[b2]) continue;
+      const int nb2 = g.target_next[b2];
+      if (nb2 < 0) continue;
+      if (na == s.target_pos[b2] && nb2 == s.target_pos[a]) {
+        const auto& da = upper_wall.to(tau[a]);
+        const auto& db = upper_wall.to(tau[b2]);
+        const int ra = da[s.target_pos[a]], rb = db[s.target_pos[b2]];
+        const size_t yield_b = (ra > rb || (ra == rb)) ? a : b2;
+        g.target_park[yield_b] = 1;
+        park_owner[yield_b] = (int)(yield_b == a ? b2 : a);
       }
     }
   }
@@ -713,11 +820,10 @@ inline CarrierGuidance build_guidance(
     else
       ++free_left;
   }
-  const int ETA = env_int("DD_ETA", 2);
+  const int ETA = ASSIGNMENT_HYSTERESIS;
   const bool use_hyst = parent_guide != nullptr &&
                         parent_guide->free_goal.size() == R && ETA > 0;
-  if (env_int("DD_RHO_HUNGARIAN", 1) != 0 &&
-      ins.n_targets() <= (size_t)env_int("DD_RHO_HUNGARIAN_TGT", 256) &&
+  if (ins.n_targets() <= (size_t)ASSIGNMENT_EXACT_LIMIT &&
       free_left > 0 && !req_order.empty()) {
     std::vector<int> free_ids;
     for (size_t i = 0; i < R; ++i)
@@ -784,8 +890,7 @@ inline CarrierGuidance build_guidance(
       }
     }
 
-  // parking placement: nearest free off-path cell, goal-cell fallback;
-  // DD_PLACE_ESCAPE selects the escape-degree tie-break (default off)
+  // parking placement: nearest free off-path cell, goal-cell fallback
   std::vector<uint8_t> is_goal_cell(ins.grid.size(), 0);
   for (size_t b = 0; b < ins.n_targets(); ++b)
     is_goal_cell[tau[b]] = 1;  // tau-assigned cells only (design V3)
@@ -795,34 +900,20 @@ inline CarrierGuidance build_guidance(
         s.kappa[i] >= 0 && g.target_park[s.kappa[i]];
     if (!anon_carrier && !parked_target_carrier) continue;
     int found = -1, fallback = -1;
-    const bool esc_tb = env_int("DD_PLACE_ESCAPE", 0) != 0;
     const int rstart = s.robots[i];
     std::fill(sc.prev.begin(), sc.prev.end(), -1);
     std::deque<int> dq;
     dq.push_back(rstart);
     sc.prev[rstart] = 0;
     int nb[4];
-    int found_depth = -1, found_escape = -1;
     while (!dq.empty()) {
       int u = dq.front();
       dq.pop_front();
       const int du = sc.prev[u];
-      if (found >= 0 && du > found_depth) break;
       if (u != rstart && !sc.upper[u]) {
         if (!sc.protect[u]) {
-          if (!esc_tb) {
-            found = u;
-            break;
-          }
-          int escd = 0;
-          const int n2 = ins.grid.neighbors(u, nb);
-          for (int k = 0; k < n2; ++k)
-            if (!sc.upper[nb[k]]) ++escd;
-          if (found < 0 || escd > found_escape) {
-            found = u;
-            found_depth = du;
-            found_escape = escd;
-          }
+          found = u;
+          break;
         } else if (fallback < 0 && !is_goal_cell[u]) {
           fallback = u;
         }

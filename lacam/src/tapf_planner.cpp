@@ -1,5 +1,6 @@
 #include "../include/tapf_planner.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <queue>
@@ -87,6 +88,11 @@ namespace
   // guidance infrastructure lives in carrier_guidance.hpp (shared with
   // the carrier adapters in dd_planner.cpp)
   using namespace carrier_detail;
+
+  constexpr int MACRO_CAP = 64;
+  constexpr int MACRO_TARGET_LIMIT = 64;
+  constexpr int GUIDANCE_REFRESH_STEPS = 8;
+  constexpr long FUTILE_REPEAT_LIMIT = 3;
 }  // namespace
 
 // out-of-line: CarrierEngine is an implementation type
@@ -133,6 +139,7 @@ void TAPFPlanner::attach_carrier_guidance(
   const auto& dd = *dd_view;
   const auto& phys = eng.phys_view(nd);
   const TAPFNode* par = nd->parent;
+  const auto tau_started = std::chrono::steady_clock::now();
 
   // tau FIRST (design_final 5.3/5.6, T3/T4): every guidance consumer
   // below (guidance-h, paths, park, order, PIBT) reads the ASSIGNED
@@ -146,13 +153,21 @@ void TAPFPlanner::attach_carrier_guidance(
     tau_hyst = par->guide.get();
   else
     tau_hyst = rollout_parent_guide;
+  bool target_drop_boundary = false;
+  if (par != nullptr && !par->shelf.kappa.empty()) {
+    for (size_t i = 0; i < nd->shelf.kappa.size(); ++i)
+      target_drop_boundary |= par->shelf.kappa[i] >= 0 &&
+                              nd->shelf.kappa[i] == KAPPA_FREE;
+  }
+  const bool preserve_tau =
+      tau_hyst != nullptr && !reguide && !target_drop_boundary;
   double h_shelf_tau = 0;
   auto tau_vec = solve_tau(
       dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
       weights.gamma,
       tau_hyst != nullptr && !tau_hyst->tau.empty() ? &tau_hyst->tau
                                                     : nullptr,
-      nullptr, &h_shelf_tau);
+      nullptr, &h_shelf_tau, preserve_tau);
 
   // guidance-h (design 5.5 livelock signal; ordering only): sum of
   // ASSIGNED-goal distances (+2 lift/drop proxy) over unsettled targets
@@ -198,32 +213,77 @@ void TAPFPlanner::attach_carrier_guidance(
             taboo.emplace_back((int)i, src->free_goal[i]);
       }
     }
-    // tau taboo (design_final 5.6, T8): diversify the pairing itself —
-    // ban the current multi-goal pairs and re-match (ordering only; the
-    // admissible h keeps the UNRESTRICTED value).  |G_b|=1 rows are
-    // exempt inside solve_tau, so this is structurally empty (zero
-    // extra work, zero behavior change) on fixed-goal instances.
+    // Tau repair is local and task-boundary based. Retargeting every shelf
+    // at once breaks in-flight robot/shelf episodes, so one unfinished,
+    // grounded multi-goal row is released per livelock epoch. The matching
+    // repair may move an alternating cycle, but all unrelated pairs remain
+    // stable through the parent hysteresis. Carried rows are locked inside
+    // solve_tau; singleton rows remain structurally exempt.
     std::vector<std::pair<int, int>> tau_taboo;
-    for (size_t b = 0; b < tau_vec.size(); ++b)
-      if (dd.target_goal_sets[b].size() > 1)
-        tau_taboo.emplace_back((int)b, tau_vec[b]);
+    const size_t epoch =
+        static_cast<size_t>(reguide ? std::max(0, nd->revisits / 8)
+                                    : std::max(0, nd->no_progress /
+                                                     LIVELOCK_WINDOW));
+    for (size_t offset = 0; offset < tau_vec.size(); ++offset) {
+      const size_t b = (epoch + offset) % tau_vec.size();
+      const bool carried =
+          std::find(phys.kappa.begin(), phys.kappa.end(), (int)b) !=
+          phys.kappa.end();
+      if (carried || dd.target_goal_sets[b].size() <= 1 ||
+          phys.target_pos[b] == tau_vec[b])
+        continue;
+      tau_taboo.emplace_back((int)b, tau_vec[b]);
+      break;
+    }
     if (!tau_taboo.empty())
       tau_vec = solve_tau(
           dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
           weights.gamma,
           tau_hyst != nullptr && !tau_hyst->tau.empty() ? &tau_hyst->tau
                                                         : nullptr,
-          &tau_taboo, nullptr);
+          &tau_taboo, nullptr, false);
+  }
+  if (stats != nullptr) {
+    stats->tau_time_ms +=
+        std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - tau_started)
+            .count();
+    if (tau_hyst != nullptr && tau_hyst->tau.size() == tau_vec.size()) {
+      long changed = 0;
+      for (size_t b = 0; b < tau_vec.size(); ++b)
+        changed += tau_hyst->tau[b] != tau_vec[b];
+      if (changed > 0) {
+        ++stats->tau_change_builds;
+        stats->tau_pair_changes += changed;
+      }
+    }
   }
   const CarrierGuidance* parent_guide =
       (!livelock && par != nullptr) ? par->guide.get() : nullptr;
   if (parent_guide == nullptr && !livelock)
     parent_guide = rollout_parent_guide;  // parentless rollout probes
+  const auto guidance_started = std::chrono::steady_clock::now();
   nd->guide = std::make_unique<CarrierGuidance>(
       build_guidance(dd, phys, tau_vec, eng.upper_wall, eng.lower,
                      eng.paths, eng.sc, nd, livelock ? &taboo : nullptr,
                      parent_guide));
-  if (stats != nullptr) ++stats->guidance_builds;
+  if (stats != nullptr) {
+    ++stats->guidance_builds;
+    stats->guidance_time_ms +=
+        std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - guidance_started)
+            .count();
+    if (tau_hyst != nullptr &&
+        tau_hyst->free_goal.size() == nd->guide->free_goal.size()) {
+      long changed = 0;
+      for (size_t i = 0; i < nd->guide->free_goal.size(); ++i)
+        changed += tau_hyst->free_goal[i] != nd->guide->free_goal[i];
+      if (changed > 0) {
+        ++stats->rho_change_builds;
+        stats->rho_pair_changes += changed;
+      }
+    }
+  }
 
   // PIBT order: class layering (design 5.4 N.order): loaded-target >
   // loaded-anon/parked > free-assigned > free-idle; within class by
@@ -381,9 +441,9 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
 {
   if (stats != nullptr) *stats = TAPFStats();
   for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
-  // solver-objective weights (design 5.7, round-2 P2-16b semantics): unit
-  // by default; DD_SOLVER_WEIGHTS=1 folds DD_ALPHA..DD_DELTA into g.
-  // Shelf-free instances never evaluate the carrier cost term.
+  // Solver-objective weights default to one; optional numeric objective
+  // inputs DD_ALPHA..DD_DELTA are read once.  Shelf-free instances never
+  // evaluate the carrier cost term.
   carrier_detail::load_solver_weights(weights);
   // carrier layer (M4): the conformance-oracle view and the occupancy
   // scratch exist only when the instance HAS a shelf layer
@@ -431,9 +491,8 @@ Solution TAPFPlanner::solve()
     OPEN.erase(OPEN.begin() + index);
   };
 
-  // pruning bound (M11): the incumbent's g, or the externally supplied
-  // phase-2 upper bound; -1 = none.  Defaults reproduce the original
-  // S_goal-only conditions exactly.
+  // Pruning bound (M11): the incumbent's g, or an externally supplied
+  // upper bound; -1 means no bound.
   auto current_bound = [&]() -> double {
     if (S_goal != nullptr) return S_goal->g;
     return search_config.incumbent_init;
@@ -558,45 +617,42 @@ Solution TAPFPlanner::solve()
     // structurally unreachable on shelf-free instances (h_guidance == 0).
     if (search_config.macro_enabled && S_goal == nullptr &&
         !S->macro_tried && S->h_guidance > 0 && ins->tasks.empty() &&
-        env_int("DD_MACRO_CAP", 64) > 0 &&
-        (int)ins->target_starts.size() <= env_int("DD_MACRO_TGT", 64)) {
-      const int msparse = env_int("DD_MACRO_SPARSE", 1);
-      if (msparse <= 1 || S->depth % msparse == 0) {
-        S->macro_tried = true;
-        const int min_chunk = (int)ins->target_starts.size() > 64
-                                  ? env_int("DD_MACRO_MIN", 15)
-                                  : 0;
-        auto r = carrier_rollout(S->C, S->shelf, env_int("DD_MACRO_CAP", 64),
-                                 min_chunk, /*stop_on_event=*/true);
-        // rollout probes died: their addresses may be recycled by the
-        // nodes created below — stale address-keyed scratches are poison
-        invalidate_carrier_scratch();
-        if (r.ops.size() >= 2) {
-          lookup_key.C = r.configs.back();
-          lookup_key.S = r.shelves.back();
-          if (CLOSED.find(lookup_key) == CLOSED.end()) {
-            auto S_macro =
-                new TAPFNode(r.configs.back(), r.shelves.back(), D, ins,
-                             std::vector<int>(N, -1), S->assignment_state, S);
-            S_macro->g = S->g + r.cost;
-            S_macro->h = 0;
-            S_macro->f = S_macro->g + S_macro->h;
-            attach_carrier_guidance(S_macro);
-            CLOSED[SearchKey{S_macro->C, S_macro->shelf}] = S_macro;
-            MacroEdge edge;
-            edge.cost = r.cost;
-            edge.configs.assign(r.configs.begin() + 1, r.configs.end() - 1);
-            edge.shelves.assign(r.shelves.begin() + 1, r.shelves.end() - 1);
-            macro_edges[{S, S_macro}] = std::move(edge);
-            push_open(S_macro);
-            if (stats != nullptr) {
-              ++stats->hl_nodes_created;
-              ++stats->macro_successors;
-              // macro_after_first stays 0 by construction: this block is
-              // gated on S_goal == nullptr (two-phase policy, D14)
-            }
-            continue;  // S stays queued; DFS tries the macro child first
+        (int)ins->target_starts.size() <= MACRO_TARGET_LIMIT) {
+      S->macro_tried = true;
+      auto r = carrier_rollout(S->C, S->shelf, MACRO_CAP, 0,
+                               /*stop_on_event=*/true);
+      // rollout probes died: their addresses may be recycled by the
+      // nodes created below — stale address-keyed scratches are poison
+      invalidate_carrier_scratch();
+      if (r.ops.size() >= 2) {
+        lookup_key.C = r.configs.back();
+        lookup_key.S = r.shelves.back();
+        if (CLOSED.find(lookup_key) == CLOSED.end()) {
+          auto S_macro =
+              new TAPFNode(r.configs.back(), r.shelves.back(), D, ins,
+                           std::vector<int>(N, -1), S->assignment_state, S);
+          S_macro->g = S->g + r.cost;
+          S_macro->h = 0;
+          S_macro->f = S_macro->g + S_macro->h;
+          attach_carrier_guidance(S_macro);
+          CLOSED[SearchKey{S_macro->C, S_macro->shelf}] = S_macro;
+          MacroEdge edge;
+          edge.cost = r.cost;
+          edge.configs.assign(r.configs.begin() + 1, r.configs.end() - 1);
+          edge.shelves.assign(r.shelves.begin() + 1, r.shelves.end() - 1);
+          macro_edges[{S, S_macro}] = std::move(edge);
+          push_open(S_macro);
+          if (stats != nullptr) {
+            ++stats->hl_nodes_created;
+            ++stats->macro_successors;
+            if (r.shelf_moved)
+              ++stats->macro_shelf_motion_successors;
+            else
+              ++stats->macro_robot_only_successors;
+            // macro_after_first stays 0 by construction: this block is
+            // gated on S_goal == nullptr.
           }
+          continue;  // S stays queued; DFS tries the macro child first
         }
       }
     }
@@ -690,12 +746,33 @@ Solution TAPFPlanner::solve()
       }
     }
 
+    if (stats != nullptr) {
+      bool shelf_motion = false;
+      bool manipulation = false;
+      for (size_t i = 0; i < ops_scratch.size(); ++i) {
+        const auto kind = ops_scratch[i].kind;
+        shelf_motion |=
+            kind == Op::MOVE && !S->shelf.kappa.empty() &&
+            S->shelf.kappa[i] != KAPPA_FREE;
+        manipulation |= kind == Op::LIFT || kind == Op::DROP;
+      }
+      if (shelf_motion)
+        ++stats->shelf_motion_successors;
+      else if (manipulation)
+        ++stats->manipulation_successors;
+      else
+        ++stats->robot_only_successors;
+    }
+
     auto S_new = new TAPFNode(C_new, shelf_next_scratch, D, ins,
                               assignment.agent_to_task, assignment_state, S);
     S_new->g = S->g + get_edge_cost(S, S_new);
     S_new->h = assignment.cost;
     S_new->f = S_new->g + S_new->h;
     attach_carrier_guidance(S_new);
+    if (!S_new->shelf.kappa.empty() && S->parent != nullptr)
+      note_lift_cycle(S->parent->C, S->parent->shelf, S->C, S->shelf,
+                      S_new->C, S_new->shelf);
     CLOSED[SearchKey{S_new->C, S_new->shelf}] = S_new;
     if (deepest_node == nullptr || S_new->depth > deepest_depth) {
       deepest_node = S_new;
@@ -792,8 +869,11 @@ Solution TAPFPlanner::solve()
   // best-effort chain to the deepest node (carrier debug aid, M16)
   best_effort_solution.clear();
   best_effort_shelves.clear();
+  best_effort_tau.clear();
   if (S_goal == nullptr && deepest_node != nullptr &&
       !ins->shelf_cells.empty()) {
+    if (deepest_node->guide != nullptr)
+      best_effort_tau = deepest_node->guide->tau;
     for (const TAPFNode* S2 = deepest_node; S2 != nullptr; S2 = S2->parent) {
       best_effort_solution.push_back(S2->C);
       best_effort_shelves.push_back(S2->shelf);
@@ -1011,6 +1091,51 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
   return true;
 }
 
+// Anonymous shelves are interchangeable and share one identity per cell.
+static inline uint64_t lift_futile_key(int shelf_id, int cell)
+{
+  return ((uint64_t)(uint32_t)(shelf_id + 1) << 32) | (uint32_t)cell;
+}
+
+void TAPFPlanner::note_lift_cycle(
+    const Config& before_lift_C, const ShelfState& before_lift_S,
+    const Config& loaded_C, const ShelfState& loaded_S,
+    const Config& after_drop_C, const ShelfState& after_drop_S)
+{
+  if (loaded_S.kappa.empty()) return;
+  ++futile_clock;
+  const long window = std::max<long>(64, 8L * V_size);
+  for (size_t i = 0; i < loaded_S.kappa.size(); ++i) {
+    const int shelf = loaded_S.kappa[i];
+    if (shelf == KAPPA_FREE ||
+        before_lift_S.kappa[i] != KAPPA_FREE ||
+        after_drop_S.kappa[i] != KAPPA_FREE)
+      continue;
+    if (before_lift_C[i] != loaded_C[i] ||
+        loaded_C[i] != after_drop_C[i])
+      continue;
+    auto& e =
+        lift_futile[lift_futile_key(shelf >= 0 ? shelf : -1,
+                                    loaded_C[i]->index)];
+    if (futile_clock - e.second > window) e.first = 0;
+    ++e.first;
+    e.second = futile_clock;
+  }
+}
+
+bool TAPFPlanner::lift_on_cooldown(int cell) const
+{
+  if (lift_futile.empty()) return false;
+  const int g = carrier_grounded[cell];  // 0 none / -1 anon / b+1
+  if (g == 0) return false;
+  const auto it =
+      lift_futile.find(lift_futile_key(g > 0 ? g - 1 : -1, cell));
+  if (it == lift_futile.end()) return false;
+  const long window = std::max<long>(64, 8L * V_size);
+  return it->second.first >= FUTILE_REPEAT_LIMIT &&
+         futile_clock - it->second.second <= window;
+}
+
 bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
 {
   if (stats != nullptr) ++stats->pibt_calls;
@@ -1168,13 +1293,21 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     } else {
       // free robot
       const int goal = guide != nullptr ? guide->free_goal[i] : -1;
-      if (goal >= 0 && q == goal && carrier_grounded[q] != 0)
-        cand.push_back({ai->v_now, (uint8_t)Op::LIFT});
+      bool lift_here = goal >= 0 && q == goal && carrier_grounded[q] != 0;
+      bool lift_demoted = false;
+      if (lift_here) {
+        if (lift_on_cooldown(q)) {
+          lift_demoted = true;
+          if (stats != nullptr) ++stats->futile_lift_demotions;
+        }
+        if (!lift_demoted) cand.push_back({ai->v_now, (uint8_t)Op::LIFT});
+      }
       if (goal >= 0) {
         push_moves_sorted_by(
             [&](int c) { return eng.lower.dist(goal, c); }, false);
         cand.push_back({ai->v_now, (uint8_t)Op::WAIT});
-      } else if (eng.sc.protect[q] != 0 && env_int("DD_IDLE_AVOID", 1)) {
+        if (lift_demoted) cand.push_back({ai->v_now, (uint8_t)Op::LIFT});
+      } else if (eng.sc.protect[q] != 0) {
         // idle ON an active corridor: step off first, wait, then
         // protected moves (still pushable)
         push_moves_sorted_by(
@@ -1526,6 +1659,7 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
                                                          bool stop_on_event)
 {
   CarrierRollout out;
+  if (stats != nullptr) ++stats->rollout_calls;
   out.configs.push_back(C0);
   out.shelves.push_back(S0);
   std::unordered_set<uint64_t> local_seen;
@@ -1533,7 +1667,6 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
     return (uint64_t)ConfigHasher()(C) ^ shelf_layer_hash(S);
   };
   local_seen.insert(state_hash(C0, S0));
-  const int GUIDE_EVERY = env_int("DD_GUIDE_EVERY", 8);
   std::unique_ptr<TAPFNode> prev_node;
   auto C_step = Config(N, nullptr);
   for (int step = 0; step < max_steps; ++step) {
@@ -1550,9 +1683,8 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
     // invalidated every step (pre-integration rollout lesson; guarded by
     // dd_integration.rollout_steps_match_fresh_generation)
     invalidate_carrier_scratch();
-    if (step % GUIDE_EVERY == 0 || prev_node == nullptr ||
+    if (step % GUIDANCE_REFRESH_STEPS == 0 || prev_node == nullptr ||
         prev_node->guide == nullptr) {
-      // guidance frozen within the chunk (ordering-only staleness)
       attach_carrier_guidance(
           node.get(), false,
           prev_node != nullptr ? prev_node->guide.get() : nullptr);
@@ -1566,13 +1698,30 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
     if (!apply_carrier_effects(node.get())) return out;   // oracle reject
     for (auto a : A) C_step[a->id] = a->v_next;
     const auto ops = ops_scratch;  // copy (assembled by carrier effects)
-    if (!local_seen.insert(state_hash(C_step, shelf_next_scratch)).second)
+    if (!local_seen.insert(state_hash(C_step, shelf_next_scratch)).second) {
+      if (stats != nullptr) ++stats->rollout_cycles;
       return out;  // local cycle
+    }
+    bool shelf_motion = false;
+    for (size_t i = 0; i < ops.size(); ++i)
+      shelf_motion |=
+          ops[i].kind == Op::MOVE && !curS.kappa.empty() &&
+          curS.kappa[i] != KAPPA_FREE;
+    if (shelf_motion) {
+      out.shelf_moved = true;
+      if (stats != nullptr) ++stats->rollout_shelf_motion_steps;
+    }
     out.cost += carrier_ops_cost(weights, curS, ops);
     out.ops.push_back(ops);
     out.configs.push_back(C_step);
     out.shelves.push_back(shelf_next_scratch);
     if (stats != nullptr) ++stats->macro_steps;
+    if (out.configs.size() >= 3) {
+      const size_t T = out.configs.size();
+      note_lift_cycle(out.configs[T - 3], out.shelves[T - 3],
+                      out.configs[T - 2], out.shelves[T - 2],
+                      out.configs[T - 1], out.shelves[T - 1]);
+    }
     prev_node = std::move(node);
     if (is_goal_config(out.configs.back(), out.shelves.back())) {
       out.reached_goal = true;

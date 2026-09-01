@@ -7,7 +7,9 @@
 // reversals jitter measured at 27392 total on the dev set).
 #include <dd_carrier.hpp>
 #include <dd_planner.hpp>
+#include <tapf_planner.hpp>
 
+#include <memory>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -205,7 +207,7 @@ TEST(dd_oscillation, idle_off_path_keeps_wait_first)
 //     greedy: S1 nearest = r1 (1) [r0 d1 too — tie, lower idx r0 wins!]
 //     -> S1:r0 (1), S2 gets r1 (4). total 5.
 //     optimal: S1:r1 (1), S2:r0 (2). total 3.  <-- separation
-TEST(dd_oscillation, hungarian_rho_beats_greedy_on_crossing_fixture)
+TEST(dd_oscillation, hungarian_rho_avoids_crossing_assignment)
 {
   DDInstance ins;
   ins.grid = DDGrid({".....", "....."});
@@ -221,59 +223,45 @@ TEST(dd_oscillation, hungarian_rho_beats_greedy_on_crossing_fixture)
   ins.finalize();
   const auto X = initial_phys_config(ins);
 
-  // greedy mode (DD_RHO_HUNGARIAN=0; min-cost is the default since the
-  // dev A/B win: mk -10%, reversals -25%): request order (tie -> index)
-  // lets S1 grab r0, pushing S2 to pay 4.
-  setenv("DD_RHO_HUNGARIAN", "0", 1);
-  const auto greedy = dd_match_free_goals(ins, X, nullptr);
+  // Min-cost matching produces the crossing-free assignment (total 3):
+  // r0 -> B (d2), r1 -> A (d1).
   const int A = ins.grid.idx(0, 3), B = ins.grid.idx(0, 0);
-  ASSERT_EQ(greedy.size(), 2u);
-  EXPECT_EQ(greedy[0], A);
-  EXPECT_EQ(greedy[1], B);
-
-  // min-cost (default) must produce the crossing-free assignment
-  // (total 3): r0 -> B (d2), r1 -> A (d1)
-  unsetenv("DD_RHO_HUNGARIAN");
   const auto opt = dd_match_free_goals(ins, X, nullptr);
   ASSERT_EQ(opt.size(), 2u);
   EXPECT_EQ(opt[0], B) << "min-cost rho must swap the crossing pair";
   EXPECT_EQ(opt[1], A);
 }
 
-// P2-16d — placement score variant (design 5.6 NEW hypothesis, untested
-// there): among nearest parking candidates, prefer the cell with the
-// higher ESCAPE DEGREE (free upper-deck neighbors) so parked shelves do
-// not wall themselves in.  Distance stays primary (the v2.2-rejected
-// margin/corridor scoring traded distance and regressed d50).
-TEST(dd_oscillation, placement_escape_degree_tiebreak)
+TEST(dd_oscillation, futile_lift_memory_triggers_and_expires_automatically)
 {
-  // o's path runs along row 1 (protected); the anon carrier hovers at
-  // (0,2) OFF that path so the hover mask cannot reroute it.  Depth-1
-  // parking candidates: (0,3) first in BFS order (down,up,right,left)
-  // with escape degree 1 (boxed by the anon at (0,4) + hover), and (0,1)
-  // with escape degree 2.  Default = nearest-first -> (0,3); the
-  // DD_PLACE_ESCAPE tie-break must pick (0,1).
   DDInstance ins;
-  ins.grid = DDGrid({".....", ".....", "....."});
-  ins.robots.push_back(ins.grid.idx(0, 2));   // anon carrier
-  ins.robots.push_back(ins.grid.idx(2, 4));   // spare robot
-  ins.target_starts.push_back(ins.grid.idx(1, 0));
-  ins.target_goals.push_back(ins.grid.idx(1, 4));
-  ins.shelves.push_back(ins.grid.idx(1, 0));
-  ins.shelves.push_back(ins.grid.idx(0, 4));  // boxes in (0,3)
-  ins.shelves.push_back(ins.grid.idx(0, 2));  // the shelf r0 carries
+  ins.grid = DDGrid({"..."});
+  ins.robots = {ins.grid.idx(0, 1)};
+  ins.shelves = {ins.grid.idx(0, 1)};
+  ins.target_starts = {ins.grid.idx(0, 1)};
+  ins.target_goals = {ins.grid.idx(0, 2)};
   ins.finalize();
-  auto X = initial_phys_config(ins);
-  X.kappa[0] = KAPPA_ANON;
-  X.anon_occ.erase(std::find(X.anon_occ.begin(), X.anon_occ.end(),
-                             ins.grid.idx(0, 2)));
+  const TAPFInstance view(ins);
+  TAPFStats stats;
+  TAPFPlanner planner(&view, nullptr, nullptr, 0, 0, 0.001f, true, &stats);
 
-  unsetenv("DD_PLACE_ESCAPE");
-  EXPECT_EQ(dd_parking_cell(ins, X, 0), ins.grid.idx(0, 3));
+  const Config C = {view.G.U[ins.grid.idx(0, 1)]};
+  const ShelfState grounded = initial_shelf_state(view);
+  ShelfState loaded = grounded;
+  loaded.kappa[0] = 0;
+  auto node = std::make_unique<TAPFNode>(
+      C, grounded, planner.D, &view, std::vector<int>(1, -1),
+      TAPFAssignmentState(), nullptr);
+  planner.refresh_carrier_scratch(node.get());
 
-  setenv("DD_PLACE_ESCAPE", "1", 1);
-  const int esc = dd_parking_cell(ins, X, 0);
-  unsetenv("DD_PLACE_ESCAPE");
-  EXPECT_EQ(esc, ins.grid.idx(0, 1))
-      << "escape-degree tie-break must prefer the open cell";
+  EXPECT_FALSE(planner.lift_on_cooldown(ins.grid.idx(0, 1)));
+  planner.note_lift_cycle(C, grounded, C, loaded, C, grounded);
+  planner.note_lift_cycle(C, grounded, C, loaded, C, grounded);
+  EXPECT_FALSE(planner.lift_on_cooldown(ins.grid.idx(0, 1)));
+  planner.note_lift_cycle(C, grounded, C, loaded, C, grounded);
+  EXPECT_TRUE(planner.lift_on_cooldown(ins.grid.idx(0, 1)));
+
+  for (int i = 0; i < 65; ++i)
+    planner.note_lift_cycle(C, grounded, C, grounded, C, grounded);
+  EXPECT_FALSE(planner.lift_on_cooldown(ins.grid.idx(0, 1)));
 }

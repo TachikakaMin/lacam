@@ -154,8 +154,30 @@ int main(int argc, char** argv)
   std::cout << "generator_failures=" << stats.generator_failures << "\n";
   std::cout << "max_depth=" << stats.max_depth << "\n";
   std::cout << "guidance_builds=" << stats.guidance_builds << "\n";
+  std::cout << "tau_time_ms=" << stats.tau_time_ms << "\n";
+  std::cout << "guidance_time_ms=" << stats.guidance_time_ms << "\n";
   std::cout << "path_recomputes=" << stats.path_recomputes << "\n";
   std::cout << "path_cache_hits=" << stats.path_cache_hits << "\n";
+  std::cout << "robot_only_successors=" << stats.robot_only_successors
+            << "\n";
+  std::cout << "manipulation_successors=" << stats.manipulation_successors
+            << "\n";
+  std::cout << "shelf_motion_successors=" << stats.shelf_motion_successors
+            << "\n";
+  std::cout << "tau_change_builds=" << stats.tau_change_builds << "\n";
+  std::cout << "tau_pair_changes=" << stats.tau_pair_changes << "\n";
+  std::cout << "rho_change_builds=" << stats.rho_change_builds << "\n";
+  std::cout << "rho_pair_changes=" << stats.rho_pair_changes << "\n";
+  std::cout << "macro_successors=" << stats.macro_successors << "\n";
+  std::cout << "macro_steps=" << stats.macro_steps << "\n";
+  std::cout << "macro_shelf_motion_successors="
+            << stats.macro_shelf_motion_successors << "\n";
+  std::cout << "macro_robot_only_successors="
+            << stats.macro_robot_only_successors << "\n";
+  std::cout << "rollout_calls=" << stats.rollout_calls << "\n";
+  std::cout << "rollout_cycles=" << stats.rollout_cycles << "\n";
+  std::cout << "rollout_shelf_motion_steps="
+            << stats.rollout_shelf_motion_steps << "\n";
   std::cout << "best_targets_done=" << stats.best_targets_done << "\n";
   std::cout << "duplicate_configs=" << stats.duplicate_configs << "\n";
   std::cout << "timed_out=" << (stats.timed_out ? 1 : 0) << "\n";
@@ -165,6 +187,26 @@ int main(int argc, char** argv)
   std::cout << "first_solution_soc=" << stats.first_solution_soc << "\n";
   std::cout << "best_soc=" << stats.best_soc << "\n";
   std::cout << "incumbent_updates=" << stats.incumbent_updates << "\n";
+  std::cout << "exact_loops=" << stats.exact_loops << "\n";
+  std::cout << "projected_loops=" << stats.projected_loops << "\n";
+  std::cout << "bridge_steps=" << stats.bridge_steps << "\n";
+  std::cout << "plan_steps_removed=" << stats.plan_steps_removed << "\n";
+  std::cout << "futile_lift_demotions=" << stats.futile_lift_demotions
+            << "\n";
+  std::cout << "assignment_restarts=" << stats.assignment_restarts << "\n";
+  std::cout << "assignment_second_solved="
+            << stats.assignment_second_solved << "\n";
+  std::cout << "assignment_improvements=" << stats.assignment_improvements
+            << "\n";
+  std::cout << "assignment_second_solution_ms="
+            << stats.assignment_second_solution_ms << "\n";
+  std::cout << "assignment_first_soc=" << stats.assignment_first_soc << "\n";
+  std::cout << "assignment_second_soc=" << stats.assignment_second_soc
+            << "\n";
+  std::cout << "assignment_first_makespan="
+            << stats.assignment_first_makespan << "\n";
+  std::cout << "assignment_second_makespan="
+            << stats.assignment_second_makespan << "\n";
   if (!valid && std::getenv("DD_DEBUG_DUMP") &&
       !stats.deepest_config.robots.empty()) {
     const auto& X = stats.deepest_config;
@@ -178,7 +220,10 @@ int main(int argc, char** argv)
     for (size_t b = 0; b < ins.n_targets(); ++b) {
       bool carried = false;
       for (int k : X.kappa) carried |= (k == (int)b);
-      const int p = X.target_pos[b], gcell = ins.target_goals[b];
+      const int p = X.target_pos[b];
+      const int gcell =
+          b < stats.deepest_tau.size() ? stats.deepest_tau[b]
+                                      : ins.target_goals[b];
       if (!carried && p == gcell) continue;
       std::cerr << "target b" << b << " at (" << ins.grid.row(p) << ","
                 << ins.grid.col(p) << ") goal (" << ins.grid.row(gcell) << ","

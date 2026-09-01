@@ -11,6 +11,13 @@
 
 using DDPlan = std::vector<std::vector<Op>>;  // per timestep, per robot
 
+struct DDPlanRepairStats {
+  long exact_loops = 0;
+  long projected_loops = 0;
+  long bridge_steps = 0;
+  long steps_removed = 0;
+};
+
 struct DDStats {
   long hl_nodes = 0;
   long hl_expanded = 0;
@@ -23,21 +30,54 @@ struct DDStats {
   long best_targets_done = 0;
   long macro_successors = 0;  // event-bounded rollout successors inserted
   long macro_steps = 0;       // total primitive steps inside macro edges
-  long macro_after_first = 0; // macro successors inserted AFTER the first
-                              // solution (two-phase policy: must stay 0)
+  long macro_after_first = 0; // macro successors inserted after an incumbent
+                              // (must stay 0)
+  long macro_shelf_motion_successors = 0;
+  long macro_robot_only_successors = 0;
+  long rollout_calls = 0;
+  long rollout_cycles = 0;
+  long rollout_shelf_motion_steps = 0;
+  long robot_only_successors = 0;
+  long manipulation_successors = 0;
+  long shelf_motion_successors = 0;
+  long tau_change_builds = 0;
+  long tau_pair_changes = 0;
+  long rho_change_builds = 0;
+  long rho_pair_changes = 0;
   long g_relaxed = 0;         // duplicate hits relaxed to a cheaper g
-                              // (LaCAM*-style rewire, round-2 P2-14)
+                              // (generic search-kernel diagnostic)
   long guidance_builds = 0;
+  double tau_time_ms = 0;
+  double guidance_time_ms = 0;
   long path_recomputes = 0;
   long path_cache_hits = 0;
-  // anytime (design 5.7 / debug.md P3-FOCAL)
+  // Incumbent and output-repair cost diagnostics.
   double first_solution_ms = -1;
   double first_solution_soc = -1;  // weighted physical cost (a=b=g=d=1)
   double best_soc = -1;
   long incumbent_updates = 0;
   long f_pruned = 0;
+  // Output normalization: exact-state loops plus shelf-projection loops
+  // repaired by lower-deck robot paths.
+  long exact_loops = 0;
+  long projected_loops = 0;
+  long bridge_steps = 0;
+  long plan_steps_removed = 0;
+  // Search learns from repeated lift/drop episodes that never move a shelf.
+  long futile_lift_demotions = 0;
+  // After a dynamic-goal first solution, restart once from the root with
+  // that solution's target->goal assignment fixed to singleton sets.
+  long assignment_restarts = 0;
+  long assignment_second_solved = 0;
+  long assignment_improvements = 0;
+  double assignment_second_solution_ms = -1;
+  double assignment_first_soc = -1;
+  double assignment_second_soc = -1;
+  long assignment_first_makespan = -1;
+  long assignment_second_makespan = -1;
   bool timed_out = false;
   PhysConfig deepest_config;  // config at max depth (debug)
+  std::vector<int> deepest_tau;
 };
 
 // returns empty plan on failure/timeout; a trivially-solved instance yields
@@ -47,6 +87,14 @@ struct DDStats {
 DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
                            int seed, DDStats* stats = nullptr,
                            DDPlan* best_effort = nullptr);
+
+// Remove exact physical-state loops, then remove loops in the grounded
+// shelf projection.  A projected cut reconnects labeled robots on the
+// lower deck while shelves remain fixed.  This is a semantics-preserving
+// plan normalization, not a search option; invalid/non-improving repairs
+// fall back to the original segment.
+DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
+                           DDPlanRepairStats* stats = nullptr);
 
 // B0 baseline (design 8.1) = Carrier-PIBT standalone: repeatedly apply the
 // unconstrained generator from the current configuration until goal, dead
@@ -113,8 +161,8 @@ std::vector<PhysConfig> dd_enumerate_node_successors_reguided(
 // vector for X.  warm_block_cell >= 0 first warms the per-target path
 // cache with that cell forced occupied (occupied->vacated history), then
 // guidance is built on the true X occupancy.  strict_inval selects the
-// D_b invalidation policy (DD_STRICT_INVAL semantics).  path_out, if
-// given, receives target 0's least-blocking path as seen by guidance.
+// D_b invalidation policy. path_out, if given, receives target 0's
+// least-blocking path as seen by guidance.
 std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
                                      const PhysConfig& X,
                                      int warm_block_cell, bool strict_inval,
@@ -123,7 +171,7 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
 // TEST SUPPORT (debug.md round-2 P2-13b): run the production rho matching
 // for X and return per-robot free_goal cells.  parent_free_goal, if given,
 // simulates the parent node's assignment (cell per robot, -1 = none) for
-// the eta-hysteresis term (design 5.3(4), DD_ETA).
+// the fixed eta-hysteresis term (design 5.3(4)).
 std::vector<int> dd_match_free_goals(const DDInstance& ins,
                                      const PhysConfig& X,
                                      const std::vector<int>* parent_free_goal);
@@ -146,7 +194,3 @@ std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
 // deadlock detected).
 std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
                                          const PhysConfig& X);
-
-// TEST SUPPORT (debug.md round-2 P2-16d): the parking cell guidance picks
-// for robot i in X (DD_PLACE_ESCAPE selects the escape-degree tie-break).
-int dd_parking_cell(const DDInstance& ins, const PhysConfig& X, int robot);

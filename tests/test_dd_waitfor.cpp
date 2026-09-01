@@ -19,14 +19,11 @@
 
 #include "gtest/gtest.h"
 
-TEST(dd_waitfor, head_on_carrier_cycle_detected)
+TEST(dd_waitfor, head_on_carrier_is_resolved_by_yield_before_cycle_detection)
 {
   // two loaded carriers in a 1-wide corridor moving toward each other:
-  // r0 next = r1's cell, r1 next = r0's cell -> cycle {0, 1}.
-  // NOTE: with the yield rule active, guidance itself resolves pairwise
-  // head-ons (one side parks) BEFORE the wait-for graph sees them; the
-  // detector's job is exactly the residual class, so isolate it here.
-  setenv("DD_NO_YIELD", "1", 1);
+  // the fixed production yield rule parks one side before the residual
+  // wait-for graph is built.
   DDInstance ins;
   ins.grid = DDGrid({"....", "####"});
   ins.robots.push_back(ins.grid.idx(0, 1));
@@ -42,8 +39,7 @@ TEST(dd_waitfor, head_on_carrier_cycle_detected)
   X.kappa[0] = 0;  // r0 carries b0 (start cells coincide)
   X.kappa[1] = 1;  // r1 carries b1
   const auto cyc = dd_waitfor_cycle_robots(ins, X);
-  unsetenv("DD_NO_YIELD");
-  EXPECT_EQ(cyc, (std::vector<int>{0, 1}));
+  EXPECT_TRUE(cyc.empty());
 }
 
 TEST(dd_waitfor, cross_deck_cycle_detected)

@@ -146,6 +146,58 @@ TEST(dd_tau, hysteresis_is_tie_break_only)
   EXPECT_EQ(tau_gap[0], NEAR);  // primary LB order beats the pull
 }
 
+TEST(dd_tau, carried_target_keeps_inflight_goal_commitment)
+{
+  auto ins = tau_ins({"....", "....", "...."}, {{1, 1}}, {{1, 1}},
+                     {{{1, 2}, {2, 3}}});
+  const int near = ins.grid.idx(1, 2);
+  const int committed = ins.grid.idx(2, 3);
+  auto X = initial_phys_config(ins);
+  X.kappa = {0};
+  const std::vector<int> parent = {committed};
+  const std::vector<std::pair<int, int>> taboo = {{0, committed}};
+  double h = -1;
+  const auto tau = dd_solve_tau(ins, X, &parent, &h, &taboo);
+
+  ASSERT_EQ(tau.size(), 1u);
+  EXPECT_EQ(tau[0], committed);
+  // Commitment is guidance, not a physical constraint: h stays the
+  // unrestricted admissible lower bound to the nearer eligible goal.
+  EXPECT_DOUBLE_EQ(h, 2.0);  // one loaded move + one drop
+  EXPECT_NE(tau[0], near);
+}
+
+TEST(dd_tau, settled_pool_goal_preempts_conflicting_carried_commitment)
+{
+  auto ins = tau_ins({"....."}, {{0, 2}}, {{0, 0}, {0, 2}},
+                     {{{0, 0}, {0, 4}}, {{0, 0}, {0, 4}}});
+  const int settled_goal = ins.grid.idx(0, 0);
+  const int alternate_goal = ins.grid.idx(0, 4);
+  auto X = initial_phys_config(ins);
+  X.kappa = {1};
+
+  // Historical intent sends target 0 away and the carried target 1 to the
+  // cell that target 0 already occupies. Physical terminal semantics wins:
+  // target 0 keeps its eligible cell and target 1 reroutes.
+  const std::vector<int> parent = {alternate_goal, settled_goal};
+  const auto tau = dd_solve_tau(ins, X, &parent);
+
+  ASSERT_EQ(tau.size(), 2u);
+  EXPECT_EQ(tau[0], settled_goal);
+  EXPECT_EQ(tau[1], alternate_goal);
+}
+
+TEST(dd_tau, settled_pool_goal_reopens_when_matching_requires_it)
+{
+  auto ins = tau_ins({"....."}, {{0, 2}}, {{0, 0}, {0, 2}},
+                     {{{0, 0}, {0, 4}}, {{0, 0}}});
+  const auto tau = dd_solve_tau(ins, initial_phys_config(ins));
+
+  ASSERT_EQ(tau.size(), 2u);
+  EXPECT_EQ(tau[0], ins.grid.idx(0, 4));
+  EXPECT_EQ(tau[1], ins.grid.idx(0, 0));
+}
+
 TEST(dd_tau, oplb_branches_carried_and_done)
 {
   auto ins = tau_ins({".....", "....."}, {{0, 0}}, {{0, 1}, {0, 2}},
@@ -179,6 +231,35 @@ TEST(dd_tau, taboo_excludes_pair_but_singletons_exempt)
   const std::vector<std::pair<int, int>> tb2 = {{1, ins.grid.idx(1, 1)}};
   const auto tau2 = dd_solve_tau(ins, X, nullptr, nullptr, &tb2);
   EXPECT_EQ(tau2[1], ins.grid.idx(1, 1));
+}
+
+TEST(dd_tau, rowwise_taboo_does_not_bias_admissible_h)
+{
+  constexpr int N = 257;  // force the > ASSIGNMENT_EXACT_LIMIT branch
+  DDInstance ins;
+  ins.grid = DDGrid({std::string(N + 1, '.'),
+                     std::string(N + 1, '.')});
+  ins.robots = {ins.grid.idx(0, N)};
+  for (int b = 0; b < N; ++b) {
+    ins.shelves.push_back(ins.grid.idx(0, b));
+    ins.target_starts.push_back(ins.grid.idx(0, b));
+    if (b < 2)
+      ins.target_goal_sets.push_back(
+          {ins.grid.idx(1, 0), ins.grid.idx(1, 1)});
+    else
+      ins.target_goal_sets.push_back({ins.grid.idx(1, b)});
+    ins.target_goals.push_back(ins.target_goal_sets.back().front());
+  }
+  ins.finalize();
+
+  const auto X = initial_phys_config(ins);
+  double h0 = -1, h1 = -1;
+  const auto tau0 = dd_solve_tau(ins, X, nullptr, &h0);
+  const std::vector<std::pair<int, int>> taboo = {{0, tau0[0]}};
+  const auto tau1 = dd_solve_tau(ins, X, nullptr, &h1, &taboo);
+
+  EXPECT_DOUBLE_EQ(h0, h1);
+  EXPECT_NE(tau0[0], tau1[0]);
 }
 
 // ---- WP-C (T5): PathCache dst invalidation ----
@@ -228,16 +309,13 @@ TEST(dd_tau_guidance, pool_instance_delivers_to_near_goals)
   const int FARC = ins.grid.idx(0, 0);
   EXPECT_NE(s.target_pos[0], FARC);  // nobody hauled to the far cell
   EXPECT_NE(s.target_pos[1], FARC);
-  EXPECT_LE(plan.size(), 14u);  // tau-direct horizon (near cells only)
+  EXPECT_LE(plan.size(), 16u);  // tau-direct horizon (near cells only)
 }
 
-TEST(dd_tau_guidance, frontier_movable_clear_outranks_chain_head)
+TEST(dd_tau_guidance, clear_requests_keep_stable_chain_order)
 {
-  // 1-row corridor, single empty at (0,3): the only executable
-  // manipulation is the blocker ADJACENT to the vacancy (c2), not the
-  // chain head next to the target (c1).  With DD_CLEAR_FRONTIER=1 the
-  // lone free robot must be matched to c2 (design_final 5.4/D20); the
-  // default (0, singleton-parity gate) keeps the head-first order.
+  // Clear requests use one stable head-first rule.  The removed
+  // frontier-bonus variant regressed medium-density instances.
   DDInstance ins;
   ins.grid = DDGrid({"....."});
   ins.robots.push_back(ins.grid.idx(0, 4));
@@ -246,12 +324,36 @@ TEST(dd_tau_guidance, frontier_movable_clear_outranks_chain_head)
   ins.target_goals.push_back(ins.grid.idx(0, 4));
   ins.finalize();
   const auto X = initial_phys_config(ins);
-  const auto fg_default = dd_match_free_goals(ins, X, nullptr);
-  ASSERT_EQ(fg_default.size(), 1u);
-  EXPECT_EQ(fg_default[0], ins.grid.idx(0, 1));  // head-first (default)
-  setenv("DD_CLEAR_FRONTIER", "1", 1);
   const auto fg = dd_match_free_goals(ins, X, nullptr);
-  unsetenv("DD_CLEAR_FRONTIER");
   ASSERT_EQ(fg.size(), 1u);
-  EXPECT_EQ(fg[0], ins.grid.idx(0, 2));  // movable frontier blocker c2
+  EXPECT_EQ(fg[0], ins.grid.idx(0, 1));
+}
+
+TEST(dd_tau_guidance, settled_target_remains_a_reversible_blocker)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({".....", ".....", "@@@@@"});
+  ins.robots = {ins.grid.idx(1, 0)};
+  ins.shelves = {ins.grid.idx(1, 0), ins.grid.idx(1, 2),
+                 ins.grid.idx(0, 1), ins.grid.idx(0, 3)};
+  ins.target_starts = {ins.grid.idx(1, 0), ins.grid.idx(1, 2)};
+  ins.target_goals = {ins.grid.idx(1, 4), ins.grid.idx(1, 2)};
+  ins.target_goal_sets = {{ins.grid.idx(1, 4)}, {ins.grid.idx(1, 2)}};
+  ins.finalize();
+
+  std::vector<int> path;
+  dd_compute_park(ins, initial_phys_config(ins), -1, true, &path);
+  EXPECT_EQ(path.front(), ins.grid.idx(1, 0));
+  EXPECT_EQ(path.back(), ins.grid.idx(1, 4));
+  EXPECT_NE(std::find(path.begin(), path.end(), ins.grid.idx(1, 2)),
+            path.end())
+      << "a settled target must not force an arbitrarily expensive detour";
+
+  auto corridor = tau_ins({"....."}, {{0, 0}}, {{0, 0}, {0, 2}},
+                          {{{0, 4}}, {{0, 2}}});
+  path.clear();
+  dd_compute_park(corridor, initial_phys_config(corridor), -1, true, &path);
+  EXPECT_NE(std::find(path.begin(), path.end(), corridor.grid.idx(0, 2)),
+            path.end())
+      << "settled targets remain movable when every route crosses them";
 }

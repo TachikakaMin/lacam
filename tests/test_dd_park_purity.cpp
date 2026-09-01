@@ -6,7 +6,7 @@
 // histories reach the same X with different cached least-blocking paths.
 // Contract fixed by these tests:
 //   1. determinism: identical (X, cache history) -> identical park set;
-//   2. strict-invalidation mode (DD_STRICT_INVAL semantics) is epoch-free:
+//   2. strict-invalidation probe mode is epoch-free:
 //      warmed and fresh histories MUST agree;
 //   3. characterization: under the default lazy policy the adversarial
 //      occupied->vacated history CAN change the park set (known, documented
@@ -87,7 +87,7 @@ TEST(dd_park_purity, strict_invalidation_is_epoch_free)
   const auto fresh = dd_compute_park(ins, X, -1, /*strict=*/true);
   const auto warmed = dd_compute_park(ins, X, block, /*strict=*/true);
   EXPECT_EQ(fresh, warmed)
-      << "DD_STRICT_INVAL must make park independent of cache history";
+      << "strict invalidation must make park independent of cache history";
 }
 
 TEST(dd_park_purity, default_lazy_policy_is_epoch_dependent_documented)

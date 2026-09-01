@@ -3,11 +3,10 @@
 // (design.md v3 section 10; debug.md v3 WP5, mappings M11/M15/M16).
 //
 // There is exactly ONE solve loop in this codebase: TAPFPlanner::solve()
-// in tapf_planner.cpp.  This file only (a) converts DDInstance/PhysConfig
-// to the TAPF state types, (b) drives the D14 two-phase anytime policy,
-// (c) implements the B0/B1 baselines on the SHARED generator/rollout, and
-// (d) re-exports the protected test-support probes on top of the
-// production guidance machinery (carrier_guidance.hpp).
+// in tapf_planner.cpp. This file converts DDInstance/PhysConfig to TAPF
+// state types, runs the dynamic-to-fixed assignment refinement policy,
+// implements B0/B1 on the shared generator/rollout, and re-exports test
+// probes over the production guidance machinery (carrier_guidance.hpp).
 //
 #include "../include/dd_planner.hpp"
 
@@ -22,7 +21,6 @@
 namespace {
 
 using Clock = std::chrono::steady_clock;
-using carrier_detail::env_int;
 using carrier_detail::LowerDist;
 using carrier_detail::PathCache;
 using carrier_detail::Scratch;
@@ -32,8 +30,8 @@ using carrier_detail::least_blocking_path;
 using carrier_detail::waitfor_cycles;
 using carrier_detail::CLEAR_CHAIN_K;
 
-// physical-cost weights for REPORTING/phase comparison (unit unless
-// DD_SOLVER_WEIGHTS=1; must match TAPFPlanner's g semantics)
+// Physical-cost weights for reporting (unit unless a numeric objective
+// input DD_ALPHA..DD_DELTA is present); must match TAPFPlanner's g.
 struct SocWeights {
   double alpha = 1, beta = 1, gamma = 1, delta = 1;
 };
@@ -126,10 +124,25 @@ void map_stats(const TAPFStats& t, DDStats* out)
   out->macro_successors += t.macro_successors;
   out->macro_steps += t.macro_steps;
   out->macro_after_first += t.macro_after_first;
+  out->macro_shelf_motion_successors += t.macro_shelf_motion_successors;
+  out->macro_robot_only_successors += t.macro_robot_only_successors;
+  out->rollout_calls += t.rollout_calls;
+  out->rollout_cycles += t.rollout_cycles;
+  out->rollout_shelf_motion_steps += t.rollout_shelf_motion_steps;
+  out->robot_only_successors += t.robot_only_successors;
+  out->manipulation_successors += t.manipulation_successors;
+  out->shelf_motion_successors += t.shelf_motion_successors;
+  out->tau_change_builds += t.tau_change_builds;
+  out->tau_pair_changes += t.tau_pair_changes;
+  out->rho_change_builds += t.rho_change_builds;
+  out->rho_pair_changes += t.rho_pair_changes;
   out->g_relaxed += t.g_relaxed;
   out->f_pruned += t.f_pruned;
   out->incumbent_updates += t.incumbent_updates;
   out->guidance_builds += t.guidance_builds;
+  out->tau_time_ms += t.tau_time_ms;
+  out->guidance_time_ms += t.guidance_time_ms;
+  out->futile_lift_demotions += t.futile_lift_demotions;
 }
 
 // path-cache diagnostics (engine-internal counters via the planner)
@@ -140,22 +153,19 @@ void fold_path_stats(const TAPFPlanner& planner, DDStats* out)
   out->path_cache_hits += planner.carrier_path_cache_hits();
 }
 
-// one phase = one TAPFPlanner::solve() run (M11)
-DDPlan run_phase(const TAPFInstance& view, const DDInstance& ins,
-                 double limit_sec, int seed, bool macro_enabled,
-                 bool stop_at_first, double incumbent_init, DDStats* stats,
-                 DDPlan* best_effort, double* soc_out, double* first_ms,
-                 double* first_soc, long* max_depth, long* targets_done)
+DDPlan run_first_incumbent_search(
+    const TAPFInstance& view, const DDInstance& ins, double limit_sec,
+    int seed, bool macro_enabled, DDStats* stats, DDPlan* best_effort,
+    double* soc_out, double* first_ms, double* first_soc, long* max_depth,
+    long* targets_done)
 {
   std::mt19937 mt(seed);
   Deadline deadline(std::max(0.0, limit_sec) * 1000);
   TAPFStats tstats;
   TAPFSearchConfig cfg;
-  cfg.mode = TAPFSearchMode::FOCAL;  // DFS until 1st solution, FOCAL after
   cfg.macro_enabled = macro_enabled;
-  cfg.stop_at_first = stop_at_first;
-  cfg.incumbent_init = incumbent_init;
-  TAPFPlanner planner(&view, &deadline, &mt, 0, 0, 0.001f, true, &tstats,
+  cfg.stop_at_first = true;
+  TAPFPlanner planner(&view, &deadline, &mt, 0, 0, 0.001f, false, &tstats,
                       cfg);
   const auto sol = planner.solve();
   map_stats(tstats, stats);
@@ -175,13 +185,47 @@ DDPlan run_phase(const TAPFInstance& view, const DDInstance& ins,
       if (stats != nullptr && !planner.best_effort_shelves.empty()) {
         stats->deepest_config = phys_of(planner.best_effort_solution.back(),
                                         planner.best_effort_shelves.back());
+        stats->deepest_tau = planner.best_effort_tau;
       }
     }
     return {};
   }
   auto plan = plan_of(view, sol, planner.solution_shelves);
+  DDPlanRepairStats repair;
+  plan = repair_carrier_plan(ins, plan, &repair);
+  if (stats != nullptr) {
+    stats->exact_loops += repair.exact_loops;
+    stats->projected_loops += repair.projected_loops;
+    stats->bridge_steps += repair.bridge_steps;
+    stats->plan_steps_removed += repair.steps_removed;
+  }
   if (soc_out != nullptr) *soc_out = plan_soc(ins, plan);
   return plan;
+}
+
+std::optional<DDInstance> fixed_assignment_from_plan(
+    const DDInstance& ins, const DDPlan& plan)
+{
+  bool has_dynamic_assignment = false;
+  for (const auto& goals : ins.target_goal_sets)
+    has_dynamic_assignment |= goals.size() > 1;
+  if (!has_dynamic_assignment) return std::nullopt;
+
+  PhysConfig state = initial_phys_config(ins);
+  for (const auto& ops : plan) {
+    auto next = apply_ops(ins, state, ops);
+    if (!next.has_value()) return std::nullopt;
+    state = std::move(*next);
+  }
+  if (!is_dd_goal(ins, state)) return std::nullopt;
+
+  DDInstance fixed = ins;
+  for (size_t b = 0; b < fixed.n_targets(); ++b) {
+    fixed.target_goals[b] = state.target_pos[b];
+    fixed.target_goal_sets[b] = {state.target_pos[b]};
+  }
+  fixed.finalize();
+  return fixed;
 }
 
 uint64_t state_hash(const Config& C, const ShelfState& S)
@@ -196,25 +240,65 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
 {
   const TAPFInstance view(ins);
   if (stats != nullptr) *stats = DDStats();
-  const auto t_end =
-      Clock::now() + std::chrono::duration_cast<Clock::duration>(
-                         std::chrono::duration<double>(time_limit_sec));
+  const auto started = Clock::now();
+  const auto finish_at =
+      started + std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        std::max(0.0, time_limit_sec)));
   auto remaining = [&]() {
-    return std::chrono::duration<double>(t_end - Clock::now()).count();
+    return std::max(
+        0.0,
+        std::chrono::duration<double>(finish_at - Clock::now()).count());
   };
 
-  // D14 two-phase anytime: phase 1 macro-on (scale regime), stop at the
-  // first incumbent; phase 2 primitive-only from the root with the
-  // phase-1 upper bound; return the better plan.
-  const bool macro_p1 =
-      env_int("DD_MACRO_CAP", 64) > 0 &&
-      ins.n_targets() <= (size_t)env_int("DD_MACRO_TGT", 64);
-  double soc1 = -1, first_ms = -1, first_soc = -1;
+  // Phase 1 finds one executable incumbent under dynamic shelf-goal
+  // matching. If it leaves time, phase 2 fixes the terminal assignment and
+  // reruns the same search from the root. This is automatic for multi-goal
+  // inputs and structurally absent for singleton-goal instances.
+  constexpr size_t MACRO_TARGET_LIMIT = 64;
+  const bool use_macro = ins.n_targets() <= MACRO_TARGET_LIMIT;
+  double soc = -1, first_ms = -1, first_soc = -1;
   long max_depth = 0, targets_done = 0;
-  DDPlan plan1 = run_phase(view, ins, remaining(), seed, macro_p1,
-                           /*stop_at_first=*/true, -1, stats, best_effort,
-                           &soc1, &first_ms, &first_soc, &max_depth,
-                           &targets_done);
+  DDPlan plan = run_first_incumbent_search(
+      view, ins, remaining(), seed, use_macro, stats, best_effort, &soc,
+      &first_ms, &first_soc, &max_depth, &targets_done);
+
+  if (!plan.empty()) {
+    auto fixed = fixed_assignment_from_plan(ins, plan);
+    const double phase2_limit = remaining();
+    if (fixed.has_value() && phase2_limit > 0) {
+      if (stats != nullptr) {
+        ++stats->assignment_restarts;
+        stats->assignment_first_soc = soc;
+        stats->assignment_first_makespan = static_cast<long>(plan.size());
+      }
+      const double phase2_started_ms =
+          std::chrono::duration<double, std::milli>(
+              Clock::now() - started)
+              .count();
+      const TAPFInstance fixed_view(*fixed);
+      double soc2 = -1, second_ms = -1, second_soc = -1;
+      DDPlan plan2 = run_first_incumbent_search(
+          fixed_view, *fixed, remaining(), seed, use_macro, stats, nullptr,
+          &soc2, &second_ms, &second_soc, &max_depth, &targets_done);
+      if (!plan2.empty()) {
+        if (stats != nullptr) {
+          ++stats->assignment_second_solved;
+          stats->assignment_second_solution_ms =
+              phase2_started_ms + second_ms;
+          stats->assignment_second_soc = soc2;
+          stats->assignment_second_makespan =
+              static_cast<long>(plan2.size());
+        }
+        if (soc2 < soc) {
+          if (stats != nullptr) ++stats->assignment_improvements;
+          plan = std::move(plan2);
+          soc = soc2;
+        }
+      }
+    }
+  }
+
   auto finish = [&](const DDPlan& plan, double soc) {
     if (stats != nullptr) {
       stats->first_solution_ms = first_ms;
@@ -226,16 +310,7 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
     }
     return plan;
   };
-  if (remaining() <= 0) return finish(plan1, soc1);
-
-  double soc2 = -1;
-  DDPlan plan2 = run_phase(view, ins, remaining(), seed + 1,
-                           /*macro=*/false, /*stop_at_first=*/false,
-                           plan1.empty() ? -1 : soc1, stats, nullptr, &soc2,
-                           &first_ms, &first_soc, &max_depth, &targets_done);
-  if (plan2.empty()) return finish(plan1, soc1);
-  if (plan1.empty()) return finish(plan2, soc2);
-  return soc2 < soc1 ? finish(plan2, soc2) : finish(plan1, soc1);
+  return finish(plan, soc);
 }
 
 DDPlan solve_carrier_rollout(const DDInstance& ins, double time_limit_sec,
@@ -640,8 +715,7 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
 {
   DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
-  PathCache pc;
-  pc.strict_inval = strict_inval;
+  PathCache pc(strict_inval);
   Scratch sc(ins.grid.size());
   const auto tau = tau_of(ins, X);
 
@@ -653,7 +727,9 @@ std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
     for (int c : X.anon_occ) occ[c] = 1;
     occ[warm_block_cell] = 1;
     for (size_t b = 0; b < ins.n_targets(); ++b) {
-      const bool done = X.target_pos[b] == tau[b];
+      bool carried = false;
+      for (const int k : X.kappa) carried |= k == (int)b;
+      const bool done = !carried && X.target_pos[b] == tau[b];
       if (done) continue;
       pc.get(ins.grid, (int)b, X.target_pos[b], tau[b], occ,
              X.target_pos[b], sc);
@@ -739,19 +815,6 @@ std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
   sc.occ_node = nullptr;
   fill_occupancy(ins, X, sc, tau);
   return waitfor_cycles(ins, X, g, ld, sc);
-}
-
-int dd_parking_cell(const DDInstance& ins, const PhysConfig& X, int robot)
-{
-  DDDistCache tgd(ins.grid);
-  LowerDist ld(ins.grid);
-  PathCache pc;
-  Scratch sc(ins.grid.size());
-  sc.occ_node = nullptr;
-  const int key = 1;
-  const auto tau = tau_of(ins, X);
-  const auto g = build_guidance(ins, X, tau, tgd, ld, pc, sc, &key);
-  return g.parking_cell[robot];
 }
 
 std::vector<int> dd_solve_tau(const DDInstance& ins, const PhysConfig& X,
