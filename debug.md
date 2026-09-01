@@ -1,267 +1,335 @@
-# debug.md — Goal-Set τ 层集成计划（v4 重写）
+# Carrier-LaCAM 调试与回归契约
 
-来源：2026-08-31 用户指令。本文件**取代** v3 集成计划（其 WP0-WP7d
-已全部完成，历史见 git：e92c314 → 65eea5f；官方结果
-`results_integrated_v2`，carrier 162/164，TAPF golden 逐位不变）。
-本轮任务：按 `design_final.md`（取代 design.md/designv2.md）落地
-**M5 = goal-set 实例格式 + 动态 τ（shelf→goal matching）层 +
-frontier-aware requests + BRaP-B 评估**。设计依据与决策记录见
-design_final §1.2/§4.3/§5.3/§5.4/§8.2 与 D15-D23。
+状态：2026-09-01，与 `design_final.md` v3.0（闭环 task/`tau_guide`
+guidance 设计）对齐。
 
----
+实现基线：当前 `lacam/src` 是 v2.2 生产行为（request/cell 语义的
+guidance）。本契约分两类条目：**[基线]** 钉住当前已验证行为，任何
+改动都必须维持；**[v3.0]** 是 task 层落地时立即生效的强制约束。两类
+同时有效——v3.0 的实现不得以破坏 [基线] 条目为代价。
 
-## 0. 最高约束（继承 + 本轮新增，不可协商）
+## 1. 生产路径
 
-1. **唯一 solve loop**：`TAPFPlanner::solve()`。禁止平行 planner/
-   第二套 pipeline/独立框架；τ 层是 `attach_carrier_guidance` 路径上
-   的增量，不是新模块体系。
-2. **双退化不变量（spec 级，禁 feature flag/fallback/检测切换）**：
-   - **零 shelf**：`solve_tapf` 与现 HEAD 行为逐位一致（解序列、
-     搜索轨迹、RNG 流）——由既有 golden 特征化测试
-     `test_tapf_compat`（protected）持续钉死；
-   - **单点集 goal（|G_b|≡1，即全部既有 carrier 实例）**：τ 层必须
-     结构性退化为恒等 matching（矩阵每行一个有限元 ⇒ repair 无行
-     可变 ⇒ h_shelf 同现值 ⇒ 零额外 RNG 消耗），dev 9 例与全量
-     164 例数字不回归（§6 gate）。
-3. **loader 契约（D15）**：goal-set 实例只保存 pool + eligibility +
-   load 期覆盖匹配检查；**禁止**静态采样/greedy/Hungarian 固化配对
-   写进实例或 loader。benchmark 生成器的静态配对逻辑降级为消融专用。
-4. 开发流程严格 **test → RED → implementation → GREEN → benchmark →
-   regression test → debug**；发现 bug 先写 regression test 复现再修。
-5. 新增 tests / benchmark cases 一经创建即 **protected**；修改需
-   独立 subagent（GPT-5.6 Sol, high reasoning）明确 APPROVE。既有
-   protected 资产（23 个 C++ 测试 target、benchmark/tests/* 11 个
-   Python 套件、dev_cases.txt、dd_benchmark CLI 合同、benchmark
-   语义）继续受保护。
-6. Benchmark：与既有协议同 dataset/seed/metric/success 语义，每
-   testcase 严格 10s；jobs=14（16 物理核留 2）；benchmark 运行期间
-   不并行跑测试套件（历史教训）。
-7. Admissibility 纪律：h_shelf 只能用 LB 主序值（design_final §4.3
-   引理 1 + §5.3 D17 编码）；任何 blocking/hysteresis 项不得进入
-   h 的数值（D18）。
+```text
+solve_carrier_lacam                        (dd_planner.cpp)
+  -> dynamic guidance: TAPFPlanner::solve -> repair_carrier_plan
+  -> if multi-goal and time remains:
+       freeze terminal shelf-goal assignment
+       TAPFPlanner::solve from root -> repair_carrier_plan
+  -> choose lower-SOC valid candidate (tie/failure -> first pass)
+  -> apply_ops full replay
+```
 
-## 1. 目标架构（一段话）
+guidance 内部数据流（v3.0 目标形态；现状见 design_final §3-§7 的
+[现状] 段）：
 
-goal 结构从 `target_goals[b]`（单格）推广为 per-target 候选集
-G_b（共享池是特例）。terminal = 逐 target `p_b ∈ G_b ∧ grounded`
-（命题 3，τ-free）。每个 node 在 build_guidance 之前用共享
-`TAPFAssignmentState`（第二实例化；第一实例是 agent-task 层，第三
-是 ρ 的 row_to_col）对 (B_tgt × G_pool) 求/修 τ：主序 = admissible
-LB 矩阵，副序 = η_B hysteresis，第三序 = engine tie_hash；Hungarian
-最优值 / S 即 h_shelf。guidance 全栈（path dst、requests、park、
-yield、waitfor、funcPIBT loaded 分支、guidance-h）把 `goals[b]`
-替换为 `τ_N(b)`；clear 优先级加 movability bonus（frontier-first，
-DD_CLEAR_FRONTIER=1）。key、转移合法性、macro/D14、FOCAL、rewire
-全部不动。B1 的 τ 冻结为根节点值（D23）。
+```text
+X -> tau_LB (admissible h)
+  -> compile_frontier_task / C_guide -> tau_guide
+  -> build_tasks(X, tau_guide)
+  -> rho: free robot -> TaskId
+  -> Carrier-PIBT operator order -> constraint tree -> apply_ops
+```
 
-## 2. 集成映射表（design_final 机制 → 修改位置）
+不得重新引入：
 
-| # | 机制 | 落点（文件 :: 函数/结构） | 单点集退化论证 |
-|---|---|---|---|
-| T1 | §2.1 goal pool + eligibility + 覆盖匹配检查 + YAML 兼容 | dd_carrier.hpp/.cpp :: `DDInstance` 增 `goal_pool`/`per-target goal 集`（旧 `[start,goal]` ⇒ 单点集）；`finalize()` 增二部匹配可行性拒载；`TAPFInstance(const DDInstance&)` 透传 | 旧格式加载结果与现 HEAD 字段逐位相同（target_goals 向量保留为单点集视图） |
-| T2 | §2.2/命题 3 terminal | dd_carrier.cpp :: `is_dd_goal`；tapf_planner.cpp :: `is_goal_config`（per-target goal bitset 预构建）；ddbench/validator.py 同步 | 单点集 bitset 恰含原 goal ⇒ 判定值逐状态相同 |
-| T3 | §5.3/D17 τ matching + repair + h_shelf | carrier_guidance.hpp :: CarrierEngine 增 τ 引擎（LB·S+pen 编码、`solve_full`/`repair_rows`）；tapf_planner.cpp :: `attach_carrier_guidance` 在 build_guidance 前求 τ、moved-target 行修复、h_shelf=主序值；TAPFNode 增 `tau`（vector<int>）+ `tau_state`（与 assignment_state 同拷贝模式） | 每行单有限元 ⇒ τ 恒等/repair 空转/h_shelf 同现公式值；无 RNG 消耗 |
-| T4 | §5.4 requests 的 τ 间接 + frontier 优先级 + §5.6 park/yield/waitfor 替换 | carrier_guidance.hpp :: `build_guidance`（dst=τ(b)；protect 只标 τ 指派格；movable bonus）；`waitfor_cycles`（同替换） | τ 恒等 ⇒ dst 同今值；movable(path[1]) 低填充恒真 ⇒ 优先级序不变（dev 9 例逐例核对） |
-| T5 | §6.2 PathCache dst 失效（正确性项） | carrier_guidance.hpp :: PathCache::Entry 增 `dst`，miss 条件加 `dst 不匹配` | 单点集 dst 恒定 ⇒ 永不因 dst 失效 |
-| T6 | §6.2/D21 共享 upper-wall 距离缓存 | carrier_guidance.hpp + tapf_planner.cpp :: `target_goal_dist[b]` → 单 `DDDistCache upper_wall`（先行独立重构） | 值域相同（dest-keyed 精确 BFS）；固定 goal 行为不变 |
-| T7 | §5.6 funcPIBT loaded 分支 d(·,τ(b)) | tapf_planner.cpp :: funcPIBT（经 guide 读 τ；planner 不直读 goal 集） | 同 T3 |
-| T8 | §5.6 livelock 的 τ-taboo re-guidance + guidance-h 随 τ | tapf_planner.cpp :: attach_carrier_guidance（taboo 集扩展到 (b,goal) 对；重访/plateau 时 repair 禁忌行；**|G_b|=1 行豁免禁忌**——否则行被 sentinel 清空致 matching 不可行） | 单点行全部豁免 ⇒ 禁忌集恒空 ⇒ 零动作（须测试钉住） |
-| T9 | D23 B1 冻结 τ | dd_planner.cpp :: B1 入口取根 τ 后 plan_bound | B1 语义独立，不影响 full |
-| T10 | §8.2 BRaP-B goal-set 套件 + 消融 | benchmark :: generate_brap_instances.py 增 goal-set 输出模式（原静态配对模式保留为消融变体）；run_ablations.py 增 frozen-τ/no-η_B/head-first 变体 | 生成器变更不触 solver |
+- 第二套 carrier search loop 或平行 planner；
+- 不利用首解结构的 primitive-only root restart；
+- production strategy environment switch；
+- 未经 oracle 重放的计划后处理；
+- **[v3.0]** 按"是否有 task 层"做模式检测切换旧算法——零 shelf /
+  零 task 必须是数据结构自然为空的逐位退化；
+- **[v3.0]** 把 `free_goal / target_next / parking_cell` 从"task 阶段
+  派生缓存"升级回独立 assignment 来源。
 
-**删除/替换清单（终态不得残留）**：solver 侧对 `target_goals[b]`
-的直接语义依赖（全部经 τ 或 goal-set 查询；grep 审计清单）；
-per-target `target_goal_dist` 向量；主生成器路径里的静态配对。
+## 2. 允许的环境输入
 
-## 3. 向后兼容逐点论证（golden + parity 钉死）
+```text
+DD_ALPHA
+DD_BETA
+DD_GAMMA
+DD_DELTA
+DD_DEBUG_DUMP
+```
 
-1. **RNG 流**：τ 层（Hungarian/repair/bitset 判定）零随机；requests/
-   park/order/livelock 的抽签位置不变；frontier bonus 只改确定性
-   优先级数值。零 shelf 路径无一行新代码执行。
-2. **key/CLOSED**：SearchKey 不变（τ 不进 key，design_final §3.1）。
-3. **h/f/剪枝**：单点集 h_shelf 数值 = 现公式值（T3）；FOCAL/早停/
-   f 剪枝判定输入不变。
-4. **goal 判定**：单点集 bitset ⇔ 原等式（T2）。
-5. **oracle/validator**：apply_ops 与转移规则零改动；is_dd_goal 按
-   T2 同步，golden corpus 的转移用例不受影响（终止用例新增双侧）。
-6. **adapters/CLI**：dd_planner 探针签名、dd_benchmark 合同、
-   run_benchmark 方法集不变。
-7. **验证手段**：`test_tapf_compat` 全绿（零 shelf 逐位）；dev 9 例
-   makespan 逐例相同（单点集结构退化）；全量 164 例 parity（§6）。
+前四项是数值 objective，最后一项只输出失败诊断。静态测试
+`TestAblationContract`（`benchmark/tests/test_tools.py`）钉住该集合。
+v3.0 的 `lambda`（robot realization 权重）等新参数默认编译期常量；
+若要暴露必须作为数值输入先过协议评审，禁止布尔/枚举开关。
 
-## 4. 已知语义变化（诚实清单；仅 goal-set 实例可达）
+no-following 和 strict cache 只允许作为显式测试参数：
 
-- V1 terminal 从"到达指定格"变为"到达任一 eligible 格"——仅新格式
-  实例；旧实例语义逐位不变。
-- V2 done ≠ settled（design_final §5.3）：goal-set 实例中已 done 的
-  target 可被 τ 改派并再次搬运（D2 可逆性的新形态）；报表的
-  shelf_switches/robot_utilization 语义不变，新增 park 触发率与
-  τ 改派次数观测列（rows.csv 追加列，不改既有列语义）。
-- V3 protect 只标 τ 指派格（非全池）——单点集下与现行为相同。
-- V4 B1 在 goal-set 实例上 = 静态 τ + 冻结 plan（D23），与 full 的
-  对照变量是"逐节点重算 vs 全冻结"。
+```text
+apply_ops(..., allow_following=false)
+PathCache(/*strict=*/true)
+```
 
-## 5. 工作包（WP）与出口判据
+## 3. 关键不变量
 
-- **WP-R0 基线快照（先于一切代码改动）**：记录当前 HEAD 的 dev 9 例
-  makespan/soc/首解时延与 `results_integrated_v2` 引用数字；跑通
-  23 C++ + 11 Py 套件基线绿。出口：快照入本文件 §8。
-- **WP-A 实例层（T1/T2）**：RED = 新格式 fixture 加载断言（pool/
-  eligibility/覆盖检查拒载不可行实例）+ 旧格式字段逐位 + 终止判定
-  双侧（C++/Python）新 fixture（含"done 于非指派 goal"用例）。
-  GREEN 后：golden corpus 增终止判定用例（protected）。
-- **WP-B 距离缓存重构（T6，独立先行）**：RED = 共享缓存值与
-  per-target 缓存逐 dest 相等的性质测试；dev 9 例 makespan 不变。
-  （风险隔离：此步零语义变化，先行合并可缩小 WP-C diff。）
-- **WP-C τ 引擎（T3/T5/T7）**：RED = (a) 词典序编码性质测试（构造
-  矩阵：主序最优被 pen 破坏当且仅当编码错误；h= result.cost/S 与
-  brute-force min-LB 相等，含 carried/grounded opLB 分支）；(b) 单点
-  集退化测试（τ 恒等 + h 同旧公式 + repair 空转）；(c) 2×2 共享池
-  手工实例：τ 全局最优避免"最后一个 shelf 被迫走 8 格"（designv2
-  §9 场景缩小版）；(d) PathCache dst 失效回归；(e) rollout 地址
-  失效：τ/tau_state 若有 address-keyed 缓存必须挂
-  invalidate_carrier_scratch（复用既有回归测试形状）。
-- **WP-D guidance 全栈替换（T4/T8）**：RED = park owner 经 τ 的
-  走廊 fixture（τ 改派消解 park 的用例 + 单点集 park 行为不变
-  用例）；τ-taboo re-guidance 单点集零动作测试；frontier 优先级
-  one-empty fixture（movable 链叶先获派）+ 低填充序不变测试。
-- **WP-E 入口/基线/生成器（T9/T10）**：B1 冻结 τ 测试；生成器
-  goal-set 模式 + 静态模式消融保留；`test_tools` 覆盖新轴。
-- **WP-F benchmark 与消融**：§6 全部 gate；run_ablations 增
-  frozen-τ/no-η_B/head-first；报表更新。
-- **WP-G 审计与文档**：git diff 逐项对照 §2 映射表（独立 subagent）；
-  删除清单核销；design_final/本文件状态同步；最终汇报。
+物理与搜索层 **[基线]**：
 
-## 6. Benchmark 协议与 gate
+1. `apply_ops` 是 joint transition 的最终裁决者；fully constrained
+   joint op 不受 guidance 干预。
+2. Python validator 必须重放每个 benchmark success。
+3. `tau_guide / task / rho / path / park / cooldown` 只改 ordering，
+   不进 `SearchKey`，不改 goal condition，不永久删除合法 successor。
+4. `constraint_order` 创建后冻结；livelock reguide 只扰动 PIBT
+   preference（类内重排），futile-lift 只降序不删除 `Lift`。
+5. `SearchKey` 只含 physical state（`Config` + `ShelfState`），不含
+   guidance。
+6. macro 只在每个 search pass 的首解前生成（`macro_after_first`
+   恒 0）。
+7. rollout probe 回收前后必须清除 address-keyed scratch（逐步
+   `invalidate_carrier_scratch`）。
+8. 零 shelf 输入逐位退化为原 TAPF；singleton goal-set 退化为固定
+   goal。
 
-- dev cases：benchmark/dev_cases.txt 9 例（protected 不变），10s。
-- **Gate A（singleton parity，硬）**：instances_full2 全 164 例 ×
-  carrier：成功集与逐例 makespan 与 `results_integrated_v2` 一致
-  （种子敏感 ±2 例互换的既有容差沿用；makespan 逐例相等——τ 层在
-  单点集下结构退化，任何漂移都是 bug）。TAPF golden 全绿。
-- **Gate B（BRaP-B 动态 τ 主实验）**：B 型 goal-set 套件 vs 三个
-  静态对照（greedy 34/68、Hungarian 32/68、near-boundary 18 例
-  carrier-only）：≤10×10 成功数 ≥ 34 基线不回归；common-solved
-  makespan ≤ near-boundary 静态（在其 8.5× 改进之上继续改进）；
-  ≥20×20 不设成功 gate（horizon 墙，如实记录）。R1 型（单点集）
-  逐例与原 results_brap 相等（Gate A 的 within-suite 复核）。
-- **Gate C（消融方向性）**：frozen-τ 不优于 dynamic-τ（common
-  solved mk）；违反则如实记录并调查（不得静默调参掩盖）。
-- 未达 gate：先固化 regression test，再调查；结果如实入报告。
-- **执行结果（2026-08-31）**：
-  - **Gate A PASS**（results_gateA，164×carrier 统一 10s jobs=14，
-    wall 107.5s）：162/164 = v2；成功集 0 丢 0 增；common solved
-    162/162 **逐例 makespan 完全相等**（report_gates.py）。
-  - **Gate B PASS**（results_gateB，instances_brap_pool 68×carrier）：
-    套件总成功 35/68 ≥ 34 基线（+1）；B 型 18/34（= near-boundary 18，
-    > static-greedy 17）；common-solved makespan：vs static-greedy
-    mean **0.275×**（16/17 更优；含 goal-set 语义红利极例——target
-    已在边界 ⇒ mk 1 vs 24774）；vs near-boundary mean 0.851×/median
-    0.510×（审计修正计数：14 优 / 1 平 / 3 劣，即 15/18 不劣；
-    3 劣中含一小易例 6× 波动）；R1 单点集
-    对照 34 行 **0 漂移**（Gate A 的 within-suite 复核）。
-  - **独立审计（2026-08-31，GPT-5.6 Sol subagent）**：判定 CONFORMS
-    ——35/68 的正确读法是 **≤10×10（gated 区间）35/36=97.2%
-    （B 型 18/18=100% vs static 17/18）+ ≥20×20（声明的 horizon 墙、
-    不设 gate）0/32（新旧套件同为 0/32）**；裸 35/68 是分母混入
-    declared-unreachable 区间的口径效应。审计压力测试：20×20 e100
-    B 型 pool 例 60s 预算仍无首解（best_targets_done 28/40、
-    hl_nodes 81315）——墙的结论在 6× 预算下经受住检验（单例证据，
-    非无限预算证明）。审计发现的两处报告瑕疵已修：report_gates.py
-    增加机械尺寸过滤 + 显式 PASS/FAIL（输出 35/36 PASS / 0/32
-    record-only）；near-boundary 严格计数改为 14 优/1 平/3 劣。
-  - **Gate C PASS**（results_gateC_frozen，DD_TAU_FREEZE=1 同套件）：
-    dynamic 18/34 > frozen 17/34；common 17 例 mk dynamic/frozen
-    mean **0.742×** / median 0.619×（frozen 仅 4/17 占优）——
-    "每节点重算"的贡献被隔离证实。
+输出修补层 **[基线]**：
 
-## 7. Protected 清单增量
+9. output repair 只能返回原计划或严格更短的有效 goal plan
+   （`valid(raw) => valid(returned)`，最终整体重放兜底）。
+10. shelf-projection cut 的两个端点必须全部 shelves grounded。
+11. robot bridge 结束后的 labeled robot configuration 必须与原片段
+    终点相同（bridge 期间 shelf 不动）。
 
-既有全部 protected 资产不变。本轮新增（创建即 protected）：
-WP-A/B/C/D/E 的全部 RED 测试、goal-set golden 终止用例、BRaP-B
-goal-set 套件实例与生成器语义。
+两遍与 assignment 层 **[基线]**：
 
-## 8. 进度
+12. fixed-assignment restart 与第一遍共享同一个 10 秒总 deadline。
+13. 第二遍 goal 必须来自第一遍合法终态，且只在原 eligible set 内。
+14. 第二遍失败、持平或更差时必须返回第一遍。
+15. shelf-goal matching 在 primitive/loaded motion 中复用 parent
+    assignment，只在 drop/task boundary 或定向 livelock repair 重算
+    （v3.0 改为每 node 重评 `C_guide` 后，本条替换为不变量 20/21）。
+16. settled lock 必须可扩展成完整 matching，否则按两级 fallback
+    重开；carried target 保留 in-flight goal。
+17. completed target 在 path 层仍是普通可逆 blocker，不能成为绝对
+    障碍（曾使 gate 36/68 -> 35/68，已证伪）。
 
-- [x] WP-R0 基线快照（HEAD 185d073：24 C++ target 全绿 + Python OK；
-  dev 9 makespan 4/7/41/12/24/81/605/1264/1259 —— 全程 parity 基准）
-- [x] WP-A 实例层 T1/T2（69c476e；`test_dd_goalset` 7/7 +
-  `tests/test_goalset.py` 6/6，RED→GREEN；finalize 物化/组件过滤/
-  Kuhn 覆盖检查；is_dd_goal/is_goal_config/Python is_goal 集合成员判定；
-  dev parity 逐位）
-- [x] WP-B 距离缓存重构 T6（a8f7443；`test_dd_tau` 共享 dest-keyed
-  性质 pin；CarrierEngine::upper_wall 单缓存 + 6 个 adapter 站点；
-  零行为变化）
-- [x] WP-C τ 引擎 T3/T5/T7（6ca3243；`test_dd_tau` 10 用例中 8 个：
-  singleton==root-h 精确、injective contention、暴力最小匹配相等、
-  hysteresis 仅平局、opLB 分支、taboo+单点豁免、dst miss；
-  **落点修正（如实）**：per-node `tau_state`+`repair_rows` 方案未采用
-  —— hysteresis pen 随 parent 配对变化使"只有 moved rows 变化"前提
-  不成立（增广路径会重排其它行），增量修复对 h 可采纳性不安全；
-  实现为 CarrierEngine 级单一 TAPFAssignmentState 每节点 solve_full
-  （规模域 ≤256 实测可承受），增量列为吞吐扩展）
-- [x] WP-D guidance 全栈 T4/T7/T8（a990160；τ 先行→hg/paths/park/
-  yield/waitfor/funcPIBT/order 全部经 τ；τ-taboo 于 livelock+reguide
-  两路触发（单点行豁免 ⇒ 固定 goal 实例零动作）；dd_view 补拷
-  target_goal_sets（RED pool 测试抓出的真 bug）；
-  **D20 实施期修订（如实）**：DD_CLEAR_FRONTIER 默认 0 —— bonus 在
-  50% 填充 dev6 (ddmapd_h16) 上重排 clear 序致 makespan 81→91，
-  §0.2 singleton-parity 为 spec 级故默认关；机制+双默认断言保留
-  （`frontier_movable_clear_outranks_chain_head`）；design_final
-  D20/§6.5 已同步修订）
-- [x] WP-E 入口/基线/生成器 T9/T10（T9 已随 WP-D 落地：B1 冻结根 τ
-  per D23；63d1830：generate_brap_instances.py --goal-mode
-  {static,pool}，static 全量 diff 字节相同，pool 同布局 RNG 流仅
-  goal 结构变化；instances_brap_pool 68 例；
-  `test_tools.TestBrapGoalSetMode` RED→GREEN）
-- [x] WP-F benchmark 与 Gate A/B/C（见 §6 执行结果；DD_TAU_FREEZE
-  消融旋钮进 solve_tau（h 保持未冻结 admissible 值）；
-  **偏差（如实）**：run_ablations.py 未扩展 —— dev 9 例全为单点集，
-  frozen-τ/η_B/frontier 在其上结构性 no-op；Gate C 改在 pool 套件
-  （旋钮真正生效处）手动执行并存档 results_gateC_frozen）
-- [x] WP-G 进度同步 + 里程碑 commit（本条）；26 个 C++ 测试二进制
-  全绿 + Python 套件 OK + dev 9 parity 逐位（最终复验）
+task/guidance 层 **[v3.0]**：
 
-## 9. 继承遗留（v3 结转，如实）
+18. `tau_LB` 只含可证明下界并且是 `h` 的唯一来源；robot realization、
+    execution price、hysteresis、taboo 只进 `C_guide / rho`。
+19. task 是 `MoveShelf(s, from -> to, root = b -> g)`；robot 绑定
+    稳定 `TaskId`，不是 pickup cell；task 完成条件只读物理状态。
+20. 未被接手的 task 随 `tau_guide` 立即改变；robot 接手后对该局部
+    task 保持 soft commitment 直到完成或失效；Lift 后 `kappa` 是唯一
+    hard commitment。
+21. duplicate node 被 rewire 到新 parent 后，必须重建 hysteresis
+    anchor、task 和 `rho`，不能沿用旧 parent 的 guidance。
+22. one-empty 输入的 ready task 在编译时就是
+    `MoveShelf(s, u -> current_empty_cell)`，不允许 Lift 后临时找
+    停车点。
+23. `funcPIBT` 的 operator 顺序从 `rho[r]` 的 task 阶段推导；
+    `free_goal` 等字段只能是派生缓存。
 
-1. **DnE-M 家族质量 gate 未达**（+12% vs v5，gate ≤1.05；未豁免）：
-   固定 goal 家族，τ 层不触及——需独立性能工作，保持记录。
-2. carrier_b1 74 vs 旧 77（刻意不完备基线，语义共码保持）。
-3. 集成 rollout 未接增量 hash（吞吐机会）。
-4. 报表口径随结果目录引用：carrier 系按内部 deadline；b4/crest 按
-   wall+0.6s 重分类。
-5. ≥20×20 puzzle 密度失败根因（2026-08-31 独立深析 agent，fable-5，
-   代码级 + 插桩实验；**修正此前"纯 horizon 墙"的读法**）——
-   四因子乘积，前两项是硬成本、后两项是正反馈卡死：
-   (a) 链式 DFS：失败运行 hl_nodes == depth+1（零分叉链），节点数 =
-   已执行物理步数，e100 需 ~9 万步 / e10 需 ~36 万步；
-   (b) 每链步 750-1036μs：attach_carrier_guidance 占 60% 墙钟（其中
-   solve_tau 40×69 Hungarian 每节点重解 + livelock taboo 再解占 53%），
-   apply_ops 每次现建 unordered_map/set（284-374 shelves）占 ~25%
-   ——与 10s 预算差 1.5-2 个数量级；
-   (c) event-bounded macro 在高 lift/drop 事件密度下退化（平均 rollout
-   仅 2.66 步；DD_MACRO_MIN 在 targets≤64 被硬编码清零，
-   tapf_planner.cpp:566-568）；
-   (d) **占用盲 tau lb() + 词典序 η_B 无力 → 每节点 τ 重配翻转
-   target_next/park → PIBT 举起-放下循环（尾段 4703 步零交付）→
-   73% duplicate → reguide 正反馈；且 h_guidance 用当前 tau_vec 计算
-   使重配人为压低 hg、livelock 检测器被致盲**——进展曲线硬卡死在
-   28-29/40（10s→240s 不动），末态 16 个 pool 空格恰好=16 个剩余
-   target（算法卡死，非物理死锁）。全部 60s 单旋钮实验
-   （CLEAR_FRONTIER/GUIDE_EVERY/MACRO 参数/ETA_B=50/TAU_FREEZE）
-   无一移动卡死点；TAU_FREEZE 使 path_recomputes −81% 但更差（21/40）
-   ——耦合病而非单参数病。
-   后续工作包候选（三层，均已给出不变量风险评估）：吞吐层
-   solve_tau 增量化/apply_ops scratch 化/接增量 hash；算法层
-   多事件 macro chunk + MACRO_MIN 门修复、livelock 信号与 τ 解耦
-   （hg 用重配不变参考）、占用感知 τ 排序（仅排序项，h 保持
-   unrestricted admissible）；语义层 parking 惩罚 pool 邻域、
-   η_B 改加权和（h 仍取主序值）。
-6. τ 增量修复（repair_rows）未接：见 §8 WP-C 落点修正——需先解决
-   hysteresis 行失效语义才能安全增量；规模域内 solve_full 实测无
-   吞吐问题（Gate A wall 107.5s vs v2 同口径），列为吞吐扩展。
-7. run_ablations.py 的 goal-set 变体（frozen-τ/η_B/frontier on pool
-   suite）未脚本化——Gate C 手动流程与命令已记录，脚本化留后续。
+## 4. 输出修补调试
 
-维护约定：每完成一项勾选并附 commit hash 与测试名；新发现问题追加
-到对应 WP；protected 测试改动需独立 subagent APPROVE。
+`DDPlanRepairStats`：
+
+```text
+exact_loops
+projected_loops
+bridge_steps
+steps_removed
+```
+
+若修补没有生效，依次检查：
+
+1. raw plan 是否能由 `apply_ops` 重放并到 goal（重放失败直接原样
+   返回）；
+2. 重复 projection 的两个端点是否全部 grounded；
+3. bridge 是否严格短于被替换段（等长不采用）；
+4. 1/2 robot 的 shortest bridge 是否找到（1 robot 贪心下降、2 robot
+   exact A*）；
+5. 多 robot trajectory projection 是否仍满足 lower-deck R1/R2；
+6. 最终 full replay 是否触发 fallback（返回原计划）。
+
+禁止通过跳过最终 replay 来"修复"命中率。
+
+## 5. 自动策略调试
+
+固定结构常量（`carrier_guidance.hpp` / `tapf_planner.cpp`）：
+
+```text
+macro cap                  MACRO_CAP = 64
+macro target limit         MACRO_TARGET_LIMIT = 64
+guidance refresh steps     GUIDANCE_REFRESH_STEPS = 8   (rollout 内)
+assignment exact limit     ASSIGNMENT_EXACT_LIMIT = 256
+active target limit/cap    ACTIVE_TARGET_LIMIT = 256 / ACTIVE_TARGET_CAP = 64
+assignment hysteresis      ASSIGNMENT_HYSTERESIS = 2    (tau 与 rho 共用)
+livelock window            LIVELOCK_WINDOW = 24         (revisit 重导阈值 8)
+clear chain length         CLEAR_CHAIN_K = 3
+blocked-cell path penalty  LAMBDA_BLK = 8
+futile repeat limit        FUTILE_REPEAT_LIMIT = 3
+futile memory window       max(64, 8*|V|)
+deadline cleanup reserve   min(1000ms, max(100ms, 10% limit))
+```
+
+这些值不是运行开关。调整任何值都必须重新运行 68 例 BRaP-pool gate，
+尤其检查：
+
+```text
+h4w10_a5_e1_R1_seed0       makespan 1053
+h10w10_a12_e3_R1_seed1     makespan 2620
+small suite                36/36
+all suite                  36/68
+```
+
+逐拍重建 guidance 已验证会使 dense B0 失败，因此 rollout 保留 8 步
+刷新周期，同时每拍失效 occupancy scratch
+（`dd_integration.rollout_steps_match_fresh_generation` 钉住）。
+
+## 6. Guidance / task 层调试
+
+诊断计数（`DDStats`）：
+
+```text
+tau_change_builds / tau_pair_changes      shelf-goal 改写频度
+rho_change_builds / rho_pair_changes      robot 任务改写频度
+tau_time_ms / guidance_time_ms            每节点 guidance 预算
+guidance_builds / path_recomputes / path_cache_hits
+futile_lift_demotions
+macro_* / rollout_*                       macro 注入与终止原因
+assignment_restarts / _second_solved / _improvements
+```
+
+症状检查单：
+
+1. **assignment churn 回归**：`tau_pair_changes` 相对节点数暴涨
+   （v2.2 参照：20x20 曾 86,317 次，commitment 后 2,757）——检查
+   preserve/commitment 边界与 hysteresis anchor 是否在 rewire 后
+   丢失（不变量 21）。
+2. **guidance 预算超支**：大图 `tau_time_ms + guidance_time_ms`
+   接近 deadline（80x80 历史测量 ~8.9/10 秒）——robot realization
+   项必须增量维护；先查 `path_recomputes` 与 active-target cap 是否
+   失效。
+3. **livelock 循环**：`waitfor` 探针（`dd_waitfor_cycle_robots`）
+   返回非空且 taboo repair 未打破——检查 rho taboo 与单行 tau 释放
+   的 epoch 轮转。
+4. **task 身份漂移 [v3.0]**：同一搬运在 approach 中途换 `TaskId`
+   （soft commitment 破坏）——用 §7 测试 4 的生命周期断言定位。
+5. **h 污染**：任何 guidance 改动后 `dd_anytime.
+   admissible_h_never_exceeds_true_cost` 失败即为 execution 项漏进
+   `tau_LB`（不变量 18），立即回退。
+
+失败诊断输出用 `DD_DEBUG_DUMP`；最深节点链在失败时经 best-effort
+通道返回（`deepest_config / deepest_tau`）。
+
+## 7. 测试
+
+```sh
+cmake --build build -j 16
+./build/test_all --gtest_color=no
+
+PYTHONPATH=benchmark \
+  /tmp/dd-lacam-pytest/bin/python -m pytest benchmark/tests -q \
+  -n 14 --dist=load
+```
+
+测试依赖固定在 `benchmark/requirements-test.txt`。系统 Python 若无
+pytest/xdist，用临时 venv，不修改系统环境。Python 全套中的外部
+solver 固定 10 秒内部预算；subprocess 只留 5 秒启动/终止余量。
+14 workers 与 benchmark 协议一致（16 物理核留 2）。
+
+### 7.1 现有保护性测试（基线，不得回归）
+
+| 测试 | 责任 |
+|---|---|
+| `dd_plan_repair.*` | projection cut、bridge、不可缩短 fallback |
+| `dd_integration.rollout_steps_match_fresh_generation` | scratch 失效 + 8 步 guidance 刷新协议 |
+| `dd_integration.search_not_dominated_by_own_rollout_on_dense` | 角色相关 PIBT 预约语义 |
+| `dd_nofollow.*` | 显式 conservative oracle 参数 |
+| `dd_g1_conformance.*` / `dd_golden.corpus_agreement` | 约束树穷举与 oracle/validator 一致 |
+| `dd_rewire.*` | 首解计划合法性和 objective 记账 |
+| `dd_tau.*` | goal matching、admissible h、taboo、dst cache |
+| `dd_tau.carried_target_keeps_inflight_goal_commitment` | task-episode commitment |
+| `dd_tau.settled_pool_goal_*` | settled/carried 冲突与可扩展 fallback |
+| `dd_tau_guidance.settled_target_remains_a_reversible_blocker` | completed target 是普通 blocker |
+| `dd_goalset.dynamic_first_solution_restarts_with_fixed_assignment` | 自动第二遍 |
+| `dd_goalset.singleton_assignment_skips_second_search` | singleton 结构性跳过 |
+| `dd_anytime.admissible_h_never_exceeds_true_cost` | h 下界性 |
+| `dd_anytime.macro_disabled_after_first_solution` | macro 首解前 only |
+| `test_tapf_compat`（全部） | 零 shelf 逐位退化 |
+| `TestAblationContract`（Python） | 无策略环境开关 |
+
+### 7.2 v3.0 必测（design_final §12；落地时补齐）
+
+| # | 要求 | 状态 |
+|---|---|---|
+| 1 | 零 shelf 与原 LaCAM-TAPF 逐位一致 | 已覆盖（`test_tapf_compat`） |
+| 2 | `\|G_b\|=1` 退化为 fixed-goal carrier | 已覆盖（`dd_tau.singleton_*`、`dd_goalset.singleton_*`） |
+| 3 | target 不动、robot/vacancy 变时 `tau_guide` 可改变 | 待写（robot-realization cost 落地时） |
+| 4 | 同一 `TaskId` 连续经历 approach/Lift/carry/Drop | 待写（ManipulationTask 落地时） |
+| 5 | one-empty ready task = 相邻 shelf 移入 vacancy | 待写（compile_frontier_task 落地时） |
+| 6 | execution feedback 不进 admissible `h` | 半覆盖（`hysteresis_is_tie_break_only`、`rowwise_taboo_does_not_bias_admissible_h`）；robot 项落地时同型扩展 |
+| 7 | 所有返回计划过 C++/Python replay | 已覆盖（repair 测试 + validator + golden corpus） |
+
+待写测试在对应机制合入的同一 CR 内交付，不允许"先合机制后补测试"。
+
+## 8. Benchmark gate
+
+```sh
+python3 benchmark/run_benchmark.py \
+  --instances benchmark/instances_brap_pool \
+  --out-dir benchmark/results_<new-dir> \
+  --methods carrier --timeout 10 --jobs 14
+```
+
+运行前确认没有 `DD_ALPHA..DD_DELTA` 残留和其他高负载任务。复跑必须写
+新目录，保留 `rows.csv`、`timing.json`、`work/*.plan`。结构消融用
+`run_ablations.py --out-dir <new-dir>`（固定 10 秒、14 jobs、seed 0、
+单位权重、默认 following，复用 Python validator）。主 runner 显式
+使用单位权重；非单位实验只能用 `--weights` 开独立结果轴，且不与
+native-objective 外部方法混跑。
+
+### 8.1 行为不变改动（重构、清理、修补优化）
+
+接受条件（对照 `results_task_commit_final`）：
+
+- success `36/68`，<=10x10 `36/36`；
+- 成功计划 36 个，全部通过 Python validator；
+- 成功例总 makespan 34,860、SOC 59,907；
+- assignment restart 18 attempted / 18 solved / 6 improved；
+- 相对 rootfix control 的 makespan/SOC 几何比约
+  `0.917520 / 0.927884`；
+- singleton/R1 输出计划逐字节不变。
+
+### 8.2 语义变更（v3.0 task/`tau_guide` 落地）
+
+按 design_final §11.6 验收，开新结果目录并同时报告：
+
+- success 不低于 `36/68` 与小图 `36/36`；
+- 共同成功集 makespan/SOC 几何均值 + 逐例改善/持平/恶化，恶化逐个
+  解释；锚案例 `h4w10_a5_e1_R1_seed0`（基线 1053）、
+  `h10w10_a12_e3_R1_seed1`（基线 2620）单列；
+- 首遍轨迹允许改变；singleton/R1 逐字节等价不作为语义变更的验收项，
+  但零 shelf（`test_tapf_compat`）仍必须逐位一致；
+- 三组消融 A（frozen tau vs `tau_guide`）、B（request cell vs
+  ManipulationTask）、C（shelf-only vs robot-realization cost）以
+  结构 runner method 同协议报告；
+- `tau_time_ms / guidance_time_ms` 预算报告（§6 症状 2）。
+
+### 8.3 可视化对照
+
+当前基线动画（同一 `h8w10 e20 B seed1`）：
+
+```text
+benchmark/viz/task_commit_before_h8w10.html   rootfix control, 233 steps
+benchmark/viz/task_commit_fixed_h8w10.html    selected fixed plan, 168 steps
+```
+
+run 内部统计是 first 241 -> second 168；runner 只持久化最终候选，
+before 动画使用可独立重放的 rootfix control，不冒充当前 first。
+
+## 9. 已知边界
+
+- 20x20 以上 dense BRaP：10 秒内 0/32；`tau_guide` 反馈针对
+  assignment churn 与 task 不连贯，不是首解 horizon 的充分解；
+- fixed-assignment restart 在首解后才触发，不能改善 0 首解实例；
+- output repair 不减少 raw first-incumbent search horizon；
+- 1/2 robot bridge 最短，更多 robot 只保证合法缩短
+  （`h4w10` Python 原型 719 vs 当前 1053，bridge 有余量）；
+- search-level shelf-equivalence merging 仍是研究项，必须同时解决
+  robot state reconstruction，不能只改 hash；
+- 每 node 重评 `tau_guide` + robot realization 是新的常数成本来源，
+  受 §6 症状 2 与 design_final §11.6 第 6 条约束。

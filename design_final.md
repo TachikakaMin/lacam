@@ -1,776 +1,891 @@
-# Carrier-LaCAM 最终设计文档（design_final）
+# Carrier-LaCAM 最终设计文档：闭环货架目标与机器人任务联合搜索
 
-状态: final v1.0, 2026-08-31。
+状态：v3.0，2026-09-01。
 
-**本文取代 `design.md`(v3.1) 与 `designv2.md`**：
-- 继承 design.md 中**已实现并经全量 benchmark/审计验证**的全部语义
-  （§2-§6 的物理模型、约束树、guidance、livelock、macro/D14、
-  工程与理论结论），这些内容在本文中如实标注"已落地"；
-- 采纳 designv2.md（BiTA）的核心思路——**取消固定 shelf-goal 配对，
-  每个 target shelf 保留完整候选 goal 集合，第一层 assignment
-  （shelf→goal，τ）与第二层 assignment（robot→request，ρ）都在每个
-  physical node 上重算/修复**——并按当前代码形态给出可落地的集成
-  方案（标注"待实现"）；
-- 教学版说明见 `carrier_lacam_for_freshmen.md`（与实现核对过的
-  入门文档，术语与本文一致）。
+- 设计基准：`new.md`（draft v3.0）——重写 guidance 层，让 shelf goal
+  与 robot task 在每个搜索节点互相反馈；
+- 实现基准：当前 `lacam/src`（v2.2 生产代码），由
+  `benchmark/results_task_commit_final/` 与全量回归
+  （C++ 137/137、Python 69/69）验证；
+- 写法约定：每个机制先给 **[设计]**（v3.0 目标语义），必要时再给
+  **[现状]**（当前代码的真实行为与落点）与 **[落差]**（落地时必须补齐
+  的差异）。未标注的段落表示设计与现状一致、已实现。
 
-写作约定：每节标注 [已落地] / [待实现] / [部分落地]；实现载体一律为
-现有集成代码（唯一 solve loop = `TAPFPlanner::solve()`），工程约束
-与工作包见 debug.md（v4，与本文同步重写）。
+本文取代 v2.2。v2.2 已验证的搜索骨架、输出修补、两遍流程、实验协议与
+基线数字全部保留；被 v3.0 重写的是 guidance 的中间表示与 assignment
+语义（§3-§7）。发现过程与被证伪路线见 `report.md`。
 
 ---
 
-## 0. 一句话
+## 0. 核心思想
 
-> 不把 shelf path 和 robot path 当成两个 plan；它们是**同一条 physical
-> configuration path 的两个投影**。搜索只在物理 configuration 空间上进行，
-> robot 是唯一 actuator，shelf 的移动是 robot 动作的确定性 effect。
-> 在此之上，**"哪个 shelf 去哪个 goal"（τ）与"哪个 robot 干哪件事"（ρ）
-> 都不是输入，也不是 state——它们是每个 node 上重算的 guidance。**
+v2.2 已证明并继续成立的骨架：
 
-对应到 LaCAM 框架，核心修改共三件（前两件已落地，第三件是本轮增量）：
+1. 在完整 robot-shelf 物理状态上做 configuration search；robot 是唯一
+   actuator，shelf 运动是 `Move/Lift/Drop` 的确定性 effect；
+2. 一切 assignment / path / priority 只负责排序：不进状态 key、不改
+   goal condition、不永久删除合法 successor；
+3. 多 goal 输入在首解后固定终态 assignment，用剩余 deadline 从根自动
+   重跑一次，返回较低 SOC；
+4. 输出端做可证明正确的等价类修补（exact state + shelf projection）；
+5. 生产无策略开关，机制由输入规模与运行状态自动触发。
 
-1. [已落地] high-level state 从 agent configuration 扩展为
-   robot + shelf + carrying 的物理 configuration；
-2. [已落地] low-level constraint 从 "agent 的 next vertex" 提升为
-   "robot 的 primitive operator"（wait/lift/drop 的 next vertex 相同，
-   仅约束位置无法区分 transition）；
-3. [待实现] goal 从"每 target 一个固定格"放宽为"每 target 一个候选
-   集合 G_b"；terminal 判定、admissible h 与 guidance 全部改为
-   matching-aware，τ 由每节点的 incremental Hungarian 维护。
+v3.0 重写 guidance 的内容：
 
-依赖链（designv2 §1）：
+> 不先固定 shelf goal，再让 robot 被动执行。对每个候选 shelf goal，
+> 先预测它会产生什么搬运任务、当前 robots 执行这些任务有多难，再选择
+> goal。
 
 ```text
-X  →  τ_B（shelf→goal matching）
-   →  I（vacancy-centric upper intent / requests）
-   →  ρ_R（free robot→request matching）
-   →  Carrier-PIBT（constraint-respecting generator）
+physical state X
+  -> 为每个 shelf-goal 候选预测当前任务（compile_frontier_task）
+  -> 估计 robot 执行代价
+  -> tau_guide：target shelf -> goal
+  -> 生成正式 manipulation tasks（build_tasks）
+  -> rho：free robot -> task
+  -> Carrier-PIBT 生成 joint action
+  -> X'
+  -> 重新评价
 ```
 
-τ、I、ρ 全部是 ordering-only guidance：不进 state key、不进 terminal
-判定、不删除任何合法 successor（见 §4.2 G2）。
+这是 Carrier 版本的 ITA 反馈：robot 的实际位置、vacancy 和 blocker
+变化会改变 shelf 选哪个 goal；goal 改变后，生成的 task 也随之改变。
+
+**[现状]** 当前反馈只有半环：`build_guidance` 每个 node 都按最新
+robot/vacancy 重造 requests 和 `rho`，但 shelf->goal 的选择
+（`solve_tau`）只读 shelf 侧 admissible 下界矩阵，且在非任务边界节点
+直接复用 parent assignment（§4）。robot 执行难度不影响 goal 选择——
+这正是 v3.0 要补的另外半环。
 
 ---
 
-## 1. 背景与动机
+## 1. 搜索状态与终止条件 `[保留，已实现]`
 
-### 1.1 方法空档（继承 design.md，已被实验证实）
+### 1.1 输入
 
-- **BR-LaCAM / BRaP**（arXiv 2509.01022）搜索 block-level rearrangement：
-  block 被当作会自己移动的 agent，robot、carrying、lift/drop 不在
-  search state 里，plan 从不验证可执行性。
-- **DD-MAPD / MAPF-DECOMP**（arXiv 2304.14309）shelf-first decomposition：
-  先规划 shelf 轨迹再切段给 robot；shelf 规划不感知 robot。
-- **CREST**（arXiv 2603.28803）保留两阶段，仅在执行期修补；lift/place
-  overhead 越大，分解损失越大。
-- **NAT-CBS**（SOCS'25）coupled 且 makespan-optimal，但慢约四个数量级。
+- 4 连通 grid 和 wall；
+- labeled robots；
+- labeled target shelves 和匿名 shelves；
+- 每个 target shelf 的 eligible goal 集 `G_b`；固定 goal 是
+  `|G_b| = 1` 的自然特例。
 
-空档：**没有方法在搜索的每条边上保证 robot-shelf 联合可执行，同时保持
-LaCAM 级 scalability 与 completeness。** [已落地] 这一主张已由统一协议
-benchmark 支撑：164 实例 × 7 方法 × 10s，carrier 162/164，
-carrier_b0 154、b4 115、crest_base 80、carrier_b1 74、crest_full 38、
-natcbs 21（benchmark/results_integrated_v2）。
+loader 在 `DDInstance::finalize()` 中检查 goal 可达性（wall 连通分量
+过滤）和覆盖 matching。它不把 goal pool 静态固化为一组 shelf-goal
+pair。
 
-### 1.2 为什么还需要动态 τ（本轮增量的实证动机）
+### 1.2 状态
 
-BRaP 协议套件（2026-08-31，三个 commit：f1a7cde/de513c6/5f66864）
-在 sliding-puzzle 密度（93-97% 填充）上暴露了 v1 固定 goal 语义的
-质量上限：
+```text
+X = (Q_robot, Q_target, Q_anon, kappa)
+```
 
-1. **carrier 34/68**（4×10..10×10 全解、含论文 fig-6h 深埋单 block 例；
-   所有 baseline 0-6/68）——但 goal 由生成器**静态**贪心配对；
-2. **near-boundary 静态重配对消融**：把 B 型（边界任意出口）goal 改为
-   "全边界池最近去重匹配"，解出 17→18，makespan 最多好 **8.5×**、
-   首解快 9×——静态配对的选择质量直接决定数倍的执行代价；
-3. **Hungarian 静态配对消融**：同一采样集上用最优 min-sum Manhattan
-   配对替换贪心，配对总距离 −14.6%，执行却**更差**（32/68 vs 34/68，
-   8×10 makespan +31%）——min-sum 直线距离不建模 puzzle 密度下的
-   清障拓扑（穿越少数空格的路径交叉）；**任何静态匹配器都注定拿不到
-   正确答案，因为正确配对依赖搜索过程中不断演化的 occupancy**。
+- `Q_robot`：labeled robot 位置；
+- `Q_target`：labeled target shelf 位置；
+- `Q_anon`：排序后的匿名 shelf occupancy（relabeling 已 canonicalize）；
+- `kappa[i]`：robot `i` 当前 free、携带匿名 shelf，或携带 target `b`。
 
-结论：goal 候选集 + 每节点 τ 重算（blocking-aware cost、可撤销、
-hysteresis 防震荡）是结构性缺口，不是调参问题。这正是 designv2 的
-出发点，也是本文第 5.3 节的核心增量。
+搜索 key 是 `SearchKey{Config, ShelfState}`。`tau_guide`、`rho`、task、
+path 和 priority 都不进入 state key。
 
-同时，BRaP 套件也如实确认了不可归因于 goal 配对的墙：≥20×20 在 10s
-内对**任何**输出可执行 plan 的方法都不可达（解出的 4×10..10×10 平均
-makespan 2.8 万-7.4 万步；BRaP 自己的 80×80 可解性是其非可执行抽象的
-属性）。动态 τ 的预期收益域是**已可解规模上的质量**与边界规模上的
-成功率，不是横向穿越 horizon 墙。
+### 1.3 动作与合法性
+
+每个 robot 每拍选择：
+
+```text
+Wait | Move(neighbor) | Lift | Drop
+```
+
+`apply_ops()`（`dd_carrier.cpp`）是 C++ 权威转移 oracle，检查
+lower-deck vertex/swap 冲突、upper-deck 唯一占据、lift/drop
+precondition 和 carrying 不变量。Python `ddbench.validator` 对输出计划
+再次整体重放。
+
+默认物理语义允许 following。BRaP-conservative no-following 仅通过
+`apply_ops(..., allow_following=false)` 作为显式测试 oracle 参数存在，
+不是生产开关。
+
+### 1.4 Goal 与代价
+
+```text
+is_goal(X) iff
+  every target b is grounded and Q_target[b] in G_b
+```
+
+upper-deck shelf 不能同格，终态位置本身构成 injective matching，
+terminal check 不读取任何临时 assignment；已位于合法 goal 的 shelf
+仍可被再次搬开。
+
+物理 SOC：
+
+```text
+alpha * loaded_moves
++ beta  * free_moves
++ gamma * lift_drop
++ delta * anon_moves
+```
+
+四个权重默认为 1，是数值 objective 输入（`DD_ALPHA..DD_DELTA`），不是
+搜索策略开关。
 
 ---
 
-## 2. 问题定义
+## 2. 搜索不变量 `[保留并扩展]`
 
-### 2.1 环境与实例 [部分落地]
+1. 唯一生产 solve loop 是 `TAPFPlanner::solve()`。
+2. `dd_planner.cpp` 只做 carrier 适配、两遍驱动、基线和输出修补，
+   不搜索。
+3. action-constraint tree 最终可枚举全部 robot primitive operator。
+4. fully constrained joint op 由 `apply_ops()` 独裁，guidance 不决定
+   合法性。
+5. `tau_guide / task / rho / path / park / cooldown` 只改变候选顺序。
+6. 零 shelf 输入自然退化为原 TAPF 路径（carrier 数据结构为空，逐位
+   一致，不做模式检测）。
+7. singleton goal-set 自然退化为固定 goal。
+8. **[v3.0]** `tau_guide` 与 `tau_LB` 分离：execution feedback、
+   hysteresis、taboo 只进 guidance，永不进入 admissible `h`。
+9. **[v3.0]** task 完成条件与 goal condition 一样只读物理状态
+   （shelf `s` grounded at `to`），不读 assignment。
 
-- 4-连通 grid，双层语义（DD-MAPD 风格）：
-  - **lower deck**：robots 行驶层。free robot 可以从 grounded shelf
-    正下方通过与停留（仅受 wall 限制）。
-  - **upper deck**：shelves 层。grounded shelf 静止；被 lift 的 shelf
-    随 carrier robot 移动。
-- 实例输入：
-  - grid（walls）；
-  - robots R，初始位置 Q^R_0（labeled）；
-  - shelves B，初始 occupancy；target shelves B_tgt ⊆ B 有 label，
-    其余 shelf **匿名**（无 goal、无身份）；
-  - **goal 结构（本轮增量）**：goal pool G_B 与 eligibility
-    G_b ⊆ G_B（每 target 一个候选集合）。固定 goal 是
-    |G_b| = 1 的特例。B 型公共边界目标表示为
-    G_b = G_boundary（∀ b ∈ B_tgt，共享池）。
-
-**Loader 契约（designv2 §2，钉死）** [待实现]：loader 只保存完整
-goal pool 与 eligibility，并在 load 期检查存在覆盖所有 target 的
-injective matching（二部图匹配可行性，Hall 条件由匹配算法隐式判定；
-不可行 ⇒ fail loudly 拒载）。**禁止**以下任何一种"预处理"：
-
-1. 从池中随机采样与 target 数量相同的 goal 子集；
-2. 用 greedy / Hungarian / 任何静态算法固定 shelf-goal 配对；
-3. 把配对写成实例中的固定 g_b。
-
-（§1.2 的两个消融证明 1/2/3 都会留下数倍质量损失或成功率损失。）
-
-**YAML 格式（向后兼容）** [待实现]：现有 `targets: [[start, goal],…]`
-继续合法，解释为 G_b = {goal}（单点集）；新增
-`goal_pool: [cells…]` + `targets: [[start, [g1,g2,…]],…]` 或
-`targets_pool: [[start, "pool"],…]`（共享池简写）。二者混用合法。
-非默认 flags 双侧拒载的既有规则不变。
-
-### 2.2 Goal condition [待实现（goal-set 版）；单点集下已落地]
-
-状态 X 是 goal 当且仅当存在 injective τ: B_tgt → G_B，
-τ(b) ∈ G_b，使得每个 target b grounded 且 p_b = τ(b)。
-
-**简化判定（v1 采用，见 §4.1 正确性论证）**：goal 是物理 cell 且两个
-shelf 不可能同格（S1），故
-
-```text
-is_goal(X)  ⟺  ∀ b ∈ B_tgt: p_b ∈ G_b ∧ b grounded
-```
-
-- robot 终态不约束；
-- 到达 goal 的 target **留在原地继续占格**（D2）；
-- **"完成"不是不可逆状态**：已位于合法 goal 的 shelf 仍可被再次
-  lift、搬开，最终落到同一个或另一个合法 goal。系统不保存单调
-  completed bit（D12：χ 是 derived view）。
-- terminal 判定**不读取 τ**（τ 只是 guidance；见 §4.2 骨架第 5 条）。
-
-### 2.3 目标函数 [已落地]
-
-两个 objective，分开报告：
-
-- **executed makespan**：第一个到达 goal condition 的 timestep；
-- **weighted action cost（SOC 风格）**：
-
-```text
-c(a) = α·#loaded moves + β·#free moves + γ·#lift/drop + δ·#anon moves
-```
-
-默认单位权重；`DD_SOLVER_WEIGHTS=1` 时 α..δ 贯穿 solver 的
-g/admissible-h/rollout（加权穷举最优性质测试 `test_dd_m2`）。
-"executed makespan" 是关键指标：decomposed 方法报告的 shelf-plan
-makespan 不等于真实执行 makespan。
+这些不变量保留有限状态空间上的可行性 completeness 骨架。生产入口在
+有限 deadline 下停止于首个 incumbent（每遍 `stop_at_first`），因此
+**不声称首解最优或 eventually optimal**。
 
 ---
 
-## 3. 模型语义（规范；除 goal 结构外全部 [已落地]）
+## 3. 中间层：Manipulation Task `[重写]`
 
-### 3.1 状态
+### 3.1 设计
+
+`request = {cell, priority}` 信息不足：它只告诉 robot 去哪里 Lift，
+没有说明搬哪个 shelf、搬到哪里、为哪个 target goal 服务。
+
+新 task 表示一次明确的 shelf 状态变化：
 
 ```text
-X = (Q^R, Q^B, κ)
+MoveShelf(s, from -> to, root = target b -> goal g)
 ```
 
-| 分量 | 含义 | 实现 |
-|---|---|---|
-| Q^R | robot 位置（labeled） | `Config`（`vector<Vertex*>`，原 LaCAM-TAPF 类型） |
-| Q^B | shelf 层 | `ShelfState{target_pos, anon_occ(sorted), kappa}` |
-| κ | carrying 关系 | `kappa[i] ∈ {KAPPA_FREE=-1, KAPPA_ANON=-2, b≥0}` |
+- `s`：要搬的 target 或 anonymous shelf；
+- `from -> to`：这次搬运的精确起点和落点；
+- `root = b -> g`：这次搬运最终服务于哪个 shelf-goal objective；
+- 完成条件：`s` grounded at `to`（纯物理判定）。
 
-- κ(r)=b ⇒ q_r = p_b（carrier 与 shelf 同格不变量）；
-- 被 carry 的匿名 shelf 不需要身份（KAPPA_ANON flag，D9）；
-- χ（completed 集）是 derived view，不进 state/key（D12）；goal-set
-  语义下同样成立：`done(b) ⟺ grounded(b) ∧ p_b ∈ G_b`；
-- **τ、I、ρ、距离场、requests、park 一律不进 state key**。
-  `EXPLORED` 的 key = `SearchKey{Config, ShelfState}`（canonical：
-  anon_occ 排序去除匿名 relabeling），hasher = 原 ConfigHasher ⊕
-  shelf-hash（零 shelf 时 ⊕0）。**goal-set 引入后 key 不变**——这是
-  designv2 §2 的要求，当前实现天然满足，无需改动。
+robot 被分配的是 task（稳定 `TaskId`），不是 pickup cell：
 
-### 3.2 Robot primitive actions
+```text
+free                 -> 去 from
+到达 from             -> Lift
+carrying task shelf   -> 去 to
+到达 to               -> Drop，task 完成
+```
 
-每个 robot 每 timestep 选一个：`Wait / Move(v) / Lift / Drop`。
-lift/drop 无参数（只能操作脚下/手上的 shelf）。preconditions 与
-effects 见 design.md §3.2 表（未变，`dd_carrier.cpp::apply_ops`
-为权威实现）。joint action 下**只有 robot 选动作，shelf 不独立选
-动作**。
+`free_goal`、`target_next`、`parking_cell` 只是同一 task 在不同阶段的
+局部 waypoint，不再是三个独立目标。
 
-### 3.3 Joint transition 合法性 [已落地]
+在 one-empty sliding-puzzle 中，ready task 必须在生成时就是：
 
-规则表未变（R1/R2 lower 顶点/交换冲突；S1 upper 唯一占据；I1-I3
-交互规则；S2 由 R2 蕴含）。三方一致架构：
+```text
+MoveShelf(s, u -> current_empty_cell)
+```
 
-1. 部分约束下 planner 内联检查（快速否决，允许保守错杀）；
-2. 每个被接受的 joint op 经 C++ `apply_ops` 终裁；全约束深度（G1）
-   跳过内联、oracle 独裁；
-3. Python `ddbench.validator` 对输出 plan 整体重放（第二 oracle）。
+不能只生成 `clear(u)` 后由 carrier 在 Lift 之后临时找停车点。
 
-跨语言 golden corpus（`tests/fixtures/golden/`）+ G1 穷举对照
-（`test_dd_g1`）钉住三方语义一致。**goal-set 变更触及 goal 判定与
-guidance，不触及转移合法性——本节零改动，是本轮增量风险可控的
-结构性原因。**
+### 3.2 现状
 
-### 3.4 两个刻意的语义决策（与 BRaP 不同） [已落地]
+`CarrierGuidance`（`tapf_planner.hpp` / `carrier_guidance.hpp`）：
 
-**(a) 不继承 no-following**：显式 robot 模型里 convoy = 两个 loaded
-robot 同步移动，物理可行；统一模型约束更少、makespan 更优。
-`DD_NO_FOLLOWING=1`（oracle 层旋钮，`test_dd_nofollow` 量化）提供
-语义对齐实验。**designv2 §8 的要求由此已满足**：BRAP_NO_FOLLOWING
-与 PHYSICAL_ALLOW_FOLLOWING 是同一 oracle 的两个变体，benchmark
-两组结果分开汇报、不混合。
+- `requests = {cell, priority}`：serve 100（target 自己的 pickup），
+  clear `50-k`（该 target least-blocking path 上前 `CLEAR_CHAIN_K=3`
+  个 blocker cell）；
+- `rho[i]` 指向 request **index**；request 每 node 重造，无稳定身份；
+- robot 目标分散在三个字段：`free_goal[i]`（接受的 request cell）、
+  `target_next[b]`（carried target 的下一格）、`parking_cell[i]`
+  （匿名/parked carrier 用 BFS 自选的最近合法停车格）；
+- request 不携带 shelf 身份、落点和 root objective；落点是 Lift 之后
+  才由 carrier 决定的。
 
-**(b) 零空格 cycle rotation 合法**（命题 2 的分离实例，穷举证明 +
-双侧可执行测试固化，`test_dd_g1::dd_prop2_*`、`test_prop2.py`）。
+### 3.3 落差
+
+- 新增 `ManipulationTask` / `TaskId` 与 `build_tasks(X, tau_guide)`；
+- request 语义升级为 `MoveShelf(s, from -> to, root)`；
+- 三个 waypoint 字段降级为同一 task 的阶段派生缓存；
+- one-empty ready task 在编译期确定落点为当前 vacancy。
 
 ---
 
-## 4. 理论
+## 4. Shelf goal assignment：`tau_guide` `[重写]`
 
-### 4.1 可行性与 goal-set 终止判定的正确性
+### 4.1 设计
 
-**定理 1（|R|=1 单 robot 模拟，已修正适用域）与命题 2（表达力分离，
-含 MAPF-DECOMP(PP)/BRaP/sequential pebble motion 三分表述）**
-原样继承 design.md §4.1，不再赘述；两者的可执行锚测试已在库中。
-
-**命题 3（简化终止判定 = matching 终止判定）[新增，v1 采用]**。
-若每个 goal 是物理 cell 且合法状态中任意两 shelf 不同格（S1），则
+对每个候选 `(b, g)`，先预测为了让 target shelf `b` 朝 `g` 前进，当前
+最先需要执行的 task：
 
 ```text
-∀b: p_b ∈ G_b ∧ b grounded   ⟺   ∃ injective τ, τ(b) ∈ G_b, p_b = τ(b) ∧ 全部 grounded
+m_X(b, g) = compile_frontier_task(X, b, g)
 ```
 
-*证明*：(⇐) 显然。(⇒) 取 τ(b) := p_b；由 S1，b ↦ p_b 单射；
-p_b ∈ G_b 给出 eligibility。∎
-
-因此 terminal 判定是逐 target 的 O(|B_tgt|) membership 检查
-（`p_b ∈ G_b` 用预构建的 per-target bitset），不需要在线匹配。
-loader 期的覆盖匹配检查（§2.1）保证 goal 可达配置存在不因
-eligibility 结构而空。
-
-### 4.2 Completeness [已落地骨架；τ 层只需验证第 4/5 条]
-
-沿 LaCAM 骨架的六条（design.md §4.2）：状态空间有限；每 node 的
-action-constraint tree 最终枚举全部 robot primitive 组合（冻结
-`constraint_order`，D11）；validator 恰好接受 §3.3 全部合法转移；
-**τ、I、ρ、距离场、priority、park、livelock 只改变 successor 生成
-顺序，不永久删除任何 successor**；terminal 不依赖 τ；EXPLORED key
-只含 canonical(X)。
-
-Guard G1（fully-constrained 直通 oracle）与 G2（只剪 provably-dead
-或 f ≥ incumbent）不变。**τ 层的 completeness 义务清单**（新增机制
-逐条对照 G2）：
-
-| 新机制 | 类别 | 论证 |
-|---|---|---|
-| τ matching（Hungarian/greedy） | ordering-only | 只决定 guidance 的临时 goal 与候选序 |
-| τ hysteresis η_B | ordering-only | 只扰动 matching 选择 |
-| terminal 用 §4.1 简化式 | 判定 | 不读 τ（命题 3 证其与任意合法 τ 等价） |
-| admissible h 用 LB-matching（§5.7） | cost 剪枝 | h ≤ 真实剩余代价（引理 1），f 剪枝合法 |
-| goal-cell protect / park owner 经 τ | ordering-only | park 本就是 ordering（§5.4a 继承） |
-
-两阶段 anytime（D14）与 completeness 的关系不变：phase 级、无时限
-主张；macro 只增不减 successor。
-
-### 4.3 Admissible h 在 goal-set 下的正确形态 [待实现]
-
-**引理 1（assignment lower bound）**。定义 per-pair 下界矩阵
+例如，`b` 的下一格被 blocker `s` 占据，当前 vacancy 是 `e`：
 
 ```text
-LB[b,g] = α · d_upper_wall(p_b, g) + opLB(b,g)，   g ∈ G_b（否则 ∞）
-opLB(b,g) = 0        若 b grounded ∧ p_b = g
-          = 2γ       若 b grounded ∧ p_b ≠ g      （≥1 lift + ≥1 drop）
-          = 1γ       若 b carried                  （≥1 drop）
+m_X(b, g) = MoveShelf(s, position(s) -> e, root = b -> g)
 ```
 
-则 h_shelf(X) = min over injective τ of Σ_b LB[b, τ(b)] 是剩余
-weighted-SOC 的 admissible 下界。
+然后计算 execution-aware guidance cost：
 
-*证明梗概*：任何把 X 补完到 goal 的合法后缀都以某个 injective τ'
-结束（命题 3 方向 ⇒ 取终态位置）。对每个 b：每个 loaded move 至多让
-一个 shelf 的 d_upper_wall 减 1 且计费 ≥ α（δ ≥ 0 时匿名搬运只会
-更贵）；lift/drop 计费 γ 且次数下界即 opLB。对 b 求和 ≥ Σ LB[b,τ'(b)]
-≥ min_τ。∎（要求 α,β,γ,δ ≥ 0；负权重破坏此前提，与现实现的
-"不主动拒绝负数"诚实声明一致，见 freshmen §13.2。）
+```text
+C_guide(X, b, g)
+  = shelf rearrangement estimate      （距离、blocker chain、vacancy routing）
+  + lambda * robot realization estimate
+       （当前 robots 到 m_X(b,g) 的 pickup、Lift、carry、Drop 代价）
+  + goal-switch hysteresis            （新 goal 必须明显更好才替换）
+```
 
-**规模分级（与现有 ρ 的规模域同构）**：
+用该 cost 求 injective matching：
 
-- |B_tgt| ≤ `DD_TAU_HUNGARIAN_TGT`（默认 256）：exact
-  LB-matching（复用 `TAPFAssignmentState`，见 §5.3 的单矩阵词典序
-  编码与 moved-row 增量修复）；
-- 超出规模域：退化为无匹配松弛
-  `h_relax = Σ_b ( min_{g∈G_b} α·d(p_b,g) + opLB_carried/grounded(b) )`
-  ——忽略 injectivity，仍 admissible（min ≤ 任意 τ' 项），只是更弱。
-  单点集下两式相等且都等于现实现的 h_shelf（退化一致性）。
+```text
+tau_guide : target shelf -> eligible goal
+```
 
-单点集特例：LB 矩阵每行一个有限元 ⇒ matching 恒等、
-h_shelf = 现实现值——**现有全部 fixed-goal 实例的 h/f/剪枝行为
-不变**（这是 debug.md v4 的 singleton-parity gate 依据之一）。
+因此，即使 target shelf 没移动，只要 robot、vacancy 或 blocker 改变，
+`tau_guide` 也可能改变；它不能只按 moved target rows 更新。
 
-### 4.4 通往最优性 [已落地，主张不变]
+例：左侧 goal 距离更近，但要清三个 blocker 且 robots 都远；右侧 goal
+多一格，但 robot 已在 shelf 下方。右侧 end-to-end cost 更低，
+`tau_guide` 应改选右侧，并生成不同 task。
 
-g = 真实 physical cost（D5，matching 永不进 g）；duplicate 的
-g-relax/rewire 已落地（`rewrite()`，`test_dd_rewire` 小图穷举最优
-对照）；anytime 改进 + admissible-h 剪枝 + f_min 早停证书是当前可证
-部分；eventually-optimal 不作主张。goal-set 只改 h 的形态（§4.3），
-不触碰此结论。
+### 4.2 现状
+
+`solve_tau`（`carrier_guidance.hpp`）一次求解输出唯一 `tau`：
+
+- 主序 = admissible shelf-goal 下界矩阵
+  `lb(b,g) = alpha * upper_wall_dist(pos_b, g) + gamma * (1|2)`；
+  其 **unrestricted matching 最优值同时就是 `h_shelf`**——这正是 v3.0
+  的 `tau_LB` 值（§8）；
+- 次序 = `eta_B = 2` 的 parent-assignment hysteresis（lexicographic
+  编码 `lb*S + pen`，`S = eta_B*n + 1`，读 h 时整除剥离）；
+- settled lock：grounded 在任意 eligible goal 的 target 优先锁住当前
+  cell；carried lock：in-flight goal 保留。两级不可扩展 fallback：先
+  释放 carried locks，再只保留 unrestricted matching 见证可扩展的
+  settled 行；
+- livelock repair：对 rho pair 加 taboo，并且每个 livelock epoch 只
+  释放**一个** unfinished、grounded、multi-goal 行的当前 pair；
+- `targets > ASSIGNMENT_EXACT_LIMIT = 256` 时退化为 row-wise nearest
+  eligible（h 忽略 injectivity，仍 admissible）。
+
+重算时机（`attach_carrier_guidance`）：root、target drop boundary、
+reguide；其余节点 `preserve_parent` 复用 parent assignment（合法性
+检查通过时），h 用 row-relaxed 下界。
+
+### 4.3 落差
+
+- cost 没有 robot realization 项：robots 全部远离某 goal 的 blocker
+  链不影响该 goal 的得分；
+- `tau_guide` 与 `tau_LB` 是同一次求解的两个读数（同一 lb 矩阵），
+  尚未拆成两个公式；拆分后 `tau_LB` 保持现状（可证明下界），guidance
+  侧换 `C_guide`；
+- 非边界节点复用 parent assignment，robot/vacancy 变化无法触发改选；
+  v3.0 要求每个 physical node 重新评价（用 hysteresis 防震荡）；
+- `compile_frontier_task` 不存在——现状最接近的是 path 上的
+  clear requests，但它们不带落点与 root。
 
 ---
 
-## 5. 算法
+## 5. Robot task assignment：`rho` `[重写]`
 
-### 5.1 总览 [已落地；τ 插入点用 (*) 标注]
+### 5.1 设计
 
-```text
-# 外层：两阶段 anytime（D14）
-plan1 = phase(macro=on if |B_tgt| ≤ DD_MACRO_TGT, stop_at_first=true)
-plan2 = phase(macro=off, incumbent=cost(plan1), 剩余预算)   # 从根重启
-return better(plan1, plan2)
-
-# 单相内部（TAPFPlanner::solve，唯一 loop）
-OPEN.push(N0)
-loop until deadline:
-    N = OPEN.select()            # 首解前 DFS(back)；首解后加权 FOCAL(w=1.5)
-    if is_goal(N.X): extract & continue     # §2.2 简化判定；f_min 早停证书
-    （首扩且首解前且规模域内：注入 macro rollout child，D14）
-    C = N.tree.pop()                         # partial operator constraint
-    if depth(C) < |R|:
-        r = N.constraint_order[depth(C)]     # 创建时冻结（D11）
-        for op in legal_local_ops(r, N.X): N.tree.push(C + {r→op})
-    X' = CarrierPIBT(N, C)                   # 内联检查 + apply_ops 终裁；G1
-    if X' == ⊥: continue
-    if canonical(X') in EXPLORED:
-        g-relax/rewire；重访计数 += 1；每 8 次 re-guidance
-    else:
-        N' = make_node(X')
-        (*) τ' = repair(τ_parent, moved target rows)      # §5.3
-        (*) I' = build_requests(X', τ')                    # §5.4
-        (*) ρ' = match(free robots, I', η 迟滞)            # §5.5
-        h(N') += h_shelf(X')                               # §4.3/§5.7
-        OPEN.push(N')
-```
-
-(*) 三行今天已存在于 `attach_carrier_guidance`（τ 恒等、requests、
-ρ Hungarian+η、order 分层、h_shelf、livelock 信号挂接）；goal-set
-增量 = 把"τ 恒等"替换为真 matching，其余调用结构不动。
-
-### 5.2 Action-constraint tree（核心修改 1）[已落地]
-
-low-level constraint 固定完整 local operator
-`C[r] = (a_r, q'_r, κ'(r))`；分支因子 ≤ deg+3，与 LaCAM 的 deg+1
-同阶；lazy FIFO 展开、`constraint_order` 冻结。实现：
-`Constraint` op payload + `build_op_candidates`（solve 与 G1 枚举
-共用的唯一生产实现；零 shelf 时候选集与 RNG 消耗和原 TAPF 逐位一致）。
-
-### 5.3 第一层 assignment：τ（shelf→goal）[待实现；本轮核心]
-
-**每个 node 求解/修复全局 injective matching**（designv2 §4：
-禁止逐对 greedy elimination——§1.2 消融 3 已证明静态逐对配对在
-执行层是负优化；搜索期的逐对 greedy 继承同样的结构缺陷）。
-
-**两个 cost 语义、一次 Hungarian（本文的关键工程决策）**。
-designv2 §4 要求区分 guidance matching cost（含 blocking/vacancy/
-hysteresis 项）与 admissible matching cost（LB，§4.3）。直接照抄要
-每节点解两次 matching。利用现有 `TAPFAssignmentState` 的词典序编码
-（`weight = INF − (primary·cost_scale + tie)`），把两层语义压进
-**一个整数矩阵**：
+根据最终 `tau_guide` 构造当前 task pool `M(X, tau_guide)`，再求：
 
 ```text
-C_τ[b,g] = LB[b,g] · S  +  pen[b,g]，          g ∈ G_b（否则 sentinel）
-pen[b,g] = η_B · 1[g ≠ τ_parent(b)]           （+ 可选 blocking 微调项，见下）
-S        = η_B · |B_tgt| + 1                   （保证 Σpen < S，词典序严格）
+rho : free robot -> ManipulationTask or IDLE
 ```
 
-Hungarian 最优解 τ* 满足：
-
-1. **主序最优**：Σ LB[b,τ*(b)] = min_τ Σ LB（因为 Σpen < S 不可能
-   翻转主序）⇒ `h_shelf = result.cost / S`（整除向下取整即主序和）
-   **恰是 §4.3 的 admissible 值**——一次求解同时产出 τ 与 h；
-2. **副序 hysteresis**：主序 tie 内偏向 parent 配对（η_B 语义，
-   defaults η_B=2 与 ρ 的 DD_ETA 同族），防止等价 goal 间震荡；
-3. **确定性**：engine 自带 tie_hash 第三序，保证同 X 同 parent 下
-   τ 可复现。
-
-溢出预算：LB ≤ α·diam + 2γ（80×80 网格 diam≈160，权重≤5 ⇒ LB ≤
-~10^3）；S ≤ 2·400+1；LB·S ≤ ~10^6 ≪ sentinel 10^8 ≪ long 编码域
-（engine 现有 cost_scale/tie 机制原样可用）。
-
-**blocking-aware 项的处置（v1 收窄）**：designv2 §4 的
-λ_blk·B̂/λ_vac·V̂ 项若直接加进主序会破坏 h 的 admissibility，加进
-副序则预算受限。v1 决策：**主序只用 LB**；blocking 感知交给下游——
-τ 选定 goal 后，target 的 least-blocking path/requests/candidate
-排序（§5.4，已落地）本来就是 blocking-aware 的。plateau 时的
-re-guidance（§5.6 信号 B）额外允许 τ 禁忌重配（taboo 当前配对后
-re-match），提供跳出局部配对的通道。全量 blocking-aware τ cost 列为
-扩展消融（§8.4）。
-
-**增量修复（复用 `repair_rows`）**：node 间只有 moved/lifted/dropped
-的 target 行变化（p_b 变 ⇒ 该行 LB 全列变；κ 变 ⇒ opLB 变）。
-`TAPFAssignmentState::repair_rows(changed_rows)` 已实现 moved-row
-增量（现服务 agent-task 层）；τ 层第二实例化之。parent 的
-`tau_state` 随 node 拷贝（与现有 `assignment_state` 同模式——DFS
-分支切换时 potentials 随 parent 值语义正确）。每节点代价：
-O(changed_rows · |G|) 期望，全量 O(n^3) 仅根节点与 re-guidance。
-
-**settled 定义（node 级 derived）**：
-`settled_N(b) ⟺ grounded(b) ∧ p_b = τ_N(b)`。只是 guidance
-（requests 不为 settled target 发 serve）；settled shelf 仍可作为
-blocker 被搬走（D2 不变）。注意与 `done(b) = grounded ∧ p_b ∈ G_b`
-（§3.1，terminal/χ 用）区分：done 但未 settled 的 target（占着别人
-更需要的 goal）会被 τ 重新指派并再次搬运——这正是 goal-set 语义下
-"完成可逆"的新形态。
-
-**零/单点集退化**：|G_b|≡1 ⇒ 矩阵每行一个有限元 ⇒ τ 恒等、
-repair 无行可变、h_shelf 同现值；τ 层结构上等价于现实现（不允许
-feature flag 切换——退化必须来自数据形状，与零 shelf 退化同一
-纪律）。零 target ⇒ τ 层空结构、整层零调用。
-
-### 5.4 Vacancy-centric shelf intent（requests）[部分落地]
-
-每个未完成 target b 的临时目标直接取自 τ：`g_b^temp = τ_N(b)`。
-在 upper deck 以 edge weight = 1 + λ_blk·1[occupied]（λ_blk=8）求
-b→τ(b) 的 least-blocking path（Dijkstra；PathCache 惰性非对称失效 +
-head-advance + path 惯性 tie-break，全部已落地），然后生成 requests：
+匹配代价：
 
 ```text
-path_b = least_blocking_path(p_b, τ_N(b))
-若 b 未被 carry 且 path[1] 无落地 shelf：  emit serve(p_b)      # 优先级 100
-沿 path 取前 K=3 个 grounded blockers c_i： emit clear(c_i)     # 50-i
+robot 到 task.from 的 lower-deck distance
++ task priority / dependency depth
++ task-switch hysteresis（按 TaskId 判定）
 ```
 
-[待实现·frontier 修正] designv2 §5 的递归 vacancy request 在
-one-empty（sliding-puzzle）regime 的本质是：**唯一真正可执行的
-manipulation 是空格邻接的那个 blocker**，而它往往是链上离 target
-最远的一个。现实现的 clear 优先级是 head-first（离 target 近者高），
-在 puzzle 密度下让 robot 聚集在暂不可动的链头。修正为
-**movability-aware 优先级**：
+`rho` 延续稳定 `TaskId`，不是当前 pickup cell。loaded robot 不参与
+`rho`（`kappa` 已给出 physical binding）。
+
+为考虑多个 tasks 争抢同一 robot，每个 node 做一轮轻量反馈：
 
 ```text
-movable(c) ⟺ ∃ u ∈ N(c): upper(u) 为空          # c 现在就能被搬走
-priority(clear c_i) = (50 − i) + M·1[movable(c_i)]   # M=常数, frontier 前置
+1. 初步计算 tau^0
+2. 按 tau^0 生成 tasks，求全局 rho^0
+3. 给无人可接、竞争严重或执行昂贵的 root objective 加 execution price
+4. repair 得到 tau^1
+5. 用 tau^1 生成最终 tasks 和 rho
 ```
 
-仍是 ordering-only；低填充下 movable(path[1]) 几乎恒真、行为不变，
-高填充下自动切到"服务链叶"。designv2 的 AcquireTarget（把 robot 预置
-到尚未进入 executable frontier 的 target 下方）映射为现有 serve 的
-低优先级变体（head 未空时也 emit，priority < clear），列为同一 WP 的
-可选项（消融决定去留）。递归深度即 chain 截断 K，仍是质量旋钮
-（§12 开放问题 2）。
+只负责排序，不要求精确求解或迭代到收敛。
 
-其余已落地机制原样：active-target cap（>256 时 64，carried 优先）、
-protect/owner 标记、goal cells 保护。**goal-set 差异**：protect 只
-标 τ 当前指派的 goal 格（不是整个 G_b 池——池可能覆盖整条边界，
-全保护会饿死 parking）。
+### 5.2 现状
 
-### 5.5 第二层 assignment：ρ（free robot→request）[已落地]
+`build_guidance` 中 `rho: free robot -> request index`：
 
-现实现即 designv2 §6 的形态（对照映射如实记录）：
+- `targets <= 256` 且有 free robot 时，对按 priority 排序的前
+  `|free|` 个 request 做 Hungarian（共享 `tapf_hungarian_row_to_col`；
+  cost = lower-deck distance；parent 同 cell 给 `eta = 2` 折扣；taboo
+  行 `INT_MAX/8`）；更大规模贪心最近；
+- loaded robot 不参与（与设计一致）；
+- hysteresis 按 `free_goal` **cell** 对齐，不是 TaskId；request index
+  每 node 重排；
+- 无 execution-price 反馈轮：tau 在前、rho 在后、单向一遍。
 
-| designv2 概念 | 现实现 |
+### 5.3 落差
+
+`rho` 改绑 `TaskId`；task-switch hysteresis 按 TaskId 判定；新增
+`tau^0 -> rho^0 -> execution price -> tau^1` 的单轮 repair
+（ordering-only）。
+
+---
+
+## 6. Feedback 与 commitment `[重写]`
+
+### 6.1 设计
+
+反馈不等于每拍随意换目标：
+
+- `tau_guide` 在每个 physical node 重新评价；
+- 尚未被接手的 task 可以随 `tau_guide` 立即改变；
+- robot 接手一个 `MoveShelf(from -> to)` 后，对该局部 task 使用 soft
+  commitment，直到完成或 task 失效；
+- Lift 后 `kappa` 是唯一 hard commitment；
+- 当前 task 完成后，再按新的 `X` 和 `tau_guide` 生成下一 task；
+- carried target 的 root goal 使用较强 hysteresis，避免左右震荡，但
+  不作为 hard pruning；
+- duplicate node 被 rewire 到新 parent 后，必须重建 hysteresis
+  anchor、task 和 `rho`，不能保留旧 parent 的 guidance。
+
+### 6.2 现状
+
+对应机制已存在但绑定在 request/cell 语义上：
+
+- tau 的 task-episode commitment：`preserve_parent` 复用 + drop
+  boundary 重算。代表 probe 曾把 20x20 的 shelf-goal pair 改写从
+  86,317 降到 2,757，最大完成数 27/40 -> 34/40（见 `report.md`）；
+- carried target 保持 in-flight goal（solve_tau carried lock）；
+- settled lock 与两级可扩展性 fallback（§4.2）；
+- livelock 每 epoch 释放一行；
+- rho hysteresis `eta = 2`（cell 对齐）。
+
+### 6.3 落差
+
+- duplicate hit 经 `rewrite()` 换 parent 后，节点 guidance 与
+  hysteresis anchor **不重建**——现状只在该节点每 8 次 revisit 时
+  reguide 一次（以自身旧 guide 为 hysteresis 源）。v3.0 要求 rewire
+  即重建；
+- "未接手 task 随 `tau_guide` 立即改变"依赖 task 有稳定身份，现状
+  request 每 node 重造，无法表达；
+- soft commitment 的失效判定（task 失效条件）需在 `build_tasks` 中
+  定义。
+
+---
+
+## 7. Carrier-PIBT `[保留框架，改 guidance 来源]`
+
+### 7.1 设计
+
+`funcPIBT` 不再分别读取独立的 `free_goal`、`target_next` 和
+`parking_cell`，而是从 `rho[r]` 的 task 阶段推导 operator 顺序：
+
+```text
+free + assigned task:
+    Move toward task.from > Lift > Wait
+
+carrying task shelf:
+    Move toward task.to > Drop at task.to > Wait
+
+free + IDLE:
+    Wait or leave protected cells
+```
+
+更统一地：
+
+```text
+score(op) = 执行 op 后，当前 task 的估计剩余代价
+```
+
+PIBT 处理 lower-deck robot conflicts；task dependency 决定优先级。
+action-constraint tree 仍最终枚举所有 primitive joint actions，
+`apply_ops()` 仍是合法性终裁。
+
+### 7.2 现状
+
+`funcPIBT` 的候选表已按角色结构化，形状与设计一致，只是 waypoint 来源
+是三个独立字段：
+
+| 角色 | 现状候选顺序 |
 |---|---|
-| AcquireMove(s,u,v) | clear(u) request（放置建议由 parking 层给出） |
-| AcquireTarget(b,u) | serve(u)（+ §5.4 的预置变体，待实现） |
-| Dummy | 未匹配即 idle（角色 4），无显式 dummy 列 |
-| C^R = d_L + λ_d·depth − μ·priority + η_R·switch | d_lower − η·1[沿用 parent 配对] + taboo 屏蔽；priority 决定参与匹配的行序/截取（λ_d、μ 未实现，列为扩展） |
-| loaded robot 不参与 | 同（κ 是物理 hard binding，只能 Drop 解除） |
-| temporaryTarget(r) = pickup(ρ(r)) | `free_goal[i]`（PIBT free-with-request 分支的目标格） |
+| loaded、target 未 park | `target_next` 头格 > 按 goal 距离排序的 S1 可行 Move > （头格被 grounded shelf 结构性阻塞时 Drop 提前作 yield）> Wait > Drop |
+| loaded、匿名或 parked | 到 `parking_cell` 的 Move（S1 过滤）> Wait > Drop；到达停车格则 Drop 优先 |
+| free、有 `rho` | 在 `free_goal` 且格上有 shelf 时 Lift 优先（futile cooldown 时降到 Wait 之后）> 朝 `free_goal` 的 Move > Wait |
+| free、IDLE | 在被保护走廊上先离开（protect 排序），否则 Wait 优先 |
 
-规模域：Hungarian（`tapf_hungarian_row_to_col` 共享实现）
-≤ `DD_RHO_HUNGARIAN_TGT`=256，否则 greedy nearest；匿名 shelf 的
-task 以当前 upper cell 标识（不引入永久身份，D9 一致）。
+其余保留：类分层 PIBT order（loaded-target 未 park > loaded-anon/
+parked > free-assigned > idle，类内按剩余距离，stable）；carrier 角色
+失败释放-重试的预约语义与可行 wait fallback；B1 `plan_bound` 硬约束
+分支；LaCAM2 swap 只作用于 task agents。
 
-### 5.6 Carrier-PIBT（核心修改 2）、park、livelock [已落地；τ 替换点标注]
+### 7.3 落差
 
-候选序按角色分派（`funcPIBT`；task agent 分支上游逐字保留）：
-
-| robot 状态 | 候选序（goal-set 下的唯一改动 = g_b 处处替换为 τ_N(b)） |
-|---|---|
-| loaded target b（未 park） | q_r = τ(b)：Drop 最优先；否则 path-head 优先 + 按 d(·,τ(b)) 排序的 loaded Move（S1 预过滤）> 结构性堵头时 Drop 前置 > Wait |
-| loaded ANON / parked target | 朝 parking cell 的 Move > 到位 Drop > Wait |
-| free 且 ρ 指派 | 朝 free_goal 的 Move（d_lower 场）> 到达且脚下 grounded 时 Lift > Wait |
-| free idle | 避让 protect 区（DD_IDLE_AVOID）后 Wait |
-
-预约语义按角色分派（WP6 实证教训，保持）：task agent 上游逐字
-（失败保留预约）；carrier agent 释放-重试 + wait 可行即成功。
-`N.order` 类分层 + 类内 (余距, id) 稳定序 + livelock 类内 shuffle；
-`constraint_order` 冻结。
-
-**Target-as-blocker park（§5.4a 语义继承，τ 交互新增）**：触发条件
-"g_b 落在另一未完成 target o 的当前 path 上" 改写为
-"**τ(b)** 落在 o 的 path 上"。goal-set 的结构性红利：τ 的下一次
-repair 往往直接把 b 改派到不冲突的 goal，park 从常态降级为
-fallback（B 型实例中预期 park 触发率显著下降，作为观测指标）。
-carried-hover 掩蔽、owner 完成即释放、环打破（最小下标）、载具对头
-yield（余距大者让）全部原样；park 仍是 (X, D_b 缓存纪元) 的确定性
-函数、ordering-only。
-
-**Livelock 与 wait-for [已落地]**：信号 A（guidance-h 连续 W=24 无
-下降 → 类内 shuffle + ρ 禁忌 re-match）；信号 B（duplicate 重访每
-8 次 → re-guidance + 允许重试 macro）；wait-for graph（robot→robot
-下层占位边 + carrier→grounded shelf→clearer 跨层边，函数图环检测，
-环成员定向禁忌）。[待实现] goal-set 增量：re-guidance 的禁忌集扩展
-到 τ 配对——禁忌 (b, τ(b)) 后 repair 该行；**仅 |G_b| ≥ 2 的行可被
-禁忌，单点行豁免**（否则该行被 sentinel 清空导致 matching 不可行；
-豁免同时给出单点集零动作退化）。这给"配对级 plateau"一条合法多样化
-通道——纯 fixed-goal 下禁忌集自动为空。guidance-h 的
-target 项改为 d(p_b, τ_N(b))+2（随 τ 变化；仍 ordering-only，
-不承诺单调）。
-
-### 5.7 Cost 与 heuristic [部分落地]
-
-- **g**：真实 physical cost（§2.3，D5），macro 边由 trace cost 记账
-  （`macro_edges`）。不变。
-- **admissible h**：h = agent-task 项（原 TAPF assignment cost）+
-  h_shelf。h_shelf 由 §5.3 的单 Hungarian 主序值给出（规模域外用
-  §4.3 的无匹配松弛）。单点集退化 = 现实现。
-- **guidance-h（livelock 信号）**：Σ_unfinished d(p_b, τ(b)) + 2。
-- FOCAL：首解前 DFS(back)；首解后原版加权 FOCAL（w=1.5，f<incumbent
-  可行域，h 平局）。不变。
-
-### 5.8 Macro rollout 与两阶段 anytime（D13/D14）[已落地]
-
-event-bounded rollout（与 B0 共码）、规模域 |B_tgt| ≤ DD_MACRO_TGT、
-首解前注入、phase-2 从根 primitive-only 重启 + phase-1 上界 f 剪枝、
-返回两相更优。goal-set 增量为零：rollout 内部本就走同一 guidance/
-generator 栈，τ 随节点重算。地址复用陷阱的既有防护
-（`invalidate_carrier_scratch` 于每 rollout 步与探针回收后）保持——
-τ 层若增加任何 address-keyed 缓存，必须挂进同一失效点（debug.md v4
-把它列为 RED 测试项）。
+waypoint 改由 task 阶段推导；per-role 距离排序统一成
+`score(op) = task 剩余代价`（现状是它的特例）。行为语义（S1 过滤、
+yield-drop、futile 降序、失败释放重试）全部保留。
 
 ---
 
-## 6. 状态表示与工程
+## 8. Cost 与正确性
 
-### 6.1 Canonical form 与 hash [已落地，不变]
-
-key = SearchKey{Config, ShelfState}（labeled targets + 匿名 occupancy
-排序 + labeled robots + κ）；hasher = ConfigHasher ⊕ shelf-Zobrist
-（splitmix64 无表派生）。oracle 层增量 hash 有性质测试；集成 rollout
-的局部去重仍用全量重算（吞吐机会，遗留）。**τ/G_b 不进 key**。
-
-### 6.2 距离场缓存 [部分落地；含一项待实现的结构修正]
-
-| 场 | 性质 | 策略 |
-|---|---|---|
-| d_upper_wall(·, g) | 静态（只依赖 wall） | **[待实现·修正] 合并为单一共享 `DDDistCache`（dest-keyed）**。现实现是 per-target 的 `target_goal_dist[b]`——同一 grid 同一 wall 集，字段只依赖目的格；固定 goal 下每 target 恰查一个 dest，冗余无害；goal-set 下 B 型池（如 80×80 边界 316 格）× per-target 对象会产生大量重复 BFS 与内存。共享后：查询键 = dest cell，惰性展开，B 型 80×80 全池 ≈ 316×6400×4B ≈ 8MB，可控 |
-| d_lower(·, cell) | 静态 | `LowerDist`：wallfree 精确 Manhattan fast-path，否则 per-dest 惰性 BFS。不变 |
-| D_b（blocking-aware path） | 依赖 occupancy | PathCache 惰性非对称失效（占用新增才重算）+ head-advance + 惯性 tie-break；`DD_STRICT_INVAL=1` 对照。**goal-set 增量：cache entry 增加 dst 字段，τ(b) 改变 ⇒ 该 target 行强制重算**（dst 不匹配视同 miss；否则 stale path 指向旧 goal，guidance 语义错误——这是待实现清单里的正确性项，不是优化项） |
-
-### 6.3 复杂度预算（每次 expansion）[更新]
-
-τ repair O(changed_rows·|G|) 期望（全量 O(n^3) 仅根/re-guidance；
-规模域 ≤256 target 同 ρ 实测可承受）；requests O(k·|B_active|)；
-ρ O(rows·free) 建矩阵 + Hungarian；Carrier-PIBT O(|R|·deg)；
-距离场摊销。对比 ITA-LaCAM 的 per-node Hungarian + PIBT 同量级——
-**goal-set 后每节点是两次（小规模）matching，与 designv2 §11 的
-"同一 assignment engine 实例化两次"完全对应**：
+### 8.1 两种 matching、三种量
 
 ```text
-第一实例: TAPFAssignmentState(rows=B_tgt, cols=G_pool)   # τ, §5.3
-第二实例: tapf_hungarian_row_to_col(rows=requests, cols=free robots)  # ρ, §5.5
-（第零实例: 原 TAPF agent-task 层，零 task 时空转）
+tau_guide  -> 含 blocking、vacancy、robot feedback、hysteresis、taboo，
+              只用于 guidance
+tau_LB     -> 只含可证明 lower bound（upper-deck wall distance
+              + lift/drop 计数），只用于 admissible h
 ```
 
-### 6.4 Validator-first 与测试锚 [已落地]
+```text
+g = 已执行的真实 physical cost（get_edge_cost，按 alpha..delta 记账）
+h = admissible lower bound（tau_LB matching 最优值）
+guidance cost = 可以非 admissible，只决定 successor 顺序
+```
 
-三方一致（planner 内联 / C++ apply_ops / Python validator）+ 跨语言
-golden corpus + G1 穷举对照 + §6.5 极限单测（|R|=1 pebble 等价、
-全占据 cycle rotation、单/双 blocker、idle 挡 lift）。goal-set 触及
-的只有 `is_dd_goal`/`is_goal_config` 与 Python validator 的终止
-判定——双侧同步修改、同一 fixture 双跑器断言（debug.md v4 WP-A）。
+robot realization cost、execution price、hysteresis 和 taboo 不能进入
+`tau_LB`。
 
-### 6.5 环境旋钮配置表 [默认值即基准配置]
+**[现状]** "值"的一半已经满足分离：`solve_tau` 的 h 取 unrestricted
+LB matching 最优——hysteresis 经 lexicographic 编码整除剥离；taboo 行
+h 回退 unrestricted 行最小；`preserve_parent` 路径 h 用 row-relaxed
+下界。由测试钉住：`dd_tau.h_equals_bruteforce_min_matching`、
+`dd_tau.hysteresis_is_tie_break_only`、
+`dd_tau.rowwise_taboo_does_not_bias_admissible_h`、
+`dd_anytime.admissible_h_never_exceeds_true_cost`。
+落差在"式"的一半：guidance 还没有独立的 `C_guide`。落地时新增的
+robot 项只能进 `C_guide/rho`。
 
-继承 design.md §6.6 全表（DD_MACRO_*、DD_GUIDE_EVERY、DD_ACTIVE_CAP、
-DD_STRICT_INVAL、DD_NO_YIELD、DD_ALPHA..DELTA、DD_SOLVER_WEIGHTS、
-DD_ETA、DD_RHO_HUNGARIAN(_TGT)、DD_IDLE_AVOID、DD_PLACE_ESCAPE、
-DD_NO_FOLLOWING、DD_DEBUG_DUMP），新增：
+### 8.2 Completeness 论证 `[保留]`
 
-| 变量 | 默认 | 语义 |
-|---|---|---|
-| `DD_TAU_HUNGARIAN_TGT` | 256 | τ exact matching 的规模域上限；超出走 §4.3 无匹配松弛 h + 行内最近 goal 的 greedy τ（consistency：单点集下两者同型） |
-| `DD_ETA_B` | 2 | τ hysteresis（词典序副序，§5.3） |
-| `DD_CLEAR_FRONTIER` | 0（实施期修订，见 D20） | 1 = movability-aware clear 优先级（§5.4 frontier-first；BRaP 密度/消融用） |
-| `DD_TAU_FREEZE` | 0 | 1 = τ 冻结为根节点值（Gate C 消融：dynamic vs frozen；h 保持未冻结的 admissible 值） |
+完整性保持不变，因为：
 
-历史注记（DD_NO_ASTAR 从未存在于生产代码、DD_FOCAL_W 已退役）继承。
+1. state key 只含 physical `X`；
+2. `tau_guide`、task 和 `rho` 都是 ordering-only；
+3. action-constraint tree 最终枚举全部 robot primitive operators
+   （futile-lift 只降序不删除；`constraint_order` 创建后冻结，
+   reguide 只扰动 PIBT preference）；
+4. fully constrained joint action 由 `apply_ops()` 独立裁决；
+5. terminal condition 不依赖临时 assignment。
 
----
+错误的 guidance 最多让搜索变慢，不会删除合法解。生产入口有限
+deadline 首解即停，不声称最优。
 
-## 7. 扩展（不进本轮 critical path）
+### 8.3 输出修补正确性 `[保留，已实现]`
 
-1. **carrier-aware LNS**（anytime 第二卖点）：首解后对 executed-
-   makespan 关键路径上的 robot/shelf 子集 + 时间窗局部重搜。
-2. **blocking-aware τ cost**（designv2 §4 完整形）：λ_blk·B̂ 进
-   matching 副序或 plateau 期主序重算；先做消融再决定默认。
-3. **λ_d·depth / μ·priority 进 ρ cost**；per-robot no-progress 动态
-   提升；h_mk（makespan 型 admissible h）。
-4. **lifelong / throughput 版本**；free-robot 匿名化（D4 注记的
-   canonical 去重义务）；robots_return_to_rest / remove_on_complete
-   flags（state/hash/goal 全链路支持后）。
-5. **两层 wall 集不同时的 Sokoban 式 dead-cell drop-pruning**
-   （v1 仍是 load 期可行性拒载的正确形态）。
+`repair_carrier_plan()`（`dd_plan_repair.cpp`）对每遍候选先用 oracle
+重放得到 `X_0 .. X_T`，记录每个完整状态和每个全 grounded shelf
+projection 的最后出现位置，然后单遍扫描：
 
----
+```text
+at state X_t:
+  if the exact physical state appears again at u > t:
+      jump to u
+  else if all shelves grounded and P_shelf(X_t) reappears at u > t:
+      find a lower-deck-only robot bridge from Q_robot(t) to Q_robot(u)
+      if bridge length < u - t: emit bridge and jump to u
+  else:
+      emit original action t
+```
 
-## 8. 基线与实验
+其中 `P_shelf(X) = (Q_target, Q_anon)`。bridge 策略：
 
-### 8.1 基线与方法名映射 [已落地]
+- 1 robot：wall-aware shortest path；
+- 2 robots：labeled two-robot configuration graph 上 exact A*
+  （启发 = 两个独立 wall 距离的 max，admissible）；
+- 更多 robots：原片段投影到 lower deck 并去除重复 robot
+  configuration，必然合法的候选 bridge。
 
-| 名称 | benchmark 方法名 | 说明 |
-|---|---|---|
-| full method | `carrier` | 本文方法（goal-set 落地后含动态 τ） |
-| B0 | `carrier_b0` | rollout-only（与 macro 共码），search 贡献的 ablation |
-| B1 | `carrier_b1` | 冻结 least-blocking plan 为硬约束（decomposition 对照，刻意不完备） |
-| B2 | `crest_base` / `crest_full` | 外部 SOTA 执行框架 |
-| B3 | `natcbs` | ≤150 格小实例 optimality gap |
-| B4 | `b4` | 单 robot 顺序模拟（B4-greedy，可诚实失败） |
+**精确状态剪切**：若 `X_t = X_u`，原后缀在相同状态上必然合法，删除
+`[t,u)` 不改变终态。
 
-官方结果基线：`results_integrated_v2/rows.csv`（164×7、统一 10s、
-jobs=14；carrier 162/164）+ `results_brap*/`（68 实例 BRaP 协议、
-carrier 34/68、near-boundary 静态重配对 18/68@carrier-only、
-Hungarian 静态配对 32/68）。报表口径：carrier 系按内部 deadline；
-b4/crest 按 wall+0.6s 重分类。
+**Projection 剪切**：仅当两端点全部 shelves grounded 且
+`P_shelf(X_t) = P_shelf(X_u)`。bridge 只含 lower-deck `Move/Wait`：
+(1) grounded shelf 不随 bridge 改变；(2) bridge 终点 robot
+configuration 等于 `Q_robot(X_u)`；(3) 因此 bridge 后完整状态恰为
+`X_u`；(4) 原后缀继续合法。这是状态等价修补，非近似语义。
 
-### 8.2 goal-set 落地的评估协议 [待实现]
+**防御性保证**：修补只在 bridge 严格更短时采用；最后从初态用
+`apply_ops()` 整体重放并检查 goal，任何失败、非缩短或异常都返回原
+计划。因此：
 
-1. **Singleton-parity（硬 gate）**：全部既有 fixed-goal 套件
-   （small/standard/paper/sweep，164 例）在 goal-set 代码路径下数字
-   不回归（成功集与 makespan 逐例对照；τ 层单点集退化 §5.3 保证
-   结构等价，benchmark 复跑钉实）。
-2. **BRaP-B 动态 τ 主实验**：instances_brap 的 B 型实例改发全边界
-   goal pool（同 seed 同布局，仅 goal 结构变化；R1 型天然单点集，
-   作 within-suite 对照）。对照组：static-greedy（原 34/68 数据）、
-   static-Hungarian（32/68）、static-near-boundary（18 例 carrier-only
-   数据）。预期与 gate：≤10×10 成功数 ≥ 34 基线；common-solved
-   makespan 显著优于 near-boundary 静态（它已比原始好 8.5×，动态 τ
-   的增益在其之上度量）；≥20×20 不设成功 gate（horizon 墙，§1.2）。
-3. **消融**（run_ablations 扩展）：dynamic-τ vs frozen-τ（root 一次
-   matching 后锁死——隔离"每节点重算"的贡献）；η_B on/off；
-   frontier-first vs head-first clear（DD_CLEAR_FRONTIER）；
-   τ-taboo re-guidance on/off。
-4. 既有 sweep 轴（robot:shelf 比例、γ 权重后处理、填充率、|B_tgt|、
-   scramble depth）与指标（success/first-solution/executed makespan/
-   weighted SOC/utilization/shelf switches）继承不变。
+```text
+valid(raw) => valid(returned)
+length(returned) <= length(raw)
+goal(returned) = true
+```
 
-### 8.3 语义变体汇报纪律 [已落地]
-
-BRAP_NO_FOLLOWING（DD_NO_FOLLOWING=1，oracle 层）与默认
-PHYSICAL_ALLOW_FOLLOWING 两组结果永不混合汇报（designv2 §8）；
-与 BRaP 抽象层数字对比时必须声明本方法输出的是可执行 plan（robot
-timestep 计数），对方是 block-move 计数。
+输出修补不参与搜索，不影响 completeness。
 
 ---
 
-## 9. 相关工作与定位
+## 9. 生产流程与自动机制 `[保留，已实现]`
 
-一句话贡献（在 design.md v2.2 收窄版之上加入 τ 层）：
+v3.0 落地时本节机制全部保留；tau 相关条目按 §4-§6 的 task 语义替换
+实现，自动规则（规模分级、hysteresis、重算边界）继续有效。
 
-> A LaCAM-style search over **executable robot-shelf physical
-> configurations** with operator-level lazy constraints,
-> per-configuration guidance, and cross-deck conflict handling —
-> feasibility-first with anytime cost improvement — **where both the
-> shelf-to-goal assignment and the robot-to-task assignment are
-> per-node revisable orderings, never commitments**。completeness
-> 依赖 §4.2 骨架（G1 直通 + 冻结 constraint order，已实现并有穷举
-> 对照）；最优性只在 admissible-h 剪枝意义下 anytime 逼近。
+### 9.1 首解与固定 assignment 重跑
 
-对照表继承 design.md §9（BR-LaCAM/BRaP、DD-MAPD、CREST、NAT-CBS、
-MARPF、M-PAMO、ITA-LaCAM、pebble motion/Gue&Kim/Sokoban），新增
-一行定位：
+`solve_carrier_lacam`（`dd_planner.cpp`）：
 
-| 工作 | 与本文关系 |
+```text
+use_macro = (number of targets <= 64)
+plan1 = repair(first_incumbent_search(dynamic tau, use_macro, deadline))
+if no plan1:
+    return failure
+if every goal set is singleton or deadline expired:
+    return plan1
+fixed_goal[b] = terminal_position(plan1, target b)
+plan2 = repair(first_incumbent_search(fixed_goal, use_macro, remaining))
+return lower_SOC(plan1, plan2)  // plan1 on failure/tie
+```
+
+两遍共享同一个 10 秒总 planning deadline（不是每遍各 10 秒）。第二遍
+只在首解存在、多 goal assignment 可固定且仍有时间时自动触发；
+singleton/R1 结构性跳过。固定 goal 是原 eligible set 的子集，第二遍
+计划对原实例仍合法；第二遍失败、持平或更差都返回第一遍。
+
+每遍内部 `stop_at_first`；deadline 预留
+`min(1000ms, max(100ms, 10%))` 作 cleanup reserve。macro rollout 最多
+64 步、只在每遍首解前注入（`macro_after_first` 恒 0）；rollout 每步
+清除 address-keyed scratch，每 8 步重建 guidance，中间复用同一
+guidance——逐拍重建在 dense rollout 上已验证造成成功率回归，刷新周期
+固定在实现内部。
+
+### 9.2 自动 guidance
+
+所有策略由输入规模或当前状态决定：
+
+| 机制 | 自动规则 |
 |---|---|
-| ITA-LaCAM（本组） | 方法论母体。本文把它的"assignment 是每 node 重算的 guidance"从 agent→task 推广到 **shelf→goal（τ）与 robot→manipulation（ρ）双层**，且 g 保持纯物理（D5），修正其 assignment-dependent g 的理论瑕疵 |
+| shelf-goal matching | target 数 <= 256 时 exact Hungarian；更大时 row-wise admissible relaxation |
+| active targets | unfinished <= 256 时全量；否则 carried 优先并 cap 64 |
+| `rho` | target 数 <= 256 时 Hungarian；更大时 nearest greedy |
+| hysteresis | tau/rho 固定 tie preference 2 |
+| macro | target 数 <= 64 时启用，每个 search pass 首解后不可达 |
+| assignment restart | 多 goal 首解终态 + 剩余 deadline 时一次 |
+| path cache | 生产固定 path-local invalidation；strict snapshot 仅测试构造参数 |
+| idle avoidance | active path 上的 idle robot 自动先避让 |
+| carrier yield | 对头时自动让剩余距离更大的 carrier park |
+| livelock | 24 步无 h_guidance 进展或每 8 次 revisit 时定向 taboo repair |
 
-不声称"首个 joint robot-object planning"；声称：首个在每条搜索边上
-保证联合可执行、保持 LaCAM 级 scalability、且 **goal 指派对搜索
-在线可撤销**的方法。命题 2 的可行域分离与 §3.4 的 no-following
-去保守化主张不变。静态配对的负结果（§1.2 消融 2/3）作为动机证据
-写入论文实验节。
+shelf-goal matching 的主序是 admissible 下界（v3.0 落地后主序换
+`C_guide`，`tau_LB` 继续供 h），parent assignment 只在 tie 内提供
+稳定性。goal 改变时 `PathCache` 的 `dst` 参与 cache key，不会沿用指向
+旧 goal 的路径。
+
+matching 只在 drop/task boundary 或定向 livelock repair 时重新求解；
+普通 robot motion 和 loaded motion 复用 parent assignment（v3.0 改为
+每 node 重评 `C_guide`，见 §4.3）。carried target 保留 in-flight
+goal。grounded target 已位于 eligible goal 时优先锁住当前 cell；若这
+组锁不能扩展成完整 matching，则先释放 carried commitment，再只保留
+unrestricted matching 可证明可扩展的 settled locks。
+
+必须区分 terminal 与 guidance："done" 的局部判断是
+`position == assigned goal`，因为不可扩展的 settled placement 仍可能
+必须重开；terminal 判断任意 eligible membership。completed target 在
+path cost 中仍是普通、可逆 blocker——把它设成支配任意绕路的特殊障碍
+曾使一个 10x10 singleton 案例停在 11/12、正式 gate 从 36/68 降为
+35/68，该方案不进入生产。
+
+### 9.3 自动 futile-lift memory
+
+搜索和 macro rollout 都观察三状态模式：
+
+```text
+grounded at cell c -> lifted at c -> grounded at c
+```
+
+同一 shelf/cell 在近期窗口内重复 >= 3 次时，下一次 `Lift` 被移到
+`Wait/Move` 之后。窗口由图规模自动取 `max(64, 8*|V|)`；匿名 shelf 按
+cell 共享身份。只降序、不删除 `Lift`，不破坏 constraint-tree 枚举。
+更长的 hover episode 不在生成侧禁止——两轮实验都显示禁止会令拥挤
+实例超时（"悬停抬放是给上层洗牌的承重梁"，见 `report.md`）。
+
+### 9.4 输出修补
+
+见 §8.3。修补统计由 `DDStats` 暴露：
+
+```text
+exact_loops, projected_loops, bridge_steps, plan_steps_removed,
+futile_lift_demotions, assignment_restarts, assignment_second_solved,
+assignment_improvements, assignment_{first,second}_{soc,makespan}
+```
 
 ---
 
-## 10. 里程碑与代码落点
+## 10. 工程落点
 
-### 10.1 里程碑状态
+唯一 solve loop 仍是 `TAPFPlanner::solve()`。不新增平行 planner、
+第二套 search pipeline 或 feature-flag fallback。
 
-| 阶段 | 内容 | 状态 |
+| 文件 | 现状职责 | v3.0 新增职责 |
 |---|---|---|
-| M0-M3 | 语义 spec/validator/scrambler；primitive Carrier-LaCAM；ρ/fields/FOCAL/anytime/Zobrist；B0-B4/sweep/ablation | **完成**（design.md §10 v3.1 记录，全量数字 §8.1） |
-| M4 部分 | macro（D14 两阶段）、wait-for | **完成** |
-| **M5（本轮）** | goal-set 实例格式 + τ 层（§5.3）+ frontier requests（§5.4）+ BRaP-B 评估（§8.2） | **待实现**（工作包 = debug.md v4） |
-| M6 | LNS / lifelong / blocking-aware τ | 论文扩展 |
+| `lacam/src/carrier_guidance.hpp` | `solve_tau`（matching + h）、least-blocking paths、requests、`rho`、park/yield、parking、自动规模分级 | 分离 `tau_LB` 与 `tau_guide`；`compile_frontier_task(X, b, g)`；`build_tasks(X, tau_guide)`；`rho: robot -> TaskId`；execution-price repair |
+| `lacam/src/tapf_planner.cpp` | 唯一搜索 loop、Carrier-PIBT、macro、futile-lift、livelock、`attach_carrier_guidance` | `funcPIBT` 从 task 推导 waypoint/operator order；rewire 后重建 guidance anchor |
+| `lacam/src/dd_plan_repair.cpp` | 精确剪圈、shelf-projection bridge、最终重放 | 不变 |
+| `lacam/src/dd_planner.cpp` | 共享 deadline 两遍、assignment 固定、B0/B1、统计映射、测试探针 | 不变（探针随新接口扩展） |
+| `lacam/src/dd_carrier.cpp` | 物理 oracle 与 goal condition | 不变（保持权威） |
+| `benchmark/ddbench/validator.py` | 独立 Python 输出验证 | 不变 |
 
-### 10.2 代码落点（唯一 solve loop 纪律不变）
+`free_goal` 可以作为缓存保留，但必须由 task 推导，不能再代表真实
+assignment。现有 anytime restart（fixed-assignment 第二遍）、输出修补
+和 validator-first 流程保持不变。
 
-用户指令（最高优先级，继承）：一切增量建立在现有集成代码上；
-**禁止**平行 planner、第二套 search pipeline、feature-flag 切换的
-legacy 路径。零 shelf 逐位退化（golden 特征化测试）与单点集结构
-退化（§5.3）都必须来自数据形状。
+零 shelf 输入时，carrier 数据结构自然为空，原 LaCAM-TAPF 路径逐位
+退化，不通过模式检测切换。
 
-| 机制 | 落点 |
+### 10.1 环境输入（无策略开关）
+
+生产源码中的环境输入仅有：
+
+| 输入 | 用途 |
 |---|---|
-| goal pool/eligibility 加载 + 覆盖匹配检查 | `dd_carrier.cpp::load_dd_instance/finalize`（DDInstance 增 `goal_pool`/`target_goal_sets`；单点集向后兼容），`TAPFInstance(const DDInstance&)` 透传 |
-| terminal（命题 3 简化式） | `dd_carrier.cpp::is_dd_goal` + `tapf_planner.cpp::is_goal_config`（per-target goal bitset）+ `ddbench/validator.py` 同步 |
-| τ matching/repair/h_shelf | `carrier_guidance.hpp`（CarrierEngine 持共享 upper-wall DDDistCache + τ 状态），`attach_carrier_guidance` 内在 build_guidance 之前求 τ；`TAPFNode` 增 τ 向量 + `tau_state`（与 assignment_state 同模式） |
-| requests/park/yield/waitfor 的 g_b→τ(b) 替换 | `carrier_guidance.hpp::build_guidance/waitfor_cycles`（dst 参数化；PathCache entry 增 dst 失效） |
-| funcPIBT loaded 分支 d(·,τ(b)) | `tapf_planner.cpp::funcPIBT`（经 guide 取 τ，避免 planner 直读 goal 集） |
-| 共享距离缓存合并 | `CarrierEngine::target_goal_dist` per-target 向量 → 单 `DDDistCache upper_wall`（固定 goal 语义不变，先行重构可独立验证） |
-| adapters/CLI | `dd_planner.cpp` 探针与 `dd_benchmark` 合同不变；B1 冻结 plan 语义对 τ 取根节点值（基线语义：静态 decomposition 对照更纯粹） |
+| `DD_ALPHA` | loaded-move objective weight |
+| `DD_BETA` | free-move objective weight |
+| `DD_GAMMA` | lift/drop objective weight |
+| `DD_DELTA` | anonymous-shelf move objective weight |
+| `DD_DEBUG_DUMP` | 失败诊断输出 |
 
-### 10.3 删除/替换清单（终态不得残留）
+已删除且不得回流的策略入口：milestone、OPEN greedy、`h_guidance`
+in `f`、lift gate、loop erase toggle、macro knobs、guidance frequency
+knob、tau freeze、frontier bonus、parking escape、yield toggle、idle
+toggle、strict invalidation env、Hungarian/greedy env boundary、
+hysteresis env。v3.0 的 task 层同样不得引入布尔/枚举开关；`lambda`
+等新参数若要暴露，只能作为数值 objective 类输入并先过协议评审。
 
-- 生成器中的静态配对逻辑（benchmark 侧 greedy/Hungarian pairing）
-  降级为**消融专用变体生成器**，主生成器输出 goal-set 实例；
-- `target_goals` 单一向量语义的隐式假设（逐处替换为 goal-set 查询
-  或 τ 间接层）；audit 用 grep 清单钉住（debug.md v4 WP-审计）。
+### 10.2 诊断统计
+
+现有 `DDStats`：搜索/生成计数、`tau_change_builds / tau_pair_changes /
+rho_change_builds / rho_pair_changes`、`tau_time_ms /
+guidance_time_ms`、path cache、macro/rollout、修补与两遍统计（§9.4）。
+v3.0 落地需新增 task 层诊断（命名落地时定）：task 编译次数、未接手
+task 改写次数、soft-commitment 中断次数、execution-price repair 触发
+次数。
 
 ---
 
-## 11. Decision Log
+## 11. 实验规范与基线 benchmark `[保留]`
 
-D1-D14 继承 design.md §11 原文（no-following、completed 可逆、
-1-step lift/drop、labeled robots、纯物理 g、canonical key、命名、
-4-连通、ANON、grounded goal 条件、冻结 constraint_order、derived χ、
-event-bounded macro、两阶段 anytime）。新增：
+### 11.1 不可变实验协议
 
-| # | 决定 | 理由 |
+算法、优化和文档结论必须遵守：
+
+1. **实例不变**：比较实验复用完全相同的 YAML 字节、目录划分和 seed；
+   不得重新采样 start、empty、target、goal pool 或 robot。
+2. **时间不变**：每个 carrier testcase 使用严格 10 秒内部 deadline。
+   runner 的额外 wall allowance 只用于进程启动、计划修补和验证。
+3. **并发不变**：统一 `jobs=14`（16 物理核留 2）。benchmark 运行期间
+   不得并行运行测试或其他高负载任务。Python 全量回归也用 14 workers；
+   CREST/MAWR 固定 10 秒内部时限。
+4. **seed 不变**：solver seed 0；BRaP 每个 layout combo 两个实例 seed
+   0/1。多 solver-seed 是新轴，单独报告。
+5. **成功定义不变**：binary `solved=1` 不够；runner 必须用独立 Python
+   validator 从初态重放每个 joint action 并检查最终 goal；timeout、
+   空计划、非法动作、非 goal 终态都是失败。
+6. **物理语义不混用**：默认 following 与 BRaP-conservative
+   no-following 结果分表；主结果只使用默认 following。
+7. **objective 不混用**：主表固定单位权重。非单位
+   `alpha/beta/gamma/delta` 是独立实验轴，必须显式
+   `--weights ALPHA BETA GAMMA DELTA` 并记录到 `timing.json`；
+   `run_benchmark.py` 会覆盖 shell 中残留的 `DD_*`。非单位轴不得与
+   native-objective 外部方法同跑。
+8. **产物可审计**：保存 `rows.csv`、`timing.json` 和每个成功实例的
+   `.plan`；结果目录不得覆盖历史对照目录。
+
+成功率与质量是两个问题，必须同时报告：success 用完整 suite 分母并按
+尺寸/goal family 分层；makespan/SOC 只在共同成功实例比较；正值 ratio
+用几何均值并报告逐例改善/持平/恶化；trivial plan 单独标识；不得只
+摘录成功或改善案例。
+
+统一指标至少包括：
+
+```text
+executed_makespan, weighted_soc, loaded_moves, free_moves, lift_drop,
+shelf_switches, robot_utilization, reversals, first_solution_ms,
+runtime_sec, status
+```
+
+### 11.2 方法与消融纪律
+
+| 名称 | runner method | 唯一变化 |
 |---|---|---|
-| D15 | goal 结构 = per-target 候选集 G_b + 共享池；loader 禁止任何静态配对/采样固化 | §1.2 两个消融：静态选择留下 8.5× 质量损失；最优静态配对反而更差——正确配对依赖演化 occupancy |
-| D16 | terminal 用逐 target 简化式（命题 3），不在线求匹配 | S1 保证位置单射 ⇒ 与 injective-τ 判定等价；O(|B|) 且 τ-free（completeness 骨架第 5 条） |
-| D17 | τ 与 admissible h 用**一次** Hungarian：主序 = LB（admissible 值），副序 = η_B hysteresis，第三序 engine tie_hash | 两个矩阵两次求解的开销减半；主序/副序词典分离同时保住 admissibility 与稳定性（§5.3 编码） |
-| D18 | blocking-aware τ cost 不进 v1 主序 | 进主序破坏 h admissibility；blocking 感知已由下游 path/requests/候选序承担；plateau 由 τ-taboo re-guidance 兜底；完整形留扩展消融 |
-| D19 | τ hysteresis 默认开（η_B=2） | 与 ρ 的 DD_ETA 同族经验；等价 goal 间震荡在共享池下是必然模式，必须默认抑制 |
-| D20 | clear 优先级 movability-aware（frontier-first）机制落地，**默认关**（DD_CLEAR_FRONTIER=0，实施期修订） | one-empty regime 唯一可执行 manipulation 在链叶（机制与单测保留）；但实测 50% 填充的 dev ddmapd_h16 上 bonus 重排 clear 序使 makespan 81→91——singleton-parity gate（debug.md v4 §0.2）是 spec 级，故默认关闭；BRaP 密度 goal-set 运行与消融按需开启 |
-| D21 | upper-wall 距离场合并为单 dest-keyed 共享缓存 | 字段只依赖 wall+dest；per-target 对象在共享 goal 池下产生 O(|B|·|pool|) 重复 BFS/内存 |
-| D22 | 单点集退化 = 结构等价（禁 flag）；既有 164 例套件作 parity gate | 与零 shelf 退化同一纪律：兼容性来自数据形状；回归风险由 benchmark 复跑钉死 |
-| D23 | B1 的 τ 取根节点静态值 | B1 是 decomposition 对照基线——goal 也静态才是对"先定后执行"的忠实模拟，与 full method 的差异变量保持干净（"逐 configuration 重算" vs "冻结"） |
+| full | `carrier` | 动态首解 + fixed-assignment restart + mandatory repair |
+| B0 | `carrier_b0` | rollout only，无 high-level search |
+| B1 | `carrier_b1` | 根状态冻结 shelf path 的 decomposition baseline |
+| B2 | `crest_base` / `crest_full` | 外部 decomposed executor |
+| B3 | `natcbs` | 小图 makespan-optimal 外部基线 |
+| B4 | `b4` | 单 robot sequential construction |
+
+`full/B0/B1` 是结构差异，不是环境开关。`run_ablations.py` 与主 runner
+共用 `row_carrier`：固定 10 秒、`jobs=14`、seed 0、单位权重、默认
+following，Python validator 重放每个 success，保存统一指标、
+`timing.json` 和成功计划。
+
+**v3.0 核心消融只保留三组**（以结构 runner method 实现，不是环境
+开关；已删除策略不得重新加入）：
+
+```text
+A. frozen tau vs feedback-aware tau_guide
+B. request cell vs semantic ManipulationTask
+C. shelf-only cost vs robot-realization-aware cost
+```
+
+外部基线保留各自原生 objective 和失败语义；不可比数字不合并成一个
+均值。
+
+### 11.3 固定 suite 与 gate
+
+**语义/兼容 gate**
+
+- shelf-free TAPF：`test_tapf_compat` 固定（零 shelf 逐位一致）；
+- singleton goal：goal-set 单测和 fixed-goal fixtures 固定；
+- transition：C++ `apply_ops`、Python validator、golden corpus、G1
+  穷举一致；
+- output repair：所有返回计划满足 oracle replay 且长度不增。
+
+**BRaP-pool 主 gate**
+
+- suite：`benchmark/instances_brap_pool`，68 例；
+- 分层：`<=10x10` 36 例是当前可解质量域，`>=20x20` 32 例单独报告
+  horizon；不得只报混合值而隐藏分层；
+- 基线回归：success `36/68`、小图 `36/36`；
+- 代表锚：`h4w10_a5_e1_R1_seed0 = 1053`，
+  `h10w10_a12_e3_R1_seed1 = 2620`。
+
+**Fixed-assignment restart gate**
+
+- treatment `results_task_commit_final` vs control
+  `results_rootfix_protocol_verify`；
+- 第二遍和修补共享原 10 秒总 deadline；
+- 动态 B-pool：18 attempts、18 second solved、6 strictly improved；
+- final success `36/68`、小图 `36/36`；
+- singleton/R1 输出计划逐字节不变。
+
+**Rootfix 质量对照**
+
+- treatment `results_rootfix_final` vs control `results_fix1_mscd`；
+- 相同 pool suite、seed、10 秒、jobs、validator；
+- 主统计为共同成功实例 makespan ratio；辅助统计 free moves、
+  lift/drop、reversals、utilization。
+
+### 11.4 复现命令
+
+```sh
+cmake --build build -j 16 --target dd_benchmark
+python3 benchmark/run_benchmark.py \
+  --instances benchmark/instances_brap_pool \
+  --out-dir benchmark/results_task_commit_final_repro \
+  --methods carrier --timeout 10 --jobs 14
+
+python3 benchmark/run_ablations.py \
+  --out-dir benchmark/results_ablation_rootfix_repro
+```
+
+运行后核对 `timing.json` 的 task 数、timeout、jobs、solver seed、
+objective weights 和 following 语义；统计一律从结构化 CSV 计算，不从
+console 截断文本抄数。
+
+### 11.5 基线结果（v3.0 起点）
+
+```text
+结果目录                         solved   <=10x10   总 makespan(成功例)
+results_fix1_mscd                  36       36          214,199
+results_rootfix_final              36       36           35,595
+results_fixed_assignment_restart   36       36           35,325
+results_task_commit_final          36       36           34,860
+```
+
+- 相对 `results_fix1_mscd` 的 makespan 几何均值比 `0.204960`，
+  改善/持平/恶化 33/1/2；
+- `h4w10_a5_e1_R1_seed0`：`6,967 -> 1,053`（Python 投影原型曾达 719，
+  bridge 仍有优化空间）；
+- `h10w10_a12_e3_R1_seed1`：2,620；
+- 20x20 及以上 32 例在 10 秒内 0/32。
+
+相对 rootfix control：success/status 不变；18/18 动态 B-pool 成功例
+触发并完成第二遍，6 选择第二遍、12 保留第一遍；36 共同成功例
+makespan/SOC 几何比 `0.917520/0.927884`（B-pool 子集
+`0.841843/0.857187`）；成功例总 makespan `35,595 -> 34,860`、SOC
+`61,049 -> 59,907`；第二遍改善包括 `53->41`、`36->34`、`51->34`、
+`622->519`、`78->77`、`241->168`。
+
+独立复跑 `results_rootfix_protocol_verify` 与
+`results_rootfix{,_final}` 四个核心字段零差异、36 个成功 `.plan`
+逐字节一致。`results_task_commit_final_verify` 与
+`results_task_commit_final` 分别零差异、逐字节一致。结构消融
+`results_ablation_rootfix_verify`（9 protected cases）：full 9/9、
+B0 9/9、B1 5/9；full/B0 makespan 几何比 0.638179（5/3/1），full/B1
+1.077651（1/3/1）。
+
+最终回归：C++ 137/137；Python 69/69（14 workers，25.01 秒）。外部
+baseline 测试 solver deadline 固定 10 秒。
+
+### 11.6 v3.0 验收 gate
+
+task/`tau_guide` 层落地时按 11.1 协议开新结果目录，并满足：
+
+1. success 不低于基线：`36/68` 且小图 `36/36`（分母不变）；
+2. 共同成功集 makespan/SOC 几何比与逐例改善/持平/恶化同时报告，
+   恶化案例逐个解释；
+3. 语义变更允许首遍轨迹改变——singleton/R1 逐字节等价只对声称
+   "无行为变化"的重构强制；
+4. 三组消融 A/B/C 在同协议下报告；
+5. 每个成功计划过 C++ oracle 重放与 Python validator；
+6. 每节点 guidance 预算复核：大图上 tau+guidance 已可消耗
+   ~8.9/10 秒（80x80 历史测量），新增 robot realization 项必须给出
+   增量/缓存实现并报告 `tau_time_ms / guidance_time_ms`。
 
 ---
 
-## 12. 开放问题
+## 12. 最小测试计划
 
-1. chain 截断 K 与 solution 质量（高密度）；AcquireTarget 预置的
-   净收益（消融后定去留）；
-2. blocking-aware τ cost 的正确进入方式（副序预算 vs plateau 重算）；
-3. DnE-M 质量 gap（+12%，遗留 gate，固定 goal 家族——τ 层不触及，
-   需独立的性能工作）；集成 rollout 增量 hash；
-4. eventually-optimal 的正式论证；park 判定的严格纯化；
-5. lifelong 化后 τ 的跨 episode 迟滞；free-robot 匿名化与 rewiring
-   的相容性；
-6. ≥20×20 puzzle 密度的 horizon 墙：需要层级化（corridor-level
-   macro）或有界次优跳步——超出本轮范围，如实记录。
+必须测试（new.md §9；映射到现有测试或标注待写）：
 
-（design.md v2 的"D_b 增量维护"已由惰性失效关闭；"η 迟滞/往返震荡"
-已落地并默认开。）
+| # | 要求 | 现状 |
+|---|---|---|
+| 1 | 零 shelf 与原 LaCAM-TAPF 逐位一致 | 已有：`test_tapf_compat`（deterministic/anytime/rng 轨道） |
+| 2 | `\|G_b\|=1` 退化为 fixed-goal carrier | 已有：`dd_tau.singleton_degenerates_and_matches_root_h`、`dd_goalset.singleton_assignment_skips_second_search` |
+| 3 | target 不动、robot/vacancy 改变时 `tau_guide` 可以改变 | **待写**（依赖 robot-realization cost） |
+| 4 | 同一 `TaskId` 连续经历 approach、Lift、carry、Drop | **待写**（依赖 ManipulationTask） |
+| 5 | one-empty 时 ready task 是相邻 shelf 移入 vacancy | **待写**（依赖 compile_frontier_task） |
+| 6 | execution feedback 不进入 admissible `h` | 已有半边：`dd_tau.hysteresis_is_tie_break_only`、`dd_tau.rowwise_taboo_does_not_bias_admissible_h`、`dd_anytime.admissible_h_never_exceeds_true_cost`；robot 项落地时同型扩展 |
+| 7 | 所有返回计划通过 C++/Python replay | 已有：`dd_plan_repair.*`、benchmark validator、golden corpus |
+
+现有保护性测试（commitment/修补/搜索语义）继续有效，见 `debug.md`。
+
+---
+
+## 13. 边界与后续研究
+
+1. 修补发生在输出端；搜索内部仍按 labeled robot full state 判重。
+   它改善计划长度，不减少找到首解所需状态数（`h4w10_e1` 的 6,968 状态
+   只有 861 个 shelf projection——主噪声是 free robot 站位）。
+2. 1/2 robot bridge 最短；更多 robot 的 trajectory projection 只保证
+   合法和缩短。
+3. 搜索层按 shelf equivalence 合并状态需要同时保存可重构 robot
+   bridge，不能只改 hash。
+4. 20x20 以上 dense puzzle 的主要问题仍是首解 horizon 和每节点
+   guidance 成本。`tau_guide` 的 execution 反馈针对的是 assignment
+   churn 与 task 不连贯（诊断：20x20 曾 10 秒内构造 tau 45,839 次、
+   改写 86,317 对；commitment probe 降到 2,757 并把 27/40 提到
+   34/40，但正式 suite 大图仍 0/32）——它是必要改进，不是 horizon
+   的充分解；层级搜索或可重构等价约减仍是开放项。
+5. 生产不恢复已证伪的参数矩阵。新机制必须由输入结构或运行状态自动
+   触发，并通过完整计划重放验证。
+6. **[v3.0 特有]** 每 node 重评 `tau_guide` 与 robot realization 项
+   直接增加常数成本；必须以增量维护/缓存实现，且在 guidance 预算
+   （§11.6 第 6 条）下验收，防止把大图 horizon 推得更远。
