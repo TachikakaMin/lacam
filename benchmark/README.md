@@ -1,6 +1,7 @@
 # dd-lacam Benchmark & Baselines
 
-Benchmark infrastructure for the Carrier-LaCAM project (design.md §8, §10 M0).
+Benchmark infrastructure for the Carrier-LaCAM project
+([design_final.md](../design_final.md)).
 This directory contains the instance format, the two-deck transition
 validator, instance generators, converters to external baseline formats, the
 B4 baseline, and the benchmark runner.  **No Carrier-LaCAM algorithm here.**
@@ -15,7 +16,7 @@ B4 baseline, and the benchmark runner.  **No Carrier-LaCAM algorithm here.**
 | BR-LaCAM / BRaP (arXiv 2509.01022) | none published | not available. B1 (2-stage) will reuse our own Carrier-PIBT later per design.md. |
 | DD-MAPD / MAPF-DECOMP original (arXiv 2304.14309) | none published | CREST baseline mode stands in for it (same decomposition + 1-robust ECBS shelf stage). |
 | B4: single-robot sequential simulation | ours | `ddbench/b4_baseline.py` (Theorem 1 construction; recursive blocker clearing; shoos idle robots). |
-| B0/B1 | ours (Carrier-PIBT) | deferred — part of the algorithm work, not this milestone. |
+| B0/B1 | ours (Carrier-PIBT) | implemented as `carrier_b0` rollout-only and `carrier_b1` frozen shelf-plan decomposition. |
 
 ## Build environment for external baselines
 
@@ -86,7 +87,7 @@ python3 generate_instances.py --out-dir instances_small --small --seeds 3
 python3 generate_instances.py --out-dir instances_standard --seeds 3
 
 # run baselines -> rows.csv
-python3 run_benchmark.py --instances instances_small --out-dir results_small --timeout 60
+python3 run_benchmark.py --instances instances_small --out-dir results_small --timeout 10
 ```
 
 `rows.csv` columns: instance, family, method, success, executed_makespan,
@@ -245,9 +246,9 @@ Observations:
   can displace completed targets and does not re-serve them. Its success rate
   *is* the measurement; do not tune it into a real solver.
 
-## Round-2 audit follow-ups (2026-08-30)
+## Historical round-2 audit follow-ups (2026-08-30)
 
-- **Current default config = two-phase anytime + macro scale regime**
+- **Default at the 2026-08-30 checkpoint = two-phase anytime + macro scale regime**
   (design.md §7.1/D14, commit 6670e22): phase 1 finds a fast upper bound
   (macro only when `|B_tgt| <= DD_MACRO_TGT` = 64), phase 2 restarts a
   primitive-only quality search from the root with that bound.
@@ -371,10 +372,10 @@ distance inflation).  Carrier-only rerun (results_brap_nearb/): solved
 38317->4508; 8x10: 58067->24148; 10x10: 62600->46782), first solution up
 to 9x faster (1575->166 ms).  >=20x20 remains 0/…: the wall is the
 intrinsic executable-plan horizon at puzzle density, not goal placement.
-Dynamic shelf-goal assignment (goal sets + per-node tau matching,
-design section 7.3 ITA layer) is the real feature this motivates; the
-solver today only does dynamic ROBOT-to-request assignment (Hungarian
-per node), not shelf-to-goal.
+Dynamic shelf-goal assignment (goal sets + per-node tau matching) is the
+feature this motivated. It was implemented after this historical ablation;
+the current solver performs both shelf-to-goal `tau` and robot-to-request
+`rho` assignment.
 
 ### Pairing-algorithm ablation (greedy vs Hungarian, same sampled sets)
 
@@ -392,3 +393,87 @@ min-SUM Manhattan pairing does not model; greedy's closest-pairs-first
 bias toward zero/short pairs is accidentally a decent proxy.  Another
 data point for design section 7.3: no static matcher fixes this — the
 assignment must be revisable during search (dynamic tau).
+
+## Projection-repair results (2026-09-01, current)
+
+The current production path first searches under dynamic goal assignment
+and applies mandatory plan normalization:
+
+1. exact physical-state loop removal;
+2. grounded shelf-projection loop removal;
+3. lower-deck robot bridge insertion;
+4. full C++ oracle replay, followed by the runner's Python validator.
+
+For multi-goal inputs, the first solution's terminal shelf-goal assignment
+is then fixed and the same search restarts once from the root with the
+remaining part of the same 10-second deadline. Both candidates are repaired;
+the lower-SOC valid plan wins. Singleton inputs skip this structurally.
+There is no policy environment switch.
+
+Reproduction:
+
+```sh
+cmake --build build -j 16 --target dd_benchmark
+python3 benchmark/run_benchmark.py \
+  --instances benchmark/instances_brap_pool \
+  --out-dir benchmark/results_task_commit_final_repro \
+  --methods carrier --timeout 10 --jobs 14
+```
+
+Results:
+
+| result | solved | <=10x10 | total makespan over solved rows |
+|---|---:|---:|---:|
+| `results_fix1_mscd` | 36/68 | 36/36 | 214,199 |
+| `results_rootfix_final` | 36/68 | 36/36 | 35,595 |
+| `results_fixed_assignment_restart` | 36/68 | 36/36 | 35,325 |
+| `results_task_commit_final` | 36/68 | 36/36 | 34,860 |
+
+On the 36 commonly solved rows against `results_fix1_mscd`, the makespan
+geometric-mean ratio is `0.204960`, with 33 better, one equal, and two worse
+rows. Representative: `h4w10_a5_e1_R1_seed0` is `6967 -> 1053`.
+
+`results_rootfix_final` and `results_rootfix` have identical success,
+status, makespan, and SOC row by row. Maps of size 20x20 and above remain
+0/32 under 10 seconds: output repair removes meaningless motion after an
+incumbent exists, but does not shorten the first-solution search horizon.
+
+The first pass now keeps each shelf-goal assignment for a task episode:
+primitive/loaded motion reuses parent tau, a carried shelf keeps its in-flight
+goal, and tau is recomputed at drop or targeted repair boundaries. Settled
+placements win over conflicting carried intent when the partial matching is
+extendable; otherwise they remain reversible.
+
+Against `results_rootfix_protocol_verify`, assignment refinement attempted
+and solved 18/18 B-pool second passes and selected 6 strict improvements.
+The common-success makespan/SOC geometric ratios are 0.917520/0.927884
+overall and 0.841843/0.857187 on B-pool; total makespan/SOC is
+34,860/59,907. Maps >=20x20 remain 0/32 because the fixed restart requires a
+first solution.
+
+`benchmark/run_ablations.py` now contains only structural methods:
+`full`, `b0`, and `b1`. It fixes the protocol at 10 seconds, 14 jobs,
+seed 0, unit weights, and default following; it reuses the main runner's
+Python validation path and saves plans plus `timing.json`.
+
+`run_benchmark.py` also forces unit carrier weights by default, independent
+of inherited `DD_*` values. A non-unit objective is an explicit separate
+axis via `--weights ALPHA BETA GAMMA DELTA`; the effective weights, seed,
+and following semantics are recorded in `timing.json`.
+
+An independent run in `results_rootfix_protocol_verify` recorded 68 tasks,
+10 seconds, 14 jobs, seed 0, unit weights, and default following. It
+reproduced 36/68, 36/36 on <=10x10, total makespan 35,595, and total SOC
+61,049. All 68 success/status/makespan/SOC rows and all 36 successful plan
+files match both rootfix result directories.
+
+`results_ablation_rootfix_verify` contains the 27-task protected structural
+run: full 9/9, B0 9/9, and B1 5/9, with 23 validated nonempty plans. On
+common successes, full/B0 has makespan geometric ratio 0.638179 and
+better/equal/worse counts 5/3/1; full/B1 has 1.077651 and 1/3/1. This
+small suite is a regression/structure check, not the BRaP-pool main gate.
+
+Final regression: C++ 137/137; Python 69/69 in 25.01 seconds with 14
+workers. External baseline tests use the permanent 10-second solver limit.
+`results_task_commit_final_verify` reproduces all 68 core result rows and all
+36 successful plan files exactly with the final binary.

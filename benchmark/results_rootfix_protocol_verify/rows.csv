@@ -1,0 +1,69 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,first_solution_ms,reversals,runtime_sec,status,raw
+brap_h10w10_a12_e3_B_seed0_pool,g10x10,carrier,1,588,955.0,92,633,164,50,0.0782,3204,100,3.836,ok,
+brap_h10w10_a12_e3_B_seed1_pool,g10x10,carrier,1,1969,3315.0,392,2104,574,210,0.0995,5585,467,6.783,ok,
+brap_h10w10_a12_e3_R1_seed0,g10x10,carrier,1,1835,3206.0,417,1948,556,204,0.1136,4167,428,5.714,ok,
+brap_h10w10_a12_e3_R1_seed1,g10x10,carrier,1,2620,4396.0,477,2756,792,316,0.091,6951,587,9.698,ok,
+brap_h10w10_a12_e8_B_seed0_pool,g10x10,carrier,1,1464,2387.0,320,1478,430,160,0.1093,1437,289,1.749,ok,
+brap_h10w10_a12_e8_B_seed1_pool,g10x10,carrier,1,1337,2310.0,443,1291,391,144,0.1657,1244,374,1.499,ok,
+brap_h10w10_a12_e8_R1_seed0,g10x10,carrier,1,4850,8576.0,1451,4650,1604,727,0.1496,3740,1231,5.382,ok,
+brap_h10w10_a12_e8_R1_seed1,g10x10,carrier,1,2780,4952.0,835,2626,962,401,0.1502,2101,771,2.975,ok,
+brap_h10w10_a1_e1_B_seed0_pool,g10x10,carrier,1,141,218.0,24,126,52,16,0.0851,276,26,0.346,ok,
+brap_h10w10_a1_e1_B_seed1_pool,g10x10,carrier,1,1,0.0,0,0,0,0,0.0,0,0,0.004,ok,
+brap_h10w10_a1_e1_R1_seed0,g10x10,carrier,1,102,167.0,17,103,34,5,0.0833,410,13,0.52,ok,
+brap_h10w10_a1_e1_R1_seed1,g10x10,carrier,1,653,1087.0,142,606,240,73,0.1087,2370,136,3.118,ok,
+brap_h20w20_a40_e100_B_seed0_pool,g20x20,carrier,0,,,,,,,,,,10.203,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=90239 
+brap_h20w20_a40_e100_B_seed1_pool,g20x20,carrier,0,,,,,,,,,,10.228,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=136722 
+brap_h20w20_a40_e100_R1_seed0,g20x20,carrier,0,,,,,,,,,,10.657,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=424719 
+brap_h20w20_a40_e100_R1_seed1,g20x20,carrier,0,,,,,,,,,,10.634,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=350680 
+brap_h20w20_a40_e10_B_seed0_pool,g20x20,carrier,0,,,,,,,,,,10.214,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=154707 
+brap_h20w20_a40_e10_B_seed1_pool,g20x20,carrier,0,,,,,,,,,,10.231,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=150912 
+brap_h20w20_a40_e10_R1_seed0,g20x20,carrier,0,,,,,,,,,,10.594,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=444997 
+brap_h20w20_a40_e10_R1_seed1,g20x20,carrier,0,,,,,,,,,,10.581,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=454686 
+brap_h40w40_a160_e400_R1_seed0,g40x40,carrier,0,,,,,,,,,,10.577,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=246025 
+brap_h40w40_a160_e400_R1_seed1,g40x40,carrier,0,,,,,,,,,,10.43,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=192178 
+brap_h40w40_a160_e40_R1_seed0,g40x40,carrier,0,,,,,,,,,,10.616,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=269740 
+brap_h40w40_a160_e40_R1_seed1,g40x40,carrier,0,,,,,,,,,,10.614,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=344543 
+brap_h40w40_a80_e400_B_seed0_pool,g40x40,carrier,0,,,,,,,,,,10.114,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=10941 
+brap_h40w40_a80_e400_B_seed1_pool,g40x40,carrier,0,,,,,,,,,,10.122,timeout, first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=4664 
+brap_h40w40_a80_e40_B_seed0_pool,g40x40,carrier,0,,,,,,,,,,10.147,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=16704 
+brap_h40w40_a80_e40_B_seed1_pool,g40x40,carrier,0,,,,,,,,,,10.147,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=32975 
+brap_h4w10_a5_e10_B_seed0_pool,g4x10,carrier,1,52,82.0,9,49,20,3,0.0865,15,0,0.022,ok,
+brap_h4w10_a5_e10_B_seed1_pool,g4x10,carrier,1,43,81.0,12,43,18,2,0.1395,12,11,0.018,ok,
+brap_h4w10_a5_e10_R1_seed0,g4x10,carrier,1,298,539.0,153,235,118,37,0.2567,58,104,0.084,ok,
+brap_h4w10_a5_e10_R1_seed1,g4x10,carrier,1,193,362.0,100,127,94,37,0.2591,16,61,0.026,ok,
+brap_h4w10_a5_e1_B_seed0_pool,g4x10,carrier,1,71,109.0,18,52,31,8,0.1268,33,7,0.044,ok,
+brap_h4w10_a5_e1_B_seed1_pool,g4x10,carrier,1,73,92.0,6,59,22,3,0.0411,90,2,0.115,ok,
+brap_h4w10_a5_e1_R1_seed0,g4x10,carrier,1,1053,1737.0,225,975,380,157,0.1068,3141,200,4.501,ok,
+brap_h4w10_a5_e1_R1_seed1,g4x10,carrier,1,510,826.0,112,454,180,62,0.1098,678,100,0.959,ok,
+brap_h6w10_a6_e15_B_seed0_pool,g6x10,carrier,1,345,606.0,148,289,118,41,0.2145,71,120,0.091,ok,
+brap_h6w10_a6_e15_B_seed1_pool,g6x10,carrier,1,60,121.0,39,41,26,4,0.325,1,18,0.006,ok,
+brap_h6w10_a6_e15_R1_seed0,g6x10,carrier,1,424,758.0,168,368,162,62,0.1981,87,114,0.123,ok,
+brap_h6w10_a6_e15_R1_seed1,g6x10,carrier,1,1279,2501.0,636,965,566,256,0.2486,145,381,0.209,ok,
+brap_h6w10_a6_e1_B_seed0_pool,g6x10,carrier,1,655,986.0,79,627,219,72,0.0603,3090,64,3.824,ok,
+brap_h6w10_a6_e1_B_seed1_pool,g6x10,carrier,1,254,434.0,64,239,96,25,0.126,548,45,0.672,ok,
+brap_h6w10_a6_e1_R1_seed0,g6x10,carrier,1,1681,2876.0,370,1651,552,221,0.1101,5871,391,8.26,ok,
+brap_h6w10_a6_e1_R1_seed1,g6x10,carrier,1,2068,3408.0,446,1974,686,293,0.1078,6156,431,8.736,ok,
+brap_h80w80_a128_e1600_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,10.078,timeout,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+brap_h80w80_a128_e1600_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,10.07,timeout,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+brap_h80w80_a128_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.229,timeout, first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=6609 
+brap_h80w80_a128_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.327,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=20250 
+brap_h80w80_a128_e160_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,10.106,timeout, first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=2485 
+brap_h80w80_a128_e160_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,10.105,timeout, first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=8298 
+brap_h80w80_a128_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.416,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=82247 
+brap_h80w80_a128_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.445,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=102871 
+brap_h80w80_a160_e1600_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,10.069,timeout,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+brap_h80w80_a160_e1600_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,10.07,timeout,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+brap_h80w80_a160_e160_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,10.115,timeout,1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=338 
+brap_h80w80_a160_e160_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,10.087,timeout, first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=1062 
+brap_h80w80_a800_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.399,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=83005 
+brap_h80w80_a800_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.403,timeout,first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=79386 
+brap_h80w80_a800_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,10.458,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=111415 
+brap_h80w80_a800_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,10.468,timeout,irst_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=114515 
+brap_h8w10_a10_e20_B_seed0_pool,g8x10,carrier,1,75,159.0,50,68,22,0,0.3333,1,23,0.007,ok,
+brap_h8w10_a10_e20_B_seed1_pool,g8x10,carrier,1,233,418.0,91,208,80,16,0.1953,63,59,0.079,ok,
+brap_h8w10_a10_e20_R1_seed0,g8x10,carrier,1,583,1169.0,300,461,242,89,0.2573,120,186,0.17,ok,
+brap_h8w10_a10_e20_R1_seed1,g8x10,carrier,1,718,1295.0,415,476,292,112,0.289,133,223,0.19,ok,
+brap_h8w10_a10_e2_B_seed0_pool,g8x10,carrier,1,748,1220.0,115,795,234,73,0.0769,1464,141,1.805,ok,
+brap_h8w10_a10_e2_B_seed1_pool,g8x10,carrier,1,695,1120.0,127,674,240,71,0.0914,1529,142,1.865,ok,
+brap_h8w10_a10_e2_R1_seed0,g8x10,carrier,1,2207,3816.0,474,2267,762,313,0.1074,4126,528,5.96,ok,
+brap_h8w10_a10_e2_R1_seed1,g8x10,carrier,1,2937,4765.0,564,2951,882,378,0.096,4495,622,6.378,ok,

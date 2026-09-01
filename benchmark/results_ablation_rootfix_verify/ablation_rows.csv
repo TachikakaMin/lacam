@@ -1,0 +1,28 @@
+case,family,variant,solved,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,reversals,first_solution_ms,runtime_sec,status,raw
+ddmapd_h10w10r3d30t3_seed0,ddmapd,b0,1,45,86.0,67,13,6,0,0.4963,27,-1,0.127,ok,
+ddmapd_h10w10r3d30t3_seed0,ddmapd,b1,1,23,52.0,35,11,6,0,0.5072,0,-1,0.046,ok,
+ddmapd_h10w10r3d30t3_seed0,ddmapd,full,1,39,74.0,53,15,6,0,0.453,16,0,0.017,ok,
+ddmapd_h16w16r8d50t8_seed0,ddmapd,b0,1,131,849.0,558,152,46,4,0.5324,341,-1,0.164,ok,
+ddmapd_h16w16r8d50t8_seed0,ddmapd,b1,0,,,,,,,,,,0.258,failed,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+ddmapd_h16w16r8d50t8_seed0,ddmapd,full,1,73,565.0,287,178,44,3,0.4914,146,2,0.08,ok,
+dneM_n32_seed0,dne_m,b0,1,12322,379253.0,360422,14328,4498,1845,0.9141,300194,-1,7.743,ok,
+dneM_n32_seed0,dne_m,b1,0,,,,,,,,,,0.172,failed,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+dneM_n32_seed0,dne_m,full,1,1264,37024.0,27971,8247,806,0,0.6915,11300,5868,6.218,ok,
+r2rM_n32_seed0,r2r_m,b0,1,2772,73308.0,64872,6013,2418,978,0.7313,44857,-1,2.183,ok,
+r2rM_n32_seed0,r2r_m,b1,0,,,,,,,,,,0.268,failed,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+r2rM_n32_seed0,r2r_m,full,1,6419,24301.0,12628,10168,494,8,0.0615,3570,3527,5.168,ok,
+s2wM_n32_seed0,s2w_m,b0,1,4113,116892.0,97882,15724,3286,1259,0.7437,64184,-1,5.02,ok,
+s2wM_n32_seed0,s2w_m,b1,0,,,,,,,,,,0.126,failed,=-1 first_solution_soc=-1 best_soc=-1 incumbent_updates=0 exact_loops=0 projected_loops=0 bridge_steps=0 plan_steps_removed=0 futile_lift_demotions=0 
+s2wM_n32_seed0,s2w_m,full,1,1259,36368.0,21880,13720,768,0,0.5431,3093,8146,8.532,ok,
+scramble_h12w12r4s28t8k120_seed0,scramble,b0,1,10,20.0,9,7,4,0,0.225,2,-1,0.217,ok,
+scramble_h12w12r4s28t8k120_seed0,scramble,b1,1,10,17.0,7,6,4,0,0.175,0,-1,0.178,ok,
+scramble_h12w12r4s28t8k120_seed0,scramble,full,1,10,18.0,7,7,4,0,0.175,0,0,0.198,ok,
+scramble_h16w16r8s128t16k320_seed0,scramble,b0,1,48,222.0,104,89,24,1,0.2708,58,-1,0.13,ok,
+scramble_h16w16r8s128t16k320_seed0,scramble,b1,1,28,135.0,39,69,19,0,0.1741,1,-1,0.056,ok,
+scramble_h16w16r8s128t16k320_seed0,scramble,full,1,24,142.0,50,63,24,1,0.2604,14,0,0.194,ok,
+scramble_h6w6r2s8t2k40_seed1,scramble,b0,1,4,4.0,1,1,2,0,0.125,0,-1,0.02,ok,
+scramble_h6w6r2s8t2k40_seed1,scramble,b1,1,4,4.0,1,1,2,0,0.125,0,-1,0.032,ok,
+scramble_h6w6r2s8t2k40_seed1,scramble,full,1,4,4.0,1,1,2,0,0.125,0,0,0.021,ok,
+scramble_h8w8r4s12t4k80_seed0,scramble,b0,1,7,7.0,5,0,2,0,0.1786,0,-1,0.029,ok,
+scramble_h8w8r4s12t4k80_seed0,scramble,b1,1,7,7.0,5,0,2,0,0.1786,0,-1,0.229,ok,
+scramble_h8w8r4s12t4k80_seed0,scramble,full,1,7,7.0,5,0,2,0,0.1786,0,0,0.026,ok,

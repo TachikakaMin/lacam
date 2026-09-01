@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>carrier-LaCAM fix1 benchmark 可视化</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 24px;
+         background: #1e1e24; color: #eee; max-width: 1400px; }
+  h1 { font-size: 20px; } h2 { font-size: 16px; margin-top: 28px; }
+  a { color: #60a5fa; }
+  img { max-width: 100%; border-radius: 8px; background: #fff; }
+  .note { color: #aaa; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>carrier-LaCAM 病根 1-4 修复 — benchmark 可视化（2026-09-01）</h1>
+<p class="note">68 实例 BRAP-pool，10s/实例，jobs=14。数据：benchmark/results_fix1_*/rows.csv；报告：report.md 第 9 部分。</p>
+
+<h2>交互式动画（旗舰实例 h4w10_a5_e1_R1_seed0，原始 162,215 步）</h2>
+<ul>
+  <li><a href="fix1_h4w10_mscd.html">mscd（milestone+cooldown）：6,967 步</a></li>
+  <li><a href="fix1_h4w10_base.html">base（仅循环消除，当前默认）：18,282 步</a></li>
+</ul>
+
+<h2>1. 逐实例 makespan（36 小图实例，对数轴，✕=超时）</h2>
+<img src="1_makespan_small.png">
+
+<h2>2. 解出率 + makespan 几何均值比（vs gateC 冻结基线）</h2>
+<img src="2_solved_and_ratio.png">
+
+<h2>3. 机器人到访热图（同板同预算，共享色标——"醉汉游走"被压掉两个数量级）</h2>
+<img src="3_heatmap_h4w10.png">
+</body>
+</html>

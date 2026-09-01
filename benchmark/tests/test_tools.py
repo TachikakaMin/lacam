@@ -6,9 +6,8 @@ Covers the previously untested tooling checkboxes:
     one (its validator gate must bite);
   - generate_sweep_instances.py produces the documented axis set
     including the 1:50 tier (run into a temp dir, 1 seed);
-  - run_ablations.py env wiring: every DD_* knob it sets must actually be
-    read by the production sources — the static check that would have
-    caught the no-op DD_NO_ASTAR variant.
+  - run_ablations.py contains only structural full/b0/b1 variants;
+  - production reads only numeric objective inputs and DD_DEBUG_DUMP.
 """
 
 import re
@@ -112,29 +111,73 @@ class TestSweepGenerator(unittest.TestCase):
             self.assertEqual(len(ins.grid), 40)
 
 
-class TestAblationEnvWiring(unittest.TestCase):
-    def test_every_knob_is_read_by_production_code(self):
-        # the check that would have caught DD_NO_ASTAR (round-2 audit P0-3)
+class TestAblationContract(unittest.TestCase):
+    def test_no_strategy_environment_matrix(self):
         runner = (BENCH / "run_ablations.py").read_text()
         knobs = set(re.findall(r'"(DD_[A-Z_]+)"\s*:', runner))
-        self.assertTrue(knobs, "expected at least one DD_* knob in variants")
+        self.assertEqual(knobs, set())
+
+    def test_production_environment_inputs_are_nonstrategic(self):
         sources = ""
-        # lacam/src/*.hpp are internal implementation headers compiled into
-        # the planner (carrier_guidance.hpp); subagent-APPROVEd extension
         for p in (list((REPO / "lacam/src").glob("*.cpp"))
                   + list((REPO / "lacam/src").glob("*.hpp"))
                   + list((REPO / "tools").glob("*.cpp"))):
             sources += p.read_text()
-        for k in sorted(knobs):
-            self.assertIn(
-                k, sources,
-                f"{k} is set by run_ablations.py but never read by any "
-                f"production source — no-op ablation variant")
+        named = set(re.findall(r'"(DD_[A-Z_]+)"', sources))
+        self.assertEqual(
+            named,
+            {"DD_ALPHA", "DD_BETA", "DD_GAMMA", "DD_DELTA",
+             "DD_DEBUG_DUMP"},
+        )
 
     def test_variant_modes_are_valid(self):
         runner = (BENCH / "run_ablations.py").read_text()
         modes = set(re.findall(r',\s*"(lacam|b0|b1)"\)', runner))
-        self.assertTrue(modes.issubset({"lacam", "b0", "b1"}))
+        self.assertEqual(modes, {"lacam", "b0", "b1"})
+
+    def test_ablation_runner_enforces_experiment_contract(self):
+        runner = (BENCH / "run_ablations.py").read_text()
+        self.assertRegex(runner, r"TIME_LIMIT\s*=\s*10\b")
+        self.assertRegex(runner, r"JOBS\s*=\s*14\b")
+        self.assertIn("row_carrier(", runner)
+        self.assertIn('"solver_seed": 0', runner)
+        self.assertIn('"following": "allowed"', runner)
+        self.assertIn('"timing.json"', runner)
+
+    def test_main_runner_makes_objective_axis_explicit(self):
+        runner = (BENCH / "run_benchmark.py").read_text()
+        self.assertRegex(runner, r'"--timeout"[^\\n]*type=float, default=10')
+        self.assertIn('"--weights"', runner)
+        self.assertIn('"objective_weights"', runner)
+        self.assertIn('"solver_seed": 0', runner)
+        self.assertIn('"following": "allowed"', runner)
+
+
+class TestBenchmarkSuccessContract(unittest.TestCase):
+    def test_carrier_plan_parser_rejects_empty_and_malformed_output(self):
+        sys.path.insert(0, str(BENCH))
+        from run_benchmark import parse_carrier_plan
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "plan"
+            path.write_text("")
+            with self.assertRaisesRegex(ValueError, "empty plan"):
+                parse_carrier_plan(path)
+            path.write_text("teleport 1 2\n")
+            with self.assertRaisesRegex(ValueError, "invalid action token"):
+                parse_carrier_plan(path)
+
+    def test_carrier_plan_parser_accepts_joint_actions(self):
+        sys.path.insert(0, str(BENCH))
+        from run_benchmark import parse_carrier_plan
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "plan"
+            path.write_text("w;m 1 2;l;d\n")
+            self.assertEqual(
+                parse_carrier_plan(path),
+                [[("wait",), ("move", (1, 2)), ("lift",), ("drop",)]],
+            )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,28 @@
+{
+  "wall_time_sec": 17.8,
+  "jobs": 14,
+  "n_tasks": 27,
+  "timeout_per_run_sec": 10,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1,
+    "beta": 1,
+    "gamma": 1,
+    "delta": 1
+  },
+  "following": "allowed",
+  "variants": {
+    "full": {
+      "solved": 9,
+      "total": 9
+    },
+    "b0": {
+      "solved": 9,
+      "total": 9
+    },
+    "b1": {
+      "solved": 5,
+      "total": 9
+    }
+  }
+}

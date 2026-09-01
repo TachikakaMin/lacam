@@ -43,7 +43,10 @@ FIELDS = [
     "instance", "family", "method", "success", "executed_makespan",
     "weighted_soc", "loaded_moves", "free_moves", "lift_drop",
     "shelf_switches", "robot_utilization", "first_solution_ms",
-    "reversals",
+    "reversals", "assignment_restarts", "assignment_second_solved",
+    "assignment_improvements", "assignment_second_solution_ms",
+    "assignment_first_soc", "assignment_second_soc",
+    "assignment_first_makespan", "assignment_second_makespan",
     "runtime_sec", "status", "raw",
 ]
 
@@ -79,7 +82,7 @@ def _blank_extra():
                 first_solution_ms="")
 
 
-def row_b4(ins, name, family, timeout):
+def row_b4(ins, name, family, timeout, weights=(1.0, 1.0, 1.0, 1.0)):
     t0 = time.time()
     try:
         plan = solve_b4(ins)
@@ -95,7 +98,7 @@ def row_b4(ins, name, family, timeout):
                     executed_makespan="", weighted_soc="", loaded_moves="",
                     free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(runtime, 3),
                     status="invalid_plan", raw=";".join(errs)[:200])
-    c = plan_cost(ins, plan)
+    c = plan_cost(ins, plan, *weights)
     return dict(instance=name, family=family, method="b4", success=1,
                 executed_makespan=c["executed_makespan"],
                 weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
@@ -188,7 +191,44 @@ def row_natcbs(ins, name, family, work, timeout):
                 status=st, raw=(out + err)[-150:].replace("\n", " "))
 
 
-def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
+def parse_carrier_plan(path):
+    path = Path(path)
+    if not path.is_file():
+        raise ValueError("solver reported success without a plan file")
+    plan = []
+    for line_no, line in enumerate(path.read_text().splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        joint = []
+        for token in line.split(";"):
+            parts = token.split()
+            if parts == ["w"]:
+                joint.append(("wait",))
+            elif len(parts) == 3 and parts[0] == "m":
+                try:
+                    cell = (int(parts[1]), int(parts[2]))
+                except ValueError as exc:
+                    raise ValueError(
+                        f"line {line_no}: invalid move token {token!r}"
+                    ) from exc
+                joint.append(("move", cell))
+            elif parts == ["l"]:
+                joint.append(("lift",))
+            elif parts == ["d"]:
+                joint.append(("drop",))
+            else:
+                raise ValueError(
+                    f"line {line_no}: invalid action token {token!r}"
+                )
+        plan.append(joint)
+    if not plan:
+        raise ValueError("solver reported success with an empty plan")
+    return plan
+
+
+def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
+                env=None, weights=(1.0, 1.0, 1.0, 1.0)):
     """Carrier-LaCAM (C++): plan re-validated by the authoritative Python
     two-deck validator; unified metrics via plan_cost (same as b4)."""
     from ddbench.validator import apply_joint_action, initial_state, is_goal
@@ -196,8 +236,14 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
     method = {"lacam": "carrier", "b0": "carrier_b0",
               "b1": "carrier_b1"}[mode]
     plan_out = work / f"{name}.{method}.plan"
+    if plan_out.exists():
+        plan_out.unlink()
     t0 = time.time()
-    env = dict(os.environ)
+    env = dict(os.environ) if env is None else dict(env)
+    for key, value in zip(
+        ("DD_ALPHA", "DD_BETA", "DD_GAMMA", "DD_DELTA"), weights
+    ):
+        env[key] = str(value)
     try:
         p = subprocess.run(
             [str(CARRIER_BIN), str(path), str(timeout), str(plan_out), "0",
@@ -215,7 +261,8 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
             if "=" in line:
                 k, v = line.split("=", 1)
                 metrics[k.strip()] = v.strip()
-    if status != "ok" or metrics.get("solved") != "1":
+    if (status != "ok" or p.returncode != 0 or
+            metrics.get("solved") != "1"):
         return dict(instance=name, family=family, method=method, success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
                     free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
@@ -224,24 +271,8 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
                     raw=(p.stdout + p.stderr)[-150:].replace("\n", " ")
                     if p else "")
     # authoritative re-validation
-    plan = []
-    for line in plan_out.read_text().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        joint = []
-        for tok in line.split(";"):
-            parts = tok.split()
-            if parts[0] == "w":
-                joint.append(("wait",))
-            elif parts[0] == "m":
-                joint.append(("move", (int(parts[1]), int(parts[2]))))
-            elif parts[0] == "l":
-                joint.append(("lift",))
-            elif parts[0] == "d":
-                joint.append(("drop",))
-        plan.append(joint)
     try:
+        plan = parse_carrier_plan(plan_out)
         s = initial_state(ins)
         for joint in plan:
             s = apply_joint_action(ins, s, joint)
@@ -252,7 +283,7 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
                     executed_makespan="", weighted_soc="", loaded_moves="",
                     free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
                     status="invalid_plan", raw=str(e)[:200])
-    c = plan_cost(ins, plan)
+    c = plan_cost(ins, plan, *weights)
     return dict(instance=name, family=family, method=method, success=1,
                 executed_makespan=c["executed_makespan"],
                 weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
@@ -261,24 +292,55 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam"):
                 reversals=c["reversals"],
                 robot_utilization=round(c["robot_utilization"], 4),
                 first_solution_ms=metrics.get("first_solution_ms", ""),
+                assignment_restarts=metrics.get("assignment_restarts", ""),
+                assignment_second_solved=metrics.get(
+                    "assignment_second_solved", ""
+                ),
+                assignment_improvements=metrics.get(
+                    "assignment_improvements", ""
+                ),
+                assignment_second_solution_ms=metrics.get(
+                    "assignment_second_solution_ms", ""
+                ),
+                assignment_first_soc=metrics.get(
+                    "assignment_first_soc", ""
+                ),
+                assignment_second_soc=metrics.get(
+                    "assignment_second_soc", ""
+                ),
+                assignment_first_makespan=metrics.get(
+                    "assignment_first_makespan", ""
+                ),
+                assignment_second_makespan=metrics.get(
+                    "assignment_second_makespan", ""
+                ),
                 runtime_sec=round(rt, 3), status="ok", raw="")
 
 
 def run_one(task):
     """Top-level worker (picklable): task = (path, family, method, work,
-    timeout, natcbs_max_cells, subopt)."""
-    path, family, method, work, timeout, natcbs_max, subopt = task
+    timeout, natcbs_max_cells, subopt, weights)."""
+    path, family, method, work, timeout, natcbs_max, subopt, weights = task
     ins = load_instance(path)
     name = Path(path).stem
     work = Path(work)
     if method == "b4":
-        return row_b4(ins, name, family, timeout)
+        return row_b4(ins, name, family, timeout, weights)
     if method == "carrier":
-        return row_carrier(ins, path, name, family, work, timeout, "lacam")
+        return row_carrier(
+            ins, path, name, family, work, timeout, "lacam",
+            weights=weights,
+        )
     if method == "carrier_b0":
-        return row_carrier(ins, path, name, family, work, timeout, "b0")
+        return row_carrier(
+            ins, path, name, family, work, timeout, "b0",
+            weights=weights,
+        )
     if method == "carrier_b1":
-        return row_carrier(ins, path, name, family, work, timeout, "b1")
+        return row_carrier(
+            ins, path, name, family, work, timeout, "b1",
+            weights=weights,
+        )
     if method == "crest_base":
         return row_crest(ins, name, family, work, timeout, False, subopt)
     if method == "crest_full":
@@ -299,14 +361,29 @@ def main():
     ap.add_argument("--out-dir", default="results")
     ap.add_argument("--methods", nargs="+",
                     default=["b4", "crest_base", "crest_full", "natcbs"])
-    ap.add_argument("--timeout", type=float, default=60)
+    ap.add_argument(
+        "--timeout", type=float, default=10,
+        help="per-run solver deadline in seconds (fixed protocol: 10)",
+    )
     ap.add_argument("--natcbs-max-cells", type=int, default=150,
                     help="skip natcbs on instances larger than this")
     ap.add_argument("--jobs", type=int, default=1,
                     help="parallel worker processes")
     ap.add_argument("--suboptimality", type=float, default=1.6,
                     help="CREST ECBS suboptimality bound")
+    ap.add_argument(
+        "--weights", type=float, nargs=4,
+        metavar=("ALPHA", "BETA", "GAMMA", "DELTA"),
+        default=(1.0, 1.0, 1.0, 1.0),
+        help="carrier/B4 objective weights; defaults to the unit main table",
+    )
     args = ap.parse_args()
+    weights = tuple(args.weights)
+    if (weights != (1.0, 1.0, 1.0, 1.0) and
+            any(m in {"crest_base", "crest_full", "natcbs"}
+                for m in args.methods)):
+        ap.error("non-unit --weights cannot be mixed with native-objective "
+                 "external methods")
 
     out = Path(args.out_dir)
     work = out / "work"
@@ -318,7 +395,7 @@ def main():
         sys.exit(1)
     tasks = [
         (str(f), f.parent.name, m, str(work), args.timeout,
-         args.natcbs_max_cells, args.suboptimality)
+         args.natcbs_max_cells, args.suboptimality, weights)
         for f in files
         for m in args.methods
     ]
@@ -370,6 +447,14 @@ def main():
         "jobs": args.jobs,
         "n_tasks": len(tasks),
         "timeout_per_run_sec": args.timeout,
+        "solver_seed": 0,
+        "objective_weights": {
+            "alpha": weights[0],
+            "beta": weights[1],
+            "gamma": weights[2],
+            "delta": weights[3],
+        },
+        "following": "allowed",
         "methods": summary,
     }
     (out / "timing.json").write_text(json.dumps(timing, indent=2))

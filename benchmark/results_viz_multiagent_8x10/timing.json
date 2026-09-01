@@ -1,0 +1,21 @@
+{
+  "wall_time_sec": 0.7,
+  "jobs": 14,
+  "n_tasks": 3,
+  "timeout_per_run_sec": 10.0,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "gamma": 1.0,
+    "delta": 1.0
+  },
+  "following": "allowed",
+  "methods": {
+    "carrier": {
+      "solved": 3,
+      "total": 3,
+      "solver_time_sum_sec": 1.2
+    }
+  }
+}

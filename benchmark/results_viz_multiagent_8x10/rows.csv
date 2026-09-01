@@ -1,0 +1,4 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,first_solution_ms,reversals,assignment_restarts,assignment_second_solved,assignment_improvements,assignment_second_solution_ms,assignment_first_soc,assignment_second_soc,assignment_first_makespan,assignment_second_makespan,runtime_sec,status,raw
+brap_h8w10_a10_e20_B_seed1_pool_r4,g8x10,carrier,1,343,902.0,214,478,99,29,0.156,29,230,1,1,0,313.152,902,2702,343,1422,0.446,ok,
+brap_h8w10_a10_e20_B_seed1_pool_r6,g8x10,carrier,1,155,500.0,184,166,65,12,0.1978,9,132,1,1,0,455.659,500,1032,155,628,0.662,ok,
+brap_h8w10_a10_e20_B_seed1_pool_r8,g8x10,carrier,1,95,373.0,101,165,57,9,0.1329,5,64,1,1,0,37.4928,373,657,95,202,0.053,ok,

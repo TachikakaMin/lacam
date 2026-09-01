@@ -1,0 +1,69 @@
+instance,family,method,success,executed_makespan,weighted_soc,loaded_moves,free_moves,lift_drop,shelf_switches,robot_utilization,first_solution_ms,reversals,assignment_restarts,assignment_second_solved,assignment_improvements,assignment_second_solution_ms,assignment_first_soc,assignment_second_soc,assignment_first_makespan,assignment_second_makespan,runtime_sec,status,raw
+brap_h10w10_a12_e3_B_seed0_pool,g10x10,carrier,1,555,863.0,88,559,170,48,0.0793,1396,87,1,1,0,3833.03,863,1170,555,700,4.532,ok,
+brap_h10w10_a12_e3_B_seed1_pool,g10x10,carrier,1,1964,3261.0,504,1896,600,235,0.1283,4009,483,1,1,0,8228.07,3261,4279,1964,2522,9.456,ok,
+brap_h10w10_a12_e3_R1_seed0,g10x10,carrier,1,1835,3206.0,417,1948,556,204,0.1136,4081,428,0,0,0,-1,-1,-1,-1,-1,5.546,ok,
+brap_h10w10_a12_e3_R1_seed1,g10x10,carrier,1,2620,4396.0,477,2756,792,316,0.091,6787,587,0,0,0,-1,-1,-1,-1,-1,9.315,ok,
+brap_h10w10_a12_e8_B_seed0_pool,g10x10,carrier,1,1260,2087.0,326,1252,337,114,0.1294,1045,275,1,1,0,2250.83,2087,3156,1260,1720,2.632,ok,
+brap_h10w10_a12_e8_B_seed1_pool,g10x10,carrier,1,1030,1701.0,233,1003,340,125,0.1131,826,194,1,1,0,3203.49,1701,4182,1030,2367,4.068,ok,
+brap_h10w10_a12_e8_R1_seed0,g10x10,carrier,1,4850,8576.0,1451,4650,1604,727,0.1496,3653,1231,0,0,0,-1,-1,-1,-1,-1,5.221,ok,
+brap_h10w10_a12_e8_R1_seed1,g10x10,carrier,1,2780,4952.0,835,2626,962,401,0.1502,1989,771,0,0,0,-1,-1,-1,-1,-1,2.807,ok,
+brap_h10w10_a1_e1_B_seed0_pool,g10x10,carrier,1,125,212.0,30,110,50,14,0.12,276,27,1,1,0,1431.14,212,358,125,198,1.712,ok,
+brap_h10w10_a1_e1_B_seed1_pool,g10x10,carrier,1,1,0.0,0,0,0,0,0.0,0,0,1,1,0,0.17761,0,0,1,1,0.004,ok,
+brap_h10w10_a1_e1_R1_seed0,g10x10,carrier,1,102,167.0,17,103,34,5,0.0833,405,13,0,0,0,-1,-1,-1,-1,-1,0.509,ok,
+brap_h10w10_a1_e1_R1_seed1,g10x10,carrier,1,653,1087.0,142,606,240,73,0.1087,2335,136,0,0,0,-1,-1,-1,-1,-1,3.011,ok,
+brap_h20w20_a40_e100_B_seed0_pool,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.289,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h20w20_a40_e100_B_seed1_pool,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.258,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h20w20_a40_e100_R1_seed0,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.613,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h20w20_a40_e100_R1_seed1,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.614,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h20w20_a40_e10_B_seed0_pool,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.228,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h20w20_a40_e10_B_seed1_pool,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.23,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h20w20_a40_e10_R1_seed0,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.573,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h20w20_a40_e10_R1_seed1,g20x20,carrier,0,,,,,,,,,,,,,,,,,,10.558,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a160_e400_R1_seed0,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.563,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a160_e400_R1_seed1,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.425,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a160_e40_R1_seed0,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.593,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a160_e40_R1_seed1,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.549,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a80_e400_B_seed0_pool,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.324,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a80_e400_B_seed1_pool,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.323,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a80_e40_B_seed0_pool,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.367,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h40w40_a80_e40_B_seed1_pool,g40x40,carrier,0,,,,,,,,,,,,,,,,,,10.371,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h4w10_a5_e10_B_seed0_pool,g4x10,carrier,1,41,67.0,6,44,14,1,0.0732,2,2,1,1,1,8.94832,86,67,53,41,0.014,ok,
+brap_h4w10_a5_e10_B_seed1_pool,g4x10,carrier,1,34,61.0,8,32,16,2,0.1176,7,5,1,1,1,11.3879,65,61,36,34,0.016,ok,
+brap_h4w10_a5_e10_R1_seed0,g4x10,carrier,1,298,539.0,153,235,118,37,0.2567,57,104,0,0,0,-1,-1,-1,-1,-1,0.081,ok,
+brap_h4w10_a5_e10_R1_seed1,g4x10,carrier,1,193,362.0,100,127,94,37,0.2591,16,61,0,0,0,-1,-1,-1,-1,-1,0.026,ok,
+brap_h4w10_a5_e1_B_seed0_pool,g4x10,carrier,1,66,89.0,10,50,23,3,0.0758,15,3,1,1,0,33.8334,89,117,66,76,0.041,ok,
+brap_h4w10_a5_e1_B_seed1_pool,g4x10,carrier,1,34,66.0,12,29,14,0,0.1765,44,6,1,1,1,94.685,98,66,51,34,0.109,ok,
+brap_h4w10_a5_e1_R1_seed0,g4x10,carrier,1,1053,1737.0,225,975,380,157,0.1068,3174,200,0,0,0,-1,-1,-1,-1,-1,4.494,ok,
+brap_h4w10_a5_e1_R1_seed1,g4x10,carrier,1,510,826.0,112,454,180,62,0.1098,667,100,0,0,0,-1,-1,-1,-1,-1,0.923,ok,
+brap_h6w10_a6_e15_B_seed0_pool,g6x10,carrier,1,112,208.0,86,66,37,7,0.3839,4,46,1,1,0,6.97529,208,224,112,119,0.013,ok,
+brap_h6w10_a6_e15_B_seed1_pool,g6x10,carrier,1,64,126.0,41,44,26,4,0.3203,1,21,1,1,0,4.10246,126,143,64,69,0.009,ok,
+brap_h6w10_a6_e15_R1_seed0,g6x10,carrier,1,424,758.0,168,368,162,62,0.1981,87,114,0,0,0,-1,-1,-1,-1,-1,0.121,ok,
+brap_h6w10_a6_e15_R1_seed1,g6x10,carrier,1,1279,2501.0,636,965,566,256,0.2486,143,381,0,0,0,-1,-1,-1,-1,-1,0.203,ok,
+brap_h6w10_a6_e1_B_seed0_pool,g6x10,carrier,1,519,855.0,97,524,170,48,0.0934,1743,109,1,1,1,3685.76,990,855,622,519,4.268,ok,
+brap_h6w10_a6_e1_B_seed1_pool,g6x10,carrier,1,275,462.0,80,242,110,41,0.1455,230,56,1,1,0,4202.02,462,1196,275,726,5.7,ok,
+brap_h6w10_a6_e1_R1_seed0,g6x10,carrier,1,1681,2876.0,370,1651,552,221,0.1101,5746,391,0,0,0,-1,-1,-1,-1,-1,8.026,ok,
+brap_h6w10_a6_e1_R1_seed1,g6x10,carrier,1,2068,3408.0,446,1974,686,293,0.1078,6112,431,0,0,0,-1,-1,-1,-1,-1,8.489,ok,
+brap_h80w80_a128_e1600_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.125,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a128_e1600_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.094,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a128_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.229,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a128_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.323,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a128_e160_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.22,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a128_e160_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.209,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a128_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.422,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a128_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.441,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a160_e1600_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.104,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a160_e1600_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.098,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a160_e160_B_seed0_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.184,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a160_e160_B_seed1_pool,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.188,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a800_e1600_R1_seed0,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.396,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a800_e1600_R1_seed1,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.404,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a800_e160_R1_seed0,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.46,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h80w80_a800_e160_R1_seed1,g80x80,carrier,0,,,,,,,,,,,,,,,,,,10.472,timeout,ements=0 assignment_second_solution_ms=-1 assignment_first_soc=-1 assignment_second_soc=-1 assignment_first_makespan=-1 assignment_second_makespan=-1 
+brap_h8w10_a10_e20_B_seed0_pool,g8x10,carrier,1,77,162.0,53,69,22,0,0.3442,1,24,1,1,1,3.99986,167,162,78,77,0.009,ok,
+brap_h8w10_a10_e20_B_seed1_pool,g8x10,carrier,1,168,299.0,63,162,50,3,0.1875,15,43,1,1,1,46.8937,480,299,241,168,0.06,ok,
+brap_h8w10_a10_e20_R1_seed0,g8x10,carrier,1,583,1169.0,300,461,242,89,0.2573,118,186,0,0,0,-1,-1,-1,-1,-1,0.165,ok,
+brap_h8w10_a10_e20_R1_seed1,g8x10,carrier,1,718,1295.0,415,476,292,112,0.289,132,223,0,0,0,-1,-1,-1,-1,-1,0.187,ok,
+brap_h8w10_a10_e2_B_seed0_pool,g8x10,carrier,1,683,1181.0,206,619,262,97,0.1508,713,183,1,1,0,2390.63,1181,2744,683,1594,3.015,ok,
+brap_h8w10_a10_e2_B_seed1_pool,g8x10,carrier,1,1073,1791.0,256,999,381,152,0.1193,1875,249,1,1,0,4211.77,1791,2268,1073,1314,4.954,ok,
+brap_h8w10_a10_e2_R1_seed0,g8x10,carrier,1,2207,3816.0,474,2267,762,313,0.1074,4059,528,0,0,0,-1,-1,-1,-1,-1,5.77,ok,
+brap_h8w10_a10_e2_R1_seed1,g8x10,carrier,1,2937,4765.0,564,2951,882,378,0.096,4426,622,0,0,0,-1,-1,-1,-1,-1,6.201,ok,

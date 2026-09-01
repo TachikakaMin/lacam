@@ -1,89 +1,130 @@
 #!/usr/bin/env python3
-"""design.md 8.4 ablations on the protected dev cases (debug.md task 13).
+"""Structural ablations on the protected development cases.
 
-Variants (all via dd_benchmark; env knobs are ordering-only switches):
-  full        default configuration
-  no_macro    DD_MACRO_CAP=0        (B0-vs-full inside the searcher)
-  strict_inv  DD_STRICT_INVAL=1     (design-6.2 asymmetric off)
-  no_yield    DD_NO_YIELD=1         (head-on carrier yield off)
-  b0          MODE=b0               (rollout only, no search)
-  b1          MODE=b1               (2-stage frozen shelf plans)
+Variants:
+  full        integrated search + automatic plan repair
+  b0          rollout only, no search
+  b1          two-stage frozen shelf plans
 
-Writes ablation_rows.csv: case, variant, solved, makespan, soc,
-first_solution_ms, runtime_sec.
+The experiment contract is fixed: 10 seconds, 14 jobs, solver seed 0,
+unit objective weights, default following semantics, and authoritative
+Python replay of every reported success.
 """
 
+import argparse
 import csv
+import json
 import os
-import subprocess
 import sys
 import time
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent
-BIN = BENCH.parent / "build/dd_benchmark"
+sys.path.insert(0, str(BENCH))
+
+from ddbench.instance import load_instance
+from run_benchmark import row_carrier
+
 TIME_LIMIT = 10
+JOBS = 14
 
 VARIANTS = [
-    ("full", {}, "lacam"),
-    ("no_macro", {"DD_MACRO_CAP": "0"}, "lacam"),
-    ("strict_inv", {"DD_STRICT_INVAL": "1"}, "lacam"),
-    ("no_yield", {"DD_NO_YIELD": "1"}, "lacam"),
-    ("greedy_rho", {"DD_RHO_HUNGARIAN": "0"}, "lacam"),
-    ("no_eta", {"DD_ETA": "0"}, "lacam"),
-    ("no_idle_avoid", {"DD_IDLE_AVOID": "0"}, "lacam"),
-    ("place_escape", {"DD_PLACE_ESCAPE": "1"}, "lacam"),
-    ("nofollow", {"DD_NO_FOLLOWING": "1"}, "lacam"),
-    ("b0", {}, "b0"),
-    ("b1", {}, "b1"),
+    ("full", "lacam"),
+    ("b0", "b0"),
+    ("b1", "b1"),
+]
+
+FIELDS = [
+    "case", "family", "variant", "solved", "executed_makespan",
+    "weighted_soc", "loaded_moves", "free_moves", "lift_drop",
+    "shelf_switches", "robot_utilization", "reversals",
+    "first_solution_ms", "runtime_sec", "status", "raw",
 ]
 
 
-def run_one(case, name, env_extra, mode):
-    env = dict(os.environ, **env_extra)
-    plan_out = f"/tmp/abl_{Path(case).stem}_{name}.plan"
-    t0 = time.time()
-    try:
-        p = subprocess.run(
-            [str(BIN), str(BENCH / case), str(TIME_LIMIT), plan_out,
-             "0", mode],
-            capture_output=True, text=True, timeout=TIME_LIMIT + 30,
-            env=env,
-        )
-        m = dict(l.split("=", 1) for l in p.stdout.splitlines() if "=" in l)
-    except subprocess.TimeoutExpired:
-        m = {}
-    print(f"{Path(case).stem:42s} {name:11s} solved={m.get('solved','0')}"
-          f" mk={m.get('makespan','')}", flush=True)
-    return dict(
-        case=Path(case).stem, variant=name,
-        solved=m.get("solved", "0"),
-        makespan=m.get("makespan", ""),
-        weighted_soc=m.get("weighted_soc", ""),
-        first_solution_ms=m.get("first_solution_ms", ""),
-        runtime_sec=round(time.time() - t0, 2),
+def run_one(case, name, mode, work):
+    path = BENCH / case
+    ins = load_instance(path)
+    env = dict(os.environ)
+    for key in ("DD_ALPHA", "DD_BETA", "DD_GAMMA", "DD_DELTA",
+                "DD_DEBUG_DUMP"):
+        env.pop(key, None)
+    row = row_carrier(
+        ins, path, Path(case).stem, Path(case).parent.name, work,
+        TIME_LIMIT, mode, env=env,
     )
+    print(f"{Path(case).stem:42s} {name:11s} solved={row['success']}"
+          f" mk={row['executed_makespan']}", flush=True)
+    return {
+        "case": row["instance"],
+        "family": row["family"],
+        "variant": name,
+        "solved": row["success"],
+        "executed_makespan": row["executed_makespan"],
+        "weighted_soc": row["weighted_soc"],
+        "loaded_moves": row["loaded_moves"],
+        "free_moves": row["free_moves"],
+        "lift_drop": row["lift_drop"],
+        "shelf_switches": row["shelf_switches"],
+        "robot_utilization": row["robot_utilization"],
+        "reversals": row["reversals"],
+        "first_solution_ms": row["first_solution_ms"],
+        "runtime_sec": row["runtime_sec"],
+        "status": row["status"],
+        "raw": row["raw"],
+    }
 
 
 def main():
-    # jobs=16: PHYSICAL core count — HT oversubscription starves tasks
-    # whose first solution sits near the 10s deadline (timing fidelity).
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--out-dir", default=str(BENCH / "results_ablation"),
+        help="new output directory; do not overwrite a comparison result",
+    )
+    args = parser.parse_args()
+
     from concurrent.futures import ThreadPoolExecutor
     cases = [
         line.strip()
         for line in (BENCH / "dev_cases.txt").read_text().splitlines()
         if line.strip() and not line.startswith("#")
     ]
-    tasks = [(c, n, e, m) for c in cases for (n, e, m) in VARIANTS]
-    with ThreadPoolExecutor(max_workers=16) as ex:
-        rows = list(ex.map(lambda t: run_one(*t), tasks))
-    out = BENCH / "results_ablation"
-    out.mkdir(exist_ok=True)
+    tasks = [(c, n, m) for c in cases for (n, m) in VARIANTS]
+    out = Path(args.out_dir)
+    work = out / "work"
+    work.mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
+    with ThreadPoolExecutor(max_workers=JOBS) as ex:
+        rows = list(ex.map(lambda t: run_one(*t, work), tasks))
+    wall = time.monotonic() - started
+    rows.sort(key=lambda row: (row["case"], row["variant"]))
     with open(out / "ablation_rows.csv", "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+        w = csv.DictWriter(fh, fieldnames=FIELDS)
         w.writeheader()
         w.writerows(rows)
-    print(f"written {out/'ablation_rows.csv'}")
+
+    summary = {}
+    for name, _ in VARIANTS:
+        selected = [row for row in rows if row["variant"] == name]
+        summary[name] = {
+            "solved": sum(int(row["solved"]) for row in selected),
+            "total": len(selected),
+        }
+    timing = {
+        "wall_time_sec": round(wall, 1),
+        "jobs": JOBS,
+        "n_tasks": len(tasks),
+        "timeout_per_run_sec": TIME_LIMIT,
+        "solver_seed": 0,
+        "objective_weights": {
+            "alpha": 1, "beta": 1, "gamma": 1, "delta": 1,
+        },
+        "following": "allowed",
+        "variants": summary,
+    }
+    (out / "timing.json").write_text(json.dumps(timing, indent=2) + "\n")
+    print(f"written {out / 'ablation_rows.csv'}")
+    print(f"written {out / 'timing.json'}")
 
 
 if __name__ == "__main__":

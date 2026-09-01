@@ -10,9 +10,9 @@ Pins two bugs found on 2026-08-29:
    re-clone/rebuild silently reverts to -O0.
 
 2. UPSTREAM LOGIC BUG (canary): CREST with --STR --DW --GTR on the pinned
-   DnE-M instance exits nonzero with "can not find path for agent ...";
-   crest_base solves the same instance.  Reproduces at -O0 and -O3.
-   If upstream fixes it, the canary test alerts us to re-measure.
+   DnE-M instance either exits nonzero with a known path/dependency error
+   or exceeds the fixed 10-second budget; crest_base solves seed0. If
+   upstream fixes it within budget, the canary alerts us to re-measure.
 
 Run:  PYTHONPATH=. python3 -m unittest tests.test_baselines -v
 (from benchmark/; requires built baselines and the ddtool env libs)
@@ -34,6 +34,8 @@ ENV = dict(
     os.environ,
     LD_LIBRARY_PATH=str(Path.home() / "micromamba/envs/ddtool/lib"),
 )
+SOLVER_TIME_LIMIT_SEC = 10
+PROCESS_TIMEOUT_SEC = SOLVER_TIME_LIMIT_SEC + 5
 
 
 def run(cmd, timeout):
@@ -69,8 +71,8 @@ class TestCrestBuildOptimized(unittest.TestCase):
         p, wall = run(
             [CREST_BIN, "--suboptimality=1.6", "-m", CREST_DIR / "data/1.map",
              "-a", CREST_DIR / "data/1.scen", "-k", "8", "--STR=true",
-             "--DW=true", "--GTR=true", "-t", "60"],
-            timeout=90,
+             "--DW=true", "--GTR=true", "-t", SOLVER_TIME_LIMIT_SEC],
+            timeout=PROCESS_TIMEOUT_SEC,
         )
         self.assertEqual(p.returncode, 0, p.stderr[-300:])
         m = re.search(r"runtime : ([0-9.]+)", p.stdout)
@@ -82,8 +84,8 @@ class TestCrestBuildOptimized(unittest.TestCase):
         p, wall = run(
             [CREST_BIN, "--suboptimality=1.6", "-m", CREST_DIR / "data/1.map",
              "-a", CREST_DIR / "data/1.scen", "-k", "8", "--STR=false",
-             "--DW=false", "--GTR=false", "-t", "60"],
-            timeout=90,
+             "--DW=false", "--GTR=false", "-t", SOLVER_TIME_LIMIT_SEC],
+            timeout=PROCESS_TIMEOUT_SEC,
         )
         self.assertEqual(p.returncode, 0, p.stderr[-300:])
         self.assertIn("makespan :", p.stdout)
@@ -116,14 +118,19 @@ class TestCrestUpstreamPathfindingBug(unittest.TestCase):
 
     def _run(self, mp, sp, full):
         flag = "true" if full else "false"
-        return run(
-            [CREST_BIN, "--suboptimality=1.6", "-m", mp, "-a", sp,
-             "-k", "32", f"--STR={flag}", f"--DW={flag}", f"--GTR={flag}",
-             "-t", "600"],
-            timeout=900,
-        )
+        try:
+            return run(
+                [CREST_BIN, "--suboptimality=1.6", "-m", mp, "-a", sp,
+                 "-k", "32", f"--STR={flag}", f"--DW={flag}",
+                 f"--GTR={flag}", "-t", SOLVER_TIME_LIMIT_SEC],
+                timeout=PROCESS_TIMEOUT_SEC,
+            )
+        except subprocess.TimeoutExpired:
+            return None, PROCESS_TIMEOUT_SEC
 
     def _assert_known_failure(self, p, label):
+        if p is None:
+            return  # expected failure to finish within the fixed budget
         combined = p.stdout + p.stderr
         if p.returncode == 0:
             self.fail(
@@ -136,7 +143,7 @@ class TestCrestUpstreamPathfindingBug(unittest.TestCase):
             f"(new bug?): {combined[-300:]}",
         )
 
-    def test_seed6_full_mode_fails_with_known_signature(self):
+    def test_seed6_full_mode_fails_or_exceeds_budget(self):
         p, _ = self._run(self.MAP6, self.SCEN6, full=True)
         self._assert_known_failure(p, "seed6 crest_full")
 
@@ -146,8 +153,9 @@ class TestCrestUpstreamPathfindingBug(unittest.TestCase):
         self._assert_known_failure(p, "seed6 crest_base")
 
     def test_seed0_baseline_solves_but_full_fails(self):
-        """Isolation pair: same instance, base OK, full hits the bug."""
+        """Isolation pair: base solves; full fails or exceeds 10 seconds."""
         p_base, _ = self._run(self.MAP0, self.SCEN0, full=False)
+        self.assertIsNotNone(p_base, "seed0 crest_base exceeded 10 seconds")
         self.assertEqual(p_base.returncode, 0,
                          (p_base.stdout + p_base.stderr)[-300:])
         self.assertIn("makespan :", p_base.stdout)
@@ -170,9 +178,9 @@ class TestMawrSmoke(unittest.TestCase):
             out = Path(td) / "r.csv"
             out.touch()
             p, wall = run(
-                [MAWR_BIN, "-m", mp, "-s", sp, "-a", "NATCBS", "-t", "60",
-                 "-o", out],
-                timeout=90,
+                [MAWR_BIN, "-m", mp, "-s", sp, "-a", "NATCBS", "-t",
+                 SOLVER_TIME_LIMIT_SEC, "-o", out],
+                timeout=PROCESS_TIMEOUT_SEC,
             )
             self.assertEqual(p.returncode, 0, (p.stdout + p.stderr)[-300:])
             line = out.read_text().strip().splitlines()[-1]
