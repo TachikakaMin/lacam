@@ -167,6 +167,7 @@ guidance refresh steps     GUIDANCE_REFRESH_STEPS = 8   (rollout 内)
 assignment exact limit     ASSIGNMENT_EXACT_LIMIT = 256
 active target limit/cap    ACTIVE_TARGET_LIMIT = 256 / ACTIVE_TARGET_CAP = 64
 assignment hysteresis      ASSIGNMENT_HYSTERESIS = 2    (tau 与 rho 共用)
+head drop-hint scan cap    HEAD_DROP_SCAN_CAP = 64      (frontier 编译)
 livelock window            LIVELOCK_WINDOW = 24         (revisit 重导阈值 8)
 clear chain length         CLEAR_CHAIN_K = 3
 blocked-cell path penalty  LAMBDA_BLK = 8
@@ -196,6 +197,8 @@ all suite                  36/68
 ```text
 tau_change_builds / tau_pair_changes      shelf-goal 改写频度
 rho_change_builds / rho_pair_changes      robot 任务改写频度
+tau_price_repairs                         §5.1 execution-price 重配次数
+rewire_guidance_rebuilds                  §6.1 惰性 rewire 重建次数
 tau_time_ms / guidance_time_ms            每节点 guidance 预算
 guidance_builds / path_recomputes / path_cache_hits
 futile_lift_demotions
@@ -267,19 +270,22 @@ solver 固定 10 秒内部预算；subprocess 只留 5 秒启动/终止余量。
 | `dd_plan_repair.repaired_soc_never_exceeds_raw_under_any_weights` | 修补 SOC 不增契约（2026-09-01） |
 | `DuplicateTargetStartTest`（Python） | loader 与 C++ finalize 对齐（2026-09-01） |
 
-### 7.2 v3.0 必测（design_final §12；落地时补齐）
+### 7.2 v3.0 必测（design_final §12；全部落地）
 
 | # | 要求 | 状态 |
 |---|---|---|
 | 1 | 零 shelf 与原 LaCAM-TAPF 逐位一致 | 已覆盖（`test_tapf_compat`） |
 | 2 | `\|G_b\|=1` 退化为 fixed-goal carrier | 已覆盖（`dd_tau.singleton_*`、`dd_goalset.singleton_*`） |
-| 3 | target 不动、robot/vacancy 变时 `tau_guide` 可改变 | 待写（robot-realization cost 落地时） |
-| 4 | 同一 `TaskId` 连续经历 approach/Lift/carry/Drop | 待写（ManipulationTask 落地时） |
-| 5 | one-empty ready task = 相邻 shelf 移入 vacancy | 待写（compile_frontier_task 落地时） |
-| 6 | execution feedback 不进 admissible `h` | 半覆盖（`hysteresis_is_tie_break_only`、`rowwise_taboo_does_not_bias_admissible_h`）；robot 项落地时同型扩展 |
+| 3 | target 不动、robot/vacancy 变时 `tau_guide` 可改变 | 已覆盖（`dd_tasks.robot_placement_flips_tau_guide_goal`） |
+| 4 | 同一 `TaskId` 连续经历 approach/Lift/carry/Drop | 已覆盖（`dd_tasks.custody_keeps_task_id_from_lift_through_drop`） |
+| 5 | one-empty ready task = 相邻 shelf 移入 vacancy | 已覆盖（`dd_tasks.one_empty_ready_task_moves_vacancy_adjacent_shelf`） |
+| 6 | execution feedback 不进 admissible `h` | 已覆盖（`dd_tasks.execution_price_never_enters_admissible_h` + `hysteresis_is_tie_break_only` + `rowwise_taboo_does_not_bias_admissible_h`） |
 | 7 | 所有返回计划过 C++/Python replay | 已覆盖（repair 测试 + validator + golden corpus） |
 
-待写测试在对应机制合入的同一 CR 内交付，不允许"先合机制后补测试"。
+v3.0 新增保护测试（2026-09-01，均 RED->GREEN）：
+`dd_tasks.*`（10 个：task 池投影/身份/rho 绑定、frontier 编译、
+one-empty ready、drop hint、价触发翻转、h 纯性、custody 生命周期）、
+`dd_rewire.duplicate_rewire_rebuilds_guidance`（anytime 入口）。
 
 ## 8. Benchmark gate
 
@@ -318,17 +324,30 @@ native-objective 外部方法混跑。
 
 ### 8.2 语义变更（v3.0 task/`tau_guide` 落地）
 
+**落地状态（2026-09-01）**：step 1-3 已实现并通过本节验收；当前 head
+结果 = `results_v3_step3_price`（36/68、小图 36/36；vs
+`results_task_commit_final` 共同成功集 mk/SOC 几何比
+0.908435/0.930686，17/8/11，总 makespan 34,860 -> 31,278）。分步 gate
+（`results_v3_step{1,2,3}_*`）构成消融阶梯：B（request cell vs
+ManipulationTask）= baseline->step1（1.006988）；one-empty frontier
+编译 = step1->step2（0.923696）；A/C（frozen vs feedback、shelf-only
+vs realization-aware，在实现中由 price 轮同一机制承载）=
+step2->step3（0.974503，17 个变化行全部为 multi-goal B-pool，R1 plan
+与 step2 逐字节一致）。
+
 按 design_final §11.6 验收，开新结果目录并同时报告：
 
 - success 不低于 `36/68` 与小图 `36/36`；
 - 共同成功集 makespan/SOC 几何均值 + 逐例改善/持平/恶化，恶化逐个
-  解释；锚案例 `h4w10_a5_e1_R1_seed0`（基线 1053）、
-  `h10w10_a12_e3_R1_seed1`（基线 2620）单列；
+  解释；锚案例 `h4w10_a5_e1_R1_seed0`（基线 1053，v3.0 当前 417）、
+  `h10w10_a12_e3_R1_seed1`（基线 2620，v3.0 当前 2689，first_ms
+  贴线）单列；
 - 首遍轨迹允许改变；singleton/R1 逐字节等价不作为语义变更的验收项，
   但零 shelf（`test_tapf_compat`）仍必须逐位一致；
 - 三组消融 A（frozen tau vs `tau_guide`）、B（request cell vs
   ManipulationTask）、C（shelf-only vs robot-realization cost）以
-  结构 runner method 同协议报告；
+  结构变体报告——当前由分步 gate 阶梯承载（见上）；若需单轴独立
+  变体，按 §11.2 以 runner method 落地，不得用环境开关；
 - `tau_time_ms / guidance_time_ms` 预算报告（§6 症状 2）。
 
 ### 8.3 可视化对照

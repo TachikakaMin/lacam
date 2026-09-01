@@ -18,6 +18,13 @@
 > **状态声明**：[设计] 段是目标语义，未实现前不代表已验证行为；已验证
 > 行为 = [现状] 段 + §11.5 基线数字。落地进度由 §12 测试表与
 > `debug.md` §7.2 追踪。
+>
+> **落地更新（2026-09-01）**：v3.0 step 1-3（task 池 + TaskId 绑定
+> rho、frontier 编译器含 one-empty ready 规则、execution-price
+> `tau_guide` + custody + 惰性 rewire 重建）已实现并通过 gate；当前
+> head 结果 `results_v3_step3_price`（36/68、小图 36/36、vs baseline
+> 共同成功集 mk 几何比 0.908435）。§3-§7 的 [现状] 段描述 v2.2 起点
+> （保留作实现对照），各步落地细节与逐例披露见 §12。
 
 ---
 
