@@ -44,6 +44,8 @@ struct DDStats {
   long tau_pair_changes = 0;
   long rho_change_builds = 0;
   long rho_pair_changes = 0;
+  long tau_price_repairs = 0;         // v3.0 §5.1 execution-price repairs
+  long rewire_guidance_rebuilds = 0;  // v3.0 §6.1 duplicate-rewire rebuilds
   long g_relaxed = 0;         // duplicate hits relaxed to a cheaper g
                               // (generic search-kernel diagnostic)
   long guidance_builds = 0;
@@ -184,6 +186,21 @@ struct ManipulationTask;
 std::vector<ManipulationTask> dd_build_tasks(
     const DDInstance& ins, const PhysConfig& X,
     std::vector<int>* rho_task_out = nullptr);
+
+// TEST SUPPORT (debug.md §7.2 test 4): step the production generator from
+// the initial configuration (parent-guide chaining as in rollout) and
+// record, per executed step, the observed kappa, the bound task id
+// (rho_task) and the custody id of `robot`.  Stops on goal, generator
+// failure, or max_steps.
+struct DDCustodyStep {
+  int kappa = KAPPA_FREE;   // BEFORE the step
+  int cell = -1;            // robot cell BEFORE the step
+  uint64_t bound_id = 0;    // task bound via rho_task (0 = none)
+  uint64_t custody_id = 0;  // carry custody (0 = none)
+};
+std::vector<DDCustodyStep> dd_rollout_custody_trace(const DDInstance& ins,
+                                                    int robot, int max_steps,
+                                                    int seed);
 
 // TEST SUPPORT (debug.md round-2 P2-13c): production least-blocking path
 // with optional previous-path inertia bias (ties break toward prev; total

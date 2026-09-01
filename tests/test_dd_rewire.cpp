@@ -12,6 +12,7 @@
 // does not promise the brute-force optimum or a duplicate-relax event.
 #include <dd_carrier.hpp>
 #include <dd_planner.hpp>
+#include <tapf_planner.hpp>
 
 #include <functional>
 #include <map>
@@ -238,4 +239,48 @@ TEST(dd_weights, rejects_negative_and_non_finite_env_weights)
   setenv("DD_GAMMA", "2.5", 1);
   EXPECT_NO_THROW(dd_root_admissible_h(ins));
   unsetenv("DD_GAMMA");
+}
+
+// v3.0 step 3 (design_final §6.1, debug.md invariant 21; TDD RED): a
+// duplicate node rewired to a cheaper parent must rebuild its guidance
+// (hysteresis anchor, tasks, rho) instead of keeping the old parent's.
+// Reparenting requires duplicate g-relaxations; in the stop-at-first
+// production pass those are empirically absent (80-fixture scan, 68-case
+// gate: zero), so the hook is exercised through the ANYTIME entry of the
+// same solve loop, where dense shuffles relax heavily (deterministic:
+// dense 3x4 fixture, solver seed 0).
+TEST(dd_rewire, duplicate_rewire_rebuilds_guidance)
+{
+  std::mt19937 gen(0);
+  DDInstance ins;
+  ins.grid = DDGrid({"....", "....", "...."});
+  std::vector<int> cells(12);
+  for (int i = 0; i < 12; ++i) cells[i] = i;
+  std::shuffle(cells.begin(), cells.end(), gen);
+  ins.robots = {cells[0], cells[1]};
+  for (int i = 2; i < 8; ++i) ins.shelves.push_back(cells[i]);  // 6 shelves
+  ins.target_starts = {cells[2], cells[3]};
+  ins.target_goals = {cells[8], cells[9]};
+  ins.finalize();
+
+  const TAPFInstance view(ins);
+  std::mt19937 mt(0);
+  Deadline deadline(1000);
+  TAPFStats st;
+  TAPFSearchConfig cfg;  // anytime: keeps searching past the incumbent
+  TAPFPlanner planner(&view, &deadline, &mt, 0, 0, 0.001f, true, &st, cfg);
+  const auto sol = planner.solve();
+  ASSERT_FALSE(sol.empty());
+  ASSERT_GT(st.g_relaxed, 0) << "fixture stopped producing rewires";
+  EXPECT_GT(st.rewire_guidance_rebuilds, 0)
+      << "no duplicate-rewire guidance rebuild fired";
+  // the rebuilt guidance must not corrupt the returned plan
+  const auto plan = derive_carrier_ops(view, sol, planner.solution_shelves);
+  auto X = initial_phys_config(ins);
+  for (const auto& ops : plan) {
+    auto nxt = apply_ops(ins, X, ops);
+    ASSERT_TRUE(nxt.has_value());
+    X = *nxt;
+  }
+  EXPECT_TRUE(is_dd_goal(ins, X));
 }

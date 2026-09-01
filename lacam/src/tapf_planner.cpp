@@ -132,7 +132,8 @@ TAPFPlanner::~TAPFPlanner()
 }
 
 void TAPFPlanner::attach_carrier_guidance(
-    TAPFNode* nd, bool reguide, const CarrierGuidance* rollout_parent_guide)
+    TAPFNode* nd, bool reguide, const CarrierGuidance* rollout_parent_guide,
+    bool rewire_rebuild)
 {
   if (ins->target_starts.empty()) return;  // natural degradation
   auto& eng = *carrier;
@@ -140,14 +141,22 @@ void TAPFPlanner::attach_carrier_guidance(
   const auto& phys = eng.phys_view(nd);
   const TAPFNode* par = nd->parent;
   const auto tau_started = std::chrono::steady_clock::now();
+  // creation = first attach: folds h and freezes constraint_order.
+  // reguide = livelock diversification (own-guide anchor + taboo).
+  // rewire_rebuild = duplicate-hit re-anchor on the NEW parent (v3.0
+  // §6.1): fresh tasks/rho/hysteresis, no taboo, no h/order changes.
+  const bool creation = !reguide && !rewire_rebuild;
 
   // tau FIRST (design_final 5.3/5.6, T3/T4): every guidance consumer
   // below (guidance-h, paths, park, order, PIBT) reads the ASSIGNED
   // goal.  Hysteresis follows the parent/rollout guide (own guide when
-  // re-guiding) — independent of the livelock state; diversification
-  // under livelock happens via the tau taboo below, never via h.
+  // re-guiding, the NEW parent when rebuilding after a rewire) —
+  // independent of the livelock state; diversification under livelock
+  // happens via the tau taboo below, never via h.
   const CarrierGuidance* tau_hyst = nullptr;
-  if (reguide && nd->guide != nullptr)
+  if (rewire_rebuild && par != nullptr && par->guide != nullptr)
+    tau_hyst = par->guide.get();
+  else if (reguide && nd->guide != nullptr)
     tau_hyst = nd->guide.get();
   else if (par != nullptr && par->guide != nullptr)
     tau_hyst = par->guide.get();
@@ -185,14 +194,15 @@ void TAPFPlanner::attach_carrier_guidance(
     }
   }
   nd->h_guidance = hg;
-  if (!reguide) {
+  if (creation) {
     nd->best_h = par ? std::min(par->best_h, hg) : hg;
     nd->no_progress = (par != nullptr && hg > 0 && hg >= par->best_h)
                           ? par->no_progress + 1
                           : 0;
   }
   const bool livelock =
-      reguide || (nd->no_progress > 0 && nd->no_progress % LIVELOCK_WINDOW == 0);
+      reguide || (!rewire_rebuild && nd->no_progress > 0 &&
+                  nd->no_progress % LIVELOCK_WINDOW == 0);
   std::vector<std::pair<int, int>> taboo;
   if (livelock) {
     const CarrierGuidance* src =
@@ -263,12 +273,42 @@ void TAPFPlanner::attach_carrier_guidance(
   if (parent_guide == nullptr && !livelock)
     parent_guide = rollout_parent_guide;  // parentless rollout probes
   const auto guidance_started = std::chrono::steady_clock::now();
-  nd->guide = std::make_unique<CarrierGuidance>(
+  auto guide = std::make_unique<CarrierGuidance>(
       build_guidance(dd, phys, tau_vec, eng.upper_wall, eng.lower,
                      eng.paths, eng.sc, nd, livelock ? &taboo : nullptr,
                      parent_guide));
+  if (stats != nullptr) ++stats->guidance_builds;
+
+  // ---- v3.0 §5.1 execution-price repair (ordering-only) ----
+  // One light feedback round via the SHARED compute_execution_prices;
+  // prices never touch the admissible h (invariant 18); row-wise (>256)
+  // and all-singleton regimes skip the round entirely.
+  if ((int)dd.n_targets() <= ASSIGNMENT_EXACT_LIMIT &&
+      !eng.tau_engine.all_singleton) {
+    std::vector<std::pair<int, double>> price;
+    if (compute_execution_prices(dd, phys, *guide, tau_vec,
+                                 eng.upper_wall, eng.lower, weights.alpha,
+                                 price)) {
+      auto tau1 = solve_tau(
+          dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
+          weights.gamma,
+          tau_hyst != nullptr && !tau_hyst->tau.empty() ? &tau_hyst->tau
+                                                        : nullptr,
+          nullptr, nullptr, false, &price);
+      if (tau1 != tau_vec) {
+        tau_vec = std::move(tau1);
+        guide = std::make_unique<CarrierGuidance>(build_guidance(
+            dd, phys, tau_vec, eng.upper_wall, eng.lower, eng.paths,
+            eng.sc, nd, livelock ? &taboo : nullptr, parent_guide));
+        if (stats != nullptr) {
+          ++stats->tau_price_repairs;
+          ++stats->guidance_builds;
+        }
+      }
+    }
+  }
+  nd->guide = std::move(guide);
   if (stats != nullptr) {
-    ++stats->guidance_builds;
     stats->guidance_time_ms +=
         std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - guidance_started)
@@ -318,7 +358,7 @@ void TAPFPlanner::attach_carrier_guidance(
     std::stable_sort(nd->order.begin(), nd->order.end(),
                      [&](int a, int b) { return cls(a) < cls(b); });
   }
-  if (!reguide) {
+  if (creation) {
     nd->constraint_order = nd->order;  // frozen at creation (D11, M3)
     // admissible shelf h (design_final 4.3/5.3): the LB-matching value
     // from solve_tau — bit-identical to the old per-target formula on
@@ -573,6 +613,16 @@ Solution TAPFPlanner::solve()
       continue;
     }
 
+    // v3.0 §6.1 lazy re-anchor: this node was reparented by a rewire
+    // since its guidance was built; rebuild from the CURRENT parent
+    // before expanding under stale hysteresis/tasks/rho.
+    if (S->guidance_stale && S->guide != nullptr) {
+      S->guidance_stale = false;
+      attach_carrier_guidance(S, /*reguide=*/false, nullptr,
+                              /*rewire_rebuild=*/true);
+      if (stats != nullptr) ++stats->rewire_guidance_rebuilds;
+    }
+
     {
       const double bound = current_bound();
       if (bound >= 0 && S->f >= bound) {
@@ -698,7 +748,16 @@ Solution TAPFPlanner::solve()
     if (iter != CLOSED.end()) {
       auto S_known = iter->second;
       S->neighbor.insert(S_known);
+      const TAPFNode* known_parent_before = S_known->parent;
       rewrite(S, S_goal, OPEN);
+      // v3.0 §6.1 (invariant 21): a duplicate node rewired to a cheaper
+      // parent must re-anchor its guidance (hysteresis, tasks, rho) on
+      // the NEW parent instead of keeping the stale one.  The rebuild is
+      // LAZY (flag + rebuild at next expansion): anytime searches relax
+      // thousands of nodes and an eager rebuild per relax is unbounded.
+      if (S_known->parent != known_parent_before &&
+          S_known->guide != nullptr)
+        S_known->guidance_stale = true;
       auto S_insert = S_known;
       if (MT != nullptr && get_random_float(MT) < restart_rate) {
         S_insert = S_init;
@@ -1276,7 +1335,12 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     } else if (kappa_i == KAPPA_ANON ||
                (kappa_i >= 0 && guide != nullptr &&
                 guide->target_park[kappa_i])) {
-      // clear duty: carry to the parking cell and drop
+      // clear duty: carry to the parking cell and drop.  The parking
+      // cell is recomputed from the CURRENT position every node, so it
+      // stays the carry-phase waypoint; custody tracks the task IDENTITY
+      // across the episode (v3.0 §6) but does not override the drop cell
+      // — a compile-time `to` hint is stale by execution time and
+      // measurably regresses dense boards (d50 bound test).
       const int park = guide != nullptr ? guide->parking_cell[i] : -1;
       if (park == q) {
         cand.push_back({ai->v_now, (uint8_t)Op::DROP});

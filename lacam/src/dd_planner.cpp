@@ -136,6 +136,8 @@ void map_stats(const TAPFStats& t, DDStats* out)
   out->tau_pair_changes += t.tau_pair_changes;
   out->rho_change_builds += t.rho_change_builds;
   out->rho_pair_changes += t.rho_pair_changes;
+  out->tau_price_repairs += t.tau_price_repairs;
+  out->rewire_guidance_rebuilds += t.rewire_guidance_rebuilds;
   out->g_relaxed += t.g_relaxed;
   out->f_pruned += t.f_pruned;
   out->incumbent_updates += t.incumbent_updates;
@@ -794,17 +796,78 @@ std::vector<ManipulationTask> dd_build_tasks(const DDInstance& ins,
                                              std::vector<int>* rho_task_out)
 {
   // v3.0 §3/§5 probe: the PRODUCTION guidance builder's task pool for X
-  // (fresh caches, same construction as the other guidance probes).
+  // (fresh caches, same construction as the other guidance probes),
+  // including the SHARED execution-price repair round (§5.1).
+  const SocWeights w = soc_weights_from_env();
   DDDistCache tgd(ins.grid);
   LowerDist ld(ins.grid);
   PathCache pc;
   Scratch sc(ins.grid.size());
+  carrier_detail::TauEngine te;
   sc.occ_node = nullptr;
   const int key = 1;
-  const auto tau = tau_of(ins, X);
+  auto tau = carrier_detail::solve_tau(ins, X, tgd, te, w.alpha, w.gamma,
+                                       nullptr, nullptr, nullptr);
   auto g = build_guidance(ins, X, tau, tgd, ld, pc, sc, &key);
+  if ((int)ins.n_targets() <= carrier_detail::ASSIGNMENT_EXACT_LIMIT &&
+      !te.all_singleton) {
+    std::vector<std::pair<int, double>> price;
+    if (carrier_detail::compute_execution_prices(ins, X, g, tau, tgd, ld,
+                                                 w.alpha, price)) {
+      auto tau1 = carrier_detail::solve_tau(ins, X, tgd, te, w.alpha,
+                                            w.gamma, nullptr, nullptr,
+                                            nullptr, false, &price);
+      if (tau1 != tau) {
+        tau = std::move(tau1);
+        sc.occ_node = nullptr;
+        g = build_guidance(ins, X, tau, tgd, ld, pc, sc, &key);
+      }
+    }
+  }
   if (rho_task_out != nullptr) *rho_task_out = g.rho_task;
   return std::move(g.tasks);
+}
+
+std::vector<DDCustodyStep> dd_rollout_custody_trace(const DDInstance& ins,
+                                                    int robot, int max_steps,
+                                                    int seed)
+{
+  // debug.md §7.2 test 4 probe: production generator loop with
+  // parent-guide chaining (custody flows through rollout_parent_guide,
+  // exactly as in carrier_rollout / the 2-stage executor).
+  const TAPFInstance view(ins);
+  std::mt19937 mt(seed);
+  TAPFStats tstats;
+  TAPFPlanner planner(&view, nullptr, &mt, 0, 0, 0.001f, true, &tstats);
+  auto C = view.starts;
+  auto S = initial_shelf_state(view);
+  std::vector<DDCustodyStep> trace;
+  std::unique_ptr<TAPFNode> prev;
+  for (int step = 0; step < max_steps; ++step) {
+    if (planner.is_goal_config(C, S)) break;
+    auto node = std::make_unique<TAPFNode>(
+        C, S, planner.D, &view, std::vector<int>((int)view.N, -1),
+        TAPFAssignmentState(), nullptr);
+    planner.invalidate_carrier_scratch();
+    planner.attach_carrier_guidance(
+        node.get(), false, prev != nullptr ? prev->guide.get() : nullptr);
+    DDCustodyStep rec;
+    rec.kappa = S.kappa.empty() ? KAPPA_FREE : S.kappa[robot];
+    rec.cell = C[robot]->index;
+    const auto& g = *node->guide;
+    if ((size_t)robot < g.rho_task.size() && g.rho_task[robot] >= 0 &&
+        g.rho_task[robot] < (int)g.tasks.size())
+      rec.bound_id = g.tasks[g.rho_task[robot]].id;
+    if ((size_t)robot < g.custody.size()) rec.custody_id = g.custody[robot].id;
+    trace.push_back(rec);
+    TAPFConstraint root;
+    if (!planner.get_new_config(node.get(), &root)) break;
+    if (!planner.apply_carrier_effects(node.get())) break;
+    for (auto a : planner.A) C[a->id] = a->v_next;
+    S = planner.shelf_next_scratch;
+    prev = std::move(node);
+  }
+  return trace;
 }
 
 std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,

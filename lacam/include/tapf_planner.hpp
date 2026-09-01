@@ -92,6 +92,11 @@ struct CarrierGuidance {
   // v3.0 task pool: requests are a PROJECTION of tasks (request k is
   // task k's pickup view); rho binds tasks, request indices follow.
   std::vector<ManipulationTask> tasks;
+  // v3.0 §6 custody: the task a loaded-ANON robot is executing (copied at
+  // Lift from the parent binding; kept while carrying; cleared on Drop).
+  // id == 0 means no custody.  Labeled targets need no custody: kappa
+  // already names the shelf and tau names its goal.
+  std::vector<ManipulationTask> custody;
   std::vector<int> rho;           // robot -> request index (or -1)
   std::vector<int> rho_task;      // robot -> task pool index (or -1)
   std::vector<int> free_goal;     // per-robot request cell (or -1)
@@ -118,6 +123,10 @@ struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {
   int no_progress = 0;
   int revisits = 0;
   bool macro_tried = false;
+  // v3.0 §6.1: set when a duplicate-hit rewire reparents this node; the
+  // guidance is re-anchored LAZILY at the next expansion (rebuilding on
+  // every relax is unbounded in anytime searches).
+  bool guidance_stale = false;
   std::set<TAPFNode*> neighbor;
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
@@ -185,6 +194,10 @@ struct TAPFStats {
   long tau_pair_changes = 0;
   long rho_change_builds = 0;
   long rho_pair_changes = 0;
+  // v3.0 step 3 diagnostics: execution-price tau repairs and
+  // duplicate-rewire guidance rebuilds (design_final §5.1/§6.1).
+  long tau_price_repairs = 0;
+  long rewire_guidance_rebuilds = 0;
   long f_pruned = 0;    // nodes discarded by the incumbent/f bound
   long g_relaxed = 0;   // duplicate-hit g relaxations (rewrite propagation)
   long guidance_builds = 0;  // carrier guidance constructions (M6)
@@ -312,10 +325,13 @@ struct TAPFPlanner {
   // folds the admissible shelf h into node->h/f, and applies the
   // livelock diversification.  Immediate no-op without targets.
   // rollout_parent_guide supplies the eta-hysteresis ancestor for
-  // parentless rollout probes.
+  // parentless rollout probes.  rewire_rebuild (v3.0 §6.1, invariant 21)
+  // re-anchors an EXISTING node's guidance on its NEW parent after a
+  // duplicate-hit rewire: no taboo, no h/f or constraint_order changes.
   void attach_carrier_guidance(
       TAPFNode* nd, bool reguide = false,
-      const CarrierGuidance* rollout_parent_guide = nullptr);
+      const CarrierGuidance* rollout_parent_guide = nullptr,
+      bool rewire_rebuild = false);
   // operator-candidate construction for the lazy constraint tree (M3):
   // the ONE production implementation, shared by solve() and the G1
   // conformance enumeration adapters.  rng consumption identical to the

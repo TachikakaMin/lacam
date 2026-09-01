@@ -207,3 +207,120 @@ TEST(dd_tasks, unstartable_head_skips_drop_hint)
   EXPECT_EQ(tasks[head].to, -1)
       << "unstartable head must not carry a compiler drop hint";
 }
+
+// ---- v3.0 step 3: execution-aware tau_guide (design_final §4.1/§5.1;
+// new.md §3/§4; debug.md §7.2 test 3).  Written BEFORE the
+// implementation (TDD RED). ----
+
+namespace {
+
+DDInstance make_pool_ins(const std::vector<std::string>& rows,
+                         const std::vector<std::pair<int, int>>& robots,
+                         const std::vector<std::pair<int, int>>& shelves,
+                         std::pair<int, int> start,
+                         const std::vector<std::pair<int, int>>& goals)
+{
+  DDInstance ins;
+  ins.grid = DDGrid(rows);
+  for (auto& q : robots) ins.robots.push_back(ins.grid.idx(q.first, q.second));
+  for (auto& p : shelves)
+    ins.shelves.push_back(ins.grid.idx(p.first, p.second));
+  ins.target_starts.push_back(ins.grid.idx(start.first, start.second));
+  std::vector<int> set;
+  for (auto& g : goals) set.push_back(ins.grid.idx(g.first, g.second));
+  ins.target_goal_sets.push_back(set);
+  ins.target_goals.push_back(set.front());
+  ins.finalize();
+  return ins;
+}
+
+int pool_root_goal(const std::vector<ManipulationTask>& tasks)
+{
+  // every task in these single-target fixtures roots at b0; return the
+  // root goal the compiler is currently serving (highest priority task)
+  int best = -1, best_prio = -1;
+  for (const auto& t : tasks)
+    if (t.priority > best_prio) {
+      best_prio = t.priority;
+      best = t.root_goal;
+    }
+  return best;
+}
+
+}  // namespace
+
+TEST(dd_tasks, robot_placement_flips_tau_guide_goal)
+{
+  // design_final §4.1 example, minimal form: b0 at (0,5) has goals
+  // gL=(0,0) (lb cheaper by 1, but the corridor toward it — walls forbid
+  // a detour under cells (0,0)/(0,1) — is blocked at (0,1), four cells
+  // from the shelf) and gR=(0,11) (free path).  With the only robot on
+  // the far right, realizing the left frontier costs 4 MORE than the
+  // shelf approach itself (delta price 4 > lb gap 1 + eta 2): the
+  // matching must flip to gR.  With the robot next to the left frontier
+  // the delta is negative and lb + hysteresis keeps gL.  The target does
+  // not move between the two states — only the robot.
+  const std::vector<std::string> rows = {"............", "##.........."};
+  auto far_ins = make_pool_ins(rows, {{1, 11}}, {{0, 5}, {0, 1}},
+                               {0, 5}, {{0, 0}, {0, 11}});
+  const auto far_tasks =
+      dd_build_tasks(far_ins, initial_phys_config(far_ins));
+  ASSERT_FALSE(far_tasks.empty());
+  EXPECT_EQ(pool_root_goal(far_tasks), far_ins.grid.idx(0, 11))
+      << "far robot: execution price must flip the root goal to gR";
+
+  auto near_ins = make_pool_ins(rows, {{1, 2}}, {{0, 5}, {0, 1}},
+                                {0, 5}, {{0, 0}, {0, 11}});
+  const auto near_tasks =
+      dd_build_tasks(near_ins, initial_phys_config(near_ins));
+  ASSERT_FALSE(near_tasks.empty());
+  EXPECT_EQ(pool_root_goal(near_tasks), near_ins.grid.idx(0, 0))
+      << "near robot: lb-preferred gL must survive";
+}
+
+TEST(dd_tasks, execution_price_never_enters_admissible_h)
+{
+  // debug.md invariant 18 / §7.2 test 6: the admissible h is the
+  // unrestricted LB matching — identical for both robot placements of
+  // the flip fixture above (robots do not appear in tau_LB).
+  const std::vector<std::string> rows = {"............", "##.........."};
+  auto far_ins = make_pool_ins(rows, {{1, 11}}, {{0, 5}, {0, 1}},
+                               {0, 5}, {{0, 0}, {0, 11}});
+  auto near_ins = make_pool_ins(rows, {{1, 2}}, {{0, 5}, {0, 1}},
+                                {0, 5}, {{0, 0}, {0, 11}});
+  double h_far = -1, h_near = -1;
+  dd_solve_tau(far_ins, initial_phys_config(far_ins), nullptr, &h_far);
+  dd_solve_tau(near_ins, initial_phys_config(near_ins), nullptr, &h_near);
+  EXPECT_DOUBLE_EQ(h_far, h_near);
+  EXPECT_DOUBLE_EQ(h_far, 5 + 2);  // alpha*dist((0,5)->(0,0)) + 2*gamma
+}
+
+TEST(dd_tasks, custody_keeps_task_id_from_lift_through_drop)
+{
+  // debug.md §7.2 test 4: one manipulation = approach (bound via rho) ->
+  // Lift -> carry (custody) -> Drop, all under ONE TaskId.  One-empty
+  // fixture: the ready task anon@(0,3) -> (0,4) is the only executable
+  // move; the robot approaches from (0,0).
+  auto ins = make_ins({"....."}, {{0, 0}},
+                      {{0, 0}, {0, 1}, {0, 2}, {0, 3}},
+                      {{{0, 0}, {0, 4}}});
+  const auto trace = dd_rollout_custody_trace(ins, 0, 32, 0);
+  ASSERT_GE(trace.size(), 3u);
+  // find the Lift boundary: FREE -> ANON
+  int lift_at = -1;
+  for (size_t t = 1; t < trace.size(); ++t)
+    if (trace[t - 1].kappa == KAPPA_FREE && trace[t].kappa == KAPPA_ANON)
+      lift_at = (int)t;
+  ASSERT_GE(lift_at, 1) << "the robot never lifted the ready shelf";
+  const uint64_t bound = trace[lift_at - 1].bound_id;
+  ASSERT_NE(bound, 0u) << "approach phase must be bound to a task";
+  // custody carries the SAME TaskId through every loaded step
+  bool saw_carry = false;
+  for (size_t t = lift_at; t < trace.size() && trace[t].kappa == KAPPA_ANON;
+       ++t) {
+    saw_carry = true;
+    EXPECT_EQ(trace[t].custody_id, bound)
+        << "custody id diverged from the bound task at step " << t;
+  }
+  EXPECT_TRUE(saw_carry);
+}

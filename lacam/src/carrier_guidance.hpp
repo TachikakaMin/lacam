@@ -279,7 +279,11 @@ inline std::vector<int> solve_tau(
     TauEngine& te, double alpha, double gamma,
     const std::vector<int>* parent_tau,
     const std::vector<std::pair<int, int>>* taboo, double* h_out,
-    bool preserve_parent = false)
+    bool preserve_parent = false,
+    // v3.0 §5.1 execution price: per-row (goal cell, price in lb units)
+    // applied ONLY to guidance matchings — the admissible h always comes
+    // from the price-free unrestricted matching (invariant 18).
+    const std::vector<std::pair<int, double>>* price = nullptr)
 {
   const size_t n = ins.n_targets();
   std::vector<int> tau(n, -1);
@@ -447,8 +451,8 @@ inline std::vector<int> solve_tau(
       lock_kind[b] = 1;
     }
   }
-  auto make_cost = [&](bool use_taboo, bool use_locks) {
-    return [&, use_taboo, use_locks](int row, int col) -> int {
+  auto make_cost = [&](bool use_taboo, bool use_locks, bool use_price) {
+    return [&, use_taboo, use_locks, use_price](int row, int col) -> int {
       if (!te.elig[row][col]) return (int)INF;
       if (use_locks &&
           ((locked_col[row] >= 0 && locked_col[row] != col) ||
@@ -457,7 +461,12 @@ inline std::vector<int> solve_tau(
       const int g = te.cols[col];
       if (use_taboo && banned((size_t)row, g)) return (int)INF;
       const double v = lb((size_t)row, g);
-      const long lbq = (long)std::floor(v * (double)te.q + 1e-9);
+      long lbq = (long)std::floor(v * (double)te.q + 1e-9);
+      if (use_price && price != nullptr && (*price)[row].first == g) {
+        long pq = (long)std::floor((*price)[row].second * (double)te.q);
+        pq = std::min(pq, (long)1 << 20);  // encoding safety clamp
+        lbq += pq;
+      }
       long pen = 0;
       if (parent_tau != nullptr && (*parent_tau)[row] != g) pen = te.eta_b;
       const long enc = lbq * te.S + pen;
@@ -468,7 +477,7 @@ inline std::vector<int> solve_tau(
       return (int)enc;
     };
   };
-  auto unrestricted = te.state.solve_full(make_cost(false, false));
+  auto unrestricted = te.state.solve_full(make_cost(false, false, false));
   if (!unrestricted.feasible)
     throw std::logic_error(
         "solve_tau: infeasible matching (covering checked at load)");
@@ -483,16 +492,17 @@ inline std::vector<int> solve_tau(
   };
   auto solve_with_locks = [&]() {
     auto candidate =
-        te.state.solve_full(make_cost(taboo != nullptr, true));
+        te.state.solve_full(make_cost(taboo != nullptr, true, true));
     if (!candidate.feasible && taboo != nullptr)
-      candidate = te.state.solve_full(make_cost(false, true));
+      candidate = te.state.solve_full(make_cost(false, true, true));
     return candidate;
   };
   const bool have_locks =
       std::any_of(locked_col.begin(), locked_col.end(),
                   [](int col) { return col >= 0; });
-  auto res = (!have_locks && taboo == nullptr) ? unrestricted
-                                               : solve_with_locks();
+  auto res = (!have_locks && taboo == nullptr && price == nullptr)
+                 ? unrestricted
+                 : solve_with_locks();
   if (!res.feasible) {
     // A set of individually valid carried commitments need not extend to a
     // complete matching. Settled rows have priority, so release carried
@@ -681,6 +691,93 @@ inline std::vector<int> waitfor_cycles(const DDInstance& ins, const PhysConfig& 
   }
   std::sort(in_cycle.begin(), in_cycle.end());
   return in_cycle;
+}
+
+// v3.0 §5.1: one light execution-price feedback round over a BUILT
+// guidance.  A multi-goal root is priced when the realization of its
+// CURRENT frontier pickup (assigned robot's distance, else nearest free
+// robot, else a board-diameter penalty when nobody can serve) exceeds
+// its lb slack to the best alternative goal plus hysteresis.  Prices
+// feed ONLY guidance matchings (invariant 18); carried/settled/singleton
+// rows and goal-blind serve frontiers are exempt.  Shared by the planner
+// (attach_carrier_guidance) and the guidance probes.
+inline bool compute_execution_prices(
+    const DDInstance& ins, const PhysConfig& s,
+    const CarrierGuidance& guide, const std::vector<int>& tau,
+    DDDistCache& upper_wall, LowerDist& lower_dist, double alpha,
+    std::vector<std::pair<int, double>>& price)
+{
+  price.assign(ins.n_targets(), {-1, 0.0});
+  if (guide.tasks.empty()) return false;
+  bool any = false;
+  std::vector<int> head(ins.n_targets(), -1);
+  for (size_t k = 0; k < guide.tasks.size(); ++k) {
+    const auto& t = guide.tasks[k];
+    if (t.root_target < 0 || head[t.root_target] >= 0) continue;
+    // the priced frontier is the first task that is NOT the goal-blind
+    // serve pickup: the chain-head clear/ready move (emit order = per
+    // root priority order)
+    if (t.root_target < (int)ins.n_targets() &&
+        t.from != s.target_pos[t.root_target])
+      head[t.root_target] = (int)k;
+  }
+  std::vector<int> server(guide.tasks.size(), -1);
+  for (size_t i = 0; i < ins.n_robots(); ++i)
+    if (i < guide.rho_task.size() && guide.rho_task[i] >= 0 &&
+        guide.rho_task[i] < (int)guide.tasks.size())
+      server[guide.rho_task[i]] = (int)i;
+  std::vector<char> carried(ins.n_targets(), 0);
+  for (const int k : s.kappa)
+    if (k >= 0) carried[k] = 1;
+  const long far_realization = 2L * (ins.grid.height + ins.grid.width);
+  for (size_t b = 0; b < ins.n_targets(); ++b) {
+    if (head[b] < 0 || carried[b]) continue;
+    if (ins.target_goal_sets[b].size() <= 1) continue;  // singleton
+    if (s.target_pos[b] == tau[b]) continue;            // settled
+    const auto& t = guide.tasks[head[b]];
+    if (t.from == s.target_pos[b]) continue;  // serve: goal-blind pickup
+    // Delta pricing (anti-oscillation): the price is the EXCESS of
+    // realizing the CURRENT frontier over the goal-independent shelf
+    // approach (the optimistic baseline any alternative goal shares).
+    // One-sided absolute prices flap on dense boards: after a flip the
+    // reverse pair gets priced by the same magnitude and hysteresis is
+    // tie-strength only.  The delta form is ~antisymmetric, so a flip
+    // does not immediately price itself back.
+    long r_cur = -1;
+    long r_alt = -1;
+    if (server[head[b]] >= 0) {
+      const int rc = s.robots[server[head[b]]];
+      r_cur = lower_dist.dist(t.from, rc);
+      r_alt = lower_dist.dist(s.target_pos[b], rc);
+    } else {
+      for (size_t i = 0; i < ins.n_robots(); ++i)
+        if (s.kappa[i] == KAPPA_FREE) {
+          const long dc = lower_dist.dist(t.from, s.robots[i]);
+          const long da = lower_dist.dist(s.target_pos[b], s.robots[i]);
+          r_cur = r_cur < 0 ? dc : std::min(r_cur, dc);
+          r_alt = r_alt < 0 ? da : std::min(r_alt, da);
+        }
+      if (r_cur < 0) {  // contested: nobody can serve this root at all
+        r_cur = far_realization;
+        r_alt = 0;
+      }
+    }
+    const long excess = r_cur - r_alt;
+    if (excess <= 0) continue;
+    const double lb_cur = alpha * upper_wall.to(tau[b])[s.target_pos[b]];
+    double lb_alt = -1;
+    for (const int gg : ins.target_goal_sets[b]) {
+      if (gg == tau[b]) continue;
+      const double v = alpha * upper_wall.to(gg)[s.target_pos[b]];
+      if (lb_alt < 0 || v < lb_alt) lb_alt = v;
+    }
+    if (lb_alt < 0) continue;
+    if ((double)excess > (lb_alt - lb_cur) + ASSIGNMENT_HYSTERESIS) {
+      price[b] = {tau[b], (double)excess};
+      any = true;
+    }
+  }
+  return any;
 }
 
 // guidance construction (design 5.3/5.4a; ported: requests, park/yield,
@@ -1055,6 +1152,28 @@ inline CarrierGuidance build_guidance(
         g.free_goal[best] = req.cell;
       }
     }
+
+  // v3.0 §6 custody: a loaded-ANON robot keeps executing the task it was
+  // bound to when it lifted (same TaskId through approach/Lift/carry/
+  // Drop).  Copied metadata only — never part of the search key.
+  g.custody.assign(R, ManipulationTask{});
+  if (parent_guide != nullptr) {
+    for (size_t i = 0; i < R; ++i) {
+      if (s.kappa[i] != KAPPA_ANON) continue;  // targets: kappa + tau
+      if (parent_guide->custody.size() == R &&
+          parent_guide->custody[i].id != 0) {
+        g.custody[i] = parent_guide->custody[i];  // carry continues
+      } else if (parent_guide->rho_task.size() == R &&
+                 parent_guide->rho_task[i] >= 0 &&
+                 parent_guide->rho_task[i] <
+                     (int)parent_guide->tasks.size()) {
+        const auto& t =
+            parent_guide->tasks[parent_guide->rho_task[i]];
+        // fresh Lift: the robot stands on its bound task's pickup cell
+        if (t.from == s.robots[i]) g.custody[i] = t;
+      }
+    }
+  }
 
   // parking placement: nearest free off-path cell, goal-cell fallback
   std::vector<uint8_t> is_goal_cell(ins.grid.size(), 0);

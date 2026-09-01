@@ -1003,6 +1003,31 @@ unstartable_head_skips_drop_hint}`。step-2 gate
 +86%、其余 5 例 <= 11.3%（含贴线恢复例 `h10w10_e3_R1_seed1`
 2620 -> 2689，first_ms 9.9s 仍贴 deadline）。
 
+v3.0 step 3（execution-aware `tau_guide`，RED->GREEN 已落地）：共享
+`compute_execution_prices`（§5.1 单轮反馈）——multi-goal root 的
+chain-head frontier 以 **delta 价**（当前 frontier 实现代价 − shelf
+接近基线，反对称防震荡）计入 guidance matching，仅当 delta 超过 lb
+gap + eta 才触发重配；price 只进 guidance（`solve_tau` 的 price 参数
+不参与 unrestricted h 解）；custody（§6）跨节点追踪 ANON carrier 的
+TaskId（身份记账，不覆盖 parking 落点——编译期 `to` 在执行期已陈旧，
+d50 bound 测试证伪了落点覆盖）；duplicate rewire 重建改为**惰性**
+（reparent 标记 stale，下次扩展时以新 parent 为 anchor 重建——anytime
+搜索千级 relax，急切重建不可承受）。保护测试：
+`dd_tasks.{robot_placement_flips_tau_guide_goal,
+execution_price_never_enters_admissible_h,
+custody_keeps_task_id_from_lift_through_drop}`、
+`dd_rewire.duplicate_rewire_rebuilds_guidance`（anytime 入口；
+stop-at-first 生产遍经 80-fixture 扫描证实无 relax）。step-3 gate
+（`results_v3_step3_price`）：36/68、小图 36/36；vs baseline 共同
+成功集 mk/SOC 几何比 0.908435/0.930686（17/8/11），总 makespan
+34,860 -> 31,278；vs step 2 几何比 0.974503（10/19/7）。变化行恰为
+17 个 multi-goal B-pool 例（R1/singleton 零变化、18 个 R1 plan 与
+step 2 逐字节一致——price 作用域与设计精确一致）；显著改善：
+`h10w10_e3_B_seed0` 555->306、`h8w10_e2_B_seed1` 1108->679；恶化例
+（全披露）：`h6w10_e15_B_seed0` 112->164、`h8w10_e20_B_seed1`
+168->233、`h4w10_e10_B_seed0` 41->71、`h4w10_e1_B` 两例、
+`h8w10_e2_B_seed0` 648->668。
+
 ---
 
 ## 13. 边界与后续研究
