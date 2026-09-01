@@ -986,6 +986,23 @@ hysteresis 从 cell 视图收紧为 task 身份后，跨 root 共享 cell 的折
 消失所致；作为 step 2/3 的基础被接受，最终 v3.0 与 baseline 的对比在
 §11.6 验收时整体评估。
 
+v3.0 step 2（frontier compiler，RED->GREEN 已落地）：clear 候选按
+§4.1 编译为可执行 task——one-empty regime（全盘恰一个 upper 空格）
+下，不可启动的 blocker 被替换为"vacancy 相邻 shelf 移入 vacancy"的
+ready task（`to` = 当前 vacancy）；可启动的 chain head 获得 capped
+BFS drop hint（`HEAD_DROP_SCAN_CAP = 64`，不可启动 head 跳过 hint，
+2620-例贴线超时的回归修复）；零 vacancy 保留原 clear 发射（洗牌承重
+梁，report.md 教训）。保护测试：
+`dd_tasks.{one_empty_ready_task_moves_vacancy_adjacent_shelf,
+feasible_clear_head_gets_compiler_chosen_drop,
+unstartable_head_skips_drop_hint}`。step-2 gate
+（`results_v3_step2_frontier`）：36/68、小图 36/36；vs baseline 共同
+成功集 mk/SOC 几何比 0.932204/0.955072（12/17/7），总 makespan
+34,860 -> 32,723；one-empty 锚例 `h4w10_a5_e1_R1_seed0` 1053 -> 417。
+恶化例全披露：`h6w10_e1_B_seed1` +93%、`h10w10_a1_e1_R1_seed0`
++86%、其余 5 例 <= 11.3%（含贴线恢复例 `h10w10_e3_R1_seed1`
+2620 -> 2689，first_ms 9.9s 仍贴 deadline）。
+
 ---
 
 ## 13. 边界与后续研究

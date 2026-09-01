@@ -89,6 +89,7 @@ constexpr int ASSIGNMENT_EXACT_LIMIT = 256;
 constexpr int ACTIVE_TARGET_LIMIT = 256;
 constexpr int ACTIVE_TARGET_CAP = 64;
 constexpr int ASSIGNMENT_HYSTERESIS = 2;
+constexpr int HEAD_DROP_SCAN_CAP = 64;  // frontier head drop-hint BFS cap
 
 // Stable TaskId (design_final v3.0 §3): identity = (shelf, from, root).
 // `to` is deliberately EXCLUDED: a clear task keeps its identity while
@@ -737,6 +738,15 @@ inline CarrierGuidance build_guidance(
       active_targets.push_back(b);
     }
   }
+  // one-empty regime detection (v3.0 §4.1, new.md §2): the ready-task
+  // replacement applies to the literal sliding-puzzle case (exactly one
+  // free upper cell).  On denser boards a surrounded blocker is still
+  // movable through loaded rotations under following semantics
+  // (report.md: hover shuffling is load-bearing), so the plain clear
+  // task must survive there.
+  int n_vacancies = 0;
+  for (size_t c = 0; c < sc.upper.size(); ++c)
+    n_vacancies += sc.upper[c] == 0 && !ins.grid.is_wall((int)c) ? 1 : 0;
   for (int b_int : active_targets) {
     const size_t b = (size_t)b_int;
     bool carried = std::any_of(s.kappa.begin(), s.kappa.end(),
@@ -769,26 +779,111 @@ inline CarrierGuidance build_guidance(
       g.requests.push_back(CarrierRequest{mt.from, mt.priority});
     }
     int emitted = 0;
+    // frontier compiler (v3.0 §4.1): each clear candidate is refined into
+    // an EXECUTABLE task.  A blocker whose carry cannot even start (no
+    // adjacent free upper cell) is replaced by the READY task that moves
+    // the first vacancy-adjacent shelf of the routing chain INTO the
+    // vacancy (one-empty / 15-puzzle semantics); a feasible chain head
+    // gets its compiler-chosen drop cell.  Ordering-only, like requests.
+    const size_t chain_begin = g.tasks.size();
+    auto already_emitted = [&](int from) {
+      for (size_t k = chain_begin; k < g.tasks.size(); ++k)
+        if (g.tasks[k].from == from) return true;
+      return false;
+    };
     for (size_t pi = 1; pi < path.size() && emitted < CLEAR_CHAIN_K; ++pi) {
       const int cur = path[pi];
       const int gr__ = sc.grounded[cur];
-      if (gr__ == -1 || (gr__ > 0 && gr__ - 1 != (int)b)) {
-        // v3.0 §3: clear task MoveShelf(s*, blocker cell -> to, root =
-        // b -> tau[b]).  `to` stays carrier-chosen (-1) until the
-        // frontier compiler (step 2) fixes it; identity excludes `to`.
-        ManipulationTask mt;
-        mt.shelf_target = gr__ > 0 ? gr__ - 1 : -1;
-        mt.from = cur;
-        mt.to = -1;
-        mt.root_target = (int)b;
-        mt.root_goal = tau[b];
-        mt.priority = 50 - emitted;  // clear, chain head higher
-        mt.depth = emitted + 1;
-        mt.id = task_ident_hash(mt.shelf_target, cur, (int)b, tau[b]);
-        g.tasks.push_back(mt);
-        g.requests.push_back(CarrierRequest{mt.from, mt.priority});
-        ++emitted;
+      if (!(gr__ == -1 || (gr__ > 0 && gr__ - 1 != (int)b))) continue;
+      int from = cur;
+      int to = -1;
+      int depth_extra = 0;
+      int nb[4];
+      const int n_adj = ins.grid.neighbors(cur, nb);
+      bool carry_can_start = false;
+      for (int t = 0; t < n_adj; ++t)
+        carry_can_start |= sc.upper[nb[t]] == 0;
+      if (!carry_can_start && n_vacancies == 1) {
+        // vacancy routing: BFS from the blocker to the nearest free
+        // upper cell e; the parent of e on that path is the
+        // vacancy-adjacent shelf that can actually move (into e).
+        std::fill(sc.prev.begin(), sc.prev.end(), -1);
+        std::deque<int> dq;
+        dq.push_back(cur);
+        sc.prev[cur] = cur;
+        int e = -1;
+        while (!dq.empty() && e < 0) {
+          const int u = dq.front();
+          dq.pop_front();
+          const int m = ins.grid.neighbors(u, nb);
+          for (int t = 0; t < m; ++t) {
+            const int v = nb[t];
+            if (sc.prev[v] >= 0) continue;
+            sc.prev[v] = u;
+            if (sc.upper[v] == 0) {
+              e = v;
+              break;
+            }
+            dq.push_back(v);
+          }
+        }
+        if (e < 0) {
+          // ZERO vacancies anywhere: hover-lift shuffling is the only
+          // remaining mechanism (rotations of loaded robots under
+          // following semantics).  Emit the plain clear task — the
+          // LIFT_GATE lesson (report.md §7/§10): suppressing these
+          // starves dense zero/one-empty instances.
+          from = cur;
+          to = -1;
+        } else {
+          from = sc.prev[e];  // first vacancy-adjacent shelf on the chain
+          to = e;             // ready task drops INTO the vacancy
+          depth_extra = 1;
+        }
+      } else if (carry_can_start && emitted == 0) {
+        // feasible chain head: nearest free upper cell off the protected
+        // corridor as the compiler-chosen drop (-1 when none qualifies:
+        // the carrier's parking fallback remains authoritative).  The
+        // scan is capped (HEAD_DROP_SCAN_CAP): on protect-saturated
+        // dense boards no qualifying cell may exist and an unbounded
+        // per-head BFS is pure guidance overhead (cost regression on
+        // h10w10_e3, gate 2026-09-01).  Unstartable heads skip the hint
+        // entirely — their drop cell is meaningless until they can move.
+        std::fill(sc.prev.begin(), sc.prev.end(), -1);
+        std::deque<int> dq;
+        dq.push_back(cur);
+        sc.prev[cur] = cur;
+        int scanned = 0;
+        while (!dq.empty() && to < 0 && scanned < HEAD_DROP_SCAN_CAP) {
+          const int u = dq.front();
+          dq.pop_front();
+          ++scanned;
+          const int m = ins.grid.neighbors(u, nb);
+          for (int t = 0; t < m; ++t) {
+            const int v = nb[t];
+            if (sc.prev[v] >= 0) continue;
+            sc.prev[v] = u;
+            if (sc.upper[v] == 0 && !sc.protect[v]) {
+              to = v;
+              break;
+            }
+            dq.push_back(v);
+          }
+        }
       }
+      if (already_emitted(from)) continue;  // chain converged on one move
+      ManipulationTask mt;
+      mt.shelf_target = sc.grounded[from] > 0 ? sc.grounded[from] - 1 : -1;
+      mt.from = from;
+      mt.to = to;
+      mt.root_target = (int)b;
+      mt.root_goal = tau[b];
+      mt.priority = 50 - emitted;  // clear, chain head higher
+      mt.depth = emitted + 1 + depth_extra;
+      mt.id = task_ident_hash(mt.shelf_target, from, (int)b, tau[b]);
+      g.tasks.push_back(mt);
+      g.requests.push_back(CarrierRequest{mt.from, mt.priority});
+      ++emitted;
     }
   }
   for (size_t b = 0; b < ins.n_targets(); ++b)

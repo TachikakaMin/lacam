@@ -119,3 +119,91 @@ TEST(dd_tasks, rho_binds_task_and_requests_follow)
   EXPECT_EQ(goals[0], tasks[rho_task[0]].from)
       << "free_goal must be the bound task's pickup cell";
 }
+
+// ---- v3.0 step 2: frontier compiler (design_final §4.1 pseudo; new.md
+// §2 one-empty rule; debug.md §7.2 test 5).  Written BEFORE the
+// implementation (TDD RED). ----
+
+TEST(dd_tasks, one_empty_ready_task_moves_vacancy_adjacent_shelf)
+{
+  // 1x5 corridor, upper deck: shelves on cells 0..3, single vacancy at
+  // cell 4.  Target b0 = shelf@0 -> goal 4.  The head blocker (0,1) has
+  // no adjacent free upper cell, so carrying it cannot even start; the
+  // READY task must instead move the first vacancy-adjacent shelf on the
+  // routing chain — anon@(0,3) — INTO the vacancy (15-puzzle semantics):
+  // MoveShelf(anon@(0,3), (0,3) -> (0,4), root = b0 -> (0,4)).
+  auto ins = make_ins({"....."}, {{0, 0}},
+                      {{0, 0}, {0, 1}, {0, 2}, {0, 3}},
+                      {{{0, 0}, {0, 4}}});
+  const auto X = initial_phys_config(ins);
+  std::vector<int> rho_task;
+  const auto tasks = dd_build_tasks(ins, X, &rho_task);
+  ASSERT_FALSE(tasks.empty());
+  int ready = -1;
+  for (size_t k = 0; k < tasks.size(); ++k)
+    if (tasks[k].from == ins.grid.idx(0, 3)) ready = (int)k;
+  ASSERT_GE(ready, 0) << "no task for the vacancy-adjacent shelf";
+  EXPECT_EQ(tasks[ready].to, ins.grid.idx(0, 4))
+      << "ready task must drop INTO the current vacancy";
+  EXPECT_EQ(tasks[ready].shelf_target, -1);
+  EXPECT_EQ(tasks[ready].root_target, 0);
+  EXPECT_EQ(tasks[ready].root_goal, ins.grid.idx(0, 4));
+  // no executable task may ask a robot to lift a shelf that cannot move:
+  // every emitted pickup must either have an adjacent free upper cell or
+  // be the vacancy-adjacent ready shelf itself.
+  for (const auto& t : tasks) {
+    if (t.from == ins.grid.idx(0, 3)) continue;  // the ready task
+    int nb[4];
+    const int n = ins.grid.neighbors(t.from, nb);
+    bool can_start = false;
+    for (int q = 0; q < n; ++q) {
+      bool upper_free = true;
+      for (int c : X.anon_occ) upper_free &= c != nb[q];
+      for (int c : X.target_pos) upper_free &= c != nb[q];
+      can_start |= upper_free;
+    }
+    EXPECT_TRUE(can_start) << "task pickup " << t.from
+                           << " cannot start a carry (hover-lift bait)";
+  }
+  // and the free robot must be routed to an executable pickup
+  ASSERT_GE(rho_task[0], 0);
+  EXPECT_EQ(tasks[rho_task[0]].from, ins.grid.idx(0, 3));
+}
+
+TEST(dd_tasks, feasible_clear_head_gets_compiler_chosen_drop)
+{
+  // corridor with a movable blocker: the chain-head clear task must name
+  // its drop cell (nearest free upper cell off the protected path when
+  // one exists) instead of leaving the destination carrier-chosen.
+  auto ins = make_ins({"...."}, {{0, 0}}, {{0, 1}, {0, 2}},
+                      {{{0, 1}, {0, 3}}});
+  const auto X = initial_phys_config(ins);
+  const auto tasks = dd_build_tasks(ins, X);
+  int clear = -1;
+  for (size_t k = 0; k < tasks.size(); ++k)
+    if (tasks[k].from == ins.grid.idx(0, 2)) clear = (int)k;
+  ASSERT_GE(clear, 0);
+  EXPECT_EQ(tasks[clear].to, ins.grid.idx(0, 0))
+      << "chain-head clear must carry the compiler-chosen drop cell";
+}
+
+TEST(dd_tasks, unstartable_head_skips_drop_hint)
+{
+  // Regression pin (gate 2026-09-01, brap_h10w10_a12_e3_R1_seed1 lost to
+  // guidance overhead): a chain-head blocker that cannot start a carry
+  // (no adjacent free upper cell) outside the one-empty regime keeps
+  // to == -1 — its drop cell is meaningless until it can move, and the
+  // per-head hint BFS on protect-saturated boards is pure overhead.
+  auto ins = make_ins({".....", "....."}, {{1, 0}},
+                      {{0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {1, 3}},
+                      {{{0, 1}, {0, 4}}});
+  const auto X = initial_phys_config(ins);
+  const auto tasks = dd_build_tasks(ins, X);
+  int head = -1;
+  for (size_t k = 0; k < tasks.size(); ++k)
+    if (tasks[k].from == ins.grid.idx(0, 2) && tasks[k].priority == 50)
+      head = (int)k;
+  ASSERT_GE(head, 0);
+  EXPECT_EQ(tasks[head].to, -1)
+      << "unstartable head must not carry a compiler drop hint";
+}
