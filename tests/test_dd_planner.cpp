@@ -3,6 +3,8 @@
 #include <dd_carrier.hpp>
 #include <dd_planner.hpp>
 
+#include <chrono>
+
 #include "gtest/gtest.h"
 
 namespace {
@@ -110,4 +112,26 @@ TEST(dd_planner, two_targets_swap_positions)
   auto plan = solve_carrier_lacam(ins, 5.0, 0);
   ASSERT_FALSE(plan.empty());
   EXPECT_TRUE(plan_is_valid(ins, plan));
+}
+
+// review fix batch 2026-09-01 (TDD RED): empty plan != timeout. This
+// saturated 1x2 instance (both cells occupied by robots; the target can
+// never advance because every carry move is a lower-deck conflict) has a
+// tiny reachable state space; the search exhausts OPEN within
+// milliseconds of a 5-second budget. The adapter must report a
+// non-timeout failure — the TAPF layer already distinguishes this, and
+// B0/B1 report stuck/cycle honestly; the carrier adapter must too.
+TEST(dd_planner, exhausted_search_is_not_reported_as_timeout)
+{
+  auto ins = make_ins({".."}, {{0, 0}, {0, 1}}, {{0, 0}},
+                      {{{0, 0}, {0, 1}}});
+  DDStats stats;
+  const auto t0 = std::chrono::steady_clock::now();
+  const auto plan = solve_carrier_lacam(ins, 5.0, 0, &stats);
+  const double elapsed =
+      std::chrono::duration<double>(std::chrono::steady_clock::now() - t0)
+          .count();
+  EXPECT_TRUE(plan.empty());
+  ASSERT_LT(elapsed, 4.0) << "search was expected to exhaust, not time out";
+  EXPECT_FALSE(stats.timed_out);
 }

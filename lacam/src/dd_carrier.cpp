@@ -71,9 +71,14 @@ void DDInstance::finalize()
   }
   if (target_starts.size() != target_goal_sets.size())
     throw std::invalid_argument("finalize: target starts/goals mismatch");
+  std::unordered_set<int> seen_t;  // one physical shelf = one target label
   for (size_t b = 0; b < target_starts.size(); ++b) {
     if (!seen_s.count(target_starts[b]))
       throw std::invalid_argument("finalize: target start is not a shelf");
+    if (!seen_t.insert(target_starts[b]).second)
+      throw std::invalid_argument(
+          "finalize: duplicate target start (two targets reference the "
+          "same shelf)");
     if (target_goal_sets[b].empty())
       throw std::invalid_argument("finalize: empty target goal set");
     for (const int g : target_goal_sets[b]) check_cell(g, "goal");

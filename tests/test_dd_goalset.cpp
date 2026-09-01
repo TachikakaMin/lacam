@@ -181,3 +181,16 @@ TEST(dd_goalset, singleton_assignment_skips_second_search)
   EXPECT_EQ(st.assignment_second_solved, 0);
   EXPECT_EQ(st.assignment_improvements, 0);
 }
+
+// review fix batch 2026-09-01 (TDD RED): two labeled targets referencing
+// the SAME initial shelf cell would be one physical shelf with two
+// identities — target_pos gets duplicate cells and upper-deck exclusivity
+// is void. Neither the shelves-overlap check (one shelf entry) nor the
+// covering matching (distinct goals) catches it; finalize must.
+TEST(dd_goalset, finalize_rejects_duplicate_target_starts)
+{
+  EXPECT_THROW(make_set_ins({"....", "...."}, {{1, 0}},
+                            {{0, 0}, {0, 1}}, {{0, 0}, {0, 0}},
+                            {{{0, 2}}, {{0, 3}}}),
+               std::invalid_argument);
+}

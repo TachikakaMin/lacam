@@ -147,3 +147,34 @@ class GoalSetTerminalTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+DUPLICATE_START_YAML = """\
+name: goalset_duplicate_start
+map: |
+  ....
+  ....
+robots:
+  - [1, 0]
+shelves:
+  - [0, 0]
+  - [0, 1]
+targets:
+  - {id: b0, start: [0, 0], goal: [0, 2]}
+  - {id: b1, start: [0, 0], goal: [0, 3]}
+"""
+
+
+class DuplicateTargetStartTest(unittest.TestCase):
+    # review fix batch 2026-09-01 (TDD RED): two labeled targets sharing
+    # one initial shelf cell describe one physical shelf with two
+    # identities; validate_static must flag it (the shelves-overlap check
+    # does not cover it because both targets reference the SAME entry).
+    def test_validate_rejects_duplicate_target_starts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ins = load_instance(
+                _write(tmp, "dup.yaml", DUPLICATE_START_YAML))
+            errors = ins.validate_static()
+            self.assertTrue(
+                any("start" in e and "duplicate" in e for e in errors),
+                f"expected a duplicate-target-start error, got {errors}")

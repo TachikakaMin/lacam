@@ -19,6 +19,7 @@
 #include <deque>
 #include <queue>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -36,14 +37,28 @@ namespace carrier_detail {
 
 // solver-objective weight loader (design 5.7): ONE parser for the planner
 // g-weights and the adapter reporting weights (they must always agree).
-// W needs fields alpha/beta/gamma/delta defaulting to 1.
+// W needs fields alpha/beta/gamma/delta defaulting to 1.  Values must be
+// finite and non-negative: negative weights break the non-negative
+// edge-cost/admissible-LB assumptions (and would bypass the matching
+// encoding's upper-bound overflow check); NaN/inf poison comparisons.
 template <typename W>
 inline void load_solver_weights(W& w)
 {
-  if (const char* a = std::getenv("DD_ALPHA")) w.alpha = atof(a);
-  if (const char* b = std::getenv("DD_BETA")) w.beta = atof(b);
-  if (const char* c = std::getenv("DD_GAMMA")) w.gamma = atof(c);
-  if (const char* d = std::getenv("DD_DELTA")) w.delta = atof(d);
+  auto read = [](const char* key, double& out) {
+    const char* raw = std::getenv(key);
+    if (raw == nullptr) return;
+    const double v = atof(raw);
+    if (!std::isfinite(v) || v < 0)
+      throw std::invalid_argument(
+          std::string(key) +
+          ": objective weight must be finite and non-negative, got '" +
+          raw + "'");
+    out = v;
+  };
+  read("DD_ALPHA", w.alpha);
+  read("DD_BETA", w.beta);
+  read("DD_GAMMA", w.gamma);
+  read("DD_DELTA", w.delta);
 }
 
 // lower-deck distance provider: exact Manhattan on wall-free grids,

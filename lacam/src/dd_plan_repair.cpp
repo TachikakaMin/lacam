@@ -6,7 +6,31 @@
 #include <queue>
 #include <unordered_map>
 
+#include "carrier_guidance.hpp"  // load_solver_weights: the ONE parser
+
 namespace {
+
+// Weighted-SOC view of the repair (review fix 2026-09-01): production
+// candidate selection is by weighted SOC, so a repair may only be
+// accepted when it does not increase that objective either.
+struct RepairWeights {
+  double alpha = 1, beta = 1, gamma = 1, delta = 1;
+};
+
+double joint_op_cost(const RepairWeights& w, const PhysConfig& from,
+                     const std::vector<Op>& ops)
+{
+  double c = 0;
+  for (size_t i = 0; i < ops.size(); ++i) {
+    if (ops[i].kind == Op::MOVE) {
+      c += from.kappa[i] == KAPPA_FREE ? w.beta : w.alpha;
+      if (from.kappa[i] == KAPPA_ANON) c += w.delta;
+    } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
+      c += w.gamma;
+    }
+  }
+  return c;
+}
 
 struct IntVectorHasher {
   size_t operator()(const std::vector<int>& values) const
@@ -290,6 +314,25 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
       last_projection[shelf_projection(states[t])] = t;
   }
 
+  // Weighted-SOC bookkeeping (review fix 2026-09-01): prefix sums of the
+  // original per-step cost give O(1) replaced-segment cost; a bridge is
+  // lower-deck-only with every shelf grounded, so its cost is beta per
+  // MOVE.  Weight validation lives in the shared parser.
+  RepairWeights weights;
+  carrier_detail::load_solver_weights(weights);
+  std::vector<double> prefix_cost(plan.size() + 1, 0.0);
+  for (size_t t = 0; t < plan.size(); ++t)
+    prefix_cost[t + 1] =
+        prefix_cost[t] + joint_op_cost(weights, states[t], plan[t]);
+  auto bridge_cost = [&](const DDPlan& bridge) {
+    long moves = 0;
+    for (const auto& ops : bridge)
+      for (const auto& op : ops) moves += op.kind == Op::MOVE ? 1 : 0;
+    return weights.beta * static_cast<double>(moves);
+  };
+  constexpr double SOC_EPS = 1e-9;
+  double repaired_cost = 0;
+
   DDPlan repaired;
   repaired.reserve(plan.size());
   DDPlanRepairStats local;
@@ -309,11 +352,14 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
         auto bridge =
             shortest_available_bridge(ins, states, t, projected);
         if (bridge.has_value() &&
-            bridge->size() < static_cast<size_t>(projected - t)) {
+            bridge->size() < static_cast<size_t>(projected - t) &&
+            bridge_cost(*bridge) <=
+                prefix_cost[projected] - prefix_cost[t] + SOC_EPS) {
           ++local.projected_loops;
           local.bridge_steps += static_cast<long>(bridge->size());
           local.steps_removed += static_cast<long>(
               projected - t - bridge->size());
+          repaired_cost += bridge_cost(*bridge);
           repaired.insert(repaired.end(),
                           std::make_move_iterator(bridge->begin()),
                           std::make_move_iterator(bridge->end()));
@@ -323,6 +369,7 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
       }
     }
 
+    repaired_cost += prefix_cost[t + 1] - prefix_cost[t];
     repaired.push_back(plan[t]);
     ++t;
   }
@@ -330,7 +377,9 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
   // The public solver uses an empty plan as failure, including on instances
   // that are already at goal.  Preserve its one-wait success convention.
   if (repaired.empty()) repaired = plan;
-  if (repaired.size() >= plan.size() || !valid_goal_plan(ins, repaired))
+  if (repaired.size() >= plan.size() ||
+      repaired_cost > prefix_cost[plan.size()] + SOC_EPS ||
+      !valid_goal_plan(ins, repaired))
     return plan;
   if (stats != nullptr) *stats = local;
   return repaired;

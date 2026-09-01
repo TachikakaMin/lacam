@@ -54,6 +54,9 @@ DD_DEBUG_DUMP
 
 前四项是数值 objective，最后一项只输出失败诊断。静态测试
 `TestAblationContract`（`benchmark/tests/test_tools.py`）钉住该集合。
+权重必须**有限且非负**：非法值在共享 parser `load_solver_weights`
+处抛出（`dd_weights.rejects_negative_and_non_finite_env_weights`
+钉住；2026-09-01 review 修复）。
 v3.0 的 `lambda`（robot realization 权重）等新参数默认编译期常量；
 若要暴露必须作为数值输入先过协议评审，禁止布尔/枚举开关。
 
@@ -86,8 +89,9 @@ PathCache(/*strict=*/true)
 
 输出修补层 **[基线]**：
 
-9. output repair 只能返回原计划或严格更短的有效 goal plan
-   （`valid(raw) => valid(returned)`，最终整体重放兜底）。
+9. output repair 只能返回原计划，或严格更短**且加权 SOC 不增**的有效
+   goal plan（`valid(raw) => valid(returned)`，per-bridge SOC 守卫 +
+   最终整体重放兜底；2026-09-01 review 修复）。
 10. shelf-projection cut 的两个端点必须全部 shelves grounded。
 11. robot bridge 结束后的 labeled robot configuration 必须与原片段
     终点相同（bridge 期间 shelf 不动）。
@@ -110,7 +114,11 @@ task/guidance 层 **[v3.0]**：
 18. `tau_LB` 只含可证明下界并且是 `h` 的唯一来源；robot realization、
     execution price、hysteresis、taboo 只进 `C_guide / rho`。
 19. task 是 `MoveShelf(s, from -> to, root = b -> g)`；robot 绑定
-    稳定 `TaskId`，不是 pickup cell；task 完成条件只读物理状态。
+    稳定 `TaskId`，不是 pickup cell。labeled target 的完成条件是纯
+    物理谓词；匿名 shelf 的 `s` 用当前 cell 标识（等价类），完成由
+    被指派 robot 的 custody episode（Lift@from 的 `kappa=ANON` 段的
+    Drop 落点）判定。custody token 只在 task metadata——禁止给
+    `Q_anon` 加身份（破坏 canonicalization）。
 20. 未被接手的 task 随 `tau_guide` 立即改变；robot 接手后对该局部
     task 保持 soft commitment 直到完成或失效；Lift 后 `kappa` 是唯一
     hard commitment。
@@ -139,10 +147,12 @@ steps_removed
    返回）；
 2. 重复 projection 的两个端点是否全部 grounded；
 3. bridge 是否严格短于被替换段（等长不采用）；
-4. 1/2 robot 的 shortest bridge 是否找到（1 robot 贪心下降、2 robot
+4. bridge 加权 SOC 是否超过被替换段（超过则拒绝该 bridge——按步数
+   更短但按 SOC 更贵的桥不接受；2026-09-01 review 修复）；
+5. 1/2 robot 的 shortest bridge 是否找到（1 robot 贪心下降、2 robot
    exact A*）；
-5. 多 robot trajectory projection 是否仍满足 lower-deck R1/R2；
-6. 最终 full replay 是否触发 fallback（返回原计划）。
+6. 多 robot trajectory projection 是否仍满足 lower-deck R1/R2；
+7. 最终 full replay 是否触发 fallback（返回原计划）。
 
 禁止通过跳过最终 replay 来"修复"命中率。
 
@@ -251,6 +261,11 @@ solver 固定 10 秒内部预算；subprocess 只留 5 秒启动/终止余量。
 | `dd_anytime.macro_disabled_after_first_solution` | macro 首解前 only |
 | `test_tapf_compat`（全部） | 零 shelf 逐位退化 |
 | `TestAblationContract`（Python） | 无策略环境开关 |
+| `dd_goalset.finalize_rejects_duplicate_target_starts` | 重复 target start 拒绝（2026-09-01） |
+| `dd_weights.rejects_negative_and_non_finite_env_weights` | 权重输入校验（2026-09-01） |
+| `dd_planner.exhausted_search_is_not_reported_as_timeout` | 失败分类：耗尽 != 超时（2026-09-01） |
+| `dd_plan_repair.repaired_soc_never_exceeds_raw_under_any_weights` | 修补 SOC 不增契约（2026-09-01） |
+| `DuplicateTargetStartTest`（Python） | loader 与 C++ finalize 对齐（2026-09-01） |
 
 ### 7.2 v3.0 必测（design_final §12；落地时补齐）
 
@@ -289,10 +304,17 @@ native-objective 外部方法混跑。
 - success `36/68`，<=10x10 `36/36`；
 - 成功计划 36 个，全部通过 Python validator；
 - 成功例总 makespan 34,860、SOC 59,907；
-- assignment restart 18 attempted / 18 solved / 6 improved；
+- **决定性判据**：68 行 success/status/makespan/SOC 零差异 + 36 个
+  成功 plan 逐字节一致；
+- assignment restart 18 attempted / 6 improved；`second_solved` 为
+  18 或 17——`h10w10_a12_e3_B_seed1_pool` 的第二遍在 8.9s/10s 贴线
+  且其结果按 lower_SOC 被丢弃，是否在时限内完成对机器状态敏感（改动
+  前后二进制在同一机器状态下一致），不影响任何输出字段；
 - 相对 rootfix control 的 makespan/SOC 几何比约
   `0.917520 / 0.927884`；
-- singleton/R1 输出计划逐字节不变。
+- singleton/R1 输出计划逐字节不变；
+- 失败分类：空计划仅当某遍真实到期才计 `timeout`，耗尽/generator
+  失败计 `failed`（2026-09-01 review 修复）。
 
 ### 8.2 语义变更（v3.0 task/`tau_guide` 落地）
 
@@ -331,5 +353,7 @@ before 动画使用可独立重放的 rootfix control，不冒充当前 first。
   （`h4w10` Python 原型 719 vs 当前 1053，bridge 有余量）；
 - search-level shelf-equivalence merging 仍是研究项，必须同时解决
   robot state reconstruction，不能只改 hash；
+- `targets > 256` 的 row-wise guidance（非单射 `tau_hint`）没有 gate
+  实例覆盖，只有单元测试保护；
 - 每 node 重评 `tau_guide` + robot realization 是新的常数成本来源，
   受 §6 症状 2 与 design_final §11.6 第 6 条约束。

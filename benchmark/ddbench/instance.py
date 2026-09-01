@@ -113,12 +113,21 @@ class Instance:
                 errors.append(f"shelves overlap at {p}")
             seen_s.add(p)
         seen_ids = set()
+        seen_target_starts = set()
         for t in self.targets:
             if t.id in seen_ids:
                 errors.append(f"duplicate target id {t.id}")
             seen_ids.add(t.id)
             if tuple(t.start) not in seen_s:
                 errors.append(f"target {t.id} start {t.start} is not a shelf cell")
+            # review fix 2026-09-01: two labeled targets sharing one
+            # initial shelf cell would be one physical shelf with two
+            # identities (mirrors DDInstance::finalize).
+            if tuple(t.start) in seen_target_starts:
+                errors.append(
+                    f"target {t.id} start {t.start} duplicates another "
+                    f"target's start")
+            seen_target_starts.add(tuple(t.start))
             for g in t.eligible_goals():
                 if not self.in_bounds(g) or self.is_wall(g):
                     errors.append(f"target {t.id} goal {g} invalid")

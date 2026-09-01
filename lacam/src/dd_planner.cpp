@@ -170,6 +170,10 @@ DDPlan run_first_incumbent_search(
   const auto sol = planner.solve();
   map_stats(tstats, stats);
   fold_path_stats(planner, stats);
+  // Failure-class propagation (review fix 2026-09-01): remember whether
+  // this pass actually hit the deadline. The adapter's final timed_out
+  // must not conflate exhaustion/generator failure with timeout.
+  if (stats != nullptr) stats->timed_out |= tstats.timed_out;
   if (max_depth != nullptr)
     *max_depth = std::max<long>(*max_depth, planner.deepest_depth);
   if (targets_done != nullptr)
@@ -306,7 +310,10 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
       stats->best_soc = plan.empty() ? -1 : soc;
       stats->max_depth = max_depth;
       stats->best_targets_done = targets_done;
-      stats->timed_out = plan.empty();
+      // timed_out accumulated per pass above: an empty plan is a timeout
+      // only if some pass actually expired; OPEN exhaustion and generator
+      // failure report as a plain (non-timeout) failure.
+      stats->timed_out = plan.empty() && stats->timed_out;
     }
     return plan;
   };

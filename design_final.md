@@ -15,6 +15,10 @@
 基线数字全部保留；被 v3.0 重写的是 guidance 的中间表示与 assignment
 语义（§3-§7）。发现过程与被证伪路线见 `report.md`。
 
+> **状态声明**：[设计] 段是目标语义，未实现前不代表已验证行为；已验证
+> 行为 = [现状] 段 + §11.5 基线数字。落地进度由 §12 测试表与
+> `debug.md` §7.2 追踪。
+
 ---
 
 ## 0. 核心思想
@@ -48,8 +52,12 @@ physical state X
   -> 重新评价
 ```
 
-这是 Carrier 版本的 ITA 反馈：robot 的实际位置、vacancy 和 blocker
-变化会改变 shelf 选哪个 goal；goal 改变后，生成的 task 也随之改变。
+这是 **ITA-inspired** 的反馈闭环——只借用"assignment 随执行状态反馈"
+的思想：robot 的实际位置、vacancy 和 blocker 变化会改变 shelf 选哪个
+goal；goal 改变后，生成的 task 也随之改变。不声称等价于 ITA-ECBS：
+后者把 target assignment 与真实路径/冲突约束交织求解并带
+bounded-suboptimal 理论，本设计的反馈是单轮 ordering-only price
+repair（§5.1），无最优性保证。
 
 **[现状]** 当前反馈只有半环：`build_guidance` 每个 node 都按最新
 robot/vacancy 重造 requests 和 `rho`，但 shelf->goal 的选择
@@ -143,8 +151,9 @@ alpha * loaded_moves
 7. singleton goal-set 自然退化为固定 goal。
 8. **[v3.0]** `tau_guide` 与 `tau_LB` 分离：execution feedback、
    hysteresis、taboo 只进 guidance，永不进入 admissible `h`。
-9. **[v3.0]** task 完成条件与 goal condition 一样只读物理状态
-   （shelf `s` grounded at `to`），不读 assignment。
+9. **[v3.0]** task 完成条件只读物理状态与被指派 robot 的 custody
+   episode（匿名 shelf 的等价类语义见 §3.1），不读其他 assignment，
+   也不进入 search key。
 
 这些不变量保留有限状态空间上的可行性 completeness 骨架。生产入口在
 有限 deadline 下停止于首个 incumbent（每遍 `stop_at_first`），因此
@@ -168,7 +177,17 @@ MoveShelf(s, from -> to, root = target b -> goal g)
 - `s`：要搬的 target 或 anonymous shelf；
 - `from -> to`：这次搬运的精确起点和落点；
 - `root = b -> g`：这次搬运最终服务于哪个 shelf-goal objective；
-- 完成条件：`s` grounded at `to`（纯物理判定）。
+- 完成条件：`s` grounded at `to`（labeled target 为纯物理谓词；匿名
+  shelf 见下方 custody 语义）。
+
+**匿名货架的 `s` 与完成判定**：`Q_anon` 只保存排序后的占用集合（对称
+性消除），物理状态里没有匿名 shelf 身份，单看某个 X 无法判定"是不是
+原来那个 s"。因此匿名 task 的 `s` 用**当前 cell 标识**（等价类语义，
+与 futile-lift memory 的 cell-keyed 匿名身份一致），custody 由
+guidance 层记账：被指派 robot 在 `from` Lift 后进入 `kappa = ANON`
+episode，该 episode 的 Drop 落点是否为 `to` 决定 task 完成/失效。
+custody token 只存在于 task metadata——**禁止给物理状态增加匿名
+身份**，否则破坏 `Q_anon` canonicalization 的对称性消除。
 
 robot 被分配的是 task（稳定 `TaskId`），不是 pickup cell：
 
@@ -230,6 +249,32 @@ m_X(b, g) = compile_frontier_task(X, b, g)
 m_X(b, g) = MoveShelf(s, position(s) -> e, root = b -> g)
 ```
 
+该示例只在 `s` 的 carry 路径畅通（多空位）或 `s` 与 `e` 相邻时直接
+可执行。正式定义必须覆盖 one-empty：
+
+```text
+compile_frontier_task(X, b, g):
+  P = b 在 (X, g) 下的 least-blocking 路径
+  if P 头部无 blocker 且 b 可推进:
+      return MoveShelf(b, position(b) -> 推进落点, root = b -> g)
+  s* = P 上第一个 blocker
+  if 存在 vacancy e 使 s* 的 carry 路径可行（含 s* 与 e 相邻）:
+      return MoveShelf(s*, position(s*) -> e, root = b -> g)
+  else:  # one-empty / vacancy 需要先被"倒"到 s* 旁
+      沿 vacancy 到 s* 的 routing 路径取第一个与当前 vacancy 相邻的
+      shelf s'
+      return MoveShelf(s', position(s') -> current_vacancy,
+                       root = b -> g)
+```
+
+物理依据：carry 途中载货 robot 只能进入 upper 空格（S1）；one-empty
+时可用 upper 空格只有 {lift 格, vacancy}，可执行的 shelf 移动恰是
+"与 vacancy 相邻的 shelf 移入 vacancy"（15-puzzle 语义）。因此 ready
+task 永远是可执行的一步 shelf 状态变化，不会编译出无法启动的搬运。
+**dependency depth** = 从 root objective 到该 task 的编译链深度，作为
+`rho` 的优先级输入（§5.1）。**重编译触发**：vacancy 移动、路径失效、
+`tau_guide` 改选 root、task 完成或 custody 失效。
+
 然后计算 execution-aware guidance cost：
 
 ```text
@@ -270,7 +315,11 @@ tau_guide : target shelf -> eligible goal
 - livelock repair：对 rho pair 加 taboo，并且每个 livelock epoch 只
   释放**一个** unfinished、grounded、multi-goal 行的当前 pair；
 - `targets > ASSIGNMENT_EXACT_LIMIT = 256` 时退化为 row-wise nearest
-  eligible（h 忽略 injectivity，仍 admissible）。
+  eligible（h 忽略 injectivity，仍 admissible）。该 regime 的 guidance
+  **不再是单射 matching**——多个 shelf 可指向同一 goal（语义上是
+  `tau_hint`），冲突最终由 terminal 的 upper-deck 独占性解决；当前
+  68 例 gate 没有 >256 targets 的实例，该 regime 仅有单元测试覆盖
+  （§13）。
 
 重算时机（`attach_carrier_guidance`）：root、target drop boundary、
 reguide；其余节点 `preserve_parent` 复用 parent assignment（合法性
@@ -469,6 +518,15 @@ h 回退 unrestricted 行最小；`preserve_parent` 路径 h 用 row-relaxed
 落差在"式"的一半：guidance 还没有独立的 `C_guide`。落地时新增的
 robot 项只能进 `C_guide/rho`。
 
+**纯性口径**：`tau_LB`/h 是 X 的纯函数（只经 wall-distance 缓存）。
+`C_guide` 与 paths/park/requests 允许依赖 guidance 引擎的缓存状态：
+`PathCache` 的 path-local invalidation 在占用减少时沿用旧路径，
+`dd_park_purity` 测试钉住了该 (X, cache epoch) 语义。因此 §4.1 的
+"每个 physical node 重新评价"定义在 **(X, 引擎状态)** 上——同一 X
+经不同搜索轨迹可得到不同 guidance。这不影响合法性、完备性与 h，给定
+seed 仍逐位可复现；strict snapshot 只是测试探针，生产不为数学纯性
+付该成本。duplicate rewire 后的 guidance 重建（§6.1）同样按此口径。
+
 ### 8.2 Completeness 论证 `[保留]`
 
 完整性保持不变，因为：
@@ -518,13 +576,17 @@ at state X_t:
 configuration 等于 `Q_robot(X_u)`；(3) 因此 bridge 后完整状态恰为
 `X_u`；(4) 原后缀继续合法。这是状态等价修补，非近似语义。
 
-**防御性保证**：修补只在 bridge 严格更短时采用；最后从初态用
-`apply_ops()` 整体重放并检查 goal，任何失败、非缩短或异常都返回原
+**防御性保证**：修补只在 bridge 严格更短**且 bridge 加权 SOC 不高于
+被替换段**时采用（2026-09-01 review 修复：生产候选选择按 SOC，修补
+不得为缩短步数抬高 SOC；bridge 全部为 free move，成本 `beta * 移动
+数`，被替换段成本由前缀和 O(1) 查询）；最后从初态用 `apply_ops()`
+整体重放并检查 goal 与总 SOC 不增，任何失败、非缩短或异常都返回原
 计划。因此：
 
 ```text
 valid(raw) => valid(returned)
 length(returned) <= length(raw)
+soc(returned)    <= soc(raw)
 goal(returned) = true
 ```
 
@@ -624,6 +686,11 @@ exact_loops, projected_loops, bridge_steps, plan_steps_removed,
 futile_lift_demotions, assignment_restarts, assignment_second_solved,
 assignment_improvements, assignment_{first,second}_{soc,makespan}
 ```
+
+失败分类（2026-09-01 review 修复）：`timed_out` 仅在某遍搜索确实到达
+deadline 时置位；OPEN 耗尽与 generator failure 的空计划报告为普通
+失败（与 B0/B1 的 stuck/cycle 语义一致），benchmark 状态列相应区分
+`timeout` 与 `failed`。
 
 ---
 
@@ -760,6 +827,9 @@ C. shelf-only cost vs robot-realization-aware cost
 **BRaP-pool 主 gate**
 
 - suite：`benchmark/instances_brap_pool`，68 例；
+- 命名说明：这是 **BRaP-style 自采样回归集**（默认 following、完成
+  target 可再搬、自有规模与采样），不是 BRaP 原基准的复现；其数字
+  不得与 BRaP 文献横向对比，只用于本仓库内回归；
 - 分层：`<=10x10` 36 例是当前可解质量域，`>=20x20` 32 例单独报告
   horizon；不得只报混合值而隐藏分层；
 - 基线回归：success `36/68`、小图 `36/36`；
@@ -823,6 +893,31 @@ makespan/SOC 几何比 `0.917520/0.927884`（B-pool 子集
 `61,049 -> 59,907`；第二遍改善包括 `53->41`、`36->34`、`51->34`、
 `622->519`、`78->77`、`241->168`。
 
+逐例披露（协议要求，不得只报几何均值）：makespan 改善/持平/恶化为
+**13/19/4**；SOC 几何均值覆盖 **35 个正值样本**
+（`h10w10_a1_e1_B_seed1_pool` 是 0/0 的 trivial 例，按协议单列并从
+比值中排除）。4 个恶化例全文列出：
+
+```text
+h6w10_a6_e15_B_seed1_pool    mk  60 ->   64  (+6.7%)   soc  +4.1%
+h6w10_a6_e1_B_seed1_pool     mk 254 ->  271  (+6.7%)   soc  +5.1%
+h8w10_a10_e20_B_seed0_pool   mk  75 ->   77  (+2.7%)   soc  +1.9%
+h8w10_a10_e2_B_seed1_pool    mk 695 -> 1073 (+54.4%)   soc +59.9%
+```
+
+恶化与 13 个改善同源：task commitment 改变了动态 B-pool 的首遍轨迹，
+最差例 `h8w10_a10_e2_B_seed1` 的首遍落入更长 incumbent，且其第二遍
+候选按 lower_SOC 规则未被选中。单 solver-seed（0）协议对字节级回归
+gate 是刻意设计；跨方法的**泛化/正式比较**需另开多 solver-seed 轴并
+报告置信区间与 paired 检验（§11.1 第 4 条），当前结论仅限"固定协议
+下的小图质量域（<=10x10）"。
+
+边界敏感性：`h10w10_a12_e3_B_seed1_pool` 的第二遍在 8.9s/10s 贴线
+完成且结果更差被丢弃；机器状态不同时该遍可能不完成
+（`assignment_second_solved` 18 或 17，改动前后二进制在同一机器状态
+下行为一致），最终计划不受影响。gate 的决定性判据是 68 行核心字段
+零差异与 36 个成功 plan 逐字节一致，不是 second_solved 计数本身。
+
 独立复跑 `results_rootfix_protocol_verify` 与
 `results_rootfix{,_final}` 四个核心字段零差异、36 个成功 `.plan`
 逐字节一致。`results_task_commit_final_verify` 与
@@ -867,6 +962,16 @@ task/`tau_guide` 层落地时按 11.1 协议开新结果目录，并满足：
 
 现有保护性测试（commitment/修补/搜索语义）继续有效，见 `debug.md`。
 
+2026-09-01 review 修复批新增保护测试（RED->GREEN 已完成）：
+
+```text
+dd_goalset.finalize_rejects_duplicate_target_starts        重复 target start 拒绝
+dd_weights.rejects_negative_and_non_finite_env_weights     权重输入校验
+dd_planner.exhausted_search_is_not_reported_as_timeout     失败分类
+dd_plan_repair.repaired_soc_never_exceeds_raw_under_any_weights  修补 SOC 契约
+DuplicateTargetStartTest (Python)                          loader 对齐
+```
+
 ---
 
 ## 13. 边界与后续研究
@@ -886,6 +991,9 @@ task/`tau_guide` 层落地时按 11.1 协议开新结果目录，并满足：
    的充分解；层级搜索或可重构等价约减仍是开放项。
 5. 生产不恢复已证伪的参数矩阵。新机制必须由输入结构或运行状态自动
    触发，并通过完整计划重放验证。
-6. **[v3.0 特有]** 每 node 重评 `tau_guide` 与 robot realization 项
+6. `targets > 256` 的 row-wise guidance regime（非单射 `tau_hint`，
+   §4.2）没有任何 gate 实例覆盖，只有单元测试保护；扩大 suite 之前
+   对该规模的质量结论一律不做。
+7. **[v3.0 特有]** 每 node 重评 `tau_guide` 与 robot realization 项
    直接增加常数成本；必须以增量维护/缓存实现，且在 guidance 预算
    （§11.6 第 6 条）下验收，防止把大图 horizon 推得更远。

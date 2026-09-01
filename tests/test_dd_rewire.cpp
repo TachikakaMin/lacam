@@ -208,3 +208,34 @@ TEST(dd_rewire, weighted_objective_matches_replayed_plan_cost)
   unsetenv("DD_DELTA");
   EXPECT_GE(checked, 5);
 }
+
+// review fix batch 2026-09-01 (TDD RED): DD_ALPHA..DD_DELTA are numeric
+// objective inputs. Negative values break the non-negative edge-cost and
+// admissible-LB assumptions (and bypass the matching-encoding overflow
+// check, which only guards the upper bound); NaN/inf poison comparisons.
+// The ONE shared parser must reject them loudly.
+TEST(dd_weights, rejects_negative_and_non_finite_env_weights)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"...", "..."});
+  ins.robots = {ins.grid.idx(1, 0)};
+  ins.shelves = {ins.grid.idx(0, 0)};
+  ins.target_starts = {ins.grid.idx(0, 0)};
+  ins.target_goals = {ins.grid.idx(0, 2)};
+  ins.finalize();
+
+  const char* keys[] = {"DD_ALPHA", "DD_BETA", "DD_GAMMA", "DD_DELTA"};
+  const char* bad[] = {"-1", "nan", "inf", "-0.5"};
+  for (const char* key : keys) {
+    for (const char* value : bad) {
+      setenv(key, value, 1);
+      EXPECT_THROW(dd_root_admissible_h(ins), std::invalid_argument)
+          << key << "=" << value;
+      unsetenv(key);
+    }
+  }
+  // valid non-unit weights still load (regression guard for the fix)
+  setenv("DD_GAMMA", "2.5", 1);
+  EXPECT_NO_THROW(dd_root_admissible_h(ins));
+  unsetenv("DD_GAMMA");
+}
