@@ -284,3 +284,60 @@ TEST(dd_rewire, duplicate_rewire_rebuilds_guidance)
   }
   EXPECT_TRUE(is_dd_goal(ins, X));
 }
+
+// 2026-09-02 R3 (debug.md §10, TDD RED): rewrite() relaxes and reparents
+// whole descendant chains, not just the duplicate-hit node.  Every node
+// whose PARENT CHANGES during the relaxation must be marked
+// guidance_stale so its next expansion re-anchors hysteresis/tasks/rho
+// on the new parent (invariant 21).  Direct unit construction: C hangs
+// under B_old; a cheaper route through B_new reparents C, which must
+// come out stale.
+TEST(dd_rewire, rewrite_marks_reparented_descendants_stale)
+{
+  DDInstance dd;
+  dd.grid = DDGrid({"...", "..."});
+  dd.robots = {dd.grid.idx(1, 0)};
+  dd.shelves = {dd.grid.idx(0, 0)};
+  dd.target_starts = {dd.grid.idx(0, 0)};
+  dd.target_goals = {dd.grid.idx(0, 2)};
+  dd.finalize();
+  const TAPFInstance view(dd);
+  std::mt19937 mt(0);
+  TAPFStats st;
+  TAPFPlanner planner(&view, nullptr, &mt, 0, 0, 0.001f, true, &st);
+
+  const auto S0 = initial_shelf_state(view);
+  auto mk_node = [&](Config c, TAPFNode* parent) {
+    auto* n = new TAPFNode(c, S0, planner.D, &view,
+                           std::vector<int>((int)view.N, -1),
+                           TAPFAssignmentState(), parent);
+    planner.invalidate_carrier_scratch();
+    planner.attach_carrier_guidance(n);
+    return n;
+  };
+  Config c_root{view.G.U[dd.grid.idx(1, 0)]};
+  Config c_mid{view.G.U[dd.grid.idx(1, 1)]};
+  Config c_leaf{view.G.U[dd.grid.idx(1, 2)]};
+  auto* root = mk_node(c_root, nullptr);
+  auto* b_old = mk_node(c_mid, root);
+  auto* b_new = mk_node(c_mid, root);
+  auto* leaf = mk_node(c_leaf, b_old);
+  b_new->neighbor.insert(leaf);  // alternative edge into the chain
+  root->g = 0;
+  b_old->g = 50;
+  b_new->g = 1;
+  leaf->g = 100;
+  ASSERT_FALSE(leaf->guidance_stale);
+  ASSERT_NE(leaf->guide, nullptr);
+
+  std::vector<TAPFNode*> OPEN;
+  planner.rewrite(b_new, nullptr, OPEN);
+  EXPECT_EQ(leaf->parent, b_new) << "relaxation must reparent the leaf";
+  EXPECT_TRUE(leaf->guidance_stale)
+      << "a reparented descendant must be marked for guidance re-anchor";
+
+  delete leaf;
+  delete b_new;
+  delete b_old;
+  delete root;
+}

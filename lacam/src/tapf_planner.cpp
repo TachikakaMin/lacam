@@ -748,16 +748,10 @@ Solution TAPFPlanner::solve()
     if (iter != CLOSED.end()) {
       auto S_known = iter->second;
       S->neighbor.insert(S_known);
-      const TAPFNode* known_parent_before = S_known->parent;
+      // v3.0 §6.1 / R3: rewrite() itself marks every REPARENTED node
+      // (S_known and propagated descendants) guidance_stale; the lazy
+      // rebuild happens at each node's next expansion.
       rewrite(S, S_goal, OPEN);
-      // v3.0 §6.1 (invariant 21): a duplicate node rewired to a cheaper
-      // parent must re-anchor its guidance (hysteresis, tasks, rho) on
-      // the NEW parent instead of keeping the stale one.  The rebuild is
-      // LAZY (flag + rebuild at next expansion): anytime searches relax
-      // thousands of nodes and an eager rebuild per relax is unbounded.
-      if (S_known->parent != known_parent_before &&
-          S_known->guide != nullptr)
-        S_known->guidance_stale = true;
       auto S_insert = S_known;
       if (MT != nullptr && get_random_float(MT) < restart_rate) {
         S_insert = S_init;
@@ -968,6 +962,13 @@ void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* goal,
       if (g < node_to->g) {
         node_to->g = g;
         node_to->f = node_to->g + node_to->h;
+        // R3 (debug.md §10, invariant 21): ANY node reparented by the
+        // relaxation — the duplicate-hit node and every propagated
+        // descendant alike — must re-anchor its guidance (hysteresis,
+        // tasks, rho) on the new parent.  Lazy: flag here, rebuild at
+        // the node's next expansion.
+        if (node_to->parent != node_from && node_to->guide != nullptr)
+          node_to->guidance_stale = true;
         node_to->parent = node_from;
         Q.push(node_to);
         if (stats != nullptr) {
