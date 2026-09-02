@@ -387,7 +387,12 @@ before 动画使用可独立重放的 rootfix control，不冒充当前 first。
 
 外部 review 判定"不建议将 v3.0 标记为设计完整落地"。逐条核实后接受
 以下修复项（R1/R2 为阻塞级）。每项按 rules.md 走
-test -> RED -> implementation -> GREEN -> gate；完成一项勾一项。
+test -> RED -> implementation -> GREEN -> gate。
+**全部完成（2026-09-02）**：最终 gate = `results_v3_review2_final`
+（严格 10s：35/68、小图 35/36、无 wall 违规行；vs baseline 共同 35 例
+mk/SOC 几何比 0.936919/0.945694，18/8/9；timing.json 带
+commit/binary-sha/host provenance，成功行带 plan_sha256）；回归规模
+C++ 158、Python 75。
 
 **R1（阻塞）严格 10 秒端到端**。核实：baseline 无 >10.5s 成功行，
 step3 有两行（10.67s 与 `h10w10_a12_e3_R1_seed1` 的 **14.442s** =
