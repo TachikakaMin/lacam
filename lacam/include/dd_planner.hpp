@@ -95,8 +95,13 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
 // lower deck while shelves remain fixed.  This is a semantics-preserving
 // plan normalization, not a search option; invalid/non-improving repairs
 // fall back to the original segment.
+// R1 (debug.md §10): repair runs INSIDE the owning pass's deadline; when
+// `deadline` is given and expires, the repair aborts and returns the raw
+// plan unchanged.
+struct Deadline;
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
-                           DDPlanRepairStats* stats = nullptr);
+                           DDPlanRepairStats* stats = nullptr,
+                           const Deadline* deadline = nullptr);
 
 // B0 baseline (design 8.1) = Carrier-PIBT standalone: repeatedly apply the
 // unconstrained generator from the current configuration until goal, dead

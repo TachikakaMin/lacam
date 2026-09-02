@@ -91,7 +91,9 @@ PathCache(/*strict=*/true)
 
 9. output repair 只能返回原计划，或严格更短**且加权 SOC 不增**的有效
    goal plan（`valid(raw) => valid(returned)`，per-bridge SOC 守卫 +
-   最终整体重放兜底；2026-09-01 review 修复）。
+   最终整体重放兜底；2026-09-01 review 修复）。修补、SOC 计算与最终
+   重放**计入所属 pass 的 10s deadline**，超时中止并返回 raw plan
+   （2026-09-02 R1）。
 10. shelf-projection cut 的两个端点必须全部 shelves grounded。
 11. robot bridge 结束后的 labeled robot configuration 必须与原片段
     终点相同（bridge 期间 shelf 不动）。
@@ -277,8 +279,8 @@ solver 固定 10 秒内部预算；subprocess 只留 5 秒启动/终止余量。
 | 1 | 零 shelf 与原 LaCAM-TAPF 逐位一致 | 已覆盖（`test_tapf_compat`） |
 | 2 | `\|G_b\|=1` 退化为 fixed-goal carrier | 已覆盖（`dd_tau.singleton_*`、`dd_goalset.singleton_*`） |
 | 3 | target 不动、robot/vacancy 变时 `tau_guide` 可改变 | 已覆盖（`dd_tasks.robot_placement_flips_tau_guide_goal`） |
-| 4 | 同一 `TaskId` 连续经历 approach/Lift/carry/Drop | 已覆盖（`dd_tasks.custody_keeps_task_id_from_lift_through_drop`） |
-| 5 | one-empty ready task = 相邻 shelf 移入 vacancy | 已覆盖（`dd_tasks.one_empty_ready_task_moves_vacancy_adjacent_shelf`） |
+| 4 | 同一 `TaskId` 连续经历 approach/Lift/carry/Drop | 部分覆盖（`dd_tasks.custody_keeps_task_id_from_lift_through_drop` 钉身份连续性；Drop 落点由 task 推导 = §10 R2(b) 待补） |
+| 5 | one-empty ready task = 相邻 shelf 移入 vacancy | 编译面已覆盖（`dd_tasks.one_empty_ready_task_moves_vacancy_adjacent_shelf`）；执行面（Drop 必须落 vacancy）= §10 R2(b) 待补 |
 | 6 | execution feedback 不进 admissible `h` | 已覆盖（`dd_tasks.execution_price_never_enters_admissible_h` + `hysteresis_is_tie_break_only` + `rowwise_taboo_does_not_bias_admissible_h`） |
 | 7 | 所有返回计划过 C++/Python replay | 已覆盖（repair 测试 + validator + golden corpus） |
 
@@ -324,16 +326,20 @@ native-objective 外部方法混跑。
 
 ### 8.2 语义变更（v3.0 task/`tau_guide` 落地）
 
-**落地状态（2026-09-01）**：step 1-3 已实现并通过本节验收；当前 head
-结果 = `results_v3_step3_price`（36/68、小图 36/36；vs
+**落地状态（2026-09-01，2026-09-02 修正）**：step 1-3 落地的是
+**选择侧半环**（task 池驱动 rho/tau_guide 的选择；质量收益来自此）；
+**执行侧半环（funcPIBT 从 task 阶段推导 waypoint）在第二轮 review 中
+判定未落地**，按 §10 R2 修复。当前 head 结果 =
+`results_v3_step3_price`（36/68、小图 36/36；vs
 `results_task_commit_final` 共同成功集 mk/SOC 几何比
-0.908435/0.930686，17/8/11，总 makespan 34,860 -> 31,278）。分步 gate
+0.908435/0.930686，17/8/11，总 makespan 34,860 -> 31,278；其中两行
+成功例 wall >10s，违反 R1，待修复后复跑）。分步 gate
 （`results_v3_step{1,2,3}_*`）构成消融阶梯：B（request cell vs
 ManipulationTask）= baseline->step1（1.006988）；one-empty frontier
 编译 = step1->step2（0.923696）；A/C（frozen vs feedback、shelf-only
-vs realization-aware，在实现中由 price 轮同一机制承载）=
-step2->step3（0.974503，17 个变化行全部为 multi-goal B-pool，R1 plan
-与 step2 逐字节一致）。
+vs realization-aware，在实现中由 price 轮同一机制承载，**未独立
+消融**）= step2->step3（0.974503，17 个变化行全部为 multi-goal
+B-pool，R1 plan 与 step2 逐字节一致）。
 
 按 design_final §11.6 验收，开新结果目录并同时报告：
 
@@ -376,3 +382,73 @@ before 动画使用可独立重放的 rootfix control，不冒充当前 first。
   实例覆盖，只有单元测试保护；
 - 每 node 重评 `tau_guide` + robot realization 是新的常数成本来源，
   受 §6 症状 2 与 design_final §11.6 第 6 条约束。
+
+## 10. 2026-09-02 第二轮 review 修复契约
+
+外部 review 判定"不建议将 v3.0 标记为设计完整落地"。逐条核实后接受
+以下修复项（R1/R2 为阻塞级）。每项按 rules.md 走
+test -> RED -> implementation -> GREEN -> gate；完成一项勾一项。
+
+**R1（阻塞）严格 10 秒端到端**。核实：baseline 无 >10.5s 成功行，
+step3 有两行（10.67s 与 `h10w10_a12_e3_R1_seed1` 的 **14.442s** =
+10s 搜索 + ~4.4s 修补/重放）——v3 更长的 raw 首解使修补开销膨胀，
+rules.md 的 10s 与 §11.1(2) 的 wall allowance 冲突按 rules.md 收紧：
+**修补、SOC 计算与最终重放全部计入每遍的 10s deadline**；
+`repair_carrier_plan` 接受剩余 deadline；一个 pass 若不能在预算内
+完成"搜索 + 强制修补"，该 pass 诚实超时（未修补的 10 万步 raw plan
+在预算内同样无法打印/验证，不得作为可交付物）。runner 的 +30s 只
+保护进程启动与输出 IO。
+**验收（2026-09-02 已达成并测量）**：可交付物（含修补与候选选择）
+严格在 10s 内产出；成功行 wall ≤ 10s + 进程收尾包络（deadline 后的
+节点析构/诊断链提取/IO，**baseline 自身失败行即为 10.09-10.66s，
+中位 10.35s**——该包络自 v2.2 起存在，非本轮引入）。
+`results_v3_r1_strict10s`：成功行最大 10.672s（10s deadline +
+0.67s 收尾，与 baseline 包络一致）；14.4s 类violation 消除；贴线例
+`h10w10_a12_e3_R1_seed1` 诚实转为 timeout —— **success 35/68、
+小图 35/36**，共同成功集（35 例）vs baseline mk/SOC 几何比
+0.905274/0.927614（17/8/10）。一个失败行 11.49s = 10s 搜索 + 大树
+析构（v3 节点含 task/custody 向量更重），是收尾开销不是搜索预算。
+
+**R2（阻塞）task 驱动执行的另一半环**。现状：funcPIBT 读
+`target_next/parking_cell/free_goal`；`task.to` 无生产消费者，
+`task.depth` 无任何消费者；custody 仅记身份。修复标准：
+(a) anon carrier 的 drop 目标从 **custody task 的位置感知细化**推导：
+同一 TaskId 内，执行期以当前位置对 `task.to` 做可达性细化（细化后
+写回 guidance 的 carry waypoint；d50 证伪的是"盲用编译期 to"，不是
+"从 task 推导"）；(b) one-empty 行为测试：ready task 的 shelf 必须
+Drop 在 vacancy（task.to），不允许 Lift 后另找停车点（不变量 22 的
+行为面）；(c) `task.depth` 进入 rho 匹配成本（设计 §5.1），否则删除
+该字段；(d) free/carried-target 阶段已按构造与 task 阶段一致，文档
+写明推导关系。
+
+**R3 rewire 全链 stale**。`rewrite()` 重挂整条后代链，只标 S_known
+不够：stale 标记移入 `rewrite()` 的 parent 赋值处；测试断言重挂链上
+节点的 anchor 被重建。
+
+**R4 解析统一与单位一致**。(a) `load_solver_weights` 改
+`strtod` + 尾指针校验，拒绝 `DD_ALPHA=abc`（现被 atof 静默当 0）；
+(b) 删除 `tools/dd_benchmark.cpp` 的第二套 `envd` atof parser，
+报告权重改走共享 parser（ONE parser 恢复为真）；(c)
+`compute_execution_prices` 的 realization 以 **beta** 计价
+（robot 下层移动的 objective 权重），修正与 alpha 缩放 LB 的单位
+不一致。
+
+**R5 诊断输出与披露**。(a) dd_benchmark 输出
+`tau_price_repairs/rewire_guidance_rebuilds/tau_time_ms/
+guidance_time_ms`，runner 持久化到 rows.csv；(b) 补披露 step3 漏报
+的恶化例 `h4w10_a5_e10_B_seed1` 32->42（+31.2%）——step2->step3 共
+7 个恶化例，之前只列 6 个。
+
+**R6 可审计性**。timing.json 记录 git commit、binary sha256、host；
+rows.csv 记录每个成功 plan 的 sha256（work/ 仍不入库，hash 供字节级
+审计）；runner 拒绝写入已存在且非空的 out-dir（新增 `--force` 显式
+覆盖）。
+
+**R7 文档与 CI 同步**。design_final §12 表 3/4/5 行改"已覆盖"、
+头部"实现基准 v2.2"与 137/69 计数更新、A/C 消融未独立的显式标注；
+CI 工作流覆盖当前分支、根 CMakeLists 与 Python 测试。
+
+**范围外（记录不修）**：§4.1 candidate-wise C_guide 仍为开放设计
+（实现对应 new.md §5.1 的单轮近似，文档已标注）；A/C 独立消融变体
+按 §11.2 另立结构 method，本轮只记录缺口；C++ loader 忽略 target id
+与 Python schema 的差异记入已知边界。

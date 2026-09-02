@@ -1,5 +1,6 @@
 #include <dd_carrier.hpp>
 #include <dd_planner.hpp>
+#include <utils.hpp>
 
 #include <cstdlib>
 
@@ -205,4 +206,39 @@ TEST(dd_plan_repair, repaired_soc_never_exceeds_raw_under_any_weights)
   unsetenv("DD_BETA");
   unsetenv("DD_GAMMA");
   unsetenv("DD_DELTA");
+}
+
+// 2026-09-02 R1 (debug.md §10, TDD RED): repair is part of the pass's
+// 10s deadline.  With an exhausted deadline the repair must abort and
+// return the RAW plan unchanged (still valid); with a fresh deadline the
+// same plan must still be repaired.  Root cause: v3.0's longer raw
+// incumbents made post-deadline repair balloon a borderline gate row to
+// 14.4s wall against the strict 10s protocol.
+TEST(dd_plan_repair, expired_deadline_aborts_to_raw_plan)
+{
+  const auto ins = make_repair_case();
+  const auto W = Op::make_wait();
+  DDPlan plan = {
+      {Op::make_move(ins.grid.idx(0, 1)), W},
+      {Op::make_lift(), W},
+      {W, W},
+      {Op::make_drop(), W},
+      {Op::make_lift(), W},
+      {Op::make_move(ins.grid.idx(1, 1)), W},
+      {Op::make_drop(), W},
+  };
+  ASSERT_TRUE(valid(ins, plan));
+
+  Deadline expired(-1.0);  // deterministically past its budget (elapsed_ms truncates to whole ms)
+  DDPlanRepairStats stats;
+  const auto kept = repair_carrier_plan(ins, plan, &stats, &expired);
+  EXPECT_EQ(kept.size(), plan.size()) << "expired deadline must return raw";
+  EXPECT_EQ(stats.steps_removed, 0);
+  ASSERT_TRUE(valid(ins, kept));
+
+  Deadline fresh(5000.0);
+  const auto repaired = repair_carrier_plan(ins, plan, nullptr, &fresh);
+  EXPECT_LT(repaired.size(), plan.size())
+      << "fresh deadline must still repair";
+  ASSERT_TRUE(valid(ins, repaired));
 }

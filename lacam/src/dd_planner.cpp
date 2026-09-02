@@ -198,7 +198,17 @@ DDPlan run_first_incumbent_search(
   }
   auto plan = plan_of(view, sol, planner.solution_shelves);
   DDPlanRepairStats repair;
-  plan = repair_carrier_plan(ins, plan, &repair);
+  // R1 (debug.md §10): the repair consumes the SAME pass deadline; on
+  // expiry it returns the raw plan.  A pass that cannot finish
+  // search + mandatory repair inside its budget has NOT produced its
+  // deliverable: the un-repaired raw incumbent (100k+ steps on the
+  // borderline case) cannot be printed/validated inside the protocol
+  // window either, so the pass reports an honest timeout instead.
+  plan = repair_carrier_plan(ins, plan, &repair, &deadline);
+  if (is_expired(&deadline)) {
+    if (stats != nullptr) stats->timed_out = true;
+    return {};
+  }
   if (stats != nullptr) {
     stats->exact_loops += repair.exact_loops;
     stats->projected_loops += repair.projected_loops;

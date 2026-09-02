@@ -760,8 +760,11 @@ task 改写次数、soft-commitment 中断次数、execution-price repair 触发
 
 1. **实例不变**：比较实验复用完全相同的 YAML 字节、目录划分和 seed；
    不得重新采样 start、empty、target、goal pool 或 robot。
-2. **时间不变**：每个 carrier testcase 使用严格 10 秒内部 deadline。
-   runner 的额外 wall allowance 只用于进程启动、计划修补和验证。
+2. **时间不变**：每个 carrier testcase 使用严格 10 秒内部 deadline，
+   **搜索、强制修补、SOC 计算与最终重放全部计入**（2026-09-02 R1：
+   预算内完不成修补的 pass 诚实超时）。runner 的额外 wall allowance
+   只用于进程启动、输出 IO 与 runner 侧独立验证；deadline 后的进程
+   收尾（节点析构等）测得 <=0.7s，自 v2.2 起存在。
 3. **并发不变**：统一 `jobs=14`（16 物理核留 2）。benchmark 运行期间
    不得并行运行测试或其他高负载任务。Python 全量回归也用 14 workers；
    CREST/MAWR 固定 10 秒内部时限。

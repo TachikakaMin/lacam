@@ -1,4 +1,5 @@
 #include "../include/dd_planner.hpp"
+#include "../include/utils.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -288,10 +289,18 @@ bool valid_goal_plan(const DDInstance& ins, const DDPlan& plan)
 }  // namespace
 
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
-                           DDPlanRepairStats* stats)
+                           DDPlanRepairStats* stats,
+                           const Deadline* deadline)
 {
   if (stats != nullptr) *stats = DDPlanRepairStats();
   if (plan.size() < 2 || ins.n_robots() == 0) return plan;
+  // R1 (debug.md §10): the repair belongs to the owning pass's 10s
+  // deadline.  Checks are amortized (every EXPIRY_STRIDE steps in the
+  // linear phases); any expiry aborts to the raw plan, which is valid by
+  // precondition.
+  constexpr size_t EXPIRY_STRIDE = 256;
+  auto expired = [&]() { return is_expired(deadline); };
+  if (expired()) return plan;
 
   std::vector<PhysConfig> states;
   states.reserve(plan.size() + 1);
@@ -300,6 +309,7 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
     auto next = apply_ops(ins, states.back(), ops);
     if (!next.has_value()) return plan;
     states.push_back(std::move(*next));
+    if (states.size() % EXPIRY_STRIDE == 0 && expired()) return plan;
   }
   if (!is_dd_goal(ins, states.back())) return plan;
 
@@ -337,6 +347,7 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
   repaired.reserve(plan.size());
   DDPlanRepairStats local;
   for (size_t t = 0; t < plan.size();) {
+    if (repaired.size() % EXPIRY_STRIDE == 0 && expired()) return plan;
     const size_t exact = last_exact.at(states[t]);
     if (exact > t) {
       ++local.exact_loops;
@@ -377,6 +388,7 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
   // The public solver uses an empty plan as failure, including on instances
   // that are already at goal.  Preserve its one-wait success convention.
   if (repaired.empty()) repaired = plan;
+  if (expired()) return plan;  // R1: no budget for the final replay
   if (repaired.size() >= plan.size() ||
       repaired_cost > prefix_cost[plan.size()] + SOC_EPS ||
       !valid_goal_plan(ins, repaired))
