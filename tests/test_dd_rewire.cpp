@@ -341,3 +341,28 @@ TEST(dd_rewire, rewrite_marks_reparented_descendants_stale)
   delete b_old;
   delete root;
 }
+
+// 2026-09-02 R4(a) (debug.md §10, TDD RED): atof silently parses "abc"
+// as 0 — a valid-looking weight that silently zeroes the objective.  The
+// ONE parser must reject strings that are not fully consumed as a finite
+// non-negative number.
+TEST(dd_weights, rejects_unparseable_weight_strings)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"...", "..."});
+  ins.robots = {ins.grid.idx(1, 0)};
+  ins.shelves = {ins.grid.idx(0, 0)};
+  ins.target_starts = {ins.grid.idx(0, 0)};
+  ins.target_goals = {ins.grid.idx(0, 2)};
+  ins.finalize();
+  const char* bad[] = {"abc", "1x", "", " ", "1.0.0"};
+  for (const char* value : bad) {
+    setenv("DD_ALPHA", value, 1);
+    EXPECT_THROW(dd_root_admissible_h(ins), std::invalid_argument)
+        << "DD_ALPHA='" << value << "' must be rejected";
+    unsetenv("DD_ALPHA");
+  }
+  setenv("DD_ALPHA", "  2.5 ", 1);  // strtod skips leading spaces; allow
+  EXPECT_NO_THROW(dd_root_admissible_h(ins));
+  unsetenv("DD_ALPHA");
+}

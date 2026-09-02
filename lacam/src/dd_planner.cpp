@@ -630,6 +630,15 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
   return {};
 }
 
+DDSocWeights dd_load_soc_weights()
+{
+  // R4: the ONE parser (carrier_detail::load_solver_weights) behind a
+  // public face for tools; planner and reporting weights always agree.
+  DDSocWeights w;
+  carrier_detail::load_solver_weights(w);
+  return w;
+}
+
 double dd_root_admissible_h(const DDInstance& ins)
 {
   // design_final 4.3: the admissible LB-MATCHING value — exactly what
@@ -823,7 +832,7 @@ std::vector<ManipulationTask> dd_build_tasks(const DDInstance& ins,
       !te.all_singleton) {
     std::vector<std::pair<int, double>> price;
     if (carrier_detail::compute_execution_prices(ins, X, g, tau, tgd, ld,
-                                                 w.alpha, price)) {
+                                                 w.alpha, w.beta, price)) {
       auto tau1 = carrier_detail::solve_tau(ins, X, tgd, te, w.alpha,
                                             w.gamma, nullptr, nullptr,
                                             nullptr, false, &price);

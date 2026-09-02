@@ -406,3 +406,23 @@ TEST(dd_tasks, depth_orders_equal_priority_tasks_in_rho)
   EXPECT_EQ(tasks[rho_task[0]].depth, min_depth)
       << "equal priority + equal distance must bind the shallower task";
 }
+
+TEST(dd_tasks, execution_price_uses_free_move_weight_units)
+{
+  // 2026-09-02 R4(c) (debug.md §10, TDD RED): the realization price is
+  // robot LOWER-DECK walking — its objective unit is beta.  Comparing a
+  // raw cell count against the alpha-scaled shelf LB is dimensionally
+  // wrong under non-unit weights.  With DD_BETA=0 (free moves cost
+  // nothing) the price must vanish and the far-robot flip fixture keeps
+  // its lb-preferred goal gL.
+  setenv("DD_BETA", "0", 1);
+  const std::vector<std::string> rows = {"............", "##.........."};
+  auto far_ins = make_pool_ins(rows, {{1, 11}}, {{0, 5}, {0, 1}},
+                               {0, 5}, {{0, 0}, {0, 11}});
+  const auto far_tasks =
+      dd_build_tasks(far_ins, initial_phys_config(far_ins));
+  unsetenv("DD_BETA");
+  ASSERT_FALSE(far_tasks.empty());
+  EXPECT_EQ(pool_root_goal(far_tasks), far_ins.grid.idx(0, 0))
+      << "beta=0 makes robot walking free: no execution price, no flip";
+}

@@ -82,6 +82,15 @@ struct DDStats {
   std::vector<int> deepest_tau;
 };
 
+// R4 (debug.md §10): the ONE objective-weight parser, exposed for tools.
+// Reads DD_ALPHA..DD_DELTA (finite, non-negative, fully consumed strings;
+// throws std::invalid_argument otherwise).  tools/dd_benchmark.cpp MUST
+// use this instead of a private parser.
+struct DDSocWeights {
+  double alpha = 1, beta = 1, gamma = 1, delta = 1;
+};
+DDSocWeights dd_load_soc_weights();
+
 // returns empty plan on failure/timeout; a trivially-solved instance yields
 // a single all-wait step (never an empty plan on success).
 // On failure, if best_effort != nullptr it receives the action sequence to

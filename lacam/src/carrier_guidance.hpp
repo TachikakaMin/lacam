@@ -48,11 +48,16 @@ inline void load_solver_weights(W& w)
   auto read = [](const char* key, double& out) {
     const char* raw = std::getenv(key);
     if (raw == nullptr) return;
-    const double v = atof(raw);
-    if (!std::isfinite(v) || v < 0)
+    char* end = nullptr;
+    const double v = std::strtod(raw, &end);
+    const bool converted = end != nullptr && end != raw;
+    if (converted)
+      while (*end == ' ') ++end;  // tolerate trailing blanks only
+    const bool consumed = converted && *end == '\0';
+    if (!consumed || !std::isfinite(v) || v < 0)
       throw std::invalid_argument(
           std::string(key) +
-          ": objective weight must be finite and non-negative, got '" +
+          ": objective weight must be a finite non-negative number, got '" +
           raw + "'");
     out = v;
   };
@@ -705,7 +710,7 @@ inline bool compute_execution_prices(
     const DDInstance& ins, const PhysConfig& s,
     const CarrierGuidance& guide, const std::vector<int>& tau,
     DDDistCache& upper_wall, LowerDist& lower_dist, double alpha,
-    std::vector<std::pair<int, double>>& price)
+    double beta, std::vector<std::pair<int, double>>& price)
 {
   price.assign(ins.n_targets(), {-1, 0.0});
   if (guide.tasks.empty()) return false;
@@ -764,6 +769,12 @@ inline bool compute_execution_prices(
     }
     const long excess = r_cur - r_alt;
     if (excess <= 0) continue;
+    // R4(c): robot walking is priced in BETA units (free-move weight);
+    // the lb gap and hysteresis threshold live in the same objective
+    // scale, so the comparison is dimensionally consistent under
+    // non-unit weights (beta = 0 => walking is free => no price).
+    const double priced_excess = beta * (double)excess;
+    if (priced_excess <= 0) continue;
     const double lb_cur = alpha * upper_wall.to(tau[b])[s.target_pos[b]];
     double lb_alt = -1;
     for (const int gg : ins.target_goal_sets[b]) {
@@ -772,8 +783,8 @@ inline bool compute_execution_prices(
       if (lb_alt < 0 || v < lb_alt) lb_alt = v;
     }
     if (lb_alt < 0) continue;
-    if ((double)excess > (lb_alt - lb_cur) + ASSIGNMENT_HYSTERESIS) {
-      price[b] = {tau[b], (double)excess};
+    if (priced_excess > (lb_alt - lb_cur) + ASSIGNMENT_HYSTERESIS) {
+      price[b] = {tau[b], priced_excess};
       any = true;
     }
   }

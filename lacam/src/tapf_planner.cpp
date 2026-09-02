@@ -288,7 +288,7 @@ void TAPFPlanner::attach_carrier_guidance(
     std::vector<std::pair<int, double>> price;
     if (compute_execution_prices(dd, phys, *guide, tau_vec,
                                  eng.upper_wall, eng.lower, weights.alpha,
-                                 price)) {
+                                 weights.beta, price)) {
       auto tau1 = solve_tau(
           dd, phys, eng.upper_wall, eng.tau_engine, weights.alpha,
           weights.gamma,

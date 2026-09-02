@@ -127,13 +127,12 @@ int main(int argc, char** argv)
   }
 
   // cost weights (design 2.3): alpha*loaded + beta*free + gamma*liftdrop
-  // + delta*anon; defaults all 1, overridable via env (DD_ALPHA etc.)
-  auto envd = [](const char* k, double dflt) {
-    const char* v = std::getenv(k);
-    return v ? std::atof(v) : dflt;
-  };
-  const double alpha = envd("DD_ALPHA", 1.0), beta = envd("DD_BETA", 1.0),
-               gamma = envd("DD_GAMMA", 1.0), delta = envd("DD_DELTA", 1.0);
+  // + delta*anon; defaults all 1, overridable via env (DD_ALPHA etc.).
+  // R4 (debug.md §10): the ONE validated parser — a private atof here
+  // silently accepted garbage and bypassed the weight validation.
+  const DDSocWeights w = dd_load_soc_weights();
+  const double alpha = w.alpha, beta = w.beta, gamma = w.gamma,
+               delta = w.delta;
   const double weighted_soc = alpha * loaded_moves + beta * free_moves +
                               gamma * lift_drop + delta * anon_moves;
 
