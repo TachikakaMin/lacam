@@ -855,6 +855,30 @@ inline CarrierGuidance build_guidance(
   int n_vacancies = 0;
   for (size_t c = 0; c < sc.upper.size(); ++c)
     n_vacancies += sc.upper[c] == 0 && !ins.grid.is_wall((int)c) ? 1 : 0;
+  // S3 (2026-09-02 round 3): ONE physical shelf move = ONE pool task.
+  // Cross-root duplicates (two objectives compiling the same pickup)
+  // waste rho slots; keep the higher-priority version (serve > clear),
+  // first emission wins ties.  `from` alone identifies the shelf (a
+  // cell holds at most one grounded shelf).
+  auto pool_find = [&](int from) -> int {
+    for (size_t k = 0; k < g.tasks.size(); ++k)
+      if (g.tasks[k].from == from) return (int)k;
+    return -1;
+  };
+  auto emit_task = [&](const ManipulationTask& mt) -> bool {
+    const int k = pool_find(mt.from);
+    if (k < 0) {
+      g.tasks.push_back(mt);
+      g.requests.push_back(CarrierRequest{mt.from, mt.priority});
+      return true;
+    }
+    if (mt.priority > g.tasks[k].priority) {
+      g.tasks[k] = mt;
+      g.requests[k] = CarrierRequest{mt.from, mt.priority};
+      return true;
+    }
+    return false;  // an equal-or-better task already commands this shelf
+  };
   for (int b_int : active_targets) {
     const size_t b = (size_t)b_int;
     bool carried = std::any_of(s.kappa.begin(), s.kappa.end(),
@@ -883,8 +907,7 @@ inline CarrierGuidance build_guidance(
       mt.priority = 100;  // serve
       mt.depth = 0;
       mt.id = task_ident_hash((int)b, mt.from, (int)b, tau[b]);
-      g.tasks.push_back(mt);
-      g.requests.push_back(CarrierRequest{mt.from, mt.priority});
+      emit_task(mt);
     }
     int emitted = 0;
     // frontier compiler (v3.0 §4.1): each clear candidate is refined into
@@ -893,12 +916,8 @@ inline CarrierGuidance build_guidance(
     // the first vacancy-adjacent shelf of the routing chain INTO the
     // vacancy (one-empty / 15-puzzle semantics); a feasible chain head
     // gets its compiler-chosen drop cell.  Ordering-only, like requests.
-    const size_t chain_begin = g.tasks.size();
-    auto already_emitted = [&](int from) {
-      for (size_t k = chain_begin; k < g.tasks.size(); ++k)
-        if (g.tasks[k].from == from) return true;
-      return false;
-    };
+    // Dedupe is POOL-wide via emit_task (S3): chains converging on the
+    // same shelf — within one root or across roots — emit it once.
     for (size_t pi = 1; pi < path.size() && emitted < CLEAR_CHAIN_K; ++pi) {
       const int cur = path[pi];
       const int gr__ = sc.grounded[cur];
@@ -979,7 +998,6 @@ inline CarrierGuidance build_guidance(
           }
         }
       }
-      if (already_emitted(from)) continue;  // chain converged on one move
       ManipulationTask mt;
       mt.shelf_target = sc.grounded[from] > 0 ? sc.grounded[from] - 1 : -1;
       mt.from = from;
@@ -990,9 +1008,7 @@ inline CarrierGuidance build_guidance(
       mt.priority = 50 - emitted;  // clear, chain head higher
       mt.depth = emitted + 1 + depth_extra;
       mt.id = task_ident_hash(mt.shelf_target, from, (int)b, tau[b]);
-      g.tasks.push_back(mt);
-      g.requests.push_back(CarrierRequest{mt.from, mt.priority});
-      ++emitted;
+      if (emit_task(mt)) ++emitted;
     }
   }
   for (size_t b = 0; b < ins.n_targets(); ++b)
@@ -1182,7 +1198,12 @@ inline CarrierGuidance build_guidance(
   g.custody.assign(R, ManipulationTask{});
   if (parent_guide != nullptr) {
     for (size_t i = 0; i < R; ++i) {
-      if (s.kappa[i] != KAPPA_ANON) continue;  // targets: kappa + tau
+      // S1 (2026-09-02 round 3): custody covers BOTH anonymous and
+      // LABELED carried shelves.  A labeled target lifted for a
+      // committed ready task must execute that task's drop (its own tau
+      // resumes afterwards); previously custody skipped kappa >= 0 and
+      // the carrier shuttled toward tau forever (verified livelock).
+      if (s.kappa[i] == KAPPA_FREE) continue;
       if (parent_guide->custody.size() == R &&
           parent_guide->custody[i].id != 0) {
         g.custody[i] = parent_guide->custody[i];  // carry continues
@@ -1192,8 +1213,11 @@ inline CarrierGuidance build_guidance(
                      (int)parent_guide->tasks.size()) {
         const auto& t =
             parent_guide->tasks[parent_guide->rho_task[i]];
-        // fresh Lift: the robot stands on its bound task's pickup cell
-        if (t.from == s.robots[i]) g.custody[i] = t;
+        // fresh Lift: the robot stands on its bound task's pickup cell,
+        // and for a labeled carry the task must name THAT shelf
+        const bool shelf_matches =
+            s.kappa[i] == KAPPA_ANON || t.shelf_target == s.kappa[i];
+        if (t.from == s.robots[i] && shelf_matches) g.custody[i] = t;
       }
       if (g.custody[i].id == 0 || !g.custody[i].to_committed) continue;
       // Committed drop (one-empty ready): keep the destination while it

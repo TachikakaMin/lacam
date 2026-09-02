@@ -962,13 +962,12 @@ void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* goal,
       if (g < node_to->g) {
         node_to->g = g;
         node_to->f = node_to->g + node_to->h;
-        // R3 (debug.md §10, invariant 21): ANY node reparented by the
-        // relaxation — the duplicate-hit node and every propagated
-        // descendant alike — must re-anchor its guidance (hysteresis,
-        // tasks, rho) on the new parent.  Lazy: flag here, rebuild at
-        // the node's next expansion.
-        if (node_to->parent != node_from && node_to->guide != nullptr)
-          node_to->guidance_stale = true;
+        // R3 + S2 (debug.md §10/§11, invariant 21): EVERY relaxed node
+        // re-anchors its guidance — a lower g means the path to this
+        // node changed, so the ancestry (and the parent's own guidance,
+        // rebuilt lazily) is stale even when the parent POINTER is
+        // unchanged.  Lazy: flag here, rebuild at next expansion.
+        if (node_to->guide != nullptr) node_to->guidance_stale = true;
         node_to->parent = node_from;
         Q.push(node_to);
         if (stats != nullptr) {
@@ -1293,7 +1292,27 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
       // loaded with an unparked target
       const int b = kappa_i;
       const auto& dgoal = eng.upper_wall.to(guide->tau[b]);
-      if (q == guide->tau[b]) {
+      // S1 (2026-09-02 round 3): a COMMITTED custody task (one-empty
+      // ready move) overrides the tau drive for this carry episode —
+      // deliver to custody.to, DROP there, and the grounded shelf
+      // resumes its own tau afterwards.  Un-committed carries (ordinary
+      // serve episodes) keep the tau path below.
+      const ManipulationTask* cust = nullptr;
+      if (guide->custody.size() > (size_t)i &&
+          guide->custody[i].id != 0 && guide->custody[i].to_committed &&
+          guide->custody[i].to >= 0)
+        cust = &guide->custody[i];
+      if (cust != nullptr && !guide->plan_bound) {
+        const auto& dto = eng.upper_wall.to(cust->to);
+        if (q == cust->to) {
+          cand.push_back({ai->v_now, (uint8_t)Op::DROP});
+          cand.push_back({ai->v_now, (uint8_t)Op::WAIT});
+        } else {
+          push_moves_sorted_by([&](int c) { return dto[c]; }, true);
+          cand.push_back({ai->v_now, (uint8_t)Op::WAIT});
+          cand.push_back({ai->v_now, (uint8_t)Op::DROP});
+        }
+      } else if (q == guide->tau[b]) {
         cand.push_back({ai->v_now, (uint8_t)Op::DROP});
         cand.push_back({ai->v_now, (uint8_t)Op::WAIT});
       } else if (guide->plan_bound) {

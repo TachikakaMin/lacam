@@ -476,3 +476,62 @@ dev + dd-lacam 分支、根 CMakeLists/tools/benchmark 路径、yaml-cpp
 （实现对应 new.md §5.1 的单轮近似，文档已标注）；A/C 独立消融变体
 按 §11.2 另立结构 method，本轮只记录缺口；C++ loader 忽略 target id
 与 Python schema 的差异记入已知边界。
+
+## 11. 2026-09-02 第三轮 review 修复契约
+
+两条阻塞级意见，均已独立复现确认；S3 为复现过程中的顺带发现。每项按
+rules.md 走 test -> RED -> implementation -> GREEN -> gate。
+
+**S1（阻塞）labeled ready shelf 不执行 committed task**。复现（40 步
+trace）：one-empty 下 vacancy 相邻链上货架为 labeled target `t1`
+（自身 goal 在反方向）时，编译器正确生成
+`MoveShelf(t1, 3->4, committed)`，但 custody 传播跳过
+`kappa != ANON`、funcPIBT loaded-target 分支只朝 `tau[t1]` 驱动——
+机器人举起 t1 后在 3<->4 间**无限往返、永不 Drop**（rollout 活锁；
+custody 恒 0）。修复标准：(a) custody 扩展到 labeled target（举起时
+从 parent 绑定 task 复制，`shelf_target` 必须与 `kappa` 一致）；
+(b) funcPIBT 的 loaded-target 分支在**存在 committed custody** 时朝
+`custody.to` 驱动并在该格 Drop（放下后该 target 按自身 `tau` 照常
+继续；全部 ordering-only，不碰 h/终止条件/约束树）；(c) RED 测试 =
+复现场景，断言 labeled target 在有限步内 Drop 于 vacancy 且 custody
+贯穿 carry（原一 empty 测试只覆盖匿名 ready shelf，保持不动）。
+
+**S2（阻塞）同父后代不标 stale**。R3 只在 parent 指针改变时标记；
+duplicate 换父后，其子节点经**未变的父指针**被 g-松弛时锚已过期却
+不标记（reviewer 复现：duplicate_stale=1, child_g 降, child_stale=0）。
+修复标准：`rewrite()` 中**任何被松弛（g 下降）的节点**都标
+`guidance_stale`（松弛 = 到达路径已变 = 祖先链已变）；惰性重建机制
+不变。RED 测试 = 子节点 parent 不变、仅 g 松弛的构造，断言 stale。
+
+**S3 跨 root 任务重复**。S1 复现暴露：两个 root 各编译出
+`(shelf=t1, from=3, to=4)` 的 ready task，去重仅 per-chain。修复
+标准：pool 级去重——同 `(shelf_target, from)` 的 task 只保留首个
+（优先级最高者先发射，天然保留最高优先级副本）；RED 测试断言 pool
+无 `(shelf_target, from)` 重复。
+
+验收：三项 GREEN 后全套回归 + 68 例 gate（严格 10s、新目录），与
+`results_v3_review2_final` 诚实对比（S1 改变 one-empty 含 labeled
+链的执行语义，允许行变化并逐例披露；S2 对 stop-at-first gate 应零
+差异；S3 只影响 rho 槽位分配）。
+
+**闭合（2026-09-02）**：三项 RED->GREEN，C++ 161、Python 75。
+depth 测试的旧 fixture 被 S3 判定为"同一物理搬运被两个 root 重复
+编译"的无效前提——替换 fixture 经两轮独立审查（首轮 REJECT：我提议
+的几何同样合并；改用穷举枚举 + 端到端验证后 APPROVE，reviewer 并
+独立验证了判别力）。最终 gate `results_v3_round3_final`：
+**34/68、小图 34/36**；vs baseline 共同 34 例 mk/SOC 几何比
+**0.925567/0.934095**（18/7/9）；vs 上一 head 0.992889（10/14/10）。
+逐项披露：
+- S1 净收益：e1 族多数改善（锚例 720->880 回吐但 `h4w10_e1_R1_s1`
+  401->191、`h4w10_e1_B_s1` 96->61 等），livelock 类根除；
+- **S3 代价：`h10w10_a12_e8_R1_seed0` 丢失**（35->34 的唯一原因）：
+  bisect 确认去重使该例首解从 5.2s 推迟到 8.5s（3/3 稳定），剩余
+  预算不足以完成强制修补 -> R1 规则诚实超时。尝试的"去重仍占用
+  优先级槽位"修正无效且破坏 depth 测试，已回退。机制假设：pool
+  收缩使 12-robot 盘面并行度下降（任务数 < 空闲机器人数）——
+  "chain 在机器人富余时补发更深 blocker"记为后续工作，不匆忙上未
+  验证的补偿机制；
+- 收尾包络增长：pass2 合法耗满预算的实例，deadline 后大树析构最长
+  实测 ~1.6s（`h6w10_e1_B_s0` 成功行 wall 11.55s；可交付物仍在
+  10s 内产出）。析构与 CLOSED 规模及 v3 节点重量同比——teardown
+  优化记为后续工作，runner +30s 覆盖之。

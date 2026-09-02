@@ -373,23 +373,25 @@ TEST(dd_tasks, depth_orders_equal_priority_tasks_in_rho)
   // is the one-empty ready hop (+1).  Contract: within EQUAL priority
   // and equal pickup distance, the SHALLOWER task binds first.
   //
-  // Deterministic one-empty fixture (3x4, single vacancy (2,3), robot on
-  // its lower deck):
-  //   b0 (0,1)->(0,3): head (0,2) unstartable -> READY task from (1,3),
-  //       to (2,3), depth 2, priority 50 — emits FIRST (dist 2, index 0)
-  //   b1 (2,1)->(2,3): head (2,2) vacancy-adjacent -> plain head task,
-  //       depth 1, priority 50 — emits second
-  //   robot (2,3): distance 1 to BOTH pickups ((1,3) and (2,2))
-  // Without the depth key rho binds the deep ready task (emission order);
-  // with it the depth-1 head must win.
+  // Fixture replaced 2026-09-02 (round-3 S3, APPROVED by protected-test
+  // review): the original geometry's two priority-50 tasks were the SAME
+  // physical pickup compiled by two roots — exactly what S3's pool
+  // dedupe now merges.  This geometry (found by exhaustive enumeration,
+  // verified end-to-end incl. the depth-key-off discriminator) has two
+  // DISTINCT moves:
+  //   3x4, single vacancy (0,0), robot on its lower deck (0,0),
+  //   shelves everywhere else; b0 (0,1)->(0,2), b1 (0,2)->(1,0)
+  //   -> deep READY task from (0,1) to (0,0), depth 2, emitted FIRST
+  //   -> shallow head task from (1,0), depth 1
+  //   robot equidistant (1 step) to both pickups.
   DDInstance ins;
   ins.grid = DDGrid({"....", "....", "...."});
-  ins.robots = {ins.grid.idx(2, 3)};
+  ins.robots = {ins.grid.idx(0, 0)};
   for (int r = 0; r < 3; ++r)
     for (int c = 0; c < 4; ++c)
-      if (!(r == 2 && c == 3)) ins.shelves.push_back(ins.grid.idx(r, c));
-  ins.target_starts = {ins.grid.idx(0, 1), ins.grid.idx(2, 1)};
-  ins.target_goals = {ins.grid.idx(0, 3), ins.grid.idx(2, 3)};
+      if (!(r == 0 && c == 0)) ins.shelves.push_back(ins.grid.idx(r, c));
+  ins.target_starts = {ins.grid.idx(0, 1), ins.grid.idx(0, 2)};
+  ins.target_goals = {ins.grid.idx(0, 2), ins.grid.idx(1, 0)};
   ins.finalize();
   const auto X = initial_phys_config(ins);
   std::vector<int> rho_task;
@@ -425,4 +427,76 @@ TEST(dd_tasks, execution_price_uses_free_move_weight_units)
   ASSERT_FALSE(far_tasks.empty());
   EXPECT_EQ(pool_root_goal(far_tasks), far_ins.grid.idx(0, 0))
       << "beta=0 makes robot walking free: no execution price, no flip";
+}
+
+// ---- 2026-09-02 round-3 review (debug.md §11).  Written BEFORE
+// implementation (TDD RED). ----
+
+TEST(dd_tasks, labeled_ready_shelf_executes_committed_task)
+{
+  // S1 blocker, verified livelock repro: one-empty 1x5, b0@0 -> goal 4
+  // (blocked chain), t1@3 -> goal 0.  The vacancy-adjacent chain shelf
+  // is the LABELED target t1, so the compiler emits
+  // MoveShelf(t1, 3 -> 4, committed).  Execution must honor it: custody
+  // extends to labeled targets and the loaded-target branch carries to
+  // custody.to and DROPS there (afterwards t1 proceeds per its own tau).
+  // Pre-fix behavior: custody skipped labeled shelves and the carrier
+  // drove toward tau[t1]=0 — an endless 3<->4 shuttle with no Drop.
+  DDInstance ins;
+  ins.grid = DDGrid({"....."});
+  ins.robots = {ins.grid.idx(0, 4)};
+  for (int c = 0; c < 4; ++c) ins.shelves.push_back(ins.grid.idx(0, c));
+  ins.target_starts = {ins.grid.idx(0, 0), ins.grid.idx(0, 3)};
+  ins.target_goals = {ins.grid.idx(0, 4), ins.grid.idx(0, 0)};
+  ins.finalize();
+
+  const auto trace = dd_rollout_custody_trace(ins, 0, 40, 0);
+  ASSERT_GE(trace.size(), 3u);
+  // find the first labeled-target carry episode
+  int lift_at = -1;
+  for (size_t t = 1; t < trace.size() && lift_at < 0; ++t)
+    if (trace[t - 1].kappa == KAPPA_FREE && trace[t].kappa >= 0)
+      lift_at = (int)t;
+  ASSERT_GE(lift_at, 1) << "the robot never lifted the labeled target";
+  // custody must bind the committed task during the carry
+  EXPECT_NE(trace[lift_at].custody_id, 0u)
+      << "custody must extend to labeled targets";
+  EXPECT_EQ(trace[lift_at].custody_to, ins.grid.idx(0, 4));
+  // and the episode must END with a Drop at the committed cell
+  int drop_step = -1;
+  for (size_t t = lift_at; t < trace.size(); ++t)
+    if (trace[t].kappa == KAPPA_FREE) {
+      drop_step = (int)t;
+      break;
+    }
+  ASSERT_GE(drop_step, lift_at + 1)
+      << "livelock: the labeled carry never dropped within 40 steps";
+  EXPECT_EQ(trace[drop_step].cell, ins.grid.idx(0, 4))
+      << "the committed ready move must drop INTO the vacancy";
+}
+
+TEST(dd_tasks, no_duplicate_shelf_pickup_across_roots)
+{
+  // 2026-09-02 round-3 S3 (debug.md §11, TDD RED): the S1 repro emits
+  // MoveShelf(t1, 3 -> 4) TWICE — once rooted at b0's objective and once
+  // at t1's own — because dedupe was per-chain only.  One physical move
+  // is one task: the pool must not contain two tasks with the same
+  // (shelf, pickup); the first (highest-priority emission) wins and rho
+  // must not waste a second robot slot on the same move.
+  DDInstance ins;
+  ins.grid = DDGrid({"....."});
+  ins.robots = {ins.grid.idx(0, 4)};
+  for (int c = 0; c < 4; ++c) ins.shelves.push_back(ins.grid.idx(0, c));
+  ins.target_starts = {ins.grid.idx(0, 0), ins.grid.idx(0, 3)};
+  ins.target_goals = {ins.grid.idx(0, 4), ins.grid.idx(0, 0)};
+  ins.finalize();
+  const auto tasks = dd_build_tasks(ins, initial_phys_config(ins));
+  ASSERT_FALSE(tasks.empty());
+  std::set<std::pair<int, int>> seen;
+  for (const auto& t : tasks) {
+    const auto key = std::make_pair(t.shelf_target, t.from);
+    EXPECT_TRUE(seen.insert(key).second)
+        << "duplicate task for shelf " << t.shelf_target << " at cell "
+        << t.from;
+  }
 }

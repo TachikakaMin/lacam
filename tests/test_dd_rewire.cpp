@@ -366,3 +366,56 @@ TEST(dd_weights, rejects_unparseable_weight_strings)
   EXPECT_NO_THROW(dd_root_admissible_h(ins));
   unsetenv("DD_ALPHA");
 }
+
+// 2026-09-02 round-3 S2 (debug.md §11, TDD RED): a relaxation that
+// lowers a node's g through its UNCHANGED parent still means the
+// upstream ancestry (and hence the guidance anchor chain) changed — the
+// reviewer's leak: duplicate reparented+stale, but its child (parent
+// pointer unchanged, g lowered) kept stale=0.  ANY relaxed node with a
+// guide must come out stale.
+TEST(dd_rewire, relaxed_child_with_unchanged_parent_is_stale)
+{
+  DDInstance dd;
+  dd.grid = DDGrid({"...", "..."});
+  dd.robots = {dd.grid.idx(1, 0)};
+  dd.shelves = {dd.grid.idx(0, 0)};
+  dd.target_starts = {dd.grid.idx(0, 0)};
+  dd.target_goals = {dd.grid.idx(0, 2)};
+  dd.finalize();
+  const TAPFInstance view(dd);
+  std::mt19937 mt(0);
+  TAPFStats st;
+  TAPFPlanner planner(&view, nullptr, &mt, 0, 0, 0.001f, true, &st);
+
+  const auto S0 = initial_shelf_state(view);
+  auto mk_node = [&](Config c, TAPFNode* parent) {
+    auto* n = new TAPFNode(c, S0, planner.D, &view,
+                           std::vector<int>((int)view.N, -1),
+                           TAPFAssignmentState(), parent);
+    planner.invalidate_carrier_scratch();
+    planner.attach_carrier_guidance(n);
+    return n;
+  };
+  Config c_root{view.G.U[dd.grid.idx(1, 0)]};
+  Config c_mid{view.G.U[dd.grid.idx(1, 1)]};
+  Config c_leaf{view.G.U[dd.grid.idx(1, 2)]};
+  auto* root = mk_node(c_root, nullptr);
+  auto* dup = mk_node(c_mid, root);   // the duplicate being relaxed
+  auto* child = mk_node(c_leaf, dup);  // hangs under dup and STAYS there
+  root->g = 0;
+  dup->g = 50;    // will be relaxed via root
+  child->g = 100;  // will be relaxed via dup (parent unchanged)
+  ASSERT_FALSE(child->guidance_stale);
+
+  std::vector<TAPFNode*> OPEN;
+  planner.rewrite(root, nullptr, OPEN);
+  EXPECT_LT(dup->g, 50) << "dup must be relaxed";
+  EXPECT_LT(child->g, 100) << "child must be relaxed through dup";
+  EXPECT_EQ(child->parent, dup) << "child's parent pointer is unchanged";
+  EXPECT_TRUE(child->guidance_stale)
+      << "an ancestry change via relaxation must mark the child stale";
+
+  delete child;
+  delete dup;
+  delete root;
+}
