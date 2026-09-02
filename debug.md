@@ -1,537 +1,284 @@
 # Carrier-LaCAM 调试与回归契约
 
-状态：2026-09-01，与 `design_final.md` v3.0（闭环 task/`tau_guide`
-guidance 设计）对齐。
+状态：2026-09-02，与 `design_final.md` **v4.0（Objective-PIBT）**对齐。
 
-实现基线：当前 `lacam/src` 是 v2.2 生产行为（request/cell 语义的
-guidance）。本契约分两类条目：**[基线]** 钉住当前已验证行为，任何
-改动都必须维持；**[v3.0]** 是 task 层落地时立即生效的强制约束。两类
-同时有效——v3.0 的实现不得以破坏 [基线] 条目为代价。
+实现基线：当前 `lacam/src` = **v3.0 final**（task 池 + committed
+ready + custody + delta 执行价 + R1-R7/S1-S3 全部修复；C++ 161、
+Python 75 全绿；head gate = `results_v3_round3_final`，严格 10s，
+34/68）。条目分两类：**[基线]** 钉住当前已验证行为，任何改动必须
+维持；**[v4.0]** 是 Objective-PIBT 落地时立即生效的强制约束。两类
+同时有效——v4.0 的实现不得以破坏 [基线] 为代价。
 
 ## 1. 生产路径
 
 ```text
 solve_carrier_lacam                        (dd_planner.cpp)
-  -> dynamic guidance: TAPFPlanner::solve -> repair_carrier_plan
-  -> if multi-goal and time remains:
-       freeze terminal shelf-goal assignment
-       TAPFPlanner::solve from root -> repair_carrier_plan
-  -> choose lower-SOC valid candidate (tie/failure -> first pass)
-  -> apply_ops full replay
+  -> pass1: TAPFPlanner::solve -> repair（同一 deadline 内）
+  -> 多目标且有时间: 固化终态分配 -> pass2 -> repair
+  -> 取 SOC 低者（平手/失败保 pass1）；pass 内完不成搜索+修补 = 诚实超时
+  -> apply_ops 整体重放
 ```
 
-guidance 内部数据流（v3.0 目标形态；现状见 design_final §3-§7 的
-[现状] 段）：
+guidance 数据流（v4.0 目标形态；[现状] 见 design_final §4-§7）：
 
 ```text
-X -> tau_LB (admissible h)
-  -> compile_frontier_task / C_guide -> tau_guide
-  -> build_tasks(X, tau_guide)
-  -> rho: free robot -> TaskId
-  -> Carrier-PIBT operator order -> constraint tree -> apply_ops
+X -> tau_LB（admissible h，独立于一切协商）
+  -> 候选套餐生成（每目标 ≤2 goal 候选 × 当前路线）
+  -> Objective-PIBT：认领账本 + 优先级继承 + 回退 + 合并
+       （超限/失败 -> 回退 v3.0 匹配路径）
+  -> 选中套餐 => tau_guide / 任务池（roots 合并）/ 软走廊
+  -> rho：(task_priority 降序, 链深升序) -> 匈牙利
+  -> Carrier-PIBT（类内按 task_priority）-> 约束树 -> apply_ops
 ```
 
 不得重新引入：
 
-- 第二套 carrier search loop 或平行 planner；
-- 不利用首解结构的 primitive-only root restart；
-- production strategy environment switch；
+- 第二套 search loop / 平行 planner / feature-flag fallback；
+- 生产策略环境开关；
 - 未经 oracle 重放的计划后处理；
-- **[v3.0]** 按"是否有 task 层"做模式检测切换旧算法——零 shelf /
-  零 task 必须是数据结构自然为空的逐位退化；
-- **[v3.0]** 把 `free_goal / target_next / parking_cell` 从"task 阶段
-  派生缓存"升级回独立 assignment 来源。
+- 模式检测切换（零 shelf / 零 task / 零协商必须是数据结构自然为空
+  的逐位退化）；
+- **[v4.0]** 整路径资源预约（claims 只许 {goal, 被操纵货架格, 当前
+  落点}）——协商器不得膨胀为第二个 MAPF 规划器；
+- **[v4.0]** 把协商失败当作可行性判定（只允许回退到 v3.0 路径）。
 
 ## 2. 允许的环境输入
 
 ```text
-DD_ALPHA
-DD_BETA
-DD_GAMMA
-DD_DELTA
-DD_DEBUG_DUMP
+DD_ALPHA / DD_BETA / DD_GAMMA / DD_DELTA   数值 objective
+DD_DEBUG_DUMP                              失败诊断
 ```
 
-前四项是数值 objective，最后一项只输出失败诊断。静态测试
-`TestAblationContract`（`benchmark/tests/test_tools.py`）钉住该集合。
-权重必须**有限且非负**：非法值在共享 parser `load_solver_weights`
-处抛出（`dd_weights.rejects_negative_and_non_finite_env_weights`
-钉住；2026-09-01 review 修复）。
-v3.0 的 `lambda`（robot realization 权重）等新参数默认编译期常量；
-若要暴露必须作为数值输入先过协议评审，禁止布尔/枚举开关。
+权重经唯一共享 parser（`load_solver_weights`，工具侧经
+`dd_load_soc_weights` 复用）：strtod 全消耗、有限、非负，否则抛出
+（`dd_weights.*` 两个测试钉住）。`TestAblationContract` 钉住集合。
+v4.0 协商参数（`OBJ_GOAL_CANDIDATES=2 / OBJ_PIBT_DEPTH=4 /
+OBJ_RESELECT_CAP=16`）是结构常量，禁止开关化。
 
-no-following 和 strict cache 只允许作为显式测试参数：
-
-```text
-apply_ops(..., allow_following=false)
-PathCache(/*strict=*/true)
-```
+no-following 与 strict cache 只作显式测试参数：
+`apply_ops(..., allow_following=false)`、`PathCache(/*strict=*/true)`。
 
 ## 3. 关键不变量
 
 物理与搜索层 **[基线]**：
 
-1. `apply_ops` 是 joint transition 的最终裁决者；fully constrained
-   joint op 不受 guidance 干预。
-2. Python validator 必须重放每个 benchmark success。
-3. `tau_guide / task / rho / path / park / cooldown` 只改 ordering，
-   不进 `SearchKey`，不改 goal condition，不永久删除合法 successor。
-4. `constraint_order` 创建后冻结；livelock reguide 只扰动 PIBT
-   preference（类内重排），futile-lift 只降序不删除 `Lift`。
-5. `SearchKey` 只含 physical state（`Config` + `ShelfState`），不含
-   guidance。
-6. macro 只在每个 search pass 的首解前生成（`macro_after_first`
-   恒 0）。
-7. rollout probe 回收前后必须清除 address-keyed scratch（逐步
-   `invalidate_carrier_scratch`）。
-8. 零 shelf 输入逐位退化为原 TAPF；singleton goal-set 退化为固定
-   goal。
+1. `apply_ops` 是 joint transition 终裁；guidance 不决定合法性。
+2. Python validator 重放每个 benchmark success。
+3. 一切 guidance（option/claims/base·inherited·task 优先级/task/
+   rho/path/park/cooldown）只改候选顺序：不进 `SearchKey`、不改
+   goal condition、不永久删除合法 successor。
+4. `constraint_order` 创建即冻结；reguide/重锚只扰动 PIBT
+   preference；futile-lift 只降序不删除。
+5. macro 只在每 pass 首解前（`macro_after_first` 恒 0）；rollout
+   probe 每步清 address-keyed scratch。
+6. 零 shelf 逐位退化；singleton goal-set 自然退化。
 
-输出修补层 **[基线]**：
+修补层 **[基线]**：
 
-9. output repair 只能返回原计划，或严格更短**且加权 SOC 不增**的有效
-   goal plan（`valid(raw) => valid(returned)`，per-bridge SOC 守卫 +
-   最终整体重放兜底；2026-09-01 review 修复）。修补、SOC 计算与最终
-   重放**计入所属 pass 的 10s deadline**，超时中止并返回 raw plan
-   （2026-09-02 R1）。
-10. shelf-projection cut 的两个端点必须全部 shelves grounded。
-11. robot bridge 结束后的 labeled robot configuration 必须与原片段
-    终点相同（bridge 期间 shelf 不动）。
+7. 修补只返回原计划，或**严格更短且加权 SOC 不增**的有效 goal
+   plan；修补计入所属 pass 的 10s deadline，超时中止返回 raw、
+   pass 报诚实超时。
+8. projection cut 两端全部 grounded；bridge 终点 labeled 机器人
+   configuration 与原终点一致；最终整体重放兜底。
 
-两遍与 assignment 层 **[基线]**：
+两遍与分配层 **[基线]**：
 
-12. fixed-assignment restart 与第一遍共享同一个 10 秒总 deadline。
-13. 第二遍 goal 必须来自第一遍合法终态，且只在原 eligible set 内。
-14. 第二遍失败、持平或更差时必须返回第一遍。
-15. shelf-goal matching 在 primitive/loaded motion 中复用 parent
-    assignment，只在 drop/task boundary 或定向 livelock repair 重算
-    （v3.0 改为每 node 重评 `C_guide` 后，本条替换为不变量 20/21）。
-16. settled lock 必须可扩展成完整 matching，否则按两级 fallback
-    重开；carried target 保留 in-flight goal。
-17. completed target 在 path 层仍是普通可逆 blocker，不能成为绝对
-    障碍（曾使 gate 36/68 -> 35/68，已证伪）。
+9. 两遍共享一个 10s deadline；第二遍 goal 取自第一遍合法终态且在
+   原 eligible set 内；失败/持平返回第一遍。
+10. settled 锁必须可扩展成完整 matching，否则按两级 fallback 重开；
+    carried 目标保留在途 goal。
+11. completed target 在 path 层是普通可逆 blocker。
+12. 空计划仅在某 pass 真实到期时计 `timeout`；耗尽/generator 失败
+    计 `failed`。
 
-task/guidance 层 **[v3.0]**：
+task 层 **[基线]**（v3.0 已落地）：
 
-18. `tau_LB` 只含可证明下界并且是 `h` 的唯一来源；robot realization、
-    execution price、hysteresis、taboo 只进 `C_guide / rho`。
-19. task 是 `MoveShelf(s, from -> to, root = b -> g)`；robot 绑定
-    稳定 `TaskId`，不是 pickup cell。labeled target 的完成条件是纯
-    物理谓词；匿名 shelf 的 `s` 用当前 cell 标识（等价类），完成由
-    被指派 robot 的 custody episode（Lift@from 的 `kappa=ANON` 段的
-    Drop 落点）判定。custody token 只在 task metadata——禁止给
-    `Q_anon` 加身份（破坏 canonicalization）。
-20. 未被接手的 task 随 `tau_guide` 立即改变；robot 接手后对该局部
-    task 保持 soft commitment 直到完成或失效；Lift 后 `kappa` 是唯一
-    hard commitment。
-21. duplicate node 被 rewire 到新 parent 后，必须重建 hysteresis
-    anchor、task 和 `rho`，不能沿用旧 parent 的 guidance。
-22. one-empty 输入的 ready task 在编译时就是
-    `MoveShelf(s, u -> current_empty_cell)`，不允许 Lift 后临时找
-    停车点。
-23. `funcPIBT` 的 operator 顺序从 `rho[r]` 的 task 阶段推导；
-    `free_goal` 等字段只能是派生缓存。
+13. task = `MoveShelf(s, from -> to, root)`；TaskId =
+    hash(shelf, from, root)，`to` 不参与身份。
+14. labeled 完成条件为纯物理谓词；匿名 shelf 按 cell 等价类 +
+    custody episode 判定；custody 覆盖 labeled 与匿名两类载运，
+    身份匹配（task.shelf_target == kappa）。
+15. `to_committed` 承诺落点执行期保持 soft commitment（自身站格计
+    可落，失效才重算真实空格）；非承诺落点由 carrier 每节点选择。
+16. one-empty ready task 编译期确定落点为当前 vacancy，执行必须
+    Drop 于该格（不允许 Lift 后另找停车点）。
+17. `rewrite()` 中**任何被 g-松弛的节点**标 `guidance_stale`
+    （父指针变不变都算——祖先链已变），下次扩展惰性重锚。
+18. `tau_LB` 是 h 的唯一来源；执行价/干涉/优先级/粘滞/taboo 永不
+    进入 h。
 
-## 4. 输出修补调试
+objective 层 **[v4.0]**：
 
-`DDPlanRepairStats`：
+19. `base_priority[b]` 属于目标货架（=使命），每 search pass 根
+    节点按 lb 排序**冻结**，pass 内不变；aging 只做协商轮内的临时
+    插队，不改写基础值。
+20. 压力只从高优流向低优（对称规则）：与更高优认领冲突时改自己的
+    套餐；低优无权请求高优让路。
+21. 被搬运货架 ≠ 优先级拥有者：清障/让路任务继承请求方优先级；
+    `task_priority = max over roots`。
+22. 相同 (shelf, from, to) 是共享任务：合并 roots、取最大优先级，
+    **不丢弃**任何 root 的服务关系；真冲突仅"同货架异落点"与
+    "异货架同落点"。
+23. claims 极小化（goal + 被操纵货架格 + 当前落点）；走廊冲突用软
+    代价表达，禁止整路径预约。
+24. 协商递归深度与重选次数受结构常量硬限；超限整体回退 v3.0 匹配
+    路径（`obj_fallbacks` 计数），绝不判定后继不存在。
+25. goal 与前线任务是**同一次套餐选择的两个输出**（tau_guide 是
+    选中套餐的视图，不再是独立前置计算）。
+26. task_priority 贯通 rho 排序与 Carrier-PIBT 类内次序；custody
+    携带 roots/priority 过户。
+
+## 4. 输出修补调试 [基线，不变]
+
+`DDPlanRepairStats`：exact_loops / projected_loops / bridge_steps /
+steps_removed。修补未生效时依次查：raw 可重放且到 goal？端点全
+grounded？bridge 严格更短？bridge SOC 未超被替换段？1/2 机器人
+最短桥找到？多机器人投影仍满足 R1/R2？deadline 是否中止？最终
+replay 是否触发 fallback？**禁止跳过最终 replay 修命中率。**
+
+## 5. 结构常量
 
 ```text
-exact_loops
-projected_loops
-bridge_steps
-steps_removed
+—— 现有（调整须重跑 68 例 gate）——
+MACRO_CAP 64 / MACRO_TARGET_LIMIT 64 / GUIDANCE_REFRESH_STEPS 8
+ASSIGNMENT_EXACT_LIMIT 256 / ACTIVE_TARGET_LIMIT 256 / ACTIVE_TARGET_CAP 64
+ASSIGNMENT_HYSTERESIS 2（tau/rho/option 共用）
+HEAD_DROP_SCAN_CAP 64 / CLEAR_CHAIN_K 3 / LAMBDA_BLK 8
+LIVELOCK_WINDOW 24（revisit 重导阈值 8）
+FUTILE_REPEAT_LIMIT 3 / futile 窗口 max(64, 8·|V|)
+repair EXPIRY_STRIDE 256 / deadline cleanup reserve min(1s, max(0.1s, 10%))
+—— v4.0 新增（RED 时定死，同规则）——
+OBJ_GOAL_CANDIDATES 2 / OBJ_PIBT_DEPTH 4 / OBJ_RESELECT_CAP 16
 ```
 
-若修补没有生效，依次检查：
-
-1. raw plan 是否能由 `apply_ops` 重放并到 goal（重放失败直接原样
-   返回）；
-2. 重复 projection 的两个端点是否全部 grounded；
-3. bridge 是否严格短于被替换段（等长不采用）；
-4. bridge 加权 SOC 是否超过被替换段（超过则拒绝该 bridge——按步数
-   更短但按 SOC 更贵的桥不接受；2026-09-01 review 修复）；
-5. 1/2 robot 的 shortest bridge 是否找到（1 robot 贪心下降、2 robot
-   exact A*）；
-6. 多 robot trajectory projection 是否仍满足 lower-deck R1/R2；
-7. 最终 full replay 是否触发 fallback（返回原计划）。
-
-禁止通过跳过最终 replay 来"修复"命中率。
-
-## 5. 自动策略调试
-
-固定结构常量（`carrier_guidance.hpp` / `tapf_planner.cpp`）：
+锚值（当前 head，`results_v3_round3_final`）：
 
 ```text
-macro cap                  MACRO_CAP = 64
-macro target limit         MACRO_TARGET_LIMIT = 64
-guidance refresh steps     GUIDANCE_REFRESH_STEPS = 8   (rollout 内)
-assignment exact limit     ASSIGNMENT_EXACT_LIMIT = 256
-active target limit/cap    ACTIVE_TARGET_LIMIT = 256 / ACTIVE_TARGET_CAP = 64
-assignment hysteresis      ASSIGNMENT_HYSTERESIS = 2    (tau 与 rho 共用)
-head drop-hint scan cap    HEAD_DROP_SCAN_CAP = 64      (frontier 编译)
-livelock window            LIVELOCK_WINDOW = 24         (revisit 重导阈值 8)
-clear chain length         CLEAR_CHAIN_K = 3
-blocked-cell path penalty  LAMBDA_BLK = 8
-futile repeat limit        FUTILE_REPEAT_LIMIT = 3
-futile memory window       max(64, 8*|V|)
-deadline cleanup reserve   min(1000ms, max(100ms, 10% limit))
+all suite            34/68
+small suite          34/36
+vs v2.2 基准 (common-34)   mk 0.925567 / soc 0.934095（18/7/9）
+h4w10_e1_R1_seed0    880        h6w10_e1_R1_seed0    933
+已知丢失：h10w10_e3_R1_seed1（首解贴线）、h10w10_e8_R1_seed0
+（S3 池收缩使首解 5.2→8.5s，二分 3/3 归因，契约披露）
 ```
 
-这些值不是运行开关。调整任何值都必须重新运行 68 例 BRaP-pool gate，
-尤其检查：
+## 6. guidance / objective 层调试
+
+诊断（binary 输出 → rows.csv 列，管道已建）：
 
 ```text
-h4w10_a5_e1_R1_seed0       makespan 1053
-h10w10_a12_e3_R1_seed1     makespan 2620
-small suite                36/36
-all suite                  36/68
-```
-
-逐拍重建 guidance 已验证会使 dense B0 失败，因此 rollout 保留 8 步
-刷新周期，同时每拍失效 occupancy scratch
-（`dd_integration.rollout_steps_match_fresh_generation` 钉住）。
-
-## 6. Guidance / task 层调试
-
-诊断计数（`DDStats`）：
-
-```text
-tau_change_builds / tau_pair_changes      shelf-goal 改写频度
-rho_change_builds / rho_pair_changes      robot 任务改写频度
-tau_price_repairs                         §5.1 execution-price 重配次数
-rewire_guidance_rebuilds                  §6.1 惰性 rewire 重建次数
-tau_time_ms / guidance_time_ms            每节点 guidance 预算
-guidance_builds / path_recomputes / path_cache_hits
-futile_lift_demotions
-macro_* / rollout_*                       macro 注入与终止原因
-assignment_restarts / _second_solved / _improvements
+tau_price_repairs / rewire_guidance_rebuilds
+tau_time_ms / guidance_time_ms            每节点预算（大图警戒 ~2.5s）
+—— v4.0 新增 ——
+obj_reselect_requests / obj_inherit_depth_max
+obj_backtracks / obj_fallbacks / tasks_merged
 ```
 
 症状检查单：
 
-1. **assignment churn 回归**：`tau_pair_changes` 相对节点数暴涨
-   （v2.2 参照：20x20 曾 86,317 次，commitment 后 2,757）——检查
-   preserve/commitment 边界与 hysteresis anchor 是否在 rewire 后
-   丢失（不变量 21）。
-2. **guidance 预算超支**：大图 `tau_time_ms + guidance_time_ms`
-   接近 deadline（80x80 历史测量 ~8.9/10 秒）——robot realization
-   项必须增量维护；先查 `path_recomputes` 与 active-target cap 是否
-   失效。
-3. **livelock 循环**：`waitfor` 探针（`dd_waitfor_cycle_robots`）
-   返回非空且 taboo repair 未打破——检查 rho taboo 与单行 tau 释放
-   的 epoch 轮转。
-4. **task 身份漂移 [v3.0]**：同一搬运在 approach 中途换 `TaskId`
-   （soft commitment 破坏）——用 §7 测试 4 的生命周期断言定位。
-5. **h 污染**：任何 guidance 改动后 `dd_anytime.
-   admissible_h_never_exceeds_true_cost` 失败即为 execution 项漏进
-   `tau_LB`（不变量 18），立即回退。
+1. **协商空转**：`obj_fallbacks` 占比高 ⇒ 协商未实际生效或预算
+   不足，v4 视为未落地（验收条款 §11.4(5)）。
+2. **震荡回归**：跨节点套餐/目标翻烙饼 ⇒ 查优先级是否 pass 内冻结、
+   option 粘滞是否生效（step-3 绝对价震荡教训：mk 曾爆 17782）。
+3. **饿死**：低优目标 no_progress 持续增长 ⇒ 查 aging 插队是否
+   触发（24 步阈值）。
+4. **预算超支**：guidance_time 逼近 deadline ⇒ 查候选数/递归深度
+   是否越界、PathCache 命中率。
+5. **并行度节流**：任务池 < 空闲机器人数且 makespan 恶化 ⇒ S3/合并
+   的已知机制（e8 例），核对深链补发后续项。
+6. **h 污染**：`admissible_h_never_exceeds_true_cost` 或纯性测试
+   失败 ⇒ 协商信号漏进 tau_LB，立即回退。
+7. **活锁类**：custody 载运不落（S1 型）⇒ 查 committed 落点有效性
+   刷新与 funcPIBT 的 custody 分支。
 
-失败诊断输出用 `DD_DEBUG_DUMP`；最深节点链在失败时经 best-effort
-通道返回（`deepest_config / deepest_tau`）。
+失败诊断走 `DD_DEBUG_DUMP`；最深节点链经 best-effort 通道
+（`deepest_config / deepest_tau`）。
 
 ## 7. 测试
 
 ```sh
-cmake --build build -j 16
-./build/test_all --gtest_color=no
-
-PYTHONPATH=benchmark \
-  /tmp/dd-lacam-pytest/bin/python -m pytest benchmark/tests -q \
-  -n 14 --dist=load
+cmake --build build -j 16 && ./build/test_all --gtest_color=no
+PYTHONPATH=benchmark /tmp/dd-lacam-pytest/bin/python -m pytest \
+  benchmark/tests -q -n 14 --dist=load
 ```
 
-测试依赖固定在 `benchmark/requirements-test.txt`。系统 Python 若无
-pytest/xdist，用临时 venv，不修改系统环境。Python 全套中的外部
-solver 固定 10 秒内部预算；subprocess 只留 5 秒启动/终止余量。
-14 workers 与 benchmark 协议一致（16 物理核留 2）。
+依赖钉在 `benchmark/requirements-test.txt`（无则临时 venv）；外部
+solver 固定 10s 预算；14 workers 与协议一致。
 
-### 7.1 现有保护性测试（基线，不得回归）
+### 7.1 现有保护测试（基线，不得回归；修改须独立 GPT-5.6 Sol 审查
+APPROVE——历史两例：corridor fixture、depth fixture 枚举替换）
 
 | 测试 | 责任 |
 |---|---|
-| `dd_plan_repair.*` | projection cut、bridge、不可缩短 fallback |
-| `dd_integration.rollout_steps_match_fresh_generation` | scratch 失效 + 8 步 guidance 刷新协议 |
-| `dd_integration.search_not_dominated_by_own_rollout_on_dense` | 角色相关 PIBT 预约语义 |
-| `dd_nofollow.*` | 显式 conservative oracle 参数 |
-| `dd_g1_conformance.*` / `dd_golden.corpus_agreement` | 约束树穷举与 oracle/validator 一致 |
-| `dd_rewire.*` | 首解计划合法性和 objective 记账 |
-| `dd_tau.*` | goal matching、admissible h、taboo、dst cache |
-| `dd_tau.carried_target_keeps_inflight_goal_commitment` | task-episode commitment |
-| `dd_tau.settled_pool_goal_*` | settled/carried 冲突与可扩展 fallback |
-| `dd_tau_guidance.settled_target_remains_a_reversible_blocker` | completed target 是普通 blocker |
-| `dd_goalset.dynamic_first_solution_restarts_with_fixed_assignment` | 自动第二遍 |
-| `dd_goalset.singleton_assignment_skips_second_search` | singleton 结构性跳过 |
-| `dd_anytime.admissible_h_never_exceeds_true_cost` | h 下界性 |
-| `dd_anytime.macro_disabled_after_first_solution` | macro 首解前 only |
 | `test_tapf_compat`（全部） | 零 shelf 逐位退化 |
-| `TestAblationContract`（Python） | 无策略环境开关 |
-| `dd_goalset.finalize_rejects_duplicate_target_starts` | 重复 target start 拒绝（2026-09-01） |
-| `dd_weights.rejects_negative_and_non_finite_env_weights` | 权重输入校验（2026-09-01） |
-| `dd_planner.exhausted_search_is_not_reported_as_timeout` | 失败分类：耗尽 != 超时（2026-09-01） |
-| `dd_plan_repair.repaired_soc_never_exceeds_raw_under_any_weights` | 修补 SOC 不增契约（2026-09-01） |
-| `DuplicateTargetStartTest`（Python） | loader 与 C++ finalize 对齐（2026-09-01） |
+| `dd_g1_conformance.*` / `dd_golden.corpus_agreement` | 约束树穷举与 oracle/validator 一致 |
+| `dd_plan_repair.*`（含 SOC 契约、deadline 中止） | 修补全套 |
+| `dd_tau.*` / `dd_tau_guidance.*` | 匹配、admissible h、taboo、settled、dst cache |
+| `dd_tasks.*`（15 个） | task 池投影/TaskId/rho 绑定、frontier 编译、one-empty ready 编译面+执行面、drop hint、价触发翻转、h 纯性、custody 生命周期、labeled ready 执行、depth 次序、池去重 |
+| `dd_rewire.*` | 首解合法性/记账、权重校验、rewire 全链 stale（含同父松弛） |
+| `dd_planner.exhausted_search_is_not_reported_as_timeout` | 失败分类 |
+| `dd_goalset.*` | loader 契约、重复 start 拒绝、二遍触发/跳过 |
+| `dd_anytime.*` | h 下界性、macro 首解前 |
+| `dd_integration.*` | rollout scratch 协议、dense 不劣于 B0 |
+| Python：validator/goalset/metrics/theorem1/prop2/golden/CLI/
+  `TestAblationContract` / `TestV3DiagnosticsExported` /
+  `TestAuditability` / `DuplicateTargetStartTest` | 独立 oracle 与协议契约 |
 
-### 7.2 v3.0 必测（design_final §12；全部落地）
+### 7.2 v4.0 必测（design_final §12.1 全表，RED 先行）
 
-| # | 要求 | 状态 |
-|---|---|---|
-| 1 | 零 shelf 与原 LaCAM-TAPF 逐位一致 | 已覆盖（`test_tapf_compat`） |
-| 2 | `\|G_b\|=1` 退化为 fixed-goal carrier | 已覆盖（`dd_tau.singleton_*`、`dd_goalset.singleton_*`） |
-| 3 | target 不动、robot/vacancy 变时 `tau_guide` 可改变 | 已覆盖（`dd_tasks.robot_placement_flips_tau_guide_goal`） |
-| 4 | 同一 `TaskId` 连续经历 approach/Lift/carry/Drop | 部分覆盖（`dd_tasks.custody_keeps_task_id_from_lift_through_drop` 钉身份连续性；Drop 落点由 task 推导 = §10 R2(b) 待补） |
-| 5 | one-empty ready task = 相邻 shelf 移入 vacancy | 编译面已覆盖（`dd_tasks.one_empty_ready_task_moves_vacancy_adjacent_shelf`）；执行面（Drop 必须落 vacancy）= §10 R2(b) 待补 |
-| 6 | execution feedback 不进 admissible `h` | 已覆盖（`dd_tasks.execution_price_never_enters_admissible_h` + `hysteresis_is_tie_break_only` + `rowwise_taboo_does_not_bias_admissible_h`） |
-| 7 | 所有返回计划过 C++/Python replay | 已覆盖（repair 测试 + validator + golden corpus） |
-
-v3.0 新增保护测试（2026-09-01，均 RED->GREEN）：
-`dd_tasks.*`（10 个：task 池投影/身份/rho 绑定、frontier 编译、
-one-empty ready、drop hint、价触发翻转、h 纯性、custody 生命周期）、
-`dd_rewire.duplicate_rewire_rebuilds_guidance`（anytime 入口）。
+1 零shelf逐位（既有）；2 singleton 退化；3 高优认领迫使低优改选；
+4 对称规则；5 继承链两级；6 回退到次优套餐；7 共享合并
+roots/priority；8 one-empty 协议≡现行 ready（典型 fixture）；
+9 option/claims/优先级不进 h；10 防震荡；11 aging 插队；12 超限
+回退≡v3.0 路径；13 custody/committed（既有）；14 重放（既有）。
+待写测试与机制同 CR 交付，禁止先合机制后补测试。
 
 ## 8. Benchmark gate
 
 ```sh
 python3 benchmark/run_benchmark.py \
   --instances benchmark/instances_brap_pool \
-  --out-dir benchmark/results_<new-dir> \
+  --out-dir benchmark/results_<新目录> \
   --methods carrier --timeout 10 --jobs 14
 ```
 
-运行前确认没有 `DD_ALPHA..DD_DELTA` 残留和其他高负载任务。复跑必须写
-新目录，保留 `rows.csv`、`timing.json`、`work/*.plan`。结构消融用
-`run_ablations.py --out-dir <new-dir>`（固定 10 秒、14 jobs、seed 0、
-单位权重、默认 following，复用 Python validator）。主 runner 显式
-使用单位权重；非单位实验只能用 `--weights` 开独立结果轴，且不与
-native-objective 外部方法混跑。
+新目录（防覆盖守卫生效，覆盖须 `--force`）；跑前确认无 `DD_*` 残留
+与并行高负载。timing.json 自动带 provenance；成功行带 plan_sha256。
 
-### 8.1 行为不变改动（重构、清理、修补优化）
+### 8.1 行为不变改动（对照 `results_v3_round3_final`）
 
-接受条件（对照 `results_task_commit_final`）：
+- success `34/68`、小图 `34/36`；核心四字段（success/status/mk/soc）
+  逐行零差异；成功 plan 逐字节一致（sha 列比对）；
+- 已知边界敏感例（§5 锚值表）单列核对；
+- 收尾包络 ≤ ~1.6s（pass2 耗满预算的大树析构），可交付物严格 10s 内。
 
-- success `36/68`，<=10x10 `36/36`；
-- 成功计划 36 个，全部通过 Python validator；
-- 成功例总 makespan 34,860、SOC 59,907；
-- **决定性判据**：68 行 success/status/makespan/SOC 零差异 + 36 个
-  成功 plan 逐字节一致；
-- assignment restart 18 attempted / 6 improved；`second_solved` 为
-  18 或 17——`h10w10_a12_e3_B_seed1_pool` 的第二遍在 8.9s/10s 贴线
-  且其结果按 lower_SOC 被丢弃，是否在时限内完成对机器状态敏感（改动
-  前后二进制在同一机器状态下一致），不影响任何输出字段；
-- 相对 rootfix control 的 makespan/SOC 几何比约
-  `0.917520 / 0.927884`；
-- singleton/R1 输出计划逐字节不变；
-- 失败分类：空计划仅当某遍真实到期才计 `timeout`，耗尽/generator
-  失败计 `failed`（2026-09-01 review 修复）。
+### 8.2 语义变更（v4.0 Objective-PIBT 落地）
 
-### 8.2 语义变更（v3.0 task/`tau_guide` 落地）
-
-**落地状态（2026-09-01，2026-09-02 修正）**：step 1-3 落地的是
-**选择侧半环**（task 池驱动 rho/tau_guide 的选择；质量收益来自此）；
-**执行侧半环（funcPIBT 从 task 阶段推导 waypoint）在第二轮 review 中
-判定未落地**，按 §10 R2 修复。当前 head 结果 =
-`results_v3_step3_price`（36/68、小图 36/36；vs
-`results_task_commit_final` 共同成功集 mk/SOC 几何比
-0.908435/0.930686，17/8/11，总 makespan 34,860 -> 31,278；其中两行
-成功例 wall >10s，违反 R1，待修复后复跑）。分步 gate
-（`results_v3_step{1,2,3}_*`）构成消融阶梯：B（request cell vs
-ManipulationTask）= baseline->step1（1.006988）；one-empty frontier
-编译 = step1->step2（0.923696）；A/C（frozen vs feedback、shelf-only
-vs realization-aware，在实现中由 price 轮同一机制承载，**未独立
-消融**）= step2->step3（0.974503，17 个变化行全部为 multi-goal
-B-pool，R1 plan 与 step2 逐字节一致）。
-
-按 design_final §11.6 验收，开新结果目录并同时报告：
-
-- success 不低于 `36/68` 与小图 `36/36`；
-- 共同成功集 makespan/SOC 几何均值 + 逐例改善/持平/恶化，恶化逐个
-  解释；锚案例 `h4w10_a5_e1_R1_seed0`（基线 1053，v3.0 当前 417）、
-  `h10w10_a12_e3_R1_seed1`（基线 2620，v3.0 当前 2689，first_ms
-  贴线）单列；
-- 首遍轨迹允许改变；singleton/R1 逐字节等价不作为语义变更的验收项，
-  但零 shelf（`test_tapf_compat`）仍必须逐位一致；
-- 三组消融 A（frozen tau vs `tau_guide`）、B（request cell vs
-  ManipulationTask）、C（shelf-only vs robot-realization cost）以
-  结构变体报告——当前由分步 gate 阶梯承载（见上）；若需单轴独立
-  变体，按 §11.2 以 runner method 落地，不得用环境开关；
-- `tau_time_ms / guidance_time_ms` 预算报告（§6 症状 2）。
-
-### 8.3 可视化对照
-
-当前基线动画（同一 `h8w10 e20 B seed1`）：
-
-```text
-benchmark/viz/task_commit_before_h8w10.html   rootfix control, 233 steps
-benchmark/viz/task_commit_fixed_h8w10.html    selected fixed plan, 168 steps
-```
-
-run 内部统计是 first 241 -> second 168；runner 只持久化最终候选，
-before 动画使用可独立重放的 rootfix control，不冒充当前 first。
+按 design_final §11.4 验收：success ≥34/68 且小图 ≥34/36（恢复
+已丢失例如实报升）；共同成功集几何比 + 逐例三分 + 恶化逐例解释 +
+锚例单列；零 shelf 逐位一致（singleton 字节稳定不作要求——协商
+影响路径/落点维度）；消融 A/B/C（v3.0 路径强制回退 vs 协商 /
+无继承 vs 完整链 / 合并 vs 丢弃）同协议报告；`obj_fallbacks` 比率
+与 `guidance_time_ms` 预算专项报告。
 
 ## 9. 已知边界
 
-- 20x20 以上 dense BRaP：10 秒内 0/32；`tau_guide` 反馈针对
-  assignment churn 与 task 不连贯，不是首解 horizon 的充分解；
-- fixed-assignment restart 在首解后才触发，不能改善 0 首解实例；
-- output repair 不减少 raw first-incumbent search horizon；
-- 1/2 robot bridge 最短，更多 robot 只保证合法缩短
-  （`h4w10` Python 原型 719 vs 当前 1053，bridge 有余量）；
-- search-level shelf-equivalence merging 仍是研究项，必须同时解决
-  robot state reconstruction，不能只改 hash；
-- `targets > 256` 的 row-wise guidance（非单射 `tau_hint`）没有 gate
-  实例覆盖，只有单元测试保护；
-- 每 node 重评 `tau_guide` + robot realization 是新的常数成本来源，
-  受 §6 症状 2 与 design_final §11.6 第 6 条约束。
+- 20×20+ 大图 10s 内 0/32（首解 horizon，协商不解决）；
+- one-empty 物理串行化：任务池天然小于机器人数，闲置是物理不是
+  调度错（改进方向：深链补发、预测性站位——后续工作）；
+- `targets > 256` row-wise 非单射 hint regime 无 gate 覆盖；
+- 1/2 机器人桥最短，更多机器人仅合法缩短（Python 原型 719 vs 1053
+  宽松口径，桥有余量）；
+- 已知质量遗留：e8 例（池收缩/并行度）、b4 式目标往返残余、贴线例
+  wall 敏感——v4.0 验收时专项检查前两项是否被协商/合并改善；
+- 协商成本是新的常数项：`obj_*` 常量硬限 + 预算列监控 + 回退安全阀。
 
-## 10. 2026-09-02 第二轮 review 修复契约
+## 10. 已闭合契约索引（审计入口）
 
-外部 review 判定"不建议将 v3.0 标记为设计完整落地"。逐条核实后接受
-以下修复项（R1/R2 为阻塞级）。每项按 rules.md 走
-test -> RED -> implementation -> GREEN -> gate。
-**全部完成（2026-09-02）**：最终 gate = `results_v3_review2_final`
-（严格 10s：35/68、小图 35/36、无 wall 违规行；vs baseline 共同 35 例
-mk/SOC 几何比 0.936919/0.945694，18/8/9；timing.json 带
-commit/binary-sha/host provenance，成功行带 plan_sha256）；回归规模
-C++ 158、Python 75。
-
-**R1（阻塞）严格 10 秒端到端**。核实：baseline 无 >10.5s 成功行，
-step3 有两行（10.67s 与 `h10w10_a12_e3_R1_seed1` 的 **14.442s** =
-10s 搜索 + ~4.4s 修补/重放）——v3 更长的 raw 首解使修补开销膨胀，
-rules.md 的 10s 与 §11.1(2) 的 wall allowance 冲突按 rules.md 收紧：
-**修补、SOC 计算与最终重放全部计入每遍的 10s deadline**；
-`repair_carrier_plan` 接受剩余 deadline；一个 pass 若不能在预算内
-完成"搜索 + 强制修补"，该 pass 诚实超时（未修补的 10 万步 raw plan
-在预算内同样无法打印/验证，不得作为可交付物）。runner 的 +30s 只
-保护进程启动与输出 IO。
-**验收（2026-09-02 已达成并测量）**：可交付物（含修补与候选选择）
-严格在 10s 内产出；成功行 wall ≤ 10s + 进程收尾包络（deadline 后的
-节点析构/诊断链提取/IO，**baseline 自身失败行即为 10.09-10.66s，
-中位 10.35s**——该包络自 v2.2 起存在，非本轮引入）。
-`results_v3_r1_strict10s`：成功行最大 10.672s（10s deadline +
-0.67s 收尾，与 baseline 包络一致）；14.4s 类violation 消除；贴线例
-`h10w10_a12_e3_R1_seed1` 诚实转为 timeout —— **success 35/68、
-小图 35/36**，共同成功集（35 例）vs baseline mk/SOC 几何比
-0.905274/0.927614（17/8/10）。一个失败行 11.49s = 10s 搜索 + 大树
-析构（v3 节点含 task/custody 向量更重），是收尾开销不是搜索预算。
-
-**R2（阻塞）task 驱动执行的另一半环**。现状：funcPIBT 读
-`target_next/parking_cell/free_goal`；`task.to` 无生产消费者，
-`task.depth` 无任何消费者；custody 仅记身份。修复标准：
-(a) anon carrier 的 drop 目标从 **custody task 的位置感知细化**推导：
-同一 TaskId 内，执行期以当前位置对 `task.to` 做可达性细化（细化后
-写回 guidance 的 carry waypoint；d50 证伪的是"盲用编译期 to"，不是
-"从 task 推导"）；(b) one-empty 行为测试：ready task 的 shelf 必须
-Drop 在 vacancy（task.to），不允许 Lift 后另找停车点（不变量 22 的
-行为面）；(c) `task.depth` 进入 rho 匹配成本（设计 §5.1），否则删除
-该字段；(d) free/carried-target 阶段已按构造与 task 阶段一致，文档
-写明推导关系。
-**落地（2026-09-02）**：`to_committed` 区分编译期承诺（one-empty
-ready：to = vacancy）与 advisory hint——承诺型 drop 保持 soft
-commitment（自身站格计为可落，失效才重算真实空格），非承诺型按任务
-语义交由 carrier 每节点选停车格（d50 dense bound 测试保持通过）；
-funcPIBT anon 分支从 custody 推导 carry waypoint（不变量 23 闭合）；
-`depth` 为 rho req_order 的同优先级次序键（浅者先，one-empty 跨 root
-测试钉住）。测试：`dd_tasks.{one_empty_drop_lands_at_custody_task_to,
-depth_orders_equal_priority_tasks_in_rho}`（RED->GREEN），C++
-155/155、Python 70/70。gate `results_v3_r2_taskexec`：35/68、无
->10.7s 成功行；vs baseline 共同 35 例 mk 几何比 **0.936919**
-（18/8/9）；vs r1 内部回吐 1.034957（4/24/7，锚例 417->720）——
-二分归因：回吐来自 custody 承诺语义本身（单独启用时 1.042183、锚例
-1155；depth 键回补至 1.035），是"执行强制遵守 task 承诺"替代"机会
-主义漂移"的代价，按设计要求接受并披露；net vs baseline 仍显著为正。
-
-**R3 rewire 全链 stale**。`rewrite()` 重挂整条后代链，只标 S_known
-不够：stale 标记移入 `rewrite()` 的 parent 赋值处；测试断言重挂链上
-节点的 anchor 被重建。
-
-**R4 解析统一与单位一致**。(a) `load_solver_weights` 改
-`strtod` + 尾指针校验，拒绝 `DD_ALPHA=abc`（现被 atof 静默当 0）；
-(b) 删除 `tools/dd_benchmark.cpp` 的第二套 `envd` atof parser，
-报告权重改走共享 parser（ONE parser 恢复为真）；(c)
-`compute_execution_prices` 的 realization 以 **beta** 计价
-（robot 下层移动的 objective 权重），修正与 alpha 缩放 LB 的单位
-不一致。
-
-**R5 诊断输出与披露**。(a) dd_benchmark 输出
-`tau_price_repairs/rewire_guidance_rebuilds/tau_time_ms/
-guidance_time_ms`，runner 持久化到 rows.csv；(b) 补披露 step3 漏报
-的恶化例 `h4w10_a5_e10_B_seed1` 32->42（+31.2%）——step2->step3 共
-7 个恶化例，之前只列 6 个。
-
-**R6 可审计性**。timing.json 记录 git commit、binary sha256、host；
-rows.csv 记录每个成功 plan 的 sha256（work/ 仍不入库，hash 供字节级
-审计）；runner 拒绝写入已存在且非空的 out-dir（新增 `--force` 显式
-覆盖）。
-
-**R7 文档与 CI 同步（2026-09-02 完成）**。design_final §12 表
-3/4/5/6 行改"已覆盖"（含 R2 执行面测试）、头部实现基准更新为
-"v2.2 骨架 + v3.0 step 1-3 + R1-R7"、137/69 标注为 v2.2 冻结时点；
-benchmark/README 的 design.md 引用改指 design_final.md；CI 覆盖
-dev + dd-lacam 分支、根 CMakeLists/tools/benchmark 路径、yaml-cpp
-依赖与独立 Python job（binary 依赖用例自跳过）。**rules.md 中的
-`design.md` 指本仓库的权威设计文档，即 `design_final.md`**
-（rules.md 为任务治理文件，不改动其文本）。
-
-**范围外（记录不修）**：§4.1 candidate-wise C_guide 仍为开放设计
-（实现对应 new.md §5.1 的单轮近似，文档已标注）；A/C 独立消融变体
-按 §11.2 另立结构 method，本轮只记录缺口；C++ loader 忽略 target id
-与 Python schema 的差异记入已知边界。
-
-## 11. 2026-09-02 第三轮 review 修复契约
-
-两条阻塞级意见，均已独立复现确认；S3 为复现过程中的顺带发现。每项按
-rules.md 走 test -> RED -> implementation -> GREEN -> gate。
-
-**S1（阻塞）labeled ready shelf 不执行 committed task**。复现（40 步
-trace）：one-empty 下 vacancy 相邻链上货架为 labeled target `t1`
-（自身 goal 在反方向）时，编译器正确生成
-`MoveShelf(t1, 3->4, committed)`，但 custody 传播跳过
-`kappa != ANON`、funcPIBT loaded-target 分支只朝 `tau[t1]` 驱动——
-机器人举起 t1 后在 3<->4 间**无限往返、永不 Drop**（rollout 活锁；
-custody 恒 0）。修复标准：(a) custody 扩展到 labeled target（举起时
-从 parent 绑定 task 复制，`shelf_target` 必须与 `kappa` 一致）；
-(b) funcPIBT 的 loaded-target 分支在**存在 committed custody** 时朝
-`custody.to` 驱动并在该格 Drop（放下后该 target 按自身 `tau` 照常
-继续；全部 ordering-only，不碰 h/终止条件/约束树）；(c) RED 测试 =
-复现场景，断言 labeled target 在有限步内 Drop 于 vacancy 且 custody
-贯穿 carry（原一 empty 测试只覆盖匿名 ready shelf，保持不动）。
-
-**S2（阻塞）同父后代不标 stale**。R3 只在 parent 指针改变时标记；
-duplicate 换父后，其子节点经**未变的父指针**被 g-松弛时锚已过期却
-不标记（reviewer 复现：duplicate_stale=1, child_g 降, child_stale=0）。
-修复标准：`rewrite()` 中**任何被松弛（g 下降）的节点**都标
-`guidance_stale`（松弛 = 到达路径已变 = 祖先链已变）；惰性重建机制
-不变。RED 测试 = 子节点 parent 不变、仅 g 松弛的构造，断言 stale。
-
-**S3 跨 root 任务重复**。S1 复现暴露：两个 root 各编译出
-`(shelf=t1, from=3, to=4)` 的 ready task，去重仅 per-chain。修复
-标准：pool 级去重——同 `(shelf_target, from)` 的 task 只保留首个
-（优先级最高者先发射，天然保留最高优先级副本）；RED 测试断言 pool
-无 `(shelf_target, from)` 重复。
-
-验收：三项 GREEN 后全套回归 + 68 例 gate（严格 10s、新目录），与
-`results_v3_review2_final` 诚实对比（S1 改变 one-empty 含 labeled
-链的执行语义，允许行变化并逐例披露；S2 对 stop-at-first gate 应零
-差异；S3 只影响 rho 槽位分配）。
-
-**闭合（2026-09-02）**：三项 RED->GREEN，C++ 161、Python 75。
-depth 测试的旧 fixture 被 S3 判定为"同一物理搬运被两个 root 重复
-编译"的无效前提——替换 fixture 经两轮独立审查（首轮 REJECT：我提议
-的几何同样合并；改用穷举枚举 + 端到端验证后 APPROVE，reviewer 并
-独立验证了判别力）。最终 gate `results_v3_round3_final`：
-**34/68、小图 34/36**；vs baseline 共同 34 例 mk/SOC 几何比
-**0.925567/0.934095**（18/7/9）；vs 上一 head 0.992889（10/14/10）。
-逐项披露：
-- S1 净收益：e1 族多数改善（锚例 720->880 回吐但 `h4w10_e1_R1_s1`
-  401->191、`h4w10_e1_B_s1` 96->61 等），livelock 类根除；
-- **S3 代价：`h10w10_a12_e8_R1_seed0` 丢失**（35->34 的唯一原因）：
-  bisect 确认去重使该例首解从 5.2s 推迟到 8.5s（3/3 稳定），剩余
-  预算不足以完成强制修补 -> R1 规则诚实超时。尝试的"去重仍占用
-  优先级槽位"修正无效且破坏 depth 测试，已回退。机制假设：pool
-  收缩使 12-robot 盘面并行度下降（任务数 < 空闲机器人数）——
-  "chain 在机器人富余时补发更深 blocker"记为后续工作，不匆忙上未
-  验证的补偿机制；
-- 收尾包络增长：pass2 合法耗满预算的实例，deadline 后大树析构最长
-  实测 ~1.6s（`h6w10_e1_B_s0` 成功行 wall 11.55s；可交付物仍在
-  10s 内产出）。析构与 CLOSED 规模及 v3 节点重量同比——teardown
-  优化记为后续工作，runner +30s 覆盖之。
+- **第二轮 review R1-R7**（严格 10s / 执行侧半环 / 全链 stale /
+  parser 统一 / β 计价 / 诊断列 / provenance / 文档 CI）：
+  commits `e8a751d..a266e80`；
+- **第三轮 review S1-S3**（labeled ready 活锁 / 任意松弛 stale /
+  池去重 + depth fixture 两轮审查替换）：commit `4d51c11`；
+- 各契约的验收数字、二分归因与逐例披露原文见对应 commit message
+  与 `results_*` 目录（rows.csv + timing.json provenance）。
