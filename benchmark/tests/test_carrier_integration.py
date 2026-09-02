@@ -142,3 +142,27 @@ class TestCarrierLacamIntegration(unittest.TestCase):
         run_solver(ins_path, 5, out1, seed=7)
         run_solver(ins_path, 5, out2, seed=7)
         self.assertEqual(out1.read_text(), out2.read_text())
+
+
+@unittest.skipUnless(BIN.exists(), "dd_benchmark not built")
+class TestV3DiagnosticsExported(unittest.TestCase):
+    # 2026-09-02 R5 (debug.md §10, TDD RED): the v3.0 counters/timings
+    # must be observable end-to-end — binary stdout AND the runner's CSV
+    # columns — or gate analyses cannot audit price/rewire activity and
+    # the guidance budget (design_final §11.6(6)).
+    REQUIRED = ("tau_price_repairs", "rewire_guidance_rebuilds",
+                "tau_time_ms", "guidance_time_ms")
+
+    def test_binary_emits_v3_diagnostics(self):
+        ins_path = REPO / "tests/fixtures/dd_tiny.yaml"
+        plan_out = BENCH / "results_probe/dd_tiny_diag.plan"
+        plan_out.parent.mkdir(exist_ok=True)
+        p, metrics = run_solver(ins_path, 5, plan_out)
+        self.assertEqual(p.returncode, 0, p.stderr[-400:])
+        for key in self.REQUIRED:
+            self.assertIn(key, metrics, f"binary must print {key}=")
+
+    def test_runner_persists_v3_diagnostics(self):
+        from run_benchmark import FIELDS
+        for key in self.REQUIRED:
+            self.assertIn(key, FIELDS, f"rows.csv must persist {key}")

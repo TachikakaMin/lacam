@@ -167,6 +167,13 @@ int main(int argc, char** argv)
   std::cout << "tau_pair_changes=" << stats.tau_pair_changes << "\n";
   std::cout << "rho_change_builds=" << stats.rho_change_builds << "\n";
   std::cout << "rho_pair_changes=" << stats.rho_pair_changes << "\n";
+  // R5 (debug.md §10): v3.0 diagnostics for gate audits — price/rewire
+  // activity and the per-run guidance budget (design_final §11.6(6))
+  std::cout << "tau_price_repairs=" << stats.tau_price_repairs << "\n";
+  std::cout << "rewire_guidance_rebuilds=" << stats.rewire_guidance_rebuilds
+            << "\n";
+  std::cout << "tau_time_ms=" << stats.tau_time_ms << "\n";
+  std::cout << "guidance_time_ms=" << stats.guidance_time_ms << "\n";
   std::cout << "macro_successors=" << stats.macro_successors << "\n";
   std::cout << "macro_steps=" << stats.macro_steps << "\n";
   std::cout << "macro_shelf_motion_successors="

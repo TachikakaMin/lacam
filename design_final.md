@@ -1034,8 +1034,10 @@ stop-at-first 生产遍经 80-fixture 扫描证实无 relax）。step-3 gate
 17 个 multi-goal B-pool 例（R1/singleton 零变化、18 个 R1 plan 与
 step 2 逐字节一致——price 作用域与设计精确一致）；显著改善：
 `h10w10_e3_B_seed0` 555->306、`h8w10_e2_B_seed1` 1108->679；恶化例
-（全披露）：`h6w10_e15_B_seed0` 112->164、`h8w10_e20_B_seed1`
-168->233、`h4w10_e10_B_seed0` 41->71、`h4w10_e1_B` 两例、
+（全部 7 例，2026-09-02 R5 补披露漏报项）：`h6w10_e15_B_seed0`
+112->164、`h8w10_e20_B_seed1` 168->233、`h4w10_e10_B_seed0` 41->71、
+**`h4w10_e10_B_seed1` 32->42（+31.2%，首轮披露遗漏）**、
+`h4w10_e1_B_seed0` 57->70、`h4w10_e1_B_seed1` 34->44、
 `h8w10_e2_B_seed0` 648->668。
 
 ---

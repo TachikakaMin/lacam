@@ -47,6 +47,8 @@ FIELDS = [
     "assignment_improvements", "assignment_second_solution_ms",
     "assignment_first_soc", "assignment_second_soc",
     "assignment_first_makespan", "assignment_second_makespan",
+    "tau_price_repairs", "rewire_guidance_rebuilds",
+    "tau_time_ms", "guidance_time_ms",
     "runtime_sec", "status", "raw",
 ]
 
@@ -314,6 +316,13 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 assignment_second_makespan=metrics.get(
                     "assignment_second_makespan", ""
                 ),
+                # R5 (debug.md §10): v3.0 diagnostics for gate audits
+                tau_price_repairs=metrics.get("tau_price_repairs", ""),
+                rewire_guidance_rebuilds=metrics.get(
+                    "rewire_guidance_rebuilds", ""
+                ),
+                tau_time_ms=metrics.get("tau_time_ms", ""),
+                guidance_time_ms=metrics.get("guidance_time_ms", ""),
                 runtime_sec=round(rt, 3), status="ok", raw="")
 
 
@@ -425,7 +434,7 @@ def main():
     rows.sort(key=lambda r: (r["instance"], r["method"]))
     out.mkdir(parents=True, exist_ok=True)
     with open(out / "rows.csv", "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=FIELDS)
+        w = csv.DictWriter(fh, fieldnames=FIELDS, restval="")
         w.writeheader()
         w.writerows(rows)
 
