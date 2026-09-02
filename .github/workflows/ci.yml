@@ -4,31 +4,49 @@ on:
   push:
     branches:
       - dev
+      - dd-lacam
     paths:
+      - 'CMakeLists.txt'
       - 'lacam/**'
       - 'tests/**'
+      - 'tools/**'
+      - 'benchmark/**'
       - 'main.cpp'
       - '.github/**'
 
 jobs:
-  ci:
+  cpp:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: false
       - name: submodule setup for google test
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: google/googletest
           path: third_party/googletest
       - name: submodule setup for argparse
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: p-ranav/argparse
           path: third_party/argparse
+      - name: deps
+        run: sudo apt-get update && sudo apt-get install -y libyaml-cpp-dev
       - name: build
-        run: cmake -B build && make -C build
+        run: cmake -B build && make -C build -j
       - name: test
         run: ./build/test_all
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r benchmark/requirements-test.txt pyyaml
+      - name: test (binary-dependent cases self-skip)
+        run: PYTHONPATH=benchmark python3 -m pytest benchmark/tests -q

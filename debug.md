@@ -458,9 +458,14 @@ rows.csv 记录每个成功 plan 的 sha256（work/ 仍不入库，hash 供字�
 审计）；runner 拒绝写入已存在且非空的 out-dir（新增 `--force` 显式
 覆盖）。
 
-**R7 文档与 CI 同步**。design_final §12 表 3/4/5 行改"已覆盖"、
-头部"实现基准 v2.2"与 137/69 计数更新、A/C 消融未独立的显式标注；
-CI 工作流覆盖当前分支、根 CMakeLists 与 Python 测试。
+**R7 文档与 CI 同步（2026-09-02 完成）**。design_final §12 表
+3/4/5/6 行改"已覆盖"（含 R2 执行面测试）、头部实现基准更新为
+"v2.2 骨架 + v3.0 step 1-3 + R1-R7"、137/69 标注为 v2.2 冻结时点；
+benchmark/README 的 design.md 引用改指 design_final.md；CI 覆盖
+dev + dd-lacam 分支、根 CMakeLists/tools/benchmark 路径、yaml-cpp
+依赖与独立 Python job（binary 依赖用例自跳过）。**rules.md 中的
+`design.md` 指本仓库的权威设计文档，即 `design_final.md`**
+（rules.md 为任务治理文件，不改动其文本）。
 
 **范围外（记录不修）**：§4.1 candidate-wise C_guide 仍为开放设计
 （实现对应 new.md §5.1 的单轮近似，文档已标注）；A/C 独立消融变体

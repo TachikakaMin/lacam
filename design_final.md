@@ -4,9 +4,11 @@
 
 - 设计基准：`new.md`（draft v3.0）——重写 guidance 层，让 shelf goal
   与 robot task 在每个搜索节点互相反馈；
-- 实现基准：当前 `lacam/src`（v2.2 生产代码），由
-  `benchmark/results_task_commit_final/` 与全量回归
-  （C++ 137/137、Python 69/69）验证；
+- 实现基准：当前 `lacam/src`——v2.2 生产骨架 + 已落地的 v3.0
+  step 1-3 与两轮 review 修复（R1-R7，见 §12 与 `debug.md` §10）；
+  回归规模随修复批增长（2026-09-02 时点：C++ 158、Python 75，
+  以 `debug.md` §7 与最新 commit 为准），当前 head gate =
+  `results_v3_r2_taskexec`（严格 10s 协议，35/68）；
 - 写法约定：每个机制先给 **[设计]**（v3.0 目标语义），必要时再给
   **[现状]**（当前代码的真实行为与落点）与 **[落差]**（落地时必须补齐
   的差异）。未标注的段落表示设计与现状一致、已实现。
@@ -936,8 +938,9 @@ gate 是刻意设计；跨方法的**泛化/正式比较**需另开多 solver-se
 B0 9/9、B1 5/9；full/B0 makespan 几何比 0.638179（5/3/1），full/B1
 1.077651（1/3/1）。
 
-最终回归：C++ 137/137；Python 69/69（14 workers，25.01 秒）。外部
-baseline 测试 solver deadline 固定 10 秒。
+v2.2 冻结时点回归：C++ 137/137；Python 69/69（14 workers，25.01
+秒）。外部 baseline 测试 solver deadline 固定 10 秒。（此后 v3.0 与
+review 修复批持续增长，当前规模见文档头部与 `debug.md` §7。）
 
 ### 11.6 v3.0 验收 gate
 
@@ -964,10 +967,10 @@ task/`tau_guide` 层落地时按 11.1 协议开新结果目录，并满足：
 |---|---|---|
 | 1 | 零 shelf 与原 LaCAM-TAPF 逐位一致 | 已有：`test_tapf_compat`（deterministic/anytime/rng 轨道） |
 | 2 | `\|G_b\|=1` 退化为 fixed-goal carrier | 已有：`dd_tau.singleton_degenerates_and_matches_root_h`、`dd_goalset.singleton_assignment_skips_second_search` |
-| 3 | target 不动、robot/vacancy 改变时 `tau_guide` 可以改变 | **待写**（依赖 robot-realization cost） |
-| 4 | 同一 `TaskId` 连续经历 approach、Lift、carry、Drop | **待写**（依赖 ManipulationTask） |
-| 5 | one-empty 时 ready task 是相邻 shelf 移入 vacancy | **待写**（依赖 compile_frontier_task） |
-| 6 | execution feedback 不进入 admissible `h` | 已有半边：`dd_tau.hysteresis_is_tie_break_only`、`dd_tau.rowwise_taboo_does_not_bias_admissible_h`、`dd_anytime.admissible_h_never_exceeds_true_cost`；robot 项落地时同型扩展 |
+| 3 | target 不动、robot/vacancy 改变时 `tau_guide` 可以改变 | 已覆盖：`dd_tasks.robot_placement_flips_tau_guide_goal` |
+| 4 | 同一 `TaskId` 连续经历 approach、Lift、carry、Drop | 已覆盖：`dd_tasks.custody_keeps_task_id_from_lift_through_drop`（身份）+ `dd_tasks.one_empty_drop_lands_at_custody_task_to`（落点，R2) |
+| 5 | one-empty 时 ready task 是相邻 shelf 移入 vacancy | 已覆盖：编译面 `dd_tasks.one_empty_ready_task_moves_vacancy_adjacent_shelf` + 执行面 `dd_tasks.one_empty_drop_lands_at_custody_task_to` |
+| 6 | execution feedback 不进入 admissible `h` | 已覆盖：`dd_tasks.execution_price_never_enters_admissible_h`、`dd_tau.hysteresis_is_tie_break_only`、`dd_tau.rowwise_taboo_does_not_bias_admissible_h`、`dd_anytime.admissible_h_never_exceeds_true_cost` |
 | 7 | 所有返回计划通过 C++/Python replay | 已有：`dd_plan_repair.*`、benchmark validator、golden corpus |
 
 现有保护性测试（commitment/修补/搜索语义）继续有效，见 `debug.md`。

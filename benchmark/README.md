@@ -6,7 +6,7 @@ This directory contains the instance format, the two-deck transition
 validator, instance generators, converters to external baseline formats, the
 B4 baseline, and the benchmark runner.  **No Carrier-LaCAM algorithm here.**
 
-## Baseline availability (design.md §8.1)
+## Baseline availability (design_final.md §11.2（历史名 design.md §8.1）)
 
 | Baseline | Code | Status |
 |---|---|---|
