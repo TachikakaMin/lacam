@@ -166,3 +166,50 @@ class TestV3DiagnosticsExported(unittest.TestCase):
         from run_benchmark import FIELDS
         for key in self.REQUIRED:
             self.assertIn(key, FIELDS, f"rows.csv must persist {key}")
+
+
+@unittest.skipUnless(BIN.exists(), "dd_benchmark not built")
+class TestAuditability(unittest.TestCase):
+    # 2026-09-02 R6 (debug.md §10, TDD RED): committed results must be
+    # byte-auditable (work/ plans stay gitignored, so rows.csv carries
+    # each plan's sha256), timing.json must carry provenance, and the
+    # runner must refuse to silently overwrite an existing result dir.
+
+    def test_provenance_keys(self):
+        import sys
+        sys.path.insert(0, str(BENCH))
+        from run_benchmark import provenance_info
+        info = provenance_info()
+        for key in ("git_commit", "binary_sha256", "host"):
+            self.assertIn(key, info)
+        self.assertGreaterEqual(len(info["git_commit"]), 7)
+        self.assertEqual(len(info["binary_sha256"]), 64)
+
+    def test_plan_sha256_field_and_fill(self):
+        import hashlib
+        import sys
+        sys.path.insert(0, str(BENCH))
+        from run_benchmark import FIELDS, row_carrier
+        self.assertIn("plan_sha256", FIELDS)
+        ins_path = REPO / "tests/fixtures/dd_tiny.yaml"
+        ins = load_instance(ins_path)
+        work = BENCH / "results_probe"
+        work.mkdir(exist_ok=True)
+        row = row_carrier(ins, ins_path, "dd_tiny_sha", "probe", work, 5)
+        self.assertEqual(row["success"], 1)
+        expected = hashlib.sha256(
+            (work / "dd_tiny_sha.carrier.plan").read_bytes()).hexdigest()
+        self.assertEqual(row["plan_sha256"], expected)
+
+    def test_out_dir_overwrite_guard(self):
+        import sys
+        import tempfile
+        sys.path.insert(0, str(BENCH))
+        from run_benchmark import ensure_out_dir
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "res"
+            ensure_out_dir(out, force=False)  # fresh dir: fine
+            (out / "rows.csv").write_text("x")
+            with self.assertRaises(SystemExit):
+                ensure_out_dir(out, force=False)  # would overwrite
+            ensure_out_dir(out, force=True)  # explicit override

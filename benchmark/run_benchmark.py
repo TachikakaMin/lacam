@@ -18,6 +18,8 @@ raw outputs are kept under <out>/work/ for auditability.
 
 import argparse
 import csv
+import hashlib
+import socket
 import json
 import os
 import re
@@ -49,8 +51,36 @@ FIELDS = [
     "assignment_first_makespan", "assignment_second_makespan",
     "tau_price_repairs", "rewire_guidance_rebuilds",
     "tau_time_ms", "guidance_time_ms",
+    "plan_sha256",
     "runtime_sec", "status", "raw",
 ]
+
+
+def provenance_info():
+    """R6 (debug.md §10): commit, binary hash and host for timing.json."""
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True,
+            cwd=REPO, timeout=10).stdout.strip() or "unknown"
+    except Exception:  # noqa: BLE001
+        commit = "unknown"
+    try:
+        binary_sha = hashlib.sha256(CARRIER_BIN.read_bytes()).hexdigest()
+    except OSError:
+        binary_sha = ""
+    return {"git_commit": commit, "binary_sha256": binary_sha,
+            "host": socket.gethostname()}
+
+
+def ensure_out_dir(out, force):
+    """R6: refuse to silently overwrite an existing result directory."""
+    out = Path(out)
+    if (out / "rows.csv").exists() and not force:
+        raise SystemExit(
+            f"out dir {out} already holds rows.csv; results are audit "
+            f"artifacts (protocol §11.1(8)) - pick a new directory or pass "
+            f"--force to overwrite explicitly")
+    out.mkdir(parents=True, exist_ok=True)
 
 
 def run_external(cmd, timeout):
@@ -323,6 +353,8 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 ),
                 tau_time_ms=metrics.get("tau_time_ms", ""),
                 guidance_time_ms=metrics.get("guidance_time_ms", ""),
+                plan_sha256=hashlib.sha256(
+                    plan_out.read_bytes()).hexdigest(),
                 runtime_sec=round(rt, 3), status="ok", raw="")
 
 
@@ -380,6 +412,8 @@ def main():
                     help="parallel worker processes")
     ap.add_argument("--suboptimality", type=float, default=1.6,
                     help="CREST ECBS suboptimality bound")
+    ap.add_argument("--force", action="store_true",
+                    help="allow overwriting an existing result directory")
     ap.add_argument(
         "--weights", type=float, nargs=4,
         metavar=("ALPHA", "BETA", "GAMMA", "DELTA"),
@@ -395,6 +429,7 @@ def main():
                  "external methods")
 
     out = Path(args.out_dir)
+    ensure_out_dir(out, args.force)  # R6: no silent overwrites
     work = out / "work"
     work.mkdir(parents=True, exist_ok=True)
 
@@ -464,6 +499,7 @@ def main():
             "delta": weights[3],
         },
         "following": "allowed",
+        "provenance": provenance_info(),
         "methods": summary,
     }
     (out / "timing.json").write_text(json.dumps(timing, indent=2))
