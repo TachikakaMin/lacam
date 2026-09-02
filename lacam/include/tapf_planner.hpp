@@ -82,6 +82,11 @@ struct ManipulationTask {
   int root_goal = -1;
   int priority = 0;       // rho ordering (100 serve; 50-k clear chain)
   int depth = 0;          // dependency depth from the root objective
+  // Drop-cell semantics (R2): `to_committed` marks a COMPILED drop
+  // commitment (one-empty ready tasks: to = the vacancy).  Un-committed
+  // `to` values are advisory hints (guidance cost only); the task
+  // delegates the drop choice to the carrier per node (parking).
+  bool to_committed = false;
   uint64_t id = 0;        // stable TaskId: hash of (shelf, from, root);
                           // `to` excluded so identity survives frontier
                           // refinement of the drop cell

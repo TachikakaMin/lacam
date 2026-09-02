@@ -420,6 +420,20 @@ Drop 在 vacancy（task.to），不允许 Lift 后另找停车点（不变量 22
 行为面）；(c) `task.depth` 进入 rho 匹配成本（设计 §5.1），否则删除
 该字段；(d) free/carried-target 阶段已按构造与 task 阶段一致，文档
 写明推导关系。
+**落地（2026-09-02）**：`to_committed` 区分编译期承诺（one-empty
+ready：to = vacancy）与 advisory hint——承诺型 drop 保持 soft
+commitment（自身站格计为可落，失效才重算真实空格），非承诺型按任务
+语义交由 carrier 每节点选停车格（d50 dense bound 测试保持通过）；
+funcPIBT anon 分支从 custody 推导 carry waypoint（不变量 23 闭合）；
+`depth` 为 rho req_order 的同优先级次序键（浅者先，one-empty 跨 root
+测试钉住）。测试：`dd_tasks.{one_empty_drop_lands_at_custody_task_to,
+depth_orders_equal_priority_tasks_in_rho}`（RED->GREEN），C++
+155/155、Python 70/70。gate `results_v3_r2_taskexec`：35/68、无
+>10.7s 成功行；vs baseline 共同 35 例 mk 几何比 **0.936919**
+（18/8/9）；vs r1 内部回吐 1.034957（4/24/7，锚例 417->720）——
+二分归因：回吐来自 custody 承诺语义本身（单独启用时 1.042183、锚例
+1155；depth 键回补至 1.035），是"执行强制遵守 task 承诺"替代"机会
+主义漂移"的代价，按设计要求接受并披露；net vs baseline 仍显著为正。
 
 **R3 rewire 全链 stale**。`rewrite()` 重挂整条后代链，只标 S_known
 不够：stale 标记移入 `rewrite()` 的 parent 赋值处；测试断言重挂链上

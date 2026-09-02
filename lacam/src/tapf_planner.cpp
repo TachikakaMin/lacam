@@ -1335,13 +1335,18 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     } else if (kappa_i == KAPPA_ANON ||
                (kappa_i >= 0 && guide != nullptr &&
                 guide->target_park[kappa_i])) {
-      // clear duty: carry to the parking cell and drop.  The parking
-      // cell is recomputed from the CURRENT position every node, so it
-      // stays the carry-phase waypoint; custody tracks the task IDENTITY
-      // across the episode (v3.0 §6) but does not override the drop cell
-      // — a compile-time `to` hint is stale by execution time and
-      // measurably regresses dense boards (d50 bound test).
-      const int park = guide != nullptr ? guide->parking_cell[i] : -1;
+      // clear duty: carry to the drop cell and drop.  R2 (invariant 23):
+      // an ANON carrier executing a task with a COMMITTED drop (one-empty
+      // ready: to = the vacancy, kept fresh per node by build_guidance)
+      // carries to task.to; un-committed tasks delegate the drop to the
+      // per-node parking choice (carrier-chosen, position-fresh — the
+      // semantics that keep dense boards healthy, d50 bound test).
+      int park = guide != nullptr ? guide->parking_cell[i] : -1;
+      if (kappa_i == KAPPA_ANON && guide != nullptr &&
+          guide->custody.size() > (size_t)i &&
+          guide->custody[i].id != 0 && guide->custody[i].to_committed &&
+          guide->custody[i].to >= 0)
+        park = guide->custody[i].to;
       if (park == q) {
         cand.push_back({ai->v_now, (uint8_t)Op::DROP});
         cand.push_back({ai->v_now, (uint8_t)Op::WAIT});

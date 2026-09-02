@@ -973,6 +973,7 @@ inline CarrierGuidance build_guidance(
       mt.shelf_target = sc.grounded[from] > 0 ? sc.grounded[from] - 1 : -1;
       mt.from = from;
       mt.to = to;
+      mt.to_committed = depth_extra == 1;  // one-empty ready: to = vacancy
       mt.root_target = (int)b;
       mt.root_goal = tau[b];
       mt.priority = 50 - emitted;  // clear, chain head higher
@@ -1061,7 +1062,11 @@ inline CarrierGuidance build_guidance(
   std::vector<int> req_order(g.requests.size());
   for (size_t i = 0; i < req_order.size(); ++i) req_order[i] = (int)i;
   std::stable_sort(req_order.begin(), req_order.end(), [&](int a, int b) {
-    return g.requests[a].priority > g.requests[b].priority;
+    if (g.requests[a].priority != g.requests[b].priority)
+      return g.requests[a].priority > g.requests[b].priority;
+    // R2(c): within equal priority, shallower dependency depth first
+    // (a directly startable head beats a one-empty ready hop)
+    return g.tasks[a].depth < g.tasks[b].depth;
   });
   std::vector<bool> robot_used(R, false);
   int free_left = 0;
@@ -1156,6 +1161,13 @@ inline CarrierGuidance build_guidance(
   // v3.0 §6 custody: a loaded-ANON robot keeps executing the task it was
   // bound to when it lifted (same TaskId through approach/Lift/carry/
   // Drop).  Copied metadata only — never part of the search key.
+  // R2 (2026-09-02): the custody task's drop cell is REFINED
+  // position-aware every node (same-task re-targeting; a stale
+  // compile-time `to` was falsified on dense boards): in the one-empty
+  // regime the drop IS the current vacancy; otherwise the nearest free
+  // upper cell from the carrier with the parking preference order
+  // (non-protected first, protected non-goal fallback).  funcPIBT
+  // derives the carry waypoint from this field (invariant 23).
   g.custody.assign(R, ManipulationTask{});
   if (parent_guide != nullptr) {
     for (size_t i = 0; i < R; ++i) {
@@ -1172,6 +1184,29 @@ inline CarrierGuidance build_guidance(
         // fresh Lift: the robot stands on its bound task's pickup cell
         if (t.from == s.robots[i]) g.custody[i] = t;
       }
+      if (g.custody[i].id == 0 || !g.custody[i].to_committed) continue;
+      // Committed drop (one-empty ready): keep the destination while it
+      // stays droppable — the carrier's OWN cell counts (its upper
+      // "occupancy" is the carried shelf itself), which is exactly the
+      // stand-on-the-vacancy-and-drop endgame.  Recompute only when the
+      // destination was invalidated meanwhile; the new target must be a
+      // REAL free upper cell (never the carrier's own cell — that made
+      // the origin look like "the vacancy" and ping-ponged the carry).
+      // Un-committed custody defers the drop to the per-node parking
+      // choice (task semantics: carrier-chosen), which is what keeps
+      // dense boards healthy (d50 bound test).
+      const int prev_to = g.custody[i].to;
+      const bool prev_ok =
+          prev_to >= 0 &&
+          (sc.upper[prev_to] == 0 || prev_to == s.robots[i]);
+      if (prev_ok) continue;
+      int vac = -1;
+      for (size_t c = 0; c < sc.upper.size(); ++c)
+        if (sc.upper[c] == 0 && !ins.grid.is_wall((int)c)) {
+          vac = (int)c;
+          break;
+        }
+      g.custody[i].to = vac;  // -1 when nothing droppable: parking fallback
     }
   }
 

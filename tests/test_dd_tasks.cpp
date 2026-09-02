@@ -324,3 +324,85 @@ TEST(dd_tasks, custody_keeps_task_id_from_lift_through_drop)
   }
   EXPECT_TRUE(saw_carry);
 }
+
+// ---- 2026-09-02 R2 (debug.md §10): the EXECUTION half of the task loop.
+// Written BEFORE implementation (TDD RED). ----
+
+TEST(dd_tasks, one_empty_drop_lands_at_custody_task_to)
+{
+  // Invariant 22's behavior face: in the one-empty regime the executed
+  // Drop must land at the custody task's CURRENT drop cell (the vacancy)
+  // — deriving the carry waypoint from the task, not from an unrelated
+  // parking choice.  The custody task's `to` is refined position-aware
+  // every node (a stale compile-time `to` was falsified on dense boards;
+  // the refinement is the same-task re-targeting design_final §6.1
+  // allows), and in one-empty it must BE the vacancy.
+  auto ins = make_ins({"....."}, {{0, 0}},
+                      {{0, 0}, {0, 1}, {0, 2}, {0, 3}},
+                      {{{0, 0}, {0, 4}}});
+  const auto trace = dd_rollout_custody_trace(ins, 0, 32, 0);
+  ASSERT_GE(trace.size(), 3u);
+  int lift_at = -1;
+  for (size_t t = 1; t < trace.size() && lift_at < 0; ++t)
+    if (trace[t - 1].kappa == KAPPA_FREE && trace[t].kappa == KAPPA_ANON)
+      lift_at = (int)t;  // FIRST episode: the vacancy moves afterwards
+  ASSERT_GE(lift_at, 1);
+  // during the carry, the custody task's current drop cell is the vacancy
+  int drop_step = -1;
+  for (size_t t = lift_at; t < trace.size(); ++t) {
+    if (trace[t].kappa != KAPPA_ANON) {
+      drop_step = (int)t;
+      break;
+    }
+    EXPECT_EQ(trace[t].custody_to, ins.grid.idx(0, 4))
+        << "carry waypoint must be the custody task's vacancy at step "
+        << t;
+  }
+  ASSERT_GE(drop_step, lift_at + 1) << "the carry never ended in a drop";
+  // the executed Drop happened at the custody task's to: the robot's cell
+  // when it became FREE again is the vacancy
+  EXPECT_EQ(trace[drop_step].cell, ins.grid.idx(0, 4))
+      << "Drop must land at task.to (the vacancy), not a parking cell";
+}
+
+TEST(dd_tasks, depth_orders_equal_priority_tasks_in_rho)
+{
+  // R2(c): dependency depth participates in rho's task ordering (design
+  // §5.1 "task priority / dependency depth").  Priority already encodes
+  // the chain position (50-emitted); the extra information depth carries
+  // is the one-empty ready hop (+1).  Contract: within EQUAL priority
+  // and equal pickup distance, the SHALLOWER task binds first.
+  //
+  // Deterministic one-empty fixture (3x4, single vacancy (2,3), robot on
+  // its lower deck):
+  //   b0 (0,1)->(0,3): head (0,2) unstartable -> READY task from (1,3),
+  //       to (2,3), depth 2, priority 50 — emits FIRST (dist 2, index 0)
+  //   b1 (2,1)->(2,3): head (2,2) vacancy-adjacent -> plain head task,
+  //       depth 1, priority 50 — emits second
+  //   robot (2,3): distance 1 to BOTH pickups ((1,3) and (2,2))
+  // Without the depth key rho binds the deep ready task (emission order);
+  // with it the depth-1 head must win.
+  DDInstance ins;
+  ins.grid = DDGrid({"....", "....", "...."});
+  ins.robots = {ins.grid.idx(2, 3)};
+  for (int r = 0; r < 3; ++r)
+    for (int c = 0; c < 4; ++c)
+      if (!(r == 2 && c == 3)) ins.shelves.push_back(ins.grid.idx(r, c));
+  ins.target_starts = {ins.grid.idx(0, 1), ins.grid.idx(2, 1)};
+  ins.target_goals = {ins.grid.idx(0, 3), ins.grid.idx(2, 3)};
+  ins.finalize();
+  const auto X = initial_phys_config(ins);
+  std::vector<int> rho_task;
+  const auto tasks = dd_build_tasks(ins, X, &rho_task);
+  int heads50 = 0, min_depth = INT_MAX;
+  for (const auto& t : tasks)
+    if (t.priority == 50) {
+      ++heads50;
+      min_depth = std::min(min_depth, t.depth);
+    }
+  ASSERT_EQ(heads50, 2) << "fixture must produce two equal-priority heads";
+  ASSERT_EQ(min_depth, 1);
+  ASSERT_GE(rho_task[0], 0);
+  EXPECT_EQ(tasks[rho_task[0]].depth, min_depth)
+      << "equal priority + equal distance must bind the shallower task";
+}

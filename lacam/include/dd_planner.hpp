@@ -202,6 +202,8 @@ struct DDCustodyStep {
   int cell = -1;            // robot cell BEFORE the step
   uint64_t bound_id = 0;    // task bound via rho_task (0 = none)
   uint64_t custody_id = 0;  // carry custody (0 = none)
+  int custody_to = -1;      // custody task's CURRENT drop cell (R2:
+                            // position-aware refinement per node)
 };
 std::vector<DDCustodyStep> dd_rollout_custody_trace(const DDInstance& ins,
                                                     int robot, int max_steps,

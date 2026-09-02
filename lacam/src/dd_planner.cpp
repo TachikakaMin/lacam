@@ -868,7 +868,10 @@ std::vector<DDCustodyStep> dd_rollout_custody_trace(const DDInstance& ins,
     if ((size_t)robot < g.rho_task.size() && g.rho_task[robot] >= 0 &&
         g.rho_task[robot] < (int)g.tasks.size())
       rec.bound_id = g.tasks[g.rho_task[robot]].id;
-    if ((size_t)robot < g.custody.size()) rec.custody_id = g.custody[robot].id;
+    if ((size_t)robot < g.custody.size()) {
+      rec.custody_id = g.custody[robot].id;
+      rec.custody_to = g.custody[robot].to;
+    }
     trace.push_back(rec);
     TAPFConstraint root;
     if (!planner.get_new_config(node.get(), &root)) break;
