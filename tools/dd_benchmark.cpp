@@ -12,12 +12,58 @@
 #include <dd_planner.hpp>
 
 #include <chrono>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <cstdlib>
 #include <set>
 #include <map>
+
+namespace {
+
+void clear_plan_outputs(const std::string& plan_out)
+{
+  const std::string tmp = plan_out + ".tmp";
+  const std::string best_effort = plan_out + ".best_effort";
+  const std::string best_effort_tmp = best_effort + ".tmp";
+  std::remove(plan_out.c_str());
+  std::remove(tmp.c_str());
+  std::remove(best_effort.c_str());
+  std::remove(best_effort_tmp.c_str());
+}
+
+bool write_plan_atomically(const DDPlan& plan, const DDInstance& ins,
+                           const std::string& plan_out)
+{
+  const std::string tmp = plan_out + ".tmp";
+  std::remove(tmp.c_str());
+  std::ofstream out(tmp, std::ios::trunc);
+  if (!out) return false;
+  for (const auto& ops : plan) {
+    for (size_t i = 0; i < ops.size(); ++i) {
+      if (i) out << ";";
+      switch (ops[i].kind) {
+        case Op::WAIT: out << "w"; break;
+        case Op::MOVE:
+          out << "m " << ins.grid.row(ops[i].to) << " "
+              << ins.grid.col(ops[i].to);
+          break;
+        case Op::LIFT: out << "l"; break;
+        case Op::DROP: out << "d"; break;
+      }
+    }
+    out << "\n";
+  }
+  out.close();
+  if (!out || std::rename(tmp.c_str(), plan_out.c_str()) != 0) {
+    std::remove(tmp.c_str());
+    return false;
+  }
+  return true;
+}
+
+}  // namespace
 
 int main(int argc, char** argv)
 {
@@ -31,6 +77,11 @@ int main(int argc, char** argv)
   const std::string plan_out = argv[3];
   const int seed = argc >= 5 ? std::stoi(argv[4]) : 0;
   const std::string mode = argc >= 6 ? argv[5] : "lacam";
+  if (plan_out == yaml_path) {
+    std::cerr << "PLAN_OUT must differ from INSTANCE.yaml" << std::endl;
+    return 2;
+  }
+  clear_plan_outputs(plan_out);
   if (mode != "lacam" && mode != "b0" && mode != "b1") {
     std::cerr << "unknown MODE '" << mode
               << "' (expected lacam | b0 | b1)" << std::endl;
@@ -60,22 +111,10 @@ int main(int argc, char** argv)
         ins, time_limit_sec, seed, &stats,
         std::getenv("DD_DEBUG_DUMP") ? &best_effort : nullptr);
   if (plan.empty() && !best_effort.empty()) {
-    std::ofstream out(plan_out + std::string(".best_effort"));
-    for (const auto& ops : best_effort) {
-      for (size_t i = 0; i < ops.size(); ++i) {
-        if (i) out << ";";
-        switch (ops[i].kind) {
-          case Op::WAIT: out << "w"; break;
-          case Op::MOVE:
-            out << "m " << ins.grid.row(ops[i].to) << " "
-                << ins.grid.col(ops[i].to);
-            break;
-          case Op::LIFT: out << "l"; break;
-          case Op::DROP: out << "d"; break;
-        }
-      }
-      out << "\n";
-    }
+    const std::string best_effort_out = plan_out + ".best_effort";
+    if (!write_plan_atomically(best_effort, ins, best_effort_out))
+      std::cerr << "failed to write best-effort plan to " << best_effort_out
+                << "\n";
   }
   const double runtime_ms =
       std::chrono::duration<double, std::milli>(
@@ -87,17 +126,12 @@ int main(int argc, char** argv)
   if (valid) {
     // replay through the validator: belt-and-braces before reporting
     auto s = initial_phys_config(ins);
-    std::ofstream out(plan_out);
     for (const auto& ops : plan) {
       for (size_t i = 0; i < ops.size(); ++i) {
-        if (i) out << ";";
         switch (ops[i].kind) {
           case Op::WAIT:
-            out << "w";
             break;
           case Op::MOVE:
-            out << "m " << ins.grid.row(ops[i].to) << " "
-                << ins.grid.col(ops[i].to);
             if (s.kappa[i] == KAPPA_FREE) {
               ++free_moves;
             } else {
@@ -106,16 +140,13 @@ int main(int argc, char** argv)
             }
             break;
           case Op::LIFT:
-            out << "l";
             ++lift_drop;
             break;
           case Op::DROP:
-            out << "d";
             ++lift_drop;
             break;
         }
       }
-      out << "\n";
       auto nxt = apply_ops(ins, s, ops);
       if (!nxt.has_value()) {
         valid = false;
@@ -124,6 +155,14 @@ int main(int argc, char** argv)
       s = *nxt;
     }
     if (valid && !is_dd_goal(ins, s)) valid = false;
+  }
+  if (valid && !write_plan_atomically(plan, ins, plan_out)) {
+    std::cerr << "failed to write validated plan to " << plan_out << "\n";
+    valid = false;
+  }
+  if (!valid) {
+    std::remove(plan_out.c_str());
+    std::remove((plan_out + ".tmp").c_str());
   }
 
   // cost weights (design 2.3): alpha*loaded + beta*free + gamma*liftdrop

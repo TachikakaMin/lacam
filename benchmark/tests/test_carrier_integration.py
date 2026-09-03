@@ -11,6 +11,7 @@ The plan is replayed through the AUTHORITATIVE Python two-deck validator
 """
 
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -125,7 +126,7 @@ class TestCarrierLacamIntegration(unittest.TestCase):
 
     def test_dev_case_small_scramble_10s(self):
         """First fixed dev case must solve within the 10 s budget."""
-        ins_path = BENCH / "instances_small/scramble/scramble_h6w6r2s8t2k40_seed1.yaml"
+        ins_path = REPO / "tests/fixtures/dd_scramble_dev.yaml"
         plan_out = BENCH / "results_probe/dd_dev0.plan"
         plan_out.parent.mkdir(exist_ok=True)
         p, metrics = run_solver(ins_path, 10, plan_out)
@@ -142,6 +143,44 @@ class TestCarrierLacamIntegration(unittest.TestCase):
         run_solver(ins_path, 5, out1, seed=7)
         run_solver(ins_path, 5, out2, seed=7)
         self.assertEqual(out1.read_text(), out2.read_text())
+
+    def test_unsolved_run_removes_stale_plan_outputs(self):
+        """A failed run must not leave a plan from an earlier invocation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            ins_path = tmp / "unsolved.yaml"
+            ins_path.write_text(
+                """\
+name: stale_plan_unsolved
+map: |
+  ..
+robots:
+  - [0, 0]
+  - [0, 1]
+shelves:
+  - [0, 0]
+targets:
+  - id: b0
+    start: [0, 0]
+    goal: [0, 1]
+flags: {}
+"""
+            )
+            plan_out = tmp / "result.plan"
+            stale_outputs = [
+                plan_out,
+                Path(str(plan_out) + ".tmp"),
+                Path(str(plan_out) + ".best_effort"),
+            ]
+            for path in stale_outputs:
+                path.write_text("d;d\n")
+
+            p, metrics = run_solver(ins_path, 0.05, plan_out)
+
+            self.assertEqual(p.returncode, 0, p.stderr[-400:])
+            self.assertEqual(metrics.get("solved"), "0", p.stdout)
+            for path in stale_outputs:
+                self.assertFalse(path.exists(), f"stale output survived: {path}")
 
 
 @unittest.skipUnless(BIN.exists(), "dd_benchmark not built")

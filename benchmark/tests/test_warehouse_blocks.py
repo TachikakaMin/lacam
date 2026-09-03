@@ -26,6 +26,17 @@ class WarehouseGeneratorTest(unittest.TestCase):
         self.assertIn("requestAnimationFrame", PLAN_VIZ_TEMPLATE)
         self.assertIn("lerpPos", PLAN_VIZ_TEMPLATE)
         self.assertIn("p * p * (3 - 2 * p)", PLAN_VIZ_TEMPLATE)
+        self.assertIn("function stopPlayback()", PLAN_VIZ_TEMPLATE)
+        self.assertIn(
+            "drawTween(states[t], states[t + 1], ease(tweenProgress))",
+            PLAN_VIZ_TEMPLATE,
+        )
+        self.assertIn(
+            "segmentStart = performance.now()"
+            " - tweenProgress * stepDuration()",
+            PLAN_VIZ_TEMPLATE,
+        )
+        self.assertNotIn("tweenProgress >= 0.5", PLAN_VIZ_TEMPLATE)
         self.assertNotIn("setInterval", PLAN_VIZ_TEMPLATE)
 
     def test_uniform_blocks_and_one_cell_corridors(self):

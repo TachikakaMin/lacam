@@ -210,18 +210,24 @@ const speedInput = document.getElementById("speed");
 const speedValue = document.getElementById("speedValue");
 function stepDuration() { return 1000 / Number(speedInput.value); }
 function ease(p) { return p * p * (3 - 2 * p); }
-function finishPlayback() {
+function stopPlayback() {
   playing = false;
   if (rafId !== null) cancelAnimationFrame(rafId);
   rafId = null;
   segmentStart = null;
-  tweenProgress = 0;
   playBtn.textContent = "▶ Play";
+}
+function finishPlayback() {
+  stopPlayback();
+  tweenProgress = 0;
   drawCurrent();
 }
 function pausePlayback() {
-  if (tweenProgress >= 0.5 && t < D.plan.length) t++;
-  finishPlayback();
+  stopPlayback();
+  if (t < D.plan.length && tweenProgress > 0)
+    drawTween(states[t], states[t + 1], ease(tweenProgress));
+  else
+    drawCurrent();
 }
 function animate(now) {
   if (!playing) return;
@@ -252,8 +258,7 @@ playBtn.onclick = () => {
   }
   if (t >= D.plan.length) goto_(0);
   playing = true;
-  segmentStart = null;
-  tweenProgress = 0;
+  segmentStart = performance.now() - tweenProgress * stepDuration();
   playBtn.textContent = "⏸ Pause";
   rafId = requestAnimationFrame(animate);
 };
@@ -268,10 +273,10 @@ document.getElementById("stepf").onclick = () => {
 };
 document.getElementById("stepb").onclick = () => {
   if (playing) pausePlayback();
-  goto_(t - 1);
+  goto_(tweenProgress > 0 ? t : t - 1);
 };
 document.getElementById("seek").oninput = e => {
-  if (playing) finishPlayback();
+  if (playing) stopPlayback();
   goto_(Number(e.target.value));
 };
 </script>

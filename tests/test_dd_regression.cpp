@@ -243,9 +243,8 @@ TEST(dd_regression, dev_case_ddmapd_16x16_d50_within_10s)
 {
   // Protected dev case (dev_cases.txt line 6) — currently times out due to
   // Bug A + Bug B; must solve within the 10 s budget after the fixes.
-  const auto path = std::string(DD_TEST_DIR) +
-                    "/../benchmark/instances_standard/ddmapd/"
-                    "ddmapd_h16w16r8d50t8_seed0.yaml";
+  const auto path =
+      std::string(DD_TEST_DIR) + "/fixtures/d50_16x16_r8_seed0.yaml";
   auto ins = load_dd_instance(path);
   DDStats st;
   auto plan = solve_carrier_lacam(ins, 10.0, 0, &st);
