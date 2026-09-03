@@ -9,10 +9,9 @@ in both dimensions.  Shelves, target starts, and target goals are sampled
 only from storage cells.  Every block receives exactly the same number of
 shelves, so density is uniform within one testcase.
 
-The current core DD YAML format has no storage/drop-zone mask.  Consequently
-this generator enforces aisle exclusion for the generated start/goal layout,
-but the existing planner/validator does not yet forbid an intermediate DROP
-on an aisle cell.
+Generated YAML includes an authoritative ``storage_map``.  Robots and carried
+shelves may traverse aisle cells, but both validators reject DROP outside a
+storage block.
 """
 
 import argparse
@@ -143,8 +142,10 @@ def build_case(
     if n_targets > len(shelves) or n_targets > len(vacancies):
         raise ValueError("not enough shelves or storage vacancies for targets")
 
-    # Balance targets across blocks.  When there is more than one block,
-    # every target is sent to a vacancy in a different block.
+    # Balance targets across blocks. When there is more than one block,
+    # every target crosses exactly one aisle into an adjacent block. Long
+    # row-wrap/diagonal transfers make density, rather than block geometry,
+    # dominate the testcase and create needlessly pathological plans.
     if len(blocks) > 1:
         max_balanced_targets = len(blocks) * min(
             shelves_per_block, cells_per_block - shelves_per_block
@@ -167,16 +168,79 @@ def build_case(
         for cells in shuffled_vacant:
             rng.shuffle(cells)
 
-        target_starts = [
-            shuffled_occupied[block_i].pop() for block_i in source_blocks
-        ]
-        destination_blocks = [
-            (block_i + 1) % len(blocks) for block_i in source_blocks
-        ]
-        target_goals = [
-            shuffled_vacant[block_i].pop()
-            for block_i in destination_blocks
-        ]
+        block_rows = height // (block_size + aisle_width)
+        block_cols = width // (block_size + aisle_width)
+        destination_load = [0] * len(blocks)
+        destination_blocks: List[int] = []
+        for source in source_blocks:
+            row, col = divmod(source, block_cols)
+            neighbors: List[int] = []
+            if col > 0:
+                neighbors.append(source - 1)
+            if col + 1 < block_cols:
+                neighbors.append(source + 1)
+            if row > 0:
+                neighbors.append(source - block_cols)
+            if row + 1 < block_rows:
+                neighbors.append(source + block_cols)
+
+            # Pair horizontal neighbors where possible (0<->1, 2<->3,
+            # ...). On an odd final column, prefer its left neighbor.
+            preferred = (
+                source + 1
+                if col % 2 == 0 and col + 1 < block_cols
+                else source - 1
+                if col > 0
+                else neighbors[0]
+            )
+            candidates = [
+                block_i
+                for block_i in neighbors
+                if destination_load[block_i]
+                < len(shuffled_vacant[block_i])
+            ]
+            if not candidates:
+                raise ValueError(
+                    "adjacent destination blocks do not have enough vacancies"
+                )
+            destination = min(
+                candidates,
+                key=lambda block_i: (
+                    block_i != preferred,
+                    destination_load[block_i],
+                    block_i,
+                ),
+            )
+            destination_load[destination] += 1
+            destination_blocks.append(destination)
+
+        # Pair each source shelf with the nearest remaining vacancy in its
+        # adjacent destination block. Lists were shuffled above, so equal
+        # distance ties remain seed-controlled without creating long,
+        # arbitrary trips through the interiors of two dense blocks.
+        target_starts: List[Cell] = []
+        target_goals: List[Cell] = []
+        for source, destination in zip(source_blocks, destination_blocks):
+            choices = (
+                (
+                    abs(start[0] - goal[0]) + abs(start[1] - goal[1]),
+                    start_index,
+                    goal_index,
+                )
+                for start_index, start in enumerate(
+                    shuffled_occupied[source]
+                )
+                for goal_index, goal in enumerate(
+                    shuffled_vacant[destination]
+                )
+            )
+            _, start_index, goal_index = min(choices)
+            target_starts.append(
+                shuffled_occupied[source].pop(start_index)
+            )
+            target_goals.append(
+                shuffled_vacant[destination].pop(goal_index)
+            )
     else:
         target_starts = rng.sample(shelves, n_targets)
         target_goals = rng.sample(vacancies, n_targets)
@@ -248,12 +312,20 @@ def write_yaml(case: Dict, path: Path) -> None:
         f"({case['shelves_per_block']} shelves per block)",
         "# contract: shelves, target starts, and target goals are storage cells;",
         "#           robots start in corridors; no initial shelf is in a corridor.",
-        "# NOTE: corridor exclusion applies to generated placements and goals.",
-        "#       The current DD action model still permits intermediate DROP there.",
+        "# storage_map is authoritative: intermediate DROP in a corridor is illegal.",
         f"name: {case['name']}",
         "map: |",
     ]
     lines.extend(f"  {'.' * w}" for _ in range(h))
+    lines.append("storage_map: |")
+    lines.extend(
+        "  "
+        + "".join(
+            "S" if (r, c) in case["storage"] else "."
+            for c in range(w)
+        )
+        for r in range(h)
+    )
     lines.extend(
         [
             "warehouse_layout:",
@@ -262,7 +334,7 @@ def write_yaml(case: Dict, path: Path) -> None:
             f"  requested_density: {requested:.8f}",
             f"  actual_density: {actual:.8f}",
             f"  shelves_per_block: {case['shelves_per_block']}",
-            "  corridor_policy: initial_and_goal_placements_excluded",
+            "  corridor_policy: hard_no_drop",
             "  block_origins:",
         ]
     )
@@ -402,7 +474,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <div class="legend-item"><span class="swatch" style="background:var(--robot);border-radius:50%"></span>机器人</div>
     </div>
     <div class="note">
-      生成器已验证：每个 block 的尺寸和货架数完全相同，所有初始货架、目标起点和目标终点都位于 storage block，通道中没有初始货架。这里的通道禁放约束针对 testcase 的初始与目标布局；现有求解动作语义仍允许中间 DROP。
+      生成器已验证：每个 block 的尺寸和货架数完全相同，所有初始货架、目标起点和目标终点都位于 storage block，通道中没有初始货架。storage_map 是硬约束：载货机器人可以穿过通道，但任何中间 DROP 都只能发生在 storage cell。
     </div>
   </aside>
 </div>

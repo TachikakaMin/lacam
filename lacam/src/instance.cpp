@@ -197,6 +197,7 @@ TAPFInstance::TAPFInstance(const DDInstance& dd)
       allowed(std::vector<std::vector<bool> >(dd.robots.size())),
       N(dd.robots.size()),
       shelf_cells(dd.shelves),
+      shelf_storage(dd.shelf_storage),
       target_starts(dd.target_starts),
       target_goals(dd.target_goals),
       target_goal_sets(dd.target_goal_sets)

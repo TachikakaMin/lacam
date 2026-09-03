@@ -126,6 +126,10 @@ def apply_joint_action(
         elif kind == "drop":
             if s.kappa[i] is None:
                 raise TransitionError(f"robot {i}: drop while free")
+            if not ins.can_store_shelf(q):
+                raise TransitionError(
+                    f"robot {i}: drop at non-storage corridor cell {q}"
+                )
             new_kappa[i] = None
             dropped_this_step.add(q)
             if s.kappa[i] == ANON:
@@ -198,7 +202,8 @@ def legal_actions_for_robot(ins: Instance, s: State, i: int) -> List[Action]:
         if q in grounded_shelf_cells:
             acts.append(("lift",))
     else:
-        acts.append(("drop",))
+        if ins.can_store_shelf(q):
+            acts.append(("drop",))
     return acts
 
 

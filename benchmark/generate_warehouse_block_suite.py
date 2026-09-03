@@ -164,7 +164,7 @@ DASHBOARD_TEMPLATE = r"""<!DOCTYPE html>
     <div>目标密度 75%</div>
   </div>
   __ROWS__
-  <div class="note">通道禁放约束在这些 testcase 中定义为：初始货架、target start 和 target goal 均不得位于通道。现有 DD 动作模型仍允许求解过程中的临时 DROP；若要把它升级为运行时硬约束，需要同步加入跨通道连续搬运宏动作。</div>
+  <div class="note">storage_map 是运行时硬约束：初始货架、target start、target goal 以及求解过程中的每一次 DROP 都不得位于通道。载货机器人仍可连续穿过通道。</div>
 </main>
 <script>
 const CASES = __DATA__;
@@ -351,8 +351,8 @@ def write_readme(rows: Sequence[Dict], path: Path) -> None:
 
 Every testcase has one block size and exactly the same shelf count in every
 block. Initial shelves, target starts, and target goals are storage cells;
-robots start in aisle cells. The current DD action schema has no runtime
-drop-zone mask, so corridor exclusion is a generated-layout contract.
+robots start in aisle cells. The YAML ``storage_map`` is authoritative:
+carried shelves may traverse aisles, but DROP is legal only in storage cells.
 
 {table_text}
 """

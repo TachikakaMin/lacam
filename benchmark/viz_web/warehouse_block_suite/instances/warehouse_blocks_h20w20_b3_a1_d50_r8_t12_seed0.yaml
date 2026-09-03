@@ -3,8 +3,7 @@
 # requested density: 0.5000; actual uniform density: 0.5556 (5 shelves per block)
 # contract: shelves, target starts, and target goals are storage cells;
 #           robots start in corridors; no initial shelf is in a corridor.
-# NOTE: corridor exclusion applies to generated placements and goals.
-#       The current DD action model still permits intermediate DROP there.
+# storage_map is authoritative: intermediate DROP in a corridor is illegal.
 name: warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0
 map: |
   ....................
@@ -27,13 +26,34 @@ map: |
   ....................
   ....................
   ....................
+storage_map: |
+  ....................
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  ....................
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  ....................
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  ....................
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  ....................
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
+  .SSS.SSS.SSS.SSS.SSS
 warehouse_layout:
   block_size: 3
   aisle_width: 1
   requested_density: 0.50000000
   actual_density: 0.55555556
   shelves_per_block: 5
-  corridor_policy: initial_and_goal_placements_excluded
+  corridor_policy: hard_no_drop
   block_origins:
     - [1, 1]
     - [1, 5]
@@ -197,41 +217,41 @@ shelves:
   - [19, 19]
 targets:
   - id: b0
-    start: [19, 2]
+    start: [17, 2]
     goal: [17, 5]
   - id: b1
-    start: [7, 15]
-    goal: [6, 17]
+    start: [6, 13]
+    goal: [6, 11]
   - id: b2
-    start: [10, 10]
+    start: [11, 11]
     goal: [11, 13]
   - id: b3
-    start: [18, 5]
-    goal: [19, 9]
+    start: [19, 5]
+    goal: [19, 3]
   - id: b4
-    start: [6, 3]
-    goal: [5, 7]
+    start: [5, 3]
+    goal: [5, 5]
   - id: b5
-    start: [14, 2]
-    goal: [14, 5]
+    start: [15, 3]
+    goal: [15, 6]
   - id: b6
-    start: [14, 7]
-    goal: [14, 10]
+    start: [13, 6]
+    goal: [13, 3]
   - id: b7
-    start: [18, 17]
-    goal: [3, 2]
+    start: [19, 17]
+    goal: [19, 15]
   - id: b8
     start: [7, 5]
-    goal: [7, 9]
+    goal: [7, 3]
   - id: b9
     start: [11, 17]
-    goal: [15, 1]
+    goal: [11, 15]
   - id: b10
     start: [11, 5]
-    goal: [9, 9]
+    goal: [11, 3]
   - id: b11
-    start: [5, 18]
-    goal: [10, 1]
+    start: [5, 17]
+    goal: [5, 15]
 flags:
   remove_on_complete: false
   robots_return_to_rest: false

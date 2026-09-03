@@ -9,8 +9,8 @@
 
 Every testcase has one block size and exactly the same shelf count in every
 block. Initial shelves, target starts, and target goals are storage cells;
-robots start in aisle cells. The current DD action schema has no runtime
-drop-zone mask, so corridor exclusion is a generated-layout contract.
+robots start in aisle cells. The YAML ``storage_map`` is authoritative:
+carried shelves may traverse aisles, but DROP is legal only in storage cells.
 
 | block | target density | actual density | blocks | shelves/block | total shelves | YAML |
 |---:|---:|---:|---:|---:|---:|---|

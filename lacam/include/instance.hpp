@@ -53,6 +53,10 @@ struct TAPFInstance {
   // carrier mechanism downstream degenerates by data absence, never by
   // flag.  Cells use the Vertex::index encoding (width * y + x).
   std::vector<int> shelf_cells;    // ALL shelf cells incl. target starts
+  // Shelf placement mask copied from DDInstance. Empty only for legacy
+  // shelf-free/TAPF inputs; carrier planning must preserve this mask so
+  // aisle cells remain traversable but cannot receive DROP.
+  std::vector<uint8_t> shelf_storage;
   std::vector<int> target_starts;  // by target index
   std::vector<int> target_goals;   // representative view (sorted-first)
   // eligible goal set per target (design_final 2.1, T1/T2): sorted

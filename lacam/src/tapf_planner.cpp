@@ -496,6 +496,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       dd_view->grid.wall[c] = ins->G.U[c] == nullptr ? 1 : 0;
     for (const auto* v : ins->starts) dd_view->robots.push_back(v->index);
     dd_view->shelves = ins->shelf_cells;
+    dd_view->shelf_storage = ins->shelf_storage;
     dd_view->target_starts = ins->target_starts;
     dd_view->target_goals = ins->target_goals;
     dd_view->target_goal_sets = ins->target_goal_sets;  // T1: eligibility

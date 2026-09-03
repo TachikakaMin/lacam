@@ -25,7 +25,7 @@ Semantics (design.md section 2/3):
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import yaml
 
@@ -62,6 +62,10 @@ class Instance:
     # layout {target goals} + anon goals is realizable (scrambler witness).
     # NOT part of our goal condition (anonymous shelves are unconstrained).
     anon_goals: Optional[List[Tuple[Cell, Cell]]] = None
+    # Optional shelf-storage/drop mask.  None preserves the legacy behavior:
+    # every traversable cell may hold a grounded shelf.  When present,
+    # carried shelves may traverse any free cell but may only DROP here.
+    storage_cells: Optional[Set[Cell]] = None
 
     @property
     def height(self) -> int:
@@ -88,6 +92,17 @@ class Instance:
                 out.append(nxt)
         return out
 
+    def can_store_shelf(self, cell: Cell) -> bool:
+        cell = tuple(cell)
+        return (
+            self.in_bounds(cell)
+            and not self.is_wall(cell)
+            and (
+                self.storage_cells is None
+                or cell in self.storage_cells
+            )
+        )
+
     def validate_static(self) -> List[str]:
         """Static well-formedness checks. Returns list of error strings."""
         errors = []
@@ -99,6 +114,10 @@ class Instance:
             if len(row) != w:
                 errors.append(f"map row {i} width {len(row)} != {w}")
         seen_r = set()
+        if self.storage_cells is not None:
+            for cell in self.storage_cells:
+                if not self.in_bounds(cell) or self.is_wall(cell):
+                    errors.append(f"storage cell {cell} invalid")
         for i, q in enumerate(self.robots):
             if not self.in_bounds(q) or self.is_wall(q):
                 errors.append(f"robot {i} at invalid cell {q}")
@@ -109,6 +128,8 @@ class Instance:
         for i, p in enumerate(self.shelves):
             if not self.in_bounds(p) or self.is_wall(p):
                 errors.append(f"shelf {i} at invalid cell {p}")
+            elif not self.can_store_shelf(p):
+                errors.append(f"shelf {i} at non-storage cell {p}")
             if p in seen_s:
                 errors.append(f"shelves overlap at {p}")
             seen_s.add(p)
@@ -131,6 +152,10 @@ class Instance:
             for g in t.eligible_goals():
                 if not self.in_bounds(g) or self.is_wall(g):
                     errors.append(f"target {t.id} goal {g} invalid")
+                elif not self.can_store_shelf(g):
+                    errors.append(
+                        f"target {t.id} goal {g} is not a storage cell"
+                    )
         # covering matching (design_final 2.1 loader contract, D15): an
         # injective target->goal assignment must exist over the eligible
         # sets (subsumes the old duplicate-fixed-goal rejection).
@@ -172,6 +197,31 @@ def dump_map_str(grid: List[List[bool]]) -> str:
     return "\n".join("".join("@" if x else "." for x in row) for row in grid)
 
 
+def parse_storage_map_str(
+    storage_map: str, height: int, width: int
+) -> Set[Cell]:
+    rows = [line.strip() for line in storage_map.splitlines() if line.strip()]
+    if len(rows) != height:
+        raise ValueError(
+            "storage_map height "
+            f"{len(rows)} does not match map height {height}"
+        )
+    storage: Set[Cell] = set()
+    for r, row in enumerate(rows):
+        if len(row) != width:
+            raise ValueError(
+                f"storage_map row {r} width {len(row)} != {width}"
+            )
+        for c, char in enumerate(row):
+            if char in "Ss1":
+                storage.add((r, c))
+            elif char not in ".0-":
+                raise ValueError(
+                    f"storage_map invalid character {char!r} at {(r, c)}"
+                )
+    return storage
+
+
 def load_instance(path) -> Instance:
     data = yaml.safe_load(Path(path).read_text())
     # debug.md P0-4: v1 implements default flag semantics only; fail loudly
@@ -183,6 +233,13 @@ def load_instance(path) -> Instance:
                 "(v1 implements defaults only)"
             )
     grid = parse_map_str(data["map"])
+    storage_cells = (
+        parse_storage_map_str(
+            data["storage_map"], len(grid), len(grid[0]) if grid else 0
+        )
+        if data.get("storage_map") is not None
+        else None
+    )
     robots = [tuple(x) for x in data.get("robots", [])]
     shelves = [tuple(x) for x in data.get("shelves", [])]
     pool = (
@@ -224,6 +281,7 @@ def load_instance(path) -> Instance:
         ]
         if data.get("anon_goals")
         else None,
+        storage_cells=storage_cells,
     )
 
 
@@ -240,6 +298,20 @@ def save_instance(ins: Instance, path) -> None:
     data = {
         "name": ins.name,
         "map": dump_map_str(ins.grid) + "\n",
+        **(
+            {
+                "storage_map": "\n".join(
+                    "".join(
+                        "S" if (r, c) in ins.storage_cells else "."
+                        for c in range(ins.width)
+                    )
+                    for r in range(ins.height)
+                )
+                + "\n"
+            }
+            if ins.storage_cells is not None
+            else {}
+        ),
         "robots": [list(q) for q in ins.robots],
         "shelves": [list(p) for p in ins.shelves],
         "targets": [target_entry(t) for t in ins.targets],

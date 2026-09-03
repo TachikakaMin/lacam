@@ -42,6 +42,18 @@ int DDGrid::neighbors(int v, int out[4]) const
 void DDInstance::finalize()
 {
   if (grid.size() == 0) throw std::invalid_argument("finalize: empty grid");
+  if (shelf_storage.empty()) {
+    shelf_storage.resize(grid.size(), 0);
+    for (int v = 0; v < grid.size(); ++v)
+      shelf_storage[v] = grid.is_wall(v) ? 0 : 1;
+  } else if ((int)shelf_storage.size() != grid.size()) {
+    throw std::invalid_argument(
+        "finalize: shelf storage mask size mismatch");
+  }
+  for (int v = 0; v < grid.size(); ++v)
+    if (shelf_storage[v] && grid.is_wall(v))
+      throw std::invalid_argument(
+          "finalize: storage cell overlaps a wall");
   auto check_cell = [&](int v, const char* what) {
     if (v < 0 || v >= grid.size() || grid.is_wall(v)) {
       std::ostringstream ss;
@@ -57,6 +69,9 @@ void DDInstance::finalize()
   }
   for (int p : shelves) {
     check_cell(p, "shelf");
+    if (!can_store_shelf(p))
+      throw std::invalid_argument(
+          "finalize: shelf is outside storage");
     if (!seen_s.insert(p).second)
       throw std::invalid_argument("finalize: shelves overlap");
   }
@@ -81,7 +96,12 @@ void DDInstance::finalize()
           "same shelf)");
     if (target_goal_sets[b].empty())
       throw std::invalid_argument("finalize: empty target goal set");
-    for (const int g : target_goal_sets[b]) check_cell(g, "goal");
+    for (const int g : target_goal_sets[b]) {
+      check_cell(g, "goal");
+      if (!can_store_shelf(g))
+        throw std::invalid_argument(
+            "finalize: target goal is outside storage");
+    }
   }
 
   // dead-cell / feasibility analysis (design 5.6, v1 form): both decks share
@@ -201,6 +221,35 @@ DDInstance load_dd_instance(const std::string& yaml_path)
     }
   }
   ins.grid = DDGrid(rows);
+
+  if (doc["storage_map"]) {
+    std::vector<std::string> storage_rows;
+    std::istringstream ss(doc["storage_map"].as<std::string>());
+    std::string line;
+    while (std::getline(ss, line)) {
+      while (!line.empty() &&
+             (line.back() == '\r' || line.back() == ' '))
+        line.pop_back();
+      if (!line.empty()) storage_rows.push_back(line);
+    }
+    if ((int)storage_rows.size() != ins.grid.height)
+      throw std::invalid_argument(
+          "load_dd_instance: storage_map height mismatch");
+    ins.shelf_storage.assign(ins.grid.size(), 0);
+    for (int r = 0; r < ins.grid.height; ++r) {
+      if ((int)storage_rows[r].size() != ins.grid.width)
+        throw std::invalid_argument(
+            "load_dd_instance: storage_map width mismatch");
+      for (int c = 0; c < ins.grid.width; ++c) {
+        const char ch = storage_rows[r][c];
+        if (ch == 'S' || ch == 's' || ch == '1')
+          ins.shelf_storage[ins.grid.idx(r, c)] = 1;
+        else if (ch != '.' && ch != '0' && ch != '-')
+          throw std::invalid_argument(
+              "load_dd_instance: invalid storage_map character");
+      }
+    }
+  }
 
   for (const auto& n : doc["robots"])
     ins.robots.push_back(ins.grid.idx(n[0].as<int>(), n[1].as<int>()));
@@ -332,6 +381,7 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
       }
       case Op::DROP: {
         if (s.kappa[i] == KAPPA_FREE) return std::nullopt;
+        if (!ins.can_store_shelf(q)) return std::nullopt;
         if (s.kappa[i] == KAPPA_ANON) anon_next.push_back(q);
         nxt.kappa[i] = KAPPA_FREE;
         nxt.robots[i] = q;

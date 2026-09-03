@@ -36,6 +36,10 @@ struct DDInstance {
   DDGrid grid;
   std::vector<int> robots;         // start cells (labeled, YAML order)
   std::vector<int> shelves;        // ALL shelf cells incl. target starts
+  // Grounded-shelf/drop mask, size grid.size().  Empty before finalize()
+  // means legacy behavior: every traversable cell is a storage cell.
+  // Carried shelves may still MOVE through non-storage cells.
+  std::vector<uint8_t> shelf_storage;
   std::vector<int> target_starts;  // by target index
   std::vector<int> target_goals;   // representative view: sorted-first of
                                    // the goal set (== the goal for
@@ -49,6 +53,11 @@ struct DDInstance {
 
   size_t n_robots() const { return robots.size(); }
   size_t n_targets() const { return target_starts.size(); }
+  bool can_store_shelf(int v) const
+  {
+    return v >= 0 && v < grid.size() && !grid.is_wall(v) &&
+           (shelf_storage.empty() || shelf_storage[v] != 0);
+  }
   // consistency checks + derived data; call after filling fields
   void finalize();
 };

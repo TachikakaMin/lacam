@@ -1,6 +1,7 @@
 // PROTECTED tests: two-deck semantics of dd_carrier (design.md sections
 // 2.2, 3.1-3.3, 6.5).  Written BEFORE implementation (TDD RED).
 #include <dd_carrier.hpp>
+#include <dd_planner.hpp>
 
 #include "gtest/gtest.h"
 
@@ -186,4 +187,132 @@ TEST(dd_instance, default_or_absent_flags_accepted)
       std::string(DD_TEST_DIR) + "/fixtures/dd_flags_default.yaml";
   auto ins = load_dd_instance(path);
   EXPECT_EQ(ins.n_targets(), 1u);
+}
+
+TEST(dd_storage_map, loaded_shelf_may_cross_aisle_but_not_drop_there)
+{
+  const auto path =
+      std::string(DD_TEST_DIR) + "/fixtures/dd_storage_map.yaml";
+  auto ins = load_dd_instance(path);
+  EXPECT_TRUE(ins.can_store_shelf(ins.grid.idx(0, 1)));
+  EXPECT_FALSE(ins.can_store_shelf(ins.grid.idx(0, 0)));
+
+  auto s = initial_phys_config(ins);
+  auto lifted = apply_ops(ins, s, {L()});
+  ASSERT_TRUE(lifted.has_value());
+  auto in_aisle = apply_ops(ins, *lifted, {M(ins, 0, 0)});
+  ASSERT_TRUE(in_aisle.has_value())
+      << "a carried shelf must be allowed to traverse an aisle";
+  EXPECT_FALSE(apply_ops(ins, *in_aisle, {D()}).has_value())
+      << "storage_map must reject DROP in an aisle";
+
+  auto back_on_storage = apply_ops(ins, *in_aisle, {M(ins, 0, 1)});
+  ASSERT_TRUE(back_on_storage.has_value());
+  EXPECT_TRUE(apply_ops(ins, *back_on_storage, {D()}).has_value());
+}
+
+TEST(dd_storage_map, finalize_rejects_shelf_or_goal_outside_storage)
+{
+  DDInstance bad_shelf;
+  bad_shelf.grid = DDGrid({"...."});
+  bad_shelf.shelf_storage = {0, 1, 1, 0};
+  bad_shelf.robots = {bad_shelf.grid.idx(0, 0)};
+  bad_shelf.shelves = {bad_shelf.grid.idx(0, 0)};
+  EXPECT_THROW(bad_shelf.finalize(), std::exception);
+
+  DDInstance bad_goal;
+  bad_goal.grid = DDGrid({"...."});
+  bad_goal.shelf_storage = {0, 1, 1, 0};
+  bad_goal.robots = {bad_goal.grid.idx(0, 0)};
+  bad_goal.shelves = {bad_goal.grid.idx(0, 1)};
+  bad_goal.target_starts = {bad_goal.grid.idx(0, 1)};
+  bad_goal.target_goals = {bad_goal.grid.idx(0, 3)};
+  EXPECT_THROW(bad_goal.finalize(), std::exception);
+}
+
+TEST(dd_storage_map, planner_carries_across_aisle_without_dropping_there)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"....."});
+  ins.shelf_storage = {0, 1, 1, 0, 1};
+  ins.robots = {ins.grid.idx(0, 2)};
+  ins.shelves = {ins.grid.idx(0, 2)};
+  ins.target_starts = {ins.grid.idx(0, 2)};
+  ins.target_goals = {ins.grid.idx(0, 4)};
+  ins.finalize();
+
+  DDStats stats;
+  const auto plan = solve_carrier_lacam(ins, 2.0, 0, &stats);
+  ASSERT_FALSE(plan.empty())
+      << "the planner must carry a shelf through a non-storage aisle";
+
+  auto state = initial_phys_config(ins);
+  bool crossed_aisle_loaded = false;
+  for (const auto& ops : plan) {
+    ASSERT_EQ(ops.size(), 1u);
+    if (state.kappa[0] != KAPPA_FREE &&
+        ops[0].kind == Op::MOVE &&
+        ops[0].to == ins.grid.idx(0, 3))
+      crossed_aisle_loaded = true;
+    if (ops[0].kind == Op::DROP) {
+      EXPECT_TRUE(ins.can_store_shelf(state.robots[0]))
+          << "planner emitted DROP in an aisle";
+    }
+    auto next = apply_ops(ins, state, ops);
+    ASSERT_TRUE(next.has_value());
+    state = *next;
+  }
+
+  EXPECT_TRUE(crossed_aisle_loaded);
+  EXPECT_TRUE(is_dd_goal(ins, state));
+}
+
+TEST(dd_storage_map, planner_rehomes_blocker_beyond_aisle)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"....."});
+  ins.shelf_storage = {0, 1, 1, 0, 1};
+  ins.robots = {ins.grid.idx(0, 2)};
+  ins.shelves = {ins.grid.idx(0, 1), ins.grid.idx(0, 2)};
+  ins.target_starts = {ins.grid.idx(0, 1)};
+  ins.target_goals = {ins.grid.idx(0, 2)};
+  ins.finalize();
+
+  auto manual = initial_phys_config(ins);
+  auto lifted = apply_ops(ins, manual, {L()});
+  ASSERT_TRUE(lifted.has_value());
+  auto in_aisle = apply_ops(ins, *lifted, {M(ins, 0, 3)});
+  ASSERT_TRUE(in_aisle.has_value());
+  auto rehomed = apply_ops(ins, *in_aisle, {M(ins, 0, 4)});
+  ASSERT_TRUE(rehomed.has_value());
+  EXPECT_TRUE(apply_ops(ins, *rehomed, {D()}).has_value());
+
+  const auto aisle_successors =
+      dd_enumerate_node_successors(ins, *in_aisle, 0);
+  EXPECT_TRUE(std::find(
+                  aisle_successors.begin(), aisle_successors.end(),
+                  *rehomed) != aisle_successors.end())
+      << "the exhaustive successor generator must offer the loaded move "
+         "from aisle to storage";
+
+  DDStats stats;
+  const auto plan = solve_carrier_lacam(ins, 2.0, 0, &stats);
+  ASSERT_FALSE(plan.empty())
+      << "an anonymous blocker may cross an aisle, but must be rehomed "
+         "on storage before release";
+
+  auto state = initial_phys_config(ins);
+  for (const auto& ops : plan) {
+    ASSERT_EQ(ops.size(), 1u);
+    if (ops[0].kind == Op::DROP) {
+      EXPECT_TRUE(ins.can_store_shelf(state.robots[0]))
+          << "planner emitted DROP in an aisle";
+    }
+    auto next = apply_ops(ins, state, ops);
+    ASSERT_TRUE(next.has_value());
+    state = *next;
+  }
+  EXPECT_TRUE(is_dd_goal(ins, state));
+  EXPECT_TRUE(std::binary_search(
+      state.anon_occ.begin(), state.anon_occ.end(), ins.grid.idx(0, 4)));
 }

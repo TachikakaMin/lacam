@@ -1,0 +1,16 @@
+name: dd_storage_map
+map: |
+  ....
+  ....
+storage_map: |
+  .SS.
+  .SS.
+robots:
+  - [0, 1]
+shelves:
+  - [0, 1]
+targets:
+  - id: b0
+    start: [0, 1]
+    goal: [1, 2]
+flags: {}
