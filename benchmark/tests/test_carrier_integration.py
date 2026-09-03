@@ -10,6 +10,8 @@ The plan is replayed through the AUTHORITATIVE Python two-deck validator
 (ddbench.validator) and must reach the goal.
 """
 
+import resource
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -171,6 +173,7 @@ flags: {}
                 plan_out,
                 Path(str(plan_out) + ".tmp"),
                 Path(str(plan_out) + ".best_effort"),
+                Path(str(plan_out) + ".best_effort.tmp"),
             ]
             for path in stale_outputs:
                 path.write_text("d;d\n")
@@ -181,6 +184,146 @@ flags: {}
             self.assertEqual(metrics.get("solved"), "0", p.stdout)
             for path in stale_outputs:
                 self.assertFalse(path.exists(), f"stale output survived: {path}")
+
+    def test_successful_run_publishes_only_the_final_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            plan_out = tmp / "result.plan"
+            p, metrics = run_solver(
+                REPO / "tests/fixtures/dd_tiny.yaml", 5, plan_out
+            )
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(metrics.get("solved"), "1", p.stdout)
+            self.assertTrue(plan_out.is_file())
+            self.assertEqual(list(tmp.glob("result.plan.tmp*")), [])
+            ins = load_instance(REPO / "tests/fixtures/dd_tiny.yaml")
+            self.assertTrue(is_goal(ins, replay(ins, parse_plan(plan_out))))
+
+    def test_output_path_aliases_never_delete_the_instance(self):
+        source = REPO / "tests/fixtures/dd_tiny.yaml"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "sub").mkdir()
+
+            aliased_input = tmp / "input.yaml"
+            shutil.copyfile(source, aliased_input)
+            aliased_output = tmp / "sub" / ".." / "input.yaml"
+            p = subprocess.run(
+                [
+                    str(BIN),
+                    str(aliased_input),
+                    "1",
+                    str(aliased_output),
+                    "0",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertTrue(aliased_input.is_file())
+            self.assertEqual(load_instance(aliased_input).validate_static(), [])
+
+            derived_input = tmp / "result.plan.tmp"
+            shutil.copyfile(source, derived_input)
+            p = subprocess.run(
+                [
+                    str(BIN),
+                    str(derived_input),
+                    "1",
+                    str(tmp / "result.plan"),
+                    "0",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertTrue(derived_input.is_file())
+            self.assertEqual(load_instance(derived_input).validate_static(), [])
+
+    def test_output_directory_is_preserved_and_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plan_out = Path(tmp) / "result.plan"
+            plan_out.mkdir()
+            p = subprocess.run(
+                [
+                    str(BIN),
+                    str(REPO / "tests/fixtures/dd_tiny.yaml"),
+                    "1",
+                    str(plan_out),
+                    "0",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertTrue(plan_out.is_dir())
+            self.assertNotIn("solved=1", p.stdout)
+
+    def test_invalid_numeric_arguments_clean_stale_outputs_without_abort(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plan_out = Path(tmp) / "result.plan"
+            outputs = [
+                plan_out,
+                Path(str(plan_out) + ".tmp"),
+                Path(str(plan_out) + ".best_effort"),
+                Path(str(plan_out) + ".best_effort.tmp"),
+            ]
+            bad_arguments = (("not-a-time", "0"), ("1", "not-a-seed"))
+            for time_limit, seed in bad_arguments:
+                for path in outputs:
+                    path.write_text("stale\n")
+                p = subprocess.run(
+                    [
+                        str(BIN),
+                        str(REPO / "tests/fixtures/dd_tiny.yaml"),
+                        time_limit,
+                        str(plan_out),
+                        seed,
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                self.assertEqual(p.returncode, 2, p.stderr)
+                self.assertGreaterEqual(p.returncode, 0, "must not die by signal")
+                for path in outputs:
+                    self.assertFalse(
+                        path.exists(), f"stale output survived: {path}"
+                    )
+
+    def test_file_size_failure_leaves_no_plan_or_temp_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            plan_out = tmp / "result.plan"
+
+            def deny_file_growth():
+                resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
+
+            p = subprocess.run(
+                [
+                    str(BIN),
+                    str(REPO / "tests/fixtures/dd_tiny.yaml"),
+                    "5",
+                    str(plan_out),
+                    "0",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                preexec_fn=deny_file_growth,
+            )
+            metrics = {}
+            for line in p.stdout.splitlines():
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    metrics[key.strip()] = value.strip()
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(metrics.get("solved"), "0", p.stdout)
+            self.assertFalse(plan_out.exists())
+            self.assertEqual(list(tmp.glob("result.plan.tmp*")), [])
 
 
 @unittest.skipUnless(BIN.exists(), "dd_benchmark not built")

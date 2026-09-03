@@ -11,35 +11,213 @@
 #include <dd_carrier.hpp>
 #include <dd_planner.hpp>
 
+#include <cerrno>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
-#include <fstream>
-#include <iostream>
-#include <string>
+#include <csignal>
 #include <cstdlib>
-#include <set>
+#include <iostream>
+#include <limits>
 #include <map>
+#include <sstream>
+#include <string>
+#include <set>
+#include <vector>
+
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace {
 
-void clear_plan_outputs(const std::string& plan_out)
+struct OutputPaths {
+  std::string plan;
+  std::string legacy_tmp;
+  std::string best_effort;
+  std::string best_effort_legacy_tmp;
+
+  std::vector<std::string> cleanup_slots() const
+  {
+    return {plan, legacy_tmp, best_effort, best_effort_legacy_tmp};
+  }
+};
+
+bool split_path(const std::string& path, std::string* parent,
+                std::string* name)
 {
-  const std::string tmp = plan_out + ".tmp";
-  const std::string best_effort = plan_out + ".best_effort";
-  const std::string best_effort_tmp = best_effort + ".tmp";
-  std::remove(plan_out.c_str());
-  std::remove(tmp.c_str());
-  std::remove(best_effort.c_str());
-  std::remove(best_effort_tmp.c_str());
+  if (path.empty() || path.back() == '/') return false;
+  const auto slash = path.find_last_of('/');
+  *parent = slash == std::string::npos
+                ? "."
+                : (slash == 0 ? "/" : path.substr(0, slash));
+  *name = slash == std::string::npos ? path : path.substr(slash + 1);
+  return !name->empty() && *name != "." && *name != "..";
 }
 
-bool write_plan_atomically(const DDPlan& plan, const DDInstance& ins,
-                           const std::string& plan_out)
+std::string lexical_absolute(const std::string& path)
 {
-  const std::string tmp = plan_out + ".tmp";
-  std::remove(tmp.c_str());
-  std::ofstream out(tmp, std::ios::trunc);
-  if (!out) return false;
+  std::string absolute = path;
+  if (absolute.empty() || absolute.front() != '/') {
+    std::vector<char> cwd(4096, '\0');
+    while (getcwd(cwd.data(), cwd.size()) == nullptr && errno == ERANGE)
+      cwd.resize(cwd.size() * 2, '\0');
+    if (cwd.front() != '\0')
+      absolute = std::string(cwd.data()) + "/" + absolute;
+  }
+
+  std::vector<std::string> components;
+  size_t begin = 0;
+  while (begin <= absolute.size()) {
+    const size_t end = absolute.find('/', begin);
+    const std::string part =
+        absolute.substr(begin, end == std::string::npos
+                                   ? std::string::npos
+                                   : end - begin);
+    if (!part.empty() && part != ".") {
+      if (part == "..") {
+        if (!components.empty()) components.pop_back();
+      } else {
+        components.push_back(part);
+      }
+    }
+    if (end == std::string::npos) break;
+    begin = end + 1;
+  }
+
+  std::string normalized = "/";
+  for (size_t i = 0; i < components.size(); ++i) {
+    if (i) normalized += "/";
+    normalized += components[i];
+  }
+  return normalized;
+}
+
+std::string canonical_path(const std::string& path)
+{
+  if (char* resolved = realpath(path.c_str(), nullptr)) {
+    const std::string result(resolved);
+    std::free(resolved);
+    return result;
+  }
+
+  std::string parent;
+  std::string name;
+  if (split_path(path, &parent, &name)) {
+    if (char* resolved_parent = realpath(parent.c_str(), nullptr)) {
+      std::string result(resolved_parent);
+      std::free(resolved_parent);
+      if (result != "/") result += "/";
+      result += name;
+      return result;
+    }
+  }
+  return lexical_absolute(path);
+}
+
+bool same_existing_file(const std::string& lhs, const std::string& rhs)
+{
+  struct stat lhs_stat;
+  struct stat rhs_stat;
+  return stat(lhs.c_str(), &lhs_stat) == 0 &&
+         stat(rhs.c_str(), &rhs_stat) == 0 &&
+         lhs_stat.st_dev == rhs_stat.st_dev &&
+         lhs_stat.st_ino == rhs_stat.st_ino;
+}
+
+bool validate_output_slot(const std::string& yaml_path,
+                          const std::string& yaml_canonical,
+                          const std::string& slot, std::string* error)
+{
+  if (canonical_path(slot) == yaml_canonical ||
+      same_existing_file(yaml_path, slot)) {
+    *error = "output path aliases INSTANCE.yaml: " + slot;
+    return false;
+  }
+
+  struct stat info;
+  if (lstat(slot.c_str(), &info) == 0) {
+    if (!S_ISREG(info.st_mode)) {
+      *error = "output slot is not a regular file: " + slot;
+      return false;
+    }
+  } else if (errno != ENOENT) {
+    *error = "cannot inspect output slot: " + slot;
+    return false;
+  }
+  return true;
+}
+
+bool prepare_output_paths(const std::string& yaml_path,
+                          const std::string& plan_out, OutputPaths* paths,
+                          std::string* error)
+{
+  std::string parent;
+  std::string name;
+  if (!split_path(plan_out, &parent, &name)) {
+    *error = "PLAN_OUT must name a file";
+    return false;
+  }
+  struct stat parent_info;
+  if (stat(parent.c_str(), &parent_info) != 0 ||
+      !S_ISDIR(parent_info.st_mode)) {
+    *error = "PLAN_OUT parent is not an existing directory: " + parent;
+    return false;
+  }
+
+  paths->plan = plan_out;
+  paths->legacy_tmp = plan_out + ".tmp";
+  paths->best_effort = plan_out + ".best_effort";
+  paths->best_effort_legacy_tmp = paths->best_effort + ".tmp";
+
+  const std::string yaml_canonical = canonical_path(yaml_path);
+  for (const auto& slot : paths->cleanup_slots()) {
+    if (!validate_output_slot(yaml_path, yaml_canonical, slot, error))
+      return false;
+  }
+  return true;
+}
+
+bool clear_plan_outputs(const OutputPaths& paths, std::string* error)
+{
+  for (const auto& slot : paths.cleanup_slots()) {
+    if (unlink(slot.c_str()) != 0 && errno != ENOENT) {
+      *error = "cannot remove stale output: " + slot;
+      return false;
+    }
+  }
+  return true;
+}
+
+bool parse_time_limit(const std::string& text, double* value)
+{
+  try {
+    size_t consumed = 0;
+    *value = std::stod(text, &consumed);
+    return consumed == text.size() && std::isfinite(*value) && *value >= 0;
+  } catch (const std::exception&) {
+    return false;
+  }
+}
+
+bool parse_seed(const std::string& text, int* value)
+{
+  try {
+    size_t consumed = 0;
+    const long long parsed = std::stoll(text, &consumed);
+    if (consumed != text.size() ||
+        parsed < std::numeric_limits<int>::min() ||
+        parsed > std::numeric_limits<int>::max())
+      return false;
+    *value = static_cast<int>(parsed);
+    return true;
+  } catch (const std::exception&) {
+    return false;
+  }
+}
+
+std::string serialize_plan(const DDPlan& plan, const DDInstance& ins)
+{
+  std::ostringstream out;
   for (const auto& ops : plan) {
     for (size_t i = 0; i < ops.size(); ++i) {
       if (i) out << ";";
@@ -55,9 +233,38 @@ bool write_plan_atomically(const DDPlan& plan, const DDInstance& ins,
     }
     out << "\n";
   }
-  out.close();
-  if (!out || std::rename(tmp.c_str(), plan_out.c_str()) != 0) {
-    std::remove(tmp.c_str());
+  return out.str();
+}
+
+bool write_plan_atomically(const DDPlan& plan, const DDInstance& ins,
+                           const std::string& plan_out)
+{
+  const std::string contents = serialize_plan(plan, ins);
+  std::string pattern = plan_out + ".tmp.XXXXXX";
+  std::vector<char> writable_pattern(pattern.begin(), pattern.end());
+  writable_pattern.push_back('\0');
+  const int fd = mkstemp(writable_pattern.data());
+  if (fd < 0) return false;
+  const std::string tmp(writable_pattern.data());
+
+  size_t written = 0;
+  bool ok = true;
+  while (written < contents.size()) {
+    const ssize_t count =
+        write(fd, contents.data() + written, contents.size() - written);
+    if (count > 0) {
+      written += static_cast<size_t>(count);
+    } else if (count < 0 && errno == EINTR) {
+      continue;
+    } else {
+      ok = false;
+      break;
+    }
+  }
+  if (ok && fsync(fd) != 0) ok = false;
+  if (close(fd) != 0) ok = false;
+  if (!ok || rename(tmp.c_str(), plan_out.c_str()) != 0) {
+    unlink(tmp.c_str());
     return false;
   }
   return true;
@@ -73,19 +280,41 @@ int main(int argc, char** argv)
     return 2;
   }
   const std::string yaml_path = argv[1];
-  const double time_limit_sec = std::stod(argv[2]);
+  const std::string time_limit_text = argv[2];
   const std::string plan_out = argv[3];
-  const int seed = argc >= 5 ? std::stoi(argv[4]) : 0;
+  const std::string seed_text = argc >= 5 ? argv[4] : "0";
   const std::string mode = argc >= 6 ? argv[5] : "lacam";
-  if (plan_out == yaml_path) {
-    std::cerr << "PLAN_OUT must differ from INSTANCE.yaml" << std::endl;
+
+  OutputPaths output_paths;
+  std::string output_error;
+  if (!prepare_output_paths(
+          yaml_path, plan_out, &output_paths, &output_error)) {
+    std::cerr << output_error << "\n";
     return 2;
   }
-  clear_plan_outputs(plan_out);
+  if (!clear_plan_outputs(output_paths, &output_error)) {
+    std::cerr << output_error << "\n";
+    return 2;
+  }
+
+  double time_limit_sec = 0;
+  int seed = 0;
+  if (!parse_time_limit(time_limit_text, &time_limit_sec)) {
+    std::cerr << "invalid TIME_LIMIT_SEC: " << time_limit_text << "\n";
+    return 2;
+  }
+  if (!parse_seed(seed_text, &seed)) {
+    std::cerr << "invalid SEED: " << seed_text << "\n";
+    return 2;
+  }
   if (mode != "lacam" && mode != "b0" && mode != "b1") {
     std::cerr << "unknown MODE '" << mode
               << "' (expected lacam | b0 | b1)" << std::endl;
     return 2;  // fail loudly: silent fallback masks typos (debug.md P0-4)
+  }
+  if (std::signal(SIGXFSZ, SIG_IGN) == SIG_ERR) {
+    std::cerr << "failed to install SIGXFSZ handler\n";
+    return 2;
   }
 
   DDInstance ins;
@@ -97,6 +326,14 @@ int main(int argc, char** argv)
     return 1;
   }
   std::cout << "valid_instance=1\n";
+
+  DDSocWeights w;
+  try {
+    w = dd_load_soc_weights();
+  } catch (const std::exception& e) {
+    std::cerr << "invalid objective weights: " << e.what() << "\n";
+    return 2;
+  }
 
   const auto t0 = std::chrono::steady_clock::now();
   DDStats stats;
@@ -111,7 +348,7 @@ int main(int argc, char** argv)
         ins, time_limit_sec, seed, &stats,
         std::getenv("DD_DEBUG_DUMP") ? &best_effort : nullptr);
   if (plan.empty() && !best_effort.empty()) {
-    const std::string best_effort_out = plan_out + ".best_effort";
+    const std::string& best_effort_out = output_paths.best_effort;
     if (!write_plan_atomically(best_effort, ins, best_effort_out))
       std::cerr << "failed to write best-effort plan to " << best_effort_out
                 << "\n";
@@ -161,15 +398,13 @@ int main(int argc, char** argv)
     valid = false;
   }
   if (!valid) {
-    std::remove(plan_out.c_str());
-    std::remove((plan_out + ".tmp").c_str());
+    unlink(plan_out.c_str());
   }
 
   // cost weights (design 2.3): alpha*loaded + beta*free + gamma*liftdrop
   // + delta*anon; defaults all 1, overridable via env (DD_ALPHA etc.).
   // R4 (debug.md §10): the ONE validated parser — a private atof here
   // silently accepted garbage and bypassed the weight validation.
-  const DDSocWeights w = dd_load_soc_weights();
   const double alpha = w.alpha, beta = w.beta, gamma = w.gamma,
                delta = w.delta;
   const double weighted_soc = alpha * loaded_moves + beta * free_moves +
