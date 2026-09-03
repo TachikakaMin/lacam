@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warehouse-block LaCAM 实跑结果</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: #0f172a; color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1280px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; font-size: 27px; }
+  .lead { margin: 0 0 20px; color: #94a3b8; line-height: 1.55; }
+  .summary { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+  .pill {
+    background: #111827; border: 1px solid #334155; border-radius: 999px;
+    padding: 7px 11px; color: #cbd5e1; font-size: 13px;
+  }
+  .matrix-head, .matrix-row {
+    display: grid; grid-template-columns: 105px repeat(3, minmax(250px, 1fr));
+    gap: 14px;
+  }
+  .matrix-head { margin-bottom: 10px; color: #cbd5e1; font-weight: 600; }
+  .matrix-head div { text-align: center; }
+  .matrix-head div:first-child { text-align: left; }
+  .matrix-row { margin-bottom: 16px; }
+  .row-label {
+    display: flex; align-items: center; justify-content: center;
+    background: #111827; border: 1px solid #334155; border-radius: 10px;
+    font-weight: 700; text-align: center;
+  }
+  .card {
+    background: #182235; border: 1px solid #334155; border-radius: 12px;
+    padding: 14px;
+  }
+  .ok { color: #4ade80; font-weight: 700; }
+  .bad { color: #f87171; font-weight: 700; }
+  .main-number { font-size: 26px; font-weight: 750; margin: 7px 0 2px; }
+  .sub { color: #94a3b8; font-size: 12px; margin-bottom: 10px; }
+  .metrics {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+    font-size: 12px; color: #cbd5e1;
+  }
+  .metric { background: #111827; border-radius: 6px; padding: 7px; }
+  .metric b { display: block; color: #f8fafc; font-size: 14px; }
+  .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 11px; }
+  a { color: #60a5fa; text-decoration: none; font-size: 13px; }
+  a:hover { text-decoration: underline; }
+  .note {
+    margin-top: 22px; padding: 13px 15px; background: #172033;
+    border-left: 3px solid #60a5fa; color: #cbd5e1;
+    font-size: 13px; line-height: 1.55;
+  }
+  @media (max-width: 950px) {
+    .matrix-head { display: none; }
+    .matrix-row { grid-template-columns: 1fr; }
+    .row-label { padding: 9px; }
+  }
+</style>
+</head>
+<body><main>
+
+<h1>Warehouse-block LaCAM 实跑结果</h1>
+<p class="lead">当前 <code>build/dd_benchmark</code>，mode=lacam，seed=0，每例上限 10 秒；9 个实例并行 smoke run。点击任意案例可播放经过 authoritative validator 验证的完整 plan。</p>
+<div class="summary">
+<span class="pill">解出率：9/9</span>
+<span class="pill">运行时间：9.5–237.2 ms</span>
+<span class="pill">Makespan：46–357</span>
+<span class="pill">超时：0</span>
+</div>
+<div class="matrix-head"><div>Block</div><div>25%</div><div>50%</div><div>75%</div></div>
+<section class="matrix-row"><div class="row-label">3×3</div><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">46</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>9.5 ms</b></div>
+    <div class="metric">Weighted SOC<b>253</b></div>
+    <div class="metric">Loaded moves<b>105</b></div>
+    <div class="metric">Free moves<b>109</b></div>
+    <div class="metric">Lift / Drop<b>36</b></div>
+    <div class="metric">实际密度<b>22.2%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0.log">完整日志</a></div>
+</article><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">78</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>23.3 ms</b></div>
+    <div class="metric">Weighted SOC<b>437</b></div>
+    <div class="metric">Loaded moves<b>130</b></div>
+    <div class="metric">Free moves<b>197</b></div>
+    <div class="metric">Lift / Drop<b>92</b></div>
+    <div class="metric">实际密度<b>55.6%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0.log">完整日志</a></div>
+</article><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">70</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>31.7 ms</b></div>
+    <div class="metric">Weighted SOC<b>507</b></div>
+    <div class="metric">Loaded moves<b>120</b></div>
+    <div class="metric">Free moves<b>240</b></div>
+    <div class="metric">Lift / Drop<b>118</b></div>
+    <div class="metric">实际密度<b>77.8%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.log">完整日志</a></div>
+</article></section>
+<section class="matrix-row"><div class="row-label">4×4</div><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">64</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>11.6 ms</b></div>
+    <div class="metric">Weighted SOC<b>295</b></div>
+    <div class="metric">Loaded moves<b>130</b></div>
+    <div class="metric">Free moves<b>106</b></div>
+    <div class="metric">Lift / Drop<b>52</b></div>
+    <div class="metric">实际密度<b>25.0%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0.log">完整日志</a></div>
+</article><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">121</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>36.7 ms</b></div>
+    <div class="metric">Weighted SOC<b>654</b></div>
+    <div class="metric">Loaded moves<b>174</b></div>
+    <div class="metric">Free moves<b>291</b></div>
+    <div class="metric">Lift / Drop<b>162</b></div>
+    <div class="metric">实际密度<b>50.0%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0.log">完整日志</a></div>
+</article><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">113</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>59.1 ms</b></div>
+    <div class="metric">Weighted SOC<b>826</b></div>
+    <div class="metric">Loaded moves<b>157</b></div>
+    <div class="metric">Free moves<b>436</b></div>
+    <div class="metric">Lift / Drop<b>188</b></div>
+    <div class="metric">实际密度<b>75.0%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0.log">完整日志</a></div>
+</article></section>
+<section class="matrix-row"><div class="row-label">9×9</div><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">150</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>46.8 ms</b></div>
+    <div class="metric">Weighted SOC<b>975</b></div>
+    <div class="metric">Loaded moves<b>310</b></div>
+    <div class="metric">Free moves<b>392</b></div>
+    <div class="metric">Lift / Drop<b>248</b></div>
+    <div class="metric">实际密度<b>24.7%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0.log">完整日志</a></div>
+</article><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">199</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>108.7 ms</b></div>
+    <div class="metric">Weighted SOC<b>1562</b></div>
+    <div class="metric">Loaded moves<b>316</b></div>
+    <div class="metric">Free moves<b>749</b></div>
+    <div class="metric">Lift / Drop<b>406</b></div>
+    <div class="metric">实际密度<b>50.6%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0.log">完整日志</a></div>
+</article><article class="card">
+  <div class="ok">✓ solved</div>
+  <div class="main-number">357</div>
+  <div class="sub">makespan · warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0</div>
+  <div class="metrics">
+    <div class="metric">运行时间<b>237.2 ms</b></div>
+    <div class="metric">Weighted SOC<b>2634</b></div>
+    <div class="metric">Loaded moves<b>438</b></div>
+    <div class="metric">Free moves<b>1332</b></div>
+    <div class="metric">Lift / Drop<b>706</b></div>
+    <div class="metric">实际密度<b>75.3%</b></div>
+  </div>
+  <div class="links"><a href="viz/warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0.html">▶ 播放动画</a><a href="plans/warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0.plan">Plan</a><a href="logs/warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0.log">完整日志</a></div>
+</article></section>
+<div class="note">这是功能性 smoke run，不是隔离 CPU 的正式性能 benchmark。所有 9 个输出 plan 都在生成动画前由 Python authoritative validator 重放并确认到达目标。</div>
+</main></body></html>
