@@ -10,6 +10,7 @@ The plan is replayed through the AUTHORITATIVE Python two-deck validator
 (ddbench.validator) and must reach the goal.
 """
 
+import os
 import resource
 import shutil
 import subprocess
@@ -196,6 +197,7 @@ flags: {}
             self.assertEqual(metrics.get("solved"), "1", p.stdout)
             self.assertTrue(plan_out.is_file())
             self.assertEqual(list(tmp.glob("result.plan.tmp*")), [])
+            self.assertEqual(list(tmp.glob("result.plan.ddbench-tmp*")), [])
             ins = load_instance(REPO / "tests/fixtures/dd_tiny.yaml")
             self.assertTrue(is_goal(ins, replay(ins, parse_plan(plan_out))))
 
@@ -324,6 +326,129 @@ flags: {}
             self.assertEqual(metrics.get("solved"), "0", p.stdout)
             self.assertFalse(plan_out.exists())
             self.assertEqual(list(tmp.glob("result.plan.tmp*")), [])
+            self.assertEqual(list(tmp.glob("result.plan.ddbench-tmp*")), [])
+
+    def test_orphan_unique_temps_are_recovered_on_next_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            plan_out = tmp / "result.plan"
+            orphan_paths = [
+                tmp / "result.plan.tmp.legacy1",
+                tmp / "result.plan.best_effort.tmp.legacy2",
+                tmp
+                / (
+                    "result.plan.ddbench-tmp.u"
+                    f"{os.geteuid()}.owned1"
+                ),
+                tmp
+                / (
+                    "result.plan.best_effort.ddbench-tmp.u"
+                    f"{os.geteuid()}.owned2"
+                ),
+            ]
+            for path in orphan_paths:
+                path.write_text("partial\n")
+                path.chmod(0o600)
+
+            p, metrics = run_solver(
+                Path(tmp) / "unsolved.yaml", 0, plan_out
+            )
+
+            # The missing instance still exercises startup recovery.
+            self.assertEqual(p.returncode, 1, p.stderr)
+            self.assertEqual(metrics.get("valid_instance"), "0", p.stdout)
+            for path in orphan_paths:
+                self.assertFalse(path.exists(), f"orphan survived: {path}")
+
+    def test_symlink_and_hardlink_outputs_preserve_their_targets(self):
+        source = REPO / "tests/fixtures/dd_tiny.yaml"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+
+            symlink_input = tmp / "symlink_input.yaml"
+            shutil.copyfile(source, symlink_input)
+            original = symlink_input.read_bytes()
+            symlink_plan = tmp / "symlink.plan"
+            symlink_plan.symlink_to(symlink_input)
+            p, metrics = run_solver(symlink_input, 5, symlink_plan)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(metrics.get("solved"), "1", p.stdout)
+            self.assertFalse(symlink_plan.is_symlink())
+            self.assertEqual(symlink_input.read_bytes(), original)
+            ins = load_instance(symlink_input)
+            self.assertTrue(
+                is_goal(ins, replay(ins, parse_plan(symlink_plan)))
+            )
+
+            hardlink_input = tmp / "hardlink_input.yaml"
+            shutil.copyfile(source, hardlink_input)
+            original = hardlink_input.read_bytes()
+            hardlink_plan = tmp / "hardlink.plan"
+            os.link(str(hardlink_input), str(hardlink_plan))
+            p, metrics = run_solver(hardlink_input, 5, hardlink_plan)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(metrics.get("solved"), "1", p.stdout)
+            self.assertEqual(hardlink_input.read_bytes(), original)
+            self.assertNotEqual(
+                hardlink_input.stat().st_ino, hardlink_plan.stat().st_ino
+            )
+            ins = load_instance(hardlink_input)
+            self.assertTrue(
+                is_goal(ins, replay(ins, parse_plan(hardlink_plan)))
+            )
+
+    def test_cleanup_continues_after_an_unsafe_derived_slot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            plan_out = tmp / "result.plan"
+            legacy_tmp = Path(str(plan_out) + ".tmp")
+            best_effort = Path(str(plan_out) + ".best_effort")
+            best_effort_tmp = Path(str(best_effort) + ".tmp")
+            plan_out.write_text("stale final\n")
+            legacy_tmp.mkdir()
+            best_effort.write_text("stale best\n")
+            best_effort_tmp.write_text("stale best tmp\n")
+
+            p = subprocess.run(
+                [
+                    str(BIN),
+                    str(REPO / "tests/fixtures/dd_tiny.yaml"),
+                    "1",
+                    str(plan_out),
+                    "0",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertFalse(plan_out.exists())
+            self.assertTrue(legacy_tmp.is_dir())
+            self.assertFalse(best_effort.exists())
+            self.assertFalse(best_effort_tmp.exists())
+
+    def test_oversized_finite_weight_is_rejected_before_solving(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plan_out = Path(tmp) / "result.plan"
+            env = os.environ.copy()
+            env["DD_ALPHA"] = "1e308"
+            p = subprocess.run(
+                [
+                    str(BIN),
+                    str(REPO / "tests/fixtures/dd_tiny.yaml"),
+                    "5",
+                    str(plan_out),
+                    "0",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                env=env,
+            )
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertFalse(plan_out.exists())
+            self.assertNotIn("weighted_soc=inf", p.stdout)
 
 
 @unittest.skipUnless(BIN.exists(), "dd_benchmark not built")

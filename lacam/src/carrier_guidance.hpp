@@ -54,11 +54,16 @@ inline void load_solver_weights(W& w)
     if (converted)
       while (*end == ' ') ++end;  // tolerate trailing blanks only
     const bool consumed = converted && *end == '\0';
-    if (!consumed || !std::isfinite(v) || v < 0)
+    // Costs are accumulated in double and some assignment paths quantize
+    // them into signed integer keys.  Capping user-provided coefficients
+    // keeps both representations finite under any practical plan length.
+    constexpr double MAX_SAFE_SOLVER_WEIGHT = 1e6;
+    if (!consumed || !std::isfinite(v) || v < 0 ||
+        v > MAX_SAFE_SOLVER_WEIGHT)
       throw std::invalid_argument(
           std::string(key) +
-          ": objective weight must be a finite non-negative number, got '" +
-          raw + "'");
+          ": objective weight must be finite, non-negative, and <= 1e6, "
+          "got '" + raw + "'");
     out = v;
   };
   read("DD_ALPHA", w.alpha);

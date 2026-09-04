@@ -25,6 +25,8 @@
 #include <set>
 #include <vector>
 
+#include <dirent.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -35,6 +37,8 @@ struct OutputPaths {
   std::string legacy_tmp;
   std::string best_effort;
   std::string best_effort_legacy_tmp;
+  std::string parent;
+  std::string name;
 
   std::vector<std::string> cleanup_slots() const
   {
@@ -92,14 +96,8 @@ std::string lexical_absolute(const std::string& path)
   return normalized;
 }
 
-std::string canonical_path(const std::string& path)
+std::string canonical_entry_path(const std::string& path)
 {
-  if (char* resolved = realpath(path.c_str(), nullptr)) {
-    const std::string result(resolved);
-    std::free(resolved);
-    return result;
-  }
-
   std::string parent;
   std::string name;
   if (split_path(path, &parent, &name)) {
@@ -114,53 +112,56 @@ std::string canonical_path(const std::string& path)
   return lexical_absolute(path);
 }
 
-bool same_existing_file(const std::string& lhs, const std::string& rhs)
+void append_error(std::string* error, const std::string& message)
 {
-  struct stat lhs_stat;
-  struct stat rhs_stat;
-  return stat(lhs.c_str(), &lhs_stat) == 0 &&
-         stat(rhs.c_str(), &rhs_stat) == 0 &&
-         lhs_stat.st_dev == rhs_stat.st_dev &&
-         lhs_stat.st_ino == rhs_stat.st_ino;
+  if (!error->empty()) *error += "; ";
+  *error += message;
 }
 
-bool validate_output_slot(const std::string& yaml_path,
-                          const std::string& yaml_canonical,
-                          const std::string& slot, std::string* error)
+bool unlink_with_retry(const std::string& path)
 {
-  if (canonical_path(slot) == yaml_canonical ||
-      same_existing_file(yaml_path, slot)) {
-    *error = "output path aliases INSTANCE.yaml: " + slot;
-    return false;
+  for (int attempt = 0; attempt < 3; ++attempt) {
+    if (unlink(path.c_str()) == 0 || errno == ENOENT) return true;
   }
+  return false;
+}
 
+bool clear_output_slot(const std::string& yaml_entry,
+                       const std::string& slot, std::string* error)
+{
   struct stat info;
   if (lstat(slot.c_str(), &info) == 0) {
-    if (!S_ISREG(info.st_mode)) {
-      *error = "output slot is not a regular file: " + slot;
+    if (canonical_entry_path(slot) == yaml_entry) {
+      append_error(error, "output path is INSTANCE.yaml: " + slot);
+      return false;
+    }
+    if (!S_ISREG(info.st_mode) && !S_ISLNK(info.st_mode)) {
+      append_error(error, "output slot is not removable file: " + slot);
+      return false;
+    }
+    if (!unlink_with_retry(slot)) {
+      append_error(error, "cannot remove stale output: " + slot);
       return false;
     }
   } else if (errno != ENOENT) {
-    *error = "cannot inspect output slot: " + slot;
+    append_error(error, "cannot inspect output slot: " + slot);
     return false;
   }
   return true;
 }
 
-bool prepare_output_paths(const std::string& yaml_path,
-                          const std::string& plan_out, OutputPaths* paths,
+bool prepare_output_paths(const std::string& plan_out, OutputPaths* paths,
                           std::string* error)
 {
-  std::string parent;
-  std::string name;
-  if (!split_path(plan_out, &parent, &name)) {
+  if (!split_path(plan_out, &paths->parent, &paths->name)) {
     *error = "PLAN_OUT must name a file";
     return false;
   }
   struct stat parent_info;
-  if (stat(parent.c_str(), &parent_info) != 0 ||
+  if (stat(paths->parent.c_str(), &parent_info) != 0 ||
       !S_ISDIR(parent_info.st_mode)) {
-    *error = "PLAN_OUT parent is not an existing directory: " + parent;
+    *error =
+        "PLAN_OUT parent is not an existing directory: " + paths->parent;
     return false;
   }
 
@@ -168,24 +169,86 @@ bool prepare_output_paths(const std::string& yaml_path,
   paths->legacy_tmp = plan_out + ".tmp";
   paths->best_effort = plan_out + ".best_effort";
   paths->best_effort_legacy_tmp = paths->best_effort + ".tmp";
-
-  const std::string yaml_canonical = canonical_path(yaml_path);
-  for (const auto& slot : paths->cleanup_slots()) {
-    if (!validate_output_slot(yaml_path, yaml_canonical, slot, error))
-      return false;
-  }
   return true;
 }
 
-bool clear_plan_outputs(const OutputPaths& paths, std::string* error)
+bool starts_with(const std::string& value, const std::string& prefix)
 {
-  for (const auto& slot : paths.cleanup_slots()) {
-    if (unlink(slot.c_str()) != 0 && errno != ENOENT) {
-      *error = "cannot remove stale output: " + slot;
-      return false;
+  return value.size() >= prefix.size() &&
+         value.compare(0, prefix.size(), prefix) == 0;
+}
+
+std::string join_path(const std::string& parent, const std::string& name)
+{
+  return parent == "/" ? "/" + name : parent + "/" + name;
+}
+
+bool clear_orphan_temps(const std::string& yaml_entry,
+                        const std::string& final_path, std::string* error)
+{
+  std::string parent;
+  std::string name;
+  if (!split_path(final_path, &parent, &name)) return false;
+  DIR* dir = opendir(parent.c_str());
+  if (dir == nullptr) {
+    append_error(error, "cannot scan output directory: " + parent);
+    return false;
+  }
+
+  const std::string legacy_prefix = name + ".tmp.";
+  const std::string owned_prefix =
+      name + ".ddbench-tmp.u" + std::to_string(geteuid()) + ".";
+  bool ok = true;
+  while (const dirent* entry = readdir(dir)) {
+    const std::string entry_name = entry->d_name;
+    if (!starts_with(entry_name, legacy_prefix) &&
+        !starts_with(entry_name, owned_prefix))
+      continue;
+    const std::string path = join_path(parent, entry_name);
+    struct stat info;
+    if (lstat(path.c_str(), &info) != 0) {
+      if (errno != ENOENT) {
+        append_error(error, "cannot inspect orphan temp: " + path);
+        ok = false;
+      }
+      continue;
+    }
+    if (canonical_entry_path(path) == yaml_entry) {
+      append_error(error, "orphan temp path is INSTANCE.yaml: " + path);
+      ok = false;
+      continue;
+    }
+    const bool owned_regular =
+        S_ISREG(info.st_mode) && info.st_uid == geteuid() &&
+        (info.st_mode & 0777) == 0600;
+    if (!owned_regular && !S_ISLNK(info.st_mode)) {
+      append_error(error, "orphan temp is not owned regular file: " + path);
+      ok = false;
+      continue;
+    }
+    if (!unlink_with_retry(path)) {
+      append_error(error, "cannot remove orphan temp: " + path);
+      ok = false;
     }
   }
-  return true;
+  if (closedir(dir) != 0) {
+    append_error(error, "cannot close output directory: " + parent);
+    ok = false;
+  }
+  return ok;
+}
+
+bool clear_plan_outputs(const std::string& yaml_path,
+                        const OutputPaths& paths, std::string* error)
+{
+  const std::string yaml_entry = canonical_entry_path(yaml_path);
+  bool ok = true;
+  for (const auto& slot : paths.cleanup_slots()) {
+    if (!clear_output_slot(yaml_entry, slot, error)) ok = false;
+  }
+  if (!clear_orphan_temps(yaml_entry, paths.plan, error)) ok = false;
+  if (!clear_orphan_temps(yaml_entry, paths.best_effort, error)) ok = false;
+  return ok;
 }
 
 bool parse_time_limit(const std::string& text, double* value)
@@ -236,19 +299,9 @@ std::string serialize_plan(const DDPlan& plan, const DDInstance& ins)
   return out.str();
 }
 
-bool write_plan_atomically(const DDPlan& plan, const DDInstance& ins,
-                           const std::string& plan_out)
+bool write_all_and_sync(int fd, const std::string& contents)
 {
-  const std::string contents = serialize_plan(plan, ins);
-  std::string pattern = plan_out + ".tmp.XXXXXX";
-  std::vector<char> writable_pattern(pattern.begin(), pattern.end());
-  writable_pattern.push_back('\0');
-  const int fd = mkstemp(writable_pattern.data());
-  if (fd < 0) return false;
-  const std::string tmp(writable_pattern.data());
-
   size_t written = 0;
-  bool ok = true;
   while (written < contents.size()) {
     const ssize_t count =
         write(fd, contents.data() + written, contents.size() - written);
@@ -257,17 +310,88 @@ bool write_plan_atomically(const DDPlan& plan, const DDInstance& ins,
     } else if (count < 0 && errno == EINTR) {
       continue;
     } else {
-      ok = false;
-      break;
+      return false;
     }
   }
-  if (ok && fsync(fd) != 0) ok = false;
+  return fsync(fd) == 0;
+}
+
+enum class PublishResult { SUCCESS, UNSUPPORTED, FAILURE };
+
+PublishResult publish_from_unnamed_temp(
+    const std::string& contents, const std::string& parent,
+    const std::string& plan_out)
+{
+#ifdef O_TMPFILE
+  const int fd =
+      open(parent.c_str(), O_TMPFILE | O_WRONLY | O_CLOEXEC, 0600);
+  if (fd < 0) {
+    if (errno == EOPNOTSUPP || errno == EINVAL || errno == ENOSYS)
+      return PublishResult::UNSUPPORTED;
+    return PublishResult::FAILURE;
+  }
+  if (!write_all_and_sync(fd, contents)) {
+    close(fd);
+    return PublishResult::FAILURE;
+  }
+
+  bool published =
+      linkat(fd, "", AT_FDCWD, plan_out.c_str(), AT_EMPTY_PATH) == 0;
+  if (!published) {
+    const std::string proc_path = "/proc/self/fd/" + std::to_string(fd);
+    published =
+        linkat(AT_FDCWD, proc_path.c_str(), AT_FDCWD, plan_out.c_str(),
+               AT_SYMLINK_FOLLOW) == 0;
+  }
+  const int link_error = errno;
+  const bool closed = close(fd) == 0;
+  if (published && closed) return PublishResult::SUCCESS;
+  if (published) unlink_with_retry(plan_out);
+  if (!published &&
+      (link_error == EOPNOTSUPP || link_error == EINVAL ||
+       link_error == ENOSYS || link_error == EPERM ||
+       link_error == ENOENT))
+    return PublishResult::UNSUPPORTED;
+  return PublishResult::FAILURE;
+#else
+  (void)contents;
+  (void)parent;
+  (void)plan_out;
+  return PublishResult::UNSUPPORTED;
+#endif
+}
+
+bool publish_from_named_temp(const std::string& contents,
+                             const std::string& plan_out)
+{
+  std::string pattern = plan_out + ".ddbench-tmp.u" +
+                        std::to_string(geteuid()) + ".XXXXXX";
+  std::vector<char> writable_pattern(pattern.begin(), pattern.end());
+  writable_pattern.push_back('\0');
+  const int fd = mkstemp(writable_pattern.data());
+  if (fd < 0) return false;
+  const std::string tmp(writable_pattern.data());
+  bool ok = write_all_and_sync(fd, contents);
   if (close(fd) != 0) ok = false;
   if (!ok || rename(tmp.c_str(), plan_out.c_str()) != 0) {
-    unlink(tmp.c_str());
+    unlink_with_retry(tmp);
     return false;
   }
   return true;
+}
+
+bool write_plan_atomically(const DDPlan& plan, const DDInstance& ins,
+                           const std::string& plan_out)
+{
+  const std::string contents = serialize_plan(plan, ins);
+  std::string parent;
+  std::string name;
+  if (!split_path(plan_out, &parent, &name)) return false;
+  const PublishResult unnamed =
+      publish_from_unnamed_temp(contents, parent, plan_out);
+  if (unnamed == PublishResult::SUCCESS) return true;
+  if (unnamed == PublishResult::FAILURE) return false;
+  return publish_from_named_temp(contents, plan_out);
 }
 
 }  // namespace
@@ -287,12 +411,11 @@ int main(int argc, char** argv)
 
   OutputPaths output_paths;
   std::string output_error;
-  if (!prepare_output_paths(
-          yaml_path, plan_out, &output_paths, &output_error)) {
+  if (!prepare_output_paths(plan_out, &output_paths, &output_error)) {
     std::cerr << output_error << "\n";
     return 2;
   }
-  if (!clear_plan_outputs(output_paths, &output_error)) {
+  if (!clear_plan_outputs(yaml_path, output_paths, &output_error)) {
     std::cerr << output_error << "\n";
     return 2;
   }
