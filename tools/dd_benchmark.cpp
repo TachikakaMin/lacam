@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <csignal>
 #include <cstdlib>
+#include <deque>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -113,26 +114,127 @@ std::string canonical_entry_path(const std::string& path)
 }
 
 struct InputIdentity {
-  std::string entry;
-  std::string target;
+  std::set<std::string> protected_entries;
 };
+
+std::string absolute_unresolved_path(const std::string& path)
+{
+  if (!path.empty() && path.front() == '/') return path;
+  std::vector<char> cwd(4096, '\0');
+  while (getcwd(cwd.data(), cwd.size()) == nullptr && errno == ERANGE)
+    cwd.resize(cwd.size() * 2, '\0');
+  if (cwd.front() == '\0') return path;
+  return std::string(cwd.data()) + "/" + path;
+}
+
+void prepend_components(const std::string& path,
+                        std::deque<std::string>* pending)
+{
+  std::vector<std::string> components;
+  size_t begin = 0;
+  while (begin <= path.size()) {
+    const size_t end = path.find('/', begin);
+    const std::string part =
+        path.substr(begin, end == std::string::npos
+                               ? std::string::npos
+                               : end - begin);
+    if (!part.empty()) components.push_back(part);
+    if (end == std::string::npos) break;
+    begin = end + 1;
+  }
+  for (auto it = components.rbegin(); it != components.rend(); ++it)
+    pending->push_front(*it);
+}
+
+std::string resolved_component_path(
+    const std::vector<std::string>& resolved,
+    const std::string& component = "")
+{
+  std::string path = "/";
+  for (size_t i = 0; i < resolved.size(); ++i) {
+    if (i) path += "/";
+    path += resolved[i];
+  }
+  if (!component.empty()) {
+    if (path != "/") path += "/";
+    path += component;
+  }
+  return path;
+}
+
+bool read_symlink_target(const std::string& path, std::string* target)
+{
+  size_t capacity = 256;
+  while (capacity <= 1024 * 1024) {
+    std::vector<char> buffer(capacity);
+    const ssize_t length =
+        readlink(path.c_str(), buffer.data(), buffer.size());
+    if (length < 0) return false;
+    if (static_cast<size_t>(length) < buffer.size()) {
+      target->assign(buffer.data(), static_cast<size_t>(length));
+      return true;
+    }
+    capacity *= 2;
+  }
+  return false;
+}
 
 InputIdentity identify_input(const std::string& path)
 {
   InputIdentity identity;
-  identity.entry = canonical_entry_path(path);
-  identity.target = identity.entry;
-  if (char* resolved = realpath(path.c_str(), nullptr)) {
-    identity.target = resolved;
-    std::free(resolved);
+  identity.protected_entries.insert(canonical_entry_path(path));
+
+  const std::string absolute = absolute_unresolved_path(path);
+  std::deque<std::string> pending;
+  prepend_components(absolute, &pending);
+  std::vector<std::string> resolved;
+  size_t symlink_count = 0;
+  bool complete = true;
+
+  while (!pending.empty()) {
+    const std::string component = pending.front();
+    pending.pop_front();
+    if (component == ".") continue;
+    if (component == "..") {
+      if (!resolved.empty()) resolved.pop_back();
+      continue;
+    }
+
+    const std::string entry =
+        resolved_component_path(resolved, component);
+    identity.protected_entries.insert(entry);
+    struct stat info;
+    if (lstat(entry.c_str(), &info) != 0) {
+      complete = false;
+      break;
+    }
+    if (!S_ISLNK(info.st_mode)) {
+      resolved.push_back(component);
+      continue;
+    }
+
+    std::string target;
+    if (++symlink_count > 64 ||
+        !read_symlink_target(entry, &target)) {
+      complete = false;
+      break;
+    }
+    if (!target.empty() && target.front() == '/') resolved.clear();
+    prepend_components(target, &pending);
+  }
+
+  if (complete)
+    identity.protected_entries.insert(resolved_component_path(resolved));
+  if (char* final_target = realpath(path.c_str(), nullptr)) {
+    identity.protected_entries.insert(final_target);
+    std::free(final_target);
   }
   return identity;
 }
 
 bool is_input_entry(const InputIdentity& input, const std::string& path)
 {
-  const std::string entry = canonical_entry_path(path);
-  return entry == input.entry || entry == input.target;
+  return input.protected_entries.count(canonical_entry_path(path)) != 0;
 }
 
 void append_error(std::string* error, const std::string& message)

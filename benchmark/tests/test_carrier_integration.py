@@ -414,6 +414,52 @@ flags: {}
             self.assertEqual(real_input.read_bytes(), original)
             self.assertEqual(load_instance(real_input).validate_static(), [])
 
+    def test_output_cannot_remove_any_input_resolution_component(self):
+        source = REPO / "tests/fixtures/dd_tiny.yaml"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            real_input = tmp / "real.yaml"
+            shutil.copyfile(source, real_input)
+            original = real_input.read_bytes()
+            middle_link = tmp / "middle.yaml"
+            middle_link.symlink_to(real_input.name)
+            input_link = tmp / "input.yaml"
+            input_link.symlink_to(middle_link.name)
+
+            p, _ = run_solver(input_link, 1, middle_link)
+
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertTrue(input_link.is_symlink())
+            self.assertTrue(middle_link.is_symlink())
+            self.assertEqual(real_input.read_bytes(), original)
+
+            real_dir = tmp / "real-dir"
+            real_dir.mkdir()
+            nested_input = real_dir / "nested.yaml"
+            shutil.copyfile(source, nested_input)
+            directory_link = tmp / "input-dir"
+            directory_link.symlink_to(real_dir, target_is_directory=True)
+
+            p, _ = run_solver(
+                directory_link / nested_input.name, 1, directory_link
+            )
+
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertTrue(directory_link.is_symlink())
+            self.assertEqual(load_instance(nested_input).validate_static(), [])
+
+            non_directory = tmp / "not-a-directory"
+            non_directory.write_text("preserve this input ancestor\n")
+            p, _ = run_solver(
+                non_directory / "nested.yaml", 1, non_directory
+            )
+
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertEqual(
+                non_directory.read_text(),
+                "preserve this input ancestor\n",
+            )
+
     def test_orphan_cleanup_refuses_symlinks_and_preserves_targets(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
