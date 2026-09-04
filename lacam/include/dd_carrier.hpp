@@ -40,6 +40,9 @@ struct DDInstance {
   // means legacy behavior: every traversable cell is a storage cell.
   // Carried shelves may still MOVE through non-storage cells.
   std::vector<uint8_t> shelf_storage;
+  // Per-cell immutable local transfer property computed by finalize():
+  // every traversable neighbor is already a legal storage endpoint.
+  std::vector<uint8_t> adjacent_storage_frontier;
   std::vector<int> target_starts;  // by target index
   std::vector<int> target_goals;   // representative view: sorted-first of
                                    // the goal set (== the goal for
@@ -57,6 +60,11 @@ struct DDInstance {
   {
     return v >= 0 && v < grid.size() && !grid.is_wall(v) &&
            (shelf_storage.empty() || shelf_storage[v] != 0);
+  }
+  bool has_adjacent_storage_frontier(int v) const
+  {
+    return v >= 0 && v < (int)adjacent_storage_frontier.size() &&
+           adjacent_storage_frontier[v] != 0;
   }
   // consistency checks + derived data; call after filling fields
   void finalize();

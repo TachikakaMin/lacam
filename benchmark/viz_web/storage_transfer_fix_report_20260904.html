@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>货架通道往复问题：原因、修复与真实 testcase</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #14213d;
+      --muted: #54647a;
+      --paper: #f7f4ed;
+      --panel: #ffffff;
+      --line: #d7dfeb;
+      --bad: #b42318;
+      --bad-bg: #fff1ef;
+      --good: #067647;
+      --good-bg: #ecfdf3;
+      --blue: #175cd3;
+      --blue-bg: #eff8ff;
+      --amber: #b54708;
+      --amber-bg: #fffaeb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0, #e7f0ff 0, transparent 28rem),
+        var(--paper);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.7;
+    }
+    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 80px; }
+    h1, h2, h3 { line-height: 1.25; letter-spacing: -.02em; }
+    h1 { margin: 0 0 14px; font-size: clamp(2rem, 4.8vw, 3.7rem); max-width: 900px; }
+    h2 { margin: 56px 0 18px; font-size: clamp(1.45rem, 3vw, 2.15rem); }
+    h3 { margin: 0 0 8px; font-size: 1.08rem; }
+    p { margin: 10px 0; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    code {
+      padding: .12em .35em;
+      border-radius: 5px;
+      background: #eef2f7;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .93em;
+    }
+    .lede { max-width: 880px; color: var(--muted); font-size: 1.12rem; }
+    .stamp {
+      display: inline-flex; gap: 8px; align-items: center; margin-top: 18px;
+      padding: 7px 12px; border: 1px solid #a6f4c5; border-radius: 999px;
+      color: var(--good); background: var(--good-bg); font-weight: 700;
+    }
+    .grid { display: grid; gap: 18px; }
+    .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      min-width: 0; padding: 20px; border: 1px solid var(--line);
+      border-radius: 16px; background: var(--panel);
+      box-shadow: 0 10px 30px rgb(20 33 61 / 5%);
+    }
+    .bad { border-color: #fecdca; background: var(--bad-bg); }
+    .good { border-color: #abefc6; background: var(--good-bg); }
+    .note { border-color: #b2ddff; background: var(--blue-bg); }
+    .warn { border-color: #fedf89; background: var(--amber-bg); }
+    .label {
+      display: inline-block; margin-bottom: 8px; padding: 3px 9px;
+      border-radius: 999px; font-size: .82rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .bad .label { color: var(--bad); background: #fee4e2; }
+    .good .label { color: var(--good); background: #d1fadf; }
+    .note .label { color: var(--blue); background: #dbeeff; }
+    .route {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin: 22px 0 12px; overflow-x: auto; padding: 4px;
+    }
+    .cell {
+      min-width: 88px; padding: 15px 10px; border: 2px solid var(--line);
+      border-radius: 13px; text-align: center; background: #fff; font-weight: 800;
+    }
+    .storage { border-color: #7f56d9; background: #f4f3ff; }
+    .aisle { border-color: #667085; background: #f2f4f7; }
+    .arrow { color: var(--muted); font-size: 1.5rem; font-weight: 900; }
+    .pipeline {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      padding: 18px; border: 1px solid var(--line); border-radius: 16px;
+      background: #fff;
+    }
+    .pipeline span {
+      padding: 8px 11px; border-radius: 9px; background: #eef4ff;
+      color: #1849a9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+    }
+    .pipeline b { color: #98a2b3; }
+    .viz {
+      width: 100%; min-height: 440px; border: 1px solid var(--line);
+      border-radius: 12px; background: #fff;
+    }
+    .viz-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .metric { font-size: 2rem; font-weight: 850; line-height: 1.1; }
+    .sub { color: var(--muted); font-size: .9rem; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-variant-numeric: tabular-nums; }
+    th, td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { color: #344054; background: #f8fafc; font-size: .88rem; }
+    caption { padding: 11px 13px; text-align: left; color: var(--muted); background: #fff; font-weight: 700; }
+    tr:last-child td { border-bottom: 0; }
+    .zero { color: var(--good); font-weight: 800; }
+    .glossary { display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; margin: 0; }
+    .glossary dt { font-weight: 800; }
+    .glossary dd { margin: 0; color: var(--muted); }
+    .foot { margin-top: 50px; color: var(--muted); font-size: .9rem; }
+    ul { padding-left: 1.25rem; }
+    @media (max-width: 800px) {
+      .two, .three { grid-template-columns: 1fr; }
+      main { width: min(100% - 20px, 1180px); padding-top: 28px; }
+      .viz { min-height: 380px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>货架为什么会在通道里往复？</h1>
+    <p class="lede">根因不是“通道允许 Drop”，而是旧 guidance 把“推进通道一格”误当成一次完整搬运。货架进入通道后任务关系丢失；执行器又正确地拒绝在通道 Drop，于是它最容易选择刚腾空的原货位，形成反常往复。</p>
+    <div class="stamp">✓ 修复后 9/9 warehouse cases 通过，通道 Drop 与同原位返回均为 0</div>
+  </header>
+
+  <h2>一张图看懂根因与修复</h2>
+  <div class="grid two">
+    <section class="card bad">
+      <span class="label">修复前</span>
+      <h3>每走一格就把任务“结案”</h3>
+      <div class="route" aria-label="旧行为：storage A 到 aisle C，再返回 storage A">
+        <div class="cell storage">货位 A<br><small>起点</small></div>
+        <div class="arrow">→</div>
+        <div class="cell aisle">通道 C<br><small>不能 Drop</small></div>
+        <div class="arrow">→</div>
+        <div class="cell storage">货位 A<br><small>返回原位</small></div>
+      </div>
+      <p>旧 custody 只记住当前一腿 <code>A → C</code>。到达 C 后，上层重新规划，货架变成 loaded-but-unbound；C 不能 Drop，最近的合法货位通常又是 A。</p>
+    </section>
+    <section class="card good">
+      <span class="label">修复后</span>
+      <h3>先承诺合法终点，再逐格执行</h3>
+      <div class="route" aria-label="新行为：storage A 经 aisle C 到 storage B">
+        <div class="cell storage">货位 A<br><small>起点</small></div>
+        <div class="arrow">→</div>
+        <div class="cell aisle">通道 C<br><small>仅经过</small></div>
+        <div class="arrow">→</div>
+        <div class="cell storage">货位 B<br><small>合法 Drop</small></div>
+      </div>
+      <p>上层把 <code>A → C → B</code> 看成一个 storage-to-storage transfer；真实机器人仍每拍只走一格，但 active custody 会跨 epoch 保留 B 和剩余 route，直到 B 才结束。</p>
+    </section>
+  </div>
+
+  <h2>“延后一个请求”到底是什么意思？</h2>
+  <section class="card warn">
+    <p><strong>延后的只是尚未开始的竞争请求，不是机器人 1，也不是正在搬的货架。</strong>例如请求甲和请求乙都想把各自货架放进唯一空货位 S：若甲优先级更高，就先启动甲，乙留到下一次上层重算。只要甲仍沿已验证路线正常执行，S 就由甲保留，乙不能暂停甲或改写 S。若真实执行被迫偏离路线，旧承诺会失效，recovery 才会从甲的真实位置选择新的合法货位；这属于异常恢复，不是为了给乙让路。</p>
+  </section>
+
+  <h2>算法仍然只有一条主路径</h2>
+  <div class="pipeline" aria-label="Carrier-LaCAM guidance pipeline">
+    <span>U</span><b>→</b><span>PairCost</span><b>→</b><span>τ</span><b>→</b>
+    <span>D</span><b>→</b><span>ready</span><b>→</b><span>ρ</span><b>→</b>
+    <span>Carrier-PIBT</span><b>→</b><span>physical X′</span>
+  </div>
+  <div class="grid three" style="margin-top:18px">
+    <section class="card note">
+      <span class="label">候选</span>
+      <h3>跳过不可 Drop 的格子</h3>
+      <p>BFS 可以穿过 transit，但只把最先到达的合法 storage 当 endpoint。通道是 route，不再是假终点。</p>
+    </section>
+    <section class="card note">
+      <span class="label">抽象层</span>
+      <h3>整条 transfer 原子计价</h3>
+      <p>PairCost 要么预算足够并执行完整 route，要么在进入通道前停下，避免在 aisle 中制造虚构的任务边界。</p>
+    </section>
+    <section class="card note">
+      <span class="label">真实层</span>
+      <h3>逐腿执行但不丢承诺</h3>
+      <p>每次 loaded Move 后验证真实 transition，并推进 remaining suffix；偏航时从真实位置寻找新的空 storage。</p>
+    </section>
+  </div>
+  <section class="card" style="margin-top:18px">
+    <h3>五个术语的白话解释</h3>
+    <dl class="glossary">
+      <dt>BFS</dt><dd>从近到远找路；可以经过通道，但只把货位当终点。</dd>
+      <dt>PairCost</dt><dd>上层用来估算“把这个货架送到目标要花多少步”的函数。</dd>
+      <dt>upper epoch</dt><dd>货架布局变化后，上层重新计算一次任务关系的时刻。</dd>
+      <dt>custody</dt><dd>“这个机器人仍负责把手上的货架送完这条路线”的连续责任记录。</dd>
+      <dt>active claim</dt><dd>正在执行的搬运对终点和窄通道的临时占用声明，用来阻止新请求抢占。</dd>
+    </dl>
+  </section>
+
+  <h2>真实 testcase：修复前后直接对比</h2>
+  <p>两边都是用户指出的 <code>warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0</code>。可以拖动时间轴或点击播放；若嵌入窗口较小，可点标题旁的链接单独打开。</p>
+  <div class="grid two">
+    <section class="card bad">
+      <div class="viz-head">
+        <h3>修复前：会看到反常往复</h3>
+        <a href="warehouse_block_suite/runs_lacam_10s_seed0/viz/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html">单独打开</a>
+      </div>
+      <iframe class="viz" loading="lazy" title="修复前 warehouse 动画"
+        src="warehouse_block_suite/runs_lacam_10s_seed0/viz/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html"></iframe>
+    </section>
+    <section class="card good">
+      <div class="viz-head">
+        <h3>修复后：到合法货位才结束</h3>
+        <a href="warehouse_block_suite/runs_storage_transfer_fix_stats_final_20260904/viz/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html">单独打开</a>
+      </div>
+      <iframe class="viz" loading="lazy" title="修复后 warehouse 动画"
+        src="warehouse_block_suite/runs_storage_transfer_fix_stats_final_20260904/viz/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html"></iframe>
+    </section>
+  </div>
+  <p><a href="warehouse_block_suite/runs_storage_transfer_fix_stats_final_20260904/index.html"><strong>打开修复后全部 9 个 warehouse testcase 矩阵 →</strong></a></p>
+
+  <h2>9 个 warehouse cases 的逐帧审计</h2>
+  <div class="table-wrap">
+    <table>
+      <caption>每个最终计划经权威 goal validator 和逐帧货架轨迹审计</caption>
+      <thead>
+        <tr><th scope="col">block</th><th scope="col">density</th><th scope="col">solved</th><th scope="col">makespan</th><th scope="col">runtime</th><th scope="col">通道 Drop</th><th scope="col">同原位返回</th><th scope="col">loaded 反向</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>b3</td><td>25%</td><td>是</td><td>24</td><td>54.1 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b3</td><td>50%</td><td>是</td><td>29</td><td>93.3 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b3</td><td>75%</td><td>是</td><td>22</td><td>91.2 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b4</td><td>25%</td><td>是</td><td>20</td><td>34.7 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b4</td><td>50%</td><td>是</td><td>24</td><td>58.2 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b4</td><td>75%</td><td>是</td><td>30</td><td>188.4 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b9</td><td>25%</td><td>是</td><td>24</td><td>32.8 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b9</td><td>50%</td><td>是</td><td>29</td><td>34.8 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+        <tr><td>b9</td><td>75%</td><td>是</td><td>21</td><td>36.5 ms</td><td class="zero">0</td><td class="zero">0</td><td class="zero">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><a href="warehouse_block_suite/runs_storage_transfer_fix_stats_final_20260904/transfer_audit.csv">下载 9 例逐帧审计 CSV →</a></p>
+
+  <h2>全量测试与配对 benchmark</h2>
+  <div class="grid three">
+    <section class="card"><div class="metric">241 / 241</div><div class="sub">C++ 全量测试</div></section>
+    <section class="card"><div class="metric">99 / 99</div><div class="sub">Python 全量测试</div></section>
+    <section class="card"><div class="metric">38 / 68</div><div class="sub">10 秒 release benchmark；baseline 为 36 / 68</div></section>
+  </div>
+  <div class="table-wrap" style="margin-top:18px">
+    <table>
+      <caption>相同数据集、seed、14 jobs、每例严格 10 秒；数值越小越好</caption>
+      <thead><tr><th scope="col">共同成功 36 例</th><th scope="col">better / equal / worse</th><th scope="col">几何比</th><th scope="col">总和：baseline → 修复后</th></tr></thead>
+      <tbody>
+        <tr><td>makespan</td><td>33 / 1 / 2</td><td>0.460862</td><td>37387 → 15144</td></tr>
+        <tr><td>weighted SOC</td><td>32 / 1 / 3</td><td>0.481676</td><td>62938 → 29853</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">weighted SOC 的几何比按 35 个正值对计算；另一个共同成功例为 0/0，中性地计入 equal 和总和。</p>
+  <section class="card warn" style="margin-top:18px">
+    <h3>如实保留的边界</h3>
+    <p>最终版比 baseline 多解出 2 例、没有丢失成功例，但并非逐例都更优：共同成功集合中有 2 例 makespan 回退、3 例 weighted SOC 回退。固定 development profile 为 6/9；另外 3 个既有 hard cases 在同一严格 deadline 下仍按预期 timeout。</p>
+  </section>
+
+  <h2>没有偷偷换算法</h2>
+  <ul>
+    <li>没有第二套 planner 或 search loop；仍是同一条 Carrier-LaCAM physical-state search。</li>
+    <li>没有 legacy fallback、feature flag、实例名/seed 判断或 pick/place 检测。</li>
+    <li>相邻货位的固定数组 fast path 与通用 BFS 返回同一候选和排序，只减少临时分配。</li>
+    <li>最终 benchmark binary SHA-256：<code>70dbf8cb5096ce82ffbad5abc1c39d6454725fe798ec6d5faab0e2be6f6c1726</code>。</li>
+  </ul>
+
+  <p class="foot">生成日期：2026-09-04。报告中的运行时间来自同一最终 candidate 数据；warehouse 的三个“0”指标来自对计划的逐帧重放审计，而不是仅检查日志文本。</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+m 11 9;m 15 6;m 3 14;m 6 12;m 7 2;m 3 1;m 9 13;m 5 10
+m 11 8;m 15 5;m 4 14;m 6 11;m 7 3;m 3 2;m 10 13;m 5 9
+m 11 7;l;m 5 14;m 6 10;m 8 3;m 3 3;m 11 13;m 5 8
+m 11 6;m 14 5;m 6 14;m 7 10;m 9 3;m 3 4;m 12 13;m 6 8
+m 12 6;m 13 5;m 7 14;l;m 10 3;m 4 4;m 13 13;l
+m 13 6;m 13 4;l;m 6 10;m 11 3;m 5 4;m 14 13;m 6 9
+m 14 6;d;m 7 13;m 6 11;m 12 3;m 6 4;l;m 7 9
+m 15 6;m 12 4;d;d;m 13 3;m 6 5;m 14 12;m 7 10
+l;l;m 7 14;m 5 11;l;w;m 14 11;d
+m 14 6;m 12 5;m 8 14;m 4 11;m 14 3;w;d;w
+m 13 6;m 13 5;l;m 3 11;d;w;w;w
+d;m 14 5;m 7 14;m 2 11;w;w;w;w
+l;m 14 6;d;m 1 11;w;w;w;m 6 10
+m 13 5;m 14 7;m 6 14;m 1 10;w;w;w;w
+m 12 5;m 15 7;m 5 14;l;w;w;w;w
+d;d;l;m 0 10;w;w;w;w
+w;w;m 5 13;d;w;w;w;w
+w;w;d;w;w;w;w;m 6 11
+w;w;m 5 14;w;w;w;w;w
+w;w;m 6 14;w;w;w;w;w
+w;w;l;w;w;w;w;w
+w;w;m 5 14;w;w;w;w;w
+w;w;d;w;w;w;w;m 6 12
+w;w;m 6 14;w;w;w;w;w
+w;w;m 7 14;w;w;w;w;w
+w;w;l;w;w;w;w;w
+w;w;m 6 14;w;w;w;w;w
+w;w;d;w;w;w;w;m 5 12
+w;w;m 5 14;w;w;w;w;w
+w;w;l;w;w;w;w;w
+w;w;m 5 15;w;w;w;w;w
+w;w;d;w;w;w;w;m 5 13
+w;w;m 5 14;w;w;w;w;w
+w;w;m 6 14;w;w;w;w;w
+w;w;l;w;w;w;w;w
+w;w;m 5 14;w;w;w;w;w
+w;w;d;w;w;w;w;m 4 13
+w;w;m 4 14;w;w;w;w;w
+w;w;l;w;w;w;w;w
+w;w;m 3 14;w;w;w;w;w
+w;w;d;w;w;w;w;m 4 14
+w;w;w;w;w;w;w;m 5 14
+w;w;w;w;w;w;w;l
+w;w;w;w;w;w;w;m 4 14
+w;w;w;w;w;w;w;m 4 13
+w;w;w;w;w;w;w;d

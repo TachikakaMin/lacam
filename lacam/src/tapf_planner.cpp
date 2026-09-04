@@ -292,16 +292,12 @@ void TAPFPlanner::attach_carrier_guidance(
           ++stats->custody_continuations;
     }
 
-    if (nd->guide->ready_tasks.empty() &&
-        nd->guide->upper_epoch != nullptr &&
-        !nd->guide->upper_epoch->task_graph.tasks.empty()) {
-      int traversable = 0;
-      for (int cell = 0; cell < dd_instance.grid.size(); ++cell)
-        traversable += !dd_instance.grid.is_wall(cell);
+    if (nd->guide->upper_epoch != nullptr) {
       const auto& upper =
           nd->guide->upper_epoch->upper_signature;
-      if ((int)(upper.target_pos.size() + upper.anon_pos.size()) ==
-          traversable)
+      if (zero_storage_vacancy_no_ready(
+              dd_instance, upper, nd->guide->ready_tasks.size(),
+              nd->guide->upper_epoch->task_graph.tasks.size()))
         ++stats->zero_empty_no_ready;
     }
     stats->guidance_time_ms +=
@@ -1358,11 +1354,12 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
                      : std::make_pair(1, cell);
         });
       } else {
-        // Loaded-but-unbound is normally released in place.  A non-storage
-        // aisle is different: WAIT cannot make the state releasable and DROP
-        // is illegal, so keep carrying toward an adjacent storage slot before
-        // considering WAIT.  This also lets a displaced blocker finish the
-        // storage-to-aisle-to-storage episode started by the task compiler.
+        // Loaded-but-unbound is normally released in place.  A carrier on a
+        // transit cell should already have transition-anchored recovery
+        // custody.  If recovery cannot currently choose a legal storage
+        // endpoint, prefer WAIT instead of greedily retargeting the shelf from
+        // one aisle cell at a time.  Other legal moves remain in the operator
+        // candidate set for completeness.
         const bool can_drop_here = dd_view->can_store_shelf(q);
         if (can_drop_here)
           append_candidate(ai->v_now, (uint8_t)Op::DROP);
@@ -1370,11 +1367,11 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
             occupied_next[ai->v_now->id] != nullptr &&
             occupied_next[ai->v_now->id] != ai;
         if (!can_drop_here) {
+          append_candidate(ai->v_now, (uint8_t)Op::WAIT);
           append_all_moves([&](int cell) {
             return std::make_pair(
                 dd_view->can_store_shelf(cell) ? 0 : 1, cell);
           });
-          append_candidate(ai->v_now, (uint8_t)Op::WAIT);
         } else {
           append_candidate(ai->v_now, (uint8_t)Op::WAIT);
         }

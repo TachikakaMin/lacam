@@ -54,6 +54,18 @@ void DDInstance::finalize()
     if (shelf_storage[v] && grid.is_wall(v))
       throw std::invalid_argument(
           "finalize: storage cell overlaps a wall");
+  adjacent_storage_frontier.assign(grid.size(), 0);
+  for (int v = 0; v < grid.size(); ++v) {
+    if (grid.is_wall(v)) continue;
+    int neighbors[4];
+    const int count = grid.neighbors(v, neighbors);
+    bool direct_frontier = true;
+    for (int index = 0; index < count; ++index)
+      direct_frontier &=
+          shelf_storage[neighbors[index]] != 0;
+    adjacent_storage_frontier[v] =
+        direct_frontier ? 1 : 0;
+  }
   auto check_cell = [&](int v, const char* what) {
     if (v < 0 || v >= grid.size() || grid.is_wall(v)) {
       std::ostringstream ss;

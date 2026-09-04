@@ -12,6 +12,15 @@ Task-BR-PIBT 路径；`results_v4_1_final7` 和 Objective-PIBT tests 仅作为
 迁移前基线与受治理的测试迁移证据。最终实现、预算细化与配对验证结果见
 §20。
 
+**2026-09-04 storage-map 修订状态：设计、实现、新回归、同机配对验证与
+最终独立审查均已完成并通过。** 本轮严格按
+`test -> RED -> implementation -> GREEN -> benchmark -> regression ->
+debug` 执行。该修订不推翻相邻 `ShelfTask` 边界，而是补上
+storage-to-storage transfer commitment，修复 blocker 被推进 transit
+走廊后失去 custody、无法 Drop、再返回原位的往复问题。§21 是本轮修订的
+权威增量；§22 记录实际验证证据。与前文冲突时，以 `new.md` 新增的
+storage 语义和 §21 为准。
+
 本文保留现有 LaCAM-TAPF 的 physical-state search、operator constraint
 tree、`TAPFPlanner::solve()`、`apply_ops()`、两遍求解、输出修补、严格
 返回截止和独立重放，只替换 carrier guidance。最终 execution path 必须仍是：
@@ -188,6 +197,17 @@ anonymous positions 包括：
 * `Drop`：shelf 坐标不变，`U` 不变；
 * loaded `Move`：shelf 坐标改变，`U` 改变。
 
+若实例有显式 `storage_map`，`U` 可以暂时包含位于 non-storage transit
+cell 的 carried shelf，但 grounded shelf 永远只能位于 storage cell。
+所有密度/空位判断使用：
+
+```text
+upper_vacancy_count =
+    number_of_storage_cells - number_of_shelves
+```
+
+不能使用 traversable cells，因为 transit aisle 不是合法 shelf vacancy。
+
 ### 2.4 Upper signature 与 upper epoch
 
 ```cpp
@@ -253,6 +273,7 @@ struct ShelfTask {
   int to;
   std::vector<RootDemand> roots;
   int priority;
+  StorageTransfer transfer;
 };
 
 struct RootDemand {
@@ -278,6 +299,21 @@ approach -> Lift -> one loaded Move
 ```
 
 任务在 loaded Move 后完成；不要求立即 Drop。
+
+显式 `storage_map` 下新增：
+
+```cpp
+struct StorageTransfer {
+  int endpoint;           // can_store_shelf(endpoint) == true
+  std::vector<int> route; // route[0]=from, route[1]=to,
+                          // adjacent throughout, route.back()=endpoint
+};
+```
+
+每个 `ShelfTask` 仍只执行 route 的第一格，因此 `TaskId` 和 physical
+successor 语义不变。`transfer` 是跨 upper epoch 的安全承诺：一旦第一格
+进入 transit cell，当前 carrier 必须沿同一 route 继续到合法 endpoint。
+legacy/no-storage-map 实例中 route 恒为 `[from,to]`，自然退化为原语义。
 
 ### 3.3 Task graph
 
@@ -469,11 +505,12 @@ PairCost(U, b, g):
             cost += gamma              // lift new shelf
             open_episode_token = token
 
-        abstractly apply m.from -> m.to in U_hat
-        move token from m.from to m.to
-        cost += alpha                  // one loaded shelf shift
-        if m.shelf is anonymous:
-            cost += delta
+        for each adjacent leg u -> v in m.transfer.route:
+            abstractly apply u -> v in U_hat
+            move token from u to v
+            cost += alpha              // one loaded shelf shift
+            if m.shelf is anonymous:
+                cost += delta
 
     if open_episode_token != NONE:
         cost += gamma                  // final drop estimate
@@ -490,6 +527,13 @@ PairCost(U, b, g):
 一次 Lift/Drop episode；切换 shelf 时结束旧 episode 并开启新 episode。
 anonymous token 的初始编号只由 canonical sorted positions 决定，所以输入
 中的匿名排列不能改变 PairCost。
+
+`m.transfer.route` 的 endpoint 必须是合法 storage cell。PairCost 在下一次
+调用 compiler 前把整条 route 原子地抽象执行完；它不能在 transit cell
+停下并重新选择 blocker，否则 abstract rollout 会重现真实执行中的
+“进走廊—无任务—回原位”振荡。rollout budget 仍按 route 中的相邻 shelf
+effects 计数；若剩余预算不足以完成整条 transfer，则不开始该 transfer，
+返回有限 truncated residual。
 
 ### 4.4 Residual 与 failure
 
@@ -630,27 +674,46 @@ compiler 不再选择 terminal goal。目标变化只能发生在下一次 upper
 
 ### 6.2 Candidate ordering
 
-对 root target `b` 的相邻候选：
+无显式 `storage_map` 时，候选仍是四邻接 cell。显式 `storage_map` 时，
+候选是 storage-to-storage transfers：
 
-1. 更小的 `wall_distance(next, tau_guide[b])`；
+```text
+from storage cell
+  -> zero or more currently empty transit cells
+  -> first encountered storage endpoint
+```
+
+搜索 route 时不能穿过中间 storage cell；遇到 storage 即形成 endpoint 并
+停止该 branch。route 内部 transit cell 不能被 shelf 占据，endpoint 可以
+为空或被 blocker 占据。每个 endpoint 只保留确定性的最短 route，并按稳定
+cell id 打破平局；最多把排序最优的四个 transfers 送入现有 candidate
+window。若当前 shelf 已因真实 transition 位于 transit cell，则只允许找
+到 storage 出口的 route，不能把另一个 transit cell 当成 endpoint。
+
+对 root target `b` 的 transfer 候选：
+
+1. 更小的 `wall_distance(endpoint, tau_guide[b])`；
 2. 更低的预计 displacement cost；
 3. 不与已接受的更高优先级 tasks 冲突；
-4. 稳定 cell-id tie。
+4. 更短 route；
+5. 稳定 endpoint/cell-id tie。
 
 对被要求让路的 target blocker：
 
 1. 能完成 inherited vacate request；
-2. empty destination 优先；
-3. 尽量不增加到自己 `tau_guide` 的距离；
-4. 避免已预约 destination；
-5. 稳定 cell-id tie。
+2. empty storage endpoint 优先；
+3. 尽量不增加 endpoint 到自己 `tau_guide` 的距离；
+4. 避免已预约 endpoint 和第一格 destination；
+5. 更短 route；
+6. 稳定 endpoint/cell-id tie。
 
 对 anonymous blocker：
 
-1. empty destination 优先；
+1. empty storage endpoint 优先；
 2. 最短 displacement chain；
-3. 避免已预约 destination；
-4. 稳定 cell-id tie。
+3. 避免已预约 endpoint 和第一格 destination；
+4. 更短 route；
+5. 稳定 endpoint/cell-id tie。
 
 候选只依赖 upper deck；不得使用当前 robot 距离。
 
@@ -658,16 +721,22 @@ compiler 不再选择 terminal goal。目标变化只能发生在下一次 upper
 
 ```text
 ResolveShelf(s, root, inherited_priority, context,
-             forced_first_to = NONE):
+             forced_first_transfer = NONE):
     u = position_U(s)
 
-    candidates =
-      forced_first_to != NONE
-        ? [forced_first_to]
-        : OrderedNeighborCandidates(s, root, context)
+    transfers =
+      forced_first_transfer != NONE
+        ? [forced_first_transfer]
+        : OrderedStorageTransferCandidates(s, root, context)
 
-    for v in candidates:
-        if v is not an adjacent valid destination of u:
+    for transfer in transfers:
+        v = transfer.route[1]
+        endpoint = transfer.endpoint
+
+        if route is not adjacent throughout
+           or route[0] != u
+           or route.back() != endpoint
+           or endpoint is not legal storage:
             continue
 
         snapshot reservations and graph
@@ -685,32 +754,38 @@ ResolveShelf(s, root, inherited_priority, context,
             restore snapshot
             continue
 
-        if v is empty in U:
-            create Task(s, u -> v)
-            reserve s and v
-            return task
-
-        blocker = shelf occupying v
-
-        if blocker is in recursion stack:
-            record a rotation candidate when cycle length >= 3
+        if endpoint is reserved by an incompatible transfer:
             restore snapshot
             continue
 
-        pred = ResolveShelf(
-                 blocker,
-                 root,
-                 inherited_priority,
-                 context,
-                 forced_first_to = NONE)
+        if any internal transit route cell is occupied by a shelf:
+            restore snapshot
+            continue
 
-        if pred succeeds:
-            create Task(s, u -> v)
-            reserve s and v
+        if endpoint is occupied in U:
+            blocker = shelf occupying endpoint
+
+            if blocker is in recursion stack:
+                record a rotation candidate when cycle length >= 3
+                restore snapshot
+                continue
+
+            pred = ResolveShelf(
+                     blocker,
+                     root,
+                     inherited_priority,
+                     context,
+                     forced_first_transfer = NONE)
+
+            if pred fails:
+                restore snapshot
+                continue
+
+        create Task(s, u -> v, transfer)
+        reserve s, v, endpoint and route
+        if pred exists:
             add dependency pred -> task
-            return task
-
-        restore snapshot
+        return task
 
     return FAIL
 ```
@@ -726,10 +801,17 @@ candidate/backtrack budget
 ```
 
 递归失败时请求方必须尝试下一 candidate；失败不能直接产生“不可解”判断。
-`forced_first_to` 只绑定当前 root 在 root-level DFS 选择的第一个 effect；
+`forced_first_transfer` 只绑定当前 root 在 root-level DFS 选择的第一个
+storage transfer；其 `TaskId` 仍只取 route 的第一格 effect；
 它不得传给 blocker。这样 blocker 仍可枚举自己的 displacement candidates，
 但当前 root 失败时不能偷偷改选另一个 destination 并让外层误以为指定
 option 成功。
+
+storage endpoint reservation 与第一格 destination reservation 都是
+transactional。失败 branch rollback 时二者必须一起撤销。两个 transfers
+即使第一格不同，只要最终 endpoint 相同，也不能同时被接受；相反，transit
+cell 只作为中间路径，不能作为 endpoint，也不在静态 dependency graph 中
+被永久预约。真实同时在途 route 的冲突由 active-transfer claims 处理。
 
 graph 完成后必须执行一次 reverse-topological demand propagation：
 
@@ -774,9 +856,17 @@ CompileRoots(k):
 
         restore snapshot
 
-    also record A as paused for this upper epoch
+    if A has not started an active transfer:
+        record A as deferred-unstarted for this upper epoch
     CompileRoots(k + 1)
 ```
+
+这里的 deferred-unstarted（旧统计字段仍可记作 `paused_roots`）只表示本轮
+不为尚未开始的 root 生成新 transfer。例如两个未启动请求只能竞争同一个
+合法 endpoint 时，本轮启动优先级更高者，另一个留待下一 upper epoch；
+它不关闭任何编号的 robot、shelf、target、Task-BR 或 physical successor。
+已进入 transit 的 active transfer 不参与这条分支，必须继续到既定
+storage endpoint。
 
 候选图按以下词典序比较：
 
@@ -825,6 +915,18 @@ PairCost 与 joint compiler 调用同一个 templated recursive core；PairCost
 context 只省略不被返回值消费的 graph materialization，并使用 direct
 target/anonymous index、generation-stamped dense reservations 和可复用
 scratch。它不能拥有第二套 candidate/recursion semantics。
+
+storage-aware 扩展仍保持同一个 recursive core，但候选窗口不得把四个
+可能拥有动态内存的 transfer object 放在热路径数组中。窗口以固定 primitive
+数组保存 `endpoint/first_step/route_size/route-slot`，非相邻 route 单独
+放入窗口拥有的 route pool；resolver 只持有该窗口生命周期内的 trivial
+view。direct-storage 分支继续使用原五字段 score 总序，只有通用 transfer
+分支才把 route length 与 first step 加入 score。joint compiler 在 task
+被接受时物化 `StorageTransfer`；PairCost 在选中 ready transfer 时才复制
+长 route，直接二点 route 不发生动态分配。single-root scratch 同理只在
+首次出现 `endpoint != first_step` 时创建 endpoint-reservation dense
+storage，并按 shelf 数一次预留 rollback undo。以上均为表示与容量优化，
+候选集合、排序、冲突、递归和 rollback 结果必须逐位不变。
 
 ### 6.5 Shared effect 与 conflict
 
@@ -958,6 +1060,9 @@ struct Custody {
   int to;
   std::vector<RootDemand> roots;
   int priority;
+  int transfer_endpoint;
+  std::vector<int> transfer_route;
+  size_t transfer_index; // from=route[index], to=route[index+1]
 };
 ```
 
@@ -982,6 +1087,30 @@ free robot reaches task.from
 `current_cell -> next_cell` ready continuation，当前 carrier 按 §7.2 的
 density-aware 规则决定是否直接绑定新 TaskId；未绑定时保持
 loaded-but-unbound，并首选 Drop。
+
+上述规则对普通 `[from,to]` transfer 不变。若 custody 的
+`transfer_route.size() > 2` 且尚未到达 `transfer_endpoint`，loaded Move
+只完成当前 route leg，不结束 storage transfer：
+
+```text
+old TaskId = (shelf, route[k], route[k+1])
+loaded Move to route[k+1]
+new TaskId = (shelf, route[k+1], route[k+2])
+transfer_endpoint unchanged
+transfer_index = k + 1
+```
+
+这个下一 leg custody 由 Recover 阶段从真实 loaded Move 和旧 custody
+确定性派生，不依赖新 `tau` 或新 graph，也不参加 rho。下一 route cell
+暂时被其他 carried shelf/robot 占用时保留 commitment 并首选 Wait；不能
+把 transit cell 当作完成位置，也不能自动反向返回 route 起点。
+
+到达 `transfer_endpoint` 后 storage transfer 才完成，随后才能按普通规则
+绑定新 graph continuation 或首选 Drop。若 operator tree 强制偏离 route，
+旧 transfer 失效；偏离后的 shelf 若仍在 transit cell，Recover 阶段必须从
+该真实 transition anchor 建立到当前可达空 storage endpoint 的 recovery
+transfer。没有可达空 endpoint 时保持 loaded-but-unbound 并 Wait，绝不
+尝试非法 Drop。
 
 in-flight task 在 loaded Move 前不能被新的 rho 或 priority 取消。这是
 正常 unconstrained guidance 的 preferred continuity，不是 physical hard constraint，也
@@ -1028,11 +1157,14 @@ loaded Wait:
     otherwise remain/turn unbound nullopt
 
 loaded Move:
-    complete or invalidate the previous Custody
-    (recovery phase ends here: it NEVER binds the continuation Custody)
+    if exact move completes only an intermediate storage-transfer leg:
+        deterministically advance the same transfer Custody
+        (endpoint unchanged; this is not a graph continuation decision)
+    else:
+        complete or invalidate the previous Custody
     compile the new upper epoch, then compute ReadyTasks
     the follow-up BindReadyContinuations step—and only it—binds a new
-    Custody iff the new graph has an exact ready continuation for this
+    graph-derived Custody iff the new graph has an exact ready continuation for this
     carried shelf at its current cell and either it is not the immediate
     reverse or the upper layout is target-dense
     otherwise custody_by_robot[r] stays nullopt
@@ -1152,11 +1284,21 @@ carrying + bound one-step task:
         inherit task priority through ordinary PIBT recursion
     retain Wait/Drop/other primitive candidates as completeness fallbacks
 
+carrying + bound storage transfer:
+    prefer the next adjacent route leg
+    keep the same legal storage endpoint across upper epochs
+    if the next leg is temporarily blocked, prefer Wait
+    never offer Drop while current cell is non-storage
+
 carrying + newly bound exact continuation:
     use the bound one-step task without Drop/Lift
 
 carrying + unbound:
-    prefer Drop at the current cell
+    if current cell is storage:
+        prefer Drop at the current cell
+    else:
+        use transition-anchored recovery route to an empty storage endpoint
+        or Wait when no legal endpoint is currently reachable
 
 free + IDLE:
     leave cells used by current ready/custody effects when possible
@@ -1197,6 +1339,11 @@ cooldown 被降级；若 Lift 后无法产生期望进展，搜索依靠真实 s
 | exhaustive tree 产生的偏离 loaded Move | 改变 | 与普通 loaded Move 相同 | 全部重编译 | 旧 custody 失效；按新物理事实重新绑定或 Drop |
 
 禁止再使用“只有 target Drop 才允许 tau 改变”的 `preserve_tau` 语义。
+
+若该 loaded Move 只完成 storage transfer 的中间 leg，表中最后一列改为：
+旧 adjacent `TaskId` 完成，但 Recover 从真实 transition 推进
+`transfer_index` 并建立下一 adjacent `TaskId`；PairCost/tau/D 仍按新的 U
+正常重算，但不得覆盖 transfer endpoint。
 
 ### 10.1 Macro rollout
 
@@ -1382,6 +1529,10 @@ if one_empty:
 测试可以继续验证 one-empty 行为，但必须验证它来自通用 recursion，而不是
 特殊分支。
 
+这里的 empty/vacancy 指空 storage slot。显式 storage map 中无论有多少空
+aisle cells，它们都不增加 vacancy 数；一条 vacancy chain 可以通过 transit
+route 把空 storage slot 在不同 storage blocks 之间搬运。
+
 ### 11.2 Zero-empty
 
 zero-empty 可能形成：
@@ -1471,10 +1622,12 @@ rollout reattach 和其他 guidance refresh 都不得再次累加。
 * 删除 `DemandKey`/`ManipulationTask` 中旧 representative-root 兼容语义；
 * 删除 `ObjectiveOption`、`selected_option`、`selected_packages`；
 * 新增 `UpperSignature`、`ShelfSelector`、exact `ShelfTask`、
-  `ShelfTaskGraph`、`PairPlan`、`Custody`；
+  `ShelfTaskGraph`、`PairPlan`、`StorageTransfer`、`Custody`；
 * `TaskId` 明确包含 `to`；
 * `Custody.task_id` 使用 exact TaskId tuple；若保留执行 index，只能是每次
   attach 从当前 `D` 重解的 optional derived field；
+* `ShelfTask/Custody` 保存合法 storage endpoint、完整相邻 route 与当前
+  route index；这些字段不进入 SearchKey；
 * `CarrierGuidance.custody_by_robot` 使用
   `vector<optional<Custody>>`；physical kappa loaded 且 `nullopt` 明确表示
   loaded-but-unbound，不使用 `id==0` sentinel；
@@ -1505,6 +1658,8 @@ rollout reattach 和其他 guidance refresh 都不得再次累加。
 
 ```text
 make_upper_signature()
+upper_vacancy_count_from_storage_slots()
+ordered_storage_transfer_candidates()
 compile_single_root_task_br_pibt()
 pair_cost()
 solve_tau_guide()
@@ -1513,6 +1668,7 @@ compile_joint_task_br_pibt()
 ready_tasks()
 match_ready_tasks_by_task_id()
 resolve_rho_ready_indices()
+advance_or_recover_storage_transfer()
 ```
 
 删除 production 路径：
@@ -1539,6 +1695,11 @@ helper，不能再直接扫描路径并发射任务；其 production 接口不�
 `prev_path`，所有等价候选按稳定 cell id 裁决。任何 cache value 必须是
 `UpperSignature` 与版本参数的纯函数，cache warm-up history 不得改变结果。
 
+显式 storage map 下，`ordered_shelf_candidate_window()` 必须改为对合法
+storage endpoints 排序，并为每个 endpoint 返回 route；不能再把所有
+grid neighbors 直接当作 shelf vacancy。PairCost 与 joint compiler 必须
+调用同一个 transfer candidate core。
+
 ### 13.3 `lacam/src/tapf_planner.cpp`
 
 `attach_carrier_guidance()` 改为接收紧邻 transition context，而不是只接收
@@ -1554,6 +1715,8 @@ helper，不能再直接扫描路径并发射任务；其 production 接口不�
      inherit those four objects
 5. 按 §7.3 从真实 transition 恢复
    `optional<Custody> custody_by_robot`；强制/unassigned Lift 保持 unbound
+   ；storage transfer 的中间 loaded Move 推进 route index 和下一 exact
+   TaskId，endpoint 保持不变
 6. compute ready tasks
 7. direct-bind carried continuation
 8. 用 previous `rho_task_id` repair rho，再在当前 graph 解析
@@ -1576,6 +1739,11 @@ helper，不能再直接扫描路径并发射任务；其 production 接口不�
 `funcPIBT()` 改为让 loaded carrier 首选当前 task 的相邻 `to`，而不是直接
 持续向 terminal `tau` 移动。原 lower-deck recursion 与 primitive fallback
 候选继续保留。
+
+对位于 transit cell 的 loaded carrier，`funcPIBT()` 只能消费 bound
+storage-transfer 的下一 route leg，或 transition-anchored recovery route；
+不能使用“相邻 storage 优先”的无状态贪心，因为它会选择刚刚腾空的原位并
+形成往复。
 
 `carrier_rollout()` 改为每步轻量 attach，并返回 terminal guidance 与完整
 transition trace；不得继续把整份 guidance 跨
@@ -1773,6 +1941,24 @@ candidate ordering 和可选 rotation bundle。性能优化不得改变本文语
 新生但保留算法、测试和 benchmark 细节；网页须交给独立 GPT-5.6 Sol
 subagent review，修正其发现的问题后才能发布最终报告。
 
+### Phase 7：storage-aware transfer 修订（2026-09-04）
+
+本轮修订继续遵守同一流程，不修改既有 protected tests 的语义：
+
+1. 先冻结并保留 `44bcd2f` 基线、问题 warehouse plan 和往复统计；
+2. 固定 §17.1.1 的开发案例；
+3. 新增独立 storage-transfer tests 并确认 RED；
+4. 实现 storage vacancy、endpoint candidate、PairCost 原子 transfer 和
+   跨 epoch custody；
+5. GREEN 后先跑固定案例，再跑全量 C++/Python；
+6. 同配置、同 seed、每例 10 秒重跑 warehouse suite 与 release benchmark；
+7. 发现任何新 bug 时先新增回归并确认 RED，再修改实现；
+8. 最终网页加入问题 plan 与修复 plan 的并排动画/指标，并再次由独立
+   GPT-5.6 Sol review。
+
+不得用“显式 storage map 时关闭 Task-BR”、切换旧算法或 feature flag
+替代该修订。
+
 ---
 
 ## 15. Protected tests 的迁移原则
@@ -1908,6 +2094,14 @@ subagent review，修正其发现的问题后才能发布最终报告。
 | 37 | Lift 后重排 task vector，使原 index 指向不同 effect：loaded Wait 后 custody exact TaskId 仍等于原 `(shelf,from,to)`，derived index 重新解析或为 nullopt |
 | 38 | constraint tree 强制 Lift 未 assigned/非 ready shelf：physical successor 仍在 exhaustive set，robot 为 loaded 且 `custody_by_robot[r]=nullopt`，Carrier-PIBT 走 unbound Drop/fallback |
 | 39 | `|ready| > |free|` 时的 §8.2 词典序合同：高于 priority cutoff 的 ready task 必获 assignment 行（继承旧 `farther_root_owns_the_frontline_slot` 的行为保护）；cutoff 同级由 approach distance 决定；TaskId switch penalty 只在更后层生效且不得推翻 priority/distance |
+| 40 | 显式 storage map 下 `upper_vacancy_count == storage_cells - shelves`，任意数量空走廊不改变 vacancy |
+| 41 | blocker 的 candidate endpoint 全部满足 `can_store_shelf(endpoint)`；route 内部允许 transit，但逐格相邻且不穿过中间 storage |
+| 42 | PairCost 对一条跨 aisle transfer 在下一次 compiler 调用前执行到 endpoint；整条 route 只形成一个 Lift/Drop episode，move cost 按 leg 计 |
+| 43 | loaded Move 进入 transit 后，即使新 tau/D 不再包含该 blocker，custody 仍保持原 endpoint 并推进下一 route leg；不得立即 reverse |
+| 44 | storage endpoint 被占用时，递归 predecessor 把 blocker 搬到另一个合法 endpoint；zero vacancy 返回有限 paused/no-ready，one vacancy 形成通用 chain |
+| 45 | 两个 carriers 的 endpoint/first-leg 冲突不会产生两个同时接受的 incompatible transfers；暂时 route 冲突通过 Wait/PIBT 处理，任何 plan 均无 corridor Drop |
+| 46 | forced deviation 后，recovery custody 只能由真实 transition anchor 建立；无可达空 storage 时保持 loaded/Wait |
+| 47 | 无 storage map 时每条 transfer route 恰为 `[from,to]`，PairCost、TaskId、successor 集合和原测试逐位兼容 |
 
 ---
 
@@ -1926,6 +2120,24 @@ subagent review，修正其发现的问题后才能发布最终报告。
 
 同一 dataset、seed、unit weights、following、strict 10s 和资源分配用于
 旧 baseline 与新算法。
+
+### 17.1.1 storage 修订固定案例
+
+实现前冻结以下案例，不因结果更换：
+
+1. 真实问题例：
+   `warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0`，重点检查原 plan 中
+   `b6 (3,17) -> (3,16) -> (3,17)` 的重复 episode；
+2. 单 target 跨 aisle 到合法 storage goal；
+3. anonymous blocker 必须跨 aisle rehome 后 root 才能进入；
+4. endpoint 被占用且只有一个 storage vacancy 的递归 chain；
+5. storage slots 全满、只有空 aisle 的 zero-vacancy finite failure；
+6. 两个 carriers 在窄 aisle 中请求冲突 transfer；
+7. forced mid-route deviation 后的 recovery；
+8. 无 `storage_map` 的 legacy adjacent-task case。
+
+以上小案例先用于 RED/GREEN；真实 warehouse case 使用同一 YAML、seed=0、
+unit weights、following allowed 和 10 秒上限。
 
 ### 17.2 迁移前 baseline
 
@@ -2174,7 +2386,9 @@ U
 
 ## 20. 实现与验证闭环
 
-最终实现没有增加第二套 planner。`TAPFPlanner::solve()`、LaCAM
+本节记录 2026-09-03、提交 `44bcd2f` 之前冻结的 Task-BR release 基线；
+§21 的 storage-map 修订尚未包含在下述数字中。该基线实现没有增加第二套
+planner。`TAPFPlanner::solve()`、LaCAM
 OPEN/CLOSED、operator constraint tree、`funcPIBT()`、`apply_ops()`、两遍
 求解、repair、strict deadline 与 final replay 均沿用原执行路径；变化集中在
 原 `attach_carrier_guidance()` 及其直接消费的数据：
@@ -2221,3 +2435,273 @@ tests 同在 222 项全量 suite 中通过。
 testcase、放宽 timeout 或修改 success semantics 隐藏。总体成功集合扩展
 2 例，且 common-set 两个主指标相对 paired final7 与 v3 历史基线均显著
 改善。
+
+---
+
+## 21. Storage-map 修订的最终增量设计
+
+### 21.1 问题与不变量
+
+当前错误路径把相邻空 transit cell 当成一次 blocker displacement 的完整
+destination。blocker 进入 aisle 后，loaded Move 开启新 upper epoch，旧
+one-step custody 完成；新 graph 不再需要该 blocker，于是 carrier 变成
+unbound。执行器无法 Drop，只能贪心寻找相邻 storage，最容易选择刚腾空的
+原位，从而反复：
+
+```text
+storage A -> transit C -> storage A
+```
+
+修订后必须同时保持：
+
+1. `ShelfTask/TaskId` 仍是相邻 physical effect；
+2. 每次开始进入 transit 前，已经选择一个合法 storage endpoint；
+3. route 内部可以是 transit，endpoint 必须可 Drop；
+4. 在同一选定 transition chain 内，endpoint 在 transfer 完成前不因
+   tau、D 或 cache 改变；duplicate reparent 则从新 incoming trace
+   原子替换整份 custody；
+5. PairCost 在抽象层一次执行完整 transfer；
+6. 真实层每拍仍只执行一个 primitive loaded Move；
+7. 失败 guidance 不删除 operator-tree successor；
+8. legacy 无 storage map 时逐位退化。
+
+### 21.2 数据与 identity
+
+```cpp
+struct StorageTransfer {
+  int endpoint = -1;
+  std::vector<int> route;
+};
+
+struct ShelfTask {
+  TaskId id;                    // shelf, route[0], route[1]
+  std::vector<RootDemand> roots;
+  int priority = 0;
+  StorageTransfer transfer;
+};
+
+struct Custody {
+  TaskId task_id;               // current route leg
+  ...
+  StorageTransfer transfer;
+  size_t transfer_index = 0;    // current cell = route[index]
+};
+```
+
+`TaskId` 不加入 endpoint，避免把同一个当前 physical effect 拆成不同
+successors。若多个 root 合并到同一 exact effect 而给出不同 endpoints，
+保留先被高优先级、稳定 root 顺序接受的 transfer；真实 move 后下一 epoch
+重新评估其他 roots。`StorageTransfer` 是 custody continuity metadata，
+不进入 SearchKey、goal、`h` 或 physical legality。
+
+### 21.3 Candidate core
+
+`ordered_storage_transfer_candidates()` 是 PairCost 和 joint compiler 共用
+的唯一实现：
+
+```text
+legacy map:
+    each adjacent traversable cell
+    -> route [from,to], endpoint=to
+
+explicit storage map:
+    BFS from current cell
+    traverse only non-storage cells after leaving from
+    stop when a storage cell is first reached on a branch
+    keep deterministic shortest route per endpoint
+    discard routes whose internal cells contain shelves
+    score endpoints with the existing root/blocker rules
+    return best at most four
+```
+
+上述两段不是两套 planner。统一规则始终是“离开 `from` 后，在每条分支遇到
+首个 storage 就停止”。因此当 `from` 的全部 traversable 邻格都是 storage
+时，通用 BFS 的结果严格等于四邻格集合；实现必须在同一个 candidate core
+中用固定大小数组直接评分，避免在 PairCost 热路径为每次调用分配整张网格的
+`parent`、queue、map 和 route vector。相邻候选在内部可以只保存 endpoint
+和隐含的第一步，直到任务被接受时才物化 `[from, endpoint]`。只要存在任一
+transit 邻格，就使用通用 BFS。该局部特化只消除等价计算和临时分配，不改变
+候选、score tuple、稳定 tie-break、TaskId、PairCost 或最终 transfer route，
+也不得检测实例名、是否存在 `storage_map` 或是否包含 pick/place。直接相邻
+候选由唯一的邻格枚举建立合法性，resolver 不再逐候选重复调用
+`grid.neighbors()`；非相邻 BFS route 仍在进入 compiler transaction 前验证
+逐格相邻、内部 transit 为空且 endpoint 可存储。直接 route 满足
+`endpoint == first_step`，对应的 destination reservation 已经完整表达
+endpoint claim，不再写第二份 undo entry；endpoint conflict 查询必须同时
+识别这种 storage destination。非相邻 route 的 first step 是 transit，
+所以继续使用独立 endpoint reservation。每个 cell 的
+“全部 traversable 邻格都是 storage”标记由 `DDInstance::finalize()` 从
+immutable grid/storage mask 预计算；candidate core 只读该局部标记，不以
+实例类型或是否存在 `storage_map` 选择 execution path。
+候选的内部 route storage 必须按需分配：直接候选只携带
+`endpoint/first_step/route_size`，非相邻候选才拥有 route buffer；写入
+`ShelfTask` 或 custody 时再物化规范化完整 route。
+
+endpoint 被占用时递归搬动 occupant；endpoint 为空时建立当前 task。compiler
+transactionally 预约当前 first leg 和 endpoint，但不把 transit route
+interior 当成永久空间 reservation：依赖链中的 predecessor 与 requester
+可以按顺序复用同一通道。真实 active transfers 的同时冲突由 epoch 外的
+claims 过滤。zero storage vacancy 允许形成 rotation candidate 或 paused
+root，但不能把空 aisle 误报为 vacancy。
+
+### 21.4 PairCost
+
+single-root core 仍返回最高优先 ready `ShelfTask`。PairCost 消费它时：
+
+```text
+remaining = step_cap - rollout_steps
+if transfer legs > remaining:
+    truncated = true
+    stop before entering route
+else:
+    for every leg:
+        charge alpha (+ delta for anonymous)
+        move the same abstract token
+        rollout_steps += 1
+```
+
+整条 route 共享同一 open episode，因此不会在 aisle 产生虚构 Drop/Lift。
+完成 endpoint 后才重新调用 compiler。
+
+### 21.5 真实 custody
+
+`recover_task_br_custody()` 在 exact loaded Move 后分三类：
+
+1. 普通一格 transfer 已到 endpoint：旧 custody 完成，交给普通 graph
+   continuation；
+2. storage transfer 尚有 route：从旧 custody 和真实 op 确定性推进 index，
+   立即建立下一 exact leg custody；
+3. forced deviation：旧 transfer 失效；若当前 cell 是 transit，确定性寻找
+   可达空 storage endpoint 并建立 recovery custody。
+
+第 2 类优先于 `BindReadyContinuations`，后者不能覆盖它。第 3 类若无可达
+endpoint，保持 loaded/unbound；`funcPIBT()` 首选 Wait 和合法 Move，不加入
+DROP。到达 endpoint 后才首选 Drop。
+
+active custody 只在非缓存 guidance 层生成 `ActiveTransferClaims`。恢复顺序
+必须是：
+
+1. 保留所有由真实 transition 验证的旧 custody；
+2. 收集 forced-deviation loaded carriers，按
+   `(previous priority desc, robot id asc)` 联合分配 recovery；
+3. recovery endpoint 不得与已接受 claim 重复；其 remaining route 不得与
+   更高优先 claim 在窄 transit footprint 上冲突；
+4. 用最终 claims 过滤与之冲突的 grounded ready tasks，再做 rho。
+
+claims 不进入 `UpperEpochCache`、SearchKey、PairCost 或 tau。相同 `U` 在
+不同 active custody/cache warm-up 下必须得到逐位相同的 cached graph；
+只有 cache 外的 custody/ready/rho 可以不同。过滤只是 preferred ordering，
+operator constraint tree 仍枚举全部合法 successor。
+
+active custody 重绑 graph index 时必须同时匹配 exact `TaskId`、endpoint 和
+旧 route 从 `transfer_index` 开始的 remaining suffix。仅第一腿相同但
+endpoint/suffix 不同的 graph task 不得覆盖 roots、priority 或 endpoint，
+derived index 留空。anonymous shelf 每推进一腿把 selector value 重锚到
+当前 `from`；真实 identity 由 carrier 和 transition anchor 保证。
+
+### 21.6 冲突与特殊情况
+
+* **一个 vacancy**：递归把 occupied endpoint 的 shelf transfer 到下一个
+  endpoint，空 storage slot 沿 chain 移动；不写专用 one-empty 分支。
+* **zero vacancy**：有限 PairCost penalty、paused/no-ready 或 rotation
+  record；不能开始没有合法 endpoint 的 aisle transfer。
+* **多个 carriers**：同一 graph 内 endpoint 与 first leg 冲突通过
+  transaction backtracking。完整未来 route 具有时间语义：dependency
+  predecessor 与 requester 可以先后复用 transit cell，不能被静态永久
+  reservation 拒绝；实际同时启动由 cache 外 active/ready claims 串行化。
+  下一格被占用时 Wait，最终仍由 `apply_ops()` 裁决。
+* **tau 改变**：可以改变未开始的 mission guidance，不能重写 active
+  transfer endpoint。
+* **goal 就在 route 中**：只有它是 route endpoint 且为 storage 才算到达；
+  transit cell 永不因坐标接近 goal 而结束。
+* **forced Drop**：`apply_ops()` 继续拒绝 corridor Drop，completeness tree
+  不被 guidance 伪造。
+* **forced Move 偏离**：从真实 transition recovery；不能沿用旧 route index。
+* **anonymous identity**：route 内继续使用 rollout-local token；真实 custody
+  用当前 carried shelf 与旧 transition anchor，不创建永久 anonymous label。
+* **cache**：PairCost candidate 是 `(UpperSignature, storage_map,
+  compiler-version)` 的纯函数。storage map 属于 instance immutable data，
+  active transfer 不写入 PairCost key；只有 custody execution读取 route。
+
+### 21.7 代码落点与验证证据
+
+| 机制 | 修改点 |
+|---|---|
+| storage vacancy | `upper_vacancy_count()` |
+| route/endpoint 数据 | `tapf_planner.hpp::{StorageTransfer,ShelfTask,Custody}` |
+| shared candidate core | `carrier_guidance.hpp::ordered_shelf_candidate_window()` 及 single/joint contexts |
+| endpoint/route transaction | `TaskBRCompilerState/Transaction` |
+| PairCost full transfer | `pair_cost_prefix_lower_bound()`、`pair_cost()` |
+| cross-epoch commitment | `recover_task_br_custody()` |
+| recovery/active claims | `recover_task_br_custody()` 与 `ready_tasks_with_custody()` 的非缓存阶段 |
+| preferred execution | `tapf_planner.cpp::funcPIBT()` carrier branch |
+| zero-vacancy diagnostic | `tapf_planner.cpp::attach_carrier_guidance()`；必须复用 `upper_vacancy_count()`，不能把 transit 算作空位 |
+| probes/tests | `test_dd_storage_transfer.cpp` 与独立新增的 claims/temporal regressions，不修改既有 protected assertions |
+
+完成证据必须包括：新测试先 RED 后 GREEN；C++/Python 全量；固定 8 个
+storage cases；真实 warehouse case 不再出现同一 shelf 的
+`storage -> transit -> same storage` episode；所有 Drop 均在 storage；
+同机 10 秒 release benchmark；最终 diff 无 parallel planner、feature flag
+或旧算法 fallback；中文网页和独立 subagent review。
+
+---
+
+## 22. Storage-map 修订的实际验证证据（2026-09-04）
+
+本节记录 §21 的实现结果；§20 的数字是 storage-map 修订前的历史
+release 证据，不能拿来替代本节。
+
+### 22.1 语义与回归
+
+* 新增 `test_dd_storage_transfer.cpp` 9 项与
+  `test_dd_storage_transfer_claims.cpp` 5 项，覆盖合法 storage endpoint、
+  跨 epoch custody、forced deviation、active claims、endpoint/suffix
+  rebinding、时序通道复用、zero/one-vacancy 与 corridor Drop 禁止。
+  独立代码审查发现诊断口径遗漏后，又按 RED→GREEN 新增
+  `test_dd_storage_transfer_stats.cpp` 1 项，锁定 forced-transit 状态也必须
+  按 storage vacancy 统计。
+* C++ 全量：`241/241`；Python 全量：`99/99`。
+* 固定 development profile：9 例中 6 例按权威 validator 到达 goal，3 个
+  既有 hard cases 在同一严格 deadline 下仍按预期 timeout。
+* 9 个 20×20 warehouse cases 全部求解并通过权威重放。逐帧审计结果均为
+  `corridor_drops=0`、`same_origin_returns=0`、
+  `loaded_reversals=0`。用户报告的
+  `b3/a1/d75/r8/t12/seed0` makespan 为 22，运行时间 91.2382 ms。
+
+“延后一个请求”只适用于尚未开始、且与更高优先级请求争抢同一 endpoint
+或窄通道 footprint 的 root。正常沿已验证 route 执行时，已经 Lift 并进入
+storage transfer 的货架由 active custody 持续推进；其他未启动请求不能
+暂停它或改写它的 endpoint。若真实 successor 强制偏离 route，旧 transfer
+按设计失效，并从真实 transition anchor 建立 recovery；这时可以选择新的
+合法 storage endpoint。
+
+### 22.2 同机 10 秒配对 benchmark
+
+固定数据集、seed、14 jobs 与每例 10 秒：
+
+| 指标 | 修订前 baseline | storage 修订最终版 |
+|---|---:|---:|
+| solved | 36/68 | 38/68 |
+| wall time | 33.9 s | 29.4 s |
+| solver time sum | 393.4 s | 335.3 s |
+| common-set makespan sum | 37387 | 15144 |
+| common-set weighted SOC sum | 62938 | 29853 |
+
+最终版新增求解
+`brap_h20w20_a40_e100_R1_seed0/seed1`，没有丢失 baseline success。
+36 个共同成功例中，makespan 为 better/equal/worse `33/1/2`，几何比
+`0.460862`；weighted SOC 为 `32/1/3`，几何比 `0.481676`。SOC 几何比按
+35 个正值对计算；余下一个共同为 `0/0` 的中性例仍计入 equal 与总和。
+因此改动整体显著改善，但不声称逐例单调；2 个 makespan 与 3 个 SOC 回退
+被原样保留。
+
+最终 benchmark binary SHA-256 为
+`70dbf8cb5096ce82ffbad5abc1c39d6454725fe798ec6d5faab0e2be6f6c1726`。
+严格 pool 回归独立运行 6670 ms，strict return-deadline 6892 ms；全量
+suite 168897 ms 完成。实现没有实例名/seed 检测、无 pick/place 检测、无 feature
+flag、无 legacy fallback，也没有第二套 planner/search loop。相邻 storage
+候选只使用与通用 BFS 等价的局部表示优化；非相邻 route 仍走同一个
+candidate core。最终网页审查与 GPT-5.6 Sol/high 代码审查均输出
+`APPROVE`；代码审查记录的唯一非阻塞残余风险是诊断回归直接锁定生产所用
+predicate，而没有再复制一套端到端 attach fixture。当前生产调用已由审查
+逐行确认。

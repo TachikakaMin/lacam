@@ -14,12 +14,14 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <climits>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <deque>
 #include <functional>
+#include <memory>
 #include <queue>
 #include <stdexcept>
 #include <string>
@@ -88,14 +90,23 @@ inline UpperSignature make_upper_signature(const PhysConfig& s)
 inline size_t upper_vacancy_count(
     const DDInstance& ins, const UpperSignature& upper)
 {
-  const size_t traversable_cells =
-      std::count(ins.grid.wall.begin(), ins.grid.wall.end(), 0);
+  size_t storage_cells = 0;
+  for (int cell = 0; cell < ins.grid.size(); ++cell)
+    storage_cells += ins.can_store_shelf(cell);
   const size_t shelf_count =
       upper.target_pos.size() + upper.anon_pos.size();
-  if (shelf_count > traversable_cells)
+  if (shelf_count > storage_cells)
     throw std::logic_error(
-        "upper_vacancy_count: shelves exceed traversable cells");
-  return traversable_cells - shelf_count;
+        "upper_vacancy_count: shelves exceed storage cells");
+  return storage_cells - shelf_count;
+}
+
+inline bool zero_storage_vacancy_no_ready(
+    const DDInstance& ins, const UpperSignature& upper,
+    size_t ready_task_count, size_t graph_task_count)
+{
+  return ready_task_count == 0 && graph_task_count > 0 &&
+         upper_vacancy_count(ins, upper) == 0;
 }
 
 inline bool target_dense_upper_layout(
@@ -810,11 +821,52 @@ inline void add_root_demand(std::vector<RootDemand>& roots,
   roots.erase(std::unique(roots.begin(), roots.end()), roots.end());
 }
 
+struct StorageTransferCandidate {
+  int endpoint = -1;
+  int first_step = -1;
+  int route_size = 0;
+  // Null means the exact adjacent route [from, first_step].  Non-null is
+  // a read-only view owned by the surrounding candidate window.
+  const std::vector<int>* explicit_route = nullptr;
+};
+
+struct SelectedStorageTransfer {
+  int endpoint = -1;
+  int first_step = -1;
+  int route_size = 0;
+  // Empty means the exact adjacent route [from, first_step].  PairCost
+  // copies a dynamic route only after this candidate becomes ready.
+  std::vector<int> explicit_route;
+};
+
+inline SelectedStorageTransfer select_storage_transfer(
+    const StorageTransferCandidate& candidate)
+{
+  SelectedStorageTransfer out;
+  out.endpoint = candidate.endpoint;
+  out.first_step = candidate.first_step;
+  out.route_size = candidate.route_size;
+  if (candidate.explicit_route != nullptr)
+    out.explicit_route = *candidate.explicit_route;
+  return out;
+}
+
+inline StorageTransfer materialize_storage_transfer(
+    int from, const StorageTransferCandidate& candidate)
+{
+  if (candidate.explicit_route != nullptr)
+    return StorageTransfer{
+        candidate.endpoint, *candidate.explicit_route};
+  return StorageTransfer{
+      candidate.endpoint, {from, candidate.first_step}};
+}
+
 struct TaskBRCompilerState {
   ShelfTaskGraph graph;
   std::map<TaskId, int> effect_index;
   std::map<ShelfSelector, TaskId> reserved_shelf_effect;
   std::map<int, TaskId> reserved_destination;
+  std::map<int, TaskId> reserved_endpoint;
 };
 
 struct TaskBRCompilerUndo {
@@ -822,6 +874,7 @@ struct TaskBRCompilerUndo {
     ERASE_EFFECT_INDEX,
     ERASE_SHELF_RESERVATION,
     ERASE_DESTINATION_RESERVATION,
+    ERASE_ENDPOINT_RESERVATION,
     POP_GRAPH_TASK,
     POP_SUCCESSOR,
     POP_ROTATION,
@@ -903,6 +956,43 @@ struct TaskBRCompilerTransaction {
     return state.reserved_destination.count(cell) != 0;
   }
 
+  bool endpoint_reserved(int cell) const
+  {
+    return state.reserved_destination.count(cell) != 0 ||
+           state.reserved_endpoint.count(cell) != 0;
+  }
+
+  bool has_distinct_endpoint_reservations() const
+  {
+    return !state.reserved_endpoint.empty();
+  }
+
+  bool distinct_endpoint_reserved(int cell) const
+  {
+    return state.reserved_endpoint.count(cell) != 0;
+  }
+
+  bool endpoint_effect_conflicts(int cell,
+                                 const TaskId& effect) const
+  {
+    const auto destination =
+        state.reserved_destination.find(cell);
+    if (destination != state.reserved_destination.end() &&
+        destination->second != effect)
+      return true;
+    const auto found = state.reserved_endpoint.find(cell);
+    return found != state.reserved_endpoint.end() &&
+           found->second != effect;
+  }
+
+  bool distinct_endpoint_effect_conflicts(
+      int cell, const TaskId& effect) const
+  {
+    const auto found = state.reserved_endpoint.find(cell);
+    return found != state.reserved_endpoint.end() &&
+           found->second != effect;
+  }
+
   void reserve_shelf(const ShelfSelector& shelf, const TaskId& effect)
   {
     const auto inserted =
@@ -923,6 +1013,15 @@ struct TaskBRCompilerTransaction {
           TaskId(), ShelfSelector(), cell});
   }
 
+  void reserve_endpoint(int cell, const TaskId& effect)
+  {
+    const auto inserted = state.reserved_endpoint.emplace(cell, effect);
+    if (inserted.second)
+      undo.push_back(TaskBRCompilerUndo{
+          TaskBRCompilerUndo::Kind::ERASE_ENDPOINT_RESERVATION,
+          TaskId(), ShelfSelector(), cell});
+  }
+
   void merge_task(int index, const RootDemand& root, int priority)
   {
     auto& task = state.graph.tasks[index];
@@ -939,8 +1038,10 @@ struct TaskBRCompilerTransaction {
     task.priority = merged_priority;
   }
 
-  int add_task(const TaskId& id, const RootDemand& root,
-               int predecessor, int priority)
+  int add_task(const TaskId& id,
+               const StorageTransferCandidate& transfer,
+               int from,
+               const RootDemand& root, int predecessor, int priority)
   {
     const auto found = state.effect_index.find(id);
     if (found != state.effect_index.end()) {
@@ -952,7 +1053,10 @@ struct TaskBRCompilerTransaction {
     state.effect_index.emplace(id, index);
     undo.push_back(TaskBRCompilerUndo{
         TaskBRCompilerUndo::Kind::ERASE_EFFECT_INDEX, id});
-    state.graph.tasks.push_back(ShelfTask{id, {root}, priority});
+    state.graph.tasks.push_back(
+        ShelfTask{
+            id, {root}, priority,
+            materialize_storage_transfer(from, transfer)});
     state.graph.predecessors.emplace_back();
     state.graph.successors.emplace_back();
     undo.push_back(TaskBRCompilerUndo{
@@ -995,6 +1099,9 @@ struct TaskBRCompilerTransaction {
         case TaskBRCompilerUndo::Kind::ERASE_DESTINATION_RESERVATION:
           state.reserved_destination.erase(entry.index);
           break;
+        case TaskBRCompilerUndo::Kind::ERASE_ENDPOINT_RESERVATION:
+          state.reserved_endpoint.erase(entry.index);
+          break;
         case TaskBRCompilerUndo::Kind::POP_GRAPH_TASK:
           state.graph.tasks.pop_back();
           state.graph.predecessors.pop_back();
@@ -1031,13 +1138,69 @@ inline bool task_effects_conflict(const TaskId& a, const TaskId& b)
   return a.to == b.to;
 }
 
+inline bool adjacent_cells(const DDGrid& grid, int from, int to);
+
 struct OrderedShelfCandidates {
-  std::array<int, 4> cells{};
+  std::array<int, 4> endpoints{};
+  std::array<int, 4> first_steps{};
+  std::array<int, 4> route_sizes{};
+  std::array<int, 4> route_slots{{-1, -1, -1, -1}};
+  std::vector<std::vector<int>> explicit_routes;
   int count = 0;
 
-  const int* begin() const { return cells.data(); }
-  const int* end() const { return cells.data() + count; }
+  StorageTransferCandidate candidate(int index) const
+  {
+    const int route_slot = route_slots[index];
+    return StorageTransferCandidate{
+        endpoints[index], first_steps[index], route_sizes[index],
+        route_slot >= 0 ? &explicit_routes[route_slot] : nullptr};
+  }
 };
+
+inline std::vector<StorageTransfer> reachable_storage_transfers(
+    const DDInstance& ins, const AbstractUpperState& upper, int from)
+{
+  std::vector<StorageTransfer> transfers;
+  if (from < 0 || from >= ins.grid.size() || ins.grid.is_wall(from))
+    return transfers;
+
+  std::vector<int> parent(ins.grid.size(), -2);
+  std::deque<int> queue;
+  parent[from] = -1;
+  queue.push_back(from);
+  std::map<int, StorageTransfer> route_by_endpoint;
+  while (!queue.empty()) {
+    const int cell = queue.front();
+    queue.pop_front();
+    int raw_neighbors[4];
+    const int count = ins.grid.neighbors(cell, raw_neighbors);
+    std::array<int, 4> neighbors{};
+    std::copy(raw_neighbors, raw_neighbors + count, neighbors.begin());
+    std::sort(neighbors.begin(), neighbors.begin() + count);
+    for (int index = 0; index < count; ++index) {
+      const int next = neighbors[index];
+      if (next == from) continue;
+      if (ins.can_store_shelf(next)) {
+        if (route_by_endpoint.count(next) != 0) continue;
+        std::vector<int> route;
+        for (int cursor = cell; cursor >= 0; cursor = parent[cursor])
+          route.push_back(cursor);
+        std::reverse(route.begin(), route.end());
+        route.push_back(next);
+        route_by_endpoint.emplace(
+            next, StorageTransfer{next, std::move(route)});
+        continue;
+      }
+      if (!upper.empty(next) || parent[next] != -2) continue;
+      parent[next] = cell;
+      queue.push_back(next);
+    }
+  }
+  transfers.reserve(route_by_endpoint.size());
+  for (auto& entry : route_by_endpoint)
+    transfers.push_back(std::move(entry.second));
+  return transfers;
+}
 
 template <typename CompilerContext>
 inline OrderedShelfCandidates ordered_shelf_candidate_window(
@@ -1048,57 +1211,153 @@ inline OrderedShelfCandidates ordered_shelf_candidate_window(
     const CompilerContext& context)
 {
   const int from = upper.position(shelf);
-  std::array<int, 4> cells{};
-  const int count = ins.grid.neighbors(from, cells.data());
   const bool root_shelf =
       shelf.kind == ShelfSelector::Kind::TARGET &&
       shelf.value == root.target;
-  using CandidateScore = std::tuple<int, int, int, int, int>;
-  std::array<CandidateScore, 4> scores;
-  for (int index = 0; index < count; ++index) {
-    const int cell = cells[index];
-    const int reserved = context.destination_reserved(cell) ? 1 : 0;
-    const int occupied = upper.empty(cell) ? 0 : 1;
+
+  std::array<int, 4> neighbors{};
+  const int neighbor_count =
+      ins.grid.neighbors(from, neighbors.data());
+  if (ins.has_adjacent_storage_frontier(from)) {
+    using DirectCandidateScore =
+        std::tuple<int, int, int, int, int>;
+    std::array<DirectCandidateScore, 4> scores{};
+    for (int index = 0; index < neighbor_count; ++index) {
+      const int endpoint = neighbors[index];
+      const int reserved =
+          context.destination_reserved(endpoint) ||
+                  (context.has_distinct_endpoint_reservations() &&
+                   context.distinct_endpoint_reserved(endpoint))
+              ? 1
+              : 0;
+      const int occupied = upper.empty(endpoint) ? 0 : 1;
+      if (root_shelf) {
+        const int mission =
+            upper_wall.dist(root.goal, endpoint);
+        scores[index] = std::make_tuple(
+            mission, occupied, reserved, mission, endpoint);
+      } else if (
+          !single_root_mode &&
+          shelf.kind == ShelfSelector::Kind::TARGET &&
+          tau != nullptr && shelf.value >= 0 &&
+          shelf.value < (int)tau->size()) {
+        const int mission =
+            upper_wall.dist((*tau)[shelf.value], endpoint);
+        scores[index] = std::make_tuple(
+            occupied, occupied * 2, reserved, mission, endpoint);
+      } else {
+        int assigned_goal_interference = 0;
+        if (!single_root_mode && tau != nullptr)
+          assigned_goal_interference =
+              std::count(tau->begin(), tau->end(), endpoint);
+        scores[index] = std::make_tuple(
+            assigned_goal_interference, occupied, reserved,
+            0, endpoint);
+      }
+    }
+    for (int index = 1; index < neighbor_count; ++index) {
+      const int endpoint = neighbors[index];
+      const DirectCandidateScore score = scores[index];
+      int insertion = index;
+      while (insertion > 0 &&
+             score < scores[insertion - 1]) {
+        neighbors[insertion] = neighbors[insertion - 1];
+        scores[insertion] = scores[insertion - 1];
+        --insertion;
+      }
+      neighbors[insertion] = endpoint;
+      scores[insertion] = score;
+    }
+    OrderedShelfCandidates out;
+    out.count = neighbor_count;
+    for (int index = 0; index < out.count; ++index) {
+      const int endpoint = neighbors[index];
+      out.endpoints[index] = endpoint;
+      out.first_steps[index] = endpoint;
+      out.route_sizes[index] = 2;
+    }
+    return out;
+  }
+
+  using CandidateScore =
+      std::tuple<int, int, int, int, int, int>;
+  struct RankedCandidate {
+    CandidateScore score;
+    StorageTransfer transfer;
+  };
+  std::array<RankedCandidate, 4> ranked{};
+  int ranked_count = 0;
+  const auto consider =
+      [&](StorageTransfer transfer) {
+    if (transfer.route.size() < 2) return;
+    const int endpoint = transfer.endpoint;
+    const int first_step = transfer.route[1];
+    const int route_size = (int)transfer.route.size();
+    const int reserved =
+        context.destination_reserved(first_step) ||
+                context.endpoint_reserved(endpoint)
+            ? 1
+            : 0;
+    const int occupied = upper.empty(endpoint) ? 0 : 1;
+    CandidateScore score;
     if (root_shelf) {
-      const int mission = upper_wall.dist(root.goal, cell);
-      scores[index] = std::make_tuple(
-          mission, occupied, reserved, mission, cell);
+      const int mission = upper_wall.dist(root.goal, endpoint);
+      score = std::make_tuple(
+          mission, occupied, reserved, route_size,
+          endpoint, first_step);
     } else if (!single_root_mode &&
                shelf.kind == ShelfSelector::Kind::TARGET &&
                tau != nullptr && shelf.value >= 0 &&
                shelf.value < (int)tau->size()) {
       const int own_goal = (*tau)[shelf.value];
-      const int mission = upper_wall.dist(own_goal, cell);
-      scores[index] = std::make_tuple(
-          occupied, occupied * 2, reserved, mission, cell);
+      const int mission = upper_wall.dist(own_goal, endpoint);
+      score = std::make_tuple(
+          occupied, reserved, mission, route_size,
+          endpoint, first_step);
     } else {
       int assigned_goal_interference = 0;
       if (!single_root_mode && tau != nullptr)
         assigned_goal_interference =
-            std::count(tau->begin(), tau->end(), cell);
-      scores[index] = std::make_tuple(
-          assigned_goal_interference, occupied, reserved, 0, cell);
+              std::count(tau->begin(), tau->end(), endpoint);
+      score = std::make_tuple(
+          assigned_goal_interference, occupied, reserved,
+          route_size, endpoint, first_step);
     }
-  }
-  // Grid degree is at most four and the score ends in the stable cell id.
-  // Precompute each tuple once and insertion-sort the fixed-size array so
-  // PairCost and joint compilation share one exact ordering without paying
-  // for millions of tiny stable_sort invocations.
-  for (int index = 1; index < count; ++index) {
-    const int cell = cells[index];
-    const CandidateScore score = scores[index];
-    int insertion = index;
-    while (insertion > 0 && score < scores[insertion - 1]) {
-      cells[insertion] = cells[insertion - 1];
-      scores[insertion] = scores[insertion - 1];
-      --insertion;
-    }
-    cells[insertion] = cell;
-    scores[insertion] = score;
-  }
+
+    int insert = 0;
+    while (insert < ranked_count &&
+           !(score < ranked[insert].score))
+      ++insert;
+    if (insert >= (int)ranked.size()) return;
+    const int new_count =
+        std::min<int>(ranked.size(), ranked_count + 1);
+    for (int index = new_count - 1; index > insert; --index)
+      ranked[index] = std::move(ranked[index - 1]);
+    ranked[insert] =
+        RankedCandidate{score, std::move(transfer)};
+    ranked_count = new_count;
+  };
+
+  auto transfers =
+      reachable_storage_transfers(ins, upper, from);
+  for (auto& transfer : transfers)
+    consider(std::move(transfer));
+
   OrderedShelfCandidates out;
-  out.cells = cells;
-  out.count = count;
+  out.count = ranked_count;
+  out.explicit_routes.reserve(ranked_count);
+  for (int index = 0; index < out.count; ++index) {
+    auto& transfer = ranked[index].transfer;
+    out.endpoints[index] = transfer.endpoint;
+    out.first_steps[index] = transfer.route[1];
+    out.route_sizes[index] = (int)transfer.route.size();
+    if (transfer.route.size() > 2) {
+      out.route_slots[index] =
+          (int)out.explicit_routes.size();
+      out.explicit_routes.push_back(
+          std::move(transfer.route));
+    }
+  }
   return out;
 }
 
@@ -1115,11 +1374,24 @@ inline std::vector<int> ordered_shelf_candidates(
     {
       return reservations.count(cell) != 0;
     }
+    bool endpoint_reserved(int cell) const
+    {
+      return reservations.count(cell) != 0;
+    }
+    bool has_distinct_endpoint_reservations() const
+    {
+      return false;
+    }
+    bool distinct_endpoint_reserved(int) const { return false; }
   };
   const auto ordered = ordered_shelf_candidate_window(
       ins, upper, shelf, root, tau, single_root_mode, upper_wall,
       MapReservationView{reserved_destination});
-  return std::vector<int>(ordered.begin(), ordered.end());
+  std::vector<int> endpoints;
+  endpoints.reserve(ordered.count);
+  for (int index = 0; index < ordered.count; ++index)
+    endpoints.push_back(ordered.endpoints[index]);
+  return endpoints;
 }
 
 template <typename CompilerContext>
@@ -1173,7 +1445,7 @@ inline int resolve_shelf_task_br_pibt(
     CompilerContext& context,
     std::vector<ShelfSelector>& recursion_stack,
     std::vector<RotationCandidate>& encountered_rotations,
-    const std::optional<int>& forced_first_to = std::nullopt)
+    const StorageTransferCandidate* forced_first_transfer = nullptr)
 {
   const bool total_recursion_exhausted =
       limits.total_recursion_cap >= 0 &&
@@ -1196,23 +1468,49 @@ inline int resolve_shelf_task_br_pibt(
       recursion_stack.pop_back();
   };
   OrderedShelfCandidates candidates;
-  if (forced_first_to.has_value()) {
-    candidates.cells[0] = *forced_first_to;
-    candidates.count = 1;
-  } else {
+  if (forced_first_transfer == nullptr) {
     candidates = ordered_shelf_candidate_window(
         ins, upper, shelf, root, tau, single_root_mode, upper_wall,
         context);
   }
 
-  for (const int to : candidates) {
-    if (forced_first_to.has_value()) {
-      int neighbors[4];
-      const int n = ins.grid.neighbors(from, neighbors);
-      if (to == from ||
-          std::find(neighbors, neighbors + n, to) == neighbors + n)
-        continue;
+  const int candidate_count =
+      forced_first_transfer != nullptr ? 1 : candidates.count;
+  for (int candidate_index = 0;
+       candidate_index < candidate_count; ++candidate_index) {
+    const StorageTransferCandidate transfer =
+        forced_first_transfer != nullptr
+            ? *forced_first_transfer
+            : candidates.candidate(candidate_index);
+    if (transfer.explicit_route == nullptr) {
+      assert(
+          transfer.route_size == 2 &&
+          transfer.first_step == transfer.endpoint &&
+          ins.can_store_shelf(transfer.endpoint));
+    } else {
+      const auto& route = *transfer.explicit_route;
+      bool route_valid =
+          transfer.route_size >= 2 &&
+          transfer.first_step >= 0 &&
+          ins.can_store_shelf(transfer.endpoint) &&
+          transfer.route_size ==
+              (int)route.size() &&
+          route.front() == from &&
+          route[1] == transfer.first_step &&
+          route.back() == transfer.endpoint;
+      for (size_t index = 1;
+           index < route.size(); ++index)
+        route_valid &= adjacent_cells(
+            ins.grid, route[index - 1], route[index]);
+      for (size_t index = 1;
+           index + 1 < route.size(); ++index)
+        route_valid &=
+            !ins.can_store_shelf(route[index]) &&
+            upper.empty(route[index]);
+      if (!route_valid) continue;
     }
+
+    const int to = transfer.first_step;
     const TaskId effect{shelf, from, to};
     const int existing = context.find_effect(effect);
     if (existing >= 0) {
@@ -1229,13 +1527,27 @@ inline int resolve_shelf_task_br_pibt(
       ++budget.effect_conflicts;
       continue;
     }
+    const bool endpoint_conflict =
+        transfer.endpoint == to
+            ? context.has_distinct_endpoint_reservations() &&
+                  context.distinct_endpoint_effect_conflicts(
+                      transfer.endpoint, effect)
+            : context.endpoint_effect_conflicts(
+                  transfer.endpoint, effect);
+    if (endpoint_conflict) {
+      ++budget.effect_conflicts;
+      continue;
+    }
 
     const size_t checkpoint = context.checkpoint();
     context.reserve_shelf(shelf, effect);
     context.reserve_destination(to, effect);
+    if (transfer.endpoint != to)
+      context.reserve_endpoint(transfer.endpoint, effect);
     int predecessor = -1;
-    if (!upper.empty(to)) {
-      const ShelfSelector blocker = *upper.shelf_at(to);
+    if (!upper.empty(transfer.endpoint)) {
+      const ShelfSelector blocker =
+          *upper.shelf_at(transfer.endpoint);
       if (context.recursion_cycle(blocker, recursion_stack)) {
         if constexpr (CompilerContext::records_rotations) {
           const auto cycle_begin = std::find(
@@ -1261,7 +1573,7 @@ inline int resolve_shelf_task_br_pibt(
       }
     }
     const int result = context.add_task(
-        effect, root, predecessor, root_priority);
+        effect, transfer, from, root, predecessor, root_priority);
     leave_recursion();
     return result;
   }
@@ -1271,6 +1583,7 @@ inline int resolve_shelf_task_br_pibt(
 
 struct SingleRootReadyResult {
   std::optional<TaskId> ready_effect;
+  std::optional<SelectedStorageTransfer> ready_transfer;
   int recursion_calls = 0;
   bool recursion_exhausted = false;
   long effect_conflicts = 0;
@@ -1280,7 +1593,7 @@ struct SingleRootReadyResult {
 struct SingleRootCompilerScratch {
   static constexpr bool records_rotations = false;
 
-  enum class UndoKind { SHELF, DESTINATION };
+  enum class UndoKind { SHELF, DESTINATION, ENDPOINT };
   struct Undo {
     UndoKind kind = UndoKind::SHELF;
     int index = -1;
@@ -1291,11 +1604,16 @@ struct SingleRootCompilerScratch {
   std::vector<uint32_t> reserved_shelf_stamp;
   std::vector<int> reserved_destination_shelf;
   std::vector<uint32_t> reserved_destination_stamp;
+  std::vector<int> reserved_endpoint_shelf;
+  std::vector<uint32_t> reserved_endpoint_stamp;
   std::vector<uint32_t> active_shelf_stamp;
   std::vector<Undo> undo;
   std::vector<ShelfSelector> recursion_stack;
   std::vector<RotationCandidate> encountered_rotations;
   std::optional<TaskId> ready_effect;
+  std::optional<SelectedStorageTransfer> ready_transfer;
+  int distinct_endpoint_reservation_count = 0;
+  size_t reservation_cell_count = 0;
   uint32_t generation = 0;
 
   void reset(const AbstractUpperState& upper_, size_t cell_count)
@@ -1306,6 +1624,10 @@ struct SingleRootCompilerScratch {
     reserved_destination_shelf.resize(cell_count);
     reserved_destination_stamp.resize(cell_count, 0);
     active_shelf_stamp.resize(upper_.shelves.size(), 0);
+    reservation_cell_count = cell_count;
+    const size_t max_undo = 3 * upper_.shelves.size();
+    if (undo.capacity() < max_undo)
+      undo.reserve(max_undo);
     ++generation;
     if (generation == 0) {
       std::fill(
@@ -1314,6 +1636,9 @@ struct SingleRootCompilerScratch {
           reserved_destination_stamp.begin(),
           reserved_destination_stamp.end(), 0);
       std::fill(
+          reserved_endpoint_stamp.begin(),
+          reserved_endpoint_stamp.end(), 0);
+      std::fill(
           active_shelf_stamp.begin(), active_shelf_stamp.end(), 0);
       generation = 1;
     }
@@ -1321,6 +1646,8 @@ struct SingleRootCompilerScratch {
     recursion_stack.clear();
     encountered_rotations.clear();
     ready_effect.reset();
+    ready_transfer.reset();
+    distinct_endpoint_reservation_count = 0;
   }
 
   int shelf_index(const ShelfSelector& shelf) const
@@ -1391,6 +1718,27 @@ struct SingleRootCompilerScratch {
            reserved_destination_stamp[cell] == generation;
   }
 
+  bool endpoint_reserved(int cell) const
+  {
+    return cell >= 0 &&
+           ((cell < (int)reserved_destination_stamp.size() &&
+             reserved_destination_stamp[cell] == generation) ||
+           (cell < (int)reserved_endpoint_stamp.size() &&
+             reserved_endpoint_stamp[cell] == generation));
+  }
+
+  bool has_distinct_endpoint_reservations() const
+  {
+    return distinct_endpoint_reservation_count > 0;
+  }
+
+  bool distinct_endpoint_reserved(int cell) const
+  {
+    return cell >= 0 &&
+           cell < (int)reserved_endpoint_stamp.size() &&
+           reserved_endpoint_stamp[cell] == generation;
+  }
+
   bool shelf_effect_conflicts(const ShelfSelector& shelf,
                               const TaskId& effect) const
   {
@@ -1410,6 +1758,34 @@ struct SingleRootCompilerScratch {
       return false;
     const int index = reserved_destination_shelf[cell];
     return index != shelf_index(effect.shelf);
+  }
+
+  bool endpoint_effect_conflicts(int cell,
+                                 const TaskId& effect) const
+  {
+    if (cell >= 0 &&
+        cell < (int)reserved_destination_stamp.size() &&
+        reserved_destination_stamp[cell] == generation) {
+      const int index = reserved_destination_shelf[cell];
+      if (index != shelf_index(effect.shelf)) return true;
+    }
+    if (cell < 0 ||
+        cell >= (int)reserved_endpoint_stamp.size() ||
+        reserved_endpoint_stamp[cell] != generation)
+      return false;
+    return reserved_endpoint_shelf[cell] !=
+           shelf_index(effect.shelf);
+  }
+
+  bool distinct_endpoint_effect_conflicts(
+      int cell, const TaskId& effect) const
+  {
+    if (cell < 0 ||
+        cell >= (int)reserved_endpoint_stamp.size() ||
+        reserved_endpoint_stamp[cell] != generation)
+      return false;
+    return reserved_endpoint_shelf[cell] !=
+           shelf_index(effect.shelf);
   }
 
   void reserve_shelf(const ShelfSelector& shelf, const TaskId& effect)
@@ -1437,12 +1813,39 @@ struct SingleRootCompilerScratch {
     reserved_destination_stamp[cell] = generation;
   }
 
+  void reserve_endpoint(int cell, const TaskId& effect)
+  {
+    if (cell < 0 ||
+        cell >= (int)reservation_cell_count ||
+        (cell < (int)reserved_endpoint_stamp.size() &&
+         reserved_endpoint_stamp[cell] == generation))
+      return;
+    if (reserved_endpoint_stamp.size() < reservation_cell_count) {
+      reserved_endpoint_shelf.resize(reservation_cell_count);
+      reserved_endpoint_stamp.resize(reservation_cell_count, 0);
+    }
+    if (cell >= (int)reserved_endpoint_stamp.size() ||
+        reserved_endpoint_stamp[cell] == generation)
+      return;
+    const int index = shelf_index(effect.shelf);
+    if (index < 0) return;
+    undo.push_back(Undo{UndoKind::ENDPOINT, cell});
+    reserved_endpoint_shelf[cell] = index;
+    reserved_endpoint_stamp[cell] = generation;
+    ++distinct_endpoint_reservation_count;
+  }
+
   void merge_task(int, const RootDemand&, int) {}
 
-  int add_task(const TaskId& id, const RootDemand&, int predecessor, int)
+  int add_task(const TaskId& id,
+               const StorageTransferCandidate& transfer,
+               int,
+               const RootDemand& root, int predecessor, int priority)
   {
-    if (predecessor < 0 && !ready_effect.has_value())
+    if (predecessor < 0 && !ready_effect.has_value()) {
       ready_effect = id;
+      ready_transfer = select_storage_transfer(transfer);
+    }
     return 0;
   }
 
@@ -1457,6 +1860,10 @@ struct SingleRootCompilerScratch {
           break;
         case UndoKind::DESTINATION:
           reserved_destination_stamp[entry.index] = 0;
+          break;
+        case UndoKind::ENDPOINT:
+          reserved_endpoint_stamp[entry.index] = 0;
+          --distinct_endpoint_reservation_count;
           break;
       }
     }
@@ -1478,7 +1885,10 @@ inline SingleRootReadyResult compile_single_root_next_ready_effect(
       ins, upper, shelf, root, 1, nullptr, true, upper_wall,
       limits, budget, scratch, scratch.recursion_stack,
       scratch.encountered_rotations);
-  if (result >= 0) out.ready_effect = scratch.ready_effect;
+  if (result >= 0) {
+    out.ready_effect = scratch.ready_effect;
+    out.ready_transfer = std::move(scratch.ready_transfer);
+  }
   out.recursion_calls = budget.recursion_calls;
   out.recursion_exhausted = budget.recursion_exhausted;
   out.effect_conflicts = budget.effect_conflicts;
@@ -1586,13 +1996,14 @@ inline ShelfTaskGraph compile_task_br_pibt(
   });
   TaskBRCompilerBudget budget;
   JointCompileCandidate best;
-  const size_t traversable_cells =
-      std::count(ins.grid.wall.begin(), ins.grid.wall.end(), 0);
-  if (upper.shelves.size() > traversable_cells)
+  size_t storage_cells = 0;
+  for (int cell = 0; cell < ins.grid.size(); ++cell)
+    storage_cells += ins.can_store_shelf(cell);
+  if (upper.shelves.size() > storage_cells)
     throw std::logic_error(
-        "compile_task_br_pibt: shelves exceed traversable cells");
+        "compile_task_br_pibt: shelves exceed storage cells");
   const size_t vacancy_count =
-      traversable_cells - upper.shelves.size();
+      storage_cells - upper.shelves.size();
   // With one vacancy, minimizing every non-zero residual makes a dense
   // displacement chain chase tiny distance improvements instead of
   // finishing a root.  Two or more vacancies provide enough independent
@@ -1711,8 +2122,13 @@ inline ShelfTaskGraph compile_task_br_pibt(
           ins, upper, shelf, root, &tau, false, upper_wall,
           transaction);
       std::vector<RotationCandidate> failed_rotations;
-      for (const int to : options) {
+      for (int option_index = 0;
+           option_index < options.count; ++option_index) {
         if (budget.branch_calls >= active_backtrack_cap()) break;
+        const auto transfer =
+            options.candidate(option_index);
+        if (transfer.route_size < 2) continue;
+        const int to = transfer.first_step;
         ++budget.branch_calls;
         if (budget.recursion_calls >= limits.recursion_cap)
           budget.recursion_calls = 0;
@@ -1725,12 +2141,12 @@ inline ShelfTaskGraph compile_task_br_pibt(
                 ? target_priority[root.target]
                 : 0,
             &tau, false, upper_wall, limits, budget, transaction, stack,
-            option_rotations, to);
+            option_rotations, &transfer);
         const TaskId expected{
             shelf, upper.position(shelf), to};
         if (result >= 0 && current.graph.tasks[result].id == expected) {
           success[k] = 1;
-          selected_root_to[k] = to;
+          selected_root_to[k] = transfer.endpoint;
           compile_roots(k + 1);
           selected_root_to[k] = -1;
           success[k] = 0;
@@ -1922,17 +2338,36 @@ inline PairPlan pair_cost_prefix_lower_bound(
   const RootDemand root{target, goal};
   PairEpisodeCost episode_cost;
   SingleRootCompilerScratch compiler_scratch;
-  for (int step = 0; step < std::max(0, prefix_cap); ++step) {
+  const int effective_prefix_cap = std::max(0, prefix_cap);
+  while (out.rollout_steps < effective_prefix_cap) {
     const auto next = compile_single_root_next_ready_effect(
         ins, abstract, root, upper_wall, limits, compiler_scratch);
-    if (!next.ready_effect.has_value()) {
+    if (!next.ready_effect.has_value() ||
+        !next.ready_transfer.has_value()) {
       out.stalled = true;
       break;
     }
     const auto& effect = *next.ready_effect;
-    episode_cost.apply_shift(effect.shelf, alpha, gamma, delta);
-    abstract.move(effect.shelf, effect.to);
-    ++out.rollout_steps;
+    const auto& transfer = *next.ready_transfer;
+    const int legs = transfer.route_size - 1;
+    if (legs <= 0 ||
+        out.rollout_steps + legs > effective_prefix_cap)
+      break;
+    if (transfer.explicit_route.empty()) {
+      episode_cost.apply_shift(
+          effect.shelf, alpha, gamma, delta);
+      abstract.move(effect.shelf, transfer.first_step);
+      ++out.rollout_steps;
+    } else {
+      const auto& route = transfer.explicit_route;
+      for (size_t index = 1;
+           index < route.size(); ++index) {
+        episode_cost.apply_shift(
+            effect.shelf, alpha, gamma, delta);
+        abstract.move(effect.shelf, route[index]);
+        ++out.rollout_steps;
+      }
+    }
     if (abstract.positions[target] == goal) {
       out.reached_goal = true;
       break;
@@ -2003,21 +2438,40 @@ inline PairPlan pair_cost(const DDInstance& ins, const UpperSignature& upper,
   const RootDemand root{target, goal};
   PairEpisodeCost episode_cost;
   SingleRootCompilerScratch compiler_scratch;
-  for (int step = 0; step < step_cap; ++step) {
+  while (out.rollout_steps < step_cap) {
     if (abstract.positions[target] == goal) {
       out.reached_goal = true;
       break;
     }
     const auto next = compile_single_root_next_ready_effect(
         ins, abstract, root, upper_wall, limits, compiler_scratch);
-    if (!next.ready_effect.has_value()) {
+    if (!next.ready_effect.has_value() ||
+        !next.ready_transfer.has_value()) {
       out.stalled = true;
       break;
     }
     const auto& effect = *next.ready_effect;
-    episode_cost.apply_shift(effect.shelf, alpha, gamma, delta);
-    abstract.move(effect.shelf, effect.to);
-    ++out.rollout_steps;
+    const auto& transfer = *next.ready_transfer;
+    const int legs = transfer.route_size - 1;
+    if (legs <= 0 || out.rollout_steps + legs > step_cap) {
+      out.truncated = true;
+      break;
+    }
+    if (transfer.explicit_route.empty()) {
+      episode_cost.apply_shift(
+          effect.shelf, alpha, gamma, delta);
+      abstract.move(effect.shelf, transfer.first_step);
+      ++out.rollout_steps;
+    } else {
+      const auto& route = transfer.explicit_route;
+      for (size_t index = 1;
+           index < route.size(); ++index) {
+        episode_cost.apply_shift(
+            effect.shelf, alpha, gamma, delta);
+        abstract.move(effect.shelf, route[index]);
+        ++out.rollout_steps;
+      }
+    }
     if (abstract.positions[target] == goal) {
       out.reached_goal = true;
       break;
@@ -2067,6 +2521,134 @@ inline int task_index_by_id(const ShelfTaskGraph& graph, const TaskId& id)
   return -1;
 }
 
+inline StorageTransfer normalized_transfer(const ShelfTask& task)
+{
+  if (task.transfer.route.size() >= 2 &&
+      task.transfer.route.front() == task.id.from &&
+      task.transfer.route[1] == task.id.to &&
+      task.transfer.route.back() == task.transfer.endpoint)
+    return task.transfer;
+  return StorageTransfer{
+      task.id.to, {task.id.from, task.id.to}};
+}
+
+inline StorageTransfer normalized_transfer(const Custody& custody)
+{
+  if (custody.transfer.route.size() >= 2 &&
+      custody.transfer.route.back() ==
+          custody.transfer.endpoint &&
+      custody.transfer_index + 1 <
+          custody.transfer.route.size() &&
+      custody.transfer.route[custody.transfer_index] ==
+          custody.from &&
+      custody.transfer.route[custody.transfer_index + 1] ==
+          custody.to)
+    return custody.transfer;
+  return StorageTransfer{
+      custody.to, {custody.from, custody.to}};
+}
+
+inline void reanchor_anonymous_custody(Custody& custody)
+{
+  if (custody.shelf.kind !=
+      ShelfSelector::Kind::ANON_AT_EPOCH_CELL)
+    return;
+  custody.shelf.value = custody.from;
+  custody.task_id =
+      TaskId{custody.shelf, custody.from, custody.to};
+}
+
+inline bool task_matches_active_transfer(
+    const ShelfTask& task, const Custody& custody)
+{
+  if (task.id != custody.task_id) return false;
+  const auto active = normalized_transfer(custody);
+  const auto candidate = normalized_transfer(task);
+  if (candidate.endpoint != active.endpoint ||
+      custody.transfer_index >= active.route.size())
+    return false;
+  return candidate.route.size() ==
+             active.route.size() - custody.transfer_index &&
+         std::equal(
+             candidate.route.begin(), candidate.route.end(),
+             active.route.begin() + custody.transfer_index);
+}
+
+inline int compatible_task_index_by_custody(
+    const ShelfTaskGraph& graph, const Custody& custody)
+{
+  const int index = task_index_by_id(graph, custody.task_id);
+  return index >= 0 &&
+                 task_matches_active_transfer(
+                     graph.tasks[index], custody)
+             ? index
+             : -1;
+}
+
+struct ActiveTransferClaims {
+  std::vector<uint8_t> endpoint;
+  std::vector<uint8_t> transit;
+
+  explicit ActiveTransferClaims(size_t cell_count = 0)
+      : endpoint(cell_count, 0), transit(cell_count, 0)
+  {
+  }
+};
+
+inline bool transfer_conflicts_with_claims(
+    const ActiveTransferClaims& claims,
+    const StorageTransfer& transfer)
+{
+  if (transfer.endpoint < 0 ||
+      transfer.endpoint >= (int)claims.endpoint.size() ||
+      claims.endpoint[transfer.endpoint])
+    return true;
+  for (size_t index = 1; index + 1 < transfer.route.size(); ++index) {
+    const int cell = transfer.route[index];
+    if (cell < 0 || cell >= (int)claims.transit.size() ||
+        claims.transit[cell])
+      return true;
+  }
+  return false;
+}
+
+inline void add_transfer_claim(
+    ActiveTransferClaims& claims,
+    const StorageTransfer& transfer)
+{
+  if (transfer.endpoint >= 0 &&
+      transfer.endpoint < (int)claims.endpoint.size())
+    claims.endpoint[transfer.endpoint] = 1;
+  for (size_t index = 1; index + 1 < transfer.route.size(); ++index) {
+    const int cell = transfer.route[index];
+    if (cell >= 0 && cell < (int)claims.transit.size())
+      claims.transit[cell] = 1;
+  }
+}
+
+inline StorageTransfer remaining_transfer(const Custody& custody)
+{
+  const auto transfer = normalized_transfer(custody);
+  if (custody.transfer_index >= transfer.route.size())
+    return StorageTransfer{};
+  return StorageTransfer{
+      transfer.endpoint,
+      std::vector<int>(
+          transfer.route.begin() + custody.transfer_index,
+          transfer.route.end())};
+}
+
+inline ActiveTransferClaims active_transfer_claims(
+    int cell_count,
+    const std::vector<std::optional<Custody>>& custody_by_robot)
+{
+  ActiveTransferClaims claims(cell_count);
+  for (const auto& custody : custody_by_robot)
+    if (custody.has_value())
+      add_transfer_claim(claims, remaining_transfer(*custody));
+  return claims;
+}
+
 inline Custody make_custody(const ShelfTask& task, int task_index)
 {
   Custody out;
@@ -2078,6 +2660,8 @@ inline Custody make_custody(const ShelfTask& task, int task_index)
   out.to = task.id.to;
   out.roots = task.roots;
   out.priority = task.priority;
+  out.transfer = normalized_transfer(task);
+  out.transfer_index = 0;
   return out;
 }
 
@@ -2090,8 +2674,7 @@ inline bool task_matches_loaded_shelf(const PhysConfig& physical, int robot,
     return false;
   if (id.shelf.kind == ShelfSelector::Kind::TARGET)
     return physical.kappa[robot] == id.shelf.value;
-  return physical.kappa[robot] == KAPPA_ANON &&
-         id.shelf.value == id.from;
+  return physical.kappa[robot] == KAPPA_ANON;
 }
 
 inline bool adjacent_cells(const DDGrid& grid, int from, int to)
@@ -2113,11 +2696,26 @@ inline bool custody_physically_valid(const DDInstance& ins,
   if (!task_matches_loaded_shelf(physical, robot, custody.task_id) ||
       !adjacent_cells(ins.grid, custody.from, custody.to))
     return false;
+  const auto transfer = normalized_transfer(custody);
+  if (transfer.route.size() < 2 ||
+      transfer.route.back() != transfer.endpoint ||
+      !ins.can_store_shelf(transfer.endpoint) ||
+      custody.transfer_index + 1 >= transfer.route.size() ||
+      transfer.route[custody.transfer_index] != custody.from ||
+      transfer.route[custody.transfer_index + 1] != custody.to)
+    return false;
+  for (size_t index = 1; index < transfer.route.size(); ++index)
+    if (!adjacent_cells(
+            ins.grid, transfer.route[index - 1],
+            transfer.route[index]))
+      return false;
   const auto upper = make_upper_signature(physical);
-  return std::find(upper.target_pos.begin(), upper.target_pos.end(),
-                   custody.to) == upper.target_pos.end() &&
-         !std::binary_search(upper.anon_pos.begin(), upper.anon_pos.end(),
-                             custody.to);
+  const bool destination_empty =
+      std::find(upper.target_pos.begin(), upper.target_pos.end(),
+                custody.to) == upper.target_pos.end() &&
+      !std::binary_search(upper.anon_pos.begin(), upper.anon_pos.end(),
+                          custody.to);
+  return transfer.route.size() > 2 || destination_empty;
 }
 
 inline bool task_shelf_is_grounded(const DDInstance& ins,
@@ -2203,7 +2801,19 @@ inline std::vector<int> ready_tasks_with_custody(
       return graph.tasks[a].priority > graph.tasks[b].priority;
     return graph.tasks[a].id < graph.tasks[b].id;
   });
-  return ready;
+  auto claims = active_transfer_claims(
+      ins.grid.size(), custody_by_robot);
+  std::vector<int> filtered;
+  filtered.reserve(ready.size());
+  for (const int index : ready) {
+    const auto transfer =
+        normalized_transfer(graph.tasks[index]);
+    if (transfer_conflicts_with_claims(claims, transfer))
+      continue;
+    filtered.push_back(index);
+    add_transfer_claim(claims, transfer);
+  }
+  return filtered;
 }
 
 struct CustodyRecovery {
@@ -2225,6 +2835,80 @@ inline bool exact_ready_binding(const CarrierGuidance& guidance,
     return false;
   if (task_index != nullptr) *task_index = index;
   return true;
+}
+
+inline std::optional<Custody> make_storage_recovery_custody(
+    const DDInstance& ins, const PhysConfig& physical, int robot,
+    const ShelfTaskGraph& current_graph,
+    const std::optional<Custody>& previous_custody,
+    const ActiveTransferClaims& claims)
+{
+  if (robot < 0 || robot >= (int)physical.robots.size() ||
+      robot >= (int)physical.kappa.size() ||
+      physical.kappa[robot] == KAPPA_FREE ||
+      ins.can_store_shelf(physical.robots[robot]))
+    return std::nullopt;
+  const auto upper_signature = make_upper_signature(physical);
+  const auto upper =
+      make_abstract_upper_state(ins, upper_signature);
+  auto transfers = reachable_storage_transfers(
+      ins, upper, physical.robots[robot]);
+  transfers.erase(
+      std::remove_if(
+          transfers.begin(), transfers.end(),
+          [&](const StorageTransfer& transfer) {
+            return transfer.route.size() < 2 ||
+                   !upper.empty(transfer.endpoint);
+          }),
+      transfers.end());
+  if (transfers.empty()) return std::nullopt;
+  std::stable_sort(
+      transfers.begin(), transfers.end(),
+      [](const StorageTransfer& a, const StorageTransfer& b) {
+        return a.route.size() != b.route.size()
+                   ? a.route.size() < b.route.size()
+                   : a.endpoint < b.endpoint;
+      });
+  const auto selected = std::find_if(
+      transfers.begin(), transfers.end(),
+      [&](const StorageTransfer& transfer) {
+        return !transfer_conflicts_with_claims(
+            claims, transfer);
+      });
+  if (selected == transfers.end()) return std::nullopt;
+
+  Custody custody;
+  if (previous_custody.has_value()) {
+    custody.shelf = previous_custody->shelf;
+    custody.roots = previous_custody->roots;
+    custody.priority = previous_custody->priority;
+  } else if (physical.kappa[robot] >= 0) {
+    custody.shelf = ShelfSelector{
+        ShelfSelector::Kind::TARGET, physical.kappa[robot]};
+  } else {
+    custody.shelf = ShelfSelector{
+        ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+        physical.robots[robot]};
+  }
+  custody.transfer = *selected;
+  custody.transfer_index = 0;
+  custody.from = custody.transfer.route[0];
+  custody.to = custody.transfer.route[1];
+  reanchor_anonymous_custody(custody);
+  custody.task_id =
+      TaskId{custody.shelf, custody.from, custody.to};
+  const int index =
+      compatible_task_index_by_custody(
+          current_graph, custody);
+  custody.current_task_index =
+      index >= 0 ? std::optional<int>(index) : std::nullopt;
+  if (index >= 0) {
+    custody.roots = current_graph.tasks[index].roots;
+    custody.priority = current_graph.tasks[index].priority;
+  }
+  if (!custody_physically_valid(ins, physical, robot, custody))
+    return std::nullopt;
+  return custody;
 }
 
 inline CustodyRecovery recover_task_br_custody(
@@ -2256,6 +2940,48 @@ inline CustodyRecovery recover_task_br_custody(
       out.continuation_carrier[robot] = 1;
       out.previous_loaded_move_from[robot] =
           previous_physical->robots[robot];
+      const std::optional<Custody> previous_custody =
+          previous_guidance != nullptr &&
+                  robot <
+                      previous_guidance->custody_by_robot.size()
+              ? previous_guidance->custody_by_robot[robot]
+              : std::nullopt;
+      if (previous_custody.has_value() &&
+          previous_physical->robots[robot] ==
+              previous_custody->from &&
+          op.to == previous_custody->to &&
+          physical.robots[robot] == previous_custody->to) {
+        Custody custody = *previous_custody;
+        const auto transfer = normalized_transfer(custody);
+        const size_t next_index = custody.transfer_index + 1;
+        if (next_index + 1 < transfer.route.size()) {
+          custody.transfer = transfer;
+          custody.transfer_index = next_index;
+          custody.from = transfer.route[next_index];
+          custody.to = transfer.route[next_index + 1];
+          reanchor_anonymous_custody(custody);
+          custody.task_id =
+              TaskId{custody.shelf, custody.from, custody.to};
+          const int current_index =
+              compatible_task_index_by_custody(
+                  current_graph, custody);
+          custody.current_task_index =
+              current_index >= 0
+                  ? std::optional<int>(current_index)
+                  : std::nullopt;
+          if (current_index >= 0) {
+            custody.roots =
+                current_graph.tasks[current_index].roots;
+            custody.priority =
+                current_graph.tasks[current_index].priority;
+          }
+          if (custody_physically_valid(
+                  ins, physical, (int)robot, custody)) {
+            out.custody_by_robot[robot] = std::move(custody);
+            out.continuation_carrier[robot] = 0;
+          }
+        }
+      }
       continue;
     }
 
@@ -2265,10 +2991,12 @@ inline CustodyRecovery recover_task_br_custody(
         previous_guidance->custody_by_robot[robot].has_value()) {
       Custody custody =
           *previous_guidance->custody_by_robot[robot];
+      reanchor_anonymous_custody(custody);
       if (!custody_physically_valid(ins, physical, (int)robot, custody))
         continue;
       const int current_index =
-          task_index_by_id(current_graph, custody.task_id);
+          compatible_task_index_by_custody(
+              current_graph, custody);
       custody.current_task_index =
           current_index >= 0 ? std::optional<int>(current_index)
                              : std::nullopt;
@@ -2294,7 +3022,9 @@ inline CustodyRecovery recover_task_br_custody(
       const auto& previous_task =
           previous_guidance->upper_epoch->task_graph.tasks[previous_index];
       Custody custody = make_custody(previous_task, -1);
-      const int current_index = task_index_by_id(current_graph, id);
+      const int current_index =
+          compatible_task_index_by_custody(
+              current_graph, custody);
       custody.current_task_index =
           current_index >= 0 ? std::optional<int>(current_index)
                              : std::nullopt;
@@ -2305,6 +3035,53 @@ inline CustodyRecovery recover_task_br_custody(
       if (custody_physically_valid(ins, physical, (int)robot, custody))
         out.custody_by_robot[robot] = std::move(custody);
     }
+  }
+
+  auto claims = active_transfer_claims(
+      ins.grid.size(), out.custody_by_robot);
+  struct RecoveryCandidate {
+    size_t robot = 0;
+    int priority = 0;
+    std::optional<Custody> previous_custody;
+  };
+  std::vector<RecoveryCandidate> recovery_candidates;
+  for (size_t robot = 0; robot < robot_count; ++robot) {
+    if (physical.kappa[robot] == KAPPA_FREE ||
+        out.custody_by_robot[robot].has_value() ||
+        ins.can_store_shelf(physical.robots[robot]))
+      continue;
+    const std::optional<Custody> previous_custody =
+        previous_guidance != nullptr &&
+                robot < previous_guidance->custody_by_robot.size()
+            ? previous_guidance->custody_by_robot[robot]
+            : std::nullopt;
+    recovery_candidates.push_back(
+        RecoveryCandidate{
+            robot,
+            previous_custody.has_value()
+                ? previous_custody->priority
+                : 0,
+            previous_custody});
+  }
+  std::stable_sort(
+      recovery_candidates.begin(), recovery_candidates.end(),
+      [](const RecoveryCandidate& a,
+         const RecoveryCandidate& b) {
+        return a.priority != b.priority
+                   ? a.priority > b.priority
+                   : a.robot < b.robot;
+      });
+  for (const auto& candidate : recovery_candidates) {
+    const auto custody =
+        make_storage_recovery_custody(
+            ins, physical, (int)candidate.robot,
+            current_graph, candidate.previous_custody,
+            claims);
+    if (!custody.has_value()) continue;
+    out.custody_by_robot[candidate.robot] = custody;
+    add_transfer_claim(
+        claims, remaining_transfer(*custody));
+    out.continuation_carrier[candidate.robot] = 0;
   }
   return out;
 }
@@ -2970,6 +3747,9 @@ inline CarrierGuidance build_task_br_guidance(
       if (previous_physical->robots[robot] != custody.from ||
           (*executed_ops)[robot].to != custody.to ||
           physical.robots[robot] != custody.to)
+        continue;
+      const auto transfer = normalized_transfer(custody);
+      if (custody.transfer_index + 2 < transfer.route.size())
         continue;
       std::map<int, PriorityCommitmentRoot> group_roots;
       for (const auto& root : custody.roots) {

@@ -160,10 +160,25 @@ struct TaskIdHash {
   }
 };
 
+struct StorageTransfer {
+  int endpoint = -1;
+  std::vector<int> route;
+
+  bool operator==(const StorageTransfer& o) const
+  {
+    return endpoint == o.endpoint && route == o.route;
+  }
+  bool operator!=(const StorageTransfer& o) const
+  {
+    return !(*this == o);
+  }
+};
+
 struct ShelfTask {
   TaskId id;
   std::vector<RootDemand> roots;
   int priority = 0;
+  StorageTransfer transfer;
 };
 
 struct RotationCandidate {
@@ -188,6 +203,8 @@ struct Custody {
   int to = -1;
   std::vector<RootDemand> roots;
   int priority = 0;
+  StorageTransfer transfer;
+  size_t transfer_index = 0;
 };
 
 struct UpperEpochGuidance {
