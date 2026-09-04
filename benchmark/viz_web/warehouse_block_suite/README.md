@@ -12,6 +12,10 @@ block. Initial shelves, target starts, and target goals are storage cells;
 robots start in aisle cells. The YAML ``storage_map`` is authoritative:
 carried shelves may traverse aisles, but DROP is legal only in storage cells.
 
+All nine YAML files are also members of the protected formal release
+benchmark through `benchmark/release_benchmark.json`; they are no longer
+visualization-only smoke cases.
+
 | block | target density | actual density | blocks | shelves/block | total shelves | YAML |
 |---:|---:|---:|---:|---:|---:|---|
 | 3×3 | 25% | 22.2% | 25 | 2 | 50 | `instances/warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0.yaml` |

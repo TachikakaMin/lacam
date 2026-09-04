@@ -93,6 +93,109 @@ def ensure_out_dir(out, force):
     out.mkdir(parents=True, exist_ok=True)
 
 
+def write_rows(path, rows):
+    """Write repository-auditable CSV with stable LF line endings."""
+    with Path(path).open("w", newline="") as stream:
+        writer = csv.DictWriter(
+            stream, fieldnames=FIELDS, restval="", lineterminator="\n"
+        )
+        writer.writeheader()
+        writer.writerows(
+            {
+                key: value.rstrip() if isinstance(value, str) else value
+                for key, value in row.items()
+            }
+            for row in rows
+        )
+
+
+def load_suite_definition(path):
+    """Load a protected benchmark-suite definition."""
+    path = Path(path).expanduser().resolve()
+    try:
+        definition = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot load suite definition {path}: {exc}") from exc
+    if definition.get("schema_version") != 1:
+        raise ValueError("suite definition schema_version must be 1")
+    if not isinstance(definition.get("name"), str) or not definition["name"]:
+        raise ValueError("suite definition requires a non-empty name")
+    if not isinstance(definition.get("protocol"), dict):
+        raise ValueError("suite definition requires a protocol object")
+    groups = definition.get("groups")
+    if not isinstance(groups, list) or not groups:
+        raise ValueError("suite definition requires at least one group")
+    definition["_definition_path"] = str(path)
+    return definition
+
+
+def discover_suite_cases(path):
+    """Resolve ``(YAML path, family)`` pairs from a suite definition.
+
+    Expected group cardinalities and unique instance stems are enforced so a
+    missing generated corpus or an accidental duplicate cannot silently alter
+    the protected benchmark.
+    """
+    definition = load_suite_definition(path)
+    definition_path = Path(definition["_definition_path"])
+    cases = []
+    group_counts = {}
+    seen_paths = set()
+    seen_names = set()
+
+    for group in definition["groups"]:
+        if not isinstance(group, dict):
+            raise ValueError("suite group must be an object")
+        name = group.get("name")
+        root_value = group.get("root")
+        pattern = group.get("pattern")
+        expected = group.get("expected_cases")
+        if not isinstance(name, str) or not name:
+            raise ValueError("suite group requires a non-empty name")
+        if name in group_counts:
+            raise ValueError(f"duplicate suite group name: {name}")
+        if not isinstance(root_value, str) or not root_value:
+            raise ValueError(f"suite group {name} requires a root")
+        if not isinstance(pattern, str) or not pattern:
+            raise ValueError(f"suite group {name} requires a pattern")
+        if not isinstance(expected, int) or expected <= 0:
+            raise ValueError(
+                f"suite group {name} expected_cases must be positive"
+            )
+
+        root = (definition_path.parent / root_value).resolve()
+        if not root.is_dir():
+            raise ValueError(f"suite group {name} root does not exist: {root}")
+        files = sorted(path for path in root.glob(pattern) if path.is_file())
+        if len(files) != expected:
+            raise ValueError(
+                f"suite group {name} has {len(files)} cases, expected "
+                f"{expected}"
+            )
+        group_counts[name] = len(files)
+
+        fixed_family = group.get("family")
+        if fixed_family is not None and (
+            not isinstance(fixed_family, str) or not fixed_family
+        ):
+            raise ValueError(f"suite group {name} has an invalid family")
+        for case_path in files:
+            resolved = case_path.resolve()
+            if resolved in seen_paths:
+                raise ValueError(f"duplicate suite path: {resolved}")
+            if case_path.stem in seen_names:
+                raise ValueError(
+                    f"duplicate suite instance name: {case_path.stem}"
+                )
+            seen_paths.add(resolved)
+            seen_names.add(case_path.stem)
+            cases.append(
+                (resolved, fixed_family or case_path.parent.name)
+            )
+
+    return definition, cases, group_counts
+
+
 def validate_deliverable_ms(metrics, timeout):
     """Machine-check the strict solver deliverable deadline on successes."""
     raw = metrics.get("deliverable_ms")
@@ -484,18 +587,28 @@ def main():
     global CARRIER_BIN
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--instances", default="instances")
+    ap.add_argument(
+        "--instances",
+        help="instance root containing FAMILY/*.yaml (default: instances)",
+    )
+    ap.add_argument(
+        "--suite-config",
+        help="protected JSON suite definition; mutually exclusive with "
+        "--instances",
+    )
     ap.add_argument("--out-dir", default="results")
     ap.add_argument("--methods", nargs="+",
-                    default=["b4", "crest_base", "crest_full", "natcbs"])
+                    help="methods to run; suite configs provide a fixed list")
     ap.add_argument(
         "--timeout", type=float, default=10,
         help="per-run solver deadline in seconds (fixed protocol: 10)",
     )
     ap.add_argument("--natcbs-max-cells", type=int, default=150,
                     help="skip natcbs on instances larger than this")
-    ap.add_argument("--jobs", type=int, default=1,
-                    help="parallel worker processes")
+    ap.add_argument(
+        "--jobs", type=int,
+        help="parallel worker processes; suite configs provide a fixed value",
+    )
     ap.add_argument("--suboptimality", type=float, default=1.6,
                     help="CREST ECBS suboptimality bound")
     ap.add_argument("--force", action="store_true",
@@ -512,14 +625,81 @@ def main():
     )
     args = ap.parse_args()
     CARRIER_BIN = Path(args.carrier_bin).expanduser().resolve()
+    if args.instances and args.suite_config:
+        ap.error("--instances and --suite-config are mutually exclusive")
+
+    suite_timing = None
+    if args.suite_config:
+        try:
+            definition, cases, group_counts = discover_suite_cases(
+                args.suite_config
+            )
+        except ValueError as exc:
+            ap.error(str(exc))
+        protocol = definition["protocol"]
+        required_protocol = {
+            "methods", "timeout_sec", "jobs", "solver_seed",
+            "objective_weights", "following",
+        }
+        if set(protocol) != required_protocol:
+            ap.error(
+                "suite protocol keys must be exactly "
+                f"{sorted(required_protocol)}"
+            )
+        methods = list(args.methods or protocol["methods"])
+        jobs = args.jobs if args.jobs is not None else int(protocol["jobs"])
+        weights = tuple(args.weights)
+        if methods != list(protocol["methods"]):
+            ap.error(
+                f"suite {definition['name']} fixes methods to "
+                f"{protocol['methods']}"
+            )
+        if float(args.timeout) != float(protocol["timeout_sec"]):
+            ap.error(
+                f"suite {definition['name']} fixes --timeout to "
+                f"{protocol['timeout_sec']}"
+            )
+        if jobs != int(protocol["jobs"]):
+            ap.error(
+                f"suite {definition['name']} fixes --jobs to "
+                f"{protocol['jobs']}"
+            )
+        if weights != tuple(float(x) for x in protocol["objective_weights"]):
+            ap.error(
+                f"suite {definition['name']} fixes --weights to "
+                f"{protocol['objective_weights']}"
+            )
+        if protocol["solver_seed"] != 0:
+            ap.error("run_benchmark supports only solver_seed=0")
+        if protocol["following"] != "allowed":
+            ap.error("run_benchmark supports only following=allowed")
+        definition_path = Path(definition["_definition_path"])
+        suite_timing = {
+            "name": definition["name"],
+            "definition_path": str(definition_path),
+            "definition_sha256": hashlib.sha256(
+                definition_path.read_bytes()
+            ).hexdigest(),
+            "groups": group_counts,
+        }
+    else:
+        root = Path(args.instances or "instances")
+        files = sorted(root.glob("*/*.yaml"))
+        cases = [(path.resolve(), path.parent.name) for path in files]
+        methods = list(
+            args.methods
+            or ["b4", "crest_base", "crest_full", "natcbs"]
+        )
+        jobs = args.jobs if args.jobs is not None else 1
+        weights = tuple(args.weights)
+
     if any(m in {"carrier", "carrier_b0", "carrier_b1"}
-           for m in args.methods):
+           for m in methods):
         if not CARRIER_BIN.is_file() or not os.access(CARRIER_BIN, os.X_OK):
             ap.error(f"--carrier-bin is not executable: {CARRIER_BIN}")
-    weights = tuple(args.weights)
     if (weights != (1.0, 1.0, 1.0, 1.0) and
             any(m in {"crest_base", "crest_full", "natcbs"}
-                for m in args.methods)):
+                for m in methods)):
         ap.error("non-unit --weights cannot be mixed with native-objective "
                  "external methods")
 
@@ -528,20 +708,19 @@ def main():
     work = out / "work"
     work.mkdir(parents=True, exist_ok=True)
 
-    files = sorted(Path(args.instances).glob("*/*.yaml"))
-    if not files:
+    if not cases:
         print("no instances found", file=sys.stderr)
         sys.exit(1)
     tasks = [
-        (str(f), f.parent.name, m, str(work), args.timeout,
+        (str(path), family, method, str(work), args.timeout,
          args.natcbs_max_cells, args.suboptimality, weights)
-        for f in files
-        for m in args.methods
+        for path, family in cases
+        for method in methods
     ]
 
     t_start = time.time()
     rows = []
-    if args.jobs <= 1:
+    if jobs <= 1:
         for t in tasks:
             r = run_one(t)
             rows.append(r)
@@ -550,7 +729,7 @@ def main():
                   f" t={r['runtime_sec']}s", flush=True)
     else:
         from concurrent.futures import ProcessPoolExecutor, as_completed
-        with ProcessPoolExecutor(max_workers=args.jobs) as ex:
+        with ProcessPoolExecutor(max_workers=jobs) as ex:
             futs = {ex.submit(run_one, t): t for t in tasks}
             for fut in as_completed(futs):
                 r = fut.result()
@@ -563,10 +742,7 @@ def main():
 
     rows.sort(key=lambda r: (r["instance"], r["method"]))
     out.mkdir(parents=True, exist_ok=True)
-    with open(out / "rows.csv", "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=FIELDS, restval="")
-        w.writeheader()
-        w.writerows(rows)
+    write_rows(out / "rows.csv", rows)
 
     # summary + timing
     from collections import defaultdict
@@ -583,7 +759,7 @@ def main():
         summary[m] = {"solved": s, "total": n, "solver_time_sum_sec": round(tt, 1)}
     timing = {
         "wall_time_sec": round(wall, 1),
-        "jobs": args.jobs,
+        "jobs": jobs,
         "n_tasks": len(tasks),
         "timeout_per_run_sec": args.timeout,
         "solver_seed": 0,
@@ -597,8 +773,10 @@ def main():
         "provenance": provenance_info(),
         "methods": summary,
     }
+    if suite_timing is not None:
+        timing["suite"] = suite_timing
     (out / "timing.json").write_text(json.dumps(timing, indent=2))
-    print(f"wall_time={wall:.1f}s jobs={args.jobs}", flush=True)
+    print(f"wall_time={wall:.1f}s jobs={jobs}", flush=True)
     print(f"rows written to {out / 'rows.csv'}", flush=True)
 
 

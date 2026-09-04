@@ -2705,3 +2705,26 @@ candidate core。最终网页审查与 GPT-5.6 Sol/high 代码审查均输出
 `APPROVE`；代码审查记录的唯一非阻塞残余风险是诊断回归直接锁定生产所用
 predicate，而没有再复制一套端到端 attach fixture。当前生产调用已由审查
 逐行确认。
+
+### 22.3 正式 release benchmark 纳入 warehouse-block 实例
+
+正式 benchmark 的 testcase 集合由
+`benchmark/release_benchmark.json` 固定，不再只隐式指向
+`instances_brap_pool`。该配置包含：
+
+* 原 BRaP pool 68 例；
+* `benchmark/viz_web/warehouse_block_suite/manifest.json` 中全部 9 个真实
+  warehouse-block YAML，包括用户检查的
+  `warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0`；
+* 固定 `carrier`、seed 0、单位权重、following allowed、每例 10 秒和
+  14 jobs。
+
+runner 在启动前校验每组 testcase 数量、路径与实例名唯一性，并拒绝通过命令行
+改变上述协议。2026-09-04 的实际 77 例运行保存在
+`benchmark/results_release_77_20260904`：总成功 `47/77`，其中原 68 例仍为
+`38/68`，新增 warehouse-block 为 `9/9`。原 68 例的 success、status、
+makespan、SOC、动作计数、诊断计数和 plan hash 与上一正式结果逐项一致；
+只有机器时间字段正常波动。9 个新增行的 plan hash 与已有动画使用的 plan
+完全相同，因此已有逐帧审计仍为 `corridor_drops=0`、
+`same_origin_returns=0`、`loaded_reversals=0`。本节只扩展 benchmark
+成员和 runner 输入编排，不修改 planner、搜索流程或动作语义。

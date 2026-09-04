@@ -93,6 +93,26 @@ python3 run_benchmark.py --instances instances_small --out-dir results_small --t
 `rows.csv` columns: instance, family, method, success, executed_makespan,
 weighted_soc, loaded_moves, free_moves, lift_drop, runtime_sec, status, raw.
 
+### Protected release suite
+
+`release_benchmark.json` is the canonical Carrier-LaCAM release benchmark.
+It contains the original 68-case `instances_brap_pool` corpus plus all nine
+real warehouse-block YAML cases used by the interactive visualizations:
+
+```sh
+python3 benchmark/run_benchmark.py \
+  --suite-config benchmark/release_benchmark.json \
+  --out-dir benchmark/results_release_77_20260904
+```
+
+The suite definition fixes `carrier`, seed 0, unit objective weights,
+following allowed, 10 seconds per case, and 14 workers on the 16-physical-core
+benchmark host. The runner rejects a missing case, duplicate instance name,
+wrong group cardinality, or command-line attempt to change that protocol.
+The warehouse cases are reported under the `warehouse_blocks` family; their
+canonical YAML and animations remain in
+`viz_web/warehouse_block_suite/`.
+
 ## Paper-protocol suites (CREST arXiv:2603.28803 Table I)
 
 The papers do not publish their instance data (CREST repo ships a single
