@@ -13,11 +13,13 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <climits>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <deque>
+#include <functional>
 #include <queue>
 #include <stdexcept>
 #include <string>
@@ -72,6 +74,1972 @@ inline void load_solver_weights(W& w)
   read("DD_DELTA", w.delta);
 }
 
+inline UpperSignature make_upper_signature(const PhysConfig& s)
+{
+  UpperSignature out;
+  out.target_pos = s.target_pos;
+  out.anon_pos = s.anon_occ;
+  for (size_t i = 0; i < s.kappa.size(); ++i)
+    if (s.kappa[i] == KAPPA_ANON) out.anon_pos.push_back(s.robots[i]);
+  std::sort(out.anon_pos.begin(), out.anon_pos.end());
+  return out;
+}
+
+inline size_t upper_vacancy_count(
+    const DDInstance& ins, const UpperSignature& upper)
+{
+  const size_t traversable_cells =
+      std::count(ins.grid.wall.begin(), ins.grid.wall.end(), 0);
+  const size_t shelf_count =
+      upper.target_pos.size() + upper.anon_pos.size();
+  if (shelf_count > traversable_cells)
+    throw std::logic_error(
+        "upper_vacancy_count: shelves exceed traversable cells");
+  return traversable_cells - shelf_count;
+}
+
+inline bool target_dense_upper_layout(
+    const DDInstance& ins, const UpperSignature& upper)
+{
+  const size_t vacancy_count =
+      upper_vacancy_count(ins, upper);
+  return ins.n_targets() > vacancy_count &&
+         ins.n_targets() - vacancy_count >= vacancy_count;
+}
+
+struct LongDoubleAssignmentResult {
+  std::vector<int> row_to_col;
+  std::vector<long double> row_potential;
+  std::vector<long double> col_potential;
+  long double cost = 0;
+  bool feasible = false;
+};
+
+// Floating-point Hungarian used only for Task-BR guidance/LB values.  Tie
+// layers are solved separately below; they are never linearly mixed into
+// the primary PairCost objective.
+inline LongDoubleAssignmentResult hungarian_long_double(
+    const std::vector<std::vector<long double>>& cost)
+{
+  LongDoubleAssignmentResult out;
+  const size_t n = cost.size();
+  const size_t m = cost.empty() ? 0 : cost.front().size();
+  out.row_to_col.assign(n, -1);
+  if (n == 0) {
+    out.feasible = true;
+    return out;
+  }
+  if (m < n || m == 0) return out;
+  constexpr long double INF = 1e60L;
+  std::vector<long double> u(n + 1, 0), v(m + 1, 0);
+  std::vector<int> p(m + 1, 0), way(m + 1, 0);
+  for (size_t i = 1; i <= n; ++i) {
+    p[0] = (int)i;
+    int j0 = 0;
+    std::vector<long double> minv(m + 1, INF);
+    std::vector<uint8_t> used(m + 1, 0);
+    do {
+      used[j0] = 1;
+      const int i0 = p[j0];
+      long double delta = INF;
+      int j1 = 0;
+      for (size_t j = 1; j <= m; ++j) {
+        if (used[j]) continue;
+        const long double cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) {
+          minv[j] = cur;
+          way[j] = j0;
+        }
+        if (minv[j] < delta ||
+            (minv[j] == delta && (j1 == 0 || (int)j < j1))) {
+          delta = minv[j];
+          j1 = (int)j;
+        }
+      }
+      if (delta >= INF / 2) return out;
+      for (size_t j = 0; j <= m; ++j) {
+        if (used[j]) {
+          u[p[j]] += delta;
+          v[j] -= delta;
+        } else {
+          minv[j] -= delta;
+        }
+      }
+      j0 = j1;
+    } while (p[j0] != 0);
+    do {
+      const int j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0 != 0);
+  }
+  out.cost = 0;
+  out.feasible = true;
+  for (size_t j = 1; j <= m; ++j)
+    if (p[j] > 0) out.row_to_col[p[j] - 1] = (int)j - 1;
+  for (size_t i = 0; i < n; ++i) {
+    const int j = out.row_to_col[i];
+    if (j < 0 || cost[i][j] >= INF / 2) {
+      out.feasible = false;
+      return out;
+    }
+    out.cost += cost[i][j];
+  }
+  out.row_potential.assign(u.begin() + 1, u.end());
+  out.col_potential.assign(v.begin() + 1, v.end());
+  return out;
+}
+
+struct LexAssignmentCost {
+  long double primary = 0;
+  long long secondary = 0;
+  bool infinite = false;
+
+  static LexAssignmentCost infinity()
+  {
+    LexAssignmentCost out;
+    out.infinite = true;
+    return out;
+  }
+};
+
+inline bool operator==(const LexAssignmentCost& a,
+                       const LexAssignmentCost& b)
+{
+  if (a.infinite || b.infinite)
+    return a.infinite == b.infinite;
+  return a.primary == b.primary &&
+         a.secondary == b.secondary;
+}
+
+inline bool operator!=(const LexAssignmentCost& a,
+                       const LexAssignmentCost& b)
+{
+  return !(a == b);
+}
+
+inline bool operator<(const LexAssignmentCost& a,
+                      const LexAssignmentCost& b)
+{
+  if (a.infinite != b.infinite) return !a.infinite;
+  if (a.infinite) return false;
+  return a.primary != b.primary
+             ? a.primary < b.primary
+             : a.secondary < b.secondary;
+}
+
+inline LexAssignmentCost operator+(const LexAssignmentCost& a,
+                                   const LexAssignmentCost& b)
+{
+  if (a.infinite || b.infinite)
+    return LexAssignmentCost::infinity();
+  return LexAssignmentCost{
+      a.primary + b.primary,
+      a.secondary + b.secondary,
+      false};
+}
+
+inline LexAssignmentCost operator-(const LexAssignmentCost& a,
+                                   const LexAssignmentCost& b)
+{
+  if (a.infinite) return LexAssignmentCost::infinity();
+  if (b.infinite)
+    throw std::logic_error(
+        "LexAssignmentCost: finite minus infinity");
+  return LexAssignmentCost{
+      a.primary - b.primary,
+      a.secondary - b.secondary,
+      false};
+}
+
+inline LexAssignmentCost& operator+=(LexAssignmentCost& a,
+                                     const LexAssignmentCost& b)
+{
+  a = a + b;
+  return a;
+}
+
+inline LexAssignmentCost& operator-=(LexAssignmentCost& a,
+                                     const LexAssignmentCost& b)
+{
+  a = a - b;
+  return a;
+}
+
+struct LexAssignmentResult {
+  std::vector<int> row_to_col;
+  LexAssignmentCost cost;
+  bool feasible = false;
+};
+
+inline LexAssignmentResult hungarian_lexicographic(
+    const std::vector<std::vector<LexAssignmentCost>>& cost)
+{
+  LexAssignmentResult out;
+  const size_t n = cost.size();
+  const size_t m = cost.empty() ? 0 : cost.front().size();
+  out.row_to_col.assign(n, -1);
+  if (n == 0) {
+    out.feasible = true;
+    return out;
+  }
+  if (m < n || m == 0) return out;
+
+  std::vector<LexAssignmentCost> u(n + 1), v(m + 1);
+  std::vector<int> p(m + 1, 0), way(m + 1, 0);
+  for (size_t i = 1; i <= n; ++i) {
+    p[0] = (int)i;
+    int j0 = 0;
+    std::vector<LexAssignmentCost> minv(
+        m + 1, LexAssignmentCost::infinity());
+    std::vector<uint8_t> used(m + 1, 0);
+    do {
+      used[j0] = 1;
+      const int i0 = p[j0];
+      LexAssignmentCost delta =
+          LexAssignmentCost::infinity();
+      int j1 = 0;
+      for (size_t j = 1; j <= m; ++j) {
+        if (used[j] || cost[i0 - 1][j - 1].infinite)
+          continue;
+        const LexAssignmentCost cur =
+            cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) {
+          minv[j] = cur;
+          way[j] = j0;
+        }
+        if (minv[j] < delta ||
+            (minv[j] == delta &&
+             (j1 == 0 || (int)j < j1))) {
+          delta = minv[j];
+          j1 = (int)j;
+        }
+      }
+      if (delta.infinite) return out;
+      for (size_t j = 0; j <= m; ++j) {
+        if (used[j]) {
+          u[p[j]] += delta;
+          v[j] -= delta;
+        } else if (!minv[j].infinite) {
+          minv[j] -= delta;
+        }
+      }
+      j0 = j1;
+    } while (p[j0] != 0);
+    do {
+      const int j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0 != 0);
+  }
+
+  out.feasible = true;
+  for (size_t j = 1; j <= m; ++j)
+    if (p[j] > 0) out.row_to_col[p[j] - 1] = (int)j - 1;
+  for (size_t i = 0; i < n; ++i) {
+    const int j = out.row_to_col[i];
+    if (j < 0 || cost[i][j].infinite) {
+      out.feasible = false;
+      return out;
+    }
+    out.cost += cost[i][j];
+  }
+  return out;
+}
+
+inline bool eligible_goal(const DDInstance& ins, int target, int goal)
+{
+  if (target < 0 || target >= (int)ins.n_targets()) return false;
+  const auto& goals = ins.target_goal_sets[target];
+  return std::binary_search(goals.begin(), goals.end(), goal);
+}
+
+inline PairPlan pair_cost(const DDInstance& ins, const UpperSignature& upper,
+                          int target, int goal, DDDistCache& upper_wall,
+                          double alpha, double gamma, double delta);
+inline PairPlan pair_cost_prefix_lower_bound(
+    const DDInstance& ins, const UpperSignature& upper, int target,
+    int goal, DDDistCache& upper_wall, double alpha, double gamma,
+    double delta, int prefix_cap);
+
+inline PairCostTable build_pair_cost_table(
+    const DDInstance& ins, const UpperSignature& upper,
+    DDDistCache& upper_wall, double alpha, double gamma, double delta)
+{
+  PairCostTable table(ins.n_targets());
+  for (size_t b = 0; b < ins.n_targets(); ++b)
+    for (const int goal : ins.target_goal_sets[b])
+      table[b].push_back(PairCostEntry{
+          goal, pair_cost(ins, upper, (int)b, goal, upper_wall, alpha,
+                          gamma, delta)});
+  return table;
+}
+
+inline std::vector<int> solve_tau_guide(const DDInstance& ins,
+                                        const UpperSignature& upper,
+                                        const PairCostTable& table)
+{
+  const size_t n = ins.n_targets();
+  std::vector<int> tau(n, -1);
+  if (n == 0) return tau;
+  std::vector<int> goals;
+  for (const auto& set : ins.target_goal_sets)
+    goals.insert(goals.end(), set.begin(), set.end());
+  std::sort(goals.begin(), goals.end());
+  goals.erase(std::unique(goals.begin(), goals.end()), goals.end());
+  std::vector<std::vector<LexAssignmentCost>> lex_cost(
+      n, std::vector<LexAssignmentCost>(
+             goals.size(), LexAssignmentCost::infinity()));
+  for (size_t b = 0; b < n; ++b)
+    for (const auto& entry : table[b]) {
+      const auto it = std::lower_bound(goals.begin(), goals.end(), entry.goal);
+      if (it == goals.end() || *it != entry.goal ||
+          !std::isfinite(entry.plan.estimated_cost))
+        continue;
+      const int goal_index = (int)(it - goals.begin());
+      const bool moved_away =
+          std::binary_search(ins.target_goal_sets[b].begin(),
+                             ins.target_goal_sets[b].end(),
+                             upper.target_pos[b]) &&
+          upper.target_pos[b] != goals[goal_index];
+      lex_cost[b][goal_index] = LexAssignmentCost{
+          (long double)entry.plan.estimated_cost,
+          moved_away ? 1 : 0,
+          false};
+    }
+  const auto optimum =
+      hungarian_lexicographic(lex_cost);
+  if (!optimum.feasible)
+    throw std::logic_error(
+        "solve_tau_guide: infeasible eligible-goal matching");
+
+  // Exact tertiary assignment-vector tie: fix targets in id order to the
+  // smallest goal that still admits the exact primary+secondary optimum.
+  std::vector<uint8_t> used(goals.size(), 0);
+  LexAssignmentCost prefix_cost;
+  for (size_t b = 0; b < n; ++b) {
+    bool fixed = false;
+    for (size_t j = 0; j < goals.size(); ++j) {
+      if (used[j] || lex_cost[b][j].infinite)
+        continue;
+      const size_t remaining_rows = n - b - 1;
+      bool feasible = true;
+      LexAssignmentCost remaining_opt;
+      if (remaining_rows > 0) {
+        std::vector<int> remaining_cols;
+        for (size_t c = 0; c < goals.size(); ++c)
+          if (!used[c] && c != j) remaining_cols.push_back((int)c);
+        if (remaining_cols.size() < remaining_rows) {
+          feasible = false;
+        } else {
+          std::vector<std::vector<LexAssignmentCost>> rem(
+              remaining_rows,
+              std::vector<LexAssignmentCost>(
+                  remaining_cols.size(),
+                  LexAssignmentCost::infinity()));
+          for (size_t rr = 0; rr < remaining_rows; ++rr)
+            for (size_t cc = 0; cc < remaining_cols.size(); ++cc)
+              rem[rr][cc] =
+                  lex_cost[b + 1 + rr][remaining_cols[cc]];
+          const auto rem_assignment =
+              hungarian_lexicographic(rem);
+          feasible = rem_assignment.feasible;
+          if (feasible) remaining_opt = rem_assignment.cost;
+        }
+      }
+      const LexAssignmentCost candidate_total =
+          prefix_cost + lex_cost[b][j] + remaining_opt;
+      if (!feasible || candidate_total != optimum.cost)
+        continue;
+      tau[b] = goals[j];
+      used[j] = 1;
+      prefix_cost += lex_cost[b][j];
+      fixed = true;
+      break;
+    }
+    if (!fixed)
+      throw std::logic_error(
+          "solve_tau_guide: failed exact assignment-vector tie");
+  }
+  return tau;
+}
+
+struct LazyPairAssignment {
+  PairCostTable table;
+  std::vector<int> tau;
+  long evaluated_edges = 0;
+  long total_edges = 0;
+  long rollout_work_steps = 0;
+  long rollout_truncations = 0;
+  long rollout_stalls = 0;
+};
+
+// Exact lazy assignment certificate.
+//
+// For every eligible edge e, pair_cost_prefix_lower_bound() returns L(e)
+// with L(e) <= C(e), where C(e) is the full deterministic PairCost.  The
+// mixed matrix below therefore remains a lower-bound matrix while an edge
+// monotonically transitions from L(e) to exact C(e).  Each loop first
+// refines every edge selected by the current Hungarian solution, so its
+// value C* is exact.  For every still-lower-bound edge e, forcing e and
+// solving the remaining injective assignment gives F_L(e), a lower bound
+// on every exact assignment containing e.  We refine on F_L(e) <= C*
+// (equality included).  At termination every unrefined edge has
+// F_L(e) > C*, hence no primary-optimal assignment can contain it; all
+// primary-optimal edges are exact.  The exact secondary moved-away count
+// and tertiary assignment-vector tie can then be solved on this mixed
+// table without changing the result of a fully evaluated matrix.
+//
+// PairPlan::exact=false remains only a branch-and-bound certificate.  It
+// must never feed priorities, rollout diagnostics, or any consumer that
+// interprets stalled/truncated/steps as a completed PairCost evaluation.
+inline LazyPairAssignment build_lazy_pair_cost_assignment(
+    const DDInstance& ins, const UpperSignature& upper,
+    DDDistCache& upper_wall, double alpha, double gamma, double delta)
+{
+  LazyPairAssignment out;
+  const size_t target_count = ins.n_targets();
+  out.table.resize(target_count);
+  if (target_count == 0) return out;
+
+  std::vector<int> goals;
+  for (const auto& set : ins.target_goal_sets)
+    goals.insert(goals.end(), set.begin(), set.end());
+  std::sort(goals.begin(), goals.end());
+  goals.erase(std::unique(goals.begin(), goals.end()), goals.end());
+  constexpr long double INF = 1e60L;
+  std::vector<std::vector<long double>> cost(
+      target_count, std::vector<long double>(goals.size(), INF));
+  std::vector<std::vector<int>> entry_index(
+      target_count, std::vector<int>(goals.size(), -1));
+  size_t eligible_edge_count = 0;
+  for (const auto& set : ins.target_goal_sets)
+    eligible_edge_count += set.size();
+  const bool use_prefix_bounds =
+      eligible_edge_count > target_count;
+
+  for (size_t target = 0; target < target_count; ++target) {
+    for (const int goal : ins.target_goal_sets[target]) {
+      const auto goal_it =
+          std::lower_bound(goals.begin(), goals.end(), goal);
+      if (goal_it == goals.end() || *goal_it != goal)
+        throw std::logic_error(
+            "build_lazy_pair_cost_assignment: missing goal");
+      const size_t goal_index = goal_it - goals.begin();
+      PairPlan plan = use_prefix_bounds
+                          ? pair_cost_prefix_lower_bound(
+                                ins, upper, (int)target, goal,
+                                upper_wall, alpha, gamma, delta, 4)
+                          : PairPlan();
+      if (!use_prefix_bounds) {
+        const int distance =
+            upper_wall.dist(goal, upper.target_pos[target]);
+        plan.direct_distance =
+            distance >= INT_MAX / 4 ? INT_MAX : distance;
+        if (distance >= INT_MAX / 4) {
+          plan.estimated_cost =
+              std::numeric_limits<double>::infinity();
+          plan.stalled = true;
+        } else if (upper.target_pos[target] == goal) {
+          plan.reached_goal = true;
+        } else {
+          plan.estimated_cost =
+              alpha * (double)distance + 2.0 * gamma;
+          plan.exact = false;
+        }
+      }
+      entry_index[target][goal_index] =
+          (int)out.table[target].size();
+      out.table[target].push_back(PairCostEntry{goal, plan});
+      cost[target][goal_index] =
+          std::isfinite(plan.estimated_cost)
+              ? (long double)plan.estimated_cost
+              : INF;
+      ++out.total_edges;
+      out.evaluated_edges += plan.exact;
+      out.rollout_work_steps += plan.rollout_steps;
+      if (plan.exact) {
+        out.rollout_truncations += plan.truncated;
+        out.rollout_stalls += plan.stalled;
+      }
+    }
+  }
+
+  auto evaluate = [&](size_t target, size_t goal_index) {
+    const int index = entry_index[target][goal_index];
+    if (index < 0) return false;
+    auto& entry = out.table[target][index];
+    if (entry.plan.exact) return false;
+    entry.plan = pair_cost(
+        ins, upper, (int)target, goals[goal_index], upper_wall,
+        alpha, gamma, delta);
+    entry.plan.exact = true;
+    out.rollout_work_steps += entry.plan.rollout_steps;
+    out.rollout_truncations += entry.plan.truncated;
+    out.rollout_stalls += entry.plan.stalled;
+    cost[target][goal_index] =
+        std::isfinite(entry.plan.estimated_cost)
+            ? (long double)entry.plan.estimated_cost
+            : INF;
+    ++out.evaluated_edges;
+    return true;
+  };
+
+  auto forced_lower_bound =
+      [&](size_t forced_target, size_t forced_goal) {
+        if (forced_target >= target_count ||
+            forced_goal >= goals.size() ||
+            cost[forced_target][forced_goal] >= INF / 2)
+          return INF;
+        std::vector<size_t> remaining_rows;
+        std::vector<size_t> remaining_cols;
+        for (size_t target = 0; target < target_count; ++target)
+          if (target != forced_target)
+            remaining_rows.push_back(target);
+        for (size_t goal_index = 0; goal_index < goals.size();
+             ++goal_index)
+          if (goal_index != forced_goal)
+            remaining_cols.push_back(goal_index);
+        if (remaining_cols.size() < remaining_rows.size())
+          return INF;
+
+        std::vector<int> full_assignment(target_count, -1);
+        full_assignment[forced_target] = (int)forced_goal;
+        if (!remaining_rows.empty()) {
+          std::vector<std::vector<long double>> remaining(
+              remaining_rows.size(),
+              std::vector<long double>(remaining_cols.size(), INF));
+          for (size_t row = 0; row < remaining_rows.size(); ++row)
+            for (size_t col = 0; col < remaining_cols.size(); ++col)
+              remaining[row][col] =
+                  cost[remaining_rows[row]][remaining_cols[col]];
+          const auto assignment =
+              hungarian_long_double(remaining);
+          if (!assignment.feasible) return INF;
+          for (size_t row = 0; row < remaining_rows.size(); ++row) {
+            const int col = assignment.row_to_col[row];
+            if (col < 0) return INF;
+            full_assignment[remaining_rows[row]] =
+                (int)remaining_cols[col];
+          }
+        }
+
+        long double total = 0;
+        for (size_t target = 0; target < target_count; ++target) {
+          const int goal_index = full_assignment[target];
+          if (goal_index < 0 ||
+              cost[target][goal_index] >= INF / 2)
+            return INF;
+          total += cost[target][goal_index];
+        }
+        return total;
+      };
+
+  for (;;) {
+    const auto assignment = hungarian_long_double(cost);
+    if (!assignment.feasible)
+      throw std::logic_error(
+          "build_lazy_pair_cost_assignment: infeasible matching");
+
+    bool refined = false;
+    for (size_t target = 0; target < target_count; ++target) {
+      const int goal_index = assignment.row_to_col[target];
+      if (goal_index < 0)
+        throw std::logic_error(
+            "build_lazy_pair_cost_assignment: unassigned target");
+      refined |= evaluate(target, (size_t)goal_index);
+    }
+    if (refined) continue;
+
+    for (size_t target = 0; target < target_count; ++target) {
+      for (size_t goal_index = 0; goal_index < goals.size();
+           ++goal_index) {
+        const int index = entry_index[target][goal_index];
+        if (index < 0 || out.table[target][index].plan.exact ||
+            cost[target][goal_index] >= INF / 2)
+          continue;
+        if (forced_lower_bound(target, goal_index) <=
+            assignment.cost)
+          refined |= evaluate(target, goal_index);
+      }
+    }
+    if (!refined) break;
+  }
+
+  out.tau = solve_tau_guide(ins, upper, out.table);
+  for (size_t target = 0; target < out.tau.size(); ++target) {
+    const auto found = std::find_if(
+        out.table[target].begin(), out.table[target].end(),
+        [&](const PairCostEntry& entry) {
+          return entry.goal == out.tau[target];
+        });
+    if (found == out.table[target].end() || !found->plan.exact)
+      throw std::logic_error(
+          "build_lazy_pair_cost_assignment: selected edge is not exact");
+  }
+  return out;
+}
+
+inline double solve_tau_lb(const DDInstance& ins, const PhysConfig& s,
+                           DDDistCache& upper_wall, double alpha,
+                           double gamma)
+{
+  const size_t n = ins.n_targets();
+  if (n == 0) return 0;
+  std::vector<int> goals;
+  for (const auto& set : ins.target_goal_sets)
+    goals.insert(goals.end(), set.begin(), set.end());
+  std::sort(goals.begin(), goals.end());
+  goals.erase(std::unique(goals.begin(), goals.end()), goals.end());
+  constexpr long double INF = 1e60L;
+  std::vector<uint8_t> carried(n, 0);
+  for (const int k : s.kappa)
+    if (k >= 0 && k < (int)n) carried[k] = 1;
+  std::vector<std::vector<long double>> cost(
+      n, std::vector<long double>(goals.size(), INF));
+  for (size_t b = 0; b < n; ++b)
+    for (size_t j = 0; j < goals.size(); ++j) {
+      const int goal = goals[j];
+      if (!eligible_goal(ins, (int)b, goal)) continue;
+      const int d = upper_wall.dist(goal, s.target_pos[b]);
+      if (d >= INT_MAX / 4) continue;
+      long double v = alpha * (long double)d;
+      if (carried[b])
+        v += gamma;
+      else if (s.target_pos[b] != goal)
+        v += 2.0L * gamma;
+      cost[b][j] = v;
+    }
+  const auto result = hungarian_long_double(cost);
+  if (!result.feasible)
+    throw std::logic_error("solve_tau_lb: infeasible eligible-goal matching");
+  return (double)result.cost;
+}
+
+struct TaskBRCompilerLimits {
+  int recursion_cap = 256;
+  int backtrack_cap = 512;
+  // Negative preserves the legacy/probe default.  Production may impose a
+  // tighter epoch-wide work cap without removing the clean local window that
+  // each top-level root option receives.
+  int total_recursion_cap = -1;
+};
+
+struct AbstractUpperState {
+  std::vector<ShelfSelector> shelves;
+  std::vector<int> positions;
+  int target_count = 0;
+  std::vector<int> anon_index_by_epoch_cell;
+  std::vector<int> occupant;
+
+  int shelf_index(const ShelfSelector& shelf) const
+  {
+    if (shelf.kind == ShelfSelector::Kind::TARGET)
+      return shelf.value >= 0 && shelf.value < target_count
+                 ? shelf.value
+                 : -1;
+    return shelf.value >= 0 &&
+                   shelf.value < (int)anon_index_by_epoch_cell.size()
+               ? anon_index_by_epoch_cell[shelf.value]
+               : -1;
+  }
+
+  int position(const ShelfSelector& shelf) const
+  {
+    const int index = shelf_index(shelf);
+    return index < 0 ? -1 : positions[index];
+  }
+
+  bool empty(int cell) const
+  {
+    return cell >= 0 && cell < (int)occupant.size() &&
+           occupant[cell] < 0;
+  }
+
+  const ShelfSelector* shelf_at(int cell) const
+  {
+    if (cell < 0 || cell >= (int)occupant.size()) return nullptr;
+    const int index = occupant[cell];
+    return index < 0 ? nullptr : &shelves[index];
+  }
+
+  void move(const ShelfSelector& shelf, int to)
+  {
+    const int index = shelf_index(shelf);
+    if (index < 0) throw std::logic_error("unknown abstract shelf");
+    const int from = positions[index];
+    if (from >= 0) occupant[from] = -1;
+    positions[index] = to;
+    occupant[to] = index;
+  }
+};
+
+inline AbstractUpperState make_abstract_upper_state(
+    const DDInstance& ins, const UpperSignature& upper)
+{
+  AbstractUpperState out;
+  out.target_count = (int)upper.target_pos.size();
+  out.anon_index_by_epoch_cell.assign(ins.grid.size(), -1);
+  out.occupant.assign(ins.grid.size(), -1);
+  auto add = [&](const ShelfSelector& shelf, int cell) {
+    if (cell < 0 || cell >= ins.grid.size() || ins.grid.is_wall(cell))
+      throw std::logic_error("abstract shelf on invalid cell");
+    if (out.occupant[cell] >= 0)
+      throw std::logic_error("duplicate shelf cell in upper projection");
+    const int index = (int)out.shelves.size();
+    out.shelves.push_back(shelf);
+    out.positions.push_back(cell);
+    if (shelf.kind == ShelfSelector::Kind::ANON_AT_EPOCH_CELL)
+      out.anon_index_by_epoch_cell[shelf.value] = index;
+    out.occupant[cell] = index;
+  };
+  for (size_t b = 0; b < upper.target_pos.size(); ++b)
+    add(ShelfSelector{ShelfSelector::Kind::TARGET, (int)b},
+        upper.target_pos[b]);
+  for (const int cell : upper.anon_pos)
+    add(ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, cell},
+        cell);
+  return out;
+}
+
+inline void add_root_demand(std::vector<RootDemand>& roots,
+                            const RootDemand& root)
+{
+  roots.push_back(root);
+  std::sort(roots.begin(), roots.end());
+  roots.erase(std::unique(roots.begin(), roots.end()), roots.end());
+}
+
+struct TaskBRCompilerState {
+  ShelfTaskGraph graph;
+  std::map<TaskId, int> effect_index;
+  std::map<ShelfSelector, TaskId> reserved_shelf_effect;
+  std::map<int, TaskId> reserved_destination;
+};
+
+struct TaskBRCompilerUndo {
+  enum class Kind {
+    ERASE_EFFECT_INDEX,
+    ERASE_SHELF_RESERVATION,
+    ERASE_DESTINATION_RESERVATION,
+    POP_GRAPH_TASK,
+    POP_SUCCESSOR,
+    POP_ROTATION,
+    RESTORE_TASK,
+  };
+  Kind kind = Kind::POP_GRAPH_TASK;
+  TaskId task_id;
+  ShelfSelector shelf;
+  int index = -1;
+  ShelfTask old_task;
+};
+
+struct TaskBRCompilerTransaction {
+  static constexpr bool records_rotations = true;
+
+  TaskBRCompilerState& state;
+  std::vector<TaskBRCompilerUndo> undo;
+
+  explicit TaskBRCompilerTransaction(TaskBRCompilerState& state_)
+      : state(state_)
+  {
+  }
+
+  size_t checkpoint() const { return undo.size(); }
+
+  void enter_recursion(const ShelfSelector&) {}
+  void leave_recursion(const ShelfSelector&) {}
+
+  bool recursion_cycle(
+      const ShelfSelector& shelf,
+      const std::vector<ShelfSelector>& recursion_stack) const
+  {
+    return std::find(
+               recursion_stack.begin(), recursion_stack.end(), shelf) !=
+           recursion_stack.end();
+  }
+
+  int find_effect(const TaskId& effect) const
+  {
+    const auto found = state.effect_index.find(effect);
+    return found == state.effect_index.end() ? -1 : found->second;
+  }
+
+  std::optional<TaskId> shelf_reservation(
+      const ShelfSelector& shelf) const
+  {
+    const auto found = state.reserved_shelf_effect.find(shelf);
+    return found == state.reserved_shelf_effect.end()
+               ? std::nullopt
+               : std::optional<TaskId>(found->second);
+  }
+
+  std::optional<TaskId> destination_reservation(int cell) const
+  {
+    const auto found = state.reserved_destination.find(cell);
+    return found == state.reserved_destination.end()
+               ? std::nullopt
+               : std::optional<TaskId>(found->second);
+  }
+
+  bool shelf_effect_conflicts(const ShelfSelector& shelf,
+                              const TaskId& effect) const
+  {
+    const auto found = state.reserved_shelf_effect.find(shelf);
+    return found != state.reserved_shelf_effect.end() &&
+           found->second != effect;
+  }
+
+  bool destination_effect_conflicts(int cell,
+                                    const TaskId& effect) const
+  {
+    const auto found = state.reserved_destination.find(cell);
+    return found != state.reserved_destination.end() &&
+           found->second != effect;
+  }
+
+  bool destination_reserved(int cell) const
+  {
+    return state.reserved_destination.count(cell) != 0;
+  }
+
+  void reserve_shelf(const ShelfSelector& shelf, const TaskId& effect)
+  {
+    const auto inserted =
+        state.reserved_shelf_effect.emplace(shelf, effect);
+    if (inserted.second)
+      undo.push_back(TaskBRCompilerUndo{
+          TaskBRCompilerUndo::Kind::ERASE_SHELF_RESERVATION,
+          TaskId(), shelf});
+  }
+
+  void reserve_destination(int cell, const TaskId& effect)
+  {
+    const auto inserted =
+        state.reserved_destination.emplace(cell, effect);
+    if (inserted.second)
+      undo.push_back(TaskBRCompilerUndo{
+          TaskBRCompilerUndo::Kind::ERASE_DESTINATION_RESERVATION,
+          TaskId(), ShelfSelector(), cell});
+  }
+
+  void merge_task(int index, const RootDemand& root, int priority)
+  {
+    auto& task = state.graph.tasks[index];
+    const bool has_root =
+        std::binary_search(task.roots.begin(), task.roots.end(), root);
+    const int merged_priority = std::max(task.priority, priority);
+    if (has_root && merged_priority == task.priority) return;
+    TaskBRCompilerUndo entry;
+    entry.kind = TaskBRCompilerUndo::Kind::RESTORE_TASK;
+    entry.index = index;
+    entry.old_task = task;
+    undo.push_back(std::move(entry));
+    add_root_demand(task.roots, root);
+    task.priority = merged_priority;
+  }
+
+  int add_task(const TaskId& id, const RootDemand& root,
+               int predecessor, int priority)
+  {
+    const auto found = state.effect_index.find(id);
+    if (found != state.effect_index.end()) {
+      merge_task(found->second, root, priority);
+      return found->second;
+    }
+
+    const int index = (int)state.graph.tasks.size();
+    state.effect_index.emplace(id, index);
+    undo.push_back(TaskBRCompilerUndo{
+        TaskBRCompilerUndo::Kind::ERASE_EFFECT_INDEX, id});
+    state.graph.tasks.push_back(ShelfTask{id, {root}, priority});
+    state.graph.predecessors.emplace_back();
+    state.graph.successors.emplace_back();
+    undo.push_back(TaskBRCompilerUndo{
+        TaskBRCompilerUndo::Kind::POP_GRAPH_TASK});
+    if (predecessor >= 0) {
+      state.graph.predecessors[index].push_back(predecessor);
+      state.graph.successors[predecessor].push_back(index);
+      undo.push_back(TaskBRCompilerUndo{
+          TaskBRCompilerUndo::Kind::POP_SUCCESSOR,
+          TaskId(), ShelfSelector(), predecessor});
+    }
+    return index;
+  }
+
+  void add_rotation(const RotationCandidate& rotation)
+  {
+    const auto duplicate = std::find_if(
+        state.graph.rotations.begin(), state.graph.rotations.end(),
+        [&](const RotationCandidate& existing) {
+          return existing.cycle == rotation.cycle;
+        });
+    if (duplicate != state.graph.rotations.end()) return;
+    state.graph.rotations.push_back(rotation);
+    undo.push_back(TaskBRCompilerUndo{
+        TaskBRCompilerUndo::Kind::POP_ROTATION});
+  }
+
+  void rollback(size_t checkpoint)
+  {
+    while (undo.size() > checkpoint) {
+      auto entry = std::move(undo.back());
+      undo.pop_back();
+      switch (entry.kind) {
+        case TaskBRCompilerUndo::Kind::ERASE_EFFECT_INDEX:
+          state.effect_index.erase(entry.task_id);
+          break;
+        case TaskBRCompilerUndo::Kind::ERASE_SHELF_RESERVATION:
+          state.reserved_shelf_effect.erase(entry.shelf);
+          break;
+        case TaskBRCompilerUndo::Kind::ERASE_DESTINATION_RESERVATION:
+          state.reserved_destination.erase(entry.index);
+          break;
+        case TaskBRCompilerUndo::Kind::POP_GRAPH_TASK:
+          state.graph.tasks.pop_back();
+          state.graph.predecessors.pop_back();
+          state.graph.successors.pop_back();
+          break;
+        case TaskBRCompilerUndo::Kind::POP_SUCCESSOR:
+          state.graph.successors[entry.index].pop_back();
+          break;
+        case TaskBRCompilerUndo::Kind::POP_ROTATION:
+          state.graph.rotations.pop_back();
+          break;
+        case TaskBRCompilerUndo::Kind::RESTORE_TASK:
+          state.graph.tasks[entry.index] = std::move(entry.old_task);
+          break;
+      }
+    }
+  }
+};
+
+struct TaskBRCompilerBudget {
+  int recursion_calls = 0;
+  long long total_recursion_calls = 0;
+  int branch_calls = 0;
+  bool recursion_exhausted = false;
+  bool backtrack_exhausted = false;
+  long effect_conflicts = 0;
+  long candidate_backtracks = 0;
+};
+
+inline bool task_effects_conflict(const TaskId& a, const TaskId& b)
+{
+  if (a == b) return false;
+  if (a.shelf == b.shelf) return true;
+  return a.to == b.to;
+}
+
+struct OrderedShelfCandidates {
+  std::array<int, 4> cells{};
+  int count = 0;
+
+  const int* begin() const { return cells.data(); }
+  const int* end() const { return cells.data() + count; }
+};
+
+template <typename CompilerContext>
+inline OrderedShelfCandidates ordered_shelf_candidate_window(
+    const DDInstance& ins, const AbstractUpperState& upper,
+    const ShelfSelector& shelf, const RootDemand& root,
+    const std::vector<int>* tau, bool single_root_mode,
+    DDDistCache& upper_wall,
+    const CompilerContext& context)
+{
+  const int from = upper.position(shelf);
+  std::array<int, 4> cells{};
+  const int count = ins.grid.neighbors(from, cells.data());
+  const bool root_shelf =
+      shelf.kind == ShelfSelector::Kind::TARGET &&
+      shelf.value == root.target;
+  using CandidateScore = std::tuple<int, int, int, int, int>;
+  std::array<CandidateScore, 4> scores;
+  for (int index = 0; index < count; ++index) {
+    const int cell = cells[index];
+    const int reserved = context.destination_reserved(cell) ? 1 : 0;
+    const int occupied = upper.empty(cell) ? 0 : 1;
+    if (root_shelf) {
+      const int mission = upper_wall.dist(root.goal, cell);
+      scores[index] = std::make_tuple(
+          mission, occupied, reserved, mission, cell);
+    } else if (!single_root_mode &&
+               shelf.kind == ShelfSelector::Kind::TARGET &&
+               tau != nullptr && shelf.value >= 0 &&
+               shelf.value < (int)tau->size()) {
+      const int own_goal = (*tau)[shelf.value];
+      const int mission = upper_wall.dist(own_goal, cell);
+      scores[index] = std::make_tuple(
+          occupied, occupied * 2, reserved, mission, cell);
+    } else {
+      int assigned_goal_interference = 0;
+      if (!single_root_mode && tau != nullptr)
+        assigned_goal_interference =
+            std::count(tau->begin(), tau->end(), cell);
+      scores[index] = std::make_tuple(
+          assigned_goal_interference, occupied, reserved, 0, cell);
+    }
+  }
+  // Grid degree is at most four and the score ends in the stable cell id.
+  // Precompute each tuple once and insertion-sort the fixed-size array so
+  // PairCost and joint compilation share one exact ordering without paying
+  // for millions of tiny stable_sort invocations.
+  for (int index = 1; index < count; ++index) {
+    const int cell = cells[index];
+    const CandidateScore score = scores[index];
+    int insertion = index;
+    while (insertion > 0 && score < scores[insertion - 1]) {
+      cells[insertion] = cells[insertion - 1];
+      scores[insertion] = scores[insertion - 1];
+      --insertion;
+    }
+    cells[insertion] = cell;
+    scores[insertion] = score;
+  }
+  OrderedShelfCandidates out;
+  out.cells = cells;
+  out.count = count;
+  return out;
+}
+
+inline std::vector<int> ordered_shelf_candidates(
+    const DDInstance& ins, const AbstractUpperState& upper,
+    const ShelfSelector& shelf, const RootDemand& root,
+    const std::vector<int>* tau, bool single_root_mode,
+    DDDistCache& upper_wall,
+    const std::map<int, TaskId>& reserved_destination)
+{
+  struct MapReservationView {
+    const std::map<int, TaskId>& reservations;
+    bool destination_reserved(int cell) const
+    {
+      return reservations.count(cell) != 0;
+    }
+  };
+  const auto ordered = ordered_shelf_candidate_window(
+      ins, upper, shelf, root, tau, single_root_mode, upper_wall,
+      MapReservationView{reserved_destination});
+  return std::vector<int>(ordered.begin(), ordered.end());
+}
+
+template <typename CompilerContext>
+inline std::optional<RotationCandidate> make_rotation_candidate(
+    const std::vector<ShelfSelector>& recursion_stack,
+    std::vector<ShelfSelector>::const_iterator cycle_begin,
+    const CompilerContext& context)
+{
+  const size_t cycle_size =
+      (size_t)std::distance(cycle_begin, recursion_stack.end());
+  if (cycle_size < 3) return std::nullopt;
+
+  RotationCandidate rotation;
+  rotation.cycle.reserve(cycle_size);
+  for (auto it = cycle_begin; it != recursion_stack.end(); ++it) {
+    const auto effect = context.shelf_reservation(*it);
+    if (!effect.has_value()) return std::nullopt;
+    rotation.cycle.push_back(*effect);
+  }
+  for (size_t index = 0; index < rotation.cycle.size(); ++index)
+    if (rotation.cycle[index].to !=
+        rotation.cycle[(index + 1) % rotation.cycle.size()].from)
+      return std::nullopt;
+
+  const auto first = std::min_element(
+      rotation.cycle.begin(), rotation.cycle.end());
+  std::rotate(rotation.cycle.begin(), first, rotation.cycle.end());
+  return rotation;
+}
+
+inline void add_unique_rotation_candidate(
+    std::vector<RotationCandidate>& rotations,
+    RotationCandidate rotation)
+{
+  const auto duplicate = std::find_if(
+      rotations.begin(), rotations.end(),
+      [&](const RotationCandidate& existing) {
+        return existing.cycle == rotation.cycle;
+      });
+  if (duplicate == rotations.end())
+    rotations.push_back(std::move(rotation));
+}
+
+template <typename CompilerContext>
+inline int resolve_shelf_task_br_pibt(
+    const DDInstance& ins, const AbstractUpperState& upper,
+    const ShelfSelector& shelf, const RootDemand& root, int root_priority,
+    const std::vector<int>* tau, bool single_root_mode,
+    DDDistCache& upper_wall, const TaskBRCompilerLimits& limits,
+    TaskBRCompilerBudget& budget,
+    CompilerContext& context,
+    std::vector<ShelfSelector>& recursion_stack,
+    std::vector<RotationCandidate>& encountered_rotations,
+    const std::optional<int>& forced_first_to = std::nullopt)
+{
+  const bool total_recursion_exhausted =
+      limits.total_recursion_cap >= 0 &&
+      budget.total_recursion_calls >= limits.total_recursion_cap;
+  if (budget.recursion_calls >= limits.recursion_cap ||
+      total_recursion_exhausted) {
+    budget.recursion_exhausted = true;
+    return -1;
+  }
+  ++budget.recursion_calls;
+  ++budget.total_recursion_calls;
+  const int from = upper.position(shelf);
+  if (from < 0) return -1;
+  if constexpr (CompilerContext::records_rotations)
+    recursion_stack.push_back(shelf);
+  context.enter_recursion(shelf);
+  auto leave_recursion = [&]() {
+    context.leave_recursion(shelf);
+    if constexpr (CompilerContext::records_rotations)
+      recursion_stack.pop_back();
+  };
+  OrderedShelfCandidates candidates;
+  if (forced_first_to.has_value()) {
+    candidates.cells[0] = *forced_first_to;
+    candidates.count = 1;
+  } else {
+    candidates = ordered_shelf_candidate_window(
+        ins, upper, shelf, root, tau, single_root_mode, upper_wall,
+        context);
+  }
+
+  for (const int to : candidates) {
+    if (forced_first_to.has_value()) {
+      int neighbors[4];
+      const int n = ins.grid.neighbors(from, neighbors);
+      if (to == from ||
+          std::find(neighbors, neighbors + n, to) == neighbors + n)
+        continue;
+    }
+    const TaskId effect{shelf, from, to};
+    const int existing = context.find_effect(effect);
+    if (existing >= 0) {
+      context.merge_task(existing, root, root_priority);
+      leave_recursion();
+      return existing;
+    }
+
+    if (context.shelf_effect_conflicts(shelf, effect)) {
+      ++budget.effect_conflicts;
+      continue;
+    }
+    if (context.destination_effect_conflicts(to, effect)) {
+      ++budget.effect_conflicts;
+      continue;
+    }
+
+    const size_t checkpoint = context.checkpoint();
+    context.reserve_shelf(shelf, effect);
+    context.reserve_destination(to, effect);
+    int predecessor = -1;
+    if (!upper.empty(to)) {
+      const ShelfSelector blocker = *upper.shelf_at(to);
+      if (context.recursion_cycle(blocker, recursion_stack)) {
+        if constexpr (CompilerContext::records_rotations) {
+          const auto cycle_begin = std::find(
+              recursion_stack.begin(), recursion_stack.end(), blocker);
+          if (const auto rotation = make_rotation_candidate(
+                  recursion_stack, cycle_begin, context);
+              rotation.has_value())
+            add_unique_rotation_candidate(
+                encountered_rotations, *rotation);
+        }
+        ++budget.candidate_backtracks;
+        context.rollback(checkpoint);
+        continue;
+      }
+      predecessor = resolve_shelf_task_br_pibt(
+          ins, upper, blocker, root, root_priority, tau, single_root_mode,
+          upper_wall, limits, budget, context, recursion_stack,
+          encountered_rotations);
+      if (predecessor < 0) {
+        ++budget.candidate_backtracks;
+        context.rollback(checkpoint);
+        continue;
+      }
+    }
+    const int result = context.add_task(
+        effect, root, predecessor, root_priority);
+    leave_recursion();
+    return result;
+  }
+  leave_recursion();
+  return -1;
+}
+
+struct SingleRootReadyResult {
+  std::optional<TaskId> ready_effect;
+  int recursion_calls = 0;
+  bool recursion_exhausted = false;
+  long effect_conflicts = 0;
+  long candidate_backtracks = 0;
+};
+
+struct SingleRootCompilerScratch {
+  static constexpr bool records_rotations = false;
+
+  enum class UndoKind { SHELF, DESTINATION };
+  struct Undo {
+    UndoKind kind = UndoKind::SHELF;
+    int index = -1;
+  };
+
+  const AbstractUpperState* upper = nullptr;
+  std::vector<int> reserved_shelf_to;
+  std::vector<uint32_t> reserved_shelf_stamp;
+  std::vector<int> reserved_destination_shelf;
+  std::vector<uint32_t> reserved_destination_stamp;
+  std::vector<uint32_t> active_shelf_stamp;
+  std::vector<Undo> undo;
+  std::vector<ShelfSelector> recursion_stack;
+  std::vector<RotationCandidate> encountered_rotations;
+  std::optional<TaskId> ready_effect;
+  uint32_t generation = 0;
+
+  void reset(const AbstractUpperState& upper_, size_t cell_count)
+  {
+    upper = &upper_;
+    reserved_shelf_to.resize(upper_.shelves.size());
+    reserved_shelf_stamp.resize(upper_.shelves.size(), 0);
+    reserved_destination_shelf.resize(cell_count);
+    reserved_destination_stamp.resize(cell_count, 0);
+    active_shelf_stamp.resize(upper_.shelves.size(), 0);
+    ++generation;
+    if (generation == 0) {
+      std::fill(
+          reserved_shelf_stamp.begin(), reserved_shelf_stamp.end(), 0);
+      std::fill(
+          reserved_destination_stamp.begin(),
+          reserved_destination_stamp.end(), 0);
+      std::fill(
+          active_shelf_stamp.begin(), active_shelf_stamp.end(), 0);
+      generation = 1;
+    }
+    undo.clear();
+    recursion_stack.clear();
+    encountered_rotations.clear();
+    ready_effect.reset();
+  }
+
+  int shelf_index(const ShelfSelector& shelf) const
+  {
+    return upper == nullptr ? -1 : upper->shelf_index(shelf);
+  }
+
+  size_t checkpoint() const { return undo.size(); }
+
+  void enter_recursion(const ShelfSelector& shelf)
+  {
+    const int index = shelf_index(shelf);
+    if (index >= 0 && index < (int)active_shelf_stamp.size())
+      active_shelf_stamp[index] = generation;
+  }
+
+  void leave_recursion(const ShelfSelector& shelf)
+  {
+    const int index = shelf_index(shelf);
+    if (index >= 0 && index < (int)active_shelf_stamp.size())
+      active_shelf_stamp[index] = 0;
+  }
+
+  bool recursion_cycle(
+      const ShelfSelector& shelf,
+      const std::vector<ShelfSelector>&) const
+  {
+    const int index = shelf_index(shelf);
+    return index >= 0 &&
+           index < (int)active_shelf_stamp.size() &&
+           active_shelf_stamp[index] == generation;
+  }
+
+  int find_effect(const TaskId&) const { return -1; }
+
+  std::optional<TaskId> shelf_reservation(
+      const ShelfSelector& shelf) const
+  {
+    const int index = shelf_index(shelf);
+    if (index < 0 ||
+        index >= (int)reserved_shelf_stamp.size() ||
+        reserved_shelf_stamp[index] != generation)
+      return std::nullopt;
+    return TaskId{
+        shelf, upper->positions[index], reserved_shelf_to[index]};
+  }
+
+  std::optional<TaskId> destination_reservation(int cell) const
+  {
+    if (cell < 0 ||
+        cell >= (int)reserved_destination_stamp.size() ||
+        reserved_destination_stamp[cell] != generation)
+      return std::nullopt;
+    const int index = reserved_destination_shelf[cell];
+    if (index < 0 ||
+        index >= (int)reserved_shelf_stamp.size() ||
+        reserved_shelf_stamp[index] != generation)
+      return std::nullopt;
+    return TaskId{
+        upper->shelves[index], upper->positions[index],
+        reserved_shelf_to[index]};
+  }
+
+  bool destination_reserved(int cell) const
+  {
+    return cell >= 0 &&
+           cell < (int)reserved_destination_stamp.size() &&
+           reserved_destination_stamp[cell] == generation;
+  }
+
+  bool shelf_effect_conflicts(const ShelfSelector& shelf,
+                              const TaskId& effect) const
+  {
+    const int index = shelf_index(shelf);
+    return index >= 0 &&
+           index < (int)reserved_shelf_stamp.size() &&
+           reserved_shelf_stamp[index] == generation &&
+           reserved_shelf_to[index] != effect.to;
+  }
+
+  bool destination_effect_conflicts(int cell,
+                                    const TaskId& effect) const
+  {
+    if (cell < 0 ||
+        cell >= (int)reserved_destination_stamp.size() ||
+        reserved_destination_stamp[cell] != generation)
+      return false;
+    const int index = reserved_destination_shelf[cell];
+    return index != shelf_index(effect.shelf);
+  }
+
+  void reserve_shelf(const ShelfSelector& shelf, const TaskId& effect)
+  {
+    const int index = shelf_index(shelf);
+    if (index < 0 ||
+        index >= (int)reserved_shelf_stamp.size() ||
+        reserved_shelf_stamp[index] == generation)
+      return;
+    undo.push_back(Undo{UndoKind::SHELF, index});
+    reserved_shelf_to[index] = effect.to;
+    reserved_shelf_stamp[index] = generation;
+  }
+
+  void reserve_destination(int cell, const TaskId& effect)
+  {
+    if (cell < 0 ||
+        cell >= (int)reserved_destination_stamp.size() ||
+        reserved_destination_stamp[cell] == generation)
+      return;
+    const int index = shelf_index(effect.shelf);
+    if (index < 0) return;
+    undo.push_back(Undo{UndoKind::DESTINATION, cell});
+    reserved_destination_shelf[cell] = index;
+    reserved_destination_stamp[cell] = generation;
+  }
+
+  void merge_task(int, const RootDemand&, int) {}
+
+  int add_task(const TaskId& id, const RootDemand&, int predecessor, int)
+  {
+    if (predecessor < 0 && !ready_effect.has_value())
+      ready_effect = id;
+    return 0;
+  }
+
+  void rollback(size_t checkpoint)
+  {
+    while (undo.size() > checkpoint) {
+      const Undo entry = undo.back();
+      undo.pop_back();
+      switch (entry.kind) {
+        case UndoKind::SHELF:
+          reserved_shelf_stamp[entry.index] = 0;
+          break;
+        case UndoKind::DESTINATION:
+          reserved_destination_stamp[entry.index] = 0;
+          break;
+      }
+    }
+  }
+};
+
+inline SingleRootReadyResult compile_single_root_next_ready_effect(
+    const DDInstance& ins, const AbstractUpperState& upper,
+    const RootDemand& root, DDDistCache& upper_wall,
+    const TaskBRCompilerLimits& limits,
+    SingleRootCompilerScratch& scratch)
+{
+  TaskBRCompilerBudget budget;
+  scratch.reset(upper, ins.grid.size());
+  SingleRootReadyResult out;
+  const ShelfSelector shelf{
+      ShelfSelector::Kind::TARGET, root.target};
+  const int result = resolve_shelf_task_br_pibt(
+      ins, upper, shelf, root, 1, nullptr, true, upper_wall,
+      limits, budget, scratch, scratch.recursion_stack,
+      scratch.encountered_rotations);
+  if (result >= 0) out.ready_effect = scratch.ready_effect;
+  out.recursion_calls = budget.recursion_calls;
+  out.recursion_exhausted = budget.recursion_exhausted;
+  out.effect_conflicts = budget.effect_conflicts;
+  out.candidate_backtracks = budget.candidate_backtracks;
+  return out;
+}
+
+inline SingleRootReadyResult compile_single_root_next_ready_effect(
+    const DDInstance& ins, const AbstractUpperState& upper,
+    const RootDemand& root, DDDistCache& upper_wall,
+    const TaskBRCompilerLimits& limits)
+{
+  SingleRootCompilerScratch scratch;
+  return compile_single_root_next_ready_effect(
+      ins, upper, root, upper_wall, limits, scratch);
+}
+
+inline void propagate_root_demands(ShelfTaskGraph& graph,
+                                   const std::vector<int>& target_priority)
+{
+  for (size_t offset = graph.tasks.size(); offset-- > 0;) {
+    for (const int predecessor : graph.predecessors[offset])
+      for (const auto& root : graph.tasks[offset].roots)
+        add_root_demand(graph.tasks[predecessor].roots, root);
+  }
+  for (auto& task : graph.tasks) {
+    task.priority = 0;
+    for (const auto& root : task.roots)
+      if (root.target >= 0 &&
+          root.target < (int)target_priority.size())
+        task.priority =
+            std::max(task.priority, target_priority[root.target]);
+  }
+}
+
+struct JointCompileCandidate {
+  TaskBRCompilerState state;
+  std::vector<uint8_t> success;
+  std::vector<int> paused;
+  std::vector<long long> remaining_mission_by_root;
+  long long remaining_mission_distance = 0;
+  long long estimated_shelf_cost = 0;
+  uint64_t stable_order = 0;
+  bool valid = false;
+};
+
+inline bool better_joint_candidate(const JointCompileCandidate& candidate,
+                                   const JointCompileCandidate& best,
+                                   bool compare_full_root_progress = false)
+{
+  if (!best.valid) return true;
+  if (candidate.success != best.success)
+    return std::lexicographical_compare(
+        best.success.begin(), best.success.end(), candidate.success.begin(),
+        candidate.success.end());
+  if (candidate.remaining_mission_distance !=
+      best.remaining_mission_distance)
+    return candidate.remaining_mission_distance <
+           best.remaining_mission_distance;
+  if (compare_full_root_progress &&
+      candidate.remaining_mission_by_root !=
+          best.remaining_mission_by_root)
+    return std::lexicographical_compare(
+        candidate.remaining_mission_by_root.begin(),
+        candidate.remaining_mission_by_root.end(),
+        best.remaining_mission_by_root.begin(),
+        best.remaining_mission_by_root.end());
+  const size_t compared_roots = std::min(
+      candidate.remaining_mission_by_root.size(),
+      best.remaining_mission_by_root.size());
+  for (size_t root = 0; root < compared_roots; ++root) {
+    const bool candidate_completes =
+        candidate.remaining_mission_by_root[root] == 0;
+    const bool best_completes =
+        best.remaining_mission_by_root[root] == 0;
+    if (candidate_completes != best_completes)
+      return candidate_completes;
+  }
+  if (candidate.estimated_shelf_cost !=
+      best.estimated_shelf_cost)
+    return candidate.estimated_shelf_cost <
+           best.estimated_shelf_cost;
+  return candidate.stable_order < best.stable_order;
+}
+
+inline ShelfTaskGraph compile_task_br_pibt(
+    const DDInstance& ins, const AbstractUpperState& upper,
+    const std::vector<RootDemand>& requested_roots,
+    const std::vector<int>& tau, const std::vector<int>& target_priority,
+    DDDistCache& upper_wall, const TaskBRCompilerLimits& limits,
+    bool single_root_mode)
+{
+  std::vector<RootDemand> roots = requested_roots;
+  std::stable_sort(roots.begin(), roots.end(), [&](const RootDemand& a,
+                                                   const RootDemand& b) {
+    const int pa = a.target >= 0 &&
+                           a.target < (int)target_priority.size()
+                       ? target_priority[a.target]
+                       : 0;
+    const int pb = b.target >= 0 &&
+                           b.target < (int)target_priority.size()
+                       ? target_priority[b.target]
+                       : 0;
+    return pa != pb ? pa > pb : a.target < b.target;
+  });
+  TaskBRCompilerBudget budget;
+  JointCompileCandidate best;
+  const size_t traversable_cells =
+      std::count(ins.grid.wall.begin(), ins.grid.wall.end(), 0);
+  if (upper.shelves.size() > traversable_cells)
+    throw std::logic_error(
+        "compile_task_br_pibt: shelves exceed traversable cells");
+  const size_t vacancy_count =
+      traversable_cells - upper.shelves.size();
+  // With one vacancy, minimizing every non-zero residual makes a dense
+  // displacement chain chase tiny distance improvements instead of
+  // finishing a root.  Two or more vacancies provide enough independent
+  // routing freedom for the full priority-ordered residual vector to be a
+  // useful anti-oscillation tie-break.
+  const bool compare_full_root_progress = vacancy_count >= 2;
+
+  if (single_root_mode) {
+    JointCompileCandidate candidate;
+    candidate.valid = true;
+    candidate.success.assign(roots.size(), 0);
+    TaskBRCompilerTransaction transaction(candidate.state);
+    if (!roots.empty() && limits.recursion_cap > 0) {
+      std::vector<ShelfSelector> stack;
+      std::vector<RotationCandidate> encountered_rotations;
+      const ShelfSelector shelf{
+          ShelfSelector::Kind::TARGET, roots.front().target};
+      const int result = resolve_shelf_task_br_pibt(
+          ins, upper, shelf, roots.front(),
+          roots.front().target < (int)target_priority.size()
+              ? target_priority[roots.front().target]
+              : 0,
+          &tau, true, upper_wall, limits, budget, transaction, stack,
+          encountered_rotations);
+      if (result >= 0) {
+        candidate.success[0] = 1;
+      } else {
+        for (const auto& rotation : encountered_rotations)
+          transaction.add_rotation(rotation);
+        candidate.paused.push_back(roots.front().target);
+      }
+    } else {
+      for (const auto& root : roots)
+        candidate.paused.push_back(root.target);
+    }
+    best = std::move(candidate);
+  } else if (limits.backtrack_cap <= 0 || limits.recursion_cap <= 0) {
+    best.valid = true;
+    best.success.assign(roots.size(), 0);
+    for (const auto& root : roots) best.paused.push_back(root.target);
+  } else {
+    TaskBRCompilerState current;
+    TaskBRCompilerTransaction transaction(current);
+    std::vector<uint8_t> success(roots.size(), 0);
+    std::vector<int> selected_root_to(roots.size(), -1);
+    std::vector<int> paused;
+    uint64_t candidate_sequence = 0;
+    // The hard cap is needed when the first candidate windows fail to
+    // produce a jointly executable graph.  Once every root has succeeded
+    // in one candidate, however, the success vector is already
+    // lexicographically maximal (§6.4); keep only a smaller soft window
+    // for the remaining distance/work tie-breaks.
+    const int soft_backtrack_cap =
+        std::min(limits.backtrack_cap,
+                 std::max(1, limits.recursion_cap / 2));
+    auto all_roots_succeeded = [&]() {
+      return best.valid && best.success.size() == roots.size() &&
+             std::all_of(best.success.begin(), best.success.end(),
+                         [](uint8_t value) { return value != 0; });
+    };
+    auto active_backtrack_cap = [&]() {
+      return all_roots_succeeded() ? soft_backtrack_cap
+                                   : limits.backtrack_cap;
+    };
+    auto record_candidate = [&](std::vector<int> candidate_paused) {
+      JointCompileCandidate candidate;
+      candidate.state = current;
+      candidate.success = success;
+      candidate.paused = std::move(candidate_paused);
+      candidate.estimated_shelf_cost =
+          (long long)current.graph.tasks.size();
+      candidate.stable_order = candidate_sequence++;
+      candidate.valid = true;
+      candidate.remaining_mission_by_root.assign(roots.size(), 0);
+      for (size_t root_index = 0;
+           root_index < roots.size(); ++root_index) {
+        if (!candidate.success[root_index]) continue;
+        const int to = selected_root_to[root_index];
+        const int distance =
+            to >= 0
+                ? upper_wall.dist(
+                      roots[root_index].goal, to)
+                : INT_MAX;
+        const long long finite_distance =
+            distance >= INT_MAX / 4
+                ? (long long)ins.grid.size() + 1
+                : distance;
+        candidate.remaining_mission_by_root[root_index] =
+            finite_distance;
+        candidate.remaining_mission_distance +=
+            finite_distance;
+        candidate.estimated_shelf_cost += finite_distance;
+      }
+      if (better_joint_candidate(
+              candidate, best, compare_full_root_progress)) {
+        best = std::move(candidate);
+      }
+    };
+    std::function<void(size_t)> compile_roots = [&](size_t k) {
+      if (k == roots.size()) {
+        record_candidate(paused);
+        return;
+      }
+      if (budget.branch_calls >= active_backtrack_cap()) {
+        budget.backtrack_exhausted = true;
+        auto candidate_paused = paused;
+        for (size_t r = k; r < roots.size(); ++r)
+          candidate_paused.push_back(roots[r].target);
+        record_candidate(std::move(candidate_paused));
+        return;
+      }
+      const auto& root = roots[k];
+      const ShelfSelector shelf{
+          ShelfSelector::Kind::TARGET, root.target};
+      const auto options = ordered_shelf_candidate_window(
+          ins, upper, shelf, root, &tau, false, upper_wall,
+          transaction);
+      std::vector<RotationCandidate> failed_rotations;
+      for (const int to : options) {
+        if (budget.branch_calls >= active_backtrack_cap()) break;
+        ++budget.branch_calls;
+        if (budget.recursion_calls >= limits.recursion_cap)
+          budget.recursion_calls = 0;
+        const size_t checkpoint = transaction.checkpoint();
+        std::vector<ShelfSelector> stack;
+        std::vector<RotationCandidate> option_rotations;
+        const int result = resolve_shelf_task_br_pibt(
+            ins, upper, shelf, root,
+            root.target < (int)target_priority.size()
+                ? target_priority[root.target]
+                : 0,
+            &tau, false, upper_wall, limits, budget, transaction, stack,
+            option_rotations, to);
+        const TaskId expected{
+            shelf, upper.position(shelf), to};
+        if (result >= 0 && current.graph.tasks[result].id == expected) {
+          success[k] = 1;
+          selected_root_to[k] = to;
+          compile_roots(k + 1);
+          selected_root_to[k] = -1;
+          success[k] = 0;
+        } else {
+          for (auto& rotation : option_rotations)
+            add_unique_rotation_candidate(
+                failed_rotations, std::move(rotation));
+        }
+        transaction.rollback(checkpoint);
+      }
+      if (budget.branch_calls < active_backtrack_cap()) {
+        ++budget.branch_calls;
+        const size_t checkpoint = transaction.checkpoint();
+        for (const auto& rotation : failed_rotations)
+          transaction.add_rotation(rotation);
+        paused.push_back(root.target);
+        compile_roots(k + 1);
+        paused.pop_back();
+        transaction.rollback(checkpoint);
+      }
+    };
+    compile_roots(0);
+  }
+
+  if (!best.valid) {
+    best.valid = true;
+    best.success.assign(roots.size(), 0);
+    for (const auto& root : roots) best.paused.push_back(root.target);
+  }
+  auto graph = std::move(best.state.graph);
+  std::sort(best.paused.begin(), best.paused.end());
+  best.paused.erase(std::unique(best.paused.begin(), best.paused.end()),
+                    best.paused.end());
+  graph.paused_roots = std::move(best.paused);
+  graph.effect_conflicts = budget.effect_conflicts;
+  graph.candidate_backtracks = budget.candidate_backtracks;
+  propagate_root_demands(graph, target_priority);
+  return graph;
+}
+
+inline const PairPlan* selected_pair_plan(
+    const PairCostTable& table, const std::vector<int>& tau, int target)
+{
+  if (target < 0 || target >= (int)table.size() ||
+      target >= (int)tau.size())
+    return nullptr;
+  for (const auto& entry : table[target])
+    if (entry.goal == tau[target]) return &entry.plan;
+  return nullptr;
+}
+
+inline std::vector<int> target_priorities_from_pair_cost(
+    const PairCostTable& table, const std::vector<int>& tau)
+{
+  std::vector<int> order(table.size());
+  std::iota(order.begin(), order.end(), 0);
+  std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
+    const PairPlan* plan_a = selected_pair_plan(table, tau, a);
+    const PairPlan* plan_b = selected_pair_plan(table, tau, b);
+    if ((plan_a != nullptr && !plan_a->exact) ||
+        (plan_b != nullptr && !plan_b->exact))
+      throw std::logic_error(
+          "target priority cannot consume an inexact PairCost bound");
+    const double ca =
+        plan_a != nullptr
+            ? plan_a->estimated_cost
+            : std::numeric_limits<double>::infinity();
+    const double cb =
+        plan_b != nullptr
+            ? plan_b->estimated_cost
+            : std::numeric_limits<double>::infinity();
+    return ca != cb ? ca > cb : a < b;
+  });
+  std::vector<int> priority(table.size(), 0);
+  for (size_t rank = 0; rank < order.size(); ++rank)
+    priority[order[rank]] = (int)order.size() - (int)rank;
+  return priority;
+}
+
+inline std::vector<int> ready_tasks(const DDInstance& ins,
+                                    const PhysConfig& physical,
+                                    const ShelfTaskGraph& graph)
+{
+  const auto upper = make_upper_signature(physical);
+  std::vector<uint8_t> occupied(ins.grid.size(), 0);
+  for (const int cell : upper.target_pos) occupied[cell] = 1;
+  for (const int cell : upper.anon_pos) occupied[cell] = 1;
+  std::vector<uint8_t> carried_target(ins.n_targets(), 0);
+  bool any_carried_anon = false;
+  for (const int k : physical.kappa) {
+    if (k >= 0 && k < (int)ins.n_targets()) carried_target[k] = 1;
+    if (k == KAPPA_ANON) any_carried_anon = true;
+  }
+  std::vector<int> ready;
+  for (size_t index = 0; index < graph.tasks.size(); ++index) {
+    const auto& task = graph.tasks[index];
+    if (!graph.predecessors[index].empty()) continue;
+    bool shelf_grounded = false;
+    if (task.id.shelf.kind == ShelfSelector::Kind::TARGET) {
+      const int target = task.id.shelf.value;
+      shelf_grounded =
+          target >= 0 && target < (int)physical.target_pos.size() &&
+          !carried_target[target] &&
+          physical.target_pos[target] == task.id.from;
+    } else {
+      shelf_grounded =
+          !any_carried_anon &&
+          std::binary_search(physical.anon_occ.begin(),
+                             physical.anon_occ.end(), task.id.from) &&
+          task.id.shelf.value == task.id.from;
+    }
+    if (!shelf_grounded || occupied[task.id.to]) continue;
+    ready.push_back((int)index);
+  }
+  std::stable_sort(ready.begin(), ready.end(), [&](int a, int b) {
+    if (graph.tasks[a].priority != graph.tasks[b].priority)
+      return graph.tasks[a].priority > graph.tasks[b].priority;
+    return graph.tasks[a].id < graph.tasks[b].id;
+  });
+  return ready;
+}
+
+struct PairEpisodeCost {
+  std::optional<ShelfSelector> open_shelf;
+  double value = 0;
+
+  void apply_shift(const ShelfSelector& shelf, double alpha,
+                   double gamma, double delta)
+  {
+    if (!open_shelf.has_value() || *open_shelf != shelf) {
+      if (open_shelf.has_value()) value += gamma;
+      value += gamma;
+      open_shelf = shelf;
+    }
+    value += alpha;
+    if (shelf.kind == ShelfSelector::Kind::ANON_AT_EPOCH_CELL)
+      value += delta;
+  }
+
+  double finish(double gamma)
+  {
+    if (open_shelf.has_value()) {
+      value += gamma;
+      open_shelf.reset();
+    }
+    return value;
+  }
+};
+
+inline double pair_episode_cost(
+    const std::vector<ShelfSelector>& shifted_shelves, double alpha,
+    double gamma, double delta)
+{
+  PairEpisodeCost cost;
+  for (const auto& shelf : shifted_shelves)
+    cost.apply_shift(shelf, alpha, gamma, delta);
+  return cost.finish(gamma);
+}
+
+inline PairPlan pair_cost_prefix_lower_bound(
+    const DDInstance& ins, const UpperSignature& upper, int target,
+    int goal, DDDistCache& upper_wall, double alpha, double gamma,
+    double delta, int prefix_cap)
+{
+  PairPlan out;
+  if (!eligible_goal(ins, target, goal)) {
+    out.estimated_cost = std::numeric_limits<double>::infinity();
+    out.stalled = true;
+    return out;
+  }
+  const int initial_distance =
+      upper_wall.dist(goal, upper.target_pos[target]);
+  out.direct_distance =
+      initial_distance >= INT_MAX / 4 ? INT_MAX : initial_distance;
+  if (initial_distance >= INT_MAX / 4) {
+    out.estimated_cost = std::numeric_limits<double>::infinity();
+    out.stalled = true;
+    return out;
+  }
+  if (upper.target_pos[target] == goal) {
+    out.reached_goal = true;
+    return out;
+  }
+
+  auto abstract = make_abstract_upper_state(ins, upper);
+  const TaskBRCompilerLimits limits{
+      std::max(32, 4 * ins.grid.size()),
+      std::max(64, 8 * ins.grid.size())};
+  const RootDemand root{target, goal};
+  PairEpisodeCost episode_cost;
+  SingleRootCompilerScratch compiler_scratch;
+  for (int step = 0; step < std::max(0, prefix_cap); ++step) {
+    const auto next = compile_single_root_next_ready_effect(
+        ins, abstract, root, upper_wall, limits, compiler_scratch);
+    if (!next.ready_effect.has_value()) {
+      out.stalled = true;
+      break;
+    }
+    const auto& effect = *next.ready_effect;
+    episode_cost.apply_shift(effect.shelf, alpha, gamma, delta);
+    abstract.move(effect.shelf, effect.to);
+    ++out.rollout_steps;
+    if (abstract.positions[target] == goal) {
+      out.reached_goal = true;
+      break;
+    }
+  }
+
+  if (out.reached_goal || out.stalled) {
+    out.estimated_cost = episode_cost.finish(gamma);
+    if (!out.reached_goal) {
+      const int remaining =
+          upper_wall.dist(goal, abstract.positions[target]);
+      if (remaining < INT_MAX / 4)
+        out.estimated_cost +=
+            alpha * (double)remaining + 2.0 * gamma;
+      out.estimated_cost +=
+          alpha * (double)(ins.grid.size() + 1) + 2.0 * gamma;
+    }
+    return out;
+  }
+
+  const int remaining =
+      upper_wall.dist(goal, abstract.positions[target]);
+  out.estimated_cost = episode_cost.value;
+  if (remaining < INT_MAX / 4)
+    out.estimated_cost += alpha * (double)remaining;
+  const ShelfSelector target_shelf{
+      ShelfSelector::Kind::TARGET, target};
+  if (!episode_cost.open_shelf.has_value()) {
+    out.estimated_cost += 2.0 * gamma;
+  } else if (*episode_cost.open_shelf == target_shelf) {
+    out.estimated_cost += gamma;
+  } else {
+    out.estimated_cost += 3.0 * gamma;
+  }
+  out.exact = false;
+  return out;
+}
+
+inline PairPlan pair_cost(const DDInstance& ins, const UpperSignature& upper,
+                          int target, int goal, DDDistCache& upper_wall,
+                          double alpha, double gamma, double delta)
+{
+  PairPlan out;
+  if (!eligible_goal(ins, target, goal)) {
+    out.estimated_cost = std::numeric_limits<double>::infinity();
+    out.stalled = true;
+    return out;
+  }
+  const int initial_distance =
+      upper_wall.dist(goal, upper.target_pos[target]);
+  out.direct_distance =
+      initial_distance >= INT_MAX / 4 ? INT_MAX : initial_distance;
+  if (initial_distance >= INT_MAX / 4) {
+    out.estimated_cost = std::numeric_limits<double>::infinity();
+    out.stalled = true;
+    return out;
+  }
+  if (upper.target_pos[target] == goal) {
+    out.reached_goal = true;
+    return out;
+  }
+
+  auto abstract = make_abstract_upper_state(ins, upper);
+  const int step_cap = std::max(8, std::min(128, 2 * ins.grid.size()));
+  const TaskBRCompilerLimits limits{
+      std::max(32, 4 * ins.grid.size()),
+      std::max(64, 8 * ins.grid.size())};
+  const RootDemand root{target, goal};
+  PairEpisodeCost episode_cost;
+  SingleRootCompilerScratch compiler_scratch;
+  for (int step = 0; step < step_cap; ++step) {
+    if (abstract.positions[target] == goal) {
+      out.reached_goal = true;
+      break;
+    }
+    const auto next = compile_single_root_next_ready_effect(
+        ins, abstract, root, upper_wall, limits, compiler_scratch);
+    if (!next.ready_effect.has_value()) {
+      out.stalled = true;
+      break;
+    }
+    const auto& effect = *next.ready_effect;
+    episode_cost.apply_shift(effect.shelf, alpha, gamma, delta);
+    abstract.move(effect.shelf, effect.to);
+    ++out.rollout_steps;
+    if (abstract.positions[target] == goal) {
+      out.reached_goal = true;
+      break;
+    }
+  }
+  if (!out.reached_goal && !out.stalled &&
+      out.rollout_steps >= step_cap)
+    out.truncated = true;
+  out.estimated_cost += episode_cost.finish(gamma);
+  if (!out.reached_goal) {
+    const int remaining =
+        upper_wall.dist(goal, abstract.positions[target]);
+    if (remaining < INT_MAX / 4)
+      out.estimated_cost += alpha * (double)remaining + 2.0 * gamma;
+    const double finite_penalty =
+        alpha * (double)(ins.grid.size() + 1) + 2.0 * gamma;
+    if (out.stalled || out.truncated)
+      out.estimated_cost += finite_penalty;
+  }
+  return out;
+}
+
 // lower-deck distance provider: exact Manhattan on wall-free grids,
 // shared lazy-BFS cache otherwise.
 struct LowerDist {
@@ -92,1202 +2060,1106 @@ struct LowerDist {
   }
 };
 
-constexpr int LAMBDA_BLK = 8;
-constexpr int CLEAR_CHAIN_K = 3;
-constexpr int LIVELOCK_WINDOW = 24;
-constexpr int ASSIGNMENT_EXACT_LIMIT = 256;
-constexpr int ACTIVE_TARGET_LIMIT = 256;
-constexpr int ACTIVE_TARGET_CAP = 64;
-constexpr int ASSIGNMENT_HYSTERESIS = 2;
-constexpr int HEAD_DROP_SCAN_CAP = 64;  // frontier head drop-hint BFS cap
-
-// Stable TaskId (design_final v3.0 §3): identity = (shelf, from, root).
-// `to` is deliberately EXCLUDED: a clear task keeps its identity while
-// the frontier compiler refines the drop cell, so rho hysteresis
-// survives vacancy churn.  Anonymous shelves pass shelf_target = -1 and
-// are distinguished by `from` (cell-equivalence-class semantics).
-inline uint64_t task_ident_hash(int shelf_target, int from,
-                                int root_target, int root_goal)
+inline int task_index_by_id(const ShelfTaskGraph& graph, const TaskId& id)
 {
-  auto mix = [](uint64_t x) {
-    x += 0x9e3779b97f4a7c15ULL;
-    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
-    return x ^ (x >> 31);
-  };
-  uint64_t h = mix((uint64_t)(uint32_t)(shelf_target + 2));
-  h ^= mix(((uint64_t)1 << 40) ^ (uint64_t)(uint32_t)from);
-  h ^= mix(((uint64_t)2 << 40) ^ (uint64_t)(uint32_t)(root_target + 1));
-  h ^= mix(((uint64_t)3 << 40) ^ (uint64_t)(uint32_t)root_goal);
-  return h == 0 ? 1 : h;  // 0 stays "invalid"
+  for (size_t i = 0; i < graph.tasks.size(); ++i)
+    if (graph.tasks[i].id == id) return (int)i;
+  return -1;
 }
 
-inline bool target_on_eligible_goal(const DDInstance& ins,
-                                    const PhysConfig& s, size_t b)
+inline Custody make_custody(const ShelfTask& task, int task_index)
 {
-  const auto& goals = ins.target_goal_sets[b];
-  return std::binary_search(goals.begin(), goals.end(), s.target_pos[b]);
+  Custody out;
+  out.task_id = task.id;
+  out.current_task_index =
+      task_index >= 0 ? std::optional<int>(task_index) : std::nullopt;
+  out.shelf = task.id.shelf;
+  out.from = task.id.from;
+  out.to = task.id.to;
+  out.roots = task.roots;
+  out.priority = task.priority;
+  return out;
 }
 
-// grid-sized scratch buffers reused across nodes (single-threaded)
-struct Scratch {
-  std::vector<uint8_t> upper;
-  std::vector<uint8_t> protect;
-  std::vector<int> grounded;  // 0 none; -1 anon; b+1 grounded target b
-  std::vector<int> owner;
-  std::vector<long long> dist;
-  std::vector<int> prev;
-  // Path occupancy view. Completed targets remain ordinary reversible
-  // blockers; task-level stability is handled by tau, not by path costs.
-  std::vector<uint8_t> upper_path;
-  std::vector<uint8_t> on_prev;     // path-inertia scratch
-  const void* occ_node = nullptr;
-  explicit Scratch(int n)
-      : upper(n, 0), protect(n, 0), grounded(n, 0), owner(n, 0), dist(n),
-        prev(n), upper_path(n, 0), on_prev(n, 0)
-  {
-  }
-};
-
-inline void fill_occupancy(const DDInstance& ins, const PhysConfig& s,
-                           Scratch& sc, const std::vector<int>& tau)
+inline bool task_matches_loaded_shelf(const PhysConfig& physical, int robot,
+                                      const TaskId& id)
 {
-  std::fill(sc.upper.begin(), sc.upper.end(), 0);
-  std::fill(sc.grounded.begin(), sc.grounded.end(), 0);
-  for (int p : s.anon_occ) {
-    sc.upper[p] = 1;
-    sc.grounded[p] = -1;
-  }
-  std::vector<bool> carried(ins.n_targets(), false);
-  for (int k : s.kappa)
-    if (k >= 0) carried[k] = true;
-  for (size_t b = 0; b < ins.n_targets(); ++b) {
-    sc.upper[s.target_pos[b]] = 1;
-    if (!carried[b]) sc.grounded[s.target_pos[b]] = (int)b + 1;
-  }
-  for (size_t i = 0; i < s.kappa.size(); ++i)
-    if (s.kappa[i] == KAPPA_ANON) sc.upper[s.robots[i]] = 1;
-  // path view: mask a target's own ASSIGNED goal cell (tau) ONLY while
-  // that target is CARRIED and hovering on it — kills the park/deliver
-  // circular dependency (design 5.4a); grounded targets stay real
-  // blockers.  tau == the fixed goal on singleton instances.
-  sc.upper_path = sc.upper;
-  for (size_t i = 0; i < s.kappa.size(); ++i) {
-    const int k = s.kappa[i];
-    if (k >= 0 && s.target_pos[k] == tau[k]) sc.upper_path[tau[k]] = 0;
-  }
-}
-
-inline void fill_occupancy_if_needed(const DDInstance& ins,
-                                     const PhysConfig& s, Scratch& sc,
-                                     const std::vector<int>& tau,
-                                     const void* key)
-{
-  if (sc.occ_node == key && key != nullptr) return;
-  fill_occupancy(ins, s, sc, tau);
-  sc.occ_node = key;
-}
-
-inline std::vector<int> least_blocking_path(
-    const DDGrid& g, int src, int dst,
-    const std::vector<uint8_t>& occupied, int exclude, Scratch& sc,
-    const std::vector<int>* prev_path = nullptr)
-{
-  if (src == dst) return {src};
-  constexpr long long PATH_INF = LLONG_MAX / 4;
-  std::fill(sc.dist.begin(), sc.dist.end(), PATH_INF);
-  auto& dist = sc.dist;
-  auto& prev = sc.prev;
-  prev[src] = -1;
-  // path inertia: scale base costs by 2N, previous-path cells get a -1
-  // discount — a strict tie-break, never trades real cost (P2-13c).
-  const int scale = 2 * (int)g.size();
-  const bool use_prev = prev_path && !prev_path->empty();
-  auto& on_prev = sc.on_prev;
-  if (use_prev) {
-    std::fill(on_prev.begin(), on_prev.end(), 0);
-    for (int c : *prev_path) on_prev[c] = 1;
-  }
-  using QE = std::pair<long long, int>;
-  std::priority_queue<QE, std::vector<QE>, std::greater<QE>> pq;
-  dist[src] = 0;
-  pq.push({0, src});
-  int nb[4];
-  while (!pq.empty()) {
-    auto [d, u] = pq.top();
-    pq.pop();
-    if (d > dist[u]) continue;
-    if (u == dst) break;
-    const int n = g.neighbors(u, nb);
-    for (int k = 0; k < n; ++k) {
-      const int v = nb[k];
-      const uint8_t occ = v != exclude ? occupied[v] : 0;
-      const int base = 1 + (occ ? LAMBDA_BLK : 0);
-      long long w = (long long)base * scale;
-      if (use_prev && on_prev[v]) w -= 1;
-      if (dist[v] > d + w) {
-        dist[v] = d + w;
-        prev[v] = u;
-        pq.push({dist[v], v});
-      }
-    }
-  }
-  if (dist[dst] >= PATH_INF) return {};
-  std::vector<int> path;
-  for (int c = dst; c != -1; c = prev[c]) path.push_back(c);
-  std::reverse(path.begin(), path.end());
-  return path;
-}
-
-// ---- tau: shelf->goal matching (design_final 5.3, D17/D19) ----
-// ONE Hungarian per node: primary lexicographic order = admissible LB
-// matrix (its optimal sum IS h_shelf), secondary = eta_B hysteresis
-// toward the parent assignment, third = the engine's deterministic tie
-// hash.  Structural degeneration on all-singleton (fixed-goal)
-// instances: forced assignment + the exact pre-goal-set h arithmetic.
-struct TauEngine {
-  bool inited = false;
-  bool all_singleton = false;
-  std::vector<int> cols;                  // column id -> goal cell
-  std::vector<std::vector<char>> elig;    // per target: eligibility by col
-  TAPFAssignmentState state;
-  long eta_b = ASSIGNMENT_HYSTERESIS;
-  long S = 1;  // hysteresis scale: eta_b * n + 1 (sum of pens < S)
-  long q = 1;  // LB quantization (1 for integral weights)
-};
-
-inline void tau_init(TauEngine& te, const DDInstance& ins, double alpha,
-                     double gamma)
-{
-  te.inited = true;
-  te.all_singleton = true;
-  for (const auto& set : ins.target_goal_sets)
-    te.all_singleton = te.all_singleton && set.size() == 1;
-  if (te.all_singleton) return;
-  const size_t n = ins.n_targets();
-  std::unordered_map<int, int> col_of;
-  std::vector<std::vector<int>> col_ids(n);
-  for (size_t b = 0; b < n; ++b)
-    for (const int g : ins.target_goal_sets[b]) {
-      const auto it = col_of.emplace(g, (int)col_of.size()).first;
-      col_ids[b].push_back(it->second);
-    }
-  te.cols.resize(col_of.size());
-  for (const auto& [cell, c] : col_of) te.cols[c] = cell;
-  te.elig.assign(n, std::vector<char>(te.cols.size(), 0));
-  for (size_t b = 0; b < n; ++b)
-    for (const int c : col_ids[b]) te.elig[b][c] = 1;
-  te.S = te.eta_b * (long)n + 1;
-  const bool integral_w =
-      alpha == std::floor(alpha) && gamma == std::floor(gamma);
-  te.q = integral_w ? 1 : 256;
-  te.state.init((int)n, (int)te.cols.size());
-}
-
-inline std::vector<int> solve_tau(
-    const DDInstance& ins, const PhysConfig& s, DDDistCache& upper_wall,
-    TauEngine& te, double alpha, double gamma,
-    const std::vector<int>* parent_tau,
-    const std::vector<std::pair<int, int>>* taboo, double* h_out,
-    bool preserve_parent = false,
-    // v3.0 §5.1 execution price: per-row (goal cell, price in lb units)
-    // applied ONLY to guidance matchings — the admissible h always comes
-    // from the price-free unrestricted matching (invariant 18).
-    const std::vector<std::pair<int, double>>* price = nullptr)
-{
-  const size_t n = ins.n_targets();
-  std::vector<int> tau(n, -1);
-  if (n == 0) {
-    if (h_out != nullptr) *h_out = 0;
-    return tau;
-  }
-  if (!te.inited) tau_init(te, ins, alpha, gamma);
-  std::vector<char> carried(n, 0);
-  for (const int k : s.kappa)
-    if (k >= 0) carried[k] = 1;
-  std::vector<char> settled(n, 0);
-  for (size_t b = 0; b < n; ++b)
-    settled[b] = !carried[b] && target_on_eligible_goal(ins, s, b);
-  // per-pair admissible lower bound (design_final 4.3 Lemma 1)
-  auto lb = [&](size_t b, int g) -> double {
-    double v = alpha * upper_wall.to(g)[s.target_pos[b]];
-    if (carried[b])
-      v += gamma;  // >= 1 drop
-    else if (s.target_pos[b] != g)
-      v += 2 * gamma;  // >= 1 lift + 1 drop
-    return v;
-  };
-  auto relaxed_h = [&]() {
-    double h = 0;
-    for (size_t b = 0; b < n; ++b) {
-      double best = -1;
-      for (const int g : ins.target_goal_sets[b]) {
-        const double v = lb(b, g);
-        if (best < 0 || v < best) best = v;
-      }
-      h += best;
-    }
-    return h;
-  };
-
-  if (te.all_singleton) {
-    // structural degeneration (D22): forced tau; h via the EXACT
-    // pre-goal-set arithmetic (same loop shape, same skip of done)
-    double h = 0;
-    for (size_t b = 0; b < n; ++b) {
-      const int g = ins.target_goal_sets[b][0];
-      tau[b] = g;
-      const bool done = !carried[b] && s.target_pos[b] == g;
-      if (done) continue;
-      h += alpha * upper_wall.to(g)[s.target_pos[b]];
-      h += gamma * (carried[b] ? 1 : 2);
-    }
-    if (h_out != nullptr) *h_out = h;
-    return tau;
-  }
-
-  // A shelf-goal assignment is a task-level commitment, not a primitive
-  // motion preference. Between task boundaries the physical LB matrix may
-  // change as a carried shelf moves, but changing its destination every
-  // timestep disconnects robot execution from shelf planning. Reuse the
-  // parent assignment and retain an admissible row-relaxed lower bound;
-  // callers explicitly disable this at drop/reguidance boundaries.
-  if (preserve_parent && parent_tau != nullptr &&
-      parent_tau->size() == n) {
-    bool valid = true;
-    for (size_t b = 0; b < n; ++b) {
-      valid &= std::binary_search(ins.target_goal_sets[b].begin(),
-                                  ins.target_goal_sets[b].end(),
-                                  (*parent_tau)[b]);
-      valid &= !settled[b] || (*parent_tau)[b] == s.target_pos[b];
-    }
-    if (valid) {
-      tau = *parent_tau;
-      if (h_out != nullptr) *h_out = relaxed_h();
-      return tau;
-    }
-  }
-
-  auto banned = [&](size_t b, int g) {
-    if (taboo == nullptr) return false;
-    if (ins.target_goal_sets[b].size() <= 1) return false;  // exempt
-    if (carried[b] || settled[b]) return false;
-    for (const auto& [tb, tg] : *taboo)
-      if (tb == (int)b && tg == g) return true;
+  if (robot < 0 || robot >= (int)physical.robots.size() ||
+      robot >= (int)physical.kappa.size() ||
+      physical.robots[robot] != id.from)
     return false;
-  };
-  if ((int)n > ASSIGNMENT_EXACT_LIMIT) {
-    // scale-regime relaxation (design_final 4.3): row-wise nearest
-    // eligible goal; h ignores injectivity (still admissible, weaker).
-    // Hysteresis: stick to the parent goal within an eta_B slack.
-    double h = 0;
-    for (size_t b = 0; b < n; ++b) {
-      const auto& set = ins.target_goal_sets[b];
-      double h_best = -1;
-      for (const int g : set) {
-        const double v = lb(b, g);
-        if (h_best < 0 || v < h_best) h_best = v;
-      }
-      double best = -1;
-      int best_g = -1;
-      for (const int g : set) {
-        if (banned(b, g)) continue;
-        const double v = lb(b, g);
-        if (best_g < 0 || v < best) {
-          best = v;
-          best_g = g;
-        }
-      }
-      if (best_g < 0) {  // fully tabooed row: fall back to the raw min
-        for (const int g : set) {
-          const double v = lb(b, g);
-          if (best_g < 0 || v < best) {
-            best = v;
-            best_g = g;
-          }
-        }
-      }
-      if (settled[b]) {
-        best_g = s.target_pos[b];
-      } else if (carried[b] && parent_tau != nullptr &&
-          std::binary_search(set.begin(), set.end(), (*parent_tau)[b])) {
-        best_g = (*parent_tau)[b];
-      } else if (parent_tau != nullptr) {
-        const int pg = (*parent_tau)[b];
-        if (pg >= 0 && pg != best_g && !banned(b, pg) &&
-            std::binary_search(set.begin(), set.end(), pg) &&
-            lb(b, pg) <= best + (double)te.eta_b)
-          best_g = pg;
-      }
-      tau[b] = best_g;
-      h += h_best;  // unrestricted row minimum (admissible)
-    }
-    if (h_out != nullptr) *h_out = h;
-    return tau;
-  }
-
-  // exact regime: one Hungarian, lexicographic (LB, hysteresis, tie)
-  const long INF = kTapfAssignmentInfCost;
-  const long enc_cap =
-      std::min<long>(INF / 2 - 1, (long)INT_MAX / (long)(n + 1));
-  std::vector<int> locked_col(n, -1);
-  std::vector<int> locked_owner(te.cols.size(), -1);
-  std::vector<uint8_t> lock_kind(n, 0);  // 1 carried, 2 settled
-  // Prefer terminal placement over historical intent: a grounded target on
-  // any eligible goal owns that cell whenever the partial matching extends.
-  // An in-flight target reroutes on such a commitment conflict.
-  for (size_t b = 0; b < n; ++b) {
-    if (!settled[b]) continue;
-    const auto it =
-        std::find(te.cols.begin(), te.cols.end(), s.target_pos[b]);
-    if (it == te.cols.end()) continue;
-    const int col = static_cast<int>(it - te.cols.begin());
-    locked_col[b] = col;
-    locked_owner[col] = (int)b;
-    lock_kind[b] = 2;
-  }
-  if (parent_tau != nullptr && parent_tau->size() == n) {
-    for (size_t b = 0; b < n; ++b) {
-      if (!carried[b] || settled[b]) continue;
-      const auto it = std::find(te.cols.begin(), te.cols.end(),
-                                (*parent_tau)[b]);
-      if (it == te.cols.end()) continue;
-      const int col = static_cast<int>(it - te.cols.begin());
-      if (!te.elig[b][col] ||
-          locked_owner[col] >= 0)
-        continue;
-      locked_col[b] = col;
-      locked_owner[col] = (int)b;
-      lock_kind[b] = 1;
-    }
-  }
-  auto make_cost = [&](bool use_taboo, bool use_locks, bool use_price) {
-    return [&, use_taboo, use_locks, use_price](int row, int col) -> int {
-      if (!te.elig[row][col]) return (int)INF;
-      if (use_locks &&
-          ((locked_col[row] >= 0 && locked_col[row] != col) ||
-           (locked_owner[col] >= 0 && locked_owner[col] != row)))
-        return (int)INF;
-      const int g = te.cols[col];
-      if (use_taboo && banned((size_t)row, g)) return (int)INF;
-      const double v = lb((size_t)row, g);
-      long lbq = (long)std::floor(v * (double)te.q + 1e-9);
-      if (use_price && price != nullptr && (*price)[row].first == g) {
-        long pq = (long)std::floor((*price)[row].second * (double)te.q);
-        pq = std::min(pq, (long)1 << 20);  // encoding safety clamp
-        lbq += pq;
-      }
-      long pen = 0;
-      if (parent_tau != nullptr && (*parent_tau)[row] != g) pen = te.eta_b;
-      const long enc = lbq * te.S + pen;
-      if (enc > enc_cap)
-        throw std::runtime_error(
-            "solve_tau: cost encoding overflow (weights too large for "
-            "the goal-set matching regime)");
-      return (int)enc;
-    };
-  };
-  auto unrestricted = te.state.solve_full(make_cost(false, false, false));
-  if (!unrestricted.feasible)
-    throw std::logic_error(
-        "solve_tau: infeasible matching (covering checked at load)");
-  if (h_out != nullptr)
-    *h_out =
-        (double)((long)unrestricted.cost / te.S) / (double)te.q;
-
-  auto rebuild_locked_owner = [&]() {
-    std::fill(locked_owner.begin(), locked_owner.end(), -1);
-    for (size_t b = 0; b < n; ++b)
-      if (locked_col[b] >= 0) locked_owner[locked_col[b]] = (int)b;
-  };
-  auto solve_with_locks = [&]() {
-    auto candidate =
-        te.state.solve_full(make_cost(taboo != nullptr, true, true));
-    if (!candidate.feasible && taboo != nullptr)
-      candidate = te.state.solve_full(make_cost(false, true, true));
-    return candidate;
-  };
-  const bool have_locks =
-      std::any_of(locked_col.begin(), locked_col.end(),
-                  [](int col) { return col >= 0; });
-  auto res = (!have_locks && taboo == nullptr && price == nullptr)
-                 ? unrestricted
-                 : solve_with_locks();
-  if (!res.feasible) {
-    // A set of individually valid carried commitments need not extend to a
-    // complete matching. Settled rows have priority, so release carried
-    // locks first and retain every settled placement when feasible.
-    for (size_t b = 0; b < n; ++b)
-      if (lock_kind[b] == 1) {
-        locked_col[b] = -1;
-        lock_kind[b] = 0;
-      }
-    rebuild_locked_owner();
-    res = solve_with_locks();
-  }
-  if (!res.feasible) {
-    // A currently settled placement can also be non-extendable (for
-    // example, a flexible target occupies another target's singleton
-    // goal). Keep the settled rows retained by the unrestricted matching;
-    // that matching witnesses feasibility of this reduced lock set.
-    for (size_t b = 0; b < n; ++b) {
-      const int col = unrestricted.agent_to_task[b];
-      const bool retained =
-          settled[b] && col >= 0 && col < (int)te.cols.size() &&
-          te.cols[col] == s.target_pos[b];
-      locked_col[b] = retained ? col : -1;
-      lock_kind[b] = retained ? 2 : 0;
-    }
-    rebuild_locked_owner();
-    res = solve_with_locks();
-  }
-  if (!res.feasible)
-    throw std::logic_error(
-        "solve_tau: infeasible matching (covering checked at load)");
-  for (size_t b = 0; b < n; ++b) tau[b] = te.cols[res.agent_to_task[b]];
-  return tau;
+  if (id.shelf.kind == ShelfSelector::Kind::TARGET)
+    return physical.kappa[robot] == id.shelf.value;
+  return physical.kappa[robot] == KAPPA_ANON &&
+         id.shelf.value == id.from;
 }
 
-// per-target cached least-blocking path, lazy asymmetric invalidation
-// (design 6.2).  Strict snapshots remain available to the cache-purity
-// test probe, but production uses the cheaper path-local invalidation.
-struct PathCache {
-  bool strict_inval;
-  long recomputes = 0;  // diagnostics (DDStats.path_recomputes)
-  long hits = 0;        // diagnostics (DDStats.path_cache_hits)
-  explicit PathCache(bool strict = false) : strict_inval(strict) {}
-  struct Entry {
-    std::vector<int> path;
-    std::vector<uint8_t> occ_snapshot;
-    std::vector<uint8_t> full_snapshot;  // strict mode only
-    int src = -1;
-    int dst = -1;  // T5: tau can reassign goals; a dst change is a MISS
-  };
-  std::unordered_map<int, Entry> by_target;
+inline bool adjacent_cells(const DDGrid& grid, int from, int to)
+{
+  int neighbors[4];
+  const int count = grid.neighbors(from, neighbors);
+  for (int i = 0; i < count; ++i)
+    if (neighbors[i] == to) return true;
+  return false;
+}
 
-  const std::vector<int>& get(const DDGrid& g, int b, int src, int dst,
-                              const std::vector<uint8_t>& occupied,
-                              int exclude, Scratch& sc)
-  {
-    auto it = by_target.find(b);
-    if (it != by_target.end() && it->second.dst == dst) {
-      auto& e = it->second;
-      if (e.src != src && e.path.size() >= 2 && e.path[1] == src) {
-        e.path.erase(e.path.begin());
-        e.occ_snapshot.erase(e.occ_snapshot.begin());
-        e.src = src;
-        if (!e.occ_snapshot.empty()) e.occ_snapshot[0] = 0;
-      }
-      if (e.src == src) {
-        bool ok = true;
-        if (strict_inval) {
-          for (size_t c = 0; c < occupied.size() && ok; ++c) {
-            const uint8_t occ_now =
-                (int)c != exclude ? occupied[c] : 0;
-            ok = occ_now == e.full_snapshot[c];
-          }
-        } else {
-          for (size_t i = 0; i < e.path.size() && ok; ++i) {
-            const int c = e.path[i];
-            const uint8_t occ_now = c != exclude ? occupied[c] : 0;
-            ok = occ_now <= e.occ_snapshot[i];
-          }
-        }
-        if (ok) {
-          ++hits;
-          return e.path;
-        }
-      }
-    }
-    Entry e;
-    e.src = src;
-    e.dst = dst;
-    ++recomputes;
-    const std::vector<int>* prev_path = nullptr;
-    if (it != by_target.end() && !it->second.path.empty() &&
-        it->second.dst == dst)
-      prev_path = &it->second.path;  // inertia baseline (same dst only)
-    e.path =
-        least_blocking_path(g, src, dst, occupied, exclude, sc, prev_path);
-    e.occ_snapshot.resize(e.path.size());
-    for (size_t i = 0; i < e.path.size(); ++i) {
-      const int c = e.path[i];
-      e.occ_snapshot[i] = c != exclude ? occupied[c] : 0;
-    }
-    if (strict_inval) {
-      e.full_snapshot.resize(occupied.size());
-      for (size_t c = 0; c < occupied.size(); ++c)
-        e.full_snapshot[c] = (int)c != exclude ? occupied[c] : 0;
-    }
-    auto res = by_target.insert_or_assign(b, std::move(e));
-    return res.first->second.path;
+inline bool custody_physically_valid(const DDInstance& ins,
+                                     const PhysConfig& physical, int robot,
+                                     const Custody& custody)
+{
+  if (custody.task_id !=
+      TaskId{custody.shelf, custody.from, custody.to})
+    return false;
+  if (!task_matches_loaded_shelf(physical, robot, custody.task_id) ||
+      !adjacent_cells(ins.grid, custody.from, custody.to))
+    return false;
+  const auto upper = make_upper_signature(physical);
+  return std::find(upper.target_pos.begin(), upper.target_pos.end(),
+                   custody.to) == upper.target_pos.end() &&
+         !std::binary_search(upper.anon_pos.begin(), upper.anon_pos.end(),
+                             custody.to);
+}
+
+inline bool task_shelf_is_grounded(const DDInstance& ins,
+                                   const PhysConfig& physical,
+                                   const TaskId& id)
+{
+  if (id.shelf.kind == ShelfSelector::Kind::TARGET) {
+    const int target = id.shelf.value;
+    if (target < 0 || target >= (int)ins.n_targets() ||
+        physical.target_pos[target] != id.from)
+      return false;
+    return std::find(physical.kappa.begin(), physical.kappa.end(),
+                     target) == physical.kappa.end();
   }
+  return id.shelf.value == id.from &&
+         std::binary_search(physical.anon_occ.begin(),
+                            physical.anon_occ.end(), id.from);
+}
+
+inline int carrier_of_task_shelf(const DDInstance& ins,
+                                 const PhysConfig& physical,
+                                 const TaskId& id)
+{
+  for (size_t robot = 0; robot < physical.kappa.size(); ++robot) {
+    if (physical.robots[robot] != id.from) continue;
+    if (id.shelf.kind == ShelfSelector::Kind::TARGET) {
+      if (id.shelf.value >= 0 &&
+          id.shelf.value < (int)ins.n_targets() &&
+          physical.kappa[robot] == id.shelf.value)
+        return (int)robot;
+    } else if (physical.kappa[robot] == KAPPA_ANON &&
+               id.shelf.value == id.from) {
+      return (int)robot;
+    }
+  }
+  return -1;
+}
+
+inline std::vector<int> ready_tasks_with_custody(
+    const DDInstance& ins, const PhysConfig& physical,
+    const ShelfTaskGraph& graph,
+    const std::vector<std::optional<Custody>>& custody_by_robot,
+    const std::vector<uint8_t>& continuation_carrier)
+{
+  const auto upper = make_upper_signature(physical);
+  std::vector<uint8_t> occupied(ins.grid.size(), 0);
+  for (const int cell : upper.target_pos)
+    if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
+  for (const int cell : upper.anon_pos)
+    if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
+
+  std::unordered_map<TaskId, int, TaskIdHash> custody_owner;
+  for (size_t robot = 0; robot < custody_by_robot.size(); ++robot)
+    if (custody_by_robot[robot].has_value())
+      custody_owner[custody_by_robot[robot]->task_id] = (int)robot;
+
+  std::vector<int> ready;
+  for (size_t index = 0; index < graph.tasks.size(); ++index) {
+    const auto& task = graph.tasks[index];
+    if (index >= graph.predecessors.size() ||
+        !graph.predecessors[index].empty())
+      continue;
+    if (task.id.to < 0 || task.id.to >= (int)occupied.size() ||
+        occupied[task.id.to] || custody_owner.count(task.id))
+      continue;
+
+    bool shelf_available =
+        task_shelf_is_grounded(ins, physical, task.id);
+    if (!shelf_available) {
+      const int carrier =
+          carrier_of_task_shelf(ins, physical, task.id);
+      shelf_available =
+          carrier >= 0 &&
+          carrier < (int)continuation_carrier.size() &&
+          continuation_carrier[carrier] &&
+          carrier < (int)custody_by_robot.size() &&
+          !custody_by_robot[carrier].has_value();
+    }
+    if (shelf_available) ready.push_back((int)index);
+  }
+  std::stable_sort(ready.begin(), ready.end(), [&](int a, int b) {
+    if (graph.tasks[a].priority != graph.tasks[b].priority)
+      return graph.tasks[a].priority > graph.tasks[b].priority;
+    return graph.tasks[a].id < graph.tasks[b].id;
+  });
+  return ready;
+}
+
+struct CustodyRecovery {
+  std::vector<std::optional<Custody>> custody_by_robot;
+  std::vector<uint8_t> continuation_carrier;
+  std::vector<int> previous_loaded_move_from;
+  bool transition_valid = false;
 };
 
-// cross-deck wait-for graph (design 5.5, M9): one out-edge per robot;
-// cycles are structural deadlocks -> targeted rho taboo.
-inline std::vector<int> waitfor_cycles(const DDInstance& ins, const PhysConfig& s,
-                                const CarrierGuidance& g,
-                                LowerDist& lower_dist, Scratch& sc)
+inline bool exact_ready_binding(const CarrierGuidance& guidance,
+                                const TaskId& id, int* task_index)
 {
-  const size_t R = ins.n_robots();
-  std::vector<int> robot_at(ins.grid.size(), -1);
-  for (size_t i = 0; i < R; ++i) robot_at[s.robots[i]] = (int)i;
-  std::vector<int> assignee_of_cell(ins.grid.size(), -1);
-  for (size_t i = 0; i < R; ++i)
-    if (g.rho[i] >= 0 && g.free_goal[i] >= 0)
-      assignee_of_cell[g.free_goal[i]] = (int)i;
-  auto next_cell = [&](size_t i) -> int {
-    const int k = s.kappa[i];
-    if (k >= 0 && !g.target_park[k]) return g.target_next[k];
-    if (k == KAPPA_ANON || (k >= 0 && g.target_park[k])) {
-      const int park = g.parking_cell[i];
-      if (park < 0 || park == s.robots[i]) return -1;
-      int nb[4];
-      const int n = ins.grid.neighbors(s.robots[i], nb);
-      int best = -1, bd = INT_MAX / 2;
-      for (int t = 0; t < n; ++t) {
-        const int d = lower_dist.dist(park, nb[t]);
-        if (d < bd) {
-          bd = d;
-          best = nb[t];
-        }
-      }
-      return best;
-    }
-    const int goal = g.free_goal[i];
-    if (goal < 0 || goal == s.robots[i]) return -1;
-    int nb[4];
-    const int n = ins.grid.neighbors(s.robots[i], nb);
-    int best = -1, bd = INT_MAX / 2;
-    for (int t = 0; t < n; ++t) {
-      const int d = lower_dist.dist(goal, nb[t]);
-      if (d < bd) {
-        bd = d;
-        best = nb[t];
-      }
-    }
-    return best;
-  };
-  std::vector<int> out(R, -1);
-  for (size_t i = 0; i < R; ++i) {
-    const int nc = next_cell(i);
-    if (nc < 0) continue;
-    if (robot_at[nc] >= 0 && robot_at[nc] != (int)i) {
-      out[i] = robot_at[nc];
+  if (guidance.upper_epoch == nullptr) return false;
+  const int index =
+      task_index_by_id(guidance.upper_epoch->task_graph, id);
+  if (index < 0 ||
+      std::find(guidance.ready_tasks.begin(), guidance.ready_tasks.end(),
+                index) == guidance.ready_tasks.end())
+    return false;
+  if (task_index != nullptr) *task_index = index;
+  return true;
+}
+
+inline CustodyRecovery recover_task_br_custody(
+    const DDInstance& ins, const PhysConfig& physical,
+    const ShelfTaskGraph& current_graph, const PhysConfig* previous_physical,
+    const CarrierGuidance* previous_guidance,
+    const std::vector<Op>* executed_ops)
+{
+  CustodyRecovery out;
+  const size_t robot_count = ins.n_robots();
+  out.custody_by_robot.resize(robot_count);
+  out.continuation_carrier.assign(robot_count, 0);
+  out.previous_loaded_move_from.assign(robot_count, -1);
+  if (previous_physical == nullptr || executed_ops == nullptr ||
+      previous_physical->robots.size() != robot_count ||
+      previous_physical->kappa.size() != robot_count ||
+      executed_ops->size() != robot_count)
+    return out;
+  const auto replayed = apply_ops(ins, *previous_physical, *executed_ops);
+  if (!replayed.has_value() || !(*replayed == physical)) return out;
+  out.transition_valid = true;
+
+  for (size_t robot = 0; robot < robot_count; ++robot) {
+    if (physical.kappa[robot] == KAPPA_FREE) continue;
+    const auto& op = (*executed_ops)[robot];
+    const int previous_kappa = previous_physical->kappa[robot];
+
+    if (previous_kappa != KAPPA_FREE && op.kind == Op::MOVE) {
+      out.continuation_carrier[robot] = 1;
+      out.previous_loaded_move_from[robot] =
+          previous_physical->robots[robot];
       continue;
     }
-    if (s.kappa[i] != KAPPA_FREE && sc.grounded[nc] != 0) {
-      const int j = assignee_of_cell[nc];
-      if (j >= 0 && j != (int)i) out[i] = j;
+
+    if (previous_kappa != KAPPA_FREE && op.kind == Op::WAIT &&
+        previous_guidance != nullptr &&
+        robot < previous_guidance->custody_by_robot.size() &&
+        previous_guidance->custody_by_robot[robot].has_value()) {
+      Custody custody =
+          *previous_guidance->custody_by_robot[robot];
+      if (!custody_physically_valid(ins, physical, (int)robot, custody))
+        continue;
+      const int current_index =
+          task_index_by_id(current_graph, custody.task_id);
+      custody.current_task_index =
+          current_index >= 0 ? std::optional<int>(current_index)
+                             : std::nullopt;
+      if (current_index >= 0) {
+        const auto& current_task = current_graph.tasks[current_index];
+        custody.roots = current_task.roots;
+        custody.priority = current_task.priority;
+      }
+      out.custody_by_robot[robot] = std::move(custody);
+      continue;
+    }
+
+    if (previous_kappa == KAPPA_FREE && op.kind == Op::LIFT &&
+        previous_guidance != nullptr &&
+        robot < previous_guidance->rho_task_id.size() &&
+        previous_guidance->rho_task_id[robot].has_value()) {
+      const TaskId id = *previous_guidance->rho_task_id[robot];
+      int previous_index = -1;
+      if (!exact_ready_binding(*previous_guidance, id,
+                               &previous_index) ||
+          !task_matches_loaded_shelf(physical, (int)robot, id))
+        continue;
+      const auto& previous_task =
+          previous_guidance->upper_epoch->task_graph.tasks[previous_index];
+      Custody custody = make_custody(previous_task, -1);
+      const int current_index = task_index_by_id(current_graph, id);
+      custody.current_task_index =
+          current_index >= 0 ? std::optional<int>(current_index)
+                             : std::nullopt;
+      if (current_index >= 0) {
+        custody.roots = current_graph.tasks[current_index].roots;
+        custody.priority = current_graph.tasks[current_index].priority;
+      }
+      if (custody_physically_valid(ins, physical, (int)robot, custody))
+        out.custody_by_robot[robot] = std::move(custody);
     }
   }
-  std::vector<int> color(R, 0);
-  std::vector<int> in_cycle;
-  for (size_t st = 0; st < R; ++st) {
-    if (color[st] != 0) continue;
-    std::vector<int> stack;
-    int cur = (int)st;
-    while (cur >= 0 && color[cur] == 0) {
-      color[cur] = 1;
-      stack.push_back(cur);
-      cur = out[cur];
-    }
-    if (cur >= 0 && color[cur] == 1) {
-      auto itc = std::find(stack.begin(), stack.end(), cur);
-      for (auto p = itc; p != stack.end(); ++p) in_cycle.push_back(*p);
-    }
-    for (int v : stack) color[v] = 2;
-  }
-  std::sort(in_cycle.begin(), in_cycle.end());
-  return in_cycle;
+  return out;
 }
 
-// v3.0 §5.1: one light execution-price feedback round over a BUILT
-// guidance.  A multi-goal root is priced when the realization of its
-// CURRENT frontier pickup (assigned robot's distance, else nearest free
-// robot, else a board-diameter penalty when nobody can serve) exceeds
-// its lb slack to the best alternative goal plus hysteresis.  Prices
-// feed ONLY guidance matchings (invariant 18); carried/settled/singleton
-// rows and goal-blind serve frontiers are exempt.  Shared by the planner
-// (attach_carrier_guidance) and the guidance probes.
-inline bool compute_execution_prices(
-    const DDInstance& ins, const PhysConfig& s,
-    const CarrierGuidance& guide, const std::vector<int>& tau,
-    DDDistCache& upper_wall, LowerDist& lower_dist, double alpha,
-    double beta, std::vector<std::pair<int, double>>& price)
+inline void bind_ready_continuations(
+    const DDInstance& ins, const PhysConfig& physical,
+    const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
+    const std::vector<uint8_t>& continuation_carrier,
+    const std::vector<int>& previous_loaded_move_from,
+    std::vector<std::optional<Custody>>& custody_by_robot)
 {
-  price.assign(ins.n_targets(), {-1, 0.0});
-  if (guide.tasks.empty()) return false;
-  bool any = false;
-  std::vector<int> head(ins.n_targets(), -1);
-  for (size_t k = 0; k < guide.tasks.size(); ++k) {
-    const auto& t = guide.tasks[k];
-    if (t.root_target < 0 || head[t.root_target] >= 0) continue;
-    // the priced frontier is the first task that is NOT the goal-blind
-    // serve pickup: the chain-head clear/ready move (emit order = per
-    // root priority order)
-    if (t.root_target < (int)ins.n_targets() &&
-        t.from != s.target_pos[t.root_target])
-      head[t.root_target] = (int)k;
-  }
-  std::vector<int> server(guide.tasks.size(), -1);
-  for (size_t i = 0; i < ins.n_robots(); ++i)
-    if (i < guide.rho_task.size() && guide.rho_task[i] >= 0 &&
-        guide.rho_task[i] < (int)guide.tasks.size())
-      server[guide.rho_task[i]] = (int)i;
-  std::vector<char> carried(ins.n_targets(), 0);
-  for (const int k : s.kappa)
-    if (k >= 0) carried[k] = 1;
-  const long far_realization = 2L * (ins.grid.height + ins.grid.width);
-  for (size_t b = 0; b < ins.n_targets(); ++b) {
-    if (head[b] < 0 || carried[b]) continue;
-    if (ins.target_goal_sets[b].size() <= 1) continue;  // singleton
-    if (s.target_pos[b] == tau[b]) continue;            // settled
-    const auto& t = guide.tasks[head[b]];
-    if (t.from == s.target_pos[b]) continue;  // serve: goal-blind pickup
-    // Delta pricing (anti-oscillation): the price is the EXCESS of
-    // realizing the CURRENT frontier over the goal-independent shelf
-    // approach (the optimistic baseline any alternative goal shares).
-    // One-sided absolute prices flap on dense boards: after a flip the
-    // reverse pair gets priced by the same magnitude and hysteresis is
-    // tie-strength only.  The delta form is ~antisymmetric, so a flip
-    // does not immediately price itself back.
-    long r_cur = -1;
-    long r_alt = -1;
-    if (server[head[b]] >= 0) {
-      const int rc = s.robots[server[head[b]]];
-      r_cur = lower_dist.dist(t.from, rc);
-      r_alt = lower_dist.dist(s.target_pos[b], rc);
-    } else {
-      for (size_t i = 0; i < ins.n_robots(); ++i)
-        if (s.kappa[i] == KAPPA_FREE) {
-          const long dc = lower_dist.dist(t.from, s.robots[i]);
-          const long da = lower_dist.dist(s.target_pos[b], s.robots[i]);
-          r_cur = r_cur < 0 ? dc : std::min(r_cur, dc);
-          r_alt = r_alt < 0 ? da : std::min(r_alt, da);
-        }
-      if (r_cur < 0) {  // contested: nobody can serve this root at all
-        r_cur = far_realization;
-        r_alt = 0;
-      }
-    }
-    const long excess = r_cur - r_alt;
-    if (excess <= 0) continue;
-    // R4(c): robot walking is priced in BETA units (free-move weight);
-    // the lb gap and hysteresis threshold live in the same objective
-    // scale, so the comparison is dimensionally consistent under
-    // non-unit weights (beta = 0 => walking is free => no price).
-    const double priced_excess = beta * (double)excess;
-    if (priced_excess <= 0) continue;
-    const double lb_cur = alpha * upper_wall.to(tau[b])[s.target_pos[b]];
-    double lb_alt = -1;
-    for (const int gg : ins.target_goal_sets[b]) {
-      if (gg == tau[b]) continue;
-      const double v = alpha * upper_wall.to(gg)[s.target_pos[b]];
-      if (lb_alt < 0 || v < lb_alt) lb_alt = v;
-    }
-    if (lb_alt < 0) continue;
-    if (priced_excess > (lb_alt - lb_cur) + ASSIGNMENT_HYSTERESIS) {
-      price[b] = {tau[b], priced_excess};
-      any = true;
+  const bool suppress_immediate_reverse =
+      !target_dense_upper_layout(
+          ins, make_upper_signature(physical));
+  for (size_t robot = 0; robot < ins.n_robots(); ++robot) {
+    if (robot >= continuation_carrier.size() ||
+        !continuation_carrier[robot] ||
+        physical.kappa[robot] == KAPPA_FREE ||
+        custody_by_robot[robot].has_value())
+      continue;
+    for (const int index : ready_tasks) {
+      if (index < 0 || index >= (int)graph.tasks.size()) continue;
+      const auto& task = graph.tasks[index];
+      if (!task_matches_loaded_shelf(physical, (int)robot, task.id))
+        continue;
+      if (suppress_immediate_reverse &&
+          robot < previous_loaded_move_from.size() &&
+          previous_loaded_move_from[robot] >= 0 &&
+          task.id.to == previous_loaded_move_from[robot])
+        continue;
+      custody_by_robot[robot] = make_custody(task, index);
+      break;
     }
   }
-  return any;
 }
 
-// guidance construction (design 5.3/5.4a; ported: requests, park/yield,
-// rho via the SHARED Hungarian + eta hysteresis, parking placement)
-inline CarrierGuidance build_guidance(
-    const DDInstance& ins, const PhysConfig& s, const std::vector<int>& tau,
-    DDDistCache& upper_wall, LowerDist& lower_dist,
-    PathCache& paths, Scratch& sc, const void* node_key,
-    const std::vector<std::pair<int, int>>* taboo = nullptr,
-    const CarrierGuidance* parent_guide = nullptr)
+struct RhoCandidate {
+  int task_index = -1;
+  TaskId id;
+  int priority = 0;
+  bool mandatory = false;
+};
+
+inline DDReadyMatchProbe match_ready_tasks(
+    const DDInstance& ins, const PhysConfig& physical,
+    const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
+    const std::vector<std::optional<TaskId>>* previous_rho_task_id)
 {
-  CarrierGuidance g;
-  g.tau = tau;
-  const size_t R = ins.n_robots();
-  fill_occupancy_if_needed(ins, s, sc, tau, node_key);
-  std::fill(sc.protect.begin(), sc.protect.end(), 0);
-  std::fill(sc.owner.begin(), sc.owner.end(), 0);
-  g.target_next.assign(ins.n_targets(), -1);
-  g.target_park.assign(ins.n_targets(), 0);
+  DDReadyMatchProbe out;
+  const size_t robot_count = ins.n_robots();
+  out.rho_task_id.resize(robot_count);
+  out.rho_ready_index.assign(robot_count, -1);
 
-  // Active-target cap (throughput, ordering-only)
-  const size_t n_unf_precount = [&] {
-    size_t n = 0;
-    std::vector<char> cf(ins.n_targets(), 0);
-    for (int k : s.kappa)
-      if (k >= 0) cf[k] = 1;
-    for (size_t b = 0; b < ins.n_targets(); ++b)
-      if (cf[b] || s.target_pos[b] != tau[b]) ++n;
-    return n;
-  }();
-  const size_t ACTIVE_CAP =
-      n_unf_precount > ACTIVE_TARGET_LIMIT ? ACTIVE_TARGET_CAP
-                                           : n_unf_precount;
-  std::vector<int> active_targets;
-  {
-    std::vector<char> carried_flag(ins.n_targets(), 0);
-    for (int k : s.kappa)
-      if (k >= 0) carried_flag[k] = 1;
-    std::vector<int> rest;
-    for (size_t b = 0; b < ins.n_targets(); ++b) {
-      const bool done = !carried_flag[b] && s.target_pos[b] == tau[b];
-      if (done) continue;
-      if (carried_flag[b])
-        active_targets.push_back((int)b);
-      else
-        rest.push_back((int)b);
-    }
-    std::stable_sort(rest.begin(), rest.end(), [&](int a, int b2) {
-      const auto& da = upper_wall.to(tau[a]);
-      const auto& db = upper_wall.to(tau[b2]);
-      return da[s.target_pos[a]] < db[s.target_pos[b2]];
-    });
-    for (int b : rest) {
-      if (active_targets.size() >= ACTIVE_CAP) break;
-      active_targets.push_back(b);
-    }
-  }
-  // one-empty regime detection (v3.0 §4.1, new.md §2): the ready-task
-  // replacement applies to the literal sliding-puzzle case (exactly one
-  // free upper cell).  On denser boards a surrounded blocker is still
-  // movable through loaded rotations under following semantics
-  // (report.md: hover shuffling is load-bearing), so the plain clear
-  // task must survive there.
-  int n_vacancies = 0;
-  for (size_t c = 0; c < sc.upper.size(); ++c)
-    n_vacancies += sc.upper[c] == 0 && !ins.grid.is_wall((int)c) ? 1 : 0;
-  // S3 (2026-09-02 round 3): ONE physical shelf move = ONE pool task.
-  // Cross-root duplicates (two objectives compiling the same pickup)
-  // waste rho slots; keep the higher-priority version (serve > clear),
-  // first emission wins ties.  `from` alone identifies the shelf (a
-  // cell holds at most one grounded shelf).
-  auto pool_find = [&](int from) -> int {
-    for (size_t k = 0; k < g.tasks.size(); ++k)
-      if (g.tasks[k].from == from) return (int)k;
-    return -1;
-  };
-  auto emit_task = [&](const ManipulationTask& mt) -> bool {
-    const int k = pool_find(mt.from);
-    if (k < 0) {
-      g.tasks.push_back(mt);
-      g.requests.push_back(CarrierRequest{mt.from, mt.priority});
-      return true;
-    }
-    if (mt.priority > g.tasks[k].priority) {
-      g.tasks[k] = mt;
-      g.requests[k] = CarrierRequest{mt.from, mt.priority};
-      return true;
-    }
-    return false;  // an equal-or-better task already commands this shelf
-  };
-  for (int b_int : active_targets) {
-    const size_t b = (size_t)b_int;
-    bool carried = std::any_of(s.kappa.begin(), s.kappa.end(),
-                               [&](int k) { return k == (int)b; });
-    const bool done = !carried && s.target_pos[b] == tau[b];
-    if (done) continue;
-    const auto& path =
-        paths.get(ins.grid, (int)b, s.target_pos[b], tau[b],
-                  sc.upper_path, s.target_pos[b], sc);
-    if (path.size() >= 2) g.target_next[b] = path[1];
-    for (int c : path) {
-      sc.protect[c] = 1;
-      if (sc.owner[c] == 0) sc.owner[c] = (int)b + 1;
-    }
+  std::vector<int> free_robots;
+  for (size_t robot = 0; robot < robot_count; ++robot)
+    if (physical.kappa[robot] == KAPPA_FREE)
+      free_robots.push_back((int)robot);
+  if (free_robots.empty()) return out;
 
-    const bool head_free = path.size() >= 2 && sc.grounded[path[1]] == 0;
-    if (!carried && head_free) {
-      // v3.0 §3: the request is the pickup projection of a serve task
-      // MoveShelf(b, pos -> assigned goal, root = b -> tau[b]).
-      ManipulationTask mt;
-      mt.shelf_target = (int)b;
-      mt.from = s.target_pos[b];
-      mt.to = tau[b];
-      mt.root_target = (int)b;
-      mt.root_goal = tau[b];
-      mt.priority = 100;  // serve
-      mt.depth = 0;
-      mt.id = task_ident_hash((int)b, mt.from, (int)b, tau[b]);
-      emit_task(mt);
-    }
-    int emitted = 0;
-    // frontier compiler (v3.0 §4.1): each clear candidate is refined into
-    // an EXECUTABLE task.  A blocker whose carry cannot even start (no
-    // adjacent free upper cell) is replaced by the READY task that moves
-    // the first vacancy-adjacent shelf of the routing chain INTO the
-    // vacancy (one-empty / 15-puzzle semantics); a feasible chain head
-    // gets its compiler-chosen drop cell.  Ordering-only, like requests.
-    // Dedupe is POOL-wide via emit_task (S3): chains converging on the
-    // same shelf — within one root or across roots — emit it once.
-    for (size_t pi = 1; pi < path.size() && emitted < CLEAR_CHAIN_K; ++pi) {
-      const int cur = path[pi];
-      const int gr__ = sc.grounded[cur];
-      if (!(gr__ == -1 || (gr__ > 0 && gr__ - 1 != (int)b))) continue;
-      int from = cur;
-      int to = -1;
-      int depth_extra = 0;
-      int nb[4];
-      const int n_adj = ins.grid.neighbors(cur, nb);
-      bool carry_can_start = false;
-      for (int t = 0; t < n_adj; ++t)
-        carry_can_start |= sc.upper[nb[t]] == 0;
-      if (!carry_can_start && n_vacancies == 1) {
-        // vacancy routing: BFS from the blocker to the nearest free
-        // upper cell e; the parent of e on that path is the
-        // vacancy-adjacent shelf that can actually move (into e).
-        std::fill(sc.prev.begin(), sc.prev.end(), -1);
-        std::deque<int> dq;
-        dq.push_back(cur);
-        sc.prev[cur] = cur;
-        int e = -1;
-        while (!dq.empty() && e < 0) {
-          const int u = dq.front();
-          dq.pop_front();
-          const int m = ins.grid.neighbors(u, nb);
-          for (int t = 0; t < m; ++t) {
-            const int v = nb[t];
-            if (sc.prev[v] >= 0) continue;
-            sc.prev[v] = u;
-            if (sc.upper[v] == 0) {
-              e = v;
-              break;
-            }
-            dq.push_back(v);
-          }
-        }
-        if (e < 0) {
-          // ZERO vacancies anywhere: hover-lift shuffling is the only
-          // remaining mechanism (rotations of loaded robots under
-          // following semantics).  Emit the plain clear task — the
-          // LIFT_GATE lesson (report.md §7/§10): suppressing these
-          // starves dense zero/one-empty instances.
-          from = cur;
-          to = -1;
-        } else {
-          from = sc.prev[e];  // first vacancy-adjacent shelf on the chain
-          to = e;             // ready task drops INTO the vacancy
-          depth_extra = 1;
-        }
-      } else if (carry_can_start && emitted == 0) {
-        // feasible chain head: nearest free upper cell off the protected
-        // corridor as the compiler-chosen drop (-1 when none qualifies:
-        // the carrier's parking fallback remains authoritative).  The
-        // scan is capped (HEAD_DROP_SCAN_CAP): on protect-saturated
-        // dense boards no qualifying cell may exist and an unbounded
-        // per-head BFS is pure guidance overhead (cost regression on
-        // h10w10_e3, gate 2026-09-01).  Unstartable heads skip the hint
-        // entirely — their drop cell is meaningless until they can move.
-        std::fill(sc.prev.begin(), sc.prev.end(), -1);
-        std::deque<int> dq;
-        dq.push_back(cur);
-        sc.prev[cur] = cur;
-        int scanned = 0;
-        while (!dq.empty() && to < 0 && scanned < HEAD_DROP_SCAN_CAP) {
-          const int u = dq.front();
-          dq.pop_front();
-          ++scanned;
-          const int m = ins.grid.neighbors(u, nb);
-          for (int t = 0; t < m; ++t) {
-            const int v = nb[t];
-            if (sc.prev[v] >= 0) continue;
-            sc.prev[v] = u;
-            if (sc.upper[v] == 0 && !sc.protect[v]) {
-              to = v;
-              break;
-            }
-            dq.push_back(v);
-          }
-        }
+  std::vector<RhoCandidate> candidates;
+  std::unordered_map<TaskId, int, TaskIdHash> seen;
+  for (const int index : ready_tasks) {
+    if (index < 0 || index >= (int)graph.tasks.size()) continue;
+    const auto& task = graph.tasks[index];
+    auto it = seen.find(task.id);
+    if (it != seen.end()) {
+      if (task.priority > candidates[it->second].priority) {
+        candidates[it->second].task_index = index;
+        candidates[it->second].priority = task.priority;
       }
-      ManipulationTask mt;
-      mt.shelf_target = sc.grounded[from] > 0 ? sc.grounded[from] - 1 : -1;
-      mt.from = from;
-      mt.to = to;
-      mt.to_committed = depth_extra == 1;  // one-empty ready: to = vacancy
-      mt.root_target = (int)b;
-      mt.root_goal = tau[b];
-      mt.priority = 50 - emitted;  // clear, chain head higher
-      mt.depth = emitted + 1 + depth_extra;
-      mt.id = task_ident_hash(mt.shelf_target, from, (int)b, tau[b]);
-      if (emit_task(mt)) ++emitted;
+      continue;
     }
+    seen.emplace(task.id, (int)candidates.size());
+    candidates.push_back(
+        RhoCandidate{index, task.id, task.priority, false});
   }
-  for (size_t b = 0; b < ins.n_targets(); ++b)
-    sc.protect[tau[b]] = 1;  // only the tau-assigned cells (not the pool)
+  if (candidates.empty()) return out;
+  std::stable_sort(candidates.begin(), candidates.end(),
+                   [](const RhoCandidate& a, const RhoCandidate& b) {
+                     if (a.priority != b.priority)
+                       return a.priority > b.priority;
+                     if (a.id != b.id) return a.id < b.id;
+                     return a.task_index < b.task_index;
+                   });
 
-  // Park relation (design 5.4a): computed from X via the CURRENT masked
-  // cached paths — a function of (X, D_b cache epoch) under the default
-  // lazy invalidation; strict test-probe mode is epoch-independent. park[b]
-  // iff goal_b lies on ANOTHER unfinished target's current path.
-  std::vector<int> park_owner(ins.n_targets(), -1);  // build-local
-  auto done_in_X = [&](int o) {
-    if (s.target_pos[o] != tau[o]) return false;
-    for (int k : s.kappa)
-      if (k == o) return false;
-    return true;
+  const size_t free_count = free_robots.size();
+  if (candidates.size() > free_count) {
+    const int cutoff = candidates[free_count - 1].priority;
+    candidates.erase(
+        std::remove_if(candidates.begin(), candidates.end(),
+                       [&](const RhoCandidate& candidate) {
+                         return candidate.priority < cutoff;
+                       }),
+        candidates.end());
+    for (auto& candidate : candidates)
+      candidate.mandatory = candidate.priority > cutoff;
+  } else {
+    for (auto& candidate : candidates) candidate.mandatory = true;
+  }
+
+  const size_t task_count = candidates.size();
+  const size_t dummy_count =
+      task_count > free_count ? task_count - free_count : 0;
+  const size_t column_count = free_count + dummy_count;
+  constexpr long long INF = std::numeric_limits<long long>::max() / 16;
+  const long long switch_scale = (long long)free_count + 1;
+  LowerDist lower_distance(ins.grid);
+  std::vector<std::vector<long long>> cost(
+      task_count, std::vector<long long>(column_count, INF));
+  for (size_t row = 0; row < task_count; ++row) {
+    for (size_t col = 0; col < free_count; ++col) {
+      const int robot = free_robots[col];
+      const int distance =
+          lower_distance.dist(candidates[row].id.from,
+                              physical.robots[robot]);
+      if (distance >= INT_MAX / 4) continue;
+      const bool switched =
+          previous_rho_task_id != nullptr &&
+          robot < (int)previous_rho_task_id->size() &&
+          (*previous_rho_task_id)[robot].has_value() &&
+          *(*previous_rho_task_id)[robot] != candidates[row].id;
+      cost[row][col] =
+          (long long)distance * switch_scale + (switched ? 1 : 0);
+    }
+    for (size_t col = free_count; col < column_count; ++col)
+      if (!candidates[row].mandatory) cost[row][col] = 0;
+  }
+
+  auto minimum_cost =
+      [&](const std::vector<int>& rows,
+          const std::vector<int>& cols) -> std::optional<long long> {
+    if (rows.empty()) return 0;
+    if (rows.size() > cols.size()) return std::nullopt;
+    constexpr long double HINF = 1e60L;
+    std::vector<std::vector<long double>> matrix(
+        rows.size(), std::vector<long double>(cols.size(), HINF));
+    for (size_t r = 0; r < rows.size(); ++r)
+      for (size_t c = 0; c < cols.size(); ++c)
+        if (cost[rows[r]][cols[c]] < INF)
+          matrix[r][c] = (long double)cost[rows[r]][cols[c]];
+    const auto assignment = hungarian_long_double(matrix);
+    if (!assignment.feasible) return std::nullopt;
+    long long total = 0;
+    for (size_t r = 0; r < rows.size(); ++r) {
+      const int local_col = assignment.row_to_col[r];
+      if (local_col < 0 ||
+          cost[rows[r]][cols[local_col]] >= INF)
+        return std::nullopt;
+      total += cost[rows[r]][cols[local_col]];
+    }
+    return total;
   };
-  for (size_t b = 0; b < ins.n_targets(); ++b) {
-    const int ow__ = sc.owner[tau[b]];
-    if (ow__ > 0 && ow__ - 1 != (int)b && !done_in_X(ow__ - 1)) {
-      g.target_park[b] = 1;
-      park_owner[b] = ow__ - 1;
+
+  std::vector<int> active_rows(task_count);
+  std::iota(active_rows.begin(), active_rows.end(), 0);
+  std::vector<int> active_cols(column_count);
+  std::iota(active_cols.begin(), active_cols.end(), 0);
+  auto remaining_optimum = minimum_cost(active_rows, active_cols);
+  if (!remaining_optimum.has_value()) return out;
+
+  for (size_t real_col = 0; real_col < free_count; ++real_col) {
+    const auto col_it =
+        std::find(active_cols.begin(), active_cols.end(), (int)real_col);
+    if (col_it == active_cols.end()) continue;
+    std::vector<int> row_options = active_rows;
+    std::stable_sort(row_options.begin(), row_options.end(),
+                     [&](int a, int b) {
+                       if (candidates[a].id != candidates[b].id)
+                         return candidates[a].id < candidates[b].id;
+                       return candidates[a].task_index <
+                              candidates[b].task_index;
+                     });
+    bool fixed = false;
+    for (const int row : row_options) {
+      if (cost[row][real_col] >= INF) continue;
+      auto next_rows = active_rows;
+      next_rows.erase(
+          std::find(next_rows.begin(), next_rows.end(), row));
+      auto next_cols = active_cols;
+      next_cols.erase(
+          std::find(next_cols.begin(), next_cols.end(),
+                    (int)real_col));
+      const auto suffix = minimum_cost(next_rows, next_cols);
+      if (!suffix.has_value() ||
+          cost[row][real_col] + *suffix != *remaining_optimum)
+        continue;
+      const int robot = free_robots[real_col];
+      out.rho_task_id[robot] = candidates[row].id;
+      out.rho_ready_index[robot] = candidates[row].task_index;
+      active_rows = std::move(next_rows);
+      active_cols = std::move(next_cols);
+      *remaining_optimum -= cost[row][real_col];
+      fixed = true;
+      break;
+    }
+    if (fixed) continue;
+
+    auto next_cols = active_cols;
+    next_cols.erase(
+        std::find(next_cols.begin(), next_cols.end(), (int)real_col));
+    const auto suffix = minimum_cost(active_rows, next_cols);
+    if (suffix.has_value() && *suffix == *remaining_optimum) {
+      active_cols = std::move(next_cols);
+      continue;
+    }
+    throw std::logic_error(
+        "match_ready_tasks: failed deterministic lexicographic refinement");
+  }
+  return out;
+}
+
+inline std::vector<RootDemand>
+filter_priority_commitment_for_tau(
+    const std::vector<RootDemand>& candidates,
+    const std::vector<int>& tau)
+{
+  std::vector<RootDemand> out;
+  for (const auto& root : candidates)
+    if (root.target >= 0 &&
+        root.target < (int)tau.size() &&
+        tau[root.target] == root.goal &&
+        std::find_if(
+            out.begin(), out.end(),
+            [&](const RootDemand& existing) {
+              return existing.target == root.target;
+            }) == out.end())
+      out.push_back(root);
+  return out;
+}
+
+struct PriorityCommitmentRoot {
+  RootDemand demand;
+  int priority = 0;
+};
+
+struct PriorityCommitmentGroup {
+  std::vector<PriorityCommitmentRoot> roots;
+  TaskId task_id;
+  size_t robot = 0;
+};
+
+inline std::vector<RootDemand>
+select_priority_commitment_for_epoch(
+    const std::vector<PriorityCommitmentGroup>& completed_groups,
+    const std::vector<int>& tau, size_t active_root_count,
+    const std::vector<int>& previous_commitment,
+    size_t vacancy_count =
+        std::numeric_limits<size_t>::max())
+{
+  PriorityCommitmentGroup best_group;
+  bool have_best = false;
+  for (const auto& group : completed_groups) {
+    std::map<int, PriorityCommitmentRoot> unique_roots;
+    for (const auto& root : group.roots) {
+      if (root.demand.target < 0 ||
+          root.demand.target >= (int)tau.size() ||
+          tau[root.demand.target] != root.demand.goal)
+        continue;
+      auto inserted = unique_roots.emplace(
+          root.demand.target, root);
+      if (!inserted.second &&
+          root.priority > inserted.first->second.priority)
+        inserted.first->second = root;
+    }
+    PriorityCommitmentGroup filtered;
+    filtered.task_id = group.task_id;
+    filtered.robot = group.robot;
+    for (const auto& [unused_target, root] : unique_roots) {
+      (void)unused_target;
+      filtered.roots.push_back(root);
+    }
+    std::stable_sort(
+        filtered.roots.begin(), filtered.roots.end(),
+        [](const auto& a, const auto& b) {
+          return a.priority != b.priority
+                     ? a.priority > b.priority
+                     : a.demand.target < b.demand.target;
+        });
+    if (filtered.roots.empty()) continue;
+    const bool better =
+        !have_best ||
+        filtered.roots.front().priority >
+            best_group.roots.front().priority ||
+        (filtered.roots.front().priority ==
+             best_group.roots.front().priority &&
+         (filtered.task_id < best_group.task_id ||
+          (!(best_group.task_id < filtered.task_id) &&
+           filtered.robot < best_group.robot)));
+    if (better) {
+      best_group = std::move(filtered);
+      have_best = true;
     }
   }
-  // carrier head-on yield (design 5.5): the one farther from its goal
-  // parks (deterministic tie-break)
-  std::vector<int> carrier_of(ins.n_targets(), -1);
-  for (size_t i = 0; i < R; ++i)
-    if (s.kappa[i] >= 0) carrier_of[s.kappa[i]] = (int)i;
-  for (size_t a = 0; a < ins.n_targets(); ++a) {
-    if (carrier_of[a] < 0 || g.target_park[a]) continue;
-    const int na = g.target_next[a];
-    if (na < 0) continue;
-    for (size_t b2 = a + 1; b2 < ins.n_targets(); ++b2) {
-      if (carrier_of[b2] < 0 || g.target_park[b2]) continue;
-      const int nb2 = g.target_next[b2];
-      if (nb2 < 0) continue;
-      if (na == s.target_pos[b2] && nb2 == s.target_pos[a]) {
-        const auto& da = upper_wall.to(tau[a]);
-        const auto& db = upper_wall.to(tau[b2]);
-        const int ra = da[s.target_pos[a]], rb = db[s.target_pos[b2]];
-        const size_t yield_b = (ra > rb || (ra == rb)) ? a : b2;
-        g.target_park[yield_b] = 1;
-        park_owner[yield_b] = (int)(yield_b == a ? b2 : a);
-      }
-    }
-  }
-  // park cycle break: min-index member un-parks (deterministic)
-  for (size_t b = 0; b < ins.n_targets(); ++b) {
-    if (!g.target_park[b]) continue;
-    std::vector<int> chain;
-    int cur = (int)b;
-    bool cycle = false;
-    for (size_t guard = 0; guard <= ins.n_targets(); ++guard) {
-      chain.push_back(cur);
-      const int nxt = g.target_park[cur] ? park_owner[cur] : -1;
-      if (nxt < 0) break;
-      if (nxt == (int)b) {
-        cycle = true;
+  if (!have_best) return {};
+
+  bool intersects_previous_collective = false;
+  if (previous_commitment.size() > 1 &&
+      best_group.roots.size() > 1)
+    for (const auto& root : best_group.roots)
+      if (std::find(
+              previous_commitment.begin(),
+              previous_commitment.end(),
+              root.demand.target) != previous_commitment.end()) {
+        intersects_previous_collective = true;
         break;
       }
-      cur = nxt;
-    }
-    if (cycle) {
-      const int drop = *std::min_element(chain.begin(), chain.end());
-      g.target_park[drop] = 0;
-      park_owner[drop] = -1;
-    }
-  }
-
-  // rho matching: Hungarian (SHARED tapf implementation) within the
-  // scale regime, greedy nearest otherwise; eta hysteresis on both.
-  // v3.0 §5: rho binds the TASK (stable TaskId); the request index and
-  // free_goal are derived views (request k is task k's pickup projection).
-  g.rho.assign(R, -1);
-  g.rho_task.assign(R, -1);
-  g.free_goal.assign(R, -1);
-  g.parking_cell.assign(R, -1);
-  std::vector<int> req_order(g.requests.size());
-  for (size_t i = 0; i < req_order.size(); ++i) req_order[i] = (int)i;
-  std::stable_sort(req_order.begin(), req_order.end(), [&](int a, int b) {
-    if (g.requests[a].priority != g.requests[b].priority)
-      return g.requests[a].priority > g.requests[b].priority;
-    // R2(c): within equal priority, shallower dependency depth first
-    // (a directly startable head beats a one-empty ready hop)
-    return g.tasks[a].depth < g.tasks[b].depth;
-  });
-  std::vector<bool> robot_used(R, false);
-  int free_left = 0;
-  for (size_t i = 0; i < R; ++i) {
-    if (s.kappa[i] != KAPPA_FREE)
-      robot_used[i] = true;
-    else
-      ++free_left;
-  }
-  const int ETA = ASSIGNMENT_HYSTERESIS;
-  const bool use_hyst = parent_guide != nullptr &&
-                        parent_guide->free_goal.size() == R && ETA > 0;
-  // task-switch hysteresis by TASK IDENTITY (v3.0 §5): a robot keeps its
-  // eta discount only toward the SAME task (shelf, from, root), not any
-  // task that happens to share a pickup cell.  Parents without a task
-  // pool (B1, legacy probes) fall back to the historical cell view.
-  const auto same_task_as_parent = [&](size_t i, int req_idx) -> bool {
-    if (!use_hyst || parent_guide->rho[i] < 0) return false;
-    if (parent_guide->rho_task.size() == R &&
-        parent_guide->rho_task[i] >= 0 &&
-        parent_guide->rho_task[i] < (int)parent_guide->tasks.size() &&
-        req_idx < (int)g.tasks.size())
-      return parent_guide->tasks[parent_guide->rho_task[i]].id ==
-             g.tasks[req_idx].id;
-    return parent_guide->free_goal[i] == g.requests[req_idx].cell;
-  };
-  if (ins.n_targets() <= (size_t)ASSIGNMENT_EXACT_LIMIT &&
-      free_left > 0 && !req_order.empty()) {
-    std::vector<int> free_ids;
-    for (size_t i = 0; i < R; ++i)
-      if (!robot_used[i]) free_ids.push_back((int)i);
-    std::vector<int> rows;
-    for (int ri : req_order) {
-      if ((int)rows.size() >= (int)free_ids.size()) break;
-      rows.push_back(ri);
-    }
-    std::vector<std::vector<int>> cost(rows.size(),
-                                       std::vector<int>(free_ids.size(), 0));
-    for (size_t a = 0; a < rows.size(); ++a) {
-      const auto& req = g.requests[rows[a]];
-      for (size_t b2 = 0; b2 < free_ids.size(); ++b2) {
-        const int i = free_ids[b2];
-        bool banned = false;
-        if (taboo)
-          for (auto& [rb, cell] : *taboo)
-            banned |= (rb == i && cell == req.cell);
-        int dd = banned ? INT_MAX / 8 : lower_dist.dist(req.cell, s.robots[i]);
-        if (!banned && same_task_as_parent(i, rows[a])) dd -= ETA;
-        cost[a][b2] = dd;
-      }
-    }
-    const auto row_to_col = tapf_hungarian_row_to_col(cost);
-    for (size_t a = 0; a < rows.size(); ++a) {
-      const int c = row_to_col[a];
-      if (c < 0 || cost[a][c] >= INT_MAX / 8) continue;
-      const int i = free_ids[c];
-      robot_used[i] = true;
-      --free_left;
-      g.rho[i] = rows[a];
-      g.rho_task[i] = rows[a];
-      g.free_goal[i] = g.requests[rows[a]].cell;
-    }
-  } else
-    for (int ri : req_order) {
-      if (free_left == 0) break;
-      const auto& req = g.requests[ri];
-      int best = -1, bestd = INT_MAX / 2;
-      for (size_t i = 0; i < R; ++i) {
-        if (robot_used[i]) continue;
-        if (taboo) {
-          bool banned = false;
-          for (auto& [rb, cell] : *taboo)
-            banned |= (rb == (int)i && cell == req.cell);
-          if (banned) continue;
-        }
-        int dd = lower_dist.dist(req.cell, s.robots[i]);
-        if (same_task_as_parent(i, ri)) dd -= ETA;
-        if (dd < bestd) {
-          bestd = dd;
-          best = (int)i;
-        }
-      }
-      if (best >= 0) {
-        robot_used[best] = true;
-        --free_left;
-        g.rho[best] = ri;
-        g.rho_task[best] = ri;
-        g.free_goal[best] = req.cell;
-      }
-    }
-
-  // v3.0 §6 custody: a loaded-ANON robot keeps executing the task it was
-  // bound to when it lifted (same TaskId through approach/Lift/carry/
-  // Drop).  Copied metadata only — never part of the search key.
-  // R2 (2026-09-02): the custody task's drop cell is REFINED
-  // position-aware every node (same-task re-targeting; a stale
-  // compile-time `to` was falsified on dense boards): in the one-empty
-  // regime the drop IS the current vacancy; otherwise the nearest free
-  // upper cell from the carrier with the parking preference order
-  // (non-protected first, protected non-goal fallback).  funcPIBT
-  // derives the carry waypoint from this field (invariant 23).
-  g.custody.assign(R, ManipulationTask{});
-  if (parent_guide != nullptr) {
-    for (size_t i = 0; i < R; ++i) {
-      // S1 (2026-09-02 round 3): custody covers BOTH anonymous and
-      // LABELED carried shelves.  A labeled target lifted for a
-      // committed ready task must execute that task's drop (its own tau
-      // resumes afterwards); previously custody skipped kappa >= 0 and
-      // the carrier shuttled toward tau forever (verified livelock).
-      if (s.kappa[i] == KAPPA_FREE) continue;
-      if (parent_guide->custody.size() == R &&
-          parent_guide->custody[i].id != 0) {
-        g.custody[i] = parent_guide->custody[i];  // carry continues
-      } else if (parent_guide->rho_task.size() == R &&
-                 parent_guide->rho_task[i] >= 0 &&
-                 parent_guide->rho_task[i] <
-                     (int)parent_guide->tasks.size()) {
-        const auto& t =
-            parent_guide->tasks[parent_guide->rho_task[i]];
-        // fresh Lift: the robot stands on its bound task's pickup cell,
-        // and for a labeled carry the task must name THAT shelf
-        const bool shelf_matches =
-            s.kappa[i] == KAPPA_ANON || t.shelf_target == s.kappa[i];
-        if (t.from == s.robots[i] && shelf_matches) g.custody[i] = t;
-      }
-      if (g.custody[i].id == 0 || !g.custody[i].to_committed) continue;
-      // Committed drop (one-empty ready): keep the destination while it
-      // stays droppable — the carrier's OWN cell counts (its upper
-      // "occupancy" is the carried shelf itself), which is exactly the
-      // stand-on-the-vacancy-and-drop endgame.  Recompute only when the
-      // destination was invalidated meanwhile; the new target must be a
-      // REAL free upper cell (never the carrier's own cell — that made
-      // the origin look like "the vacancy" and ping-ponged the carry).
-      // Un-committed custody defers the drop to the per-node parking
-      // choice (task semantics: carrier-chosen), which is what keeps
-      // dense boards healthy (d50 bound test).
-      const int prev_to = g.custody[i].to;
-      const bool prev_ok =
-          prev_to >= 0 &&
-          (sc.upper[prev_to] == 0 || prev_to == s.robots[i]);
-      if (prev_ok) continue;
-      int vac = -1;
-      for (size_t c = 0; c < sc.upper.size(); ++c)
-        if (sc.upper[c] == 0 && !ins.grid.is_wall((int)c)) {
-          vac = (int)c;
-          break;
-        }
-      g.custody[i].to = vac;  // -1 when nothing droppable: parking fallback
-    }
-  }
-
-  // parking placement: nearest free off-path cell, goal-cell fallback
-  std::vector<uint8_t> is_goal_cell(ins.grid.size(), 0);
-  for (size_t b = 0; b < ins.n_targets(); ++b)
-    is_goal_cell[tau[b]] = 1;  // tau-assigned cells only (design V3)
-  for (size_t i = 0; i < R; ++i) {
-    const bool anon_carrier = s.kappa[i] == KAPPA_ANON;
-    const bool parked_target_carrier =
-        s.kappa[i] >= 0 && g.target_park[s.kappa[i]];
-    if (!anon_carrier && !parked_target_carrier) continue;
-    int found = -1, fallback = -1;
-    const int rstart = s.robots[i];
-    std::fill(sc.prev.begin(), sc.prev.end(), -1);
-    std::deque<int> dq;
-    dq.push_back(rstart);
-    sc.prev[rstart] = 0;
-    int nb[4];
-    while (!dq.empty()) {
-      int u = dq.front();
-      dq.pop_front();
-      const int du = sc.prev[u];
-      if (u != rstart && !sc.upper[u]) {
-        if (!sc.protect[u]) {
-          found = u;
-          break;
-        } else if (fallback < 0 && !is_goal_cell[u]) {
-          fallback = u;
-        }
-      }
-      const int n = ins.grid.neighbors(u, nb);
-      for (int k = 0; k < n; ++k)
-        if (sc.prev[nb[k]] < 0) {
-          sc.prev[nb[k]] = du + 1;
-          dq.push_back(nb[k]);
-        }
-    }
-    g.parking_cell[i] = found >= 0 ? found : fallback;
-  }
-  return g;
+  const bool collective =
+      best_group.roots.size() * 2 > active_root_count ||
+      (active_root_count > vacancy_count &&
+       active_root_count - vacancy_count >= vacancy_count) ||
+      intersects_previous_collective;
+  const size_t selected_count =
+      collective ? best_group.roots.size() : 1;
+  std::vector<RootDemand> selected;
+  for (size_t i = 0; i < selected_count; ++i)
+    selected.push_back(best_group.roots[i].demand);
+  return selected;
 }
+
+inline void compile_task_br_upper_epoch_graph(
+    const DDInstance& ins, const UpperSignature& upper,
+    DDDistCache& upper_wall,
+    const std::vector<int>& priority_commitment,
+    UpperEpochGuidance& epoch)
+{
+  epoch.priority_commitment.clear();
+  epoch.target_priority =
+      target_priorities_from_pair_cost(
+          epoch.pair_cost, epoch.tau_guide);
+  for (const int target : priority_commitment)
+    if (target >= 0 && target < (int)ins.n_targets() &&
+        target < (int)upper.target_pos.size() &&
+        target < (int)epoch.tau_guide.size() &&
+        upper.target_pos[target] != epoch.tau_guide[target] &&
+        std::find(
+            epoch.priority_commitment.begin(),
+            epoch.priority_commitment.end(),
+            target) == epoch.priority_commitment.end())
+      epoch.priority_commitment.push_back(target);
+  int promoted_priority =
+      epoch.target_priority.empty()
+          ? (int)epoch.priority_commitment.size() - 1
+          : *std::max_element(
+                epoch.target_priority.begin(),
+                epoch.target_priority.end()) +
+                (int)epoch.priority_commitment.size();
+  for (const int target : epoch.priority_commitment)
+    epoch.target_priority[target] = promoted_priority--;
+
+  std::vector<RootDemand> roots;
+  for (size_t target = 0; target < ins.n_targets(); ++target)
+    if (target < upper.target_pos.size() &&
+        target < epoch.tau_guide.size() &&
+        upper.target_pos[target] != epoch.tau_guide[target])
+      roots.push_back(
+          RootDemand{(int)target, epoch.tau_guide[target]});
+  auto abstract = make_abstract_upper_state(ins, upper);
+  TaskBRCompilerLimits compiler_limits{256, 512};
+  // With at most two vacancies, useful alternatives can each require a full
+  // vacancy-chain recursion window; the branch cap still bounds the epoch.
+  // Roomier layouts instead cap accumulated recursion so many failed root
+  // options cannot repeatedly refresh the local 256-call window.
+  if (upper_vacancy_count(ins, upper) > 2)
+    compiler_limits.total_recursion_cap =
+        compiler_limits.recursion_cap +
+        compiler_limits.backtrack_cap;
+  epoch.task_graph = compile_task_br_pibt(
+      ins, abstract, roots, epoch.tau_guide,
+      epoch.target_priority, upper_wall,
+      compiler_limits, false);
+}
+
+inline std::shared_ptr<const UpperEpochGuidance>
+build_task_br_upper_epoch(
+    const DDInstance& ins, const UpperSignature& upper,
+    DDDistCache& upper_wall, double alpha, double gamma,
+    double delta,
+    const std::vector<PriorityCommitmentGroup>*
+        priority_commitment_groups = nullptr,
+    size_t active_root_count = 0,
+    const std::vector<int>*
+        previous_priority_commitment = nullptr)
+{
+  auto epoch = std::make_shared<UpperEpochGuidance>();
+  epoch->upper_signature = upper;
+  auto assignment = build_lazy_pair_cost_assignment(
+      ins, upper, upper_wall, alpha, gamma, delta);
+  epoch->pair_cost = std::move(assignment.table);
+  epoch->pair_edges_evaluated = assignment.evaluated_edges;
+  epoch->pair_edges_total = assignment.total_edges;
+  epoch->pair_rollout_work_steps = assignment.rollout_work_steps;
+  epoch->pair_rollout_truncations =
+      assignment.rollout_truncations;
+  epoch->pair_rollout_stalls = assignment.rollout_stalls;
+  epoch->tau_guide = std::move(assignment.tau);
+  std::vector<int> priority_commitment;
+  if (priority_commitment_groups != nullptr)
+    for (const auto& root :
+         select_priority_commitment_for_epoch(
+             *priority_commitment_groups,
+             epoch->tau_guide, active_root_count,
+             previous_priority_commitment != nullptr
+                 ? *previous_priority_commitment
+                 : std::vector<int>{},
+             upper_vacancy_count(ins, upper)))
+      priority_commitment.push_back(root.target);
+  compile_task_br_upper_epoch_graph(
+      ins, upper, upper_wall, priority_commitment, *epoch);
+  return epoch;
+}
+
+inline std::shared_ptr<const UpperEpochGuidance>
+rebuild_task_br_upper_epoch(
+    const DDInstance& ins, const UpperSignature& upper,
+    DDDistCache& upper_wall,
+    const UpperEpochGuidance& pair_source,
+    const std::vector<int>& priority_commitment)
+{
+  auto epoch =
+      std::make_shared<UpperEpochGuidance>(pair_source);
+  compile_task_br_upper_epoch_graph(
+      ins, upper, upper_wall, priority_commitment, *epoch);
+  return epoch;
+}
+
+inline std::shared_ptr<const UpperEpochGuidance>
+build_task_br_upper_epoch_for_tau(
+    const DDInstance& ins, const UpperSignature& upper,
+    const std::vector<int>& fixed_tau, DDDistCache& upper_wall,
+    double alpha, double gamma, double delta)
+{
+  if (fixed_tau.size() != ins.n_targets())
+    throw std::invalid_argument(
+        "build_task_br_upper_epoch_for_tau: tau size mismatch");
+  auto epoch = std::make_shared<UpperEpochGuidance>();
+  epoch->upper_signature = upper;
+  epoch->pair_cost = build_pair_cost_table(
+      ins, upper, upper_wall, alpha, gamma, delta);
+  for (const auto& row : epoch->pair_cost) {
+    epoch->pair_edges_total += row.size();
+    epoch->pair_edges_evaluated += row.size();
+    for (const auto& entry : row) {
+      epoch->pair_rollout_work_steps += entry.plan.rollout_steps;
+      epoch->pair_rollout_truncations += entry.plan.truncated;
+      epoch->pair_rollout_stalls += entry.plan.stalled;
+    }
+  }
+  epoch->tau_guide = fixed_tau;
+  for (size_t target = 0; target < ins.n_targets(); ++target) {
+    if (!eligible_goal(ins, (int)target, fixed_tau[target]))
+      throw std::invalid_argument(
+          "build_task_br_upper_epoch_for_tau: ineligible goal");
+  }
+  compile_task_br_upper_epoch_graph(
+      ins, upper, upper_wall, {}, *epoch);
+  return epoch;
+}
+
+struct UpperEpochCache {
+  static constexpr size_t DEFAULT_CAPACITY = 256;
+
+  struct Key {
+    UpperSignature upper;
+    std::vector<int> priority_commitment;
+
+    bool operator<(const Key& other) const
+    {
+      if (upper != other.upper) return upper < other.upper;
+      return priority_commitment < other.priority_commitment;
+    }
+  };
+
+  explicit UpperEpochCache(size_t max_entries = DEFAULT_CAPACITY)
+      : capacity(max_entries)
+  {
+    if (capacity == 0)
+      throw std::invalid_argument(
+          "UpperEpochCache capacity must be positive");
+  }
+
+  std::shared_ptr<const UpperEpochGuidance> lookup(
+      const UpperSignature& signature,
+      const std::vector<int>* priority_commitment = nullptr)
+  {
+    const auto it = entries.find(
+        Key{signature,
+            priority_commitment != nullptr
+                ? *priority_commitment
+                : std::vector<int>{}});
+    if (it == entries.end()) {
+      ++misses;
+      return nullptr;
+    }
+    ++hits;
+    it->second.last_used = ++clock;
+    return it->second.epoch;
+  }
+
+  std::shared_ptr<const UpperEpochGuidance> peek_any(
+      const UpperSignature& signature)
+  {
+    const auto it = std::find_if(
+        entries.begin(), entries.end(),
+        [&](const auto& entry) {
+          return entry.first.upper == signature;
+        });
+    if (it == entries.end()) return nullptr;
+    it->second.last_used = ++clock;
+    return it->second.epoch;
+  }
+
+  void insert(
+      const UpperSignature& signature,
+      std::shared_ptr<const UpperEpochGuidance> epoch)
+  {
+    if (epoch == nullptr)
+      throw std::invalid_argument(
+          "UpperEpochCache cannot store a null epoch");
+    const Key key{
+        signature, epoch->priority_commitment};
+    const auto existing = entries.find(key);
+    if (existing != entries.end()) {
+      existing->second = Entry{std::move(epoch), ++clock};
+      return;
+    }
+    if (entries.size() == capacity) {
+      const auto victim = std::min_element(
+          entries.begin(), entries.end(),
+          [](const auto& a, const auto& b) {
+            return a.second.last_used < b.second.last_used;
+          });
+      entries.erase(victim);
+      ++evictions;
+    }
+    entries.emplace(
+        key, Entry{std::move(epoch), ++clock});
+  }
+
+  size_t size() const { return entries.size(); }
+
+  bool contains(const UpperSignature& signature) const
+  {
+    return std::find_if(
+               entries.begin(), entries.end(),
+               [&](const auto& entry) {
+                 return entry.first.upper == signature;
+               }) != entries.end();
+  }
+
+  long hits = 0;
+  long misses = 0;
+  long evictions = 0;
+
+ private:
+  struct Entry {
+    std::shared_ptr<const UpperEpochGuidance> epoch;
+    uint64_t last_used = 0;
+  };
+
+  size_t capacity;
+  uint64_t clock = 0;
+  std::map<Key, Entry> entries;
+};
+
+inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
+    const DDInstance& ins, const PhysConfig& physical,
+    std::shared_ptr<const UpperEpochGuidance> upper_epoch,
+    const PhysConfig* previous_physical = nullptr,
+    const CarrierGuidance* previous_guidance = nullptr,
+    const std::vector<Op>* executed_ops = nullptr)
+{
+  if (upper_epoch == nullptr ||
+      upper_epoch->upper_signature != make_upper_signature(physical))
+    throw std::invalid_argument(
+        "build_task_br_guidance_from_upper_epoch: epoch mismatch");
+  CarrierGuidance out;
+  out.upper_epoch = std::move(upper_epoch);
+  auto recovered = recover_task_br_custody(
+      ins, physical, out.upper_epoch->task_graph, previous_physical,
+      previous_guidance, executed_ops);
+  out.custody_by_robot = std::move(recovered.custody_by_robot);
+  out.ready_tasks = ready_tasks_with_custody(
+      ins, physical, out.upper_epoch->task_graph,
+      out.custody_by_robot, recovered.continuation_carrier);
+  bind_ready_continuations(
+      ins, physical, out.upper_epoch->task_graph, out.ready_tasks,
+      recovered.continuation_carrier,
+      recovered.previous_loaded_move_from,
+      out.custody_by_robot);
+
+  std::vector<int> grounded_ready;
+  for (const int index : out.ready_tasks)
+    if (index >= 0 &&
+        index < (int)out.upper_epoch->task_graph.tasks.size() &&
+        task_shelf_is_grounded(
+            ins, physical,
+            out.upper_epoch->task_graph.tasks[index].id))
+      grounded_ready.push_back(index);
+  const auto* previous_rho =
+      recovered.transition_valid && previous_guidance != nullptr
+          ? &previous_guidance->rho_task_id
+          : nullptr;
+  auto rho = match_ready_tasks(
+      ins, physical, out.upper_epoch->task_graph,
+      grounded_ready, previous_rho);
+  out.rho_task_id = std::move(rho.rho_task_id);
+  out.rho_ready_index = std::move(rho.rho_ready_index);
+  return out;
+}
+
+inline CarrierGuidance build_task_br_guidance(
+    const DDInstance& ins, const PhysConfig& physical,
+    DDDistCache& upper_wall, double alpha, double gamma, double delta,
+    const PhysConfig* previous_physical = nullptr,
+    const CarrierGuidance* previous_guidance = nullptr,
+    const std::vector<Op>* executed_ops = nullptr,
+    UpperEpochCache* upper_epoch_cache = nullptr)
+{
+  const auto upper = make_upper_signature(physical);
+  std::shared_ptr<const UpperEpochGuidance> upper_epoch;
+
+  bool transition_valid = false;
+  if (previous_physical != nullptr && executed_ops != nullptr) {
+    const auto replayed =
+        apply_ops(ins, *previous_physical, *executed_ops);
+    transition_valid = replayed.has_value() && *replayed == physical;
+  }
+  std::vector<PriorityCommitmentGroup>
+      priority_commitment_groups;
+  size_t priority_commitment_active_roots = 0;
+  std::vector<int> previous_priority_commitment;
+  if (transition_valid && previous_physical != nullptr &&
+      previous_guidance != nullptr &&
+      previous_guidance->upper_epoch != nullptr &&
+      executed_ops != nullptr) {
+    const auto& previous_epoch =
+        *previous_guidance->upper_epoch;
+    previous_priority_commitment =
+        previous_epoch.priority_commitment;
+    size_t active_root_count = 0;
+    for (size_t target = 0;
+         target < previous_epoch.upper_signature.target_pos.size() &&
+         target < previous_epoch.tau_guide.size();
+         ++target)
+      active_root_count +=
+          previous_epoch.upper_signature.target_pos[target] !=
+          previous_epoch.tau_guide[target];
+    const bool dense_upper_layout =
+        target_dense_upper_layout(
+            ins, previous_epoch.upper_signature);
+    for (size_t robot = 0; robot < ins.n_robots(); ++robot) {
+      if (robot >= previous_physical->kappa.size() ||
+          robot >= previous_physical->robots.size() ||
+          robot >= physical.robots.size() ||
+          robot >= executed_ops->size() ||
+          robot >= previous_guidance->custody_by_robot.size() ||
+          previous_physical->kappa[robot] == KAPPA_FREE ||
+          (*executed_ops)[robot].kind != Op::MOVE ||
+          !previous_guidance->custody_by_robot[robot].has_value())
+        continue;
+      const auto& custody =
+          *previous_guidance->custody_by_robot[robot];
+      if (previous_physical->robots[robot] != custody.from ||
+          (*executed_ops)[robot].to != custody.to ||
+          physical.robots[robot] != custody.to)
+        continue;
+      std::map<int, PriorityCommitmentRoot> group_roots;
+      for (const auto& root : custody.roots) {
+        if (root.target < 0 ||
+            root.target >= (int)ins.n_targets() ||
+            root.target >= (int)physical.target_pos.size() ||
+            root.target >=
+                (int)previous_epoch.tau_guide.size() ||
+            previous_epoch.tau_guide[root.target] != root.goal ||
+            physical.target_pos[root.target] == root.goal)
+          continue;
+        const bool flexible_goal =
+            ins.target_goal_sets[root.target].size() > 1;
+        const bool self_root =
+            custody.shelf.kind == ShelfSelector::Kind::TARGET &&
+            custody.shelf.value == root.target;
+        if ((flexible_goal && !dense_upper_layout) ||
+            (self_root && !flexible_goal))
+          continue;
+        const int previous_priority =
+            root.target <
+                    (int)previous_epoch.target_priority.size()
+                ? previous_epoch.target_priority[root.target]
+                : 0;
+        auto inserted = group_roots.emplace(
+            root.target,
+            PriorityCommitmentRoot{root, previous_priority});
+        if (!inserted.second)
+          inserted.first->second.priority =
+              std::max(
+                  inserted.first->second.priority,
+                  previous_priority);
+      }
+      std::vector<PriorityCommitmentRoot> ordered_group;
+      for (const auto& [unused_target, root] : group_roots) {
+        (void)unused_target;
+        ordered_group.push_back(root);
+      }
+      std::stable_sort(
+          ordered_group.begin(), ordered_group.end(),
+          [](const auto& a, const auto& b) {
+            return a.priority != b.priority
+                       ? a.priority > b.priority
+                       : a.demand.target < b.demand.target;
+          });
+      if (ordered_group.empty()) continue;
+      priority_commitment_groups.push_back(
+          PriorityCommitmentGroup{
+              std::move(ordered_group),
+              custody.task_id,
+              robot});
+    }
+    if (!priority_commitment_groups.empty())
+      priority_commitment_active_roots = active_root_count;
+  }
+  if (transition_valid && previous_guidance != nullptr &&
+      previous_guidance->upper_epoch != nullptr &&
+      previous_guidance->upper_epoch->upper_signature == upper) {
+    upper_epoch = previous_guidance->upper_epoch;
+  } else if (upper_epoch_cache != nullptr) {
+    bool insert_epoch = false;
+    const auto pair_source =
+        upper_epoch_cache->peek_any(upper);
+    if (pair_source != nullptr) {
+      const auto filtered =
+          select_priority_commitment_for_epoch(
+              priority_commitment_groups,
+              pair_source->tau_guide,
+              priority_commitment_active_roots,
+              previous_priority_commitment,
+              upper_vacancy_count(ins, upper));
+      std::vector<int> priority_commitment;
+      for (const auto& root : filtered)
+        priority_commitment.push_back(root.target);
+      const auto* key =
+          priority_commitment.empty()
+              ? nullptr
+              : &priority_commitment;
+      upper_epoch = upper_epoch_cache->lookup(upper, key);
+      if (upper_epoch == nullptr) {
+        upper_epoch = rebuild_task_br_upper_epoch(
+            ins, upper, upper_wall, *pair_source,
+            priority_commitment);
+        insert_epoch = true;
+      }
+    } else {
+      std::vector<int> requested_targets;
+      for (const auto& group : priority_commitment_groups)
+        for (const auto& root : group.roots)
+          if (std::find(
+                  requested_targets.begin(),
+                  requested_targets.end(),
+                  root.demand.target) ==
+              requested_targets.end())
+            requested_targets.push_back(root.demand.target);
+      const auto* requested_key =
+          requested_targets.empty()
+              ? nullptr
+              : &requested_targets;
+      upper_epoch =
+          upper_epoch_cache->lookup(upper, requested_key);
+      if (upper_epoch != nullptr)
+        throw std::logic_error(
+            "UpperEpochCache peek/lookup disagreement");
+      upper_epoch = build_task_br_upper_epoch(
+          ins, upper, upper_wall, alpha, gamma, delta,
+          priority_commitment_groups.empty()
+              ? nullptr
+              : &priority_commitment_groups,
+          priority_commitment_active_roots,
+          previous_priority_commitment.empty()
+              ? nullptr
+              : &previous_priority_commitment);
+      insert_epoch = true;
+    }
+    if (insert_epoch)
+      upper_epoch_cache->insert(upper, upper_epoch);
+  } else {
+    upper_epoch = build_task_br_upper_epoch(
+        ins, upper, upper_wall, alpha, gamma, delta,
+        priority_commitment_groups.empty()
+            ? nullptr
+            : &priority_commitment_groups,
+        priority_commitment_active_roots,
+        previous_priority_commitment.empty()
+            ? nullptr
+            : &previous_priority_commitment);
+  }
+  return build_task_br_guidance_from_upper_epoch(
+      ins, physical, std::move(upper_epoch), previous_physical,
+      previous_guidance, executed_ops);
+}
+
+inline std::vector<int> task_br_robot_order(
+    const PhysConfig& physical, const CarrierGuidance& guide,
+    LowerDist& lower_distance)
+{
+  auto robot_class = [&](int robot) {
+    const bool loaded = physical.kappa[robot] != KAPPA_FREE;
+    const bool bound =
+        robot < (int)guide.custody_by_robot.size() &&
+        guide.custody_by_robot[robot].has_value();
+    const bool assigned =
+        robot < (int)guide.rho_task_id.size() &&
+        guide.rho_task_id[robot].has_value();
+    if (loaded && bound) return 0;
+    if (loaded) return 1;
+    if (assigned) return 2;
+    return 3;
+  };
+  auto robot_priority = [&](int robot) {
+    if (robot < (int)guide.custody_by_robot.size() &&
+        guide.custody_by_robot[robot].has_value())
+      return guide.custody_by_robot[robot]->priority;
+    if (guide.upper_epoch != nullptr &&
+        robot < (int)guide.rho_ready_index.size()) {
+      const int index = guide.rho_ready_index[robot];
+      if (index >= 0 &&
+          index < (int)guide.upper_epoch->task_graph.tasks.size())
+        return guide.upper_epoch->task_graph.tasks[index].priority;
+    }
+    return 0;
+  };
+  auto robot_distance = [&](int robot) {
+    if (guide.upper_epoch == nullptr ||
+        robot >= (int)guide.rho_ready_index.size())
+      return 0;
+    const int index = guide.rho_ready_index[robot];
+    if (index < 0 ||
+        index >= (int)guide.upper_epoch->task_graph.tasks.size())
+      return 0;
+    return lower_distance.dist(
+        guide.upper_epoch->task_graph.tasks[index].id.from,
+        physical.robots[robot]);
+  };
+  std::vector<int> order(physical.robots.size());
+  std::iota(order.begin(), order.end(), 0);
+  std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
+    const int priority_a = robot_priority(a);
+    const int priority_b = robot_priority(b);
+    if (priority_a != priority_b) return priority_a > priority_b;
+    const int class_a = robot_class(a);
+    const int class_b = robot_class(b);
+    if (class_a != class_b) return class_a < class_b;
+    const int distance_a = robot_distance(a);
+    const int distance_b = robot_distance(b);
+    return distance_a != distance_b ? distance_a < distance_b : a < b;
+  });
+  return order;
+}
+
 
 }  // namespace carrier_detail

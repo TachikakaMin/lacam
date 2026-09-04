@@ -1,0 +1,27 @@
+{
+  "wall_time_sec": 29.3,
+  "jobs": 14,
+  "n_tasks": 68,
+  "timeout_per_run_sec": 10.0,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "gamma": 1.0,
+    "delta": 1.0
+  },
+  "following": "allowed",
+  "provenance": {
+    "git_commit": "ab4166464aef38b2a5ed4e9a45ab76e256a9cf5d",
+    "binary_path": "/local/home/yimint/research/dd-lacam/build/dd_benchmark",
+    "binary_sha256": "40d3e3157c1c4a1327b6ce21396e408a7f27c730e884111fc54a4a4ee3c1fe04",
+    "host": "dev-dsk-yimint-1d-d32fcf71.us-east-1.amazon.com"
+  },
+  "methods": {
+    "carrier": {
+      "solved": 38,
+      "total": 68,
+      "solver_time_sum_sec": 325.3
+    }
+  }
+}

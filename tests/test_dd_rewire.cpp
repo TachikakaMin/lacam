@@ -307,22 +307,48 @@ TEST(dd_rewire, rewrite_marks_reparented_descendants_stale)
   TAPFPlanner planner(&view, nullptr, &mt, 0, 0, 0.001f, true, &st);
 
   const auto S0 = initial_shelf_state(view);
-  auto mk_node = [&](Config c, TAPFNode* parent) {
-    auto* n = new TAPFNode(c, S0, planner.D, &view,
-                           std::vector<int>((int)view.N, -1),
-                           TAPFAssignmentState(), parent);
-    planner.invalidate_carrier_scratch();
-    planner.attach_carrier_guidance(n);
-    return n;
+  auto mk_node = [&](Config c) {
+    return new TAPFNode(c, S0, planner.D, &view,
+                        std::vector<int>((int)view.N, -1),
+                        TAPFAssignmentState(), nullptr);
   };
   Config c_root{view.G.U[dd.grid.idx(1, 0)]};
   Config c_mid{view.G.U[dd.grid.idx(1, 1)]};
   Config c_leaf{view.G.U[dd.grid.idx(1, 2)]};
-  auto* root = mk_node(c_root, nullptr);
-  auto* b_old = mk_node(c_mid, root);
-  auto* b_new = mk_node(c_mid, root);
-  auto* leaf = mk_node(c_leaf, b_old);
-  b_new->neighbor.insert(leaf);  // alternative edge into the chain
+  auto* root = mk_node(c_root);
+  auto* b_old = mk_node(c_mid);
+  auto* b_new = mk_node(c_mid);
+  auto* leaf = mk_node(c_leaf);
+  const PhysConfig X_root = initial_phys_config(dd);
+  auto X_mid = X_root;
+  X_mid.robots[0] = dd.grid.idx(1, 1);
+  auto X_leaf = X_root;
+  X_leaf.robots[0] = dd.grid.idx(1, 2);
+  const std::vector<Op> move_mid = {
+      Op::make_move(dd.grid.idx(1, 1))};
+  const std::vector<Op> move_leaf = {
+      Op::make_move(dd.grid.idx(1, 2))};
+  ASSERT_EQ(apply_ops(dd, X_root, move_mid), X_mid);
+  ASSERT_EQ(apply_ops(dd, X_mid, move_leaf), X_leaf);
+
+  planner.attach_carrier_guidance(root);
+  planner.attach_carrier_guidance(
+      b_old, &X_root, root->guide.get(), &move_mid);
+  planner.attach_carrier_guidance(
+      b_new, &X_root, root->guide.get(), &move_mid);
+  planner.attach_carrier_guidance(
+      leaf, &X_mid, b_old->guide.get(), &move_leaf);
+  b_old->parent = root;
+  b_old->incoming_edge = planner.register_outgoing_edge(
+      root, b_old, 1, {TransitionStep{X_root, move_mid, X_mid}});
+  b_new->parent = root;
+  b_new->incoming_edge = planner.register_outgoing_edge(
+      root, b_new, 1, {TransitionStep{X_root, move_mid, X_mid}});
+  leaf->parent = b_old;
+  leaf->incoming_edge = planner.register_outgoing_edge(
+      b_old, leaf, 1, {TransitionStep{X_mid, move_leaf, X_leaf}});
+  const auto candidate = planner.register_outgoing_edge(
+      b_new, leaf, 1, {TransitionStep{X_mid, move_leaf, X_leaf}});
   root->g = 0;
   b_old->g = 50;
   b_new->g = 1;
@@ -333,6 +359,9 @@ TEST(dd_rewire, rewrite_marks_reparented_descendants_stale)
   std::vector<TAPFNode*> OPEN;
   planner.rewrite(b_new, nullptr, OPEN);
   EXPECT_EQ(leaf->parent, b_new) << "relaxation must reparent the leaf";
+  EXPECT_EQ(leaf->incoming_edge, candidate);
+  EXPECT_DOUBLE_EQ(leaf->g, 2);
+  EXPECT_DOUBLE_EQ(leaf->f, leaf->g + leaf->h);
   EXPECT_TRUE(leaf->guidance_stale)
       << "a reparented descendant must be marked for guidance re-anchor";
 
@@ -388,20 +417,40 @@ TEST(dd_rewire, relaxed_child_with_unchanged_parent_is_stale)
   TAPFPlanner planner(&view, nullptr, &mt, 0, 0, 0.001f, true, &st);
 
   const auto S0 = initial_shelf_state(view);
-  auto mk_node = [&](Config c, TAPFNode* parent) {
-    auto* n = new TAPFNode(c, S0, planner.D, &view,
-                           std::vector<int>((int)view.N, -1),
-                           TAPFAssignmentState(), parent);
-    planner.invalidate_carrier_scratch();
-    planner.attach_carrier_guidance(n);
-    return n;
+  auto mk_node = [&](Config c) {
+    return new TAPFNode(c, S0, planner.D, &view,
+                        std::vector<int>((int)view.N, -1),
+                        TAPFAssignmentState(), nullptr);
   };
   Config c_root{view.G.U[dd.grid.idx(1, 0)]};
   Config c_mid{view.G.U[dd.grid.idx(1, 1)]};
   Config c_leaf{view.G.U[dd.grid.idx(1, 2)]};
-  auto* root = mk_node(c_root, nullptr);
-  auto* dup = mk_node(c_mid, root);   // the duplicate being relaxed
-  auto* child = mk_node(c_leaf, dup);  // hangs under dup and STAYS there
+  auto* root = mk_node(c_root);
+  auto* dup = mk_node(c_mid);
+  auto* child = mk_node(c_leaf);
+  const PhysConfig X_root = initial_phys_config(dd);
+  auto X_mid = X_root;
+  X_mid.robots[0] = dd.grid.idx(1, 1);
+  auto X_leaf = X_root;
+  X_leaf.robots[0] = dd.grid.idx(1, 2);
+  const std::vector<Op> move_mid = {
+      Op::make_move(dd.grid.idx(1, 1))};
+  const std::vector<Op> move_leaf = {
+      Op::make_move(dd.grid.idx(1, 2))};
+  ASSERT_EQ(apply_ops(dd, X_root, move_mid), X_mid);
+  ASSERT_EQ(apply_ops(dd, X_mid, move_leaf), X_leaf);
+
+  planner.attach_carrier_guidance(root);
+  planner.attach_carrier_guidance(
+      dup, &X_root, root->guide.get(), &move_mid);
+  planner.attach_carrier_guidance(
+      child, &X_mid, dup->guide.get(), &move_leaf);
+  dup->parent = root;
+  dup->incoming_edge = planner.register_outgoing_edge(
+      root, dup, 1, {TransitionStep{X_root, move_mid, X_mid}});
+  child->parent = dup;
+  child->incoming_edge = planner.register_outgoing_edge(
+      dup, child, 1, {TransitionStep{X_mid, move_leaf, X_leaf}});
   root->g = 0;
   dup->g = 50;    // will be relaxed via root
   child->g = 100;  // will be relaxed via dup (parent unchanged)

@@ -43,24 +43,35 @@ struct IntVectorHasher {
   }
 };
 
-struct ShelfProjection {
-  std::vector<int> target_pos;
-  std::vector<int> anon_occ;
-
-  bool operator==(const ShelfProjection& other) const
+struct PhysConfigPtrHasher {
+  size_t operator()(const PhysConfig* p) const
   {
-    return target_pos == other.target_pos && anon_occ == other.anon_occ;
+    return PhysConfigHasher{}(*p);
   }
 };
 
-struct ShelfProjectionHasher {
-  size_t operator()(const ShelfProjection& p) const
+struct PhysConfigPtrEqual {
+  bool operator()(const PhysConfig* a, const PhysConfig* b) const
+  {
+    return *a == *b;
+  }
+};
+
+struct ShelfProjectionPtrHasher {
+  size_t operator()(const PhysConfig* p) const
   {
     const IntVectorHasher hash;
-    size_t h = hash(p.target_pos);
-    const size_t a = hash(p.anon_occ);
+    size_t h = hash(p->target_pos);
+    const size_t a = hash(p->anon_occ);
     h ^= a + 0x9e3779b9U + (h << 6) + (h >> 2);
     return h;
+  }
+};
+
+struct ShelfProjectionPtrEqual {
+  bool operator()(const PhysConfig* a, const PhysConfig* b) const
+  {
+    return a->target_pos == b->target_pos && a->anon_occ == b->anon_occ;
   }
 };
 
@@ -68,11 +79,6 @@ bool all_shelves_grounded(const PhysConfig& s)
 {
   return std::all_of(s.kappa.begin(), s.kappa.end(),
                      [](int k) { return k == KAPPA_FREE; });
-}
-
-ShelfProjection shelf_projection(const PhysConfig& s)
-{
-  return ShelfProjection{s.target_pos, s.anon_occ};
 }
 
 std::vector<int> distances_to(const DDGrid& grid, int goal)
@@ -288,9 +294,10 @@ bool valid_goal_plan(const DDInstance& ins, const DDPlan& plan)
 
 }  // namespace
 
-DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
-                           DDPlanRepairStats* stats,
-                           const Deadline* deadline)
+DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
+                                const std::vector<PhysConfig>* replayed_states,
+                                DDPlanRepairStats* stats,
+                                const Deadline* deadline)
 {
   if (stats != nullptr) *stats = DDPlanRepairStats();
   if (plan.size() < 2 || ins.n_robots() == 0) return plan;
@@ -302,26 +309,41 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
   auto expired = [&]() { return is_expired(deadline); };
   if (expired()) return plan;
 
-  std::vector<PhysConfig> states;
-  states.reserve(plan.size() + 1);
-  states.push_back(initial_phys_config(ins));
-  for (const auto& ops : plan) {
-    auto next = apply_ops(ins, states.back(), ops);
-    if (!next.has_value()) return plan;
-    states.push_back(std::move(*next));
-    if (states.size() % EXPIRY_STRIDE == 0 && expired()) return plan;
+  std::vector<PhysConfig> owned_states;
+  if (replayed_states == nullptr) {
+    owned_states.reserve(plan.size() + 1);
+    owned_states.push_back(initial_phys_config(ins));
+    for (const auto& ops : plan) {
+      auto next = apply_ops(ins, owned_states.back(), ops);
+      if (!next.has_value()) return plan;
+      owned_states.push_back(std::move(*next));
+      if (owned_states.size() % EXPIRY_STRIDE == 0 && expired())
+        return plan;
+    }
   }
+  const auto& states =
+      replayed_states != nullptr ? *replayed_states : owned_states;
+  if (states.size() != plan.size() + 1 ||
+      !(states.front() == initial_phys_config(ins)))
+    return plan;
   if (!is_dd_goal(ins, states.back())) return plan;
 
-  std::unordered_map<PhysConfig, size_t, PhysConfigHasher> last_exact;
-  std::unordered_map<ShelfProjection, size_t, ShelfProjectionHasher>
+  // `states` is fully materialized and never reallocated below.  Key the
+  // loop tables by pointers into that stable storage so the hash/equality
+  // semantics stay exact without copying four vectors per timestep into
+  // the unordered_map nodes (150k+ allocations on dense incumbents).
+  std::unordered_map<const PhysConfig*, size_t, PhysConfigPtrHasher,
+                     PhysConfigPtrEqual>
+      last_exact;
+  std::unordered_map<const PhysConfig*, size_t, ShelfProjectionPtrHasher,
+                     ShelfProjectionPtrEqual>
       last_projection;
   last_exact.reserve(states.size() * 2);
   last_projection.reserve(states.size());
   for (size_t t = 0; t < states.size(); ++t) {
-    last_exact[states[t]] = t;
+    last_exact[&states[t]] = t;
     if (all_shelves_grounded(states[t]))
-      last_projection[shelf_projection(states[t])] = t;
+      last_projection[&states[t]] = t;
   }
 
   // Weighted-SOC bookkeeping (review fix 2026-09-01): prefix sums of the
@@ -348,7 +370,7 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
   DDPlanRepairStats local;
   for (size_t t = 0; t < plan.size();) {
     if (repaired.size() % EXPIRY_STRIDE == 0 && expired()) return plan;
-    const size_t exact = last_exact.at(states[t]);
+    const size_t exact = last_exact.at(&states[t]);
     if (exact > t) {
       ++local.exact_loops;
       local.steps_removed += static_cast<long>(exact - t);
@@ -358,7 +380,7 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
 
     if (all_shelves_grounded(states[t])) {
       const size_t projected =
-          last_projection.at(shelf_projection(states[t]));
+          last_projection.at(&states[t]);
       if (projected > t) {
         auto bridge =
             shortest_available_bridge(ins, states, t, projected);
@@ -395,4 +417,19 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
     return plan;
   if (stats != nullptr) *stats = local;
   return repaired;
+}
+
+DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
+                           DDPlanRepairStats* stats,
+                           const Deadline* deadline)
+{
+  return repair_carrier_plan_impl(ins, plan, nullptr, stats, deadline);
+}
+
+DDPlan repair_carrier_plan_from_replay(
+    const DDInstance& ins, const DDPlan& plan,
+    const std::vector<PhysConfig>& states, DDPlanRepairStats* stats,
+    const Deadline* deadline)
+{
+  return repair_carrier_plan_impl(ins, plan, &states, stats, deadline);
 }

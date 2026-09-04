@@ -9,13 +9,15 @@
  * the upstream Node and TAPFNode.
  *
  * PARENT SEMANTICS GLOSSARY (design.md section 10):
- *   - search parent (Node::parent): the node whose expansion CREATED this
- *     node; feeds guidance ancestry.  May be REWIRED by the TAPF rewrite
- *     (g-relax) for plan extraction — carrier guidance reads it only at
- *     node creation, so rewires never re-feed guidance (design 5.4a
- *     park-registry lesson).
- *   - macro edges (multi-step): stored beside the tree in
- *     TAPFPlanner::macro_edges with their trace and cost.
+ *   - search parent (Node::parent): the node on the currently selected
+ *     cost/extraction path.  TAPF rewrite may replace it during g-relax;
+ *     parent and immutable incoming_edge are replaced atomically.
+ *     Carrier guidance is then marked stale and replayed from the fresh
+ *     parent through incoming_edge->transition_trace before expansion.
+ *   - normal and macro edges: immutable SearchEdge records in each source
+ *     node's outgoing_edges.  A macro record owns every primitive
+ *     transition step plus its physical cost; there is no separate
+ *     authoritative node-pair macro map.
  */
 #pragma once
 

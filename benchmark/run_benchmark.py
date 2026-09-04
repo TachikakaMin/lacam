@@ -21,6 +21,7 @@ import csv
 import hashlib
 import socket
 import json
+import math
 import os
 import re
 import subprocess
@@ -49,8 +50,16 @@ FIELDS = [
     "assignment_improvements", "assignment_second_solution_ms",
     "assignment_first_soc", "assignment_second_soc",
     "assignment_first_makespan", "assignment_second_makespan",
-    "tau_price_repairs", "rewire_guidance_rebuilds",
+    "upper_epoch_builds", "pair_cache_hits", "pair_cache_misses",
+    "pair_rollout_steps", "pair_rollout_truncations",
+    "pair_rollout_stalls", "tau_guide_changes_on_upper_move",
+    "joint_task_nodes", "joint_task_edges", "joint_shared_effects",
+    "joint_effect_conflicts", "joint_candidate_backtracks",
+    "joint_paused_roots", "ready_task_count", "rho_repairs",
+    "custody_continuations", "zero_empty_no_ready",
+    "rewire_guidance_rebuilds",
     "tau_time_ms", "guidance_time_ms",
+    "deliverable_ms", "solver_runtime_ms",
     "plan_sha256",
     "runtime_sec", "status", "raw",
 ]
@@ -68,7 +77,8 @@ def provenance_info():
         binary_sha = hashlib.sha256(CARRIER_BIN.read_bytes()).hexdigest()
     except OSError:
         binary_sha = ""
-    return {"git_commit": commit, "binary_sha256": binary_sha,
+    return {"git_commit": commit, "binary_path": str(CARRIER_BIN),
+            "binary_sha256": binary_sha,
             "host": socket.gethostname()}
 
 
@@ -81,6 +91,36 @@ def ensure_out_dir(out, force):
             f"artifacts (protocol §11.1(8)) - pick a new directory or pass "
             f"--force to overwrite explicitly")
     out.mkdir(parents=True, exist_ok=True)
+
+
+def validate_deliverable_ms(metrics, timeout):
+    """Machine-check the strict solver deliverable deadline on successes."""
+    raw = metrics.get("deliverable_ms")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("missing or invalid deliverable_ms") from exc
+    limit_ms = float(timeout) * 1000.0
+    if not math.isfinite(value) or value < 0 or value > limit_ms:
+        raise ValueError(
+            f"deliverable_ms={raw} exceeds strict limit {limit_ms}"
+        )
+    return value
+
+
+def validate_solver_runtime_ms(metrics, timeout):
+    """Machine-check the measured C++ solve-call return deadline."""
+    raw = metrics.get("runtime_ms")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("missing or invalid runtime_ms") from exc
+    limit_ms = float(timeout) * 1000.0
+    if not math.isfinite(value) or value < 0 or value > limit_ms:
+        raise ValueError(
+            f"runtime_ms={raw} exceeds strict limit {limit_ms}"
+        )
+    return value
 
 
 def run_external(cmd, timeout):
@@ -280,7 +320,7 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
         p = subprocess.run(
             [str(CARRIER_BIN), str(path), str(timeout), str(plan_out), "0",
              mode],
-            capture_output=True, text=True, timeout=timeout + 30, env=env,
+            capture_output=True, text=True, timeout=timeout, env=env,
         )
         status = "ok"
     except subprocess.TimeoutExpired:
@@ -302,6 +342,15 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                     metrics.get("timed_out") == "1" else "failed",
                     raw=(p.stdout + p.stderr)[-150:].replace("\n", " ")
                     if p else "")
+    try:
+        validate_deliverable_ms(metrics, timeout)
+        validate_solver_runtime_ms(metrics, timeout)
+    except ValueError as e:
+        return dict(instance=name, family=family, method=method, success=0,
+                    executed_makespan="", weighted_soc="", loaded_moves="",
+                    free_moves="", lift_drop="", **_blank_extra(),
+                    runtime_sec=round(rt, 3), status="deadline_violation",
+                    raw=str(e))
     # authoritative re-validation
     try:
         plan = parse_carrier_plan(plan_out)
@@ -346,13 +395,48 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 assignment_second_makespan=metrics.get(
                     "assignment_second_makespan", ""
                 ),
-                # R5 (debug.md §10): v3.0 diagnostics for gate audits
-                tau_price_repairs=metrics.get("tau_price_repairs", ""),
+                upper_epoch_builds=metrics.get("upper_epoch_builds", ""),
+                pair_cache_hits=metrics.get("pair_cache_hits", ""),
+                pair_cache_misses=metrics.get("pair_cache_misses", ""),
+                pair_rollout_steps=metrics.get("pair_rollout_steps", ""),
+                pair_rollout_truncations=metrics.get(
+                    "pair_rollout_truncations", ""
+                ),
+                pair_rollout_stalls=metrics.get(
+                    "pair_rollout_stalls", ""
+                ),
+                tau_guide_changes_on_upper_move=metrics.get(
+                    "tau_guide_changes_on_upper_move", ""
+                ),
+                joint_task_nodes=metrics.get("joint_task_nodes", ""),
+                joint_task_edges=metrics.get("joint_task_edges", ""),
+                joint_shared_effects=metrics.get(
+                    "joint_shared_effects", ""
+                ),
+                joint_effect_conflicts=metrics.get(
+                    "joint_effect_conflicts", ""
+                ),
+                joint_candidate_backtracks=metrics.get(
+                    "joint_candidate_backtracks", ""
+                ),
+                joint_paused_roots=metrics.get(
+                    "joint_paused_roots", ""
+                ),
+                ready_task_count=metrics.get("ready_task_count", ""),
+                rho_repairs=metrics.get("rho_repairs", ""),
+                custody_continuations=metrics.get(
+                    "custody_continuations", ""
+                ),
+                zero_empty_no_ready=metrics.get(
+                    "zero_empty_no_ready", ""
+                ),
                 rewire_guidance_rebuilds=metrics.get(
                     "rewire_guidance_rebuilds", ""
                 ),
                 tau_time_ms=metrics.get("tau_time_ms", ""),
                 guidance_time_ms=metrics.get("guidance_time_ms", ""),
+                deliverable_ms=metrics.get("deliverable_ms", ""),
+                solver_runtime_ms=metrics.get("runtime_ms", ""),
                 plan_sha256=hashlib.sha256(
                     plan_out.read_bytes()).hexdigest(),
                 runtime_sec=round(rt, 3), status="ok", raw="")
@@ -397,6 +481,8 @@ def run_one(task):
 
 
 def main():
+    global CARRIER_BIN
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--instances", default="instances")
     ap.add_argument("--out-dir", default="results")
@@ -415,12 +501,21 @@ def main():
     ap.add_argument("--force", action="store_true",
                     help="allow overwriting an existing result directory")
     ap.add_argument(
+        "--carrier-bin", default=str(CARRIER_BIN),
+        help="carrier executable, used for isolated compile-time ablations",
+    )
+    ap.add_argument(
         "--weights", type=float, nargs=4,
         metavar=("ALPHA", "BETA", "GAMMA", "DELTA"),
         default=(1.0, 1.0, 1.0, 1.0),
         help="carrier/B4 objective weights; defaults to the unit main table",
     )
     args = ap.parse_args()
+    CARRIER_BIN = Path(args.carrier_bin).expanduser().resolve()
+    if any(m in {"carrier", "carrier_b0", "carrier_b1"}
+           for m in args.methods):
+        if not CARRIER_BIN.is_file() or not os.access(CARRIER_BIN, os.X_OK):
+            ap.error(f"--carrier-bin is not executable: {CARRIER_BIN}")
     weights = tuple(args.weights)
     if (weights != (1.0, 1.0, 1.0, 1.0) and
             any(m in {"crest_base", "crest_full", "natcbs"}

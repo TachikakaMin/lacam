@@ -1,0 +1,26 @@
+{
+  "wall_time_sec": 10.8,
+  "jobs": 6,
+  "n_tasks": 6,
+  "timeout_per_run_sec": 10.0,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "gamma": 1.0,
+    "delta": 1.0
+  },
+  "following": "allowed",
+  "provenance": {
+    "git_commit": "ab4166464aef38b2a5ed4e9a45ab76e256a9cf5d",
+    "binary_sha256": "ba510146f0618ffe5b2491fa43ae1a1d0b22b16fddcce16b0a2dbdaa64388480",
+    "host": "dev-dsk-yimint-1d-d32fcf71.us-east-1.amazon.com"
+  },
+  "methods": {
+    "carrier": {
+      "solved": 3,
+      "total": 6,
+      "solver_time_sum_sec": 38.3
+    }
+  }
+}

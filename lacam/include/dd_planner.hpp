@@ -5,9 +5,11 @@
  */
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "dd_carrier.hpp"
+#include "tapf_planner.hpp"
 
 using DDPlan = std::vector<std::vector<Op>>;  // per timestep, per robot
 
@@ -40,19 +42,30 @@ struct DDStats {
   long robot_only_successors = 0;
   long manipulation_successors = 0;
   long shelf_motion_successors = 0;
-  long tau_change_builds = 0;
-  long tau_pair_changes = 0;
-  long rho_change_builds = 0;
-  long rho_pair_changes = 0;
-  long tau_price_repairs = 0;         // v3.0 §5.1 execution-price repairs
-  long rewire_guidance_rebuilds = 0;  // v3.0 §6.1 duplicate-rewire rebuilds
+  long upper_epoch_builds = 0;
+  long pair_cache_hits = 0;
+  long pair_cache_misses = 0;
+  long pair_rollout_steps = 0;
+  long pair_rollout_truncations = 0;
+  long pair_rollout_stalls = 0;
+  long tau_guide_changes_on_upper_move = 0;
+  long joint_task_nodes = 0;
+  long joint_task_edges = 0;
+  long joint_shared_effects = 0;
+  long joint_effect_conflicts = 0;
+  long joint_candidate_backtracks = 0;
+  long joint_paused_roots = 0;
+  long ready_task_count = 0;
+  long rho_repairs = 0;
+  long custody_continuations = 0;
+  long zero_empty_no_ready = 0;
+  long rewire_guidance_rebuilds = 0;
   long g_relaxed = 0;         // duplicate hits relaxed to a cheaper g
                               // (generic search-kernel diagnostic)
   long guidance_builds = 0;
   double tau_time_ms = 0;
   double guidance_time_ms = 0;
-  long path_recomputes = 0;
-  long path_cache_hits = 0;
+  double deliverable_ms = -1;  // deferred cleanup + final replay complete
   // Incumbent and output-repair cost diagnostics.
   double first_solution_ms = -1;
   double first_solution_soc = -1;  // weighted physical cost (a=b=g=d=1)
@@ -65,8 +78,6 @@ struct DDStats {
   long projected_loops = 0;
   long bridge_steps = 0;
   long plan_steps_removed = 0;
-  // Search learns from repeated lift/drop episodes that never move a shelf.
-  long futile_lift_demotions = 0;
   // After a dynamic-goal first solution, restart once from the root with
   // that solution's target->goal assignment fixed to singleton sets.
   long assignment_restarts = 0;
@@ -91,6 +102,55 @@ struct DDSocWeights {
 };
 DDSocWeights dd_load_soc_weights();
 
+// Task-BR-PIBT Phase 1 probes. These are thin views over the same pure
+// helpers used by production guidance; they do not run a second planner.
+UpperSignature dd_upper_signature_probe(const PhysConfig& X);
+PairPlan dd_pair_cost_probe(const DDInstance& ins, const PhysConfig& X,
+                            int target, int goal);
+struct DDLazyTauProbe {
+  std::vector<int> tau;
+  PairCostTable table;
+  long evaluated_edges = 0;
+  long total_edges = 0;
+};
+DDLazyTauProbe dd_lazy_tau_guide_probe(const DDInstance& ins,
+                                       const PhysConfig& X);
+std::optional<TaskId> dd_pair_next_ready_effect_probe(
+    const DDInstance& ins, const PhysConfig& X, int target, int goal,
+    int recursion_cap = 256);
+double dd_pair_episode_cost_probe(
+    const std::vector<ShelfSelector>& shifted_shelves, double alpha,
+    double gamma, double delta);
+std::vector<int> dd_tau_guide_probe(const DDInstance& ins,
+                                    const PhysConfig& X);
+double dd_tau_lb_probe(const DDInstance& ins, const PhysConfig& X);
+ShelfTaskGraph dd_compile_single_root_graph_probe(
+    const DDInstance& ins, const PhysConfig& X, int target, int goal,
+    int recursion_cap = 256, int backtrack_cap = 512);
+ShelfTaskGraph dd_compile_joint_graph_probe(
+    const DDInstance& ins, const PhysConfig& X,
+    const std::vector<int>* tau_override = nullptr,
+    const std::vector<int>* priority_override = nullptr,
+    int recursion_cap = 256, int backtrack_cap = 512);
+std::vector<int> dd_ready_tasks_probe(const DDInstance& ins,
+                                      const PhysConfig& X,
+                                      const ShelfTaskGraph& graph);
+ShelfTaskGraph dd_propagate_root_demands_probe(
+    ShelfTaskGraph graph, const std::vector<int>& target_priority);
+bool dd_task_effects_conflict_probe(const TaskId& a, const TaskId& b);
+CarrierGuidance dd_task_br_guidance_probe(
+    const DDInstance& ins, const PhysConfig& X,
+    const PhysConfig* previous_X = nullptr,
+    const CarrierGuidance* previous_guidance = nullptr,
+    const std::vector<Op>* executed_ops = nullptr);
+CarrierGuidance dd_task_br_cached_guidance_probe(
+    const DDInstance& ins, const PhysConfig& X,
+    const std::vector<PhysConfig>& warmups, long* cache_hits);
+DDReadyMatchProbe dd_match_ready_tasks_probe(
+    const DDInstance& ins, const PhysConfig& X,
+    const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
+    const std::vector<std::optional<TaskId>>* previous_rho_task_id);
+
 // returns empty plan on failure/timeout; a trivially-solved instance yields
 // a single all-wait step (never an empty plan on success).
 // On failure, if best_effort != nullptr it receives the action sequence to
@@ -98,6 +158,13 @@ DDSocWeights dd_load_soc_weights();
 DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
                            int seed, DDStats* stats = nullptr,
                            DDPlan* best_effort = nullptr);
+
+// Test-visible finalization classifier shared by the production return
+// path.  Invalid output is a correctness failure even when discovered
+// near a deadline; only a valid output completed too late is DEADLINE.
+enum class DDFinalizationStatus { ACCEPT, INVALID, DEADLINE };
+DDFinalizationStatus dd_classify_finalization_probe(
+    bool replay_valid, double elapsed_ms, double limit_ms);
 
 // Remove exact physical-state loops, then remove loops in the grounded
 // shelf projection.  A projected cut reconnects labeled robots on the
@@ -111,6 +178,15 @@ struct Deadline;
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            DDPlanRepairStats* stats = nullptr,
                            const Deadline* deadline = nullptr);
+// Production fast path: `states` is the already-materialized physical
+// replay parallel to `plan` (size = plan.size() + 1).  The repaired output
+// is still replayed independently before acceptance; this only avoids
+// replaying a very long raw incumbent twice.
+DDPlan repair_carrier_plan_from_replay(
+    const DDInstance& ins, const DDPlan& plan,
+    const std::vector<PhysConfig>& states,
+    DDPlanRepairStats* stats = nullptr,
+    const Deadline* deadline = nullptr);
 
 // B0 baseline (design 8.1) = Carrier-PIBT standalone: repeatedly apply the
 // unconstrained generator from the current configuration until goal, dead
@@ -134,26 +210,6 @@ DDPlan solve_carrier_2stage(const DDInstance& ins, double time_limit_sec,
                             int seed, DDStats* stats = nullptr,
                             std::vector<std::vector<int>>* fixed_paths = nullptr);
 
-// TEST SUPPORT (debug.md v4 WP-C T3, design_final 5.3/D17): run the
-// production shelf->goal tau matching for X.  Returns the per-target
-// assigned goal CELL; h_out (if given) receives the admissible
-// LB-matching h_shelf (primary lexicographic value).  parent_tau
-// exercises the eta_B hysteresis tie layer; taboo pairs (target,
-// goal-cell) are excluded from matching (|G_b|=1 rows exempt).
-std::vector<int> dd_solve_tau(
-    const DDInstance& ins, const PhysConfig& X,
-    const std::vector<int>* parent_tau = nullptr, double* h_out = nullptr,
-    const std::vector<std::pair<int, int>>* taboo = nullptr);
-
-// TEST SUPPORT (debug.md v4 WP-C T5): query the production PathCache for
-// target b twice — dst1 then dst2 — on the same X occupancy.  Returns
-// the SECOND path; recomputes_out receives the cache's recompute count.
-// A dst change must be a cache miss (stale dst1 paths are a correctness
-// bug once tau can reassign goals).
-std::vector<int> dd_pathcache_dst_probe(const DDInstance& ins,
-                                        const PhysConfig& X, int b, int dst1,
-                                        int dst2, long* recomputes_out);
-
 // TEST SUPPORT (G1/completeness conformance, debug.md P0-1/P0-2):
 // drain ONE node's operator-constraint tree through the production
 // machinery (tree expansion + Carrier-PIBT + validator) and return every
@@ -163,76 +219,7 @@ std::vector<PhysConfig> dd_enumerate_node_successors(const DDInstance& ins,
                                                      const PhysConfig& X,
                                                      int seed);
 
-// TEST SUPPORT (debug.md round-2 P0-5): same enumeration, but applies the
-// production livelock re-guidance mutation (taboo rho re-match + order
-// shuffle + class re-sort) `n_reguides` times, interleaved with the tree
-// drain (first application happens mid-drain to model a partially expanded
-// tree).  Outputs the frozen constraint_order before/after for assertion.
-std::vector<PhysConfig> dd_enumerate_node_successors_reguided(
-    const DDInstance& ins, const PhysConfig& X, int seed, int n_reguides,
-    std::vector<int>* constraint_order_before = nullptr,
-    std::vector<int>* constraint_order_after = nullptr);
-
-// TEST SUPPORT (debug.md round-2 P0-2, design 5.4a): compute the park
-// vector for X.  warm_block_cell >= 0 first warms the per-target path
-// cache with that cell forced occupied (occupied->vacated history), then
-// guidance is built on the true X occupancy.  strict_inval selects the
-// D_b invalidation policy. path_out, if given, receives target 0's
-// least-blocking path as seen by guidance.
-std::vector<uint8_t> dd_compute_park(const DDInstance& ins,
-                                     const PhysConfig& X,
-                                     int warm_block_cell, bool strict_inval,
-                                     std::vector<int>* path_out = nullptr);
-
-// TEST SUPPORT (debug.md round-2 P2-13b): run the production rho matching
-// for X and return per-robot free_goal cells.  parent_free_goal, if given,
-// simulates the parent node's assignment (cell per robot, -1 = none) for
-// the fixed eta-hysteresis term (design 5.3(4)).
-std::vector<int> dd_match_free_goals(const DDInstance& ins,
-                                     const PhysConfig& X,
-                                     const std::vector<int>* parent_free_goal);
-
-// TEST SUPPORT (design_final v3.0 §3/§5, debug.md §7.2 tests 4/5): run the
-// production guidance for X and return its ManipulationTask pool
-// (tapf_planner.hpp).  rho_task_out, if given, receives the per-robot task
-// binding; requests are the pool's pickup projection.
-struct ManipulationTask;
-std::vector<ManipulationTask> dd_build_tasks(
-    const DDInstance& ins, const PhysConfig& X,
-    std::vector<int>* rho_task_out = nullptr);
-
-// TEST SUPPORT (debug.md §7.2 test 4): step the production generator from
-// the initial configuration (parent-guide chaining as in rollout) and
-// record, per executed step, the observed kappa, the bound task id
-// (rho_task) and the custody id of `robot`.  Stops on goal, generator
-// failure, or max_steps.
-struct DDCustodyStep {
-  int kappa = KAPPA_FREE;   // BEFORE the step
-  int cell = -1;            // robot cell BEFORE the step
-  uint64_t bound_id = 0;    // task bound via rho_task (0 = none)
-  uint64_t custody_id = 0;  // carry custody (0 = none)
-  int custody_to = -1;      // custody task's CURRENT drop cell (R2:
-                            // position-aware refinement per node)
-};
-std::vector<DDCustodyStep> dd_rollout_custody_trace(const DDInstance& ins,
-                                                    int robot, int max_steps,
-                                                    int seed);
-
-// TEST SUPPORT (debug.md round-2 P2-13c): production least-blocking path
-// with optional previous-path inertia bias (ties break toward prev; total
-// discount strictly below one base cost unit).
-std::vector<int> dd_least_blocking_path(const DDGrid& g, int src, int dst,
-                                        const std::vector<uint8_t>& occupied,
-                                        const std::vector<int>* prev_path);
-
-// TEST SUPPORT (debug.md round-2 P2-13d): run one unconstrained
+// TEST SUPPORT: run one unconstrained
 // Carrier-PIBT step from X and return the chosen joint ops.
 std::vector<Op> dd_root_joint_ops(const DDInstance& ins, const PhysConfig& X,
                                   int seed);
-
-// TEST SUPPORT + livelock machinery (debug.md round-2 P2-15): build the
-// cross-deck wait-for graph for X (guidance computed internally) and
-// return the SORTED ids of robots on cycles (empty = no structural
-// deadlock detected).
-std::vector<int> dd_waitfor_cycle_robots(const DDInstance& ins,
-                                         const PhysConfig& X);

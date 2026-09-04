@@ -1,9 +1,9 @@
 **最高优先级约束：新算法必须建立在现有 LaCAM-TAPF 代码和算法流程之上进行增量式扩展，禁止另起炉灶。**
 
-* 必须沿用现有 LaCAM-TAPF 的核心数据结构、search/control flow、节点扩展、状态表示和规划逻辑，在原有 execution path 上增加 `design.md` 中的新机制。
+* 必须沿用现有 LaCAM-TAPF 的核心数据结构、search/control flow、节点扩展、状态表示和规划逻辑，在原有 execution path 上增加 `new.md` 与 `design_final.md` 中的新机制。
 * 禁止实现平行 planner、第二套 search pipeline、独立算法框架，或通过大量独立函数/文件绕开原有 LaCAM-TAPF 逻辑。
 * 可以增加必要 helper、data structure 或局部模块，但必须直接服务于并嵌入原 LaCAM-TAPF 主流程。
-* 开始编码前，先明确 `design.md` 中每个新增机制具体对应现有 LaCAM-TAPF 的哪些修改位置，并据此更新 design。
+* 开始编码前，先明确 `new.md` 与 `design_final.md` 中每个新增机制具体对应现有 LaCAM-TAPF 的哪些修改位置，并据此更新 design；两者冲突时以 `new.md` 的算法边界为准。
 * 避免无必要的大规模重构。
 
 必须保持以下 **semantic invariant**：
@@ -31,7 +31,7 @@
 
 * model: **GPT-5.6 Sol**
 * reasoning: **high**
-* 独立阅读 `design.md`、相关原代码、当前 implementation、原 test 和 proposed change
+* 独立阅读 `new.md`、`design_final.md`、相关原代码、当前 implementation、原 test 和 proposed change
 * 明确输出 `APPROVE` 或 `REJECT`，并说明理由
 
 只有得到明确 `APPROVE` 后才能修改 protected test/benchmark；如果 `REJECT`，必须保持测试不变并修改 implementation。
@@ -72,7 +72,7 @@ Reviewer 重点检查：
 
 实现过程中持续检查 `git diff`，确保：
 
-1. 每一处新增或修改代码都能对应 `design.md` 中的具体设计；
+1. 每一处新增或修改代码都能对应 `new.md` 与 `design_final.md` 中的具体设计；
 2. 所有新增代码都在真实 execution path 中被使用；
 3. 没有 dead code、重复实现或平行 pipeline；
 4. 修改集中在原 LaCAM-TAPF 真正需要扩展的位置；
@@ -100,3 +100,4 @@ Reviewer 重点检查：
 * backward compatibility 结果；
 * 最终 git diff 中主要新增代码的作用；
 * 尚存在的 regression、semantic difference 或未解决问题。
+* 制作一个汇报网页, 配上例子来进行最终汇报, 里面用词需要符合中文母语人士, 让大一新生也能看懂,同时不丢失细节而且尽可能不要太长, 使用独立的subagent来review网页确保所有东西都是正常

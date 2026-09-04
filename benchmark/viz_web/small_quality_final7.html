@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier-LaCAM 小图质量分析 · final7</title>
+<style>
+:root {
+  --bg:#090d18; --panel:#111827; --panel2:#172033; --line:#2b3850;
+  --text:#e7edf7; --muted:#94a3b8; --blue:#4da3ff; --blue2:#2563eb;
+  --green:#35c98d; --red:#ff6b6b; --amber:#f7b955; --purple:#a78bfa;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; color:var(--text); background:
+    radial-gradient(circle at 15% 0%, #152449 0, transparent 31rem),
+    radial-gradient(circle at 95% 5%, #2b163d 0, transparent 29rem), var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;
+}
+.page { max-width:1560px; margin:auto; padding:28px; }
+h1 { margin:0; font-size:29px; letter-spacing:-.02em; }
+h2 { margin:0 0 16px; font-size:18px; }
+.sub { color:var(--muted); margin:8px 0 22px; }
+.cards { display:grid; grid-template-columns:repeat(6,minmax(150px,1fr)); gap:12px; }
+.card,.panel {
+  background:linear-gradient(145deg,rgba(23,32,51,.96),rgba(14,22,37,.96));
+  border:1px solid var(--line); border-radius:14px; box-shadow:0 16px 45px #0005;
+}
+.card { padding:16px; min-height:106px; }
+.card .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+.card .value { font-size:28px; font-weight:750; margin:8px 0 3px; }
+.card .detail { color:var(--muted); font-size:12px; line-height:1.45; }
+.good { color:var(--green)!important; } .bad { color:var(--red)!important; }
+.warn { color:var(--amber)!important; }
+.controls {
+  display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:20px 0 14px;
+  padding:12px 14px; background:#0f1728dd; border:1px solid var(--line); border-radius:12px;
+}
+label { color:var(--muted); font-size:13px; }
+select,input {
+  color:var(--text); background:#172033; border:1px solid #34435d;
+  border-radius:7px; padding:7px 9px; margin-left:5px;
+}
+input { width:220px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.panel { padding:18px; min-width:0; }
+.wide { grid-column:1/-1; }
+.note { color:var(--muted); font-size:12px; margin-top:-9px; margin-bottom:12px; }
+.coverage-row,.quality-row {
+  display:grid; grid-template-columns:72px 1fr 78px; gap:10px; align-items:center; margin:12px 0;
+}
+.track { height:25px; background:#0b1220; border:1px solid #29364c; border-radius:7px; position:relative; overflow:hidden; }
+.coverage-base,.coverage-new { position:absolute; left:0; border-radius:5px; }
+.coverage-base { height:8px; top:3px; background:#778399; }
+.coverage-new { height:8px; bottom:3px; background:var(--blue); }
+.quality-track { height:22px; background:#0b1220; border:1px solid #29364c; border-radius:6px; position:relative; }
+.quality-track .one { position:absolute; top:-3px; bottom:-3px; width:2px; background:#fff9; }
+.quality-track .bar { position:absolute; top:4px; height:12px; border-radius:4px; min-width:2px; }
+.ratio { font-variant-numeric:tabular-nums; text-align:right; font-weight:650; }
+.legend { display:flex; gap:17px; color:var(--muted); font-size:12px; margin-top:12px; }
+.swatch { width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:5px; }
+svg { width:100%; height:auto; min-height:420px; display:block; }
+.axis { stroke:#55647c; stroke-width:1; } .gridline { stroke:#253249; stroke-width:1; }
+.diag { stroke:#d8e1ef99; stroke-width:1.5; stroke-dasharray:7 5; }
+.tick { fill:#9aa8bd; font-size:11px; }
+.point { stroke:#07101e; stroke-width:1.2; cursor:pointer; transition:.12s; }
+.point:hover { stroke:white; stroke-width:2.2; filter:brightness(1.25); }
+.tooltip {
+  position:fixed; display:none; z-index:20; pointer-events:none; padding:10px 12px;
+  background:#050914f2; border:1px solid #4a5c78; border-radius:8px; font-size:12px;
+  box-shadow:0 12px 30px #000a; line-height:1.5;
+}
+.new-only { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.case-mini { background:#0b1323; border:1px solid #2c3b52; border-radius:9px; padding:12px; }
+.case-mini b { color:var(--blue); }
+.case-mini div { color:var(--muted); font-size:12px; margin-top:6px; }
+.table-wrap { overflow:auto; max-height:760px; border:1px solid #29364c; border-radius:9px; }
+table { border-collapse:collapse; width:100%; min-width:1080px; font-size:12px; }
+th { position:sticky; top:0; background:#182238; color:#b9c6d8; z-index:2; text-align:left; }
+th,td { padding:9px 10px; border-bottom:1px solid #253249; white-space:nowrap; }
+tbody tr:hover { background:#1a2740; }
+.badge { border-radius:999px; padding:2px 7px; font-weight:650; font-size:11px; }
+.ok { color:#9ce8ca; background:#154f3c; } .timeout { color:#ffc3c3; background:#672b36; }
+.ratio-pill { min-width:62px; display:inline-block; text-align:center; border-radius:6px; padding:3px 6px; font-weight:700; }
+.section-gap { margin-top:14px; }
+@media(max-width:1100px) { .cards { grid-template-columns:repeat(3,1fr); } .grid { grid-template-columns:1fr; } .wide { grid-column:auto; } }
+@media(max-width:650px) { .page { padding:16px; } .cards,.new-only { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Carrier-LaCAM 小图 benchmark：覆盖率与质量</h1>
+  <div class="sub">final7 对比 clean-HEAD strict v3 · <span id="protocol"></span> · 比值 &gt; 1 表示变差 · <a href="small_quality_cases.html" style="color:#76b9ff">查看具体 testcase 动画</a></div>
+  <div class="cards" id="cards"></div>
+
+  <div class="controls">
+    <label>指标<select id="metric"><option value="mk">Makespan</option><option value="soc">Weighted SOC</option></select></label>
+    <label>尺寸<select id="height"><option value="all">全部</option><option value="4">h4</option><option value="6">h6</option><option value="8">h8</option><option value="10">h10</option></select></label>
+    <label>类型<select id="kind"><option value="all">全部</option><option value="B">B / pool</option><option value="R1">R1</option></select></label>
+    <label>排序<select id="sort"><option value="ratio">退化最大</option><option value="improve">改善最大</option><option value="name">实例名</option></select></label>
+    <label>搜索<input id="search" placeholder="例如 h8 / e20 / R1"></label>
+    <span class="note" id="filterSummary" style="margin:0 0 0 auto"></span>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>A. 小图解出率</h2>
+      <div class="note">灰色=v3，蓝色=final7；每组上限为该尺寸实例总数。</div>
+      <div id="coverage"></div>
+      <div class="legend"><span><i class="swatch" style="background:#778399"></i>strict v3</span><span><i class="swatch" style="background:#4da3ff"></i>final7</span></div>
+    </section>
+    <section class="panel">
+      <h2>B. 分组质量几何均值</h2>
+      <div class="note">虚线位置为 1×；绿色改善，红色退化。指标可在上方切换。</div>
+      <div id="qualityGroups"></div>
+    </section>
+    <section class="panel wide">
+      <h2>C. 基线 vs final7（共同成功集）</h2>
+      <div class="note">对数坐标；对角线上方为退化。圆=B/pool，三角=R1；悬停查看实例。</div>
+      <svg id="scatter" viewBox="0 0 1300 480" role="img"></svg>
+    </section>
+    <section class="panel wide">
+      <h2>D. 新增解决的 3 个实例</h2>
+      <div class="new-only" id="newOnly"></div>
+    </section>
+    <section class="panel wide">
+      <h2>E. 逐例质量</h2>
+      <div class="note">共同成功例显示 final7/v3 比值；new-only 无可比基线。点击筛选器可聚焦 R1 或特定尺寸。</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>实例</th><th>尺寸</th><th>类型</th><th>v3</th><th>final7</th><th>mk v3→new</th><th>mk ratio</th><th>SOC v3→new</th><th>SOC ratio</th><th>runtime</th></tr></thead>
+        <tbody id="caseRows"></tbody>
+      </table></div>
+    </section>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<script>
+const DATA = {"generated":"2026-09-02","protocol":"strict 10s · seed 0 · jobs 14 · unit weights · following","records":[{"instance":"brap_h10w10_a12_e3_B_seed0_pool","short":"h10-a12-e3-B-s0","h":10,"w":10,"agents":12,"empties":3,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":306.0,"new_mk":749.0,"base_soc":510.0,"new_soc":1111.0,"mk_ratio":2.447712418300654,"soc_ratio":2.1784313725490194,"runtime":7.447,"deliverable_ms":7427.69},{"instance":"brap_h10w10_a12_e3_B_seed1_pool","short":"h10-a12-e3-B-s1","h":10,"w":10,"agents":12,"empties":3,"kind":"B","seed":1,"base_ok":false,"new_ok":true,"base_mk":null,"new_mk":1376.0,"base_soc":null,"new_soc":2203.0,"mk_ratio":null,"soc_ratio":null,"runtime":9.163,"deliverable_ms":9133.34},{"instance":"brap_h10w10_a12_e3_R1_seed0","short":"h10-a12-e3-R1-s0","h":10,"w":10,"agents":12,"empties":3,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":1956.0,"new_mk":1704.0,"base_soc":3434.0,"new_soc":2670.0,"mk_ratio":0.8711656441717791,"soc_ratio":0.7775189283634246,"runtime":5.487,"deliverable_ms":5457.01},{"instance":"brap_h10w10_a12_e3_R1_seed1","short":"h10-a12-e3-R1-s1","h":10,"w":10,"agents":12,"empties":3,"kind":"R1","seed":1,"base_ok":false,"new_ok":true,"base_mk":null,"new_mk":2394.0,"base_soc":null,"new_soc":3940.0,"mk_ratio":null,"soc_ratio":null,"runtime":6.705,"deliverable_ms":6668.93},{"instance":"brap_h10w10_a12_e8_B_seed0_pool","short":"h10-a12-e8-B-s0","h":10,"w":10,"agents":12,"empties":8,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":1260.0,"new_mk":1569.0,"base_soc":2109.0,"new_soc":2480.0,"mk_ratio":1.2452380952380953,"soc_ratio":1.1759127548601234,"runtime":7.757,"deliverable_ms":7726.31},{"instance":"brap_h10w10_a12_e8_B_seed1_pool","short":"h10-a12-e8-B-s1","h":10,"w":10,"agents":12,"empties":8,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":1006.0,"new_mk":1604.0,"base_soc":1668.0,"new_soc":2612.0,"mk_ratio":1.5944333996023856,"soc_ratio":1.565947242206235,"runtime":9.026,"deliverable_ms":8996.39},{"instance":"brap_h10w10_a12_e8_R1_seed0","short":"h10-a12-e8-R1-s0","h":10,"w":10,"agents":12,"empties":8,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":6634.0,"new_mk":5265.0,"base_soc":11342.0,"new_soc":8850.0,"mk_ratio":0.7936388302683147,"soc_ratio":0.7802856639040734,"runtime":9.739,"deliverable_ms":9661.03},{"instance":"brap_h10w10_a12_e8_R1_seed1","short":"h10-a12-e8-R1-s1","h":10,"w":10,"agents":12,"empties":8,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":2528.0,"new_mk":3935.0,"base_soc":4493.0,"new_soc":6608.0,"mk_ratio":1.5565664556962024,"soc_ratio":1.4707322501669264,"runtime":5.865,"deliverable_ms":5822.29},{"instance":"brap_h10w10_a1_e1_B_seed0_pool","short":"h10-a1-e1-B-s0","h":10,"w":10,"agents":1,"empties":1,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":77.0,"new_mk":104.0,"base_soc":148.0,"new_soc":174.0,"mk_ratio":1.3506493506493507,"soc_ratio":1.1756756756756757,"runtime":0.355,"deliverable_ms":349.596},{"instance":"brap_h10w10_a1_e1_B_seed1_pool","short":"h10-a1-e1-B-s1","h":10,"w":10,"agents":1,"empties":1,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":1.0,"new_mk":1.0,"base_soc":0.0,"new_soc":0.0,"mk_ratio":1.0,"soc_ratio":null,"runtime":0.004,"deliverable_ms":0.188198},{"instance":"brap_h10w10_a1_e1_R1_seed0","short":"h10-a1-e1-R1-s0","h":10,"w":10,"agents":1,"empties":1,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":177.0,"new_mk":125.0,"base_soc":267.0,"new_soc":195.0,"mk_ratio":0.7062146892655368,"soc_ratio":0.7303370786516854,"runtime":1.022,"deliverable_ms":1013.11},{"instance":"brap_h10w10_a1_e1_R1_seed1","short":"h10-a1-e1-R1-s1","h":10,"w":10,"agents":1,"empties":1,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":383.0,"new_mk":347.0,"base_soc":679.0,"new_soc":619.0,"mk_ratio":0.9060052219321149,"soc_ratio":0.9116347569955817,"runtime":0.773,"deliverable_ms":763.886},{"instance":"brap_h4w10_a5_e10_B_seed0_pool","short":"h4-a5-e10-B-s0","h":4,"w":10,"agents":5,"empties":10,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":71.0,"new_mk":49.0,"base_soc":110.0,"new_soc":89.0,"mk_ratio":0.6901408450704225,"soc_ratio":0.8090909090909091,"runtime":0.034,"deliverable_ms":29.8821},{"instance":"brap_h4w10_a5_e10_B_seed1_pool","short":"h4-a5-e10-B-s1","h":4,"w":10,"agents":5,"empties":10,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":42.0,"new_mk":48.0,"base_soc":75.0,"new_soc":72.0,"mk_ratio":1.1428571428571428,"soc_ratio":0.96,"runtime":0.052,"deliverable_ms":45.3542},{"instance":"brap_h4w10_a5_e10_R1_seed0","short":"h4-a5-e10-R1-s0","h":4,"w":10,"agents":5,"empties":10,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":298.0,"new_mk":1060.0,"base_soc":539.0,"new_soc":2059.0,"mk_ratio":3.557046979865772,"soc_ratio":3.8200371057513913,"runtime":0.258,"deliverable_ms":233.116},{"instance":"brap_h4w10_a5_e10_R1_seed1","short":"h4-a5-e10-R1-s1","h":4,"w":10,"agents":5,"empties":10,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":193.0,"new_mk":247.0,"base_soc":362.0,"new_soc":462.0,"mk_ratio":1.2797927461139897,"soc_ratio":1.276243093922652,"runtime":0.073,"deliverable_ms":63.8471},{"instance":"brap_h4w10_a5_e1_B_seed0_pool","short":"h4-a5-e1-B-s0","h":4,"w":10,"agents":5,"empties":1,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":63.0,"new_mk":46.0,"base_soc":98.0,"new_soc":72.0,"mk_ratio":0.7301587301587301,"soc_ratio":0.7346938775510204,"runtime":2.327,"deliverable_ms":2311.02},{"instance":"brap_h4w10_a5_e1_B_seed1_pool","short":"h4-a5-e1-B-s1","h":4,"w":10,"agents":5,"empties":1,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":61.0,"new_mk":36.0,"base_soc":102.0,"new_soc":68.0,"mk_ratio":0.5901639344262295,"soc_ratio":0.6666666666666666,"runtime":1.034,"deliverable_ms":1023.96},{"instance":"brap_h4w10_a5_e1_R1_seed0","short":"h4-a5-e1-R1-s0","h":4,"w":10,"agents":5,"empties":1,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":880.0,"new_mk":743.0,"base_soc":1431.0,"new_soc":1259.0,"mk_ratio":0.8443181818181819,"soc_ratio":0.8798043326345213,"runtime":0.837,"deliverable_ms":826.621},{"instance":"brap_h4w10_a5_e1_R1_seed1","short":"h4-a5-e1-R1-s1","h":4,"w":10,"agents":5,"empties":1,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":191.0,"new_mk":548.0,"base_soc":341.0,"new_soc":908.0,"mk_ratio":2.869109947643979,"soc_ratio":2.662756598240469,"runtime":0.521,"deliverable_ms":512.679},{"instance":"brap_h6w10_a6_e15_B_seed0_pool","short":"h6-a6-e15-B-s0","h":6,"w":10,"agents":6,"empties":15,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":164.0,"new_mk":163.0,"base_soc":315.0,"new_soc":279.0,"mk_ratio":0.9939024390243902,"soc_ratio":0.8857142857142857,"runtime":0.105,"deliverable_ms":100.702},{"instance":"brap_h6w10_a6_e15_B_seed1_pool","short":"h6-a6-e15-B-s1","h":6,"w":10,"agents":6,"empties":15,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":45.0,"new_mk":59.0,"base_soc":89.0,"new_soc":128.0,"mk_ratio":1.3111111111111111,"soc_ratio":1.4382022471910112,"runtime":0.056,"deliverable_ms":51.6269},{"instance":"brap_h6w10_a6_e15_R1_seed0","short":"h6-a6-e15-R1-s0","h":6,"w":10,"agents":6,"empties":15,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":424.0,"new_mk":791.0,"base_soc":758.0,"new_soc":1562.0,"mk_ratio":1.865566037735849,"soc_ratio":2.0606860158311346,"runtime":0.151,"deliverable_ms":143.925},{"instance":"brap_h6w10_a6_e15_R1_seed1","short":"h6-a6-e15-R1-s1","h":6,"w":10,"agents":6,"empties":15,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":617.0,"new_mk":350.0,"base_soc":1156.0,"new_soc":631.0,"mk_ratio":0.5672609400324149,"soc_ratio":0.5458477508650519,"runtime":0.105,"deliverable_ms":96.019},{"instance":"brap_h6w10_a6_e1_B_seed0_pool","short":"h6-a6-e1-B-s0","h":6,"w":10,"agents":6,"empties":1,"kind":"B","seed":0,"base_ok":false,"new_ok":true,"base_mk":null,"new_mk":404.0,"base_soc":null,"new_soc":637.0,"mk_ratio":null,"soc_ratio":null,"runtime":1.609,"deliverable_ms":1600.94},{"instance":"brap_h6w10_a6_e1_B_seed1_pool","short":"h6-a6-e1-B-s1","h":6,"w":10,"agents":6,"empties":1,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":360.0,"new_mk":240.0,"base_soc":586.0,"new_soc":432.0,"mk_ratio":0.6666666666666666,"soc_ratio":0.7372013651877133,"runtime":7.206,"deliverable_ms":7177.07},{"instance":"brap_h6w10_a6_e1_R1_seed0","short":"h6-a6-e1-R1-s0","h":6,"w":10,"agents":6,"empties":1,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":933.0,"new_mk":1374.0,"base_soc":1658.0,"new_soc":2452.0,"mk_ratio":1.472668810289389,"soc_ratio":1.4788902291917974,"runtime":2.452,"deliverable_ms":2435.62},{"instance":"brap_h6w10_a6_e1_R1_seed1","short":"h6-a6-e1-R1-s1","h":6,"w":10,"agents":6,"empties":1,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":1404.0,"new_mk":2370.0,"base_soc":2376.0,"new_soc":4236.0,"mk_ratio":1.688034188034188,"soc_ratio":1.7828282828282829,"runtime":4.512,"deliverable_ms":4485.63},{"instance":"brap_h8w10_a10_e20_B_seed0_pool","short":"h8-a10-e20-B-s0","h":8,"w":10,"agents":10,"empties":20,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":65.0,"new_mk":74.0,"base_soc":133.0,"new_soc":156.0,"mk_ratio":1.1384615384615384,"soc_ratio":1.1729323308270676,"runtime":0.021,"deliverable_ms":16.6033},{"instance":"brap_h8w10_a10_e20_B_seed1_pool","short":"h8-a10-e20-B-s1","h":8,"w":10,"agents":10,"empties":20,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":233.0,"new_mk":269.0,"base_soc":430.0,"new_soc":482.0,"mk_ratio":1.1545064377682404,"soc_ratio":1.1209302325581396,"runtime":0.169,"deliverable_ms":160.534},{"instance":"brap_h8w10_a10_e20_R1_seed0","short":"h8-a10-e20-R1-s0","h":8,"w":10,"agents":10,"empties":20,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":583.0,"new_mk":1398.0,"base_soc":1169.0,"new_soc":2456.0,"mk_ratio":2.3979416809605487,"soc_ratio":2.100940975192472,"runtime":0.551,"deliverable_ms":539.137},{"instance":"brap_h8w10_a10_e20_R1_seed1","short":"h8-a10-e20-R1-s1","h":8,"w":10,"agents":10,"empties":20,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":925.0,"new_mk":1312.0,"base_soc":1681.0,"new_soc":2544.0,"mk_ratio":1.4183783783783783,"soc_ratio":1.5133848899464604,"runtime":0.286,"deliverable_ms":276.073},{"instance":"brap_h8w10_a10_e2_B_seed0_pool","short":"h8-a10-e2-B-s0","h":8,"w":10,"agents":10,"empties":2,"kind":"B","seed":0,"base_ok":true,"new_ok":true,"base_mk":668.0,"new_mk":787.0,"base_soc":1118.0,"new_soc":1240.0,"mk_ratio":1.1781437125748504,"soc_ratio":1.10912343470483,"runtime":5.983,"deliverable_ms":5962.77},{"instance":"brap_h8w10_a10_e2_B_seed1_pool","short":"h8-a10-e2-B-s1","h":8,"w":10,"agents":10,"empties":2,"kind":"B","seed":1,"base_ok":true,"new_ok":true,"base_mk":995.0,"new_mk":589.0,"base_soc":1610.0,"new_soc":937.0,"mk_ratio":0.5919597989949749,"soc_ratio":0.5819875776397515,"runtime":5.263,"deliverable_ms":5243.35},{"instance":"brap_h8w10_a10_e2_R1_seed0","short":"h8-a10-e2-R1-s0","h":8,"w":10,"agents":10,"empties":2,"kind":"R1","seed":0,"base_ok":true,"new_ok":true,"base_mk":2133.0,"new_mk":2910.0,"base_soc":3709.0,"new_soc":4610.0,"mk_ratio":1.3642756680731365,"soc_ratio":1.242922620652467,"runtime":8.295,"deliverable_ms":8242.53},{"instance":"brap_h8w10_a10_e2_R1_seed1","short":"h8-a10-e2-R1-s1","h":8,"w":10,"agents":10,"empties":2,"kind":"R1","seed":1,"base_ok":true,"new_ok":true,"base_mk":2937.0,"new_mk":2347.0,"base_soc":4765.0,"new_soc":3705.0,"mk_ratio":0.7991147429349676,"soc_ratio":0.7775445960125918,"runtime":5.16,"deliverable_ms":5125.14}],"overall":{"total":36,"base_solved":33,"new_solved":36,"common":33,"mk_ratio":1.1593630317682209,"soc_ratio":1.1503479124219527,"mk_wtl":[13,1,19],"soc_wtl":[14,1,18]},"groups":[{"label":"h4","total":8,"base_solved":8,"new_solved":8,"common":8,"mk_ratio":1.179574228804347,"soc_ratio":1.2015733392874002,"mk_wtl":[4,0,4],"soc_wtl":[5,0,3]},{"label":"h6","total":8,"base_solved":7,"new_solved":8,"common":7,"mk_ratio":1.125334646299521,"soc_ratio":1.1575691267517219,"mk_wtl":[3,0,4],"soc_wtl":[3,0,4]},{"label":"h8","total":8,"base_solved":8,"new_solved":8,"common":8,"mk_ratio":1.1652480912250824,"soc_ratio":1.1272875811647558,"mk_wtl":[2,0,6],"soc_wtl":[2,0,6]},{"label":"h10","total":12,"base_solved":10,"new_solved":12,"common":10,"mk_ratio":1.1628188276653673,"soc_ratio":1.1212798277393192,"mk_wtl":[4,1,5],"soc_wtl":[4,1,5]},{"label":"B / pool","total":18,"base_solved":16,"new_solved":18,"common":16,"mk_ratio":1.0365700665880095,"soc_ratio":1.0241277859224072,"mk_wtl":[6,1,9],"soc_wtl":[7,1,8]},{"label":"R1","total":18,"base_solved":17,"new_solved":18,"common":17,"mk_ratio":1.288190780276339,"soc_ratio":1.2745768490021698,"mk_wtl":[7,0,10],"soc_wtl":[7,0,10]}],"new_only":[{"instance":"brap_h10w10_a12_e3_B_seed1_pool","short":"h10-a12-e3-B-s1","h":10,"w":10,"agents":12,"empties":3,"kind":"B","seed":1,"base_ok":false,"new_ok":true,"base_mk":null,"new_mk":1376.0,"base_soc":null,"new_soc":2203.0,"mk_ratio":null,"soc_ratio":null,"runtime":9.163,"deliverable_ms":9133.34},{"instance":"brap_h10w10_a12_e3_R1_seed1","short":"h10-a12-e3-R1-s1","h":10,"w":10,"agents":12,"empties":3,"kind":"R1","seed":1,"base_ok":false,"new_ok":true,"base_mk":null,"new_mk":2394.0,"base_soc":null,"new_soc":3940.0,"mk_ratio":null,"soc_ratio":null,"runtime":6.705,"deliverable_ms":6668.93},{"instance":"brap_h6w10_a6_e1_B_seed0_pool","short":"h6-a6-e1-B-s0","h":6,"w":10,"agents":6,"empties":1,"kind":"B","seed":0,"base_ok":false,"new_ok":true,"base_mk":null,"new_mk":404.0,"base_soc":null,"new_soc":637.0,"mk_ratio":null,"soc_ratio":null,"runtime":1.609,"deliverable_ms":1600.94}]};
+const $ = id => document.getElementById(id);
+const fmt = (x,d=3) => x == null ? "—" : Number(x).toLocaleString(undefined,{maximumFractionDigits:d});
+const status = ok => `<span class="badge ${ok?'ok':'timeout'}">${ok?'solved':'timeout'}</span>`;
+const ratioColor = x => x == null ? "#334155" : x <= 1 ? "#35c98d" : "#ff6b6b";
+const ratioBg = x => x == null ? "#263247" : x <= 1 ? "#164e3d" : "#672b36";
+const ratioText = x => x == null ? "new-only" : `${x.toFixed(3)}×`;
+
+$("protocol").textContent = DATA.protocol;
+
+function cards() {
+  const o=DATA.overall, r1=DATA.groups.find(x=>x.label==="R1");
+  const defs=[
+    ["final7 solved",`${o.new_solved}/${o.total}`,"全 36 个小图解出","good"],
+    ["strict v3 solved",`${o.base_solved}/${o.total}`,"基线少 3 例",""],
+    ["coverage gain",`+${o.new_solved-o.base_solved}`,"无 baseline-only","good"],
+    ["common mk",`${o.mk_ratio.toFixed(3)}×`,`${o.mk_wtl[0]}/${o.mk_wtl[1]}/${o.mk_wtl[2]} 改善/平/退化`,"bad"],
+    ["common SOC",`${o.soc_ratio.toFixed(3)}×`,`${o.soc_wtl[0]}/${o.soc_wtl[1]}/${o.soc_wtl[2]} 改善/平/退化`,"bad"],
+    ["R1 quality",`${r1.mk_ratio.toFixed(3)}×`, `SOC ${r1.soc_ratio.toFixed(3)}× · 主要风险`,"bad"]
+  ];
+  $("cards").innerHTML=defs.map(([l,v,d,c])=>`<div class="card"><div class="label">${l}</div><div class="value ${c}">${v}</div><div class="detail">${d}</div></div>`).join("");
+}
+
+function coverage() {
+  const hs=[4,6,8,10];
+  $("coverage").innerHTML=hs.map(h=>{
+    const rs=DATA.records.filter(r=>r.h===h), total=rs.length;
+    const b=rs.filter(r=>r.base_ok).length, n=rs.filter(r=>r.new_ok).length;
+    return `<div class="coverage-row"><b>h${h}</b><div class="track"><div class="coverage-base" style="width:${100*b/total}%"></div><div class="coverage-new" style="width:${100*n/total}%"></div></div><span class="ratio">${b} → ${n}/${total}</span></div>`;
+  }).join("");
+}
+
+function qualityGroups() {
+  const metric=$("metric").value, key=metric+"_ratio";
+  const min=.85,max=1.36,pos=x=>100*(x-min)/(max-min), one=pos(1);
+  $("qualityGroups").innerHTML=DATA.groups.map(g=>{
+    const x=g[key], p=pos(x), left=Math.min(one,p), width=Math.max(1,Math.abs(p-one));
+    return `<div class="quality-row"><b>${g.label}</b><div class="quality-track"><span class="one" style="left:${one}%"></span><span class="bar" style="left:${left}%;width:${width}%;background:${ratioColor(x)}"></span></div><span class="ratio" style="color:${ratioColor(x)}">${x.toFixed(3)}×</span></div>`;
+  }).join("");
+}
+
+function filtered() {
+  const h=$("height").value,k=$("kind").value,q=$("search").value.trim().toLowerCase();
+  let rs=DATA.records.filter(r=>(h==="all"||r.h===+h)&&(k==="all"||r.kind===k)&&(!q||r.short.toLowerCase().includes(q)||r.instance.toLowerCase().includes(q)));
+  const metric=$("metric").value, key=metric+"_ratio", sort=$("sort").value;
+  rs.sort((a,b)=>sort==="name"?a.short.localeCompare(b.short):sort==="improve"?(a[key]??99)-(b[key]??99):(b[key]??-1)-(a[key]??-1));
+  return rs;
+}
+
+function scatter(records) {
+  const svg=$("scatter"), metric=$("metric").value;
+  const baseKey=metric==="mk"?"base_mk":"base_soc", newKey=metric==="mk"?"new_mk":"new_soc", ratioKey=metric+"_ratio";
+  const pts=records.filter(r=>r.base_ok&&r.new_ok&&r[baseKey]>0&&r[newKey]>0);
+  if(!pts.length) {
+    svg.innerHTML=`<text x="650" y="235" text-anchor="middle" fill="#94a3b8" font-size="16">当前筛选没有共同成功且非零的可比实例</text>`;
+    return;
+  }
+  const W=1300,H=480,m={l:72,r:28,t:18,b:52};
+  const vals=pts.flatMap(r=>[r[baseKey],r[newKey]]), lo=Math.log10(Math.min(...vals)*.82), hi=Math.log10(Math.max(...vals)*1.22);
+  const X=v=>m.l+(Math.log10(v)-lo)/(hi-lo)*(W-m.l-m.r), Y=v=>H-m.b-(Math.log10(v)-lo)/(hi-lo)*(H-m.t-m.b);
+  const powers=[]; for(let p=Math.floor(lo);p<=Math.ceil(hi);p++) powers.push(10**p);
+  let html="";
+  for(const t of powers){ if(Math.log10(t)<lo||Math.log10(t)>hi) continue; html+=`<line class="gridline" x1="${X(t)}" x2="${X(t)}" y1="${m.t}" y2="${H-m.b}"/><line class="gridline" x1="${m.l}" x2="${W-m.r}" y1="${Y(t)}" y2="${Y(t)}"/><text class="tick" x="${X(t)}" y="${H-m.b+20}" text-anchor="middle">${fmt(t,0)}</text><text class="tick" x="${m.l-10}" y="${Y(t)+4}" text-anchor="end">${fmt(t,0)}</text>`; }
+  html+=`<line class="axis" x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}"/><line class="axis" x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${H-m.b}"/><line class="diag" x1="${X(10**lo)}" y1="${Y(10**lo)}" x2="${X(10**hi)}" y2="${Y(10**hi)}"/><text class="tick" x="${(m.l+W-m.r)/2}" y="${H-12}" text-anchor="middle">strict v3 ${metric==="mk"?"makespan":"weighted SOC"}</text><text class="tick" transform="translate(17 ${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle">final7</text>`;
+  for(const r of pts){
+    const x=X(r[baseKey]),y=Y(r[newKey]),color=ratioColor(r[ratioKey]);
+    if(r.kind==="R1") html+=`<path class="point" data-id="${r.instance}" fill="${color}" d="M ${x} ${y-7} L ${x-7} ${y+6} L ${x+7} ${y+6} Z"/>`;
+    else html+=`<circle class="point" data-id="${r.instance}" cx="${x}" cy="${y}" r="6.5" fill="${color}"/>`;
+  }
+  svg.innerHTML=html;
+  svg.querySelectorAll(".point").forEach(el=>{
+    el.onmousemove=e=>showTip(e,DATA.records.find(r=>r.instance===el.dataset.id));
+    el.onmouseleave=hideTip;
+  });
+}
+
+function showTip(e,r) {
+  const metric=$("metric").value, ratio=r[metric+"_ratio"];
+  $("tooltip").innerHTML=`<b>${r.short}</b><br>type=${r.kind} · h=${r.h} · e=${r.empties}<br>mk ${fmt(r.base_mk,0)} → ${fmt(r.new_mk,0)} (${ratioText(r.mk_ratio)})<br>SOC ${fmt(r.base_soc,0)} → ${fmt(r.new_soc,0)} (${ratioText(r.soc_ratio)})`;
+  $("tooltip").style.display="block"; $("tooltip").style.left=(e.clientX+14)+"px"; $("tooltip").style.top=(e.clientY+14)+"px";
+}
+function hideTip(){ $("tooltip").style.display="none"; }
+
+function newOnly() {
+  $("newOnly").innerHTML=DATA.new_only.map(r=>`<div class="case-mini"><b>${r.short}</b><div>mk ${fmt(r.new_mk,0)} · SOC ${fmt(r.new_soc,0)}</div><div>runtime ${r.runtime.toFixed(3)}s · deliverable ${fmt(r.deliverable_ms,0)}ms</div></div>`).join("");
+}
+
+function rows(records) {
+  $("filterSummary").textContent=`显示 ${records.length}/36`;
+  $("caseRows").innerHTML=records.map(r=>`<tr><td><b>${r.short}</b></td><td>${r.h}×${r.w}</td><td>${r.kind}</td><td>${status(r.base_ok)}</td><td>${status(r.new_ok)}</td><td>${fmt(r.base_mk,0)} → ${fmt(r.new_mk,0)}</td><td><span class="ratio-pill" style="color:${ratioColor(r.mk_ratio)};background:${ratioBg(r.mk_ratio)}">${ratioText(r.mk_ratio)}</span></td><td>${fmt(r.base_soc,0)} → ${fmt(r.new_soc,0)}</td><td><span class="ratio-pill" style="color:${ratioColor(r.soc_ratio)};background:${ratioBg(r.soc_ratio)}">${ratioText(r.soc_ratio)}</span></td><td>${r.runtime.toFixed(3)}s</td></tr>`).join("");
+}
+
+function render() {
+  const rs=filtered(); qualityGroups(); scatter(rs); rows(rs);
+}
+cards(); coverage(); newOnly();
+["metric","height","kind","sort"].forEach(id=>$(id).onchange=render);
+$("search").oninput=render;
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "wall_time_sec": 34.9,
+  "jobs": 14,
+  "n_tasks": 68,
+  "timeout_per_run_sec": 10.0,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "gamma": 1.0,
+    "delta": 1.0
+  },
+  "following": "allowed",
+  "provenance": {
+    "git_commit": "ab4166464aef38b2a5ed4e9a45ab76e256a9cf5d",
+    "binary_path": "/local/home/yimint/research/dd-lacam/build-ablation-a/dd_benchmark",
+    "binary_sha256": "d9208bf708c272f00d22867e6c50d53c00d85ac473c349b9d19b40ef99f6a7be",
+    "host": "dev-dsk-yimint-1d-d32fcf71.us-east-1.amazon.com"
+  },
+  "methods": {
+    "carrier": {
+      "solved": 35,
+      "total": 68,
+      "solver_time_sum_sec": 427.8
+    }
+  }
+}

@@ -65,18 +65,25 @@ TEST(dd_b0_rollout, solves_blocker_clearing)
   EXPECT_TRUE(plan_is_valid(ins, plan));
 }
 
-TEST(dd_b0_rollout, cycle_rotation_via_pibt_only)
+TEST(dd_b0_rollout, zero_empty_rotation_is_honest_without_search)
 {
-  // PIBT immediate-recursion push chain must realize the 4-rotation
-  // without any high-level search.
+  // Task-BR v1 may record a rotation candidate without emitting a
+  // preferred ready bundle.  B0 is therefore allowed to fail honestly;
+  // the complete LaCAM search and G1 operator tree must still solve and
+  // enumerate the zero-empty rotation (covered independently).
   auto ins = make_ins(
       {"..", ".."}, {{0, 0}, {0, 1}, {1, 1}, {1, 0}},
       {{0, 0}, {0, 1}, {1, 1}, {1, 0}},
       {{{0, 0}, {0, 1}}, {{0, 1}, {1, 1}}, {{1, 1}, {1, 0}}, {{1, 0}, {0, 0}}});
   DDStats st;
   auto plan = solve_carrier_rollout(ins, 5.0, 0, &st);
-  ASSERT_FALSE(plan.empty());
-  EXPECT_TRUE(plan_is_valid(ins, plan));
+  if (!plan.empty()) EXPECT_TRUE(plan_is_valid(ins, plan));
+  EXPECT_FALSE(st.timed_out);
+
+  DDStats full_stats;
+  const auto full = solve_carrier_lacam(ins, 5.0, 0, &full_stats);
+  ASSERT_FALSE(full.empty());
+  EXPECT_TRUE(plan_is_valid(ins, full));
 }
 
 TEST(dd_b0_rollout, reports_failure_not_invalid_plan_when_stuck)

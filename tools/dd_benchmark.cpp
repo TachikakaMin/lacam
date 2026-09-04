@@ -677,25 +677,38 @@ int main(int argc, char** argv)
   std::cout << "guidance_builds=" << stats.guidance_builds << "\n";
   std::cout << "tau_time_ms=" << stats.tau_time_ms << "\n";
   std::cout << "guidance_time_ms=" << stats.guidance_time_ms << "\n";
-  std::cout << "path_recomputes=" << stats.path_recomputes << "\n";
-  std::cout << "path_cache_hits=" << stats.path_cache_hits << "\n";
+  std::cout << "upper_epoch_builds=" << stats.upper_epoch_builds << "\n";
+  std::cout << "pair_cache_hits=" << stats.pair_cache_hits << "\n";
+  std::cout << "pair_cache_misses=" << stats.pair_cache_misses << "\n";
+  std::cout << "pair_rollout_steps=" << stats.pair_rollout_steps << "\n";
+  std::cout << "pair_rollout_truncations="
+            << stats.pair_rollout_truncations << "\n";
+  std::cout << "pair_rollout_stalls=" << stats.pair_rollout_stalls << "\n";
+  std::cout << "tau_guide_changes_on_upper_move="
+            << stats.tau_guide_changes_on_upper_move << "\n";
+  std::cout << "joint_task_nodes=" << stats.joint_task_nodes << "\n";
+  std::cout << "joint_task_edges=" << stats.joint_task_edges << "\n";
+  std::cout << "joint_shared_effects=" << stats.joint_shared_effects
+            << "\n";
+  std::cout << "joint_effect_conflicts=" << stats.joint_effect_conflicts
+            << "\n";
+  std::cout << "joint_candidate_backtracks="
+            << stats.joint_candidate_backtracks << "\n";
+  std::cout << "joint_paused_roots=" << stats.joint_paused_roots << "\n";
+  std::cout << "ready_task_count=" << stats.ready_task_count << "\n";
+  std::cout << "rho_repairs=" << stats.rho_repairs << "\n";
+  std::cout << "custody_continuations=" << stats.custody_continuations
+            << "\n";
+  std::cout << "zero_empty_no_ready=" << stats.zero_empty_no_ready << "\n";
+  std::cout << "rewire_guidance_rebuilds="
+            << stats.rewire_guidance_rebuilds << "\n";
+  std::cout << "deliverable_ms=" << stats.deliverable_ms << "\n";
   std::cout << "robot_only_successors=" << stats.robot_only_successors
             << "\n";
   std::cout << "manipulation_successors=" << stats.manipulation_successors
             << "\n";
   std::cout << "shelf_motion_successors=" << stats.shelf_motion_successors
             << "\n";
-  std::cout << "tau_change_builds=" << stats.tau_change_builds << "\n";
-  std::cout << "tau_pair_changes=" << stats.tau_pair_changes << "\n";
-  std::cout << "rho_change_builds=" << stats.rho_change_builds << "\n";
-  std::cout << "rho_pair_changes=" << stats.rho_pair_changes << "\n";
-  // R5 (debug.md §10): v3.0 diagnostics for gate audits — price/rewire
-  // activity and the per-run guidance budget (design_final §11.6(6))
-  std::cout << "tau_price_repairs=" << stats.tau_price_repairs << "\n";
-  std::cout << "rewire_guidance_rebuilds=" << stats.rewire_guidance_rebuilds
-            << "\n";
-  std::cout << "tau_time_ms=" << stats.tau_time_ms << "\n";
-  std::cout << "guidance_time_ms=" << stats.guidance_time_ms << "\n";
   std::cout << "macro_successors=" << stats.macro_successors << "\n";
   std::cout << "macro_steps=" << stats.macro_steps << "\n";
   std::cout << "macro_shelf_motion_successors="
@@ -719,8 +732,6 @@ int main(int argc, char** argv)
   std::cout << "projected_loops=" << stats.projected_loops << "\n";
   std::cout << "bridge_steps=" << stats.bridge_steps << "\n";
   std::cout << "plan_steps_removed=" << stats.plan_steps_removed << "\n";
-  std::cout << "futile_lift_demotions=" << stats.futile_lift_demotions
-            << "\n";
   std::cout << "assignment_restarts=" << stats.assignment_restarts << "\n";
   std::cout << "assignment_second_solved="
             << stats.assignment_second_solved << "\n";

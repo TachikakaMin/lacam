@@ -12,8 +12,12 @@
 
 #include <algorithm>
 #include <functional>
+#include <memory>
+#include <random>
 #include <set>
 #include <vector>
+
+#include <search_kernel.hpp>
 
 #include "gtest/gtest.h"
 
@@ -80,6 +84,58 @@ std::set<std::string> brute_force_successors(const DDInstance& ins,
     }
   };
   rec(0);
+  return out;
+}
+
+std::set<std::string> successors_without_guidance(
+    const DDInstance& ins, const PhysConfig& X, int seed)
+{
+  const TAPFInstance view(ins);
+  std::mt19937 mt(seed);
+  TAPFStats stats;
+  TAPFPlanner planner(
+      &view, nullptr, &mt, 0, 0, 0.001f, true, &stats);
+  Config config;
+  for (const int cell : X.robots) config.push_back(view.G.U[cell]);
+  ShelfState shelf;
+  shelf.target_pos = X.target_pos;
+  shelf.anon_occ = X.anon_occ;
+  shelf.kappa = X.kappa;
+  auto node = std::make_unique<TAPFNode>(
+      config, shelf, planner.D, &view,
+      std::vector<int>(view.N, -1), TAPFAssignmentState(), nullptr);
+  EXPECT_EQ(node->guide, nullptr);
+
+  std::set<std::string> out;
+  std::vector<OpCand> candidates;
+  std::vector<TAPFConstraint*> popped;
+  while (!node->search_tree.empty()) {
+    auto* constraint = node->search_tree.front();
+    node->search_tree.pop();
+    popped.push_back(constraint);
+    if (constraint->depth < (int)view.N) {
+      const int robot =
+          node->constraint_order[constraint->depth];
+      planner.build_op_candidates(
+          node.get(), robot, candidates);
+      lacam_expand_constraint_vec<TAPFConstraint>(
+          constraint, robot, candidates, node->search_tree);
+    }
+    if (!planner.get_new_config(node.get(), constraint) ||
+        !planner.apply_carrier_effects(node.get()))
+      continue;
+    Config generated(view.N, nullptr);
+    for (const auto* agent : planner.A)
+      generated[agent->id] = agent->v_next;
+    PhysConfig next;
+    for (const auto* vertex : generated)
+      next.robots.push_back(vertex->index);
+    next.target_pos = planner.shelf_next_scratch.target_pos;
+    next.anon_occ = planner.shelf_next_scratch.anon_occ;
+    next.kappa = planner.shelf_next_scratch.kappa;
+    out.insert(key_of(next));
+  }
+  for (auto* constraint : popped) delete constraint;
   return out;
 }
 
@@ -215,11 +271,8 @@ TEST(dd_prop2, zero_empty_cycle_moves_require_following)
          "argument would be broken";
 }
 
-// debug.md round-2 P0-5: the livelock re-guidance mutation (taboo rho
-// re-match + PIBT order shuffle, production code path) must NOT change the
-// node's constraint-tree enumeration: constraint_order is frozen and the
-// leaf successor set stays exactly the validator-accepted set.
-TEST(dd_g1_conformance, revisit_reguide_preserves_enumeration)
+TEST(dd_g1_conformance,
+     guidance_presence_does_not_change_physical_successor_set)
 {
   auto ins = make_ins({"...", "...", "..."}, {{0, 0}, {2, 2}, {1, 1}},
                       {{0, 1}, {1, 0}, {2, 1}},
@@ -228,16 +281,17 @@ TEST(dd_g1_conformance, revisit_reguide_preserves_enumeration)
   const auto oracle = brute_force_successors(ins, X);
 
   for (int seed : {0, 1, 7}) {
-    std::vector<int> co_before, co_after;
-    const auto produced_vec = dd_enumerate_node_successors_reguided(
-        ins, X, seed, /*n_reguides=*/3, &co_before, &co_after);
-    EXPECT_EQ(co_before, co_after)
-        << "constraint_order changed across re-guidance (seed " << seed
-        << ") — completeness precondition broken";
-    std::set<std::string> produced;
-    for (const auto& s : produced_vec) produced.insert(key_of(s));
-    EXPECT_EQ(produced, oracle)
-        << "successor set drifted after mid-enumeration re-guidance (seed "
-        << seed << ")";
+    std::set<std::string> guided;
+    for (const auto& next :
+         dd_enumerate_node_successors(ins, X, seed))
+      guided.insert(key_of(next));
+    const auto unguided =
+        successors_without_guidance(ins, X, seed);
+    EXPECT_EQ(guided, oracle)
+        << "guided enumeration drifted from the physical oracle, seed "
+        << seed;
+    EXPECT_EQ(unguided, oracle)
+        << "guidance failure removed a legal physical successor, seed "
+        << seed;
   }
 }

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Task-BR release 实际 testcase 动画</title>
+<style>
+:root {
+  --bg:#080d18; --panel:#111a2b; --panel2:#17233a; --line:#2b3b56;
+  --text:#eaf0fa; --muted:#9dabc0; --blue:#55a8ff; --green:#45d69a;
+  --red:#ff7777; --amber:#ffc263;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; color:var(--text); background:
+    radial-gradient(circle at 8% 0,#19305c 0,transparent 34rem),var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;
+}
+.page { max-width:1760px; margin:auto; padding:24px; }
+h1 { margin:0 0 8px; font-size:28px; }
+.sub,.note { color:var(--muted); line-height:1.65; }
+.top {
+  display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:20px 0 12px;
+  padding:14px; background:#0f1828; border:1px solid var(--line);
+  border-radius:12px;
+}
+select {
+  min-width:420px; max-width:100%; color:var(--text); background:#1b2941;
+  border:1px solid #49617f; border-radius:8px; padding:9px 12px; font-size:14px;
+}
+a { color:#7cc0ff; }
+.metrics {
+  display:grid; grid-template-columns:repeat(6,minmax(120px,1fr));
+  gap:10px; margin:12px 0;
+}
+.metric {
+  padding:12px; background:var(--panel); border:1px solid var(--line);
+  border-radius:10px;
+}
+.metric span { color:var(--muted); display:block; font-size:11px; }
+.metric b { display:block; margin-top:5px; font-size:20px; }
+.good { color:var(--green); } .bad { color:var(--red); }
+.neutral { color:var(--amber); }
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.pane {
+  overflow:hidden; background:var(--panel); border:1px solid var(--line);
+  border-radius:12px;
+}
+.pane-head {
+  display:flex; justify-content:space-between; gap:10px; padding:11px 13px;
+  background:var(--panel2); border-bottom:1px solid var(--line);
+}
+iframe { display:block; width:100%; height:760px; border:0; background:#1e1e24; }
+.missing {
+  height:760px; display:grid; place-items:center; padding:30px; text-align:center;
+  color:#ffb3b3; font-size:18px; line-height:1.7;
+  background:repeating-linear-gradient(135deg,#171e2c,#171e2c 14px,
+              #141a27 14px,#141a27 28px);
+}
+.cards {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px;
+}
+.case {
+  padding:12px; cursor:pointer; background:var(--panel);
+  border:1px solid var(--line); border-radius:10px;
+}
+.case:hover { border-color:#607fa9; }
+.case.active { border-color:var(--blue); box-shadow:0 0 0 1px var(--blue); }
+.case b { display:block; margin-bottom:6px; }
+.case div { color:var(--muted); font-size:12px; line-height:1.5; }
+.foot { margin-top:16px; font-size:13px; color:var(--muted); }
+@media(max-width:1100px) {
+  .compare { grid-template-columns:1fr; }
+  .metrics,.cards { grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:650px) {
+  .page { padding:14px; } select { min-width:0; width:100%; }
+  .metrics,.cards { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>Task-BR release：实际 testcase 动画</h1>
+  <div class="sub">
+    使用最终 release 的真实 plan；每份 plan 在生成动画前都由 authoritative
+    Python validator 完整重放。左右窗口可分别播放、暂停、单步和拖动时间轴。
+  </div>
+
+  <div class="top">
+    <label>选择 testcase：
+      <select id="pick"></select>
+    </label>
+    <span class="note" id="note"></span>
+    <a href="task_br_final_report_20260903.html">查看最终报告</a>
+    <a href="index.html">返回可视化索引</a>
+  </div>
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="compare">
+    <section class="pane">
+      <div class="pane-head">
+        <b>冻结 Objective-PIBT baseline</b>
+        <a id="baseOpen" target="_blank" rel="noopener">单独打开</a>
+      </div>
+      <div id="baseBody"></div>
+    </section>
+    <section class="pane">
+      <div class="pane-head">
+        <b>Task-BR release candidate</b>
+        <a id="candidateOpen" target="_blank" rel="noopener">单独打开</a>
+      </div>
+      <div id="candidateBody"></div>
+    </section>
+  </div>
+
+  <div class="cards" id="cards"></div>
+  <div class="foot">
+    指标来自同机配对 release：10 秒/case、seed=0、unit weights、
+    following allowed、jobs=14。动画展示的是最终输出计划，不是合成示意图。
+  </div>
+</main>
+
+<script>
+const CASES = [
+  {
+    label:"强改善：h10 e8 B seed1",
+    name:"brap_h10w10_a12_e8_B_seed1_pool",
+    note:"宽松目标池实例；观察 Task-BR 如何减少重复清障与搬运。",
+    basePage:"task_br_release_cases/h10_e8_b_s1_baseline.html",
+    candidatePage:"task_br_release_cases/h10_e8_b_s1_candidate.html",
+    baseMk:1604, candidateMk:308, baseSoc:2612, candidateSoc:673,
+    baseRuntime:9.114, candidateRuntime:1.918
+  },
+  {
+    label:"双空位回归保护：h8 e2 R1 seed1",
+    name:"brap_h8w10_a10_e2_R1_seed1",
+    note:"至少两个空位时采用完整逐根 residual，避免高优任务来回倒退。",
+    basePage:"task_br_release_cases/h8_e2_r1_s1_baseline.html",
+    candidatePage:"task_br_release_cases/h8_e2_r1_s1_candidate.html",
+    baseMk:2347, candidateMk:932, baseSoc:3705, candidateSoc:2045,
+    baseRuntime:5.226, candidateRuntime:0.426
+  },
+  {
+    label:"单空位长链：h6 e1 R1 seed1",
+    name:"brap_h6w10_a6_e1_R1_seed1",
+    note:"只有一个空格时优先完成 root，避免为一格距离改善打断接力搬运。",
+    basePage:"task_br_release_cases/h6_e1_r1_s1_baseline.html",
+    candidatePage:"task_br_release_cases/h6_e1_r1_s1_candidate.html",
+    baseMk:2370, candidateMk:1039, baseSoc:4236, candidateSoc:1472,
+    baseRuntime:4.572, candidateRuntime:3.076
+  },
+  {
+    label:"如实保留的回退：h10 e1 B seed0",
+    name:"brap_h10w10_a1_e1_B_seed0_pool",
+    note:"候选仍合法且很快，但 makespan 与 SOC 都略高于 baseline。",
+    basePage:"task_br_release_cases/h10_e1_b_s0_baseline.html",
+    candidatePage:"task_br_release_cases/h10_e1_b_s0_candidate.html",
+    baseMk:104, candidateMk:130, baseSoc:174, candidateSoc:182,
+    baseRuntime:0.307, candidateRuntime:0.046
+  },
+  {
+    label:"新增解出：h20 e100 R1 seed0",
+    name:"brap_h20w20_a40_e100_R1_seed0",
+    note:"baseline 在 10 秒内超时；Task-BR 产生可验证的 1181 步计划。",
+    basePage:null,
+    candidatePage:"task_br_release_cases/h20_e100_r1_s0_candidate.html",
+    baseMk:null, candidateMk:1181, baseSoc:null, candidateSoc:6237,
+    baseRuntime:9.337, candidateRuntime:1.344
+  },
+  {
+    label:"新增解出：h20 e100 R1 seed1",
+    name:"brap_h20w20_a40_e100_R1_seed1",
+    note:"第二个 20×20 新增成功例；baseline 同样在 10 秒内超时。",
+    basePage:null,
+    candidatePage:"task_br_release_cases/h20_e100_r1_s1_candidate.html",
+    baseMk:null, candidateMk:1213, baseSoc:null, candidateSoc:6583,
+    baseRuntime:9.329, candidateRuntime:1.429
+  }
+];
+
+const $ = id => document.getElementById(id);
+const fmt = (value, digits=0) =>
+  value == null ? "—" : Number(value).toLocaleString(
+    undefined, {maximumFractionDigits:digits});
+const ratio = (candidate, baseline) =>
+  candidate != null && baseline ? candidate / baseline : null;
+const ratioClass = value => value == null ? "neutral" : value <= 1 ? "good" : "bad";
+const ratioText = value => value == null ? "新增解出" : value.toFixed(3) + "×";
+
+function render(index) {
+  const c = CASES[index];
+  const mkRatio = ratio(c.candidateMk, c.baseMk);
+  const socRatio = ratio(c.candidateSoc, c.baseSoc);
+  $("pick").value = String(index);
+  $("note").textContent = c.note;
+  $("metrics").innerHTML = [
+    ["baseline mk", fmt(c.baseMk)],
+    ["Task-BR mk", fmt(c.candidateMk)],
+    ["mk ratio", ratioText(mkRatio), ratioClass(mkRatio)],
+    ["SOC ratio", ratioText(socRatio), ratioClass(socRatio)],
+    ["baseline runtime", fmt(c.baseRuntime, 3) + "s"],
+    ["Task-BR runtime", fmt(c.candidateRuntime, 3) + "s"]
+  ].map(([label, value, cls=""]) =>
+    `<div class="metric"><span>${label}</span><b class="${cls}">${value}</b></div>`
+  ).join("");
+
+  if (c.basePage) {
+    $("baseBody").innerHTML =
+      `<iframe src="${c.basePage}" title="baseline ${c.label}"></iframe>`;
+    $("baseOpen").href = c.basePage;
+    $("baseOpen").style.visibility = "visible";
+  } else {
+    $("baseBody").innerHTML =
+      `<div class="missing">baseline 在 10 秒内超时，没有可交付 plan，因而没有可播放动画。</div>`;
+    $("baseOpen").style.visibility = "hidden";
+  }
+  $("candidateBody").innerHTML =
+    `<iframe src="${c.candidatePage}" title="Task-BR ${c.label}"></iframe>`;
+  $("candidateOpen").href = c.candidatePage;
+  [...$("cards").children].forEach(
+    (element, cardIndex) => element.classList.toggle("active", cardIndex === index));
+}
+
+$("pick").innerHTML = CASES.map(
+  (c, i) => `<option value="${i}">${c.label}</option>`).join("");
+$("cards").innerHTML = CASES.map((c, i) =>
+  `<div class="case" data-index="${i}"><b>${c.label}</b>` +
+  `<div>${c.name}</div><div>${c.note}</div>` +
+  `<div>mk ${fmt(c.baseMk)} → ${fmt(c.candidateMk)} · ` +
+  `SOC ${fmt(c.baseSoc)} → ${fmt(c.candidateSoc)}</div></div>`
+).join("");
+$("pick").onchange = event => render(Number(event.target.value));
+[...$("cards").children].forEach(
+  element => element.onclick = () => render(Number(element.dataset.index)));
+render(0);
+</script>
+</body>
+</html>

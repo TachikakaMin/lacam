@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动画看懂 ITA-LaCAM：Assignment 只是动态导航</title>
+<style>
+  @font-face {
+    font-family: "Noto Sans SC Web";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYw.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Noto Sans SC Web";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGwHCnYw.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Noto Sans SC Web";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Noto Sans SC Web";
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG3bCnYw.ttf") format("truetype");
+  }
+  :root {
+    color-scheme: dark;
+    --bg: #07101c;
+    --panel: #0d1a2b;
+    --line: #2a405b;
+    --text: #eef7ff;
+    --muted: #9fb3c9;
+    --blue: #69c5ff;
+    --green: #58dfa2;
+    --yellow: #ffd06f;
+    --pink: #f58fc6;
+    --violet: #b69cff;
+    --red: #ff7c83;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--text);
+    background:
+      radial-gradient(circle at 18% -10%, rgba(62, 139, 217, .23), transparent 35rem),
+      radial-gradient(circle at 95% 14%, rgba(146, 88, 211, .14), transparent 32rem),
+      var(--bg);
+    font: 15px/1.55 "Noto Sans SC Web", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  button, input { font: inherit; }
+  button { color: inherit; }
+  .page { width: min(1440px, calc(100% - 28px)); margin: 0 auto; padding: 28px 0 64px; }
+  .top { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 18px; }
+  .eyebrow { color: var(--blue); font-size: 12px; font-weight: 900; letter-spacing: .14em; }
+  h1 { max-width: 990px; margin: 6px 0 8px; font-size: clamp(29px, 4.2vw, 54px); line-height: 1.08; letter-spacing: -.03em; }
+  .lead { max-width: 1000px; margin: 0; color: #c3d4e7; font-size: clamp(15px, 1.8vw, 19px); }
+  .one-line {
+    flex: 0 0 315px;
+    padding: 13px 15px;
+    border: 1px solid rgba(88, 223, 162, .36);
+    border-radius: 14px;
+    background: rgba(32, 91, 70, .3);
+    color: #dff9ec;
+  }
+  .one-line strong { color: var(--green); }
+  .player {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(16, 30, 49, .98), rgba(7, 16, 28, .98));
+    box-shadow: 0 32px 90px rgba(0, 0, 0, .3);
+  }
+  .player-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(9, 20, 34, .72);
+  }
+  .chapter { min-width: 0; }
+  .chapter small { color: var(--blue); font-weight: 900; letter-spacing: .08em; }
+  .chapter h2 { margin: 2px 0 0; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .controls { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; }
+  .control {
+    min-width: 42px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #13243a;
+    cursor: pointer;
+  }
+  .control.primary { color: #06121f; border-color: var(--blue); background: var(--blue); font-weight: 900; }
+  .control:hover { filter: brightness(1.12); }
+  .stage {
+    display: grid;
+    grid-template-columns: minmax(250px, .72fr) minmax(500px, 1.45fr) minmax(310px, .9fr);
+    min-height: 650px;
+  }
+  .pane { min-width: 0; padding: 18px; }
+  .pane + .pane { border-left: 1px solid var(--line); }
+  .pane-title { margin: 0 0 11px; color: var(--muted); font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+
+  .tree-wrap { position: relative; height: 330px; }
+  .tree-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .tree-line { fill: none; stroke: #405a78; stroke-width: 2; stroke-dasharray: 5 5; transition: stroke .25s, opacity .25s; }
+  .tree-line.hidden { opacity: .12; }
+  .tree-line.bad.active { stroke: var(--red); }
+  .tree-line.good.active { stroke: var(--green); }
+  .tree-node {
+    position: absolute;
+    width: 106px;
+    min-height: 70px;
+    transform: translate(-50%, -50%) scale(.96);
+    display: grid;
+    place-content: center;
+    padding: 8px;
+    border: 1px solid #415a78;
+    border-radius: 13px;
+    background: #0b1829;
+    text-align: center;
+    opacity: .35;
+    transition: .3s ease;
+  }
+  .tree-node strong { font-size: 16px; }
+  .tree-node small { color: var(--muted); font-size: 10px; }
+  .tree-node.visible { opacity: 1; }
+  .tree-node.active { transform: translate(-50%, -50%) scale(1.04); border-color: var(--blue); box-shadow: 0 0 0 4px rgba(105, 197, 255, .12); }
+  .tree-node.bad { border-color: rgba(255, 124, 131, .7); }
+  .tree-node.bad.active { box-shadow: 0 0 0 4px rgba(255, 124, 131, .14); }
+  .tree-node.good { border-color: rgba(88, 223, 162, .7); }
+  .tree-node.good.active { box-shadow: 0 0 0 4px rgba(88, 223, 162, .14); }
+  #tree-x0 { left: 50%; top: 17%; }
+  #tree-loop { left: 25%; top: 57%; }
+  #tree-x1 { left: 75%; top: 57%; }
+  #tree-x2 { left: 75%; top: 88%; }
+  .constraint-tag {
+    position: absolute;
+    left: 52%;
+    top: 40%;
+    transform: translateX(-50%) scale(.8);
+    padding: 5px 8px;
+    border: 1px solid rgba(182, 156, 255, .6);
+    border-radius: 7px;
+    color: #dfd4ff;
+    background: #34275a;
+    font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    opacity: 0;
+    transition: .25s;
+  }
+  .constraint-tag.visible { opacity: 1; transform: translateX(-50%) scale(1); }
+  .tree-explain {
+    min-height: 112px;
+    padding: 13px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #091625;
+    color: #cbdbea;
+  }
+  .tree-explain strong { color: white; }
+  .key-card {
+    margin-top: 10px;
+    padding: 11px 12px;
+    border: 1px solid rgba(105, 197, 255, .34);
+    border-radius: 10px;
+    color: #d7edff;
+    background: rgba(28, 74, 109, .28);
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .key-card .guide-key { color: var(--yellow); }
+
+  .map-wrap { position: relative; }
+  .map {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    aspect-ratio: 9 / 5;
+    overflow: hidden;
+    border: 1px solid #38516f;
+    border-radius: 16px;
+    background: #081524;
+  }
+  .cell {
+    position: relative;
+    border-right: 1px solid rgba(255,255,255,.055);
+    border-bottom: 1px solid rgba(255,255,255,.055);
+  }
+  .cell.wall { background: repeating-linear-gradient(135deg, #34475d 0 5px, #283a50 5px 10px); }
+  .cell.left-route { background: rgba(88, 223, 162, .07); }
+  .cell.right-route { background: rgba(245, 143, 198, .07); }
+  .cell.chosen-route.left-route { background: rgba(88, 223, 162, .2); box-shadow: inset 0 0 0 1px rgba(88, 223, 162, .36); }
+  .cell.chosen-route.right-route { background: rgba(245, 143, 198, .2); box-shadow: inset 0 0 0 1px rgba(245, 143, 198, .36); }
+  .map-svg { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }
+  .goal-arrow { fill: none; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 10 8; filter: drop-shadow(0 0 5px rgba(255,255,255,.15)); transition: stroke .25s, opacity .25s; animation: dash 1s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset: -18; } }
+  .actor {
+    position: absolute;
+    z-index: 5;
+    left: 0;
+    top: 0;
+    width: clamp(31px, 3.2vw, 44px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    font-weight: 950;
+    box-shadow: 0 7px 18px rgba(0,0,0,.34);
+    will-change: left, top, transform;
+  }
+  .robot { z-index: 8; color: #071b2b; border: 4px solid var(--blue); border-radius: 50%; background: #eaf8ff; }
+  .target { color: #09251c; background: var(--green); }
+  .leaf { color: white; border: 2px solid #d9cfff; background: #6e50bb; }
+  .leaf.selected { animation: pulse 1.05s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: translate(-50%, -50%) scale(1.13); box-shadow: 0 0 0 8px rgba(182, 156, 255, .12); } }
+  .goal { z-index: 4; border: 3px solid; background: rgba(7,16,28,.72); box-shadow: none; }
+  .goal.left { color: var(--green); border-color: var(--green); }
+  .goal.right { color: var(--pink); border-color: var(--pink); }
+  .vacancy { z-index: 4; color: #d8ceff; border: 2px dashed var(--violet); background: rgba(182,156,255,.12); box-shadow: none; font-size: 11px; }
+  .collision {
+    position: absolute;
+    z-index: 12;
+    width: 66px;
+    height: 66px;
+    transform: translate(-50%, -50%) scale(.6);
+    display: grid;
+    place-items: center;
+    border: 3px solid var(--red);
+    border-radius: 50%;
+    color: white;
+    background: rgba(185, 42, 53, .7);
+    font-size: 27px;
+    font-weight: 950;
+    opacity: 0;
+    transition: .15s;
+  }
+  .collision.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .map-caption {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 10px 1px 12px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .event-card {
+    min-height: 168px;
+    padding: 15px 16px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #091625;
+  }
+  .event-card .event-type { color: var(--blue); font-size: 11px; font-weight: 900; letter-spacing: .09em; }
+  .event-card h3 { margin: 4px 0 6px; font-size: 19px; }
+  .event-card p { margin: 0; color: #c5d6e7; }
+  .event-card .formula { margin-top: 10px; color: var(--yellow); font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .paper {
+    position: relative;
+    min-height: 108px;
+    padding: 14px;
+    border: 1px solid rgba(255, 208, 111, .5);
+    border-radius: 13px;
+    background: linear-gradient(145deg, rgba(101, 72, 26, .38), rgba(55, 43, 24, .24));
+    transition: transform .2s, opacity .2s;
+  }
+  .paper.recompute { animation: paper-flash .68s ease-in-out infinite alternate; }
+  @keyframes paper-flash { to { transform: translateY(-3px); border-color: white; box-shadow: 0 0 28px rgba(255,208,111,.2); } }
+  .paper small { color: #d4c49d; }
+  .paper .tau { margin: 4px 0 2px; color: var(--yellow); font-size: 20px; font-weight: 950; }
+  .paper .rho { color: #f1e8d3; font-size: 13px; }
+  .derived-label {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    color: #07111c;
+    background: var(--yellow);
+    font-size: 9px;
+    font-weight: 950;
+  }
+  .cost-title { margin: 15px 0 7px; color: var(--muted); font-size: 11px; font-weight: 900; letter-spacing: .08em; }
+  .cost-row {
+    margin-bottom: 8px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #0b1829;
+    transition: border-color .2s, background .2s;
+  }
+  .cost-row.winner { border-color: rgba(88,223,162,.6); background: rgba(35,91,70,.22); }
+  .cost-row.winner.right-win { border-color: rgba(245,143,198,.62); background: rgba(105,44,79,.2); }
+  .cost-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .cost-head strong { font-size: 13px; }
+  .cost-number { font: 900 15px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .bar { height: 8px; overflow: hidden; margin: 7px 0 6px; border-radius: 999px; background: #07111e; }
+  .bar-fill { height: 100%; border-radius: inherit; transition: width .12s linear, background .2s; }
+  .parts { display: flex; flex-wrap: wrap; gap: 5px; color: var(--muted); font-size: 10px; }
+  .parts span { padding: 2px 5px; border-radius: 5px; background: rgba(255,255,255,.05); }
+  .dependency {
+    margin-top: 12px;
+    padding: 11px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #091625;
+  }
+  .dep-title { color: var(--muted); font-size: 11px; }
+  .dep-chain { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 7px; font-size: 11px; }
+  .dep { padding: 5px 7px; border-radius: 7px; background: #172b45; transition: .2s; }
+  .dep.ready { color: white; background: #6549ad; }
+  .dep.active { outline: 2px solid var(--yellow); }
+  .arrow { color: #69809a; }
+  .not-key {
+    margin-top: 12px;
+    padding: 10px 11px;
+    border-left: 3px solid var(--blue);
+    color: #cbdbea;
+    background: rgba(29,68,101,.24);
+    font-size: 12px;
+  }
+
+  .timeline {
+    padding: 14px 18px 18px;
+    border-top: 1px solid var(--line);
+    background: rgba(7,16,28,.65);
+  }
+  .scrub-row { display: flex; align-items: center; gap: 12px; }
+  #scrubber { width: 100%; accent-color: var(--blue); cursor: pointer; }
+  .time { flex: 0 0 78px; color: var(--muted); text-align: right; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .markers { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-top: 8px; }
+  .marker {
+    min-width: 0;
+    padding: 7px 5px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #778da5;
+    background: transparent;
+    cursor: pointer;
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .marker.passed { color: #b8c9d9; }
+  .marker.active { color: white; border-color: var(--blue); background: rgba(38,94,139,.35); }
+  .takeaway {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .take {
+    padding: 15px 16px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: rgba(13, 26, 43, .86);
+  }
+  .take b { display: block; margin-bottom: 3px; color: var(--blue); }
+  .take p { margin: 0; color: var(--muted); font-size: 13px; }
+  .check {
+    margin-top: 12px;
+    padding: 15px 16px;
+    border: 1px solid rgba(88,223,162,.36);
+    border-radius: 13px;
+    background: rgba(31, 82, 64, .24);
+  }
+  .check strong { color: var(--green); }
+  .back { display: inline-block; margin-top: 18px; color: var(--blue); text-decoration: none; }
+  @media (max-width: 1120px) {
+    .top { align-items: start; }
+    .one-line { flex-basis: 270px; }
+    .stage { grid-template-columns: minmax(220px,.7fr) minmax(460px,1.3fr); }
+    .guidance-pane { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--line); }
+    .guidance-inner { display: grid; grid-template-columns: .85fr 1fr 1fr; gap: 12px; }
+    .cost-title { margin-top: 0; }
+  }
+  @media (max-width: 760px) {
+    .top, .stage, .takeaway { display: block; }
+    .one-line { margin-top: 14px; }
+    .pane + .pane { border-left: 0; border-top: 1px solid var(--line); }
+    .guidance-inner { display: block; }
+    .player-head { align-items: flex-start; }
+    .chapter h2 { white-space: normal; }
+    .controls { flex-wrap: wrap; justify-content: end; }
+    .markers { grid-template-columns: repeat(4, 1fr); }
+    .take { margin-top: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div>
+      <div class="eyebrow">ITA-LaCAM × 当前 Carrier 项目</div>
+      <h1>别看公式，跟着机器人走一遍</h1>
+      <p class="lead">这段动画只演示一件事：LaCAM 始终搜索物理状态；每到一个新物理节点，就重新计算 goal、dependency 和 robot-task assignment。黄色“导航纸条”可以随时换，但它不是第二棵搜索树。</p>
+    </div>
+    <div class="one-line"><strong>先记住：</strong>蓝色节点是“真的搜索状态”，黄色纸条只是“这个节点先往哪试”。</div>
+  </header>
+
+  <section class="player" aria-label="ITA-LaCAM 动画演示">
+    <header class="player-head">
+      <div class="chapter">
+        <small id="chapter-index">第 1 幕 / 8</small>
+        <h2 id="chapter-title">LaCAM 到达物理节点 X₀</h2>
+      </div>
+      <div class="controls">
+        <button class="control" id="replay" title="重新播放">↺</button>
+        <button class="control primary" id="play">暂停</button>
+        <button class="control" id="speed">1×</button>
+      </div>
+    </header>
+
+    <div class="stage">
+      <section class="pane">
+        <h3 class="pane-title">唯一的一棵 LaCAM 树</h3>
+        <div class="tree-wrap">
+          <svg class="tree-svg" viewBox="0 0 280 330" preserveAspectRatio="none" aria-hidden="true">
+            <path class="tree-line bad hidden" id="line-bad" d="M140 72 C120 120, 82 135, 70 185"></path>
+            <path class="tree-line good hidden" id="line-good" d="M140 72 C160 120, 198 135, 210 185"></path>
+            <path class="tree-line good hidden" id="line-x2" d="M210 220 L210 278"></path>
+          </svg>
+          <div class="tree-node visible active" id="tree-x0"><strong>X₀</strong><small>physical state</small></div>
+          <div class="tree-node bad" id="tree-loop"><strong>Xloop</strong><small>duplicate</small></div>
+          <div class="tree-node good" id="tree-x1"><strong>X₁</strong><small>physical state</small></div>
+          <div class="tree-node good" id="tree-x2"><strong>X₂</strong><small>继续搜索</small></div>
+          <div class="constraint-tag" id="constraint">local constraint: R ≠ right</div>
+        </div>
+        <div class="tree-explain" id="tree-explain"><strong>X₀ 里面只有物理信息。</strong>此时 goal 还没有成为搜索状态的一部分。</div>
+        <div class="key-card" id="key-card">CLOSED key = X₀<br>R=(5,4), B=(4,1)<br><span class="guide-key">τ、ρ 不在 key 中</span></div>
+      </section>
+
+      <section class="pane">
+        <h3 class="pane-title">仓库里实际发生的动作</h3>
+        <div class="map-wrap">
+          <div class="map" id="map">
+            <svg class="map-svg" viewBox="0 0 900 500" preserveAspectRatio="none" aria-hidden="true">
+              <path class="goal-arrow" id="goal-arrow" d=""></path>
+            </svg>
+            <div class="actor target" id="target">B</div>
+            <div class="actor goal left" id="goal-left">G左</div>
+            <div class="actor goal right" id="goal-right">G右</div>
+            <div class="actor leaf" id="leaf-left">V左</div>
+            <div class="actor leaf" id="leaf-right">V右</div>
+            <div class="actor vacancy" id="vacancy">空</div>
+            <div class="actor robot" id="robot">R</div>
+            <div class="collision" id="collision">×</div>
+          </div>
+        </div>
+        <div class="map-caption">
+          <span>实线物体会移动；虚线箭头表示当前 guide</span>
+          <span id="map-state">物理状态：X₀</span>
+        </div>
+        <article class="event-card">
+          <div class="event-type" id="event-type">PHYSICAL NODE</div>
+          <h3 id="event-title">现在只创建了 X₀</h3>
+          <p id="event-text">机器人 R、目标货架 B、其他货架和 carrying 共同组成 X₀。无论稍后黄色纸条选左目标还是右目标，X₀ 的 CLOSED key 都不变。</p>
+          <div class="formula" id="formula">SearchKey(X₀) = {robot, shelves, carrying}</div>
+        </article>
+      </section>
+
+      <section class="pane guidance-pane">
+        <h3 class="pane-title">从当前 X 临时算出的导航纸条</h3>
+        <div class="guidance-inner">
+          <div class="paper" id="paper">
+            <span class="derived-label">DERIVED</span>
+            <small id="paper-node">attached to X₀</small>
+            <div class="tau" id="tau">τguide：计算中…</div>
+            <div class="rho" id="rho">ρ：等待 dependency frontier</div>
+          </div>
+          <div>
+            <div class="cost-title">每个 (B, Goal) 都先编译 dependency，再算执行代价</div>
+            <div class="cost-row" id="row-left">
+              <div class="cost-head"><strong>B → G左</strong><span class="cost-number" id="cost-left">?</span></div>
+              <div class="bar"><div class="bar-fill" id="bar-left"></div></div>
+              <div class="parts"><span id="left-dep">依赖 4</span><span id="left-robot">robot 3</span><span id="left-extra">约束 0</span></div>
+            </div>
+            <div class="cost-row" id="row-right">
+              <div class="cost-head"><strong>B → G右</strong><span class="cost-number" id="cost-right">?</span></div>
+              <div class="bar"><div class="bar-fill" id="bar-right"></div></div>
+              <div class="parts"><span id="right-dep">依赖 4</span><span id="right-robot">robot 2</span><span id="right-extra">约束 0</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="dependency">
+              <div class="dep-title">G左 的当前 dependency frontier</div>
+              <div class="dep-chain"><span class="dep">B→G左</span><span class="arrow">←</span><span class="dep">blocker</span><span class="arrow">←</span><span class="dep ready" id="dep-left">V左（ready）</span></div>
+            </div>
+            <div class="dependency">
+              <div class="dep-title">G右 的当前 dependency frontier</div>
+              <div class="dep-chain"><span class="dep">B→G右</span><span class="arrow">←</span><span class="dep ready" id="dep-right">V右（ready）</span></div>
+            </div>
+            <div class="not-key" id="not-key">这两条 dependency 和最后选出的 τ、ρ 都只负责 successor ordering，不会复制或删除物理状态。</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="timeline">
+      <div class="scrub-row">
+        <input id="scrubber" type="range" min="0" max="1000" value="0" aria-label="动画时间轴">
+        <div class="time" id="time">0.0 / 16.0s</div>
+      </div>
+      <div class="markers" id="markers"></div>
+    </div>
+  </section>
+
+  <section class="takeaway">
+    <article class="take"><b>1. Dependency 做什么？</b><p>对每个候选 goal 找出当前真正 ready 的叶子任务，并进入这个 goal 的执行代价。</p></article>
+    <article class="take"><b>2. τ 和 ρ 做什么？</b><p>只告诉 PIBT 哪个 goal、哪个 task 先试；下一物理节点会重新计算。</p></article>
+    <article class="take"><b>3. LaCAM 做什么？</b><p>首选动作走坏时，在同一个物理节点增加 local constraint，继续枚举其他合法 successor。</p></article>
+  </section>
+  <div class="check"><strong>因此当前项目不需要再造 Goal-LaCAM 或 Task-LaCAM：</strong>应当在每个物理节点，对所有 `(target, goal)` 编译 dependency-aware cost，动态求 `τguide(X)` 和 `ρ(X)`；它们都是同一棵 Carrier-LaCAM 的 guide。只有 Lift/carry/drop 形成的物理 custody 才是硬承诺。</div>
+  <a class="back" href="index.html">← 返回 benchmark 可视化首页</a>
+</main>
+
+<script>
+(() => {
+  const DURATION = 16;
+  const chapterStarts = [0, 1.65, 3.45, 5.7, 7.65, 9.65, 11.8, 13.6];
+  const chapters = [
+    {
+      short: "物理节点",
+      title: "LaCAM 到达物理节点 X₀",
+      type: "PHYSICAL NODE",
+      event: "现在只创建了 X₀",
+      text: "机器人 R、目标货架 B、其他货架和 carrying 共同组成 X₀。无论稍后黄色纸条选左目标还是右目标，X₀ 的 CLOSED key 都不变。",
+      formula: "SearchKey(X₀) = {robot, shelves, carrying}",
+      tree: "<strong>X₀ 里面只有物理信息。</strong>此时 goal 还没有成为搜索状态的一部分。"
+    },
+    {
+      short: "编译依赖",
+      title: "在 X₀ 上同时评价两个 Goal",
+      type: "DEPENDENCY COMPILATION",
+      event: "不是先随便选一个 Goal",
+      text: "系统分别为 B→G左 和 B→G右 编译当前 dependency frontier。左边得到 ready task V左，右边得到 ready task V右，然后把机器人实现代价一起算进去。",
+      formula: "Cguide(X,B,G) = dependency + vacancy + robot realization",
+      tree: "<strong>仍然只有 X₀。</strong>右侧两行只是展开 X₀ 时临时计算的候选代价。"
+    },
+    {
+      short: "选 Guide",
+      title: "X₀ 的黄色纸条先选 G右",
+      type: "DYNAMIC ASSIGNMENT",
+      event: "τguide(X₀)=B→G右，ρ(X₀)=R→V右",
+      text: "G右 当前总代价 6，低于 G左 的 7，所以黄色纸条让 Carrier-PIBT 先尝试向右。注意：这是 preferred successor，不是唯一 successor。",
+      formula: "guide(X₀) = {τ: B→G右, ρ: R→V右}",
+      tree: "<strong>黄色纸条附着在 X₀ 旁边。</strong>它改变先试哪条边，但没有改变 X₀ 的身份。"
+    },
+    {
+      short: "PIBT 先试",
+      title: "Carrier-PIBT 按 Guide 向右走",
+      type: "PREFERRED SUCCESSOR",
+      event: "机器人 R 朝 V右 移动",
+      text: "这是 assignment guidance 提出的第一个 primitive successor。LaCAM 的 local constraint tree 仍保留 Wait、向左和其他合法动作。",
+      formula: "preferred successor ≠ only successor",
+      tree: "<strong>LaCAM 先消费 guide。</strong>此时右分支尚未被永久接受，其他 primitive choices 仍然留在 X₀ 的 local tree 中。"
+    },
+    {
+      short: "发现重复",
+      title: "首选动作落入 Xloop",
+      type: "DUPLICATE DETECTED",
+      event: "这个 Guide 走坏了，但不会锁死搜索",
+      text: "向右的动作被局部冲突推回已经访问过的 configuration。CLOSED 只看到相同的物理 key，于是把 Xloop 标为 duplicate；错误 assignment 不会变成另一种状态。",
+      formula: "SearchKey(Xloop) ∈ CLOSED",
+      tree: "<strong>红色分支失败。</strong>失败的是首选 successor，不是整个 goal assignment 问题。"
+    },
+    {
+      short: "LaCAM 回退",
+      title: "仍在 X₀：增加一条 Local Constraint",
+      type: "LACAM LOCAL CONSTRAINT",
+      event: "LaCAM 禁止本次再走同一个右动作",
+      text: "搜索没有启动第二个 Task-LaCAM，也没有固定 G右 重跑完整路径。它只在 X₀ 的 local constraint tree 里加入 R≠right，然后重新调用 PIBT 补全另一个 successor。",
+      formula: "X₀.local_constraints += {R ≠ right}",
+      tree: "<strong>关键动作发生在同一个 X₀ 内部。</strong>LaCAM 用约束枚举下一个物理 successor。"
+    },
+    {
+      short: "新物理状态",
+      title: "替代动作生成真正的新节点 X₁",
+      type: "ALTERNATIVE SUCCESSOR",
+      event: "机器人向左一步，物理状态变成 X₁",
+      text: "现在 robot position 确实改变，所以 CLOSED 中出现新物理节点 X₁。X₀ 的黄色纸条不会被当成 X₁ 的承诺带过来。",
+      formula: "X₀ --MoveLeft--> X₁",
+      tree: "<strong>X₁ 是新节点，因为物理状态变了。</strong>接下来不是沿用旧 τ，而是在 X₁ 上重新计算。"
+    },
+    {
+      short: "动态换 Goal",
+      title: "在 X₁ 上重算，Goal 自然切到 G左",
+      type: "PER-NODE REASSIGNMENT",
+      event: "τguide(X₁)=B→G左，ρ(X₁)=R→V左",
+      text: "机器人现在更靠近 V左。仅仅因为 X₁ 的物理位置不同，G左 的机器人实现代价降低，G右 的实现代价升高；新黄色纸条直接改选 G左，搜索继续到 X₂。",
+      formula: "same LaCAM tree, new derived guide(X₁)",
+      tree: "<strong>这就是 ITA-LaCAM 的核心。</strong>assignment 在 LaCAM 搜索过程中随物理节点动态变化，但树的状态维度始终只有 X。"
+    }
+  ];
+
+  const el = id => document.getElementById(id);
+  const map = el("map");
+  const state = { t: 0, playing: true, speed: 1, last: performance.now(), dragging: false };
+
+  function createGrid() {
+    const firstActor = map.firstElementChild;
+    for (let y = 0; y < 5; y++) {
+      for (let x = 0; x < 9; x++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.dataset.x = x;
+        cell.dataset.y = y;
+        if ([[0,0],[8,0],[0,4],[8,4]].some(p => p[0] === x && p[1] === y)) cell.classList.add("wall");
+        if (y === 1 && x >= 1 && x <= 4) cell.classList.add("left-route");
+        if (y === 1 && x >= 4 && x <= 7) cell.classList.add("right-route");
+        map.insertBefore(cell, firstActor);
+      }
+    }
+  }
+  function setPos(node, x, y) {
+    node.style.left = `${((x + .5) / 9) * 100}%`;
+    node.style.top = `${((y + .5) / 5) * 100}%`;
+  }
+  function lerp(a, b, p) { return a + (b - a) * Math.max(0, Math.min(1, p)); }
+  function ease(p) { p = Math.max(0, Math.min(1, p)); return p * p * (3 - 2 * p); }
+  function between(t, a, b) { return ease((t - a) / (b - a)); }
+  function chapterAt(t) {
+    let i = 0;
+    for (let n = 0; n < chapterStarts.length; n++) if (t >= chapterStarts[n]) i = n;
+    return i;
+  }
+  function robotPosition(t) {
+    if (t < 5.7) return [5, 4];
+    if (t < 6.85) {
+      const p = between(t, 5.7, 6.85);
+      return [lerp(5, 6, p), 4];
+    }
+    if (t < 8.45) {
+      const p = between(t, 7.65, 8.45);
+      return [lerp(6, 5, p), 4];
+    }
+    if (t < 11.8) return [5, 4];
+    if (t < 12.75) {
+      const p = between(t, 11.8, 12.75);
+      return [lerp(5, 4, p), 4];
+    }
+    if (t < 15.1) return [4, 4];
+    const p = between(t, 15.1, 16);
+    return [lerp(4, 3.15, p), lerp(4, 3.35, p)];
+  }
+  function costState(t) {
+    if (t < 1.65) return { left: 0, right: 0, show: false, selected: "none", recompute: false, leftParts: [4,3,0], rightParts: [4,2,0] };
+    if (t < 3.45) {
+      const p = between(t, 1.65, 3.15);
+      return { left: lerp(0,7,p), right: lerp(0,6,p), show: true, selected: "none", recompute: true, leftParts: [4,3,0], rightParts: [4,2,0] };
+    }
+    if (t < 11.8) return { left: 7, right: 6, show: true, selected: "right", recompute: false, leftParts: [4,3,0], rightParts: [4,2,0] };
+    if (t < 13.6) {
+      const p = between(t, 11.8, 13.35);
+      return {
+        left: lerp(7,5,p), right: lerp(6,7,p), show: true,
+        selected: p < .62 ? "right" : "left", recompute: true,
+        leftParts: [4,Math.round(lerp(3,1,p)),0],
+        rightParts: [4,Math.round(lerp(2,3,p)),0]
+      };
+    }
+    return { left: 5, right: 7, show: true, selected: "left", recompute: false, leftParts: [4,1,0], rightParts: [4,3,0] };
+  }
+  function setTree(t, ci) {
+    const loopVisible = ci >= 4;
+    const x1Visible = ci >= 6;
+    const x2Visible = ci >= 7 && t > 15.05;
+    el("tree-loop").classList.toggle("visible", loopVisible);
+    el("tree-x1").classList.toggle("visible", x1Visible);
+    el("tree-x2").classList.toggle("visible", x2Visible);
+    el("line-bad").classList.toggle("hidden", !loopVisible);
+    el("line-good").classList.toggle("hidden", !x1Visible);
+    el("line-x2").classList.toggle("hidden", !x2Visible);
+    el("line-bad").classList.toggle("active", ci === 4);
+    el("line-good").classList.toggle("active", ci === 6 || ci === 7);
+    el("line-x2").classList.toggle("active", x2Visible);
+    ["tree-x0","tree-loop","tree-x1","tree-x2"].forEach(id => el(id).classList.remove("active"));
+    if (ci <= 3 || ci === 5) el("tree-x0").classList.add("active");
+    if (ci === 4) el("tree-loop").classList.add("active");
+    if (ci === 6 || (ci === 7 && !x2Visible)) el("tree-x1").classList.add("active");
+    if (x2Visible) el("tree-x2").classList.add("active");
+    el("constraint").classList.toggle("visible", ci >= 5);
+  }
+  function updateArrow(selected) {
+    const path = el("goal-arrow");
+    if (selected === "none") {
+      path.style.opacity = ".15";
+      path.setAttribute("d", "M450 150 C450 80, 450 80, 450 150");
+      return;
+    }
+    path.style.opacity = "1";
+    if (selected === "left") {
+      path.style.stroke = "var(--green)";
+      path.setAttribute("d", "M450 150 C350 60, 220 65, 150 150");
+    } else {
+      path.style.stroke = "var(--pink)";
+      path.setAttribute("d", "M450 150 C560 60, 690 65, 750 150");
+    }
+  }
+  function render() {
+    const t = state.t;
+    const ci = chapterAt(t);
+    const c = chapters[ci];
+    const costs = costState(t);
+    const rp = robotPosition(t);
+
+    setPos(el("target"), 4, 1);
+    setPos(el("goal-left"), 1, 1);
+    setPos(el("goal-right"), 7, 1);
+    setPos(el("leaf-left"), 3, 2);
+    setPos(el("leaf-right"), 6, 2);
+    setPos(el("vacancy"), 4, 3);
+    setPos(el("robot"), rp[0], rp[1]);
+    setPos(el("collision"), 6, 4);
+
+    const collisionVisible = t >= 6.65 && t <= 8.25;
+    el("collision").classList.toggle("visible", collisionVisible);
+    el("robot").style.filter = collisionVisible ? "drop-shadow(0 0 10px var(--red))" : "none";
+    el("leaf-left").classList.toggle("selected", costs.selected === "left");
+    el("leaf-right").classList.toggle("selected", costs.selected === "right");
+    el("dep-left").classList.toggle("active", costs.selected === "left");
+    el("dep-right").classList.toggle("active", costs.selected === "right");
+    document.querySelectorAll(".cell").forEach(cell => {
+      const left = cell.classList.contains("left-route");
+      const right = cell.classList.contains("right-route");
+      cell.classList.toggle("chosen-route", (costs.selected === "left" && left) || (costs.selected === "right" && right));
+    });
+    updateArrow(costs.selected);
+    setTree(t, ci);
+
+    el("chapter-index").textContent = `第 ${ci + 1} 幕 / ${chapters.length}`;
+    el("chapter-title").textContent = c.title;
+    el("event-type").textContent = c.type;
+    el("event-title").textContent = c.event;
+    el("event-text").textContent = c.text;
+    el("formula").textContent = c.formula;
+    el("tree-explain").innerHTML = c.tree;
+
+    const physicalNode = ci >= 6 ? (t > 15.05 ? "X₂" : "X₁") : (ci === 4 ? "Xloop" : "X₀");
+    el("map-state").textContent = `物理状态：${physicalNode}`;
+    const posText = `R=(${rp[0].toFixed(1)},${rp[1].toFixed(1)})`;
+    el("key-card").innerHTML = `CLOSED key = ${physicalNode}<br>${posText}, B=(4,1)<br><span class="guide-key">τ、ρ 不在 key 中</span>`;
+
+    el("paper").classList.toggle("recompute", costs.recompute);
+    el("paper-node").textContent = `attached to ${ci >= 6 ? "X₁" : "X₀"}`;
+    if (!costs.show) {
+      el("tau").textContent = "τguide：尚未计算";
+      el("rho").textContent = "ρ：尚未计算";
+    } else if (costs.recompute && costs.selected === "none") {
+      el("tau").textContent = "τguide：正在比较…";
+      el("rho").textContent = "ρ：等待 τ";
+    } else if (costs.selected === "left") {
+      el("tau").textContent = "τguide：B → G左";
+      el("rho").textContent = "ρ：R → V左（ready leaf）";
+    } else {
+      el("tau").textContent = "τguide：B → G右";
+      el("rho").textContent = "ρ：R → V右（ready leaf）";
+    }
+
+    const maxCost = 10;
+    el("cost-left").textContent = costs.show ? costs.left.toFixed(1).replace(".0","") : "?";
+    el("cost-right").textContent = costs.show ? costs.right.toFixed(1).replace(".0","") : "?";
+    el("bar-left").style.width = `${costs.show ? costs.left / maxCost * 100 : 0}%`;
+    el("bar-right").style.width = `${costs.show ? costs.right / maxCost * 100 : 0}%`;
+    el("bar-left").style.background = costs.selected === "left" ? "var(--green)" : "#50677f";
+    el("bar-right").style.background = costs.selected === "right" ? "var(--pink)" : "#50677f";
+    el("row-left").classList.toggle("winner", costs.selected === "left");
+    el("row-left").classList.remove("right-win");
+    el("row-right").classList.toggle("winner", costs.selected === "right");
+    el("row-right").classList.toggle("right-win", costs.selected === "right");
+    el("left-dep").textContent = `依赖 ${costs.leftParts[0]}`;
+    el("left-robot").textContent = `robot ${costs.leftParts[1]}`;
+    el("left-extra").textContent = `约束 ${costs.leftParts[2]}`;
+    el("right-dep").textContent = `依赖 ${costs.rightParts[0]}`;
+    el("right-robot").textContent = `robot ${costs.rightParts[1]}`;
+    el("right-extra").textContent = `约束 ${costs.rightParts[2]}`;
+    el("not-key").textContent = ci >= 7
+      ? "X₁ 的 τ 已经从右切到左，但 CLOSED 中没有新增“assignment 状态”；它仍是 X₁ 的一张派生纸条。"
+      : "两条 dependency 和最后选出的 τ、ρ 都只负责 successor ordering，不会复制或删除物理状态。";
+
+    el("scrubber").value = Math.round(t / DURATION * 1000);
+    el("time").textContent = `${t.toFixed(1)} / ${DURATION.toFixed(1)}s`;
+    document.querySelectorAll(".marker").forEach((m, i) => {
+      m.classList.toggle("active", i === ci);
+      m.classList.toggle("passed", i < ci);
+    });
+    el("play").textContent = state.playing ? "暂停" : "播放";
+  }
+  function tick(now) {
+    const dt = Math.min(.08, (now - state.last) / 1000);
+    state.last = now;
+    if (state.playing && !state.dragging) {
+      state.t += dt * state.speed;
+      if (state.t >= DURATION) {
+        state.t = DURATION;
+        state.playing = false;
+      }
+    }
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  chapters.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.className = "marker";
+    b.textContent = `${i + 1} ${c.short}`;
+    b.addEventListener("click", () => {
+      state.t = chapterStarts[i] + .02;
+      state.playing = false;
+      render();
+    });
+    el("markers").appendChild(b);
+  });
+  el("play").addEventListener("click", () => {
+    if (state.t >= DURATION) state.t = 0;
+    state.playing = !state.playing;
+    state.last = performance.now();
+  });
+  el("replay").addEventListener("click", () => {
+    state.t = 0;
+    state.playing = true;
+    state.last = performance.now();
+  });
+  el("speed").addEventListener("click", () => {
+    state.speed = state.speed === 1 ? 1.5 : state.speed === 1.5 ? .7 : 1;
+    el("speed").textContent = `${state.speed}×`;
+  });
+  el("scrubber").addEventListener("pointerdown", () => { state.dragging = true; state.playing = false; });
+  el("scrubber").addEventListener("input", e => {
+    state.t = Number(e.target.value) / 1000 * DURATION;
+    render();
+  });
+  ["pointerup","change"].forEach(name => el("scrubber").addEventListener(name, () => { state.dragging = false; }));
+
+  createGrid();
+  render();
+  setTimeout(() => { state.last = performance.now(); requestAnimationFrame(tick); }, 350);
+})();
+</script>
+</body>
+</html>

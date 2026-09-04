@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier-LaCAM 具体 testcase 动画对比</title>
+<style>
+:root { --bg:#090d18; --panel:#121a2a; --line:#2b3950; --text:#e8eef8;
+        --muted:#95a3b8; --blue:#4da3ff; --green:#37cf91; --red:#ff7070; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--text); background:
+  radial-gradient(circle at 12% 0,#16264c 0,transparent 32rem),var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; }
+.page { max-width:1700px; margin:auto; padding:24px; }
+h1 { margin:0 0 7px; font-size:27px; }
+.sub,.note { color:var(--muted); }
+.top { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:20px 0 12px;
+  background:#101827; border:1px solid var(--line); border-radius:12px; padding:13px; }
+select { min-width:360px; color:var(--text); background:#1a263b; border:1px solid #40516d;
+  border-radius:8px; padding:9px 11px; font-size:14px; }
+a { color:#76b9ff; }
+.metrics { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:10px; margin:12px 0; }
+.metric { padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:10px; }
+.metric span { color:var(--muted); display:block; font-size:11px; text-transform:uppercase; }
+.metric b { font-size:20px; display:block; margin-top:5px; }
+.good { color:var(--green); }.bad { color:var(--red); }
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.pane { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+.pane-head { display:flex; justify-content:space-between; gap:10px; padding:11px 13px;
+  background:#182338; border-bottom:1px solid var(--line); }
+iframe { display:block; width:100%; height:720px; border:0; background:#1e1e24; }
+.missing { height:720px; display:grid; place-items:center; color:#ffb0b0; font-size:18px;
+  background:repeating-linear-gradient(135deg,#171d2b,#171d2b 14px,#141a27 14px,#141a27 28px); }
+.cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+.case { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; cursor:pointer; }
+.case:hover { border-color:#5b78a1; }.case.active { border-color:var(--blue); box-shadow:0 0 0 1px var(--blue); }
+.case b { display:block; margin-bottom:6px; }.case div { color:var(--muted); font-size:12px; line-height:1.45; }
+@media(max-width:1050px) { .compare { grid-template-columns:1fr; } .metrics,.cards { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:650px) { .page { padding:14px; } select { min-width:0;width:100%; } .metrics,.cards { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>具体 testcase：strict v3 vs final7 动画</h1>
+  <div class="sub">每个计划均由 authoritative Python validator 验证后再嵌入。左右动画可独立播放、单步和拖动。</div>
+  <div class="top">
+    <label>选择案例：
+      <select id="pick"></select>
+    </label>
+    <span class="note" id="note"></span>
+    <a href="small_quality_final7.html">返回质量 dashboard</a>
+  </div>
+  <div class="metrics" id="metrics"></div>
+  <div class="compare">
+    <section class="pane">
+      <div class="pane-head"><b>strict v3 baseline</b><a id="baseOpen" target="_blank">单独打开</a></div>
+      <div id="baseBody"></div>
+    </section>
+    <section class="pane">
+      <div class="pane-head"><b>v4.1 final7</b><a id="newOpen" target="_blank">单独打开</a></div>
+      <div id="newBody"></div>
+    </section>
+  </div>
+  <div class="cards" id="cards"></div>
+</div>
+<script>
+const CASES=[{"slug":"worst_h4_e10_r1_s0","name":"brap_h4w10_a5_e10_R1_seed0","group":"g4x10","label":"最大退化：h4 e10 R1 seed0","note":"最明显的往返/重搬运退化，适合直接观察 final7 为什么拉长。","base_page":"cases/worst_h4_e10_r1_s0_v3.html","new_page":"cases/worst_h4_e10_r1_s0_final7.html","base_mk":298.0,"new_mk":1060.0,"base_soc":539.0,"new_soc":2059.0,"runtime":0.258},{"slug":"worst_h4_e1_r1_s1","name":"brap_h4w10_a5_e1_R1_seed1","group":"g4x10","label":"第二大退化：h4 e1 R1 seed1","note":"低空位 R1 下路径与搬运顺序明显变长。","base_page":"cases/worst_h4_e1_r1_s1_v3.html","new_page":"cases/worst_h4_e1_r1_s1_final7.html","base_mk":191.0,"new_mk":548.0,"base_soc":341.0,"new_soc":908.0,"runtime":0.521},{"slug":"dense_h8_e20_r1_s0","name":"brap_h8w10_a10_e20_R1_seed0","group":"g8x10","label":"典型稠密退化：h8 e20 R1 seed0","note":"机器人更多，能直观看到并行度与目标顺序差异。","base_page":"cases/dense_h8_e20_r1_s0_v3.html","new_page":"cases/dense_h8_e20_r1_s0_final7.html","base_mk":583.0,"new_mk":1398.0,"base_soc":1169.0,"new_soc":2456.0,"runtime":0.551},{"slug":"best_h6_e15_r1_s1","name":"brap_h6w10_a6_e15_R1_seed1","group":"g6x10","label":"明显改善：h6 e15 R1 seed1","note":"final7 的 mk 与 SOC 均约减半，是对照退化案例的正例。","base_page":"cases/best_h6_e15_r1_s1_v3.html","new_page":"cases/best_h6_e15_r1_s1_final7.html","base_mk":617.0,"new_mk":350.0,"base_soc":1156.0,"new_soc":631.0,"runtime":0.105},{"slug":"recovered_h10_e8_r1_s0","name":"brap_h10w10_a12_e8_R1_seed0","group":"g10x10","label":"恢复且改善：h10 e8 R1 seed0","note":"严格基线可解，final7 同时缩短 mk 与 SOC。","base_page":"cases/recovered_h10_e8_r1_s0_v3.html","new_page":"cases/recovered_h10_e8_r1_s0_final7.html","base_mk":6634.0,"new_mk":5265.0,"base_soc":11342.0,"new_soc":8850.0,"runtime":9.739},{"slug":"new_only_h10_e3_r1_s1","name":"brap_h10w10_a12_e3_R1_seed1","group":"g10x10","label":"新增解出：h10 e3 R1 seed1","note":"strict v3 timeout；仅展示 final7 的新可交付计划。","base_page":null,"new_page":"cases/new_only_h10_e3_r1_s1_final7.html","base_mk":null,"new_mk":2394.0,"base_soc":null,"new_soc":3940.0,"runtime":6.705}];
+const $=id=>document.getElementById(id);
+const fmt=(x,d=0)=>x==null?"—":Number(x).toLocaleString(undefined,{maximumFractionDigits:d});
+const ratio=(n,b)=>n!=null&&b? n/b:null;
+const cls=x=>x==null?"":x<=1?"good":"bad";
+const ratioText=x=>x==null?"不可比":x.toFixed(3)+"×";
+
+function render(i) {
+  const c=CASES[i], mr=ratio(c.new_mk,c.base_mk), sr=ratio(c.new_soc,c.base_soc);
+  $("pick").value=String(i); $("note").textContent=c.note;
+  $("metrics").innerHTML=[
+    ["v3 makespan",fmt(c.base_mk)],["final7 makespan",fmt(c.new_mk)],
+    ["mk ratio",ratioText(mr),cls(mr)],["SOC ratio",ratioText(sr),cls(sr)],
+    ["final7 runtime",fmt(c.runtime,3)+"s"]
+  ].map(([l,v,k=""])=>`<div class="metric"><span>${l}</span><b class="${k}">${v}</b></div>`).join("");
+  if(c.base_page) {
+    $("baseBody").innerHTML=`<iframe src="${c.base_page}" title="strict v3 ${c.label}"></iframe>`;
+    $("baseOpen").href=c.base_page; $("baseOpen").style.visibility="visible";
+  } else {
+    $("baseBody").innerHTML=`<div class="missing">strict v3 在 10 秒内未解出，无可视化计划</div>`;
+    $("baseOpen").style.visibility="hidden";
+  }
+  $("newBody").innerHTML=`<iframe src="${c.new_page}" title="final7 ${c.label}"></iframe>`;
+  $("newOpen").href=c.new_page;
+  [...$("cards").children].forEach((el,j)=>el.classList.toggle("active",j===i));
+}
+$("pick").innerHTML=CASES.map((c,i)=>`<option value="${i}">${c.label}</option>`).join("");
+$("cards").innerHTML=CASES.map((c,i)=>`<div class="case" data-i="${i}"><b>${c.label}</b><div>${c.note}</div><div>mk ${fmt(c.base_mk)} → ${fmt(c.new_mk)} · SOC ${fmt(c.base_soc)} → ${fmt(c.new_soc)}</div></div>`).join("");
+$("pick").onchange=e=>render(+e.target.value);
+[...$("cards").children].forEach(el=>el.onclick=()=>render(+el.dataset.i));
+render(0);
+</script>
+</body>
+</html>
