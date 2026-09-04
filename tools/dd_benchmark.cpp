@@ -112,6 +112,29 @@ std::string canonical_entry_path(const std::string& path)
   return lexical_absolute(path);
 }
 
+struct InputIdentity {
+  std::string entry;
+  std::string target;
+};
+
+InputIdentity identify_input(const std::string& path)
+{
+  InputIdentity identity;
+  identity.entry = canonical_entry_path(path);
+  identity.target = identity.entry;
+  if (char* resolved = realpath(path.c_str(), nullptr)) {
+    identity.target = resolved;
+    std::free(resolved);
+  }
+  return identity;
+}
+
+bool is_input_entry(const InputIdentity& input, const std::string& path)
+{
+  const std::string entry = canonical_entry_path(path);
+  return entry == input.entry || entry == input.target;
+}
+
 void append_error(std::string* error, const std::string& message)
 {
   if (!error->empty()) *error += "; ";
@@ -126,12 +149,12 @@ bool unlink_with_retry(const std::string& path)
   return false;
 }
 
-bool clear_output_slot(const std::string& yaml_entry,
+bool clear_output_slot(const InputIdentity& input,
                        const std::string& slot, std::string* error)
 {
   struct stat info;
   if (lstat(slot.c_str(), &info) == 0) {
-    if (canonical_entry_path(slot) == yaml_entry) {
+    if (is_input_entry(input, slot)) {
       append_error(error, "output path is INSTANCE.yaml: " + slot);
       return false;
     }
@@ -183,7 +206,7 @@ std::string join_path(const std::string& parent, const std::string& name)
   return parent == "/" ? "/" + name : parent + "/" + name;
 }
 
-bool clear_orphan_temps(const std::string& yaml_entry,
+bool clear_orphan_temps(const InputIdentity& input,
                         const std::string& final_path, std::string* error)
 {
   std::string parent;
@@ -213,7 +236,7 @@ bool clear_orphan_temps(const std::string& yaml_entry,
       }
       continue;
     }
-    if (canonical_entry_path(path) == yaml_entry) {
+    if (is_input_entry(input, path)) {
       append_error(error, "orphan temp path is INSTANCE.yaml: " + path);
       ok = false;
       continue;
@@ -221,7 +244,7 @@ bool clear_orphan_temps(const std::string& yaml_entry,
     const bool owned_regular =
         S_ISREG(info.st_mode) && info.st_uid == geteuid() &&
         (info.st_mode & 0777) == 0600;
-    if (!owned_regular && !S_ISLNK(info.st_mode)) {
+    if (!owned_regular) {
       append_error(error, "orphan temp is not owned regular file: " + path);
       ok = false;
       continue;
@@ -241,13 +264,13 @@ bool clear_orphan_temps(const std::string& yaml_entry,
 bool clear_plan_outputs(const std::string& yaml_path,
                         const OutputPaths& paths, std::string* error)
 {
-  const std::string yaml_entry = canonical_entry_path(yaml_path);
+  const InputIdentity input = identify_input(yaml_path);
   bool ok = true;
   for (const auto& slot : paths.cleanup_slots()) {
-    if (!clear_output_slot(yaml_entry, slot, error)) ok = false;
+    if (!clear_output_slot(input, slot, error)) ok = false;
   }
-  if (!clear_orphan_temps(yaml_entry, paths.plan, error)) ok = false;
-  if (!clear_orphan_temps(yaml_entry, paths.best_effort, error)) ok = false;
+  if (!clear_orphan_temps(input, paths.plan, error)) ok = false;
+  if (!clear_orphan_temps(input, paths.best_effort, error)) ok = false;
   return ok;
 }
 

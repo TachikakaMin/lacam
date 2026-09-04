@@ -397,6 +397,41 @@ flags: {}
                 is_goal(ins, replay(ins, parse_plan(hardlink_plan)))
             )
 
+    def test_output_cannot_replace_a_symlinked_inputs_real_target(self):
+        source = REPO / "tests/fixtures/dd_tiny.yaml"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            real_input = tmp / "real.yaml"
+            shutil.copyfile(source, real_input)
+            original = real_input.read_bytes()
+            input_link = tmp / "input.yaml"
+            input_link.symlink_to(real_input)
+
+            p, _ = run_solver(input_link, 5, real_input)
+
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertTrue(input_link.is_symlink())
+            self.assertEqual(real_input.read_bytes(), original)
+            self.assertEqual(load_instance(real_input).validate_static(), [])
+
+    def test_orphan_cleanup_refuses_symlinks_and_preserves_targets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            plan_out = tmp / "result.plan"
+            target = tmp / "unrelated.txt"
+            target.write_text("do not delete\n")
+            orphan_link = tmp / "result.plan.tmp.not-a-regular-file"
+            orphan_link.symlink_to(target)
+
+            p, _ = run_solver(
+                REPO / "tests/fixtures/dd_tiny.yaml", 1, plan_out
+            )
+
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertTrue(orphan_link.is_symlink())
+            self.assertEqual(target.read_text(), "do not delete\n")
+            self.assertFalse(plan_out.exists())
+
     def test_cleanup_continues_after_an_unsafe_derived_slot(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
