@@ -113,6 +113,16 @@ The warehouse cases are reported under the `warehouse_blocks` family; their
 canonical YAML and animations remain in
 `viz_web/warehouse_block_suite/`.
 
+Generate the browsable 77-case dashboard and all validated success-plan
+animations with:
+
+```sh
+python3 benchmark/generate_release_benchmark_web.py
+```
+
+The resulting entry point is
+`benchmark/viz_web/release_benchmark_77_20260904/index.html`.
+
 ## Paper-protocol suites (CREST arXiv:2603.28803 Table I)
 
 The papers do not publish their instance data (CREST repo ships a single
