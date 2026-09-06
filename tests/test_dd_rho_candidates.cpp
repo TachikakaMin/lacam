@@ -72,43 +72,14 @@ TEST(dd_rho_candidates,
   ASSERT_EQ(probe.rho_task_id.size(), 1u);
   ASSERT_TRUE(probe.rho_task_id[0].has_value());
   EXPECT_EQ(*probe.rho_task_id[0], graph.tasks[0].id)
-      << "finite urgency can outweigh approach in additive S-D";
+      << "the far task wins by the bottleneck objective";
   EXPECT_EQ(probe.rho_ready_index[0], 0);
   EXPECT_EQ(probe.telemetry.candidates_input, 2);
   EXPECT_EQ(probe.telemetry.candidates_after_key_dedupe, 2);
   EXPECT_EQ(probe.telemetry.candidates_after_shelf_preselect, 2);
   EXPECT_EQ(probe.telemetry.candidates_after_priority, 2);
   EXPECT_EQ(probe.telemetry.priority_filtered, 0);
-  EXPECT_EQ(probe.telemetry.matrix_rows, 1);
-  EXPECT_EQ(probe.telemetry.matrix_cols, 3);
-  EXPECT_TRUE(probe.audit.empty());
-}
-
-TEST(dd_rho_candidates,
-     positive_task_cost_can_choose_idle_without_filtering_the_task)
-{
-  const auto ins = line_instance(5, {0});
-  const auto X = initial_phys_config(ins);
-  ShelfTaskGraph graph;
-  graph.tasks = {
-      make_task(
-          ShelfSelector{
-              ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
-              ins.grid.idx(0, 3)},
-          ins.grid.idx(0, 3), ins.grid.idx(0, 4), 1),
-  };
-  graph.predecessors = {{}};
-  graph.successors = {{}};
-
-  const auto probe =
-      dd_match_ready_tasks_probe(ins, X, graph, {0}, nullptr);
-
-  ASSERT_EQ(probe.rho_task_id.size(), 1u);
-  EXPECT_FALSE(probe.rho_task_id[0].has_value());
-  EXPECT_EQ(probe.telemetry.candidates_input, 1);
-  EXPECT_EQ(probe.telemetry.candidates_after_priority, 1);
-  EXPECT_EQ(probe.telemetry.priority_filtered, 0);
-  EXPECT_EQ(probe.telemetry.matrix_rows, 1);
+  EXPECT_EQ(probe.telemetry.matrix_rows, 2);
   EXPECT_EQ(probe.telemetry.matrix_cols, 2);
   EXPECT_TRUE(probe.audit.empty());
 }
@@ -228,7 +199,7 @@ TEST(dd_rho_candidates,
   EXPECT_EQ(probe.telemetry.no_reachable_robot_filtered, 1);
   EXPECT_EQ(probe.telemetry.priority_filtered, 0);
   EXPECT_EQ(probe.telemetry.matrix_rows, 1);
-  EXPECT_EQ(probe.telemetry.matrix_cols, 2);
+  EXPECT_EQ(probe.telemetry.matrix_cols, 1);
   const auto* audit = find_audit(probe, 1);
   ASSERT_NE(audit, nullptr);
   EXPECT_EQ(audit->reason, RhoDropReason::NO_REACHABLE_ROBOT);

@@ -324,16 +324,6 @@ void map_stats(const TAPFStats& t, DDStats* out,
   out->rho_matrix_cols_total += t.rho_matrix_cols_total;
   out->rho_matrix_max_rows = std::max(
       out->rho_matrix_max_rows, t.rho_matrix_max_rows);
-  if (t.rho_objective_version != 0) {
-    if (out->rho_objective_version == 0)
-      out->rho_objective_version = t.rho_objective_version;
-    else if (out->rho_objective_version !=
-             t.rho_objective_version)
-      throw std::logic_error(
-          "mixed rho objective versions across attempts");
-  }
-  out->rho_task_assignments += t.rho_task_assignments;
-  out->rho_idle_assignments += t.rho_idle_assignments;
   out->rho_column_identity_same +=
       t.rho_column_identity_same;
   out->rho_column_value_same += t.rho_column_value_same;
@@ -349,8 +339,6 @@ void map_stats(const TAPFStats& t, DDStats* out,
   out->rho_bottleneck_time_ms += t.rho_bottleneck_time_ms;
   out->rho_secondary_full_time_ms +=
       t.rho_secondary_full_time_ms;
-  out->rho_additive_full_time_ms +=
-      t.rho_additive_full_time_ms;
   out->rho_canonical_time_ms += t.rho_canonical_time_ms;
   out->custody_continuations += t.custody_continuations;
   out->timed_transport_expansions +=
@@ -957,16 +945,19 @@ DDPlan solve_carrier_2stage(
         physical, guidance, lower_distance);
     node->constraint_order = node->order;
     planner.invalidate_carrier_scratch();
-    const auto generated =
-        planner.next_carrier_rollout_step(node.get());
-    if (!generated.has_value()) {
+    TAPFConstraint root;
+    if (!planner.get_new_config(node.get(), &root) ||
+        !planner.apply_carrier_effects(node.get())) {
       map_stats(tapf_stats, stats);
       if (stats != nullptr) ++stats->generator_failures;
       return {};
     }
 
+    Config next_config(view.N, nullptr);
+    for (auto* agent : planner.A)
+      next_config[agent->id] = agent->v_next;
     const PhysConfig next =
-        phys_of(generated->config, generated->shelf);
+        phys_of(next_config, planner.shelf_next_scratch);
     std::vector<size_t> next_index = fixed_index;
     bool respects_fixed_paths = true;
     for (size_t target = 0; target < ins.n_targets(); ++target) {
@@ -986,7 +977,7 @@ DDPlan solve_carrier_2stage(
       return {};
     }
 
-    const auto& ops = generated->ops;
+    const auto ops = planner.ops_scratch;
     plan.push_back(ops);
     previous_physical = physical;
     previous_guidance = std::move(guidance);

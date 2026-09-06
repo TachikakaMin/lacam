@@ -261,7 +261,7 @@ TEST(dd_task_br_execution, forced_nonready_lift_is_loaded_but_unbound)
 }
 
 TEST(dd_task_br_execution,
-     additive_task_choice_survives_vector_reordering)
+     makespan_aware_task_choice_survives_vector_reordering)
 {
   const auto ins = line_instance(5, {0}, {}, {}, {});
   const auto X = initial_phys_config(ins);
@@ -279,16 +279,16 @@ TEST(dd_task_br_execution,
   const auto a =
       dd_match_ready_tasks_probe(ins, X, first, {0, 1}, nullptr);
   ASSERT_TRUE(a.rho_task_id[0].has_value());
-  EXPECT_EQ(*a.rho_task_id[0], near);
-  EXPECT_EQ(a.rho_ready_index[0], 0);
+  EXPECT_EQ(*a.rho_task_id[0], far);
+  EXPECT_EQ(a.rho_ready_index[0], 1);
 
   ShelfTaskGraph reordered = first;
   std::swap(reordered.tasks[0], reordered.tasks[1]);
   const auto b = dd_match_ready_tasks_probe(
       ins, X, reordered, {0, 1}, &a.rho_task_id);
   ASSERT_TRUE(b.rho_task_id[0].has_value());
-  EXPECT_EQ(*b.rho_task_id[0], near);
-  EXPECT_EQ(b.rho_ready_index[0], 1);
+  EXPECT_EQ(*b.rho_task_id[0], far);
+  EXPECT_EQ(b.rho_ready_index[0], 0);
 }
 
 TEST(dd_task_br_execution,
@@ -335,7 +335,7 @@ TEST(dd_task_br_execution,
 }
 
 TEST(dd_task_br_execution,
-     rho_priority_is_a_finite_additive_defer_reward)
+     rho_priority_is_not_an_admission_gate_before_bottleneck)
 {
   const auto ins = line_instance(7, {0}, {}, {}, {});
   const auto X = initial_phys_config(ins);
@@ -355,11 +355,11 @@ TEST(dd_task_br_execution,
       ins, X, priority_graph, {0, 1}, nullptr);
   ASSERT_TRUE(priority.rho_task_id[0].has_value());
   EXPECT_EQ(*priority.rho_task_id[0], far)
-      << "far urgency outweighs its larger approach cost";
+      << "the far task minimizes the assigned/deferred bottleneck";
   EXPECT_EQ(priority.telemetry.candidates_after_priority, 2);
   EXPECT_EQ(priority.telemetry.priority_filtered, 0);
-  EXPECT_EQ(priority.telemetry.matrix_rows, 1);
-  EXPECT_EQ(priority.telemetry.matrix_cols, 3);
+  EXPECT_EQ(priority.telemetry.matrix_rows, 2);
+  EXPECT_EQ(priority.telemetry.matrix_cols, 2);
   EXPECT_TRUE(priority.audit.empty());
 
   ShelfTaskGraph distance_graph = priority_graph;
@@ -369,8 +369,9 @@ TEST(dd_task_br_execution,
   const auto distance = dd_match_ready_tasks_probe(
       ins, X, distance_graph, {0, 1}, &previous);
   ASSERT_TRUE(distance.rho_task_id[0].has_value());
-  EXPECT_EQ(*distance.rho_task_id[0], near)
-      << "finite continuity cannot outweigh the shorter additive edge";
+  EXPECT_EQ(*distance.rho_task_id[0], far)
+      << "starting the farther task minimizes the predicted completion "
+         "of both the assigned and deferred rows";
 
   ShelfTaskGraph reversed_priority = priority_graph;
   reversed_priority.tasks[0].priority = 9;
@@ -378,14 +379,14 @@ TEST(dd_task_br_execution,
   const auto reversed = dd_match_ready_tasks_probe(
       ins, X, reversed_priority, {0, 1}, nullptr);
   ASSERT_TRUE(reversed.rho_task_id[0].has_value());
-  EXPECT_EQ(*reversed.rho_task_id[0], near)
-      << "reversing finite urgency changes the explicit S-D comparison";
+  EXPECT_EQ(*reversed.rho_task_id[0], far)
+      << "finite priority must not make the near task mandatory";
   EXPECT_EQ(reversed.telemetry.candidates_after_priority, 2);
   EXPECT_EQ(reversed.telemetry.priority_filtered, 0);
 }
 
 TEST(dd_task_br_execution,
-     multirow_additive_compares_every_ordinary_candidate)
+     multirow_bottleneck_compares_every_ordinary_candidate)
 {
   const auto ins = line_instance(12, {0, 11}, {}, {}, {});
   const auto X = initial_phys_config(ins);
@@ -411,17 +412,23 @@ TEST(dd_task_br_execution,
 
   const auto result = dd_match_ready_tasks_probe(
       ins, X, graph, {0, 1, 2, 3}, &previous);
-  ASSERT_EQ(result.rho_task_id.size(), 2u);
-  ASSERT_TRUE(result.rho_task_id[0].has_value());
-  ASSERT_TRUE(result.rho_task_id[1].has_value());
-  EXPECT_EQ(*result.rho_task_id[0], high_priority);
-  EXPECT_EQ(*result.rho_task_id[1], medium_near);
+  std::set<TaskId> assigned;
+  for (const auto& id : result.rho_task_id)
+    if (id.has_value()) assigned.insert(*id);
+  ASSERT_EQ(assigned.size(), 2u);
+  EXPECT_TRUE(assigned.count(medium_far))
+      << "the first selected task must minimize the global bottleneck";
+  EXPECT_TRUE(assigned.count(low_priority))
+      << "a low-priority task remains eligible when its delay dominates";
+  EXPECT_FALSE(assigned.count(high_priority))
+      << "high priority is not an infinite mandatory constraint";
+  EXPECT_FALSE(assigned.count(medium_near));
   EXPECT_EQ(result.telemetry.candidates_input, 4);
   EXPECT_EQ(result.telemetry.candidates_after_key_dedupe, 4);
   EXPECT_EQ(result.telemetry.candidates_after_shelf_preselect, 4);
   EXPECT_EQ(result.telemetry.candidates_after_priority, 4);
   EXPECT_EQ(result.telemetry.priority_filtered, 0);
-  EXPECT_EQ(result.telemetry.matrix_rows, 2);
-  EXPECT_EQ(result.telemetry.matrix_cols, 6);
+  EXPECT_EQ(result.telemetry.matrix_rows, 4);
+  EXPECT_EQ(result.telemetry.matrix_cols, 4);
   EXPECT_TRUE(result.audit.empty());
 }

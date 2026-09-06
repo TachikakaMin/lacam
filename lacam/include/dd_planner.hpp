@@ -105,9 +105,6 @@ struct DDStats {
   long rho_matrix_rows_total = 0;
   long rho_matrix_cols_total = 0;
   long rho_matrix_max_rows = 0;
-  int rho_objective_version = 0;
-  long rho_task_assignments = 0;
-  long rho_idle_assignments = 0;
   long rho_column_identity_same = 0;
   long rho_column_value_same = 0;
   long rho_mode_or_conflict_same = 0;
@@ -120,7 +117,6 @@ struct DDStats {
   double rho_matrix_time_ms = 0;
   double rho_bottleneck_time_ms = 0;
   double rho_secondary_full_time_ms = 0;
-  double rho_additive_full_time_ms = 0;
   double rho_canonical_time_ms = 0;
   long custody_continuations = 0;
   long timed_transport_expansions = 0;
