@@ -2,9 +2,16 @@
 
 **状态：v5 已在原 LaCAM-TAPF execution path 上实现；代码测试、Testcase C、
 固定 quick 77、E5 独立消融和经独立审查放行的正式 full 509 均已完成。
-正式 full 为 479/509，新增 factorial 为 432/432；最终网页与文档纳入同一
-独立终审。**
-**日期：2026-09-05。实现起点：commit `03e99ba`。**
+正式 full 为 479/509，新增 factorial 为 432/432；这些实现与验证证据保留在
+§23。2026-09-06 又完成了当前 \(\rho\) 派工机制的专项代码与计划重放审计，
+确认普通任务仍可能在进入 matching 前被 priority top-\(F\) 硬过滤。本稿已
+把该审查修正并入规范性章节。随后 F0/F1/F2 已在同一 execution path 上
+实现并完成固定 quick 77：production 取消普通 cutoff，并只在严格同质的
+直接目标交付阶段启用有限 frontier/continuity defer V2。additive G 与
+节点局部 H shadow 已独立实现、测量并因 Testcase C 回归而回滚；它们不是
+当前 production 功能。正式 full 509 尚待独立终审放行。**
+**日期：2026-09-06。实现起点：commit `03e99ba`；专项审计基线：
+commit `80148a7`；当前 production commit：`64a3941`。**
 **2026-09-05 设计独立审查：主设计有条件通过，`debug.md` 按审查重写。本版已并入
 审查修正：episode 与 route 成功解耦（§9.1）、horizon 与质量比较语义
 （§9.2/§9.7）、D0/ExecutionView 对齐契约（§10）、成本比较器与权重域
@@ -13,23 +20,22 @@ objective 显式契约与单一控制器（§12.2/§13.7）、compiler 接纳条
 （§13.3）、阶段重排 B/C1/C2/D/E（§14）。受保护测试的后续迁移均先获得
 独立 GPT-5.6 Sol/xhigh `APPROVE`。**
 
-本稿把 `Carrier_LaCAM_v5_Makespan_Design.md` 的修订并入最终设计文档，
-沿用原稿 §0–§22 编号：§0–§19、§21 是新的规范（取代 2026-09-04 版本的
-对应章节）；§20、§22 原文保留为历史验证记录，分别对应 2026-09-03 的
-Task-BR release 基线与 2026-09-04 的 storage-map 修订，不能替代 v5 的
-新验证证据。被取代版本的 SHA-256：
+本稿把 `Carrier_LaCAM_v5_Makespan_Design.md` 的修订并入最终设计文档。
+§0–§19、§21 是规范；§20、§22 原文保留为 2026-09-03/04 的历史验证；
+§23 是 2026-09-05 v5 实现证据；§24 是 2026-09-06 \(\rho\) 专项审计，
+§25 记录该审计后的实现、回滚决策与新验证。被取代版本的 SHA-256：
 `2010f90cd6d6aa8b9ea68393df23a58432c006e584b4422cbf3b050517cdf524`。
 
-与 v5 草案不同，本稿 §1.1 与 §13 的代码落点已逐条对照
-`lacam/include`、`lacam/src` 当前源码验证；行号以 commit `03e99ba` 为准。
-实现任务清单见 `debug.md`。
+与 v5 草案不同，§1.1 和 §13.1–§13.3 的历史落点以 commit `03e99ba`
+为准；当前 \(\rho\) 行为及 §13.4 后续修改以 commit `80148a7` 的 S6
+审计为准。
 
 依据与证据等级：
 
 - **S0：本设计稿。** “当前规定”指本稿规定；实现符合性由测试、benchmark
   和独立代码审查共同判定。
-- **S1：2026-09-05 动态绕路提案。** 它是设计来源；实际 production 行为
-  以本稿、当前源码与 §23 的验证记录为准。
+- **S1：2026-09-05 动态绕路提案。** 它是设计来源；2026-09-05 release
+  行为以 §23 为准，当前 \(\rho\) 机制以 S6/§24 为准。
 - **S2：用户提供的 Testcase C 地图和 31 行参考计划。** 用户报告权威
   validator 验证通过；54/90 与 31/93 是该报告中的指标。
 - **S3：此前构造的 31 步、SOC 90 候选。** 按 S2 的地图和动作规则独立重放
@@ -41,6 +47,17 @@ Task-BR release 基线与 2026-09-04 的 storage-map 修订，不能替代 v5 �
 - **S5：2026-09-05 v5 实现证据。** 新增与迁移后的 C++/Python tests、
   Testcase C 权威重放、固定 quick 77 配对和当前二进制 provenance；
   具体数字集中记录在 §23，避免覆盖历史 §20/§22。
+- **S6：2026-09-06 \(\rho\) 专项审计。**
+  `carrier_lacam_rho_global_matching_report_20260906.md` 对 commit
+  `80148a7`、正式 full benchmark 和
+  `brap_h10w10_a12_e8_R1_seed1` 的交付计划进行了代码核对与确定性重放。
+  它是当前 priority cutoff、bottleneck matching、retarget、利用率口径及
+  增量 Hungarian 契约的依据；不回写或覆盖 §20/§22/§23 的历史证据。
+- **S7：2026-09-06 \(\rho\) 修订实现。** F0/F1/F2 的独立提交、G/H
+  实验及回滚、312 个 C++ tests、162 个 Python tests、四个受保护样例和
+  固定 quick 77。当前 production 为 `64a3941`，二进制 SHA-256 为
+  `d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d`；
+  完整证据见 §25。full 509 在独立终审前不属于 S7 已完成证据。
 
 ## 0. 最终决策
 
@@ -58,7 +75,8 @@ joint Task-BR-PIBT：联合选择 blocker 搬法，生成清障因果图 D0
     ↓
 与真实 custody 对齐，得到当前 ExecutionView
     ↓
-rho：机器人 → 可执行或可安全准备的 transfer
+rho：在全部当前 mode 下物理/因果可行的候选上，
+     选择机器人 → EXECUTE/PREPARE transfer 或 idle
     ↓
 联合运输 guidance：保持 endpoint，选择路线、等待和通过顺序
     ↓
@@ -74,6 +92,17 @@ apply_ops → 一个真实 joint transition
    共享上下文，递归、回退、合并兼容需求。
 3. **执行协调：**谁搬、何时可开始哪一个阶段、从哪里走、谁先经过交点？
    读取机器人和实际执行状态，但不写回 `PairCost/tau`。
+
+\(\rho\) 的候选边界和求解器必须遵守以下额外合同：
+
+1. priority 可以参与 Task-BR 的图排序、有限延期损失或确定性 tie，但普通
+   可行任务不能仅因 rank 较低而在 matching 前被 top-\(F\) 删除；
+2. 第一组修订保留当前 bottleneck-then-sum 与 canonical assignment，只
+   改候选准入；robot-row additive `S-D` 是独立 full-solve 实验，不与
+   makespan 等价，也不以 maximum-cardinality 为硬主目标；
+3. 增量 Hungarian 只能在候选、成本、mode 与 canonical tie 全部冻结后
+   加速同一个 assignment。matching/duals 属于具体 LaCAM 节点，不能只按
+   upper layout 全局复用。
 
 最终优化目标为词典序 `(executed_makespan, weighted_SOC)`。首解质量、搜索
 改进、两遍候选比较、rewrite 和 repair 必须使用相同目标。
@@ -193,7 +222,7 @@ storage transfer 引入后的粒度混用和过度互斥。
 | §21.5、§21.6 | active/ready 的完整 route claims 过滤 grounded tasks | 删除空间交集过滤；保留真实 occupancy、custody 与 endpoint 放置语义 |
 | §7、§8、测试 #16 | 非 leaf 永远不得 approach | 分开 `assignable/preparable/move_executable`，允许受控提前准备 |
 | §7.3、§9 | route suffix 必须保持；偏离就终止 transfer | 正常绕路保持 endpoint/episode，只更新 route 和 LegId |
-| §8.2 | priority-first、min-sum approach，并倾向填满所有行 | 先保留为迁移基线；逐步引入完成时间派工，不能把满载率当目标 |
+| §8.2 | priority-first、min-sum approach，并倾向填满所有行 | v5 后续已接入 bottleneck dispatch，但 S6 发现 top-\(F\) cutoff 仍先删除普通任务；先保留 bottleneck 只修候选边界，再独立比较 additive `S-D`，不能把满载率当目标 |
 | §10、§19 | custody 和缓存不足以区分纯上层计划与执行时间表 | `D0` 可缓存；ExecutionView、lease、时序预约不进入 upper cache |
 | §12、SearchEdge、两遍/repair | weighted cost、加法式 h、SOC 优先 | `Cost{ticks,work}`；makespan 下界；词典序比较和相应剪枝 |
 | §15–§17 | 一步身份、ready-only、SOC 不增、指定 robot 活动等保护测试 | 保留物理正确性；审查后迁移已经改变的策略契约 |
@@ -211,6 +240,47 @@ Hungarian rho、lower-deck PIBT、完备性保底、storage transfer 承诺”�
 
 本文的修改不是另起炉灶，而是在现有 guidance 入口与 cost 接口内重新划清
 任务身份、时序协调与优化目标。
+
+### 1.4 2026-09-06 \(\rho\) 专项审计（commit `80148a7`，S6）
+
+§1.1 记录的是 v5 实现前的历史代码基线。当前代码已经具有
+bottleneck-then-sum dispatch、EXECUTE/PREPARE、两遍控制和 projection
+repair，但 S6 对当前实现确认了新的候选边界问题：
+
+1. `target_priorities_from_pair_cost()` 仍把 PairCost 转成整数 rank；
+2. `ready_tasks_with_custody()` 先按 priority 建 transfer claims，冲突候选
+   的胜出者可能已经由顺序决定；
+3. `match_ready_tasks()` 对 free robots 数 \(F\) 取第 \(F\) 名 priority
+   作为 cutoff，低于 cutoff 的普通任务在矩阵建立前删除，高于 cutoff 的
+   任务近似 mandatory；
+4. 幸存任务才进入 bottleneck-then-sum assignment 和确定性 canonical
+   refinement；EXECUTE 先匹配，剩余机器人再匹配 PREPARE；
+5. `CarrierGuidance` 没有节点局部 matching/duals，当前每次重新构造并
+   full solve \(\rho\)。
+
+在诊断实例 `brap_h10w10_a12_e8_R1_seed1` 的交付路径上，没有发现“同一
+货架同时对应多个临时 endpoint task”的状态。可复现的直接原因是：距离
+空闲机器人 1–2 格的普通 ready task 会因 priority cutoff 不进入矩阵，而
+距离约 10–11 格的高 priority task 留在矩阵中。这解释了动画中的跨区域
+派工，但不证明附近任务必然带来更小 makespan；远处 blocker 仍可能位于
+更关键的因果链。
+
+该实例正式数据为：首解 1188 ms、`(T,W)=(2659,5691)`；最终交付
+`(1844,3927)`；第二遍没有候选，projection repair 删除 815 拍。CSV 的
+`robot_utilization=0.1508` 只表示 loaded moves 占 robot-time slots 的
+15.08%；把 free moves 和 Lift/Drop 计入后，非 Wait 动作占比为 95.36%。
+因此不能从该字段推出“机器人经常闲置”，也不能据此把
+maximum-cardinality 设成 dispatch 第一目标。
+
+S6 将后续工作拆成三个独立问题：
+
+```text
+候选边界：哪些任务有资格参加比较？
+调度目标：在同一候选集上怎样比较 task、mode 与 idle？
+求解方法：怎样更快地精确求出已冻结目标的同一个 assignment？
+```
+
+前两者决定派工行为；增量 Hungarian 只处理第三个问题。
 
 ## 2. 物理状态、终点、计时与 upper projection
 
@@ -564,6 +634,17 @@ root PairCost 在每层重复相加。
 ExecutionView 中提升关键 blocker；不要恢复固定的“目标货架永远比匿名货架
 高”。
 
+priority 在这一层表示图排序和有限紧迫性信息，不是 \(\rho\) 的普通任务
+准入证书。一个 task 只要通过当前 dispatch mode 的物理、因果和冲突检查，
+就不能仅因 priority rank 较低而在 matching 前消失。若共享 blocker 同时
+服务多个 roots，其延迟影响按受影响 roots 聚合，但同一条关键链不能沿多个
+task 重复奖励。
+
+还要区分两种 tail：当前机器人执行 transfer 所占用的即时 service，与该
+transfer 完成后仍需推进的 causal tail。后者可以参与 bottleneck 完成时刻
+估计；不能未经定义就以正号加入 additive 即时服务成本，同时又以 urgency
+奖励一次。
+
 ## 7. Readiness：派工、准备与移动不是同一个判断
 
 ### 7.1 三个派生谓词
@@ -578,6 +659,12 @@ Preparable(m,r): 即使 consumer 的移动条件尚未满足，r 的 approach/�
 MoveExecutable(m,r,a): 当前具体 loaded Move 满足所需占据/事件条件，
                        且完整 joint action 可被 apply_ops 接受。
 ```
+
+候选进入 \(\rho\) 前还应记录 dispatch mode 和显式 conflict group。同一
+实体货架、同一 transfer 的 EXECUTE/PREPARE mode、当前不可同时占用的
+endpoint 等，不是普通二分图“一列至多一个机器人”就能完整表达的关系；
+第一版可继续在矩阵外做确定性兼容预选，但必须记录删除范围和原因，不能把
+它重新包装成 priority cutoff。
 
 现状只有单一 `ready`（predecessor-free + 目的格空 + shelf 可用 + claims
 过滤）。不能因为 canonical route 的旧第一格被挡，就判定整个 transfer 不可
@@ -595,6 +682,11 @@ MoveExecutable(m,r,a): 当前具体 loaded Move 满足所需占据/事件条件�
 precondition 决定是否合法，但 preferred Lift 需要考虑是否会阻塞必要前驱
 或把机器人困在无法启动的等待链里。
 
+PREPARE 只表示提前 approach 或在 pickup 附近等待；它没有完成 transfer，
+也不能直接抵扣完整任务延期损失。机器人到达 pickup 后，只有当任务重新
+通过 EXECUTE 条件检查时才允许 preferred Lift。若将两个 mode 放进统一
+矩阵，它们必须属于同一 transfer conflict group，不能同时获得两个 owner。
+
 这些限制都是 guidance admission，不是 operator tree 的合法性限制。
 
 ### 7.3 事件释放
@@ -607,53 +699,253 @@ Drop。following 允许时甚至可以在同一个 joint transition 释放/使�
 预测前驱未来会离开并不能当成“现在已经 empty”。若前驱实际延误、转向或
 再次占据该格，刷新 ExecutionView 和后继候选。
 
-## 8. rho：从接口修复到 Makespan 派工
+## 8. rho：候选边界、调度目标与增量求解
 
-### 8.1 第一批先保留 Hungarian
+### 8.1 第一合同是让普通可行任务参加比较
 
-先删除 full-route overlap 的任务过滤，再让原 Hungarian
-（`match_ready_tasks()`）接收完整的 causal-ready transfer 集合。
-Testcase C 已有证据表明该原 matcher 能给六个任务分配机器人，因此这一批
-不需要靠换 matcher 才能验证绕路修复。
+S6 确认当前 `match_ready_tasks()` 不是在全部普通可行任务上直接匹配：
+它先按 priority 排序，在有 \(F\) 台 free robots 时取第 \(F\) 名 priority
+作为 cutoff，删除所有更低 rank 的任务，并把更高 rank 的任务近似设为
+mandatory。后面的 bottleneck、距离、tail 和 continuity 都无法挽回已经
+删除的附近任务。
 
-owner continuity 改按 TransferId/TransferKey 比较，不再按可变化的第一腿
-（当前 switch penalty 比较 leg TaskId）或 vector index。Lift 后真实
-carrier 由 kappa 给定；before-Lift handoff 是软决策。
-
-### 8.2 Makespan-aware 扩展
-
-对选定的待派任务集合 S，估计：
+因此第一批 \(\rho\) 修订只改变候选边界，尽量不改变已有 objective：
 
 ```text
-E(r,m) = r 接手 m 后该任务预计完成时刻 + m 之后的剩余因果尾长
+ready / preparable tasks
+  → 物理、因果、custody、mode 与显式 conflict-group 检查
+  → 普通任务不再经过 priority top-F cutoff
+  → 全部幸存候选进入同一个版本化 assignment 问题
 ```
 
-接近和清障可重叠时通过 event 的 max 关系合并，不把全部 duration 机械
-相加。可用 bottleneck matching 最小化 `max_m E(rho(m),m)`，再在最小阈值内
-用 Hungarian 最小化总 approach/work 作为次序。
+允许在更早的 Task-BR 层选择互相兼容的 blocker 方案，但每个未进入矩阵的
+task 都必须有可观测的硬约束或冲突组原因。priority rank 本身不是硬约束。
+这项修改不承诺最终选择最近任务；远处 critical blocker 只要在同一成本模型
+中胜出，仍然可以被选择。
 
-把 `tail(m)` 直接加到 min-sum Hungarian 的每一列没有实现这个目标：当 S
-固定时，所有 tail 之和是常数，未必改变匹配。
+第一组对照保留当前 task-row、robot/dummy columns、
+bottleneck-then-sum、EXECUTE 先于 PREPARE、continuity 和 canonical
+refinement。这样 benchmark 首先回答“改善是否来自让普通任务获得比较
+机会”，而不是同时更换调度目标。
 
-S 的选择必须考虑未派任务的延后完成时间，不能只挑短任务压低当前 max。
-内部 task 的 tail 只来自当前所选因果方案，是 guidance，不进入
-admissible h。
+### 8.2 bottleneck 基线继续面向 makespan
 
-### 8.3 不强制所有机器人立刻有任务
+对当前 mode 下的候选 task \(m\) 和机器人 \(r\)，定义 guidance 完成估计：
 
-并行数量是手段，不是目标。允许某台机器人完成短任务后顺路做下一件，让
-另一台提前启动长任务。普通一次一一 Hungarian 不能完整表达这种未来顺序。
+```text
+E(r,m) = approach(r,m)
+       + immediate_service(m)
+       + causal_tail(m)
+```
 
-这种改进作为有界 dispatch lookahead：保留真实 busy robot 的物理绑定，只在
-预测中登记其可能释放时间和下一件任务；仅执行当前第一步，不提前把它从
-kappa 中变 free，不无限复制“虚拟机器人”。第一阶段无需实现它即可争取 C 的
-最优 makespan。
+接近、前驱释放和其他可并行事件应使用 event 的 max 关系组合，不把所有
+duration 机械相加。基线 assignment 使用：
 
-### 8.4 Handoff
+1. 最小化已选择真实边的最大 \(E(r,m)\)；
+2. 在最优 threshold 内最小化距离、work 和有限 continuity 成本；
+3. 使用有保证的 canonical refinement 得到确定结果。
 
-比较未来完成时间和真实剩余工作，再以 continuity 打破接近的平局。旧 owner
-已走的距离是沉没成本，不能硬加成“换手必然损失的未来时间”。反复换手可有
-有界稳定偏好，但不得保证某个 owner 永久保留任务。
+未派 task 不能从目标中消失。task-row 模型继续用 dummy 表示本轮延期；普通
+task 均允许连接 dummy，不再因高 priority 获得无限 mandatory 地位。若要让
+priority 影响选择，应把它写成有限 defer delay，例如：
+
+\[
+\operatorname{completion}(m,\operatorname{dummy})
+=\operatorname{bestRealCompletion}(m)+\Delta_{\mathrm{defer}}(m),
+\]
+
+其中 \(\Delta_{\mathrm{defer}}\) 有界、版本化并单独消融。先运行不改变
+priority 数值语义的 cutoff-removal 对照，再测试有限 defer delay，不能把
+两项行为变化合并后只报告一个结果。
+
+在 task-row 矩阵中，把同一个 priority 常数同时加到该 task 的所有真实列和
+dummy 列只会给每个完整 assignment 加同一个常数，不会改变选择。priority
+必须改变“现在服务”和“本轮延期”的相对代价，而不是统一平移整行。
+
+内部 task 的 causal tail 只来自当前所选因果方案，是 guidance，不进入
+admissible \(h\)。共享 blocker 的 tail/root impact 不重复计算。
+
+#### 8.2.1 生产版有限延期：只用于同质的直接目标交付阶段
+
+候选边界实验表明，完全取消 cutoff 后仍需解决一个更窄的问题：当当前
+EXECUTE 候选全部是在推进各自货架的最终目标时，纯物理 bottleneck 会为了
+避免延期一个远端低 priority 任务，打断已经开始的近端交付序列。生产版
+`BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2` 因此只在下列**全体候选合同**
+同时成立时修改 dummy completion：
+
+```text
+dispatch mode == EXECUTE
+每个候选 m 都满足：
+    m 搬运 TARGET b；
+    critical_tail(m) == 0；
+    task roots 包含 (b, g)；
+    transfer.endpoint == g；
+    g 属于 b 的合法 goal set。
+```
+
+这一定义排除“目标货架正在替其他 root 清障”的任务，也排除 PREPARE。
+只要集合中混入一个匿名 blocker、目标货架 blocker、非终端因果任务或
+PREPARE 候选，整个 matching 必须退化为 V1 的
+`bottleneck → physical secondary → finite priority tie`。这个全集合门槛是
+有意的：混合清障阶段不能让目标 priority 改写主 bottleneck，否则可能重新
+饿死刚刚通过 F1 放入矩阵的 blocker。它不读取实例名、地图大小或 seed。
+
+设当前有 \(F\) 台 free robots，候选已按稳定 priority 顺序排列。候选多于
+\(F\) 时，第 \(F\) 名的 priority 为有限 frontier；并定义：
+
+\[
+\begin{aligned}
+I_{\mathrm{frontier}}(m)
+  &=\mathbf 1[p_m\ge p_{(F)}],\\
+I_{\mathrm{continue}}(m)
+  &=\mathbf 1[\text{某台当前 free robot 的 parent anchor 仍指向 }m],\\
+\Delta_{\mathrm{defer}}(m)
+  &=\operatorname{service}(m)
+    \left(1+I_{\mathrm{frontier}}(m)
+             +I_{\mathrm{continue}}(m)\right).
+\end{aligned}
+\]
+
+于是：
+
+\[
+\operatorname{completion}(m,\operatorname{dummy})
+=\operatorname{bestPhysicalCompletion}(m)
++\Delta_{\mathrm{defer}}(m).
+\]
+
+三个乘数分别表示普通延期、有限 priority frontier 延期和放弃尚可继续的
+parent assignment。最大乘数固定为 3；它们修改的是主 bottleneck 中的
+dummy completion，不只是 secondary tie，但永远不产生 INF、mandatory row
+或候选删除。足够大的真实 completion 改善仍可战胜这两个有限项。候选数
+不超过 free robots 时没有 dummy，因此该规则不改变 assignment。
+
+V2 仍保留 V1 的低阶 secondary：
+
+```text
+physical distance / work
+→ finite continuity bit
+→ deferred priority tie
+→ canonical refinement
+```
+
+所有候选、矩阵尺寸、`priority_filtered == 0` 和硬删除原因合同保持不变。
+该 objective version 必须进入 telemetry、benchmark CSV 和发布产物；V1/V2
+数据不能在同一次搜索或同一结果目录中混合。
+
+### 8.3 additive `S-D` 是独立调度实验
+
+若采用 robot-row additive 模型，定义机器人现在启动 EXECUTE task 的即时
+服务成本：
+
+\[
+S^E_{rm}
+=w_d\,d(q_r,\operatorname{pickup}_m)
++w_s\,\operatorname{immediateService}(m)
++w_c\,\mathbf 1[\operatorname{anchor}(r)\ne m]
++w_{\mathrm{mode}}\,\operatorname{modePenalty}(r,m).
+\]
+
+再定义 task 本轮未启动的有限延期损失：
+
+\[
+D_m
+=\lambda_p\operatorname{urgency}(m)
++\lambda_a\operatorname{transitionAge}(m)
++\lambda_k\operatorname{rootDelayImpact}(m).
+\]
+
+对固定候选集合，
+
+\[
+\min\left(\sum_{r,m}x_{rm}S^E_{rm}+\sum_m y_mD_m\right)
+\quad\Longleftrightarrow\quad
+C_{rm}=S^E_{rm}-D_m.
+\]
+
+该代数成立，但它把目标改成 additive min-sum，不与 bottleneck/makespan
+等价。即使所有 task 都会服务，减去 \(\sum_mD_m\) 也只是常数，不能消除
+min-sum 与 min-max 的差别。因此 additive 版本必须先用 full solver 独立
+benchmark；不能为了方便复用 Hungarian 或增量对偶状态就把它直接设为默认
+production objective。
+
+`immediateService` 只描述当前 approach、准备、Lift 和本次 transfer 的
+资源占用。正的 `criticalTail` 不直接塞进该项，否则会反而惩罚应尽早启动的
+长关键链；关键链影响应通过有明确物理含义的 `rootDelayImpact` 或其他有限
+延期项表达。若使用 age，它只能随真实 primitive transition 推进，不能随
+guidance rebuild、节点重访、wall-clock 或 sibling expansion 增长。
+
+### 8.4 idle、PREPARE 与 cardinality
+
+并行数量是手段，不是目标。`robot_utilization` 的 loaded-move ratio 也不是
+机器人闲置率，不能据此要求 maximum-cardinality。
+
+additive 实验采用固定机器人行：
+
+```text
+rows    = all robots
+columns = task/mode slots + N 个 idle/locked slots
+```
+
+free robot 可以选择合法 task 或 idle；carrying/不可用 robot 只连接自己的
+continuation/locked slot。assignment 直接比较 task edge 与 idle edge 的完整
+成本，不先最大化非空 assignment 数量。
+
+PREPARE 只获得部分准备收益 \(B^P_{rm}\)，并满足
+\(0\le B^P_{rm}\le D_m\)；不能把 PREPARE 当成 EXECUTE 已完成而抵扣完整
+延期损失。同一 transfer 的 EXECUTE/PREPARE columns 属于同一 conflict
+group。第一组 bottleneck 对照可继续保留“先 EXECUTE、剩余机器人再
+PREPARE”的两阶段结构；是否合并为统一矩阵是后续独立变化。
+
+有界 dispatch lookahead 仍可预测 busy robot 的 release time 和下一件任务，
+但只执行当前第一步，不提前改变真实 kappa，也不无限复制虚拟机器人。
+
+### 8.5 Handoff 与 continuity
+
+比较未来完成时间和真实剩余工作，再以有限 continuity 成本稳定接近的方案。
+旧 owner 已走距离是沉没成本，不能硬加成未来损失；也不能用无限 lease
+保证永久 owner。当前 assignment 是 `mate`，而计算本矩阵 continuity 时
+实际使用的上一代绑定是 `anchor_used`，两者必须区分。
+
+一次 augmenting path 可能同时更换多台机器人的 mate。进入子节点后，这些
+新 mate 才成为下一代 anchors，因此即使机器人没有移动，其 row cost 也
+可能因 anchor 更新而变化。
+
+### 8.6 增量 Hungarian 只加速冻结后的决定
+
+在相同候选、成本矩阵、objective 和 canonical tie 下，精确 incremental
+solver 必须返回与 full solver 相同的 assignment。因此仅保存 duals 不会
+自动减少 retarget；retarget 的变化来自候选、urgency、continuity、idle 或
+mode 语义，CPU 变化才来自增量求解。
+
+标准 Hungarian 状态直接维护 additive objective。若 G 阶段最终采用
+robot-row `S-D`，机器人位置或局部 eligibility 变化主要对应 row 更新，适合
+复用仓库已有的 `TAPFAssignmentState::repair_rows()` 和 ITA-CBS 单行增广
+经验。若最终保留严格 bottleneck，则必须另行维护最小可行 threshold 和
+threshold 内 secondary matching，不能把 additive row repair 原样套用。
+
+增量状态必须属于具体 LaCAM 节点，至少保存：
+
+```text
+mateL / mateR
+row / column potentials
+ColumnModelVersion
+RowFingerprint[r]
+anchor_used[r]
+objective value
+canonicalization version
+```
+
+`ColumnModelVersion` 覆盖 ordered task/mode identities、实际
+service/urgency/age/root-impact 数值、endpoint/conflict 版本、objective、
+fixed-point scaling、INF 和 tie 版本。任务身份没变但列数值改变时也必须
+失效。第一版只有完整列模型相同时才修复 changed rows；列结构或任意列数值
+改变均 full solve。
+
+不能假设每个 joint transition 严格只改一台机器人，应支持
+`repair_rows(changed_rows)`：0 行直接复用，1 行单次增广，\(k\) 行逐行修复。
+实现还必须明确矩形矩阵、负有限成本、64 位 checked arithmetic、INF 与
+canonical matching 契约，并用 full solver 做逐节点 shadow oracle。
 
 ## 9. 联合运输 guidance 与 Carrier-PIBT
 
@@ -832,9 +1124,42 @@ record。
 | PairCost/tau | U + immutable version | 只在 U 变动或版本变动时重新评价 |
 | D0/upper priority | U + commitment key | 不读取 robots；缓存值不可被执行层原地改写 |
 | ExecutionView | D0 + X + 实际 custody | 每个真实节点重新对齐；可标 active、fulfilled、pending、shadowed |
-| rho/preparation | 当前 view、robot positions、上一 episode binding | 每步可更新，不改 tau |
+| rho candidates/cost model | 当前 view、robot positions、mode、上一 episode binding、objective version | 每个节点重建或验证完整 `ColumnModelVersion`；不改 tau |
+| rho matching/duals | 具体 LaCAM 节点及其真实 parent | 只在列模型相同且 row fingerprint 改变时增量修复；不得进入 upper cache |
 | route/timed reservations | X + 当前 jobs + transition anchor | 时间每步校正；几何按失效事件重搜 |
 | admissible h | X + problem objective | 独立计算/缓存，不读取 D0/route/lease |
+
+\(\rho\) 的增量缓存分为不可变列模型和节点局部动态状态：
+
+```text
+ColumnModelVersion:
+    ordered task/mode identities
+    service / urgency / age / root-impact 的实际固定点值
+    active / endpoint / conflict-group version
+    objective / scaling / INF / canonicalization version
+
+RowFingerprint[r]:
+    robot position
+    free/carry/custody 与 mode eligibility
+    本矩阵实际使用的 anchor_used
+
+RhoAssignmentState:
+    mateL / mateR
+    row / column potentials
+    ColumnModelVersion
+    RowFingerprint[]
+    anchor_used[]
+```
+
+父节点的 state 可以复制到真实 child，再按 changed rows 修复；duplicate、
+rewire 或 sibling 分支只能从经过验证的真实 parent 获取自己的可变副本。
+只按 `UpperSignature` 共享 matching 会混入另一条分支的机器人位置和
+continuity 状态，属于错误。
+
+第一版的安全规则是：完整 `ColumnModelVersion` 相同才允许 row repair；
+任何列 identity、列数值、mode、conflict、objective 或 tie 版本变化都
+full solve。若使用 age，它必须属于可从搜索节点/路径重放的 transition
+状态，不能存进 U-only cache，也不能随 guidance 被重复构造而增长。
 
 in-flight transfer 在新 D0 中消失，并不使 custody 自动丢失（现有
 `compatible_task_index_by_custody` 的 derived index 语义保留）。
@@ -1002,10 +1327,12 @@ objective/API 下继续要求逐位兼容；若请求的 objective 本身改成 
 意味着真实机器人一定按时执行。正确性仍由每个实际 transition 与完整输出
 重放保证。
 
-## 13. 代码修改落点（已按 commit `03e99ba` 源码核对）
+## 13. 代码修改落点（S4 历史基线 + S6 当前 \(\rho\) 审计）
 
-行号是当前源码的近似锚点。新增类型和 helper 名是建议接口，落地时对照
-实际源码命名，不假定仓库已存在。
+本节各小节原有的“现状/修改”主要记录 commit `03e99ba` 到 S5 v5 的历史
+迁移，旧行号是历史锚点，是否已实现以 §23 为准。§13.4 及 §13.5 新增的
+\(\rho\) 条目描述 commit `80148a7` 之后的 S6 后续工作。新增类型和 helper
+名是建议接口，落地时对照实际源码命名，不假定仓库已存在。
 
 ### 13.1 类型与身份 —— `lacam/include/tapf_planner.hpp`
 
@@ -1030,8 +1357,13 @@ objective/API 下继续要求逐位兼容；若请求的 objective 本身改成 
 * `CarrierGuidance` 增加 ExecutionView 输出（active episodes、
   assignable/preparable 集、no-route 标记）与 bounded timed transport
   guidance；这些字段不进入 `UpperEpochGuidance`/`UpperEpochCache`；
+* 若 H 阶段接入增量 additive matching，新增节点局部
+  `RhoAssignmentState`，包含 matching/duals、`ColumnModelVersion`、
+  `RowFingerprint`、`mate` 与 `anchor_used`；它随 parent→child 复制，
+  不进入 `UpperEpochGuidance`；
 * `TAPFStats` 增加真实 T、首解 T、timed-helper 时间/展开数、causal/
-  traffic waiting 诊断。
+  traffic waiting 诊断，以及 \(\rho\) 候选各层数量、full/reuse/repair/
+  fallback 次数、changed rows、matching 构造/求解/复制耗时。
 
 ### 13.2 启发式与候选核 —— `lacam/src/carrier_guidance.hpp`
 
@@ -1087,19 +1419,32 @@ ready 任务彼此 route 互斥）；`custody_physically_valid()` 的 route 后�
   上游接纳条件必须同步修正；测试要覆盖“第一格就是同一 transit cell、但
   可错时出发”的情形。
 
-### 13.4 rho —— `match_ready_tasks()` l.3128
+### 13.4 rho —— 当前 `match_ready_tasks()` 与后续分层修改
 
-现状：grounded-only；TaskId 去重；priority cutoff 截到 `|free|`；
-min-sum Hungarian（lower-deck distance + switch penalty），switch 比较
-leg TaskId；确定性词典序精化。
+S6 当前现状：task-row × robot/dummy columns；按 `TransferKey`/shelf
+去重后按 priority 排序；top-\(F\) cutoff 删除低 rank 普通候选，高于
+cutoff 的候选近似 mandatory；幸存者执行 bottleneck-then-sum assignment
+与 canonical refinement。EXECUTE 先匹配，剩余 robots 再做 PREPARE。
+`CarrierGuidance` 没有节点局部 matching/duals，每次 full solve。
 
-修改：
+修改严格拆为三层：
 
-* 第一批保留 Hungarian 结构，owner continuity/switch penalty 改按
-  `TransferKey/TransferId` 比较（§8.1）；
-* 输入改为完整 causal-ready assignable 集（依赖 §13.3 的过滤删除）；
-* 第二批引入 §8.2 完成时间派工（bottleneck matching + causal tail，
-  min-sum 作次序）与可选的 §8.3 有界 dispatch lookahead。
+1. **候选边界：**删除普通 priority top-\(F\) cutoff 和无限 mandatory；
+   输入改为通过物理、因果、custody、mode 与显式 conflict-group 检查的
+   全部候选。保留当前 task-row、dummy、bottleneck、secondary、
+   continuity、canonical 和 EXECUTE→PREPARE 顺序，形成行为对照。
+2. **调度目标：**在上述对照后，独立测试有限 dummy defer delay；再实现
+   §8.3 robot-row additive `S-D` full solver。idle 合法，PREPARE 只获得
+   部分收益，不使用 maximum-cardinality。该层改变 objective，必须单独
+   benchmark。
+3. **求解加速：**只有 additive full solver 的候选、成本、矩形/负成本、
+   64 位范围和 canonical assignment 冻结后，才接入 §8.6 的 node-local
+   incremental Hungarian。列模型变化 full solve，列模型不变才
+   `repair_rows(changed_rows)`，debug/shadow 模式逐次对照 full oracle。
+
+若 benchmark 最终保留严格 bottleneck，不直接复用 additive
+`TAPFAssignmentState`；另行实现 threshold 可行性与 threshold 内 secondary
+matching 的动态维护。
 
 ### 13.5 attach 管线 —— `build_task_br_guidance_from_upper_epoch()`
 l.3651 与 `tapf_planner.cpp::attach_carrier_guidance()` l.160
@@ -1113,6 +1458,11 @@ continuations → grounded ready → rho；无 ExecutionView、无 preparation�
 * recover 之后加 `ReconcileCausalGraphWithActualEpisodes` 产出
   ExecutionView（active/fulfilled/pending/shadowed 标记）；
 * `FindAssignableTransfers` + `FindBoundedSafePreparationCandidates`；
+* 在 dispatch 前构造显式候选审计记录：input、claim/conflict 后、
+  same-key/shelf 后、priority 阶段后数量及每个删除原因；priority 修订后
+  普通候选的“priority 阶段删除数”必须为 0；
+* full/incremental additive 阶段生成 `ColumnModelVersion` 与各机器人
+  `RowFingerprint`，只从经过验证的 parent 继承 `RhoAssignmentState`；
 * dispatch 之后 `BuildBoundedJointTransportGuidance`（time-expanded
   routes，§9.2–§9.4），失败只产生 no-preferred-route/partial guidance；
 * upper cache 内容与读写边界不变；执行 overlay 不回写缓存。
@@ -1154,7 +1504,7 @@ edge cost 与 h，不按“有没有货架”猜测目标，也不让默认入�
 （§12.2/§12.3）；保留 replay 合法性、strict deadline、“保留已验证
 incumbent”；stats/benchmark 行增加真实 T 与首解 T。注：`dd_planner.cpp`
 注释引用的旧 `debug.md §10 R1`（repair 共享 pass deadline）语义保留，
-新 `debug.md` 是本轮实现清单。
+S6 的 F/G/H 实施清单以本稿 §14 和 §24 为准。
 
 ### 13.9 oracle 与 validator —— `dd_carrier.cpp` / benchmark Python
 
@@ -1171,12 +1521,18 @@ replay 一致（双侧 validator 输出的 makespan 与 solver 的 T 同义）�
   replay、strict deadline、zero-shelf compatibility）；
 * 新测试矩阵见 §16；`dd_planner.hpp` 现有 probes（l.105–149）按新谓词
   扩展（ExecutionView/timed-route probes），不另建平行探针体系；
+* 新增 \(\rho\) probe/shadow oracle：记录候选删除阶段、每条成本分量、
+  objective/canonical assignment、full/reuse/repair/fallback 原因；
 * benchmark runner 报告增加 §17.1 指标；release 协议不变。
 
 ## 14. 分阶段实施顺序
 
 实现遵循 `test -> RED -> implementation -> GREEN -> benchmark ->
-regression -> debug`。任何阶段都只修改现有 execution path。
+regression -> debug`。A–E 是 S5 v5 的历史实施顺序，证据见 §23；F0/F1
+和收紧后的 F2 V2 已由 S7 production 实现。G0/G1 与 H1 shadow 做过独立
+实验后完整回滚，因为 additive 目标把 Testcase C 从 `(31,93)` 退化到
+`(231,268)`；因此 H2 未进入 production。任何阶段都只修改现有
+execution path。
 
 **A. 契约与证据冻结。** 固定 S0/S1/S2、source/binary SHA、YAML 字节和
 全部旧计划。明确哪些 tests 是物理语义，哪些只保护将被修改的策略。
@@ -1202,14 +1558,34 @@ dense suite。
 事件，受控开启后继 approach；不得抢走前驱必需机器人；资源不足时防自锁。
 测试当前空 storage 与净 storage slack 的区别。
 
-**E. 质量增强。** 完成时间派工（earliest-finish/critical-tail、瓶颈
-匹配）、有界 dispatch lookahead、更强 route 候选比较（§9.7 完整
-Score）、首解后改进（同一控制器）。每项单独做消融；第一层 tau 的目标
-不在同一提交改变。
+**E. v5 质量增强基线。** 完成时间派工
+（earliest-finish/critical-tail、瓶颈匹配）、有界 dispatch lookahead、
+更强 route 候选比较（§9.7 完整 Score）、首解后改进（同一控制器）。
+这些内容的 2026-09-05 实现证据保留在 §23；S6 证明它仍包含 priority
+top-\(F\) 候选门槛，不能把 §23 当作后续 \(\rho\) 修订的验证。
+
+**F. \(\rho\) 诊断与候选边界。** 先不改变 assignment 结果，拆分候选生成、
+各层过滤、矩阵构造、bottleneck、secondary、canonical 和复制耗时；记录
+每个 task 的删除原因、最近机器人距离、changed rows 与列模型变化。随后只
+删除普通 priority top-\(F\) cutoff/mandatory，保留当前
+bottleneck-then-sum、dummy、continuity、canonical 及
+EXECUTE→PREPARE，运行目标实例和 full benchmark。
+
+**G. 新调度目标 full-solve 实验。** 先做同 bottleneck objective 的有限
+dummy defer-delay 消融；再实现 §8.3 的 robot-row additive `S-D`，明确
+service/defer/idle/PREPARE/age/conflict 语义，每次 full solve。G 的 full
+solver 是 H 的唯一行为 oracle；F 因 objective 不同，不能代替它。
+
+**H. 精确增量 matching。** 在 G 的数学问题和 canonical assignment 冻结
+后，接入 node-local matching/duals、`ColumnModelVersion`、
+`RowFingerprint`、`mate/anchor_used` 和 `repair_rows`。列结构或数值变化
+安全 full fallback；shadow 模式要求 objective 与 canonical assignment
+逐次等价，再衡量 CPU、复制成本与内存。
 
 把解决 C 的关键时序能力放在 C2 而不是 E；C1 先于 C2，避免在删除过滤后
-用“route 是否存在”判断 custody。阶段是实现提交，不是新增运行时策略
-开关。最终仍只有一个 Carrier-LaCAM pipeline。逐任务清单见 `debug.md`。
+用“route 是否存在”判断 custody。F、G、H 必须分别提交和 benchmark，不能
+把调度语义变化伪装成增量求解收益。阶段是实现提交，不是新增 production
+运行时策略开关。最终仍只有一个 Carrier-LaCAM pipeline。
 
 ## 15. Protected tests 的迁移
 
@@ -1223,9 +1599,15 @@ Score）、首解后改进（同一控制器）。每项单独做消融；第一
   endpoint/physical binding 连续，route 可变；
 - `任何空间 route overlap 都删除低优先任务`：删除，改成按时间协调
   （现锁定于 `test_dd_storage_transfer_claims.cpp`）；
+- `priority 前 |free| 名之外的普通任务不得进入 rho`：删除该策略保护；
+  改为每个未进入矩阵的 task 都必须有物理、因果、mode 或显式冲突组原因；
+- `高于 cutoff 的任务必须占用真人列`：删除无限 mandatory 语义；priority
+  只能通过版本化的有限 defer/urgency 成本参与比较；
 - `所有修补 SOC 不增`：改成 `(T,W)` 不增且 replay 合法；
 - `高优先行永不推迟/机器人必须全部活动`：只保留因果服务与明确调度策略的
   必要合同，不当成 makespan 定理；
+- `incremental 与 full 只需成本相同`：若生产声明行为等价，必须同时锁定
+  canonical assignment；若只锁最优值，则必须明确允许搜索顺序变化；
 - `无 storage map / singleton 计划哈希恒等`：在无语义改动且相同
   objective 下保留；objective 或 dispatch 已改变时改验合法性与质量，不
   虚报 bit parity。
@@ -1247,7 +1629,14 @@ custody anchor、trace rewire、deadline 和双侧 replay 等物理与交付契�
 | 路由 | 首选路失败能找同长替代；无 route 的货架仍占格；endpoint 到达后持续占据；到点正确 Drop |
 | 延迟 | free robot 晚到、loaded Wait、PIBT 偏离后时间表重建；没有 producer 时不能预测 vacate |
 | 准备 | 足够 robots 时先清障同时 approach；只有一个 robot 时不被后继抢走；Lift 不等于 departure |
+| 候选边界 | 远处高 priority 与附近低 priority 均进入 assignment 输入；state 724/1108 的近任务不被 top-\(F\) 删除；所有其他删除均有硬约束或 conflict-group 原因 |
+| bottleneck 派工 | 取消 cutoff 后仍复现 bottleneck→secondary→canonical 目标；priority 有限延期不会退化成 mandatory；测试不强制选择最近任务 |
+| additive 派工 | `S-D` 改变服务/延期相对代价；idle 可胜出；不使用 maximum-cardinality；critical tail 不以正即时 service 自动惩罚；PREPARE 只获部分收益 |
+| 增量 matching | 0/1/k 行变化与 full objective/canonical assignment 一致；一行更新可经增广链重分配其他行；列 identity 或数值变化安全 full fallback |
+| 数值与 tie | 矩形、负成本、64 位固定点、INF 不溢出；多最优解的 canonicalization 在 cold/warm 路径一致 |
+| anchor/age | `mate` 与 `anchor_used` 分离；增广后下一代正确判 row 变化；age 只随真实 transition 增长，sibling/rewire/rebuild 不污染 |
 | 缓存 | 同 U 的 PairCost/tau 不随 robots 改；D0 不被 execution overlay 写坏；时序信息不进 upper cache |
+| matching 缓存 | sibling 不共享可变 matching；只有完整 `ColumnModelVersion` 相同才 row repair；Lift 使任务对其他机器人失效时不能只修 lifting row |
 | 完备性 | no-route、endpoint 偏好、prep admission 失败时，fully constrained successor 与 oracle 相同 |
 | 交付 | no corridor Drop；所有输出 replay；strict 10s；保留已验证 incumbent |
 | Episode 连续 | route helper 零预算/暂时受阻 + 合法 Wait 后，TransferId/carrier/endpoint 保持；预算或通道恢复后继续同一 episode |
@@ -1266,10 +1655,22 @@ development 子集、实例字节、following 语义、seed、10s 和物理核�
 协议。C 及本轮微例新增为独立可审计组；扩展集合与算法改动分开记录，不
 覆盖历史结果。
 
-同机配对报告 success、真实 T、W、首次可交付解时间、总 runtime、
-timed-helper 时间/展开数、owner handoff、causal waiting、traffic
-waiting。先检查 success 和合法性，再在 common-success 集比较质量。新
-objective 下 SOC 是次级指标，SOC 增加要披露但不能自动推翻更小 T。
+同机配对报告 success、真实 T、W、首次可交付解时间、deliverable runtime、
+raw search/repair/第二遍各自贡献、timed-helper 时间/展开数、owner handoff、
+causal waiting 和 traffic waiting。先检查 success 和合法性，再在
+common-success 集比较质量。新 objective 下 SOC 是次级指标，SOC 增加要
+披露但不能自动推翻更小 T。
+
+\(\rho\) 专项报告还必须拆出：
+
+- input、claim/conflict 后、same-key/shelf 后和最终矩阵的候选数；
+- cost matrix 构造、bottleneck threshold、full Hungarian、incremental
+  augmentation、canonicalization、state copy/cleanup 的独立耗时；
+- full solve、exact reuse、row repair 和各类 fallback 的次数；
+- changed rows 为 0/1/2/\(>2\) 的分布，以及列 identity/数值/mode/conflict
+  版本变化率；
+- `rho_task_id` changes、owner handoffs 和交付路径重建 guidance 中的
+  free→free non-null retarget。三者不是同一指标，不能混称为“增量修复”。
 
 ### 17.2 C 的证据层次
 
@@ -1301,8 +1702,9 @@ T* >= 7 + 1 + 22 + 1 = 31
 
 ### 17.4 验收不要绑定 robot 身份
 
-接口回归：原始六任务不因 full-route intersection 被删；原 min-sum rho 的
-固定 probe 可以继续复现它的已知六行匹配。
+接口回归：原始六任务不因 full-route intersection 被删；v5 历史
+bottleneck probe 可以继续作为旧行为记录，但 F 阶段的候选边界测试不要求
+保持被 top-\(F\) cutoff 造成的 assignment。
 
 最终质量回归：计划合法、goal 正确、无 corridor Drop，并在固定预算内
 达到 `T=31, W=93`。不要要求 `R5 必须搬 b5` 或 `active_robots=6`。
@@ -1312,6 +1714,29 @@ T* >= 7 + 1 + 22 + 1 = 31
 达到最优，也不能事后降线。`W<=90` 只有在候选通过权威 validator 后才可
 考虑成为更强次级质量目标，不声称它是已知最优 W。
 
+### 17.5 \(\rho\) 诊断实例与验收
+
+固定使用 S6 的
+`brap_h10w10_a12_e8_R1_seed1` 作为候选边界回归。当前正式基线为：
+
+```text
+first_solution_ms       = 1188
+first_solution (T,W)    = (2659,5691)
+final (T,W)             = (1844,3927)
+phase2 candidate        = 0
+projection removed      = 815 steps
+reconstructed retarget  = 310 free→free non-null changes
+```
+
+F 阶段必须证明 `state_t=724` 的距离 2 task、`state_t=1108` 的距离 1/2
+tasks 不再因 priority top-\(F\) cutoff 消失，并输出最终选择每条边的
+bottleneck/secondary/canonical 解释。测试不强制机器人选择最近 task；
+如果远处 critical task 在同一矩阵中胜出，仍然是合法结果。
+
+310 次 retarget 来自最终交付路径上重新构造的 guidance，不是原搜索树实际
+错误改派数；其下降不是成功必要条件。真正验收同时比较 full 509 的 solved、
+首解时间、最终 `(T,W)`、free moves、Lift/Drop、matching CPU 和内存。
+
 ## 18. 本轮不一起重写的部分
 
 不嵌套完整 BR-LaCAM，不把整个 warehouse 的时空路径一次性冻结，不引入
@@ -1319,10 +1744,15 @@ robot-to-tau execution price，不强制所有任务提前派工，不以无限 
 避免所有 handoff。
 
 无界 dispatch lookahead、完整 multi-task scheduling、同步 rotation
-bundle、混合任务最优性证明，以及取消所有既有 density-aware 排序，都留作
-独立变更。当前实现只加入有界 bottleneck dispatch、critical-tail 估计和
-少量 timed-frame 评分。设计上的层次清楚不意味着已证明这套 guidance 在
-全部 dense cases 更快；新增计算开销必须单独测量。
+bundle、混合任务最优性证明、统一表达任意 shelf/endpoint conflict 的
+min-cost flow/ILP，以及取消所有既有 density-aware 图排序，都留作独立
+变更。S6 只要求取消普通任务的 priority top-\(F\) matching 门槛，不等于
+删除 Task-BR 的全部 priority/progress 排序。
+
+当前 production 已有有界 bottleneck dispatch、critical-tail 估计和少量
+timed-frame 评分；additive `S-D` 与增量 Hungarian 尚未由当前实现和 §23
+验证。设计上的层次清楚不意味着已证明它们在全部 dense cases 更快；新增
+行为和计算开销必须分开测量。
 
 ## 19. 总伪代码
 
@@ -1340,11 +1770,21 @@ AttachCarrierGuidance(X, actual_transition):
 
     candidates = FindAssignableTransfers(view, X)
     preparations = FindBoundedSafePreparationCandidates(view, X)
+    # 这里只执行物理/因果/mode/conflict 检查；
+    # 不按 priority top-F 删除普通候选。
 
-    dispatch = BottleneckAssignRobotsAndOptionalPreparation(
-                   candidates, preparations, X, previous_transfer_bindings,
-                   critical_tail_estimates)
-    # 先最小化预测最晚完成时刻，再用固定次序和较小和成本破同阈值平局
+    rho_problem = BuildVersionedRhoProblem(
+                      candidates, preparations, X,
+                      previous_transfer_bindings,
+                      frozen_dispatch_objective)
+
+    dispatch, rho_state = SolveRho(
+                              rho_problem,
+                              parent_node_local_rho_state)
+    # F 对照：bottleneck -> secondary -> canonical。
+    # G 实验：robot-row additive S-D full solve，idle 合法。
+    # H 只在完整列模型相同时 row repair，否则 full solve；
+    # incremental 必须复现对应 full solver 的 canonical assignment。
 
     jobs = ActiveEpisodes(recover) + AssignedTransferHints(dispatch)
     traffic = BuildBoundedJointTransportGuidance(
@@ -1374,9 +1814,9 @@ AcceptCandidatePlan(candidate):
     replace deliverable incumbent only if lexicographically better
 ```
 
-下文 §20、§22 为历史基线原文，不是 v5 验证。§21 是 storage 部分的统一
-新摘要，取代 2026-09-04 版本的增量设计章节，不再引入与上文相冲突的另一
-层“增量优先”规则；被取代章节的实现细节仍由 §22 与 git 历史记录。
+下文 §20、§22 为历史基线原文，§23 为 2026-09-05 v5 实现证据；它们都
+不能证明 S6 的候选边界、additive 或增量 matching 修订。§21 是 storage
+部分的统一摘要；§24 记录 2026-09-06 \(\rho\) 专项审计证据。
 
 ---
 
@@ -1450,6 +1890,9 @@ testcase、放宽 timeout 或修改 success semantics 隐藏。总体成功集�
 | transit 使用 | 当前真实冲突规则 | 允许不同时间复用，不按 route 集合交集永久互斥 |
 | PairCost | shelf-only、确定性有界估价 | 仅随 U/version 改变；不消费 timed routes |
 | 因果图 | 递归清障及 selected placement 条件 | 上层变动重编，执行 overlay 按实际事件更新 |
+| rho 候选 | 当前 mode 下通过物理、因果、custody 与显式冲突检查的普通任务 | priority 只作有限成本/排序，不能 top-\(F\) 硬删除 |
+| rho 目标 | F 阶段保留 bottleneck→secondary→canonical；G 单独测试 additive `S-D` | 只能通过版本化 objective 切换，不能因实现方便隐式换目标 |
+| rho matching state | 具体 LaCAM 节点的 matching/duals、列模型和 anchors | 列模型相同可 row repair；列结构/数值变化 full solve |
 
 尤其禁止两种实现捷径：
 
@@ -1459,6 +1902,12 @@ if first_preferred_route_conflicts:
 
 if two_jobs_share_first_leg:
     merge_their_entire_endpoint_demands_without_checking
+
+if task.priority < top_F_cutoff:
+    erase_ordinary_feasible_task_before_matching
+
+if same_upper_signature:
+    reuse_mutable_matching_state_across_search_branches
 ```
 
 同时保留原 storage 修复的必要部分：不能在 transit Drop；不能在每次
@@ -1561,6 +2010,10 @@ makespan、SOC、动作计数、诊断计数和 plan hash 与上一正式结果�
 本节是 v5 的新证据，不修改也不借用 §20/§22 的历史结论。实现仍只有一个
 `TAPFPlanner::solve()`，并在原节点、constraint tree、`funcPIBT()`、
 `apply_ops()`、两遍候选、repair 和 final replay 路径上增量接入：
+
+> 本节早于 S6 专项审计。它证明 2026-09-05 v5 production 的合法性与当时
+> 的 benchmark 结果，不证明普通 priority cutoff 已取消，也不证明
+> additive `S-D` 或增量 Hungarian 已实现。
 
 ```text
 PlanCost(T,W) + admissible h_T
@@ -1750,3 +2203,180 @@ rows/timing/manifest 输入生成，含全部 509 行和 479 个成功方案动�
 它从正式 full、固定 quick、历史隔离结果、E5 消融和 Testcase C 样例文件
 生成核心统计，并链接原始 rows/timing、完整 dashboard 和逐帧动画。静态
 HTML 可直接从本地文件打开，不需要 HTTP server。
+
+---
+
+## 24. 2026-09-06 \(\rho\) 专项审计与后续修订证据
+
+本节记录 S6 审计时的基线事实。完整推导、代码锚点和状态表位于
+`carrier_lacam_rho_global_matching_report_20260906.md`。正式输入为
+`benchmark/results_full_two_pass_reference_20260906/rows.csv`，诊断实例为
+`brap_h10w10_a12_e8_R1_seed1`。审计后的 production 结果另见 §25，不能把
+本节的“当前机制”误读为 commit `64a3941` 的新行为。
+
+### 24.1 当前机制的确认
+
+当前 \(\rho\) 的真实顺序是：
+
+```text
+ready_tasks_with_custody
+  → priority-ordered claims / compatibility filtering
+  → same TransferKey / shelf 去重
+  → priority top-F cutoff + mandatory
+  → bottleneck-then-sum assignment
+  → canonical refinement
+  → EXECUTE；剩余 robots 再做 PREPARE
+```
+
+因此“全局匹配”只对 cutoff 后的幸存任务成立。诊断路径中没有出现同一货架
+同时对应多个临时 endpoint task；`state_t=724` 和 `state_t=1108` 直接展示
+了附近 task 在矩阵前消失。该证据解释候选没有参加比较，不能单独证明选择
+附近 task 会改善最终 makespan。
+
+### 24.2 目标实例的准确口径
+
+| 指标 | 数值 |
+|---|---:|
+| 首解时间 | 1188 ms |
+| 首解 `(T,W)` | `(2659,5691)` |
+| 最终 `(T,W)` | `(1844,3927)` |
+| loaded / free moves | `556 / 1871` |
+| Lift/Drop | `1090` |
+| 第二遍候选 / 严格改进 | `0 / 0` |
+| projection repair 删除 | `815` 拍 |
+| deliverable runtime | `9030.13` ms |
+| guidance time | `3976.05` ms |
+
+最终 1844 拍恰好是首解 2659 拍删除 815 拍后的交付前缀，不是第二遍找到的
+严格改进。`robot_utilization=0.1508` 的 validator 定义是 loaded moves 除以
+全部 robot-time slots；把 free moves 与 Lift/Drop 也计入后，非 Wait 动作
+占比为 95.36%。所以该实例不是“机器人普遍闲置”，而是大量时间可能消耗在
+空驶、举放和重新派工。
+
+最终交付路径上重新构造 guidance 得到 310 次 free→free non-null retarget。
+它不能还原原搜索树当时的 parent guidance 和 forced operators，因此只能
+作为同一交付状态集上的稳定性指标，不能命名为“实际错误改派 310 次”。
+
+### 24.3 full benchmark 的规模信号
+
+正式 full 共 509 例，479 solved。479 个成功实例累计：
+
+| 指标 | 数值 |
+|---|---:|
+| ready task count | `13,625,227` |
+| `rho_task_id` changes（CSV 字段 `rho_repairs`） | `3,917,608` |
+| owner handoffs | `961,068` |
+| upper epoch builds | `387,854` |
+| guidance time | `1697.780` s |
+
+`rho_repairs` 只是相邻 guidance 中 assignment id 的变化计数，当前代码没有
+执行增量 Hungarian repair。guidance time 还包含候选、PairCost、task graph
+和 transport 等构造，不能把全部时间归因于 Hungarian。专项 telemetry 必须
+先分离 matrix 构造、full solve、canonicalization、状态复制和 cleanup。
+
+第二遍退出分布为：
+
+```text
+SEARCH_CUTOFF             367
+STRICT_IMPROVEMENT         79
+REFERENCE_SUFFIX_ACCEPTED  32
+SEARCH_EXHAUSTED            1
+```
+
+这组数据与 \(\rho\) 修订的主要关系是：dispatch 计算处于严格总预算内，
+任何增量优化都必须同时报告搜索节点、首解时间和最终质量，不能只报告
+matching microbenchmark。
+
+### 24.4 由审计冻结的后续合同
+
+1. 普通可行任务不再因 priority top-\(F\) 被删除；每个过滤都必须有物理、
+   因果、mode 或显式 conflict-group 原因。
+2. 先保留当前 bottleneck-then-sum 做候选边界对照；additive `S-D` 是独立
+   full-solve 调度实验，不宣称与 makespan 等价。
+3. idle 合法，PREPARE 只有部分收益，不把 maximum-cardinality 设为主目标。
+4. matching/duals 跟随具体 LaCAM 节点；完整列模型不变才 repair rows，
+   列结构或数值变化 full solve。
+5. full 与 incremental 若声明行为等价，必须同时复现 objective 和
+   canonical assignment；增量 solver 的收益与调度模型变化分开衡量。
+
+§24 只构成审计基线和实现依据；F/G/H 的实际决策及 production 证据以
+§25 为准。
+
+---
+
+## 25. 2026-09-06 \(\rho\) 修订实现与验证
+
+### 25.1 production 选择
+
+实现严格按候选边界、调度目标和求解方法分开推进：
+
+| 阶段 | 结果 | production 决策 |
+|---|---|---|
+| F0 telemetry | quick 47/77 | 保留诊断 |
+| F1 no-cutoff | quick 45/77，两个大型 case 超时 | 保留“无 cutoff”合同，不直接发布该成本语义 |
+| F2S 低阶有限 priority tie | quick 47/77，但样例 A 为 `(28,45)` | 作为 V2 的混合阶段基线 |
+| additive G1 | quick 47/77，Testcase C 为 `(231,268)` | 回滚 |
+| H1 node-local shadow | 建立在已回归的 G1 上 | 随 G1 回滚，不启用增量 production |
+| 收紧 F2 V2 | quick 47/77，保护项全部满足 | commit `64a3941` |
+
+最终 objective 名为
+`BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2`。它不恢复 priority
+cutoff：所有普通候选仍可连接真实 robot 或 dummy。只有 EXECUTE 且所有
+候选都满足 §8.2.1 的“自己目标货架到自己合法终点”合同时，frontier 和
+parent continuity 才以最大 3 倍的有限 service 延期修改 dummy
+completion；任何 blocker、非终端 task 或 PREPARE 都使整次 matching
+保持 F2S/V1 数值语义。
+
+### 25.2 测试与保护结果
+
+最终代码通过：
+
+```text
+C++ test_all       312 / 312
+Python unittest    162 / 162
+fixed quick         47 / 77
+```
+
+受保护结果为：
+
+| 实例 | 最终 `(T,W)` |
+|---|---:|
+| 发布样例 A | `(17,32)` |
+| 发布样例 B | `(12,36)` |
+| Testcase C | `(31,93)` |
+| 发布样例 D | `(8,23)` |
+| `h20w20 a40 e100 R1 seed0` | `(1273,5796)` |
+| `h20w20 a40 e100 R1 seed1` | `(1243,6384)` |
+
+样例 A 的计划 SHA-256 为
+`882701b39b2bdbf6c0cab46d8164e94171bd87c5ae9e358a36000c176bcb1023`；
+其余 B/C/D 的既有计划哈希保持不变。
+
+### 25.3 quick 77 的正负证据
+
+最终 quick 位于
+`benchmark/results_quick_rho_v2_20260906/rows.csv`。runner 报告
+47/77、总 case runtime 624.3 秒、14 并发 wall time 47.9 秒。相对 F2S，
+47 个共同成功实例中：
+
+```text
+V2 更好   2
+完全相同 42
+V2 更差   3
+solved-set 差异 0
+```
+
+改善包括诊断实例
+`brap_h10w10_a12_e8_R1_seed1` 的
+`(1361,2964)→(1359,2958)`，以及
+`brap_h6w10_a6_e15_B_seed1_pool` 的 `(53,106)→(45,89)`。
+负面结果包括一个同 makespan 下 work `817→818`，以及两个 warehouse
+case 的 makespan `24→26`、`21→23`。因此 V2 的结论是“以严格边界修复
+受保护直接交付回归，同时大部分保持 F2S”，不是全 corpus 单调改善。
+
+### 25.4 尚未完成
+
+正式 full 509 只能在最终 diff、全部测试和 quick 通过后，由独立
+GPT-5.6 Sol/high reviewer 明确批准再运行。full 结果、最终数据网页和网页
+独立审查将在完成后补入本节；在此之前不得把 quick 47/77 外推成 full
+结论，也不得宣称增量 Hungarian 已进入 production。
