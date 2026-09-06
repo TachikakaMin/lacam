@@ -280,6 +280,291 @@ TEST(dd_storage_transfer_claims,
 }
 
 TEST(dd_storage_transfer_claims,
+     different_endpoints_with_overlapping_future_routes_remain_ready)
+{
+  const auto ins = make_instance(
+      {".....", ".....", "....."},
+      {"....S", "S...S", "....S"},
+      {{1, 0}, {1, 4}},
+      {{1, 0}, {1, 4}},
+      {
+          {{1, 0}, {{0, 4}}},
+          {{1, 4}, {{2, 4}}},
+      });
+  const auto physical = initial_phys_config(ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      ShelfTask{
+          TaskId{
+              ShelfSelector{ShelfSelector::Kind::TARGET, 0},
+              ins.grid.idx(1, 0), ins.grid.idx(1, 1)},
+          {RootDemand{0, ins.grid.idx(0, 4)}},
+          10,
+          StorageTransfer{
+              ins.grid.idx(0, 4),
+              {ins.grid.idx(1, 0), ins.grid.idx(1, 1),
+               ins.grid.idx(1, 2), ins.grid.idx(0, 2),
+               ins.grid.idx(0, 3), ins.grid.idx(0, 4)}}},
+      ShelfTask{
+          TaskId{
+              ShelfSelector{ShelfSelector::Kind::TARGET, 1},
+              ins.grid.idx(1, 4), ins.grid.idx(1, 3)},
+          {RootDemand{1, ins.grid.idx(2, 4)}},
+          5,
+          StorageTransfer{
+              ins.grid.idx(2, 4),
+              {ins.grid.idx(1, 4), ins.grid.idx(1, 3),
+               ins.grid.idx(1, 2), ins.grid.idx(2, 2),
+               ins.grid.idx(2, 3), ins.grid.idx(2, 4)}}},
+  };
+  graph.predecessors = {{}, {}};
+  graph.successors = {{}, {}};
+
+  const auto ready = carrier_detail::ready_tasks_with_custody(
+      ins, physical, graph,
+      std::vector<std::optional<Custody>>(2),
+      std::vector<uint8_t>(2, 0));
+
+  EXPECT_EQ(ready, (std::vector<int>{0, 1}));
+}
+
+TEST(dd_storage_transfer_claims,
+     compiler_accepts_distinct_endpoints_with_the_same_transit_first_step)
+{
+  const auto ins = make_instance(
+      {"@@.@@", "@...@", "@@.@@"},
+      {"..S..", ".S.S.", "..S.."},
+      {{1, 1}, {1, 3}},
+      {{1, 1}, {1, 3}},
+      {
+          {{1, 1}, {{0, 2}}},
+          {{1, 3}, {{2, 2}}},
+      });
+  const std::vector<int> tau = {
+      ins.grid.idx(0, 2), ins.grid.idx(2, 2)};
+  const std::vector<int> priority = {2, 1};
+
+  const auto graph = dd_compile_joint_graph_probe(
+      ins, initial_phys_config(ins), &tau, &priority);
+
+  std::set<int> endpoints;
+  int shared_first_step_count = 0;
+  for (const auto& task : graph.tasks) {
+    endpoints.insert(task.transfer.endpoint);
+    if (task.id.to == ins.grid.idx(1, 2))
+      ++shared_first_step_count;
+  }
+  EXPECT_EQ(
+      endpoints,
+      (std::set<int>{ins.grid.idx(0, 2), ins.grid.idx(2, 2)}));
+  EXPECT_EQ(shared_first_step_count, 2);
+  EXPECT_TRUE(graph.paused_roots.empty());
+}
+
+TEST(dd_storage_transfer_claims,
+     compiler_keeps_root_when_canonical_transit_is_currently_occupied)
+{
+  const auto ins = make_instance(
+      {"@@.@@", "@...@", "@@.@@"},
+      {"..S..", ".S.S.", "..S.."},
+      {{1, 1}, {2, 2}}, {{1, 1}, {2, 2}},
+      {{{1, 1}, {{0, 2}}}});
+  PhysConfig physical;
+  physical.robots = {
+      ins.grid.idx(1, 1), ins.grid.idx(1, 2)};
+  physical.target_pos = {ins.grid.idx(1, 1)};
+  physical.anon_occ = {};
+  physical.kappa = {KAPPA_FREE, KAPPA_ANON};
+  const std::vector<int> tau = {ins.grid.idx(0, 2)};
+  const std::vector<int> priority = {1};
+
+  const auto graph = dd_compile_joint_graph_probe(
+      ins, physical, &tau, &priority);
+  const ShelfSelector target{
+      ShelfSelector::Kind::TARGET, 0};
+  const ShelfSelector blocker{
+      ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+      ins.grid.idx(1, 2)};
+  const int target_task = find_task(graph, target);
+  const int blocker_task = find_task(graph, blocker);
+
+  ASSERT_GE(target_task, 0);
+  ASSERT_GE(blocker_task, 0);
+  EXPECT_TRUE(graph.paused_roots.empty());
+  ASSERT_EQ(graph.predecessors[target_task].size(), 1u);
+  EXPECT_EQ(graph.predecessors[target_task][0], blocker_task);
+  const auto edge = std::find_if(
+      graph.causal_edges.begin(), graph.causal_edges.end(),
+      [&](const CausalEdge& candidate) {
+        return candidate.producer == blocker_task &&
+               candidate.consumer == target_task;
+      });
+  ASSERT_NE(edge, graph.causal_edges.end());
+  EXPECT_EQ(edge->must_be_vacated, ins.grid.idx(1, 2));
+}
+
+TEST(dd_storage_transfer_claims,
+     carried_transit_occupant_does_not_delete_assignable_transfer)
+{
+  const auto ins = make_instance(
+      {"@@.@@", "@...@", "@@.@@"},
+      {"..S..", ".S.S.", "..S.."},
+      {{1, 1}, {2, 2}}, {{1, 1}, {2, 2}},
+      {{{1, 1}, {{0, 2}}}});
+  PhysConfig physical;
+  physical.robots = {
+      ins.grid.idx(1, 1), ins.grid.idx(1, 2)};
+  physical.target_pos = {ins.grid.idx(1, 1)};
+  physical.anon_occ = {};
+  physical.kappa = {KAPPA_FREE, KAPPA_ANON};
+
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      ShelfTask{
+          TaskId{
+              ShelfSelector{ShelfSelector::Kind::TARGET, 0},
+              ins.grid.idx(1, 1), ins.grid.idx(1, 2)},
+          {RootDemand{0, ins.grid.idx(0, 2)}},
+          1,
+          StorageTransfer{
+              ins.grid.idx(0, 2),
+              {ins.grid.idx(1, 1), ins.grid.idx(1, 2),
+               ins.grid.idx(0, 2)}}},
+  };
+  graph.predecessors = {{}};
+  graph.successors = {{}};
+
+  const auto ready = carrier_detail::ready_tasks_with_custody(
+      ins, physical, graph,
+      std::vector<std::optional<Custody>>(2),
+      std::vector<uint8_t>(2, 0));
+
+  EXPECT_EQ(ready, std::vector<int>({0}));
+}
+
+TEST(dd_storage_transfer_claims,
+     recovered_transit_episode_allows_dependent_preparation)
+{
+  const auto ins = make_instance(
+      {"@@.@@", "@...@", "@@.@@"},
+      {"..S..", ".S.S.", "..S.."},
+      {{1, 1}, {2, 2}}, {{1, 1}, {2, 2}},
+      {{{1, 1}, {{0, 2}}}});
+  PhysConfig previous;
+  previous.robots = {
+      ins.grid.idx(1, 1), ins.grid.idx(2, 2)};
+  previous.target_pos = {ins.grid.idx(1, 1)};
+  previous.anon_occ = {};
+  previous.kappa = {KAPPA_FREE, KAPPA_ANON};
+
+  CarrierGuidance previous_guidance =
+      dd_task_br_guidance_probe(ins, previous);
+  previous_guidance.custody_by_robot.resize(2);
+  Custody active;
+  active.shelf = {
+      ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+      ins.grid.idx(2, 2)};
+  active.from = ins.grid.idx(2, 2);
+  active.to = ins.grid.idx(1, 2);
+  active.task_id =
+      TaskId{active.shelf, active.from, active.to};
+  active.transfer = StorageTransfer{
+      ins.grid.idx(1, 3),
+      {ins.grid.idx(2, 2), ins.grid.idx(1, 2),
+       ins.grid.idx(1, 3)}};
+  active.original_endpoint = ins.grid.idx(1, 3);
+  active.transfer_index = 0;
+  active.transfer_id.key = TransferKey{
+      active.shelf, active.from, active.original_endpoint};
+  active.transfer_id.carrier = 1;
+  active.transfer_id.anchor = 123;
+  active.preferred_leg = active.task_id;
+  active.route_status = RouteStatus::OK;
+  ASSERT_TRUE(carrier_detail::custody_physically_valid(
+      ins, previous, 1, active));
+  const TransferId expected_id = active.transfer_id;
+  previous_guidance.custody_by_robot[1] = active;
+
+  const std::vector<Op> move_into_transit = {
+      Op::make_wait(), Op::make_move(ins.grid.idx(1, 2))};
+  const auto physical =
+      apply_ops(ins, previous, move_into_transit);
+  ASSERT_TRUE(physical.has_value());
+
+  const auto guidance = dd_task_br_guidance_probe(
+      ins, *physical, &previous, &previous_guidance,
+      &move_into_transit);
+  ASSERT_NE(guidance.upper_epoch, nullptr);
+  const auto& graph = guidance.upper_epoch->task_graph;
+  const ShelfSelector target{
+      ShelfSelector::Kind::TARGET, 0};
+  const ShelfSelector blocker{
+      ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+      ins.grid.idx(1, 2)};
+  const int target_task = find_task(graph, target);
+  const int blocker_task = find_task(graph, blocker);
+
+  ASSERT_GE(target_task, 0);
+  ASSERT_GE(blocker_task, 0);
+  ASSERT_LT(blocker_task, (int)guidance.execution_view.tasks.size());
+  EXPECT_EQ(
+      guidance.execution_view.tasks[blocker_task].state,
+      ExecutionTaskState::SHADOWED);
+  ASSERT_TRUE(guidance.custody_by_robot[1].has_value());
+  const auto& recovered = *guidance.custody_by_robot[1];
+  EXPECT_EQ(recovered.transfer_id, expected_id);
+  EXPECT_EQ(
+      recovered.shelf,
+      (ShelfSelector{
+          ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+          ins.grid.idx(1, 2)}));
+  EXPECT_EQ(
+      recovered.transfer_id.key.shelf,
+      (ShelfSelector{
+          ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+          ins.grid.idx(2, 2)}));
+  EXPECT_EQ(recovered.transfer_id.key.source, ins.grid.idx(2, 2));
+  EXPECT_EQ(
+      carrier_detail::custody_endpoint(recovered),
+      graph.tasks[blocker_task].transfer.endpoint);
+  const auto edge = std::find_if(
+      graph.causal_edges.begin(), graph.causal_edges.end(),
+      [&](const CausalEdge& candidate) {
+        return candidate.producer == blocker_task &&
+               candidate.consumer == target_task;
+      });
+  ASSERT_NE(edge, graph.causal_edges.end());
+  EXPECT_EQ(edge->must_be_vacated, ins.grid.idx(1, 2));
+  const size_t edge_index =
+      std::distance(graph.causal_edges.begin(), edge);
+  ASSERT_LT(
+      edge_index, guidance.execution_view.causal_conditions.size());
+  EXPECT_FALSE(
+      guidance.execution_view
+          .causal_conditions[edge_index]
+          .fulfilled);
+  EXPECT_EQ(
+      std::find(
+          guidance.ready_tasks.begin(),
+          guidance.ready_tasks.end(), target_task),
+      guidance.ready_tasks.end());
+  EXPECT_NE(
+      std::find(
+          guidance.preparable_tasks.begin(),
+          guidance.preparable_tasks.end(), target_task),
+      guidance.preparable_tasks.end());
+  ASSERT_EQ(guidance.rho_mode.size(), 2u);
+  EXPECT_EQ(guidance.rho_mode[0], DispatchMode::PREPARE);
+  ASSERT_TRUE(guidance.rho_task_id[0].has_value());
+  EXPECT_EQ(guidance.rho_task_id[0]->shelf, target);
+  ASSERT_EQ(guidance.rho_ready_index.size(), 2u);
+  EXPECT_EQ(guidance.rho_ready_index[0], target_task);
+  EXPECT_EQ(guidance.rho_mode[1], DispatchMode::NONE);
+  EXPECT_FALSE(guidance.rho_task_id[1].has_value());
+  EXPECT_EQ(guidance.rho_ready_index[1], -1);
+}
+
+TEST(dd_storage_transfer_claims,
      dependency_chain_may_reuse_a_transit_hub_in_sequence)
 {
   const auto ins = make_instance(

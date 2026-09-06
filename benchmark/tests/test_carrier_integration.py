@@ -114,6 +114,40 @@ class TestCostCrossConsistency(unittest.TestCase):
 
 @unittest.skipUnless(BIN.exists(), "dd_benchmark not built")
 class TestCarrierLacamIntegration(unittest.TestCase):
+    def test_initial_goal_is_solved_with_zero_byte_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            ins_path = tmp / "initial_goal.yaml"
+            ins_path.write_text(
+                """\
+name: initial_goal
+map: |
+  ...
+robots:
+  - [0, 0]
+shelves:
+  - [0, 2]
+targets:
+  - id: b0
+    start: [0, 2]
+    goal: [0, 2]
+flags: {}
+"""
+            )
+            plan_out = tmp / "result.plan"
+
+            p, metrics = run_solver(ins_path, 5, plan_out)
+
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(metrics.get("solved"), "1", p.stdout)
+            self.assertEqual(metrics.get("makespan"), "0", p.stdout)
+            self.assertEqual(metrics.get("weighted_soc"), "0", p.stdout)
+            self.assertTrue(plan_out.is_file())
+            self.assertEqual(plan_out.read_bytes(), b"")
+            self.assertTrue(
+                is_goal(load_instance(ins_path), replay(load_instance(ins_path), []))
+            )
+
     def test_tiny_fixture_solves_and_validates(self):
         ins_path = REPO / "tests/fixtures/dd_tiny.yaml"
         plan_out = BENCH / "results_probe/dd_tiny.plan"

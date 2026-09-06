@@ -1,0 +1,12 @@
+{
+  "schema_version": 2,
+  "decision": "APPROVE",
+  "reviewer_model": "openai.gpt-5.6-sol",
+  "reasoning_effort": "high",
+  "reviewer_agent_id": "f2ec9490-e188-4921-90a9-3ae5272b5776",
+  "reviewed_at_utc": "2026-09-06T01:52:48Z",
+  "suite_definition_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed",
+  "full_corpus_sha256": "7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae",
+  "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+  "review_summary": "只读终审通过：两遍复用同一 TAPFPlanner::solve；第二遍从原始 X0 固定首轮实际终态 goals，使用严格词典序上界并在首份严格改进后停止；fallback、bound/reopen、transactional repair、reference suffix 和单层 deadline 语义符合设计。未发现平行 planner、benchmark 特判、legacy fallback 或测试弱化。独立复跑 C++ 296/296、Python 159/159 全绿；quick 77 的成功集、B/E/W=1/34/12 及负面证据均核验属实；quick/full 协议一致且 full 为 quick 加 432 cases；git diff --check clean。批准运行绑定于上述二进制和 509-case corpus 的 full benchmark。"
+}

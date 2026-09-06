@@ -260,7 +260,8 @@ TEST(dd_task_br_execution, forced_nonready_lift_is_loaded_but_unbound)
   EXPECT_FALSE(G1.custody_by_robot[0].has_value());
 }
 
-TEST(dd_task_br_execution, task_id_survives_vector_reordering)
+TEST(dd_task_br_execution,
+     makespan_aware_task_choice_survives_vector_reordering)
 {
   const auto ins = line_instance(5, {0}, {}, {}, {});
   const auto X = initial_phys_config(ins);
@@ -278,16 +279,16 @@ TEST(dd_task_br_execution, task_id_survives_vector_reordering)
   const auto a =
       dd_match_ready_tasks_probe(ins, X, first, {0, 1}, nullptr);
   ASSERT_TRUE(a.rho_task_id[0].has_value());
-  EXPECT_EQ(*a.rho_task_id[0], near);
-  EXPECT_EQ(a.rho_ready_index[0], 0);
+  EXPECT_EQ(*a.rho_task_id[0], far);
+  EXPECT_EQ(a.rho_ready_index[0], 1);
 
   ShelfTaskGraph reordered = first;
   std::swap(reordered.tasks[0], reordered.tasks[1]);
   const auto b = dd_match_ready_tasks_probe(
       ins, X, reordered, {0, 1}, &a.rho_task_id);
   ASSERT_TRUE(b.rho_task_id[0].has_value());
-  EXPECT_EQ(*b.rho_task_id[0], near);
-  EXPECT_EQ(b.rho_ready_index[0], 1);
+  EXPECT_EQ(*b.rho_task_id[0], far);
+  EXPECT_EQ(b.rho_ready_index[0], 0);
 }
 
 TEST(dd_task_br_execution,
@@ -333,7 +334,8 @@ TEST(dd_task_br_execution,
             other_index);
 }
 
-TEST(dd_task_br_execution, rho_lexicographic_cutoff_distance_then_switch)
+TEST(dd_task_br_execution,
+     rho_priority_then_bottleneck_completion_then_switch)
 {
   const auto ins = line_instance(7, {0}, {}, {}, {});
   const auto X = initial_phys_config(ins);
@@ -362,12 +364,13 @@ TEST(dd_task_br_execution, rho_lexicographic_cutoff_distance_then_switch)
   const auto distance = dd_match_ready_tasks_probe(
       ins, X, distance_graph, {0, 1}, &previous);
   ASSERT_TRUE(distance.rho_task_id[0].has_value());
-  EXPECT_EQ(*distance.rho_task_id[0], near)
-      << "approach distance must beat the later switch penalty";
+  EXPECT_EQ(*distance.rho_task_id[0], far)
+      << "starting the farther task minimizes the predicted completion "
+         "of both the assigned and deferred rows";
 }
 
 TEST(dd_task_br_execution,
-     multirow_cutoff_assigns_all_mandatory_rows_then_nearest_tie)
+     multirow_cutoff_assigns_mandatory_rows_then_limits_deferred_tail)
 {
   const auto ins = line_instance(12, {0, 11}, {}, {}, {});
   const auto X = initial_phys_config(ins);
@@ -399,8 +402,8 @@ TEST(dd_task_br_execution,
   ASSERT_EQ(assigned.size(), 2u);
   EXPECT_TRUE(assigned.count(mandatory))
       << "every row above the priority cutoff is mandatory";
-  EXPECT_TRUE(assigned.count(cutoff_near))
-      << "distance at the cutoff must beat the later switch penalty";
-  EXPECT_FALSE(assigned.count(cutoff_far));
+  EXPECT_TRUE(assigned.count(cutoff_far))
+      << "the cutoff row with the later deferred completion must start";
+  EXPECT_FALSE(assigned.count(cutoff_near));
   EXPECT_FALSE(assigned.count(below_cutoff));
 }

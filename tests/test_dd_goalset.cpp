@@ -138,21 +138,18 @@ TEST(dd_goalset, already_on_eligible_goal_is_trivially_solved)
 {
   // target starts grounded ON a pool cell that is NOT the representative
   // (representative = sorted-first = (0,2)); new terminal semantics =>
-  // trivially solved single all-wait plan.  Under fixed-goal semantics
+  // trivially solved zero-tick plan.  Under fixed-goal semantics
   // the solver would move the shelf to the representative instead.
   auto ins = make_set_ins({".....", "....."}, {{1, 0}}, {{0, 3}},
                           {{0, 3}}, {{{0, 2}, {0, 3}}});
   DDStats st;
-  const auto plan = solve_carrier_lacam(ins, 5.0, 0, &st);
-  ASSERT_FALSE(plan.empty());  // solved
-  EXPECT_LE(plan.size(), 1u);  // trivially: one all-wait step
-  auto s = initial_phys_config(ins);
-  for (const auto& ops : plan) {
-    auto nxt = apply_ops(ins, s, ops);
-    ASSERT_TRUE(nxt.has_value());
-    s = *nxt;
-  }
-  EXPECT_TRUE(is_dd_goal(ins, s));
+  const auto result =
+      solve_carrier_lacam_result(ins, 5.0, 0, &st);
+  ASSERT_TRUE(result.solved());
+  EXPECT_TRUE(result.plan.empty());
+  EXPECT_TRUE(is_dd_goal(ins, initial_phys_config(ins)));
+  EXPECT_EQ(st.best_makespan, 0);
+  EXPECT_DOUBLE_EQ(st.best_soc, 0);
 }
 
 TEST(dd_goalset, dynamic_first_solution_restarts_with_fixed_assignment)
@@ -162,24 +159,36 @@ TEST(dd_goalset, dynamic_first_solution_restarts_with_fixed_assignment)
   auto ins = make_set_ins({".....", "....."}, {{1, 0}}, {{0, 3}},
                           {{0, 3}}, {{{0, 2}, {0, 3}}});
   DDStats st;
-  const auto plan = solve_carrier_lacam(ins, 1.0, 0, &st);
-  ASSERT_FALSE(plan.empty());
+  const auto result =
+      solve_carrier_lacam_result(ins, 1.0, 0, &st);
+  ASSERT_TRUE(result.solved());
+  EXPECT_TRUE(result.plan.empty());
   EXPECT_EQ(st.assignment_restarts, 1);
-  EXPECT_EQ(st.assignment_second_solved, 1);
+  EXPECT_EQ(st.assignment_second_solved, 0)
+      << "the retained fallback is not a new second-pass candidate";
   EXPECT_EQ(st.assignment_improvements, 0);
-  EXPECT_GE(st.assignment_second_solution_ms, st.first_solution_ms);
+  EXPECT_LT(st.assignment_second_solution_ms, 0);
+  EXPECT_EQ(
+      st.improvement_exit_reason,
+      DDImprovementExitReason::SEARCH_EXHAUSTED);
 }
 
-TEST(dd_goalset, singleton_assignment_skips_second_search)
+TEST(dd_goalset, singleton_assignment_skips_only_the_fixed_goal_copy)
 {
   auto ins = make_set_ins({".....", "....."}, {{1, 0}}, {{0, 3}},
                           {{0, 3}}, {{{0, 3}}});
   DDStats st;
-  const auto plan = solve_carrier_lacam(ins, 1.0, 0, &st);
-  ASSERT_FALSE(plan.empty());
+  const auto result =
+      solve_carrier_lacam_result(ins, 1.0, 0, &st);
+  ASSERT_TRUE(result.solved());
+  EXPECT_TRUE(result.plan.empty());
   EXPECT_EQ(st.assignment_restarts, 0);
   EXPECT_EQ(st.assignment_second_solved, 0);
   EXPECT_EQ(st.assignment_improvements, 0);
+  EXPECT_EQ(st.improvement_attempts, 1);
+  EXPECT_EQ(
+      st.improvement_exit_reason,
+      DDImprovementExitReason::SEARCH_EXHAUSTED);
 }
 
 // review fix batch 2026-09-01 (TDD RED): two labeled targets referencing

@@ -1,0 +1,718 @@
+name: g6_dlow_aequal_plocal_gshared_pool_seed0
+map: '..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  ..............................
+
+  '
+storage_map: '..............................
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  ..............................
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  ..............................
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  .SSSSSSSSS.SSSSSSSSS.SSSSSSSSS
+
+  '
+warehouse_layout:
+  map_family: g6
+  block_size: 9
+  aisle_width: 1
+  density_level: low
+  actual_density: 0.24691358024691357
+  shelves_per_block: 20
+  corridor_policy: hard_no_drop
+  block_origins:
+  - - 1
+    - 1
+  - - 1
+    - 11
+  - - 1
+    - 21
+  - - 11
+    - 1
+  - - 11
+    - 11
+  - - 11
+    - 21
+  - - 21
+    - 1
+  - - 21
+    - 11
+  - - 21
+    - 21
+factorial_design:
+  pairing_key: g6__local__shared_pool__seed0
+  pairing_seed: 515235413
+  layout_policy: nested_density_prefix
+  robot_start_policy: nested_agent_prefix
+  density_level: low
+  agent_level: equal
+  task_profile: local
+  goal_mode: shared_pool
+task_profile:
+  relation_basis: certificate_assignment
+  relation_counts:
+    intra: 13
+    adjacent: 5
+    remote: 0
+  core_goals: 9
+  goal_mode: shared_pool
+  goal_pool_size: 27
+  certificate_guarantee: validator_checked
+  certificate_steps: 674
+  certificate_sha256: 71c16bbffb0b361e827d59d9f45ec12d4abb911f493b716d7ff0b679389dd9ce
+robots:
+- - 20
+  - 27
+- - 0
+  - 29
+- - 25
+  - 0
+- - 10
+  - 15
+- - 20
+  - 23
+- - 0
+  - 6
+- - 0
+  - 13
+- - 20
+  - 24
+- - 28
+  - 0
+- - 20
+  - 29
+- - 0
+  - 28
+- - 20
+  - 25
+- - 0
+  - 26
+- - 20
+  - 6
+- - 0
+  - 27
+- - 9
+  - 10
+- - 10
+  - 13
+- - 23
+  - 0
+shelves:
+- - 1
+  - 5
+- - 1
+  - 23
+- - 1
+  - 27
+- - 2
+  - 6
+- - 2
+  - 15
+- - 2
+  - 23
+- - 2
+  - 27
+- - 2
+  - 28
+- - 3
+  - 4
+- - 3
+  - 7
+- - 3
+  - 8
+- - 3
+  - 12
+- - 3
+  - 13
+- - 3
+  - 19
+- - 3
+  - 26
+- - 4
+  - 2
+- - 4
+  - 3
+- - 4
+  - 15
+- - 4
+  - 27
+- - 4
+  - 29
+- - 5
+  - 1
+- - 5
+  - 6
+- - 5
+  - 9
+- - 5
+  - 11
+- - 5
+  - 12
+- - 5
+  - 17
+- - 5
+  - 19
+- - 6
+  - 9
+- - 6
+  - 12
+- - 6
+  - 15
+- - 6
+  - 17
+- - 6
+  - 18
+- - 6
+  - 21
+- - 6
+  - 24
+- - 7
+  - 5
+- - 7
+  - 7
+- - 7
+  - 9
+- - 7
+  - 15
+- - 7
+  - 16
+- - 7
+  - 18
+- - 7
+  - 19
+- - 7
+  - 21
+- - 7
+  - 25
+- - 7
+  - 27
+- - 7
+  - 29
+- - 8
+  - 1
+- - 8
+  - 3
+- - 8
+  - 5
+- - 8
+  - 7
+- - 8
+  - 11
+- - 8
+  - 17
+- - 8
+  - 19
+- - 8
+  - 22
+- - 8
+  - 25
+- - 8
+  - 27
+- - 8
+  - 29
+- - 9
+  - 5
+- - 9
+  - 7
+- - 9
+  - 24
+- - 9
+  - 27
+- - 11
+  - 1
+- - 11
+  - 7
+- - 11
+  - 12
+- - 11
+  - 14
+- - 11
+  - 28
+- - 12
+  - 1
+- - 12
+  - 12
+- - 12
+  - 16
+- - 12
+  - 21
+- - 12
+  - 22
+- - 12
+  - 25
+- - 13
+  - 2
+- - 13
+  - 6
+- - 13
+  - 7
+- - 13
+  - 8
+- - 13
+  - 9
+- - 13
+  - 16
+- - 13
+  - 21
+- - 13
+  - 23
+- - 13
+  - 27
+- - 14
+  - 4
+- - 14
+  - 6
+- - 14
+  - 11
+- - 14
+  - 14
+- - 14
+  - 16
+- - 15
+  - 1
+- - 15
+  - 9
+- - 15
+  - 11
+- - 15
+  - 19
+- - 15
+  - 21
+- - 15
+  - 28
+- - 16
+  - 3
+- - 16
+  - 5
+- - 16
+  - 6
+- - 16
+  - 14
+- - 16
+  - 15
+- - 16
+  - 21
+- - 16
+  - 22
+- - 16
+  - 23
+- - 16
+  - 24
+- - 16
+  - 26
+- - 16
+  - 28
+- - 17
+  - 7
+- - 17
+  - 9
+- - 17
+  - 12
+- - 18
+  - 3
+- - 18
+  - 8
+- - 18
+  - 15
+- - 18
+  - 17
+- - 18
+  - 18
+- - 18
+  - 24
+- - 18
+  - 25
+- - 18
+  - 28
+- - 19
+  - 5
+- - 19
+  - 12
+- - 19
+  - 14
+- - 19
+  - 18
+- - 19
+  - 19
+- - 19
+  - 21
+- - 19
+  - 25
+- - 21
+  - 5
+- - 21
+  - 8
+- - 21
+  - 9
+- - 21
+  - 13
+- - 21
+  - 18
+- - 21
+  - 21
+- - 22
+  - 18
+- - 22
+  - 19
+- - 22
+  - 24
+- - 23
+  - 1
+- - 23
+  - 3
+- - 23
+  - 5
+- - 23
+  - 9
+- - 23
+  - 14
+- - 23
+  - 15
+- - 23
+  - 22
+- - 23
+  - 23
+- - 23
+  - 24
+- - 23
+  - 25
+- - 23
+  - 26
+- - 23
+  - 29
+- - 24
+  - 5
+- - 24
+  - 6
+- - 24
+  - 9
+- - 24
+  - 12
+- - 24
+  - 13
+- - 24
+  - 17
+- - 24
+  - 18
+- - 24
+  - 21
+- - 24
+  - 28
+- - 24
+  - 29
+- - 25
+  - 5
+- - 25
+  - 6
+- - 25
+  - 13
+- - 25
+  - 14
+- - 25
+  - 23
+- - 26
+  - 5
+- - 26
+  - 9
+- - 26
+  - 11
+- - 26
+  - 14
+- - 26
+  - 19
+- - 26
+  - 21
+- - 26
+  - 24
+- - 26
+  - 27
+- - 27
+  - 2
+- - 27
+  - 3
+- - 27
+  - 5
+- - 27
+  - 19
+- - 28
+  - 6
+- - 28
+  - 17
+- - 28
+  - 27
+- - 28
+  - 29
+- - 29
+  - 1
+- - 29
+  - 7
+- - 29
+  - 11
+- - 29
+  - 15
+- - 29
+  - 17
+- - 29
+  - 24
+- - 29
+  - 25
+- - 29
+  - 29
+targets:
+- id: b0
+  start:
+  - 26
+  - 11
+  goals: pool
+- id: b1
+  start:
+  - 19
+  - 14
+  goals: pool
+- id: b2
+  start:
+  - 19
+  - 19
+  goals: pool
+- id: b3
+  start:
+  - 12
+  - 21
+  goals: pool
+- id: b4
+  start:
+  - 29
+  - 11
+  goals: pool
+- id: b5
+  start:
+  - 26
+  - 19
+  goals: pool
+- id: b6
+  start:
+  - 1
+  - 5
+  goals: pool
+- id: b7
+  start:
+  - 11
+  - 28
+  goals: pool
+- id: b8
+  start:
+  - 5
+  - 19
+  goals: pool
+- id: b9
+  start:
+  - 11
+  - 1
+  goals: pool
+- id: b10
+  start:
+  - 7
+  - 9
+  goals: pool
+- id: b11
+  start:
+  - 24
+  - 21
+  goals: pool
+- id: b12
+  start:
+  - 21
+  - 9
+  goals: pool
+- id: b13
+  start:
+  - 7
+  - 21
+  goals: pool
+- id: b14
+  start:
+  - 26
+  - 21
+  goals: pool
+- id: b15
+  start:
+  - 15
+  - 11
+  goals: pool
+- id: b16
+  start:
+  - 11
+  - 12
+  goals: pool
+- id: b17
+  start:
+  - 15
+  - 1
+  goals: pool
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false
+goal_pool:
+- - 1
+  - 15
+- - 2
+  - 8
+- - 2
+  - 26
+- - 6
+  - 2
+- - 9
+  - 26
+- - 11
+  - 5
+- - 11
+  - 17
+- - 11
+  - 26
+- - 12
+  - 3
+- - 12
+  - 23
+- - 13
+  - 11
+- - 14
+  - 5
+- - 14
+  - 22
+- - 16
+  - 2
+- - 16
+  - 16
+- - 17
+  - 6
+- - 19
+  - 3
+- - 19
+  - 28
+- - 21
+  - 16
+- - 21
+  - 27
+- - 22
+  - 15
+- - 24
+  - 15
+- - 25
+  - 18
+- - 27
+  - 22
+- - 27
+  - 29
+- - 28
+  - 8
+- - 28
+  - 19

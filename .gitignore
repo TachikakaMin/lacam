@@ -38,6 +38,7 @@
 # End of https://www.toptal.com/developers/gitignore/api/c++
 **/.DS_Store
 **/build/
+/build-ablation-*/
 **/__pycache__/
 outputs/
 Manifest.toml
@@ -46,6 +47,6 @@ map
 # dd-lacam benchmark: external baseline clones and regenerable data
 baselines/
 benchmark/instances_*/
-benchmark/results_*/work/
+**/results_*/work/
 nohup.out
 build_asan*/

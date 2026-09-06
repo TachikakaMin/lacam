@@ -1,9 +1,9 @@
 **最高优先级约束：新算法必须建立在现有 LaCAM-TAPF 代码和算法流程之上进行增量式扩展，禁止另起炉灶。**
 
-* 必须沿用现有 LaCAM-TAPF 的核心数据结构、search/control flow、节点扩展、状态表示和规划逻辑，在原有 execution path 上增加 `new.md` 与 `design_final.md` 中的新机制。
+* 必须沿用现有 LaCAM-TAPF 的核心数据结构、search/control flow、节点扩展、状态表示和规划逻辑，在原有 execution path 上增plan中的新机制。
 * 禁止实现平行 planner、第二套 search pipeline、独立算法框架，或通过大量独立函数/文件绕开原有 LaCAM-TAPF 逻辑。
 * 可以增加必要 helper、data structure 或局部模块，但必须直接服务于并嵌入原 LaCAM-TAPF 主流程。
-* 开始编码前，先明确 `new.md` 与 `design_final.md` 中每个新增机制具体对应现有 LaCAM-TAPF 的哪些修改位置，并据此更新 design；两者冲突时以 `new.md` 的算法边界为准。
+* 开始编码前，先明确plan中每个新增机制具体对应现有 LaCAM-TAPF 的哪些修改位置，并据此更新 design；两者冲突时以 `design_final.md` 的算法边界为准。
 * 避免无必要的大规模重构。
 
 必须保持以下 **semantic invariant**：
@@ -23,6 +23,17 @@
 * 发现 bug、incorrect behavior、crash、unexpected timeout 或 regression 时，**禁止直接修改 implementation**：先写 regression test 固化并复现问题，确认失败后再 debug；修复后保留该 test，并重新运行相关 tests 和 benchmark cases。
 * 优先测试稳定的算法行为和接口，避免为了 TDD 而过度测试无意义的内部实现细节。
 
+### Quick / full benchmark 层级
+
+* 本节的 quick/full 只指 **benchmark 运行层级**，不限制 unit test、integration/regression test、生成器测试、静态检查或 authoritative validator 验证；这些代码测试在开发期间仍应按 TDD 正常运行。
+* 当前冻结的 `benchmark/release_benchmark.json`（68 个原始 BRaP-pool case + 9 个 warehouse-block case，共 **77 cases**）是唯一的开发期 **quick benchmark**。用户口中的“原本 60 多个测试”以仓库当前固定的 77-case manifest 为准。
+* **full benchmark** 固定为 quick benchmark 的全部 77 cases，加上本任务新生成的 432 个随机配对 warehouse cases，共 **509 cases**。full 必须是 quick 的严格超集，不得删除、替换或重命名 quick 中的任何 testcase。
+* 代码开发、debug、局部修复和 review 前验证期间，benchmark 最多只能运行 quick benchmark；禁止提前运行 full benchmark，也禁止用 full benchmark 的结果反向挑选 seed、修改 testcase 或调参。
+* 只有在实现和全部相关代码测试完成、quick benchmark 通过、最终 diff 已清理，并获得独立 **GPT-5.6 Sol / high** reviewer 明确 `APPROVE` 后，才允许运行 full benchmark。
+* `benchmark/run_benchmark.py --benchmark-tier quick` 是开发期固定入口。`--benchmark-tier full` 必须提供与 `benchmark/full_benchmark.json` SHA-256 绑定的独立 review approval JSON，否则 runner 必须拒绝启动。
+* quick benchmark 和 full benchmark 使用完全相同的 method、10s timeout、solver seed、objective weights、parallelism、validator、metric 与 success/failure semantics；两者唯一允许的差异是 testcase 成员数量。
+* 新增 testcase 一经生成即属于 protected full benchmark。不得根据 Planner 的成功率、makespan、SOC 或其他表现删除、替换或重新抽样。
+
 ### Protected tests / benchmarks
 
 本任务中新增加的 unit tests、integration tests、regression tests、benchmark testcases 和 benchmark expected behavior，一旦创建即视为 **protected**。
@@ -31,7 +42,7 @@
 
 * model: **GPT-5.6 Sol**
 * reasoning: **high**
-* 独立阅读 `new.md`、`design_final.md`、相关原代码、当前 implementation、原 test 和 proposed change
+* 独立阅读原本plan、`design_final.md`、相关原代码、当前 implementation、原 test 和 proposed change
 * 明确输出 `APPROVE` 或 `REJECT`，并说明理由
 
 只有得到明确 `APPROVE` 后才能修改 protected test/benchmark；如果 `REJECT`，必须保持测试不变并修改 implementation。
@@ -72,7 +83,7 @@ Reviewer 重点检查：
 
 实现过程中持续检查 `git diff`，确保：
 
-1. 每一处新增或修改代码都能对应 `new.md` 与 `design_final.md` 中的具体设计；
+1. 每一处新增或修改代码都能对应 plan 与 `design_final.md` 中的具体设计；
 2. 所有新增代码都在真实 execution path 中被使用；
 3. 没有 dead code、重复实现或平行 pipeline；
 4. 修改集中在原 LaCAM-TAPF 真正需要扩展的位置；
@@ -89,7 +100,7 @@ Reviewer 重点检查：
 * 运行完整 benchmark，每个 testcase 严格限时 **10s**；
 * 使用相同配置、seed、资源分配和并行策略比较 baseline 与新算法；
 * review 最终 `git diff`，逐项确认主要新增代码的必要性；
-* 检查不存在 parallel implementation、fallback、benchmark-specific hack 或无效代码。
+* 检查不存在 parallel implementation、fallback、benchmark-specific hack 或无效代码, 并且清理.
 
 最后汇报：
 

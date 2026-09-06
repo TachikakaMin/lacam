@@ -140,6 +140,16 @@ TEST(dd_plan_repair, multi_robot_fallback_projects_original_lower_path)
 
 namespace {
 
+struct WeightEnvGuard {
+  ~WeightEnvGuard()
+  {
+    unsetenv("DD_ALPHA");
+    unsetenv("DD_BETA");
+    unsetenv("DD_GAMMA");
+    unsetenv("DD_DELTA");
+  }
+};
+
 // weighted SOC replay with explicit weights (independent arithmetic)
 double plan_soc_w(const DDInstance& ins, const DDPlan& plan, double alpha,
                   double beta, double gamma, double delta)
@@ -164,13 +174,12 @@ double plan_soc_w(const DDInstance& ins, const DDPlan& plan, double alpha,
 
 }  // namespace
 
-// review fix batch 2026-09-01: repair accepts bridges by STEP count while
-// production candidate selection is by weighted SOC. A min-step bridge may
-// move robots that originally waited. Pin the contract under adversarial
-// weights (free moves expensive, lift/drop churn cheap): the returned plan
-// never costs more than the raw plan.
-TEST(dd_plan_repair, repaired_soc_never_exceeds_raw_under_any_weights)
+// Carrier-LaCAM v5 protected-test migration APPROVE (2026-09-05): a real
+// generated repair must be accepted by the same production predicate used
+// at the repair boundary.
+TEST(dd_plan_repair, shorter_valid_repair_uses_shared_plan_cost_order)
 {
+  WeightEnvGuard guard;
   setenv("DD_ALPHA", "0.125", 1);
   setenv("DD_BETA", "8", 1);
   setenv("DD_GAMMA", "0.125", 1);
@@ -197,15 +206,62 @@ TEST(dd_plan_repair, repaired_soc_never_exceeds_raw_under_any_weights)
 
   const auto repaired = repair_carrier_plan(ins, plan, nullptr);
   ASSERT_TRUE(valid(ins, repaired));
-  EXPECT_LE(repaired.size(), plan.size());
+  EXPECT_LT(repaired.size(), plan.size());
   const double rep = plan_soc_w(ins, repaired, 0.125, 8, 0.125, 0.125);
   ASSERT_GE(rep, 0);
-  EXPECT_LE(rep, raw + 1e-9);
+  EXPECT_LT(rep, raw);
+  EXPECT_TRUE(dd_repair_accepts_candidate_probe(ins, plan, repaired));
+}
 
-  unsetenv("DD_ALPHA");
-  unsetenv("DD_BETA");
-  unsetenv("DD_GAMMA");
-  unsetenv("DD_DELTA");
+// The generator only constructs shorter bridges, so exercise the production
+// acceptance predicate directly with two legal goal plans.  The five-tick
+// candidate deliberately pays for two expensive free moves; strict
+// makespan-first order must accept it over the six-tick low-work incumbent.
+// Reversing the arguments proves that longer/lower-work is rejected.
+TEST(dd_plan_repair,
+     production_predicate_is_ticks_then_work_in_both_tradeoff_directions)
+{
+  WeightEnvGuard guard;
+  setenv("DD_ALPHA", "1", 1);
+  setenv("DD_BETA", "10", 1);
+  setenv("DD_GAMMA", "1", 1);
+  setenv("DD_DELTA", "0", 1);
+
+  DDInstance ins;
+  ins.grid = DDGrid({"..."});
+  ins.robots = {ins.grid.idx(0, 1)};
+  ins.shelves = {ins.grid.idx(0, 1)};
+  ins.target_starts = {ins.grid.idx(0, 1)};
+  ins.target_goals = {ins.grid.idx(0, 2)};
+  ins.finalize();
+
+  const auto W = Op::make_wait();
+  const DDPlan shorter_high_work = {
+      {Op::make_move(ins.grid.idx(0, 0))},
+      {Op::make_move(ins.grid.idx(0, 1))},
+      {Op::make_lift()},
+      {Op::make_move(ins.grid.idx(0, 2))},
+      {Op::make_drop()},
+  };
+  const DDPlan longer_low_work = {
+      {W},
+      {W},
+      {W},
+      {Op::make_lift()},
+      {Op::make_move(ins.grid.idx(0, 2))},
+      {Op::make_drop()},
+  };
+  ASSERT_TRUE(valid(ins, shorter_high_work));
+  ASSERT_TRUE(valid(ins, longer_low_work));
+  ASSERT_LT(shorter_high_work.size(), longer_low_work.size());
+  ASSERT_GT(
+      plan_soc_w(ins, shorter_high_work, 1, 10, 1, 0),
+      plan_soc_w(ins, longer_low_work, 1, 10, 1, 0));
+
+  EXPECT_TRUE(dd_repair_accepts_candidate_probe(
+      ins, longer_low_work, shorter_high_work));
+  EXPECT_FALSE(dd_repair_accepts_candidate_probe(
+      ins, shorter_high_work, longer_low_work));
 }
 
 // 2026-09-02 R1 (debug.md §10, TDD RED): repair is part of the pass's

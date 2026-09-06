@@ -1,0 +1,3342 @@
+[
+  {
+    "name": "warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0",
+    "title": "样例 A：小地图混合任务",
+    "description": "2 个 block 内任务 + 2 个相邻跨区任务。",
+    "height": 8,
+    "width": 8,
+    "block_size": 3,
+    "aisle_width": 1,
+    "shelves_per_block": 4,
+    "cells_per_block": 9,
+    "density": 0.4444444444444444,
+    "blocks": 4,
+    "robots": 2,
+    "shelves": 16,
+    "targets": 4,
+    "witness_steps": 36,
+    "witness_sha256": "984cd7a26f7b67b1929d900fa9a3581d2fa01bdddfbb9dcf3d521cdd5e012a74",
+    "certification": "validator_checked",
+    "relations": {
+      "intra": 2,
+      "adjacent": 2,
+      "remote": 0
+    },
+    "relation_basis": "witness_assignment",
+    "core_goals": 0,
+    "goal_mode": "fixed_singleton",
+    "goal_pool_size": 0,
+    "goals_per_target": 1,
+    "eligible_goal_union": [
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        7,
+        6
+      ]
+    ],
+    "witness_assignments": [
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        7,
+        6
+      ]
+    ],
+    "spare_goals": [],
+    "witness_kind": "sequential_single_robot",
+    "robot_activity": [
+      {
+        "move": 28,
+        "lift": 4,
+        "drop": 4,
+        "wait": 0
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 36
+      }
+    ],
+    "robot_target_ids": [
+      [
+        "b0",
+        "b1",
+        "b2",
+        "b3"
+      ],
+      []
+    ],
+    "active_robot_indices": [
+      0
+    ],
+    "active_robot_count": 1,
+    "tasks": [
+      {
+        "id": "b0",
+        "start": [
+          1,
+          1
+        ],
+        "witness_assignment": [
+          1,
+          2
+        ],
+        "eligible_goals": [
+          [
+            1,
+            2
+          ]
+        ],
+        "relation": "intra",
+        "goal_depth": 0
+      },
+      {
+        "id": "b1",
+        "start": [
+          7,
+          7
+        ],
+        "witness_assignment": [
+          7,
+          6
+        ],
+        "eligible_goals": [
+          [
+            7,
+            6
+          ]
+        ],
+        "relation": "intra",
+        "goal_depth": 0
+      },
+      {
+        "id": "b2",
+        "start": [
+          2,
+          3
+        ],
+        "witness_assignment": [
+          2,
+          5
+        ],
+        "eligible_goals": [
+          [
+            2,
+            5
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      },
+      {
+        "id": "b3",
+        "start": [
+          3,
+          5
+        ],
+        "witness_assignment": [
+          3,
+          3
+        ],
+        "eligible_goals": [
+          [
+            3,
+            3
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      }
+    ],
+    "storage": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ]
+    ],
+    "shelf_cells": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        7,
+        7
+      ]
+    ],
+    "robot_cells": [
+      [
+        0,
+        0
+      ],
+      [
+        4,
+        4
+      ]
+    ],
+    "yaml": "samples/warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0.yaml",
+    "witness": "samples/warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0.witness.plan",
+    "animation": "animations/warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0.html",
+    "planner": {
+      "seed": 0,
+      "time_limit_sec": 10,
+      "mode": "lacam",
+      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "plan_sha256": "f811358103e97beb4c3d7738ee08fda9bcbb078b672f827e7e951afb961855b5",
+      "plan": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0.planner.plan",
+      "animation": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0.html",
+      "steps": 18,
+      "metrics": {
+        "executed_makespan": 18,
+        "trace_makespan": 18,
+        "loaded_moves": 6,
+        "free_moves": 20,
+        "lift_drop": 8,
+        "anon_moves": 0,
+        "shelf_switches": 0,
+        "reversals": 0,
+        "robot_utilization": 0.16666666666666666,
+        "weighted_soc": 34.0
+      },
+      "robot_activity": [
+        {
+          "move": 13,
+          "lift": 2,
+          "drop": 2,
+          "wait": 1
+        },
+        {
+          "move": 13,
+          "lift": 2,
+          "drop": 2,
+          "wait": 1
+        }
+      ],
+      "robot_target_ids": [
+        [
+          "b2",
+          "b0"
+        ],
+        [
+          "b3",
+          "b1"
+        ]
+      ],
+      "active_robot_indices": [
+        0,
+        1
+      ],
+      "active_robot_count": 2,
+      "assignments": {
+        "b0": [
+          1,
+          2
+        ],
+        "b1": [
+          7,
+          6
+        ],
+        "b2": [
+          2,
+          5
+        ],
+        "b3": [
+          3,
+          3
+        ]
+      },
+      "tasks": [
+        {
+          "id": "b0",
+          "start": [
+            1,
+            1
+          ],
+          "assignment": [
+            1,
+            2
+          ],
+          "relation": "intra",
+          "goal_depth": 0
+        },
+        {
+          "id": "b1",
+          "start": [
+            7,
+            7
+          ],
+          "assignment": [
+            7,
+            6
+          ],
+          "relation": "intra",
+          "goal_depth": 0
+        },
+        {
+          "id": "b2",
+          "start": [
+            2,
+            3
+          ],
+          "assignment": [
+            2,
+            5
+          ],
+          "relation": "adjacent",
+          "goal_depth": 0
+        },
+        {
+          "id": "b3",
+          "start": [
+            3,
+            5
+          ],
+          "assignment": [
+            3,
+            3
+          ],
+          "relation": "adjacent",
+          "goal_depth": 0
+        }
+      ],
+      "relations": {
+        "intra": 2,
+        "adjacent": 2,
+        "remote": 0
+      },
+      "core_goals": 0,
+      "spare_goals": []
+    }
+  },
+  {
+    "name": "warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0",
+    "title": "样例 B：75% 密度 + block 内层 goal",
+    "description": "展示高密度、相邻跨区和一个需要进入 block 内层的 goal。",
+    "height": 10,
+    "width": 10,
+    "block_size": 4,
+    "aisle_width": 1,
+    "shelves_per_block": 12,
+    "cells_per_block": 16,
+    "density": 0.75,
+    "blocks": 4,
+    "robots": 4,
+    "shelves": 48,
+    "targets": 4,
+    "witness_steps": 32,
+    "witness_sha256": "76f64e7f0974aee2d6957fe158b83c442bbfabf16d7b45b647dd3415db095734",
+    "certification": "validator_checked",
+    "relations": {
+      "intra": 2,
+      "adjacent": 2,
+      "remote": 0
+    },
+    "relation_basis": "witness_assignment",
+    "core_goals": 1,
+    "goal_mode": "fixed_singleton",
+    "goal_pool_size": 0,
+    "goals_per_target": 1,
+    "eligible_goal_union": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        8,
+        8
+      ]
+    ],
+    "witness_assignments": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        8,
+        8
+      ]
+    ],
+    "spare_goals": [],
+    "witness_kind": "sequential_single_robot",
+    "robot_activity": [
+      {
+        "move": 24,
+        "lift": 4,
+        "drop": 4,
+        "wait": 0
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 32
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 32
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 32
+      }
+    ],
+    "robot_target_ids": [
+      [
+        "b0",
+        "b2",
+        "b3",
+        "b1"
+      ],
+      [],
+      [],
+      []
+    ],
+    "active_robot_indices": [
+      0
+    ],
+    "active_robot_count": 1,
+    "tasks": [
+      {
+        "id": "b0",
+        "start": [
+          1,
+          1
+        ],
+        "witness_assignment": [
+          1,
+          2
+        ],
+        "eligible_goals": [
+          [
+            1,
+            2
+          ]
+        ],
+        "relation": "intra",
+        "goal_depth": 0
+      },
+      {
+        "id": "b2",
+        "start": [
+          3,
+          4
+        ],
+        "witness_assignment": [
+          3,
+          6
+        ],
+        "eligible_goals": [
+          [
+            3,
+            6
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      },
+      {
+        "id": "b3",
+        "start": [
+          4,
+          6
+        ],
+        "witness_assignment": [
+          4,
+          4
+        ],
+        "eligible_goals": [
+          [
+            4,
+            4
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      },
+      {
+        "id": "b1",
+        "start": [
+          9,
+          9
+        ],
+        "witness_assignment": [
+          8,
+          8
+        ],
+        "eligible_goals": [
+          [
+            8,
+            8
+          ]
+        ],
+        "relation": "intra",
+        "goal_depth": 1
+      }
+    ],
+    "storage": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        1,
+        8
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
+        8
+      ],
+      [
+        3,
+        9
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        7,
+        9
+      ],
+      [
+        8,
+        1
+      ],
+      [
+        8,
+        2
+      ],
+      [
+        8,
+        3
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        8,
+        8
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        9,
+        1
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        9,
+        3
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        7
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        9,
+        9
+      ]
+    ],
+    "shelf_cells": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        1,
+        8
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
+        8
+      ],
+      [
+        3,
+        9
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        7,
+        9
+      ],
+      [
+        8,
+        1
+      ],
+      [
+        8,
+        2
+      ],
+      [
+        8,
+        3
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        9
+      ]
+    ],
+    "robot_cells": [
+      [
+        0,
+        0
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        5,
+        0
+      ]
+    ],
+    "yaml": "samples/warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0.yaml",
+    "witness": "samples/warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0.witness.plan",
+    "animation": "animations/warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0.html",
+    "planner": {
+      "seed": 0,
+      "time_limit_sec": 10,
+      "mode": "lacam",
+      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "plan_sha256": "e37df74d67ac0d66390c2fe4d05cf0a0c3b506539a1784d8de7864fac4b2a773",
+      "plan": "planner_runs/warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0.planner.plan",
+      "animation": "planner_runs/warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0.html",
+      "steps": 12,
+      "metrics": {
+        "executed_makespan": 12,
+        "trace_makespan": 12,
+        "loaded_moves": 7,
+        "free_moves": 21,
+        "lift_drop": 8,
+        "anon_moves": 0,
+        "shelf_switches": 0,
+        "reversals": 0,
+        "robot_utilization": 0.14583333333333334,
+        "weighted_soc": 36.0
+      },
+      "robot_activity": [
+        {
+          "move": 3,
+          "lift": 1,
+          "drop": 1,
+          "wait": 7
+        },
+        {
+          "move": 10,
+          "lift": 1,
+          "drop": 1,
+          "wait": 0
+        },
+        {
+          "move": 6,
+          "lift": 1,
+          "drop": 1,
+          "wait": 4
+        },
+        {
+          "move": 9,
+          "lift": 1,
+          "drop": 1,
+          "wait": 1
+        }
+      ],
+      "robot_target_ids": [
+        [
+          "b0"
+        ],
+        [
+          "b1"
+        ],
+        [
+          "b2"
+        ],
+        [
+          "b3"
+        ]
+      ],
+      "active_robot_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "active_robot_count": 4,
+      "assignments": {
+        "b0": [
+          1,
+          2
+        ],
+        "b1": [
+          8,
+          8
+        ],
+        "b2": [
+          3,
+          6
+        ],
+        "b3": [
+          4,
+          4
+        ]
+      },
+      "tasks": [
+        {
+          "id": "b0",
+          "start": [
+            1,
+            1
+          ],
+          "assignment": [
+            1,
+            2
+          ],
+          "relation": "intra",
+          "goal_depth": 0
+        },
+        {
+          "id": "b2",
+          "start": [
+            3,
+            4
+          ],
+          "assignment": [
+            3,
+            6
+          ],
+          "relation": "adjacent",
+          "goal_depth": 0
+        },
+        {
+          "id": "b3",
+          "start": [
+            4,
+            6
+          ],
+          "assignment": [
+            4,
+            4
+          ],
+          "relation": "adjacent",
+          "goal_depth": 0
+        },
+        {
+          "id": "b1",
+          "start": [
+            9,
+            9
+          ],
+          "assignment": [
+            8,
+            8
+          ],
+          "relation": "intra",
+          "goal_depth": 1
+        }
+      ],
+      "relations": {
+        "intra": 2,
+        "adjacent": 2,
+        "remote": 0
+      },
+      "core_goals": 1,
+      "spare_goals": []
+    }
+  },
+  {
+    "name": "warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0",
+    "title": "样例 C：矩形地图 + 远距离跨区任务",
+    "description": "同时包含同区、相邻跨区，以及一对方向相反的远距离任务。",
+    "height": 12,
+    "width": 20,
+    "block_size": 3,
+    "aisle_width": 1,
+    "shelves_per_block": 7,
+    "cells_per_block": 9,
+    "density": 0.7777777777777778,
+    "blocks": 15,
+    "robots": 6,
+    "shelves": 105,
+    "targets": 6,
+    "witness_steps": 110,
+    "witness_sha256": "eeaf369e54a348976f4cea3bca749d44c3adf6fe78f2cdc33dfbfbc9f83542dd",
+    "certification": "validator_checked",
+    "relations": {
+      "intra": 2,
+      "adjacent": 2,
+      "remote": 2
+    },
+    "relation_basis": "witness_assignment",
+    "core_goals": 1,
+    "goal_mode": "fixed_singleton",
+    "goal_pool_size": 0,
+    "goals_per_target": 1,
+    "eligible_goal_union": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        17
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        10,
+        3
+      ],
+      [
+        10,
+        18
+      ]
+    ],
+    "witness_assignments": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        17
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        10,
+        3
+      ],
+      [
+        10,
+        18
+      ]
+    ],
+    "spare_goals": [],
+    "witness_kind": "sequential_single_robot",
+    "robot_activity": [
+      {
+        "move": 98,
+        "lift": 6,
+        "drop": 6,
+        "wait": 0
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 110
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 110
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 110
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 110
+      },
+      {
+        "move": 0,
+        "lift": 0,
+        "drop": 0,
+        "wait": 110
+      }
+    ],
+    "robot_target_ids": [
+      [
+        "b0",
+        "b2",
+        "b3",
+        "b4",
+        "b5",
+        "b1"
+      ],
+      [],
+      [],
+      [],
+      [],
+      []
+    ],
+    "active_robot_indices": [
+      0
+    ],
+    "active_robot_count": 1,
+    "tasks": [
+      {
+        "id": "b0",
+        "start": [
+          1,
+          1
+        ],
+        "witness_assignment": [
+          1,
+          2
+        ],
+        "eligible_goals": [
+          [
+            1,
+            2
+          ]
+        ],
+        "relation": "intra",
+        "goal_depth": 0
+      },
+      {
+        "id": "b2",
+        "start": [
+          6,
+          7
+        ],
+        "witness_assignment": [
+          6,
+          9
+        ],
+        "eligible_goals": [
+          [
+            6,
+            9
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      },
+      {
+        "id": "b3",
+        "start": [
+          7,
+          9
+        ],
+        "witness_assignment": [
+          7,
+          7
+        ],
+        "eligible_goals": [
+          [
+            7,
+            7
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      },
+      {
+        "id": "b4",
+        "start": [
+          2,
+          17
+        ],
+        "witness_assignment": [
+          10,
+          3
+        ],
+        "eligible_goals": [
+          [
+            10,
+            3
+          ]
+        ],
+        "relation": "remote",
+        "goal_depth": 0
+      },
+      {
+        "id": "b5",
+        "start": [
+          9,
+          3
+        ],
+        "witness_assignment": [
+          3,
+          17
+        ],
+        "eligible_goals": [
+          [
+            3,
+            17
+          ]
+        ],
+        "relation": "remote",
+        "goal_depth": 0
+      },
+      {
+        "id": "b1",
+        "start": [
+          11,
+          19
+        ],
+        "witness_assignment": [
+          10,
+          18
+        ],
+        "eligible_goals": [
+          [
+            10,
+            18
+          ]
+        ],
+        "relation": "intra",
+        "goal_depth": 1
+      }
+    ],
+    "storage": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        1,
+        10
+      ],
+      [
+        1,
+        11
+      ],
+      [
+        1,
+        13
+      ],
+      [
+        1,
+        14
+      ],
+      [
+        1,
+        15
+      ],
+      [
+        1,
+        17
+      ],
+      [
+        1,
+        18
+      ],
+      [
+        1,
+        19
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        2,
+        11
+      ],
+      [
+        2,
+        13
+      ],
+      [
+        2,
+        14
+      ],
+      [
+        2,
+        15
+      ],
+      [
+        2,
+        17
+      ],
+      [
+        2,
+        18
+      ],
+      [
+        2,
+        19
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
+        9
+      ],
+      [
+        3,
+        10
+      ],
+      [
+        3,
+        11
+      ],
+      [
+        3,
+        13
+      ],
+      [
+        3,
+        14
+      ],
+      [
+        3,
+        15
+      ],
+      [
+        3,
+        17
+      ],
+      [
+        3,
+        18
+      ],
+      [
+        3,
+        19
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        5,
+        10
+      ],
+      [
+        5,
+        11
+      ],
+      [
+        5,
+        13
+      ],
+      [
+        5,
+        14
+      ],
+      [
+        5,
+        15
+      ],
+      [
+        5,
+        17
+      ],
+      [
+        5,
+        18
+      ],
+      [
+        5,
+        19
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        6,
+        10
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        6,
+        13
+      ],
+      [
+        6,
+        14
+      ],
+      [
+        6,
+        15
+      ],
+      [
+        6,
+        17
+      ],
+      [
+        6,
+        18
+      ],
+      [
+        6,
+        19
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        7,
+        9
+      ],
+      [
+        7,
+        10
+      ],
+      [
+        7,
+        11
+      ],
+      [
+        7,
+        13
+      ],
+      [
+        7,
+        14
+      ],
+      [
+        7,
+        15
+      ],
+      [
+        7,
+        17
+      ],
+      [
+        7,
+        18
+      ],
+      [
+        7,
+        19
+      ],
+      [
+        9,
+        1
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        9,
+        3
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        7
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        9,
+        11
+      ],
+      [
+        9,
+        13
+      ],
+      [
+        9,
+        14
+      ],
+      [
+        9,
+        15
+      ],
+      [
+        9,
+        17
+      ],
+      [
+        9,
+        18
+      ],
+      [
+        9,
+        19
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        10,
+        3
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        10,
+        7
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        10,
+        10
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        10,
+        13
+      ],
+      [
+        10,
+        14
+      ],
+      [
+        10,
+        15
+      ],
+      [
+        10,
+        17
+      ],
+      [
+        10,
+        18
+      ],
+      [
+        10,
+        19
+      ],
+      [
+        11,
+        1
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        11,
+        3
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        11,
+        7
+      ],
+      [
+        11,
+        9
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        11,
+        11
+      ],
+      [
+        11,
+        13
+      ],
+      [
+        11,
+        14
+      ],
+      [
+        11,
+        15
+      ],
+      [
+        11,
+        17
+      ],
+      [
+        11,
+        18
+      ],
+      [
+        11,
+        19
+      ]
+    ],
+    "shelf_cells": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        1,
+        10
+      ],
+      [
+        1,
+        11
+      ],
+      [
+        1,
+        13
+      ],
+      [
+        1,
+        14
+      ],
+      [
+        1,
+        15
+      ],
+      [
+        1,
+        17
+      ],
+      [
+        1,
+        18
+      ],
+      [
+        1,
+        19
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        2,
+        11
+      ],
+      [
+        2,
+        13
+      ],
+      [
+        2,
+        14
+      ],
+      [
+        2,
+        15
+      ],
+      [
+        2,
+        17
+      ],
+      [
+        2,
+        18
+      ],
+      [
+        2,
+        19
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        9
+      ],
+      [
+        3,
+        13
+      ],
+      [
+        3,
+        18
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        5,
+        10
+      ],
+      [
+        5,
+        11
+      ],
+      [
+        5,
+        13
+      ],
+      [
+        5,
+        14
+      ],
+      [
+        5,
+        15
+      ],
+      [
+        5,
+        17
+      ],
+      [
+        5,
+        18
+      ],
+      [
+        5,
+        19
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        6,
+        10
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        6,
+        13
+      ],
+      [
+        6,
+        14
+      ],
+      [
+        6,
+        15
+      ],
+      [
+        6,
+        17
+      ],
+      [
+        6,
+        18
+      ],
+      [
+        6,
+        19
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        9
+      ],
+      [
+        7,
+        10
+      ],
+      [
+        7,
+        13
+      ],
+      [
+        7,
+        17
+      ],
+      [
+        9,
+        1
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        9,
+        3
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        7
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        9,
+        11
+      ],
+      [
+        9,
+        13
+      ],
+      [
+        9,
+        14
+      ],
+      [
+        9,
+        15
+      ],
+      [
+        9,
+        17
+      ],
+      [
+        9,
+        18
+      ],
+      [
+        9,
+        19
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        10,
+        7
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        10,
+        10
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        10,
+        13
+      ],
+      [
+        10,
+        14
+      ],
+      [
+        10,
+        15
+      ],
+      [
+        10,
+        17
+      ],
+      [
+        11,
+        1
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        11,
+        9
+      ],
+      [
+        11,
+        13
+      ],
+      [
+        11,
+        17
+      ],
+      [
+        11,
+        18
+      ],
+      [
+        11,
+        19
+      ]
+    ],
+    "robot_cells": [
+      [
+        0,
+        0
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        8,
+        8
+      ],
+      [
+        4,
+        12
+      ],
+      [
+        8,
+        12
+      ],
+      [
+        4,
+        0
+      ]
+    ],
+    "yaml": "samples/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.yaml",
+    "witness": "samples/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.witness.plan",
+    "animation": "animations/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.html",
+    "planner": {
+      "seed": 0,
+      "time_limit_sec": 10,
+      "mode": "lacam",
+      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "plan_sha256": "8a103b1a80ad24ab5889d1c158c5983009d7719663c28869414b5634e7e52c4d",
+      "plan": "planner_runs/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.planner.plan",
+      "animation": "planner_runs/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.html",
+      "steps": 31,
+      "metrics": {
+        "executed_makespan": 31,
+        "trace_makespan": 31,
+        "loaded_moves": 49,
+        "free_moves": 32,
+        "lift_drop": 12,
+        "anon_moves": 0,
+        "shelf_switches": 0,
+        "reversals": 0,
+        "robot_utilization": 0.26344086021505375,
+        "weighted_soc": 93.0
+      },
+      "robot_activity": [
+        {
+          "move": 3,
+          "lift": 1,
+          "drop": 1,
+          "wait": 26
+        },
+        {
+          "move": 5,
+          "lift": 1,
+          "drop": 1,
+          "wait": 24
+        },
+        {
+          "move": 4,
+          "lift": 1,
+          "drop": 1,
+          "wait": 25
+        },
+        {
+          "move": 29,
+          "lift": 1,
+          "drop": 1,
+          "wait": 0
+        },
+        {
+          "move": 12,
+          "lift": 1,
+          "drop": 1,
+          "wait": 17
+        },
+        {
+          "move": 28,
+          "lift": 1,
+          "drop": 1,
+          "wait": 1
+        }
+      ],
+      "robot_target_ids": [
+        [
+          "b0"
+        ],
+        [
+          "b2"
+        ],
+        [
+          "b3"
+        ],
+        [
+          "b4"
+        ],
+        [
+          "b1"
+        ],
+        [
+          "b5"
+        ]
+      ],
+      "active_robot_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "active_robot_count": 6,
+      "assignments": {
+        "b0": [
+          1,
+          2
+        ],
+        "b1": [
+          10,
+          18
+        ],
+        "b2": [
+          6,
+          9
+        ],
+        "b3": [
+          7,
+          7
+        ],
+        "b4": [
+          10,
+          3
+        ],
+        "b5": [
+          3,
+          17
+        ]
+      },
+      "tasks": [
+        {
+          "id": "b0",
+          "start": [
+            1,
+            1
+          ],
+          "assignment": [
+            1,
+            2
+          ],
+          "relation": "intra",
+          "goal_depth": 0
+        },
+        {
+          "id": "b2",
+          "start": [
+            6,
+            7
+          ],
+          "assignment": [
+            6,
+            9
+          ],
+          "relation": "adjacent",
+          "goal_depth": 0
+        },
+        {
+          "id": "b3",
+          "start": [
+            7,
+            9
+          ],
+          "assignment": [
+            7,
+            7
+          ],
+          "relation": "adjacent",
+          "goal_depth": 0
+        },
+        {
+          "id": "b4",
+          "start": [
+            2,
+            17
+          ],
+          "assignment": [
+            10,
+            3
+          ],
+          "relation": "remote",
+          "goal_depth": 0
+        },
+        {
+          "id": "b5",
+          "start": [
+            9,
+            3
+          ],
+          "assignment": [
+            3,
+            17
+          ],
+          "relation": "remote",
+          "goal_depth": 0
+        },
+        {
+          "id": "b1",
+          "start": [
+            11,
+            19
+          ],
+          "assignment": [
+            10,
+            18
+          ],
+          "relation": "intra",
+          "goal_depth": 1
+        }
+      ],
+      "relations": {
+        "intra": 2,
+        "adjacent": 2,
+        "remote": 2
+      },
+      "core_goals": 1,
+      "spare_goals": []
+    }
+  },
+  {
+    "name": "warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0",
+    "title": "样例 D：共享 Goal Pool（3 件货选 4 个位置）",
+    "description": "3 件目标货架共享同一个 pool，每件货有 4 个 goal；最终需占用 3 个互异位置，并保留 1 个 spare。",
+    "height": 8,
+    "width": 8,
+    "block_size": 3,
+    "aisle_width": 1,
+    "shelves_per_block": 4,
+    "cells_per_block": 9,
+    "density": 0.4444444444444444,
+    "blocks": 4,
+    "robots": 3,
+    "shelves": 16,
+    "targets": 3,
+    "witness_steps": 9,
+    "witness_sha256": "ba755932e123c2fbbd345919982ba460232b30b5ba59c992614de7a92046ebab",
+    "certification": "validator_checked",
+    "relations": {
+      "intra": 0,
+      "adjacent": 3,
+      "remote": 0
+    },
+    "relation_basis": "witness_assignment",
+    "core_goals": 0,
+    "goal_mode": "shared_pool_slack",
+    "goal_pool_size": 4,
+    "goals_per_target": 4,
+    "eligible_goal_union": [
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        7,
+        7
+      ]
+    ],
+    "witness_assignments": [
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        5,
+        5
+      ]
+    ],
+    "spare_goals": [
+      [
+        7,
+        7
+      ]
+    ],
+    "witness_kind": "explicit_joint",
+    "robot_activity": [
+      {
+        "move": 7,
+        "lift": 1,
+        "drop": 1,
+        "wait": 0
+      },
+      {
+        "move": 6,
+        "lift": 1,
+        "drop": 1,
+        "wait": 1
+      },
+      {
+        "move": 6,
+        "lift": 1,
+        "drop": 1,
+        "wait": 1
+      }
+    ],
+    "robot_target_ids": [
+      [
+        "b0"
+      ],
+      [
+        "b2"
+      ],
+      [
+        "b1"
+      ]
+    ],
+    "active_robot_indices": [
+      0,
+      1,
+      2
+    ],
+    "active_robot_count": 3,
+    "tasks": [
+      {
+        "id": "b0",
+        "start": [
+          2,
+          3
+        ],
+        "witness_assignment": [
+          2,
+          5
+        ],
+        "eligible_goals": [
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            7,
+            7
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      },
+      {
+        "id": "b1",
+        "start": [
+          3,
+          5
+        ],
+        "witness_assignment": [
+          5,
+          5
+        ],
+        "eligible_goals": [
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            7,
+            7
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      },
+      {
+        "id": "b2",
+        "start": [
+          5,
+          3
+        ],
+        "witness_assignment": [
+          3,
+          3
+        ],
+        "eligible_goals": [
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            7,
+            7
+          ]
+        ],
+        "relation": "adjacent",
+        "goal_depth": 0
+      }
+    ],
+    "storage": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ]
+    ],
+    "shelf_cells": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        6
+      ]
+    ],
+    "robot_cells": [
+      [
+        0,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        0,
+        4
+      ]
+    ],
+    "yaml": "samples/warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0.yaml",
+    "witness": "samples/warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0.witness.plan",
+    "animation": "animations/warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0.html",
+    "planner": {
+      "seed": 0,
+      "time_limit_sec": 10,
+      "mode": "lacam",
+      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "plan_sha256": "0565ea061693c19c06ae4eafbd851bd43aa9b825bba4753bf77881407612a6c9",
+      "plan": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0.planner.plan",
+      "animation": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0.html",
+      "steps": 8,
+      "metrics": {
+        "executed_makespan": 8,
+        "trace_makespan": 8,
+        "loaded_moves": 4,
+        "free_moves": 13,
+        "lift_drop": 6,
+        "anon_moves": 0,
+        "shelf_switches": 0,
+        "reversals": 0,
+        "robot_utilization": 0.16666666666666666,
+        "weighted_soc": 23.0
+      },
+      "robot_activity": [
+        {
+          "move": 6,
+          "lift": 1,
+          "drop": 1,
+          "wait": 0
+        },
+        {
+          "move": 6,
+          "lift": 1,
+          "drop": 1,
+          "wait": 0
+        },
+        {
+          "move": 5,
+          "lift": 1,
+          "drop": 1,
+          "wait": 1
+        }
+      ],
+      "robot_target_ids": [
+        [
+          "b0"
+        ],
+        [
+          "b2"
+        ],
+        [
+          "b1"
+        ]
+      ],
+      "active_robot_indices": [
+        0,
+        1,
+        2
+      ],
+      "active_robot_count": 3,
+      "assignments": {
+        "b0": [
+          3,
+          3
+        ],
+        "b1": [
+          2,
+          5
+        ],
+        "b2": [
+          5,
+          5
+        ]
+      },
+      "tasks": [
+        {
+          "id": "b0",
+          "start": [
+            2,
+            3
+          ],
+          "assignment": [
+            3,
+            3
+          ],
+          "relation": "intra",
+          "goal_depth": 0
+        },
+        {
+          "id": "b1",
+          "start": [
+            3,
+            5
+          ],
+          "assignment": [
+            2,
+            5
+          ],
+          "relation": "intra",
+          "goal_depth": 0
+        },
+        {
+          "id": "b2",
+          "start": [
+            5,
+            3
+          ],
+          "assignment": [
+            5,
+            5
+          ],
+          "relation": "adjacent",
+          "goal_depth": 0
+        }
+      ],
+      "relations": {
+        "intra": 2,
+        "adjacent": 1,
+        "remote": 0
+      },
+      "core_goals": 0,
+      "spare_goals": [
+        [
+          7,
+          7
+        ]
+      ]
+    }
+  }
+]

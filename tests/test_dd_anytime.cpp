@@ -124,14 +124,21 @@ TEST(dd_anytime, first_solution_and_repaired_cost_are_recorded)
   auto plan = solve_carrier_lacam(ins, 2.0, 0, &st);
   ASSERT_FALSE(plan.empty());
   EXPECT_GE(st.first_solution_ms, 0) << "first-solution time not recorded";
-  EXPECT_GT(st.first_solution_soc, 0);
-  EXPECT_GT(st.best_soc, 0);
-  EXPECT_LE(st.best_soc, st.first_solution_soc)
-      << "output repair must not cost more than the raw first solution";
+  ASSERT_GE(st.first_solution_makespan, 0);
+  ASSERT_GE(st.first_solution_work_scaled, 0);
+  ASSERT_GE(st.best_makespan, 0);
+  ASSERT_GE(st.best_work_scaled, 0);
+  const PlanCost first = PlanCost::from_scaled(
+      st.first_solution_makespan, st.first_solution_work_scaled);
+  const PlanCost best =
+      PlanCost::from_scaled(st.best_makespan, st.best_work_scaled);
+  EXPECT_LE(best, first)
+      << "output repair must not worsen strict (ticks, work)";
   EXPECT_GE(st.incumbent_updates, 1);
   const double soc = plan_soc(ins, plan);
-  EXPECT_NEAR(soc, st.best_soc, 1e-6)
-      << "returned-plan accounting must match replay";
+  EXPECT_EQ(st.best_makespan, static_cast<long>(plan.size()));
+  EXPECT_EQ(st.best_work_scaled, PlanCost::from_values(0, soc).work)
+      << "returned-plan accounting must match exact fixed-point replay";
 }
 
 TEST(dd_anytime, first_incumbent_is_optimal_on_tiny_instance)
@@ -147,6 +154,28 @@ TEST(dd_anytime, first_incumbent_is_optimal_on_tiny_instance)
   ASSERT_FALSE(plan.empty());
   EXPECT_NEAR(plan_soc(ins, plan), opt, 1e-6)
       << "tiny first incumbent drifted from the brute-force optimum";
+}
+
+TEST(dd_anytime,
+     singleton_goal_uses_remaining_budget_for_an_improvement_attempt)
+{
+  auto ins = make_ins({"....", "...."}, {{1, 0}}, {{0, 1}},
+                      {{{0, 1}, {0, 3}}});
+  DDStats st;
+  const auto result =
+      solve_carrier_lacam_result(ins, 2.0, 0, &st);
+
+  ASSERT_TRUE(result.solved());
+  ASSERT_FALSE(result.plan.empty());
+  EXPECT_EQ(st.assignment_restarts, 0)
+      << "singleton goals do not need a fixed-assignment restart";
+  EXPECT_EQ(st.improvement_attempts, 1)
+      << "the verified first incumbent must still seed one bounded "
+         "anytime attempt";
+  EXPECT_LE(
+      PlanCost::from_scaled(st.best_makespan, st.best_work_scaled),
+      PlanCost::from_scaled(
+          st.first_solution_makespan, st.first_solution_work_scaled));
 }
 
 TEST(dd_anytime, admissible_h_never_exceeds_true_cost)

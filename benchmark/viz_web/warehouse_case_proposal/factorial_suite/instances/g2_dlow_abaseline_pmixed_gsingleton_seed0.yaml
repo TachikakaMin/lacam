@@ -1,0 +1,191 @@
+name: g2_dlow_abaseline_pmixed_gsingleton_seed0
+map: '............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  '
+storage_map: '............
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  ............
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  ............
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  '
+warehouse_layout:
+  map_family: g2
+  block_size: 3
+  aisle_width: 1
+  density_level: low
+  actual_density: 0.2222222222222222
+  shelves_per_block: 2
+  corridor_policy: hard_no_drop
+  block_origins:
+  - - 1
+    - 1
+  - - 1
+    - 5
+  - - 1
+    - 9
+  - - 5
+    - 1
+  - - 5
+    - 5
+  - - 5
+    - 9
+  - - 9
+    - 1
+  - - 9
+    - 5
+  - - 9
+    - 9
+factorial_design:
+  pairing_key: g2__mixed__singleton__seed0
+  pairing_seed: 991965707
+  layout_policy: nested_density_prefix
+  robot_start_policy: nested_agent_prefix
+  density_level: low
+  agent_level: baseline
+  task_profile: mixed
+  goal_mode: singleton
+task_profile:
+  relation_basis: certificate_assignment
+  relation_counts:
+    intra: 3
+    adjacent: 2
+    remote: 1
+  core_goals: 3
+  goal_mode: singleton
+  goal_pool_size: 0
+  certificate_guarantee: validator_checked
+  certificate_steps: 101
+  certificate_sha256: 5fcf01d385244c89d39c60a352277613aaa27fc10a10b018175f5f972b30eb80
+robots:
+- - 3
+  - 0
+- - 8
+  - 9
+- - 5
+  - 0
+- - 0
+  - 11
+shelves:
+- - 2
+  - 1
+- - 2
+  - 5
+- - 2
+  - 7
+- - 2
+  - 9
+- - 2
+  - 11
+- - 3
+  - 2
+- - 5
+  - 3
+- - 5
+  - 5
+- - 5
+  - 9
+- - 6
+  - 9
+- - 7
+  - 3
+- - 7
+  - 6
+- - 9
+  - 2
+- - 10
+  - 9
+- - 11
+  - 3
+- - 11
+  - 5
+- - 11
+  - 7
+- - 11
+  - 9
+targets:
+- id: b0
+  start:
+  - 2
+  - 7
+  goal:
+  - 6
+  - 2
+- id: b1
+  start:
+  - 3
+  - 2
+  goal:
+  - 2
+  - 2
+- id: b2
+  start:
+  - 7
+  - 6
+  goal:
+  - 6
+  - 10
+- id: b3
+  start:
+  - 5
+  - 5
+  goal:
+  - 7
+  - 5
+- id: b4
+  start:
+  - 11
+  - 3
+  goal:
+  - 9
+  - 1
+- id: b5
+  start:
+  - 7
+  - 3
+  goal:
+  - 5
+  - 7
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false

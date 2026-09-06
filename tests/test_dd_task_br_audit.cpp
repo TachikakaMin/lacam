@@ -333,6 +333,10 @@ TEST(dd_task_br_audit,
           ins, current, current_graph, &previous,
           &previous_guidance, &move);
   auto custody = recovered.custody_by_robot;
+  ASSERT_TRUE(custody[0].has_value());
+  const TransferId arrived_id = custody[0]->transfer_id;
+  const int arrived_endpoint = custody[0]->original_endpoint;
+  ASSERT_EQ(custody[0]->route_status, RouteStatus::ARRIVED);
   const auto ready =
       carrier_detail::ready_tasks_with_custody(
           ins, current, current_graph, custody,
@@ -342,7 +346,11 @@ TEST(dd_task_br_audit,
       ins, current, current_graph, ready,
       recovered.continuation_carrier,
       recovered.previous_loaded_move_from, custody);
-  EXPECT_FALSE(custody[0].has_value());
+  ASSERT_TRUE(custody[0].has_value());
+  EXPECT_EQ(custody[0]->transfer_id, arrived_id);
+  EXPECT_EQ(custody[0]->original_endpoint, arrived_endpoint);
+  EXPECT_EQ(custody[0]->route_status, RouteStatus::ARRIVED);
+  EXPECT_NE(custody[0]->task_id, reverse);
 
   const TAPFInstance view(ins);
   std::mt19937 mt(0);
@@ -379,6 +387,28 @@ TEST(dd_task_br_audit,
   EXPECT_EQ(
       planner.ops_scratch[0],
       Op::make_move(ins.grid.idx(0, 2)));
+
+  const std::vector<Op> forced_reverse = {
+      Op::make_move(ins.grid.idx(0, 2))};
+  const auto reversed =
+      apply_ops(ins, current, forced_reverse);
+  ASSERT_TRUE(reversed.has_value());
+  CarrierGuidance arrived_guidance;
+  arrived_guidance.upper_epoch = current_epoch;
+  arrived_guidance.custody_by_robot = custody;
+  const auto rerouted =
+      carrier_detail::recover_task_br_custody(
+          ins, *reversed, current_graph, &current,
+          &arrived_guidance, &forced_reverse);
+  ASSERT_TRUE(rerouted.custody_by_robot[0].has_value());
+  EXPECT_EQ(rerouted.custody_by_robot[0]->transfer_id, arrived_id);
+  EXPECT_EQ(
+      rerouted.custody_by_robot[0]->original_endpoint,
+      arrived_endpoint);
+  EXPECT_EQ(
+      rerouted.custody_by_robot[0]->route_status,
+      RouteStatus::OK);
+  EXPECT_NE(reversed->kappa[0], KAPPA_FREE);
 }
 
 TEST(dd_task_br_audit,
@@ -1514,7 +1544,7 @@ TEST(dd_task_br_audit,
   TAPFStats stats;
   TAPFSearchConfig config;
   config.macro_enabled = true;
-  config.stop_at_first = true;
+  config.stop_policy = TAPFStopPolicy::FIRST_FEASIBLE;
   config.defer_cleanup = true;
   TAPFPlanner planner(
       &view, nullptr, &mt, 0, 0, 0.0f, false, &stats, config);
@@ -1577,4 +1607,51 @@ TEST(dd_task_br_audit,
   EXPECT_EQ(open.front(), relaxed.get());
   EXPECT_TRUE(relaxed->queued);
   EXPECT_DOUBLE_EQ(relaxed->f, 3);
+}
+
+TEST(dd_task_br_audit,
+     lexicographically_cheaper_rearrival_reopens_a_pruned_state)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({".."});
+  ins.robots = {ins.grid.idx(0, 0)};
+  ins.finalize();
+  const TAPFInstance view(ins);
+  std::mt19937 mt(0);
+  TAPFSearchConfig config;
+  config.objective = TAPFObjective::MAKESPAN_THEN_WORK;
+  config.incumbent_init = PlanCost::from_values(5, 0);
+  TAPFPlanner planner(
+      &view, nullptr, &mt, 0, 0, 0.001f, true, nullptr, config);
+  const auto shelf = initial_shelf_state(view);
+  auto cheaper_parent = std::make_unique<TAPFNode>(
+      Config{view.G.U[ins.grid.idx(0, 0)]}, shelf, planner.D, &view,
+      std::vector<int>{-1}, TAPFAssignmentState(), nullptr);
+  auto previously_pruned = std::make_unique<TAPFNode>(
+      Config{view.G.U[ins.grid.idx(0, 1)]}, shelf, planner.D, &view,
+      std::vector<int>{-1}, TAPFAssignmentState(), nullptr);
+
+  cheaper_parent->g = PlanCost::from_values(1, 100);
+  previously_pruned->g = PlanCost::from_values(6, 0);
+  previously_pruned->h = PlanCost::from_values(1, 0);
+  previously_pruned->f =
+      previously_pruned->g + previously_pruned->h;
+  ASSERT_GE(previously_pruned->f, config.incumbent_init);
+  planner.register_outgoing_edge(
+      cheaper_parent.get(), previously_pruned.get(),
+      PlanCost::from_values(1, 0), {});
+
+  std::vector<TAPFNode*> open;
+  planner.rewrite(cheaper_parent.get(), nullptr, open);
+
+  ASSERT_EQ(open.size(), 1);
+  EXPECT_EQ(open.front(), previously_pruned.get());
+  EXPECT_EQ(
+      previously_pruned->g,
+      PlanCost::from_values(2, 100));
+  EXPECT_EQ(
+      previously_pruned->f,
+      PlanCost::from_values(3, 100));
+  EXPECT_LT(previously_pruned->f, config.incumbent_init)
+      << "smaller makespan remains eligible even with larger work";
 }

@@ -18,11 +18,15 @@ raw outputs are kept under <out>/work/ for auditability.
 
 import argparse
 import csv
+import ctypes
+from decimal import Decimal, InvalidOperation
+import fcntl
 import hashlib
 import socket
 import json
 import math
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -37,15 +41,45 @@ from ddbench.instance import load_instance
 from ddbench.validator import plan_cost, validate_plan
 
 REPO = Path(__file__).resolve().parent.parent
+BENCH = Path(__file__).resolve().parent
 CREST_BIN = REPO / "baselines/CREST/build/CREST"
 MAWR_BIN = REPO / "baselines/wh-rearrangement/build/MAWR"
 CARRIER_BIN = REPO / "build/dd_benchmark"
 MICROMAMBA = Path.home() / ".local/bin/micromamba"
 
+BENCHMARK_TIERS = {
+    "quick": {
+        "suite": BENCH / "release_benchmark.json",
+        "expected_cases": 77,
+        "requires_review": False,
+    },
+    "full": {
+        "suite": BENCH / "full_benchmark.json",
+        "expected_cases": 509,
+        "requires_review": True,
+    },
+}
+FULL_ONLY_INSTANCES = (
+    BENCH
+    / "viz_web"
+    / "warehouse_case_proposal"
+    / "factorial_suite"
+    / "instances"
+)
+
 FIELDS = [
     "instance", "family", "method", "success", "executed_makespan",
-    "weighted_soc", "loaded_moves", "free_moves", "lift_drop",
+    "weighted_soc", "weighted_work_scaled",
+    "loaded_moves", "free_moves", "lift_drop",
     "shelf_switches", "robot_utilization", "first_solution_ms",
+    "first_solution_makespan", "first_solution_soc",
+    "first_solution_work_scaled",
+    "best_makespan", "best_soc", "best_work_scaled",
+    "improvement_attempts", "improvement_candidates",
+    "improvement_improvements", "improvement_generator_failures",
+    "reference_checkpoint_hits", "reference_action_hints",
+    "reference_suffix_attempts", "reference_suffix_accepted",
+    "improvement_exit_reason",
     "reversals", "assignment_restarts", "assignment_second_solved",
     "assignment_improvements", "assignment_second_solution_ms",
     "assignment_first_soc", "assignment_second_soc",
@@ -59,14 +93,444 @@ FIELDS = [
     "custody_continuations", "zero_empty_no_ready",
     "rewire_guidance_rebuilds",
     "tau_time_ms", "guidance_time_ms",
+    "timed_transport_expansions", "timed_transport_frames",
+    "timed_transport_time_ms", "owner_handoffs",
+    "causal_waiting", "traffic_waiting",
     "deliverable_ms", "solver_runtime_ms",
     "plan_sha256",
     "runtime_sec", "status", "raw",
 ]
 
+WORK_SCALE = 1_000_000
+MAX_SOLVER_WEIGHT = 1_000_000
+MAX_INT64 = (1 << 63) - 1
 
-def provenance_info():
+
+def _objective_weight_scaled(value):
+    try:
+        decimal_value = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"invalid objective weight: {value!r}") from exc
+    if (not decimal_value.is_finite() or decimal_value < 0 or
+            decimal_value > MAX_SOLVER_WEIGHT):
+        raise ValueError(
+            "objective weight must be finite, non-negative, and <= 1e6"
+        )
+    scaled = decimal_value * WORK_SCALE
+    integral = scaled.to_integral_value()
+    if scaled != integral:
+        raise ValueError(
+            "objective weight must be exactly representable at 1e-6 scale"
+        )
+    return int(integral)
+
+
+def _reported_nonnegative_int(metrics, field):
+    raw = metrics.get(field)
+    if raw is None or re.fullmatch(r"(?:0|[1-9][0-9]*)", raw) is None:
+        raise ValueError(
+            f"solver omitted a valid non-negative integer {field}"
+        )
+    value = int(raw)
+    if value > MAX_INT64:
+        raise ValueError(f"solver reported out-of-range {field}")
+    return value
+
+
+def validate_carrier_work_metrics(metrics, cost, weights, mode):
+    """Cross-check delivered-plan work in exact integer micro-units."""
+    scaled_weights = tuple(
+        _objective_weight_scaled(value) for value in weights
+    )
+    expected = (
+        scaled_weights[0] * int(cost["loaded_moves"])
+        + scaled_weights[1] * int(cost["free_moves"])
+        + scaled_weights[2] * int(cost["lift_drop"])
+        + scaled_weights[3] * int(cost["anon_moves"])
+    )
+    if expected > MAX_INT64:
+        raise ValueError("authoritative fixed-point work exceeds int64")
+
+    reported = _reported_nonnegative_int(
+        metrics, "weighted_work_scaled"
+    )
+    if reported != expected:
+        raise ValueError(
+            "solver/Python work mismatch: "
+            f"weighted_work_scaled {reported} != {expected}"
+        )
+
+    # B0/B1 predate v5 incumbent diagnostics, but their delivered-plan
+    # accounting still crosses the same authoritative replay boundary.
+    if mode == "lacam":
+        best = _reported_nonnegative_int(metrics, "best_work_scaled")
+        if best != expected:
+            raise ValueError(
+                "solver/Python work mismatch: "
+                f"best_work_scaled {best} != {expected}"
+            )
+    return expected
+
+
+def _sha256_file(path, label):
+    # Keep procfs fd paths intact: resolve() follows a sealed memfd symlink to
+    # the descriptive but non-openable "/memfd:... (deleted)" target.
+    resolved = Path(path).expanduser().absolute()
+    try:
+        digest = hashlib.sha256(resolved.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise ValueError(f"cannot hash {label} {resolved}: {exc}") from exc
+    return resolved, digest
+
+
+def _load_review_approval(review_approval):
+    approval_path = Path(review_approval).expanduser().resolve()
+    try:
+        approval = json.loads(approval_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"cannot load independent review approval {approval_path}: {exc}"
+        ) from exc
+    if not isinstance(approval, dict):
+        raise ValueError("independent review approval must be a JSON object")
+    return approval_path, approval
+
+
+def assert_approved_binary_unchanged(approval, carrier_bin=None):
+    """Reconfirm that the approved executable bytes are still in place."""
+    expected = approval.get("binary_sha256")
+    if (not isinstance(expected, str) or
+            re.fullmatch(r"[0-9a-f]{64}", expected) is None):
+        raise ValueError(
+            "review approval binary_sha256 must be 64 lowercase hex digits"
+        )
+    _, actual = _sha256_file(
+        carrier_bin if carrier_bin is not None else CARRIER_BIN,
+        "carrier binary",
+    )
+    if actual != expected:
+        raise ValueError(
+            "review approval binary hash does not match --carrier-bin"
+        )
+    return actual
+
+
+def validate_full_review_approval(review_approval, carrier_bin=None):
+    """Validate the independent full-suite approval and return its payload."""
+    _, approval = _load_review_approval(review_approval)
+    if approval.get("schema_version") != 2:
+        raise ValueError("review approval schema_version must be 2")
+    if approval.get("decision") != "APPROVE":
+        raise ValueError("independent review decision must be APPROVE")
+    if approval.get("reviewer_model") != "openai.gpt-5.6-sol":
+        raise ValueError(
+            "independent review must use openai.gpt-5.6-sol"
+        )
+    expected_hash = hashlib.sha256(
+        BENCHMARK_TIERS["full"]["suite"].read_bytes()
+    ).hexdigest()
+    if approval.get("suite_definition_sha256") != expected_hash:
+        raise ValueError(
+            "review approval suite hash does not match full benchmark"
+        )
+    # Check the executable before the expensive corpus digest so stale or
+    # malformed binary approvals fail immediately.
+    assert_approved_binary_unchanged(approval, carrier_bin)
+    expected_corpus_hash = full_corpus_sha256()
+    if approval.get("full_corpus_sha256") != expected_corpus_hash:
+        raise ValueError(
+            "review approval corpus hash does not match full benchmark"
+        )
+    return approval
+
+
+def resolve_benchmark_tier(
+    tier, review_approval=None, carrier_bin=None
+):
+    """Resolve a fixed project benchmark tier.
+
+    The development tier is the frozen 77-case release suite.  The full tier
+    is intentionally gated by a suite-hash-bound independent review artifact,
+    so it cannot be launched accidentally while implementation is in flight.
+    """
+    try:
+        tier_definition = BENCHMARK_TIERS[tier]
+    except KeyError as exc:
+        raise ValueError(f"unknown benchmark tier: {tier}") from exc
+
+    suite = tier_definition["suite"]
+    if not tier_definition["requires_review"]:
+        return suite
+    if review_approval is None:
+        raise ValueError(
+            "full benchmark requires an independent review approval JSON"
+        )
+
+    validate_full_review_approval(
+        review_approval, carrier_bin=carrier_bin
+    )
+    return suite
+
+
+def guard_protected_suite(
+    suite_path, review_approval=None, carrier_bin=None
+):
+    """Apply the full-tier review gate even for direct suite-config paths."""
+    suite = Path(suite_path).expanduser().resolve()
+    full_suite = BENCHMARK_TIERS["full"]["suite"].resolve()
+    if suite == full_suite:
+        return resolve_benchmark_tier(
+            "full", review_approval=review_approval,
+            carrier_bin=carrier_bin,
+        )
+    return suite
+
+
+def _effective_storage_cells(ins):
+    if ins.storage_cells is not None:
+        return sorted(tuple(cell) for cell in ins.storage_cells)
+    return sorted(
+        (r, c)
+        for r in range(ins.height)
+        for c in range(ins.width)
+        if not ins.grid[r][c]
+    )
+
+
+def _yaml_cpp_int(value):
+    """Match yaml-cpp's base-detecting conversion for integer scalars."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    text = str(value).strip()
+    match = re.fullmatch(r"([+-]?)(0[xX][0-9a-fA-F]+|[0-9]+)", text)
+    if match is None:
+        raise ValueError(f"invalid yaml-cpp integer scalar: {value!r}")
+    sign = -1 if match.group(1) == "-" else 1
+    digits = match.group(2)
+    if digits.lower().startswith("0x"):
+        base = 16
+        digits = digits[2:]
+    elif len(digits) > 1 and digits.startswith("0"):
+        base = 8
+    else:
+        base = 10
+    return sign * int(digits, base)
+
+
+def _canonical_cell(cell, ins):
+    row = _yaml_cpp_int(cell[0])
+    col = _yaml_cpp_int(cell[1])
+    if not (0 <= row < ins.height and 0 <= col < ins.width):
+        raise ValueError(
+            f"coordinate outside grid: {(row, col)} for "
+            f"{ins.height}x{ins.width}"
+        )
+    return (row, col)
+
+
+def semantic_case_fingerprint(path):
+    """Hash normalized planning semantics, excluding YAML presentation."""
+    ins = load_instance(path)
+    payload = {
+        "grid": ins.grid,
+        "storage_cells": [
+            list(cell) for cell in _effective_storage_cells(ins)
+        ],
+        # Robot order is semantic because robots are labeled.
+        "robots": [
+            list(_canonical_cell(cell, ins)) for cell in ins.robots
+        ],
+        # Shelves are anonymous except for target identities.
+        "shelves": [
+            list(cell)
+            for cell in sorted(
+                {_canonical_cell(cell, ins) for cell in ins.shelves}
+            )
+        ],
+        "targets": [
+            {
+                "start": list(_canonical_cell(target.start, ins)),
+                "eligible_goals": [
+                    list(cell)
+                    for cell in sorted(
+                        {
+                            _canonical_cell(goal, ins)
+                            for goal in target.eligible_goals()
+                        }
+                    )
+                ],
+            }
+            # Carrier ignores YAML target `id`, but target list order defines
+            # the internal target indices and therefore remains significant.
+            for target in ins.targets
+        ],
+    }
+    text = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def corpus_sha256_for_cases(cases):
+    """Digest normalized cases while preserving family and multiplicity."""
+    entries = sorted(
+        (family, semantic_case_fingerprint(path))
+        for path, family in cases
+    )
+    text = json.dumps(entries, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def full_corpus_sha256():
+    """Digest all 509 normalized cases while preserving multiplicity."""
+    _, cases, _ = discover_suite_cases(
+        BENCHMARK_TIERS["full"]["suite"]
+    )
+    return corpus_sha256_for_cases(cases)
+
+
+_MEMFD_CREATE_SYSCALL = {
+    "x86_64": 319,
+    "aarch64": 279,
+}
+_MFD_CLOEXEC = 0x0001
+_MFD_ALLOW_SEALING = 0x0002
+_F_ADD_SEALS = 1033
+_F_SEAL_ALL_WRITES = 0x0001 | 0x0002 | 0x0004 | 0x0008
+
+
+def _sealed_memfd(name, data, executable=False):
+    """Create a Linux sealed in-memory file and return ``(fd, path)``."""
+    syscall_number = _MEMFD_CREATE_SYSCALL.get(platform.machine())
+    if syscall_number is None:
+        raise ValueError(
+            "approved full benchmark requires Linux memfd sealing"
+        )
+    libc = ctypes.CDLL(None, use_errno=True)
+    syscall = libc.syscall
+    syscall.restype = ctypes.c_long
+    fd = syscall(
+        ctypes.c_long(syscall_number),
+        ctypes.c_char_p(name.encode("utf-8")[:200]),
+        ctypes.c_uint(_MFD_CLOEXEC | _MFD_ALLOW_SEALING),
+    )
+    if fd < 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error))
+    try:
+        view = memoryview(data)
+        written = 0
+        while written < len(view):
+            count = os.write(fd, view[written:])
+            if count <= 0:
+                raise OSError("short write while creating sealed snapshot")
+            written += count
+        os.fchmod(fd, 0o500 if executable else 0o400)
+        fcntl.fcntl(fd, _F_ADD_SEALS, _F_SEAL_ALL_WRITES)
+        return fd, Path(f"/proc/{os.getpid()}/fd/{fd}")
+    except Exception:
+        os.close(fd)
+        raise
+
+
+class ApprovedExecutionSnapshot:
+    """Sealed binary and YAML bytes used by an approved full run."""
+
+    def __init__(self):
+        self._fds = []
+        self.binary_path = None
+        self.binary_sha256 = ""
+        self.corpus_sha256 = ""
+        self.cases = []
+
+    def add(self, name, data, executable=False):
+        fd, path = _sealed_memfd(name, data, executable=executable)
+        self._fds.append(fd)
+        return path
+
+    def close(self):
+        while self._fds:
+            os.close(self._fds.pop())
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+
+def create_approved_execution_snapshot(cases, carrier_bin, approval):
+    """Freeze exactly the approved executable and testcase semantics."""
+    snapshot = ApprovedExecutionSnapshot()
+    try:
+        binary_data = Path(carrier_bin).read_bytes()
+        snapshot.binary_sha256 = hashlib.sha256(binary_data).hexdigest()
+        if snapshot.binary_sha256 != approval.get("binary_sha256"):
+            raise ValueError(
+                "review approval binary hash changed before snapshot"
+            )
+        snapshot.binary_path = snapshot.add(
+            "approved-dd-benchmark", binary_data, executable=True
+        )
+
+        semantic_cases = []
+        for index, (path, family) in enumerate(cases):
+            original = Path(path)
+            data = original.read_bytes()
+            sealed_path = snapshot.add(
+                f"approved-case-{index}-{original.name}", data
+            )
+            snapshot.cases.append(
+                (sealed_path, family, original.stem)
+            )
+            semantic_cases.append((sealed_path, family))
+        snapshot.corpus_sha256 = corpus_sha256_for_cases(
+            semantic_cases
+        )
+        if snapshot.corpus_sha256 != approval.get(
+                "full_corpus_sha256"):
+            raise ValueError(
+                "review approval corpus hash changed before snapshot"
+            )
+        return snapshot
+    except Exception:
+        snapshot.close()
+        raise
+
+
+def guard_full_only_cases(
+    cases, review_approval=None, carrier_bin=None
+):
+    """Require review for any copied, renamed, or partial full-only corpus."""
+    protected_hashes = {
+        semantic_case_fingerprint(path)
+        for path in FULL_ONLY_INSTANCES.glob("*.yaml")
+        if path.is_file()
+    }
+    matched = [
+        Path(path)
+        for path, _ in cases
+        if semantic_case_fingerprint(path) in protected_hashes
+    ]
+    if matched:
+        resolve_benchmark_tier(
+            "full", review_approval=review_approval,
+            carrier_bin=carrier_bin,
+        )
+    elif review_approval is not None:
+        raise ValueError(
+            "review approval is only valid when running full-only cases"
+        )
+    return matched
+
+
+def provenance_info(carrier_bin=None):
     """R6 (debug.md §10): commit, binary hash and host for timing.json."""
+    binary_path = Path(
+        CARRIER_BIN if carrier_bin is None else carrier_bin
+    )
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"], capture_output=True, text=True,
@@ -74,10 +538,10 @@ def provenance_info():
     except Exception:  # noqa: BLE001
         commit = "unknown"
     try:
-        binary_sha = hashlib.sha256(CARRIER_BIN.read_bytes()).hexdigest()
+        binary_sha = hashlib.sha256(binary_path.read_bytes()).hexdigest()
     except OSError:
         binary_sha = ""
-    return {"git_commit": commit, "binary_path": str(CARRIER_BIN),
+    return {"git_commit": commit, "binary_path": str(binary_path),
             "binary_sha256": binary_sha,
             "host": socket.gethostname()}
 
@@ -113,7 +577,8 @@ def load_suite_definition(path):
     """Load a protected benchmark-suite definition."""
     path = Path(path).expanduser().resolve()
     try:
-        definition = json.loads(path.read_text())
+        raw = path.read_bytes()
+        definition = json.loads(raw.decode("utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot load suite definition {path}: {exc}") from exc
     if definition.get("schema_version") != 1:
@@ -126,6 +591,7 @@ def load_suite_definition(path):
     if not isinstance(groups, list) or not groups:
         raise ValueError("suite definition requires at least one group")
     definition["_definition_path"] = str(path)
+    definition["_definition_sha256"] = hashlib.sha256(raw).hexdigest()
     return definition
 
 
@@ -366,7 +832,7 @@ def row_natcbs(ins, name, family, work, timeout):
                 status=st, raw=(out + err)[-150:].replace("\n", " "))
 
 
-def parse_carrier_plan(path):
+def parse_carrier_plan(path, allow_empty=False):
     path = Path(path)
     if not path.is_file():
         raise ValueError("solver reported success without a plan file")
@@ -397,13 +863,14 @@ def parse_carrier_plan(path):
                     f"line {line_no}: invalid action token {token!r}"
                 )
         plan.append(joint)
-    if not plan:
+    if not plan and not allow_empty:
         raise ValueError("solver reported success with an empty plan")
     return plan
 
 
 def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
-                env=None, weights=(1.0, 1.0, 1.0, 1.0)):
+                env=None, weights=(1.0, 1.0, 1.0, 1.0),
+                carrier_bin=None):
     """Carrier-LaCAM (C++): plan re-validated by the authoritative Python
     two-deck validator; unified metrics via plan_cost (same as b4)."""
     from ddbench.validator import apply_joint_action, initial_state, is_goal
@@ -415,13 +882,16 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
         plan_out.unlink()
     t0 = time.time()
     env = dict(os.environ) if env is None else dict(env)
+    executable = Path(
+        CARRIER_BIN if carrier_bin is None else carrier_bin
+    )
     for key, value in zip(
         ("DD_ALPHA", "DD_BETA", "DD_GAMMA", "DD_DELTA"), weights
     ):
         env[key] = str(value)
     try:
         p = subprocess.run(
-            [str(CARRIER_BIN), str(path), str(timeout), str(plan_out), "0",
+            [str(executable), str(path), str(timeout), str(plan_out), "0",
              mode],
             capture_output=True, text=True, timeout=timeout, env=env,
         )
@@ -456,26 +926,77 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                     raw=str(e))
     # authoritative re-validation
     try:
-        plan = parse_carrier_plan(plan_out)
+        plan = parse_carrier_plan(plan_out, allow_empty=True)
         s = initial_state(ins)
         for joint in plan:
             s = apply_joint_action(ins, s, joint)
         if not is_goal(ins, s):
             raise ValueError("final state is not a goal")
+        c = plan_cost(ins, plan, *weights)
+        try:
+            reported_makespan = int(metrics["makespan"])
+        except (KeyError, ValueError) as exc:
+            raise ValueError("solver omitted a valid integer makespan") from exc
+        if reported_makespan != c["executed_makespan"]:
+            raise ValueError(
+                "solver/Python makespan mismatch: "
+                f"{reported_makespan} != {c['executed_makespan']}"
+            )
+        work_scaled = validate_carrier_work_metrics(
+            metrics, c, weights, mode
+        )
     except Exception as e:  # noqa: BLE001
         return dict(instance=name, family=family, method=method, success=0,
                     executed_makespan="", weighted_soc="", loaded_moves="",
                     free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
                     status="invalid_plan", raw=str(e)[:200])
-    c = plan_cost(ins, plan, *weights)
     return dict(instance=name, family=family, method=method, success=1,
                 executed_makespan=c["executed_makespan"],
-                weighted_soc=c["weighted_soc"], loaded_moves=c["loaded_moves"],
+                weighted_soc=c["weighted_soc"],
+                weighted_work_scaled=work_scaled,
+                loaded_moves=c["loaded_moves"],
                 free_moves=c["free_moves"], lift_drop=c["lift_drop"],
                 shelf_switches=c["shelf_switches"],
                 reversals=c["reversals"],
                 robot_utilization=round(c["robot_utilization"], 4),
                 first_solution_ms=metrics.get("first_solution_ms", ""),
+                first_solution_makespan=metrics.get(
+                    "first_solution_makespan", ""
+                ),
+                first_solution_soc=metrics.get("first_solution_soc", ""),
+                first_solution_work_scaled=metrics.get(
+                    "first_solution_work_scaled", ""
+                ),
+                best_makespan=metrics.get("best_makespan", ""),
+                best_soc=metrics.get("best_soc", ""),
+                best_work_scaled=metrics.get("best_work_scaled", ""),
+                improvement_attempts=metrics.get(
+                    "improvement_attempts", ""
+                ),
+                improvement_candidates=metrics.get(
+                    "improvement_candidates", ""
+                ),
+                improvement_improvements=metrics.get(
+                    "improvement_improvements", ""
+                ),
+                improvement_generator_failures=metrics.get(
+                    "improvement_generator_failures", ""
+                ),
+                reference_checkpoint_hits=metrics.get(
+                    "reference_checkpoint_hits", ""
+                ),
+                reference_action_hints=metrics.get(
+                    "reference_action_hints", ""
+                ),
+                reference_suffix_attempts=metrics.get(
+                    "reference_suffix_attempts", ""
+                ),
+                reference_suffix_accepted=metrics.get(
+                    "reference_suffix_accepted", ""
+                ),
+                improvement_exit_reason=metrics.get(
+                    "improvement_exit_reason", ""
+                ),
                 assignment_restarts=metrics.get("assignment_restarts", ""),
                 assignment_second_solved=metrics.get(
                     "assignment_second_solved", ""
@@ -538,6 +1059,18 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 ),
                 tau_time_ms=metrics.get("tau_time_ms", ""),
                 guidance_time_ms=metrics.get("guidance_time_ms", ""),
+                timed_transport_expansions=metrics.get(
+                    "timed_transport_expansions", ""
+                ),
+                timed_transport_frames=metrics.get(
+                    "timed_transport_frames", ""
+                ),
+                timed_transport_time_ms=metrics.get(
+                    "timed_transport_time_ms", ""
+                ),
+                owner_handoffs=metrics.get("owner_handoffs", ""),
+                causal_waiting=metrics.get("causal_waiting", ""),
+                traffic_waiting=metrics.get("traffic_waiting", ""),
                 deliverable_ms=metrics.get("deliverable_ms", ""),
                 solver_runtime_ms=metrics.get("runtime_ms", ""),
                 plan_sha256=hashlib.sha256(
@@ -546,28 +1079,27 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
 
 
 def run_one(task):
-    """Top-level worker (picklable): task = (path, family, method, work,
-    timeout, natcbs_max_cells, subopt, weights)."""
-    path, family, method, work, timeout, natcbs_max, subopt, weights = task
+    """Top-level worker over one immutable case/method task."""
+    (path, name, family, method, work, timeout, natcbs_max, subopt,
+     weights, carrier_bin) = task
     ins = load_instance(path)
-    name = Path(path).stem
     work = Path(work)
     if method == "b4":
         return row_b4(ins, name, family, timeout, weights)
     if method == "carrier":
         return row_carrier(
             ins, path, name, family, work, timeout, "lacam",
-            weights=weights,
+            weights=weights, carrier_bin=carrier_bin,
         )
     if method == "carrier_b0":
         return row_carrier(
             ins, path, name, family, work, timeout, "b0",
-            weights=weights,
+            weights=weights, carrier_bin=carrier_bin,
         )
     if method == "carrier_b1":
         return row_carrier(
             ins, path, name, family, work, timeout, "b1",
-            weights=weights,
+            weights=weights, carrier_bin=carrier_bin,
         )
     if method == "crest_base":
         return row_crest(ins, name, family, work, timeout, False, subopt)
@@ -595,6 +1127,17 @@ def main():
         "--suite-config",
         help="protected JSON suite definition; mutually exclusive with "
         "--instances",
+    )
+    ap.add_argument(
+        "--benchmark-tier",
+        choices=sorted(BENCHMARK_TIERS),
+        help="fixed project tier: quick=77 development cases; "
+        "full=509 post-review cases",
+    )
+    ap.add_argument(
+        "--review-approval",
+        type=Path,
+        help="APPROVE JSON required by --benchmark-tier full",
     )
     ap.add_argument("--out-dir", default="results")
     ap.add_argument("--methods", nargs="+",
@@ -625,8 +1168,45 @@ def main():
     )
     args = ap.parse_args()
     CARRIER_BIN = Path(args.carrier_bin).expanduser().resolve()
-    if args.instances and args.suite_config:
-        ap.error("--instances and --suite-config are mutually exclusive")
+    selected_sources = sum(
+        value is not None
+        for value in (
+            args.instances,
+            args.suite_config,
+            args.benchmark_tier,
+        )
+    )
+    if selected_sources > 1:
+        ap.error(
+            "--instances, --suite-config, and --benchmark-tier are "
+            "mutually exclusive"
+        )
+
+    tier_name = args.benchmark_tier
+    if tier_name is not None:
+        try:
+            args.suite_config = str(
+                resolve_benchmark_tier(
+                    tier_name,
+                    review_approval=args.review_approval,
+                    carrier_bin=CARRIER_BIN,
+                )
+            )
+        except ValueError as exc:
+            ap.error(str(exc))
+    elif args.suite_config is not None:
+        try:
+            args.suite_config = str(
+                guard_protected_suite(
+                    args.suite_config,
+                    review_approval=args.review_approval,
+                    carrier_bin=CARRIER_BIN,
+                )
+            )
+        except ValueError as exc:
+            ap.error(str(exc))
+    elif args.review_approval is not None and args.instances is None:
+        ap.error("--review-approval requires --benchmark-tier full")
 
     suite_timing = None
     if args.suite_config:
@@ -677,11 +1257,35 @@ def main():
         suite_timing = {
             "name": definition["name"],
             "definition_path": str(definition_path),
-            "definition_sha256": hashlib.sha256(
-                definition_path.read_bytes()
-            ).hexdigest(),
+            "definition_sha256": definition["_definition_sha256"],
             "groups": group_counts,
         }
+        if tier_name is not None:
+            expected_cases = BENCHMARK_TIERS[tier_name]["expected_cases"]
+            if len(cases) != expected_cases:
+                ap.error(
+                    f"{tier_name} benchmark has {len(cases)} cases, "
+                    f"expected {expected_cases}"
+                )
+            suite_timing["tier"] = tier_name
+            suite_timing["review_approval"] = (
+                str(args.review_approval.resolve())
+                if args.review_approval is not None
+                else None
+            )
+            if tier_name == "full":
+                try:
+                    _, quick_cases, _ = discover_suite_cases(
+                        BENCHMARK_TIERS["quick"]["suite"]
+                    )
+                except ValueError as exc:
+                    ap.error(str(exc))
+                quick_names = {path.stem for path, _ in quick_cases}
+                full_names = {path.stem for path, _ in cases}
+                if not quick_names < full_names:
+                    ap.error(
+                        "full benchmark must be a strict superset of quick"
+                    )
     else:
         root = Path(args.instances or "instances")
         files = sorted(root.glob("*/*.yaml"))
@@ -693,6 +1297,16 @@ def main():
         jobs = args.jobs if args.jobs is not None else 1
         weights = tuple(args.weights)
 
+    try:
+        full_only_cases = guard_full_only_cases(
+            cases, review_approval=args.review_approval,
+            carrier_bin=CARRIER_BIN,
+        )
+    except ValueError as exc:
+        ap.error(str(exc))
+    if suite_timing is not None:
+        suite_timing["full_only_case_count"] = len(full_only_cases)
+
     if any(m in {"carrier", "carrier_b0", "carrier_b1"}
            for m in methods):
         if not CARRIER_BIN.is_file() or not os.access(CARRIER_BIN, os.X_OK):
@@ -703,6 +1317,40 @@ def main():
         ap.error("non-unit --weights cannot be mixed with native-objective "
                  "external methods")
 
+    active_full_approval = None
+    execution_snapshot = None
+    active_carrier_bin = CARRIER_BIN
+    full_suite_run = (
+        args.suite_config is not None and
+        Path(args.suite_config).resolve() ==
+        BENCHMARK_TIERS["full"]["suite"].resolve()
+    )
+    if full_only_cases:
+        try:
+            _, active_full_approval = _load_review_approval(
+                args.review_approval
+            )
+            # Reconfirm immediately before creating work or dispatching jobs.
+            assert_approved_binary_unchanged(
+                active_full_approval, CARRIER_BIN
+            )
+            if full_suite_run:
+                if (suite_timing is None or
+                        suite_timing["definition_sha256"] !=
+                        active_full_approval[
+                            "suite_definition_sha256"]):
+                    raise ValueError(
+                        "full suite changed after review validation"
+                    )
+                execution_snapshot = (
+                    create_approved_execution_snapshot(
+                        cases, CARRIER_BIN, active_full_approval
+                    )
+                )
+                active_carrier_bin = execution_snapshot.binary_path
+        except ValueError as exc:
+            ap.error(str(exc))
+
     out = Path(args.out_dir)
     ensure_out_dir(out, args.force)  # R6: no silent overwrites
     work = out / "work"
@@ -711,10 +1359,18 @@ def main():
     if not cases:
         print("no instances found", file=sys.stderr)
         sys.exit(1)
+    if execution_snapshot is not None:
+        case_specs = execution_snapshot.cases
+    else:
+        case_specs = [
+            (Path(path), family, Path(path).stem)
+            for path, family in cases
+        ]
     tasks = [
-        (str(path), family, method, str(work), args.timeout,
-         args.natcbs_max_cells, args.suboptimality, weights)
-        for path, family in cases
+        (str(path), name, family, method, str(work), args.timeout,
+         args.natcbs_max_cells, args.suboptimality, weights,
+         str(active_carrier_bin))
+        for path, family, name in case_specs
         for method in methods
     ]
 
@@ -741,8 +1397,6 @@ def main():
     wall = time.time() - t_start
 
     rows.sort(key=lambda r: (r["instance"], r["method"]))
-    out.mkdir(parents=True, exist_ok=True)
-    write_rows(out / "rows.csv", rows)
 
     # summary + timing
     from collections import defaultdict
@@ -757,6 +1411,33 @@ def main():
     for m, (s, n, tt) in sorted(agg.items()):
         print(f"{m}: {s}/{n}  solver_time_sum={tt:.1f}s", flush=True)
         summary[m] = {"solved": s, "total": n, "solver_time_sum_sec": round(tt, 1)}
+    if active_full_approval is not None:
+        try:
+            assert_approved_binary_unchanged(
+                active_full_approval, active_carrier_bin
+            )
+            if execution_snapshot is not None:
+                snapshot_cases = [
+                    (path, family)
+                    for path, family, _ in execution_snapshot.cases
+                ]
+                if (corpus_sha256_for_cases(snapshot_cases) !=
+                        active_full_approval["full_corpus_sha256"]):
+                    raise ValueError(
+                        "sealed full corpus changed before publication"
+                    )
+        except ValueError as exc:
+            ap.error(str(exc))
+    provenance = provenance_info(active_carrier_bin)
+    if execution_snapshot is not None:
+        provenance["binary_path"] = str(CARRIER_BIN)
+        provenance["execution_snapshot"] = "sealed_linux_memfd"
+    if (active_full_approval is not None and
+            provenance["binary_sha256"] !=
+            active_full_approval["binary_sha256"]):
+        ap.error(
+            "provenance binary hash changed after full review validation"
+        )
     timing = {
         "wall_time_sec": round(wall, 1),
         "jobs": jobs,
@@ -770,12 +1451,16 @@ def main():
             "delta": weights[3],
         },
         "following": "allowed",
-        "provenance": provenance_info(),
+        "provenance": provenance,
         "methods": summary,
     }
     if suite_timing is not None:
         timing["suite"] = suite_timing
+    out.mkdir(parents=True, exist_ok=True)
+    write_rows(out / "rows.csv", rows)
     (out / "timing.json").write_text(json.dumps(timing, indent=2))
+    if execution_snapshot is not None:
+        execution_snapshot.close()
     print(f"wall_time={wall:.1f}s jobs={jobs}", flush=True)
     print(f"rows written to {out / 'rows.csv'}", flush=True)
 

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrier-LaCAM v5 最终汇报</title>
+<style>
+:root {
+  --bg:#07101c; --panel:#0d1b2b; --line:#25425f; --text:#edf6ff;
+  --muted:#9db0c3; --cyan:#2dd4bf; --blue:#60a5fa;
+  --amber:#fbbf24; --red:#fb7185; --violet:#a78bfa;
+}
+* { box-sizing:border-box; }
+body { margin:0; color:var(--text); background:
+  radial-gradient(circle at 12% 0,#16365b 0,transparent 34rem),
+  radial-gradient(circle at 95% 20%,#123e3f 0,transparent 30rem),var(--bg);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.65; }
+main { max-width:1180px; margin:auto; padding:30px 22px 56px; }
+a { color:#8ec5ff; }
+h1 { font-size:clamp(32px,5vw,58px); line-height:1.08; margin:8px 0 12px; }
+h2 { margin:34px 0 12px; font-size:24px; }
+h3 { margin:0 0 8px; font-size:17px; }
+p { color:var(--muted); }
+.eyebrow { color:var(--cyan); font-weight:800; letter-spacing:.13em;
+  text-transform:uppercase; font-size:12px; }
+.nav { display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 24px; }
+.nav a,.button { text-decoration:none; border:1px solid var(--line);
+  border-radius:10px; padding:9px 12px; background:#0a1827; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:13px; margin:22px 0; }
+.card,.panel { border:1px solid var(--line); border-radius:16px;
+  background:linear-gradient(145deg,#11243aee,#091725ee);
+  box-shadow:0 18px 45px #0004; }
+.card { padding:17px; }
+.card small { color:var(--muted); text-transform:uppercase;
+  letter-spacing:.07em; }
+.card b { display:block; font-size:30px; margin-top:4px; }
+.panel { padding:20px; margin:15px 0; }
+.good { color:var(--cyan); } .warn { color:var(--amber); }
+.bad { color:var(--red); } .muted { color:var(--muted); }
+.flow { display:grid; grid-template-columns:repeat(5,1fr); gap:9px;
+  align-items:stretch; margin:18px 0; }
+.step { border:1px solid var(--line); border-radius:12px; padding:13px;
+  background:#0a1827; font-size:13px; }
+.step b { display:block; color:#dff5ff; margin-bottom:5px; }
+.arrow { color:var(--cyan); }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+.callout { border-left:4px solid var(--cyan); padding:11px 15px;
+  background:#0a1b2c; border-radius:0 12px 12px 0; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { border-bottom:1px solid #1d3852; padding:9px 8px; text-align:right; }
+th:first-child,td:first-child { text-align:left; }
+th { color:#bdd1e5; }
+.table-wrap { overflow:auto; }
+code { color:#c4e7ff; overflow-wrap:anywhere; }
+ul { padding-left:21px; }
+li { margin:7px 0; color:#cbd9e6; }
+.foot { margin-top:34px; color:var(--muted); font-size:12px; }
+@media(max-width:820px) {
+  .two { grid-template-columns:1fr; }
+  .flow { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Carrier-LaCAM v5 · 2026-09-05</div>
+  <h1>让仓库机器人先处理“最堵的那一步”</h1>
+  <p>这份报告面向第一次接触多机器人规划的读者：先讲清问题，再给实现、
+  证据和仍未解决的地方。算法没有另起炉灶，而是在原 LaCAM-TAPF 的同一条
+  搜索与执行路径里增加货架身份、因果准备、时序协调和同控制器改进。</p>
+  <div class="nav">
+    <a href="../index.html">可视化首页</a>
+    <a href="../full_benchmark_v5_854df1_20260905/index.html">完整 full dashboard</a>
+    <a href="../warehouse_case_proposal/index.html">432-case testcase 提案</a>
+    <a href="../warehouse_case_proposal/planner_runs/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.html">播放 Testcase C</a>
+  </div>
+
+  <section class="cards">
+    <div class="card"><small>正式 full</small><b class="good">479/509</b>
+      <span class="muted">94.1% solved</span></div>
+    <div class="card"><small>新增 factorial</small><b class="good">432/432</b>
+      <span class="muted">432 个受保护随机配对案例</span></div>
+    <div class="card"><small>原 quick 子集</small><b>47/77</b>
+      <span class="muted">成功集合与 release baseline 相同</span></div>
+    <div class="card"><small>Testcase C</small><b>T=31, W=93</b>
+      <span class="muted">达到 31 拍 makespan 下界</span></div>
+    <div class="card"><small>代码验证</small><b>285+155</b>
+      <span class="muted">C++ + Python tests 全绿</span></div>
+  </section>
+
+  <h2>先看结论</h2>
+  <div class="panel">
+    <ul>
+      <li><b class="good">正确性与覆盖：</b>正式 full 为 479/509；
+        新增 factorial 为 432/432，30 个失败全部是原
+        quick 中的大图 timeout：g20x20 timeout×6；g40x40 timeout×8；g80x80 timeout×16。</li>
+      <li><b class="good">主要收益：</b>相对隔离保存的 pre-v5 历史 full，
+        共同成功例的 makespan 几何比为 0.801
+        （小于 1 更好），B/E/W=348/85/46。</li>
+      <li><b class="warn">明确代价：</b>次级 work 几何比为
+        1.028，B/E/W=136/88/255；wall time 从
+        49.2s 增至 295.6s，约 6.0 倍。</li>
+      <li><b class="warn">不能夸大：</b>E1/E2 在 quick corpus 上没有证明聚合
+        质量收益；E4 确实改善若干方案，但消耗更多运行时间。</li>
+    </ul>
+  </div>
+
+  <h2>问题到底是什么？</h2>
+  <div class="two">
+    <div class="panel">
+      <h3>两个目标，先后有别</h3>
+      <p><b>T（makespan）</b>是最后一个任务完成的拍数，先最小化它；
+      <b>W（work）</b>是搬货、空驶、Lift/Drop 等动作的加权总量，只在 T
+      相同的时候比较。实现使用 10<sup>-6</sup> 定点整数，避免浮点误判。</p>
+    </div>
+    <div class="panel">
+      <h3>最难的是“搬到一半”</h3>
+      <p>货架进入通道后，当前局部任务可能因重新编图而消失，但物理上的
+      货架仍在机器人手里。v5 用稳定的 TransferId 和 custody 记住“谁在搬
+      哪个货架、最终放到哪里”，路线暂时不可用也不会把任务当作不存在。</p>
+    </div>
+  </div>
+
+  <h2>仍是单一路径，只增加必要机制</h2>
+  <div class="flow">
+    <div class="step"><b>1 · PlanCost(T,W)</b>首次完成前缀与严格词典序</div>
+    <div class="step"><b>2 · TransferId</b>跨 epoch 保留货架与搬运身份</div>
+    <div class="step"><b>3 · 因果准备</b>前驱正在清障时，下游可先靠近</div>
+    <div class="step"><b>4 · 时序协调</b>同一通道可错时复用，不做永久封路</div>
+    <div class="step"><b>5 · 有界改进</b>同一控制器内尝试更小的 (T,W)</div>
+  </div>
+  <p class="callout">这些机制都接在原来的节点扩展、constraint tree、
+  <code>funcPIBT()</code>、<code>apply_ops()</code>、两遍候选、repair
+  和 final replay 上；没有平行 planner、实例特判或 legacy fallback。</p>
+
+  <h2>一个具体例子：Testcase C</h2>
+  <div class="panel">
+    <p>6 台机器人要搬 6 个目标货架。旧的局部策略容易把通道里的货架视为
+    “任务已经变了”，后续机器人也不知道能否提前准备。当前 production
+    得到 <b>T=31, W=93</b>，共 49 次 loaded move、
+    32 次 free move、12 次 Lift/Drop，
+    0 anonymous move、0 reversal。W 不宣称最优。</p>
+    <a class="button" href="../warehouse_case_proposal/planner_runs/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.html">
+      打开逐帧动画</a>
+  </div>
+
+  <h2>固定 quick 77：相对 release baseline</h2>
+  <div class="table-wrap panel">
+    <table>
+      <thead><tr><th>指标</th><th>better/equal/worse</th>
+        <th>baseline → v5</th><th>几何比</th></tr></thead>
+      <tbody>
+        <tr><td>Makespan T</td><td>29/3/15</td>
+          <td>19229 → 19749</td><td>0.940512</td></tr>
+        <tr><td>Work W</td><td>14/4/29</td>
+          <td>49014 → 54627</td><td>1.064569</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>两版都是 47/77，成功集合完全相同。多数共同实例
+  的 T 更小，但 T 总和、W 和运行时间并非全面改善，所以不声称逐例单调。</p>
+
+  <h2>正式 full 509：新增案例看到了什么？</h2>
+  <div class="two">
+    <div class="panel table-wrap">
+      <h3>地图规模</h3>
+      <table><thead><tr><th>组</th><th>solved</th><th>平均 T</th><th>平均 W</th></tr></thead>
+      <tbody><tr><td>g1</td><td>72/72</td><td>16.3</td><td>39.9</td></tr>
+<tr><td>g2</td><td>72/72</td><td>21.9</td><td>75.1</td></tr>
+<tr><td>g3</td><td>72/72</td><td>24.8</td><td>112.8</td></tr>
+<tr><td>g4</td><td>72/72</td><td>30.3</td><td>195.2</td></tr>
+<tr><td>g5</td><td>72/72</td><td>37.7</td><td>312.9</td></tr>
+<tr><td>g6</td><td>72/72</td><td>59.1</td><td>519.2</td></tr></tbody></table>
+    </div>
+    <div class="panel table-wrap">
+      <h3>机器人数量</h3>
+      <table><thead><tr><th>组</th><th>solved</th><th>平均 T</th><th>平均 W</th></tr></thead>
+      <tbody><tr><td>baseline</td><td>108/108</td><td>32.8</td><td>219.4</td></tr>
+<tr><td>机器人≈任务</td><td>108/108</td><td>26.9</td><td>209.9</td></tr>
+<tr><td>机器人偏少</td><td>108/108</td><td>41.5</td><td>224.3</td></tr>
+<tr><td>机器人偏多</td><td>108/108</td><td>25.6</td><td>183.2</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="two">
+    <div class="panel table-wrap">
+      <h3>任务分布</h3>
+      <table><thead><tr><th>组</th><th>solved</th><th>平均 T</th><th>平均 W</th></tr></thead>
+      <tbody><tr><td>跨区任务</td><td>144/144</td><td>36.7</td><td>238.8</td></tr>
+<tr><td>局部任务</td><td>144/144</td><td>27.6</td><td>184.9</td></tr>
+<tr><td>混合任务</td><td>144/144</td><td>30.8</td><td>203.8</td></tr></tbody></table>
+    </div>
+    <div class="panel table-wrap">
+      <h3>Goal 模式</h3>
+      <table><thead><tr><th>组</th><th>solved</th><th>平均 T</th><th>平均 W</th></tr></thead>
+      <tbody><tr><td>共享目标池</td><td>216/216</td><td>25.3</td><td>173.1</td></tr>
+<tr><td>固定单目标</td><td>216/216</td><td>38.1</td><td>245.3</td></tr></tbody></table>
+    </div>
+  </div>
+  <p>这些是描述性结果，不是因果定律。要筛选全部 509 行、查看散点图或播放
+  479 个真实方案，请使用 <a href="../full_benchmark_v5_854df1_20260905/index.html">
+  full dashboard</a>。</p>
+
+  <h2>E5 消融：负结果也保留</h2>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>移除机制</th><th>T B/E/W</th><th>T sum</th>
+        <th>W B/E/W</th><th>W sum</th><th>runtime sum</th></tr></thead>
+      <tbody><tr><td>E1 off</td><td>14/22/11</td><td>17998</td><td>18/17/12</td><td>48932</td><td>653.7s</td></tr>
+<tr><td>E2 off</td><td>0/47/0</td><td>19749</td><td>0/47/0</td><td>54627</td><td>653.9s</td></tr>
+<tr><td>E4 off</td><td>0/33/14</td><td>20679</td><td>0/30/17</td><td>56324</td><td>324.4s</td></tr></tbody>
+    </table>
+  </div>
+  <p><b>E1 off</b> 在 quick 上聚合 T/W 反而更小；<b>E2 off</b> 没有改变
+  T/W；<b>E4 off</b> 更快但失去 17 行严格 incumbent 改进。这些负结果说明：
+  quick corpus 支持 E4 的质量作用，却不足以证明 E1/E2 的一般收益。</p>
+
+  <h2>为什么相信这些数字？</h2>
+  <div class="panel">
+    <ul>
+      <li>285 项 C++ 与 155 项 Python 测试全绿；每个成功
+        plan 都由权威 Python validator 再重放，并精确核对定点 W。</li>
+      <li>full 先由独立 GPT-5.6 Sol/xhigh 审查，approval 同时绑定 binary、
+        suite definition 和 semantic corpus。</li>
+      <li>worker 只读取 Linux sealed memfd 中的二进制和 509 份 YAML；
+        本轮 provenance 为 <code>sealed_linux_memfd</code>。</li>
+      <li>第一次 full 虽完成 solver task，却在发布前 memfd 重哈希路径处
+        fail-closed，没有 rows/timing。该缺陷先新增 RED regression，再修复、
+        跑完整 Python 测试并由另一位独立 xhigh reviewer 重新批准后重跑。</li>
+    </ul>
+  </div>
+
+  <h2>仍然存在的限制</h2>
+  <div class="panel">
+    <ul>
+      <li>30 个原 BRaP 大图在 10 秒内仍 timeout；v5 没有提高成功率。</li>
+      <li>W 经常比历史实现更大，Testcase C 也只证明 T 达下界，不证明 W 最优。</li>
+      <li>首解后的有界改进让正式 full wall time 约为历史运行的
+        6.0 倍；这是清楚可见的质量—时间交换。</li>
+      <li>432 个 factorial case 是构造可解、受保护的随机配对集合；它扩大
+        覆盖面，但不能替代真实仓库流量分布。</li>
+    </ul>
+  </div>
+
+  <h2>证据入口</h2>
+  <div class="nav">
+    <a href="../full_benchmark_v5_854df1_20260905/index.html">full dashboard</a>
+    <a href="../../results_full_v5_854df1_20260905_r2/rows.csv">正式 rows.csv</a>
+    <a href="../../results_full_v5_854df1_20260905_r2/timing.json">正式 timing.json</a>
+    <a href="../../full_review_approval_v5.json">full 审查 approval</a>
+    <a href="../../ablation_v5_20260905.md">E5 消融记录</a>
+    <a href="../release_benchmark_77_20260904/index.html">release baseline dashboard</a>
+  </div>
+  <details class="panel"><summary>Provenance hashes</summary>
+    <p>Binary: <code>854df1e692316017cbc26ab462ab3b22735d61caa08ff0645e28ad0cab4a574c</code><br>
+    Suite: <code>fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed</code><br>
+    Full wall: 295.6s · solver sum: 4037.5s ·
+    14 jobs · 10s/case</p>
+  </details>
+  <div class="foot">本页的 benchmark 统计由显式证据文件生成，不从正文手抄。</div>
+</main>
+</body>
+</html>

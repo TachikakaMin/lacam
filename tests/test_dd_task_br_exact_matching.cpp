@@ -1,5 +1,7 @@
 #include "../lacam/src/carrier_guidance.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <random>
@@ -210,6 +212,77 @@ TEST(dd_task_br_exact_matching,
               << " prefix=" << prefix_cap;
         }
       }
+    }
+  }
+}
+
+TEST(dd_task_br_exact_matching,
+     eight_step_prefix_remains_a_valid_pair_cost_lower_bound)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"......"});
+  ins.shelves = {0, 1, 2, 3, 4};
+  ins.target_starts = {0, 2};
+  ins.target_goal_sets = {
+      {0, 1, 2, 3, 4, 5},
+      {0, 1, 2, 3, 4, 5},
+  };
+  ins.finalize();
+  DDDistCache upper_wall(ins.grid);
+  const UpperSignature upper{{0, 2}, {1, 3, 4}};
+
+  for (int target = 0; target < 2; ++target)
+    for (int goal = 0; goal < ins.grid.size(); ++goal) {
+      const auto exact = carrier_detail::pair_cost(
+          ins, upper, target, goal, upper_wall,
+          1.25, 2.5, 0.75);
+      const auto lower =
+          carrier_detail::pair_cost_prefix_lower_bound(
+              ins, upper, target, goal, upper_wall,
+              1.25, 2.5, 0.75, 8);
+      ASSERT_TRUE(std::isfinite(exact.estimated_cost));
+      EXPECT_LE(lower.estimated_cost, exact.estimated_cost)
+          << "target=" << target << " goal=" << goal;
+    }
+}
+
+TEST(dd_task_br_exact_matching,
+     lazy_prefix_assignment_matches_the_fully_evaluated_matrix)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"......"});
+  ins.shelves = {0, 1, 2, 3, 4};
+  ins.target_starts = {0, 1, 2};
+  ins.target_goal_sets.assign(
+      3, std::vector<int>{0, 1, 2, 3, 4, 5});
+  ins.finalize();
+
+  std::mt19937 rng(728315);
+  std::array<int, 6> cells{{0, 1, 2, 3, 4, 5}};
+  for (int trial = 0; trial < 24; ++trial) {
+    std::shuffle(cells.begin(), cells.end(), rng);
+    const UpperSignature upper{
+        {cells[0], cells[1], cells[2]},
+        {cells[3], cells[4]}};
+    DDDistCache lazy_distance(ins.grid);
+    DDDistCache full_distance(ins.grid);
+    const auto lazy =
+        carrier_detail::build_lazy_pair_cost_assignment(
+            ins, upper, lazy_distance, 1.0, 1.0, 1.0);
+    const auto full = carrier_detail::build_pair_cost_table(
+        ins, upper, full_distance, 1.0, 1.0, 1.0);
+    const auto expected =
+        carrier_detail::solve_tau_guide(ins, upper, full);
+    EXPECT_EQ(lazy.tau, expected) << "trial=" << trial;
+    ASSERT_EQ(lazy.table.size(), lazy.tau.size());
+    for (size_t target = 0; target < lazy.tau.size(); ++target) {
+      const auto selected = std::find_if(
+          lazy.table[target].begin(), lazy.table[target].end(),
+          [&](const PairCostEntry& entry) {
+            return entry.goal == lazy.tau[target];
+          });
+      ASSERT_NE(selected, lazy.table[target].end());
+      EXPECT_TRUE(selected->plan.exact);
     }
   }
 }

@@ -587,15 +587,29 @@ int main(int argc, char** argv)
   DDStats stats;
   DDPlan best_effort;
   DDPlan plan;
-  if (mode == "b0")
+  DDSolveStatus solve_status = DDSolveStatus::EXHAUSTED;
+  if (mode == "b0") {
     plan = solve_carrier_rollout(ins, time_limit_sec, seed, &stats);
-  else if (mode == "b1")
+    solve_status =
+        (!plan.empty() || is_dd_goal(ins, initial_phys_config(ins)))
+            ? DDSolveStatus::SOLVED
+            : (stats.timed_out ? DDSolveStatus::TIMEOUT
+                               : DDSolveStatus::EXHAUSTED);
+  } else if (mode == "b1") {
     plan = solve_carrier_2stage(ins, time_limit_sec, seed, &stats);
-  else
-    plan = solve_carrier_lacam(
+    solve_status =
+        (!plan.empty() || is_dd_goal(ins, initial_phys_config(ins)))
+            ? DDSolveStatus::SOLVED
+            : (stats.timed_out ? DDSolveStatus::TIMEOUT
+                               : DDSolveStatus::EXHAUSTED);
+  } else {
+    DDSolveResult result = solve_carrier_lacam_result(
         ins, time_limit_sec, seed, &stats,
         std::getenv("DD_DEBUG_DUMP") ? &best_effort : nullptr);
-  if (plan.empty() && !best_effort.empty()) {
+    solve_status = result.status;
+    plan = std::move(result.plan);
+  }
+  if (solve_status != DDSolveStatus::SOLVED && !best_effort.empty()) {
     const std::string& best_effort_out = output_paths.best_effort;
     if (!write_plan_atomically(best_effort, ins, best_effort_out))
       std::cerr << "failed to write best-effort plan to " << best_effort_out
@@ -607,11 +621,15 @@ int main(int argc, char** argv)
           .count();
 
   long loaded_moves = 0, free_moves = 0, lift_drop = 0, anon_moves = 0;
-  bool valid = !plan.empty();
+  bool valid = solve_status == DDSolveStatus::SOLVED;
   if (valid) {
     // replay through the validator: belt-and-braces before reporting
     auto s = initial_phys_config(ins);
+    DDPlan normalized;
+    normalized.reserve(plan.size());
+    bool reached_goal = is_dd_goal(ins, s);
     for (const auto& ops : plan) {
+      if (reached_goal) break;
       for (size_t i = 0; i < ops.size(); ++i) {
         switch (ops[i].kind) {
           case Op::WAIT:
@@ -638,8 +656,11 @@ int main(int argc, char** argv)
         break;
       }
       s = *nxt;
+      normalized.push_back(ops);
+      reached_goal = is_dd_goal(ins, s);
     }
-    if (valid && !is_dd_goal(ins, s)) valid = false;
+    if (valid && !reached_goal) valid = false;
+    if (valid) plan = std::move(normalized);
   }
   if (valid && !write_plan_atomically(plan, ins, plan_out)) {
     std::cerr << "failed to write validated plan to " << plan_out << "\n";
@@ -653,10 +674,21 @@ int main(int argc, char** argv)
   // + delta*anon; defaults all 1, overridable via env (DD_ALPHA etc.).
   // R4 (debug.md §10): the ONE validated parser — a private atof here
   // silently accepted garbage and bypassed the weight validation.
-  const double alpha = w.alpha, beta = w.beta, gamma = w.gamma,
-               delta = w.delta;
-  const double weighted_soc = alpha * loaded_moves + beta * free_moves +
-                              gamma * lift_drop + delta * anon_moves;
+  const __int128 weighted_work_wide =
+      static_cast<__int128>(w.alpha_scaled) * loaded_moves +
+      static_cast<__int128>(w.beta_scaled) * free_moves +
+      static_cast<__int128>(w.gamma_scaled) * lift_drop +
+      static_cast<__int128>(w.delta_scaled) * anon_moves;
+  if (weighted_work_wide >
+      static_cast<__int128>(std::numeric_limits<int64_t>::max())) {
+    std::cerr << "fixed-point weighted work overflow\n";
+    return 2;
+  }
+  const int64_t weighted_work_scaled =
+      static_cast<int64_t>(weighted_work_wide);
+  const double weighted_soc =
+      static_cast<double>(weighted_work_scaled) /
+      static_cast<double>(PlanCost::WORK_SCALE);
 
   std::cout << "mode=" << mode << "\n";
   std::cout << "solved=" << (valid ? 1 : 0) << "\n";
@@ -666,6 +698,7 @@ int main(int argc, char** argv)
   std::cout << "lift_drop=" << lift_drop << "\n";
   std::cout << "anon_moves=" << anon_moves << "\n";
   std::cout << "weighted_soc=" << weighted_soc << "\n";
+  std::cout << "weighted_work_scaled=" << weighted_work_scaled << "\n";
   std::cout << "runtime_ms=" << runtime_ms << "\n";
   std::cout << "hl_nodes=" << stats.hl_nodes << "\n";
   std::cout << "hl_expanded=" << stats.hl_expanded << "\n";
@@ -677,6 +710,15 @@ int main(int argc, char** argv)
   std::cout << "guidance_builds=" << stats.guidance_builds << "\n";
   std::cout << "tau_time_ms=" << stats.tau_time_ms << "\n";
   std::cout << "guidance_time_ms=" << stats.guidance_time_ms << "\n";
+  std::cout << "timed_transport_expansions="
+            << stats.timed_transport_expansions << "\n";
+  std::cout << "timed_transport_frames="
+            << stats.timed_transport_frames << "\n";
+  std::cout << "timed_transport_time_ms="
+            << stats.timed_transport_time_ms << "\n";
+  std::cout << "owner_handoffs=" << stats.owner_handoffs << "\n";
+  std::cout << "causal_waiting=" << stats.causal_waiting << "\n";
+  std::cout << "traffic_waiting=" << stats.traffic_waiting << "\n";
   std::cout << "upper_epoch_builds=" << stats.upper_epoch_builds << "\n";
   std::cout << "pair_cache_hits=" << stats.pair_cache_hits << "\n";
   std::cout << "pair_cache_misses=" << stats.pair_cache_misses << "\n";
@@ -725,9 +767,35 @@ int main(int argc, char** argv)
   std::cout << "seed=" << seed << "\n";
   std::cout << "mode=" << mode << "\n";
   std::cout << "first_solution_ms=" << stats.first_solution_ms << "\n";
+  std::cout << "first_solution_makespan="
+            << stats.first_solution_makespan << "\n";
   std::cout << "first_solution_soc=" << stats.first_solution_soc << "\n";
+  std::cout << "first_solution_work_scaled="
+            << stats.first_solution_work_scaled << "\n";
+  std::cout << "best_makespan=" << stats.best_makespan << "\n";
   std::cout << "best_soc=" << stats.best_soc << "\n";
+  std::cout << "best_work_scaled=" << stats.best_work_scaled << "\n";
   std::cout << "incumbent_updates=" << stats.incumbent_updates << "\n";
+  std::cout << "improvement_attempts="
+            << stats.improvement_attempts << "\n";
+  std::cout << "improvement_candidates="
+            << stats.improvement_candidates << "\n";
+  std::cout << "improvement_improvements="
+            << stats.improvement_improvements << "\n";
+  std::cout << "improvement_generator_failures="
+            << stats.improvement_generator_failures << "\n";
+  std::cout << "reference_checkpoint_hits="
+            << stats.reference_checkpoint_hits << "\n";
+  std::cout << "reference_action_hints="
+            << stats.reference_action_hints << "\n";
+  std::cout << "reference_suffix_attempts="
+            << stats.reference_suffix_attempts << "\n";
+  std::cout << "reference_suffix_accepted="
+            << stats.reference_suffix_accepted << "\n";
+  std::cout << "improvement_exit_reason="
+            << dd_improvement_exit_reason_name(
+                   stats.improvement_exit_reason)
+            << "\n";
   std::cout << "exact_loops=" << stats.exact_loops << "\n";
   std::cout << "projected_loops=" << stats.projected_loops << "\n";
   std::cout << "bridge_steps=" << stats.bridge_steps << "\n";

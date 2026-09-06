@@ -1,0 +1,536 @@
+name: g5_dlow_asurplus_plocal_gshared_pool_seed0
+map: '........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  ........................
+
+  '
+storage_map: '........................
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  ........................
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  ........................
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  ........................
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  .SSSSS.SSSSS.SSSSS.SSSSS
+
+  '
+warehouse_layout:
+  map_family: g5
+  block_size: 5
+  aisle_width: 1
+  density_level: low
+  actual_density: 0.24
+  shelves_per_block: 6
+  corridor_policy: hard_no_drop
+  block_origins:
+  - - 1
+    - 1
+  - - 1
+    - 7
+  - - 1
+    - 13
+  - - 1
+    - 19
+  - - 7
+    - 1
+  - - 7
+    - 7
+  - - 7
+    - 13
+  - - 7
+    - 19
+  - - 13
+    - 1
+  - - 13
+    - 7
+  - - 13
+    - 13
+  - - 13
+    - 19
+  - - 19
+    - 1
+  - - 19
+    - 7
+  - - 19
+    - 13
+  - - 19
+    - 19
+factorial_design:
+  pairing_key: g5__local__shared_pool__seed0
+  pairing_seed: 1133578562
+  layout_policy: nested_density_prefix
+  robot_start_policy: nested_agent_prefix
+  density_level: low
+  agent_level: surplus
+  task_profile: local
+  goal_mode: shared_pool
+task_profile:
+  relation_basis: certificate_assignment
+  relation_counts:
+    intra: 11
+    adjacent: 5
+    remote: 0
+  core_goals: 8
+  goal_mode: shared_pool
+  goal_pool_size: 24
+  certificate_guarantee: validator_checked
+  certificate_steps: 390
+  certificate_sha256: 6571cc798bb8b01d765f3a2539417b3a8bd156006c061642e881c4c19667bae5
+robots:
+- - 6
+  - 2
+- - 16
+  - 0
+- - 18
+  - 17
+- - 19
+  - 6
+- - 19
+  - 0
+- - 2
+  - 0
+- - 13
+  - 12
+- - 20
+  - 18
+- - 18
+  - 6
+- - 20
+  - 12
+- - 0
+  - 16
+- - 9
+  - 0
+- - 6
+  - 11
+- - 12
+  - 1
+- - 22
+  - 18
+- - 23
+  - 6
+- - 23
+  - 12
+- - 18
+  - 1
+- - 5
+  - 12
+- - 18
+  - 14
+- - 5
+  - 0
+- - 18
+  - 12
+- - 18
+  - 23
+- - 12
+  - 8
+shelves:
+- - 1
+  - 1
+- - 1
+  - 5
+- - 1
+  - 8
+- - 1
+  - 10
+- - 1
+  - 16
+- - 1
+  - 19
+- - 2
+  - 13
+- - 2
+  - 19
+- - 2
+  - 23
+- - 3
+  - 3
+- - 3
+  - 4
+- - 3
+  - 5
+- - 3
+  - 9
+- - 3
+  - 10
+- - 3
+  - 15
+- - 3
+  - 19
+- - 3
+  - 22
+- - 4
+  - 10
+- - 4
+  - 14
+- - 4
+  - 17
+- - 5
+  - 3
+- - 5
+  - 8
+- - 5
+  - 17
+- - 5
+  - 20
+- - 7
+  - 1
+- - 7
+  - 3
+- - 7
+  - 8
+- - 7
+  - 10
+- - 7
+  - 17
+- - 7
+  - 21
+- - 7
+  - 22
+- - 8
+  - 2
+- - 8
+  - 9
+- - 8
+  - 15
+- - 8
+  - 21
+- - 8
+  - 23
+- - 9
+  - 2
+- - 9
+  - 10
+- - 9
+  - 11
+- - 10
+  - 4
+- - 10
+  - 5
+- - 10
+  - 13
+- - 10
+  - 15
+- - 10
+  - 20
+- - 11
+  - 7
+- - 11
+  - 15
+- - 11
+  - 17
+- - 11
+  - 21
+- - 13
+  - 4
+- - 13
+  - 7
+- - 13
+  - 11
+- - 13
+  - 13
+- - 13
+  - 14
+- - 13
+  - 15
+- - 14
+  - 8
+- - 14
+  - 16
+- - 14
+  - 23
+- - 15
+  - 1
+- - 15
+  - 10
+- - 15
+  - 20
+- - 16
+  - 1
+- - 16
+  - 2
+- - 16
+  - 7
+- - 16
+  - 10
+- - 16
+  - 14
+- - 16
+  - 21
+- - 16
+  - 22
+- - 17
+  - 2
+- - 17
+  - 4
+- - 17
+  - 15
+- - 17
+  - 21
+- - 17
+  - 22
+- - 19
+  - 5
+- - 19
+  - 10
+- - 20
+  - 8
+- - 20
+  - 11
+- - 20
+  - 17
+- - 20
+  - 20
+- - 20
+  - 21
+- - 21
+  - 2
+- - 21
+  - 5
+- - 21
+  - 11
+- - 22
+  - 2
+- - 22
+  - 8
+- - 22
+  - 13
+- - 22
+  - 15
+- - 22
+  - 16
+- - 22
+  - 19
+- - 22
+  - 20
+- - 23
+  - 1
+- - 23
+  - 5
+- - 23
+  - 8
+- - 23
+  - 13
+- - 23
+  - 14
+- - 23
+  - 19
+- - 23
+  - 20
+targets:
+- id: b0
+  start:
+  - 7
+  - 10
+  goals: pool
+- id: b1
+  start:
+  - 16
+  - 7
+  goals: pool
+- id: b2
+  start:
+  - 1
+  - 10
+  goals: pool
+- id: b3
+  start:
+  - 1
+  - 19
+  goals: pool
+- id: b4
+  start:
+  - 19
+  - 10
+  goals: pool
+- id: b5
+  start:
+  - 17
+  - 4
+  goals: pool
+- id: b6
+  start:
+  - 13
+  - 14
+  goals: pool
+- id: b7
+  start:
+  - 4
+  - 17
+  goals: pool
+- id: b8
+  start:
+  - 2
+  - 13
+  goals: pool
+- id: b9
+  start:
+  - 13
+  - 4
+  goals: pool
+- id: b10
+  start:
+  - 11
+  - 21
+  goals: pool
+- id: b11
+  start:
+  - 7
+  - 21
+  goals: pool
+- id: b12
+  start:
+  - 9
+  - 11
+  goals: pool
+- id: b13
+  start:
+  - 17
+  - 22
+  goals: pool
+- id: b14
+  start:
+  - 7
+  - 17
+  goals: pool
+- id: b15
+  start:
+  - 5
+  - 17
+  goals: pool
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false
+goal_pool:
+- - 1
+  - 3
+- - 1
+  - 21
+- - 2
+  - 14
+- - 2
+  - 22
+- - 4
+  - 16
+- - 4
+  - 22
+- - 8
+  - 13
+- - 9
+  - 8
+- - 9
+  - 9
+- - 9
+  - 16
+- - 10
+  - 7
+- - 11
+  - 11
+- - 11
+  - 14
+- - 11
+  - 23
+- - 13
+  - 19
+- - 14
+  - 9
+- - 14
+  - 21
+- - 15
+  - 14
+- - 16
+  - 4
+- - 16
+  - 20
+- - 17
+  - 5
+- - 17
+  - 17
+- - 19
+  - 7
+- - 23
+  - 21

@@ -123,6 +123,78 @@ python3 benchmark/generate_release_benchmark_web.py
 The resulting entry point is
 `benchmark/viz_web/release_benchmark_77_20260904/index.html`.
 
+Preview the proposed warehouse expansion with current Planner runs without
+changing the protected release suite:
+
+```sh
+python3 benchmark/generate_warehouse_case_proposal_web.py
+```
+
+This writes `benchmark/viz_web/warehouse_case_proposal/index.html`: 432
+real random paired-factorial YAML instances plus the four original certified
+sample cases. The 432 cases cover six map families, three density levels,
+four agent levels, three task profiles, and two goal modes. Within each
+pairing group, density layouts are nested and robot starts are nested prefixes.
+Every generated case has a validator-checked backend feasibility certificate;
+certificates are never solver inputs and are not played by the webpage.
+
+Development uses only the frozen 77-case quick suite:
+
+```sh
+python3 benchmark/run_benchmark.py \
+  --benchmark-tier quick \
+  --out-dir benchmark/results_quick
+```
+
+The protected full suite is the same 77 cases plus these 432 cases, for 509
+total. It can run only after implementation completion and an independent
+GPT-5.6 Sol review. The runner requires schema-v2 APPROVE JSON bound to the
+full-suite definition SHA-256, semantic-corpus SHA-256, and the exact
+`dd_benchmark` binary SHA-256. For the fixed full suite it copies that binary
+and all 509 YAML inputs into read-only Linux sealed memfd snapshots; workers
+receive only those snapshot paths. It rechecks the sealed binary and semantic
+corpus immediately before dispatch and before publishing `rows.csv`:
+
+```sh
+python3 benchmark/run_benchmark.py \
+  --benchmark-tier full \
+  --review-approval benchmark/full_review_approval_v5.json \
+  --carrier-bin build/dd_benchmark \
+  --out-dir benchmark/results_full_new
+```
+
+The reviewed v5 run is preserved at
+`benchmark/results_full_v5_854df1_20260905_r2/`: 479/509 solved, including
+432/432 factorial cases. The remaining 30 rows are the pre-existing BRaP
+`g20x20`, `g40x40`, and `g80x80` timeouts. Its `rows.csv` and `timing.json`
+SHA-256 values are `743a0b3bc2d635420216148ad52238db38d02b0bbb6288586cbcfc705c7e6e83`
+and `dab81f04fd1cefc3e1a9398d8ff4cbb0c2c96c3694ef5356822a3f94eda98143`.
+The run used the sealed binary
+`854df1e692316017cbc26ab462ab3b22735d61caa08ff0645e28ad0cab4a574c`,
+14 workers, and 10 seconds per case.
+
+Generate the full dashboard from explicit inputs (there are deliberately no
+stale result-directory defaults):
+
+```sh
+python3 benchmark/generate_full_benchmark_dashboard.py \
+  --rows benchmark/results_full_v5_854df1_20260905_r2/rows.csv \
+  --timing benchmark/results_full_v5_854df1_20260905_r2/timing.json \
+  --manifest benchmark/viz_web/warehouse_case_proposal/factorial_suite/manifest.json \
+  --out-dir benchmark/viz_web/full_benchmark_v5_854df1_20260905 \
+  --jobs 14
+```
+
+The concise Chinese final report is
+`benchmark/viz_web/carrier_lacam_v5_final_report_20260905/index.html`; it
+links the formal dashboard, raw rows/timing, Testcase C animation, release
+baseline, and E5 ablation record. Open these static HTML files directly;
+they do not require a local HTTP server.
+
+Pre-v5 full results and the old schema-v1 approval are quarantined under
+`benchmark/historical/pre_v5/`; their dashboard is labeled historical and is
+not v5 completion evidence.
+
 ## Paper-protocol suites (CREST arXiv:2603.28803 Table I)
 
 The papers do not publish their instance data (CREST repo ships a single
@@ -424,10 +496,15 @@ bias toward zero/short pairs is accidentally a decent proxy.  Another
 data point for design section 7.3: no static matcher fixes this — the
 assignment must be revisable during search (dynamic tau).
 
-## Projection-repair results (2026-09-01, current)
+## Projection-repair results (2026-09-01, historical pre-v5)
 
-The current production path first searches under dynamic goal assignment
-and applies mandatory plan normalization:
+This section records the pre-v5 production checkpoint and its historical
+results; its lower-SOC candidate rule and singleton skip are not current v5
+semantics. 当前 v5 production 使用严格 `(T,W)` 比较首解与第二候选，
+singleton 也会使用剩余共享预算做一次有界改进。
+
+At that pre-v5 checkpoint, production first searched under dynamic goal
+assignment and applied mandatory plan normalization:
 
 1. exact physical-state loop removal;
 2. grounded shelf-projection loop removal;
@@ -468,7 +545,7 @@ status, makespan, and SOC row by row. Maps of size 20x20 and above remain
 0/32 under 10 seconds: output repair removes meaningless motion after an
 incumbent exists, but does not shorten the first-solution search horizon.
 
-The first pass now keeps each shelf-goal assignment for a task episode:
+At that checkpoint, the first pass kept each shelf-goal assignment for a task episode:
 primitive/loaded motion reuses parent tau, a carried shelf keeps its in-flight
 goal, and tau is recomputed at drop or targeted repair boundaries. Settled
 placements win over conflicting carried intent when the partial matching is
@@ -481,7 +558,7 @@ overall and 0.841843/0.857187 on B-pool; total makespan/SOC is
 34,860/59,907. Maps >=20x20 remain 0/32 because the fixed restart requires a
 first solution.
 
-`benchmark/run_ablations.py` now contains only structural methods:
+At that checkpoint, `benchmark/run_ablations.py` contained only structural methods:
 `full`, `b0`, and `b1`. It fixes the protocol at 10 seconds, 14 jobs,
 seed 0, unit weights, and default following; it reuses the main runner's
 Python validation path and saves plans plus `timing.json`.

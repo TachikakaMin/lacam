@@ -2,7 +2,8 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>carrier-LaCAM fix1 benchmark 可视化</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier-LaCAM benchmark 与报告索引</title>
 <style>
   body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 24px;
          background: #1e1e24; color: #eee; max-width: 1400px; }
@@ -13,13 +14,37 @@
 </style>
 </head>
 <body>
-<h1>carrier-LaCAM 病根 1-4 修复 — benchmark 可视化（2026-09-01）</h1>
-<p class="note">68 实例 BRAP-pool，10s/实例，jobs=14。数据：benchmark/results_fix1_*/rows.csv；报告：report.md 第 9 部分。</p>
+<h1>Carrier-LaCAM benchmark、动画与报告索引</h1>
+<p class="note">最新正式结果排在最前；历史页面保留日期与用途标签，避免把旧二进制结果误当成当前完成证据。</p>
+
+<h2>最新：Carrier-LaCAM 两遍规划最终报告（2026-09-06）</h2>
+<ul>
+  <li><a href="carrier_lacam_two_pass_20260906/index.html">第一遍首解、第二遍固定目标严格改进、deadline、reference 后缀，以及 quick/full/pre-v5 完整对比</a></li>
+  <li><a href="full_benchmark_two_pass_20260906/index.html">当前 full benchmark 总览：509 个用例、分组统计与 479 个可播放计划动画</a></li>
+  <li><a href="full_comparison_v5_vs_two_pass_20260906/index.html">旧 v5 anytime 与当前两遍规划逐例对比：质量、运行时间、筛选与双版本动画入口</a></li>
+</ul>
+
+<h2>最新：Carrier-LaCAM v5 正式 full 与最终汇报（2026-09-05）</h2>
+<ul>
+  <li><a href="carrier_lacam_v5_final_report_20260905/index.html">面向初学者的最终汇报：实现、Testcase C、quick/full 证据、消融与限制</a></li>
+  <li><a href="full_benchmark_v5_854df1_20260905/index.html">正式 v5 full dashboard：479/509 solved，新增 factorial 432/432，479 个验证方案动画</a></li>
+  <li><a href="full_comparison_pre_v5_vs_v5_20260905/index.html">完整 509-case 对比：pre-v5 historical full vs v5 production full，逐例 T/W、筛选和散点图</a></li>
+</ul>
 
 <h2>最新：正式 release benchmark（77 cases，2026-09-04）</h2>
 <ul>
   <li><a href="release_benchmark_77_20260904/index.html">完整 dashboard：47/77 solved，47 个平滑动画，支持 family / 状态 / 实例名筛选</a></li>
   <li><a href="release_benchmark_77_20260904/cases/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html">直接打开 warehouse b3 / 75% 用户案例动画</a></li>
+</ul>
+
+<h2>最新：Warehouse testcase Planner 实跑提案（2026-09-05）</h2>
+<ul>
+  <li><a href="warehouse_case_proposal/index.html">432 个已生成、构造可解的随机配对 testcase，以及 4 个带 YAML、Planner plan 和平滑动画的原有样例</a></li>
+</ul>
+
+<h2>历史 pre-v5：旧全量 benchmark（509 cases，2026-09-05）</h2>
+<ul>
+  <li><a href="historical_pre_v5_full_benchmark_509_20260905/index.html">历史 pre-v5 交互式 dashboard（旧二进制；不作为 v5 完成证据）：479/509 solved；新增 factorial 432/432</a></li>
 </ul>
 
 <h2>Warehouse-block testcase 样例（2026-09-03）</h2>

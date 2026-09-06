@@ -163,6 +163,7 @@ class TestBenchmarkSuccessContract(unittest.TestCase):
             path.write_text("")
             with self.assertRaisesRegex(ValueError, "empty plan"):
                 parse_carrier_plan(path)
+            self.assertEqual(parse_carrier_plan(path, allow_empty=True), [])
             path.write_text("teleport 1 2\n")
             with self.assertRaisesRegex(ValueError, "invalid action token"):
                 parse_carrier_plan(path)

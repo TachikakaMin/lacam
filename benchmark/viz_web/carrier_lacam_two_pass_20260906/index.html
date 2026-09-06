@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier-LaCAM 两遍规划最终报告</title>
+<style>
+:root{--ink:#172033;--muted:#647086;--line:#dbe2ec;--paper:#f6f8fc;
+--blue:#2463eb;--green:#14865a;--amber:#b36a00;--red:#b93838}
+*{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);
+font:16px/1.65 system-ui,-apple-system,"Noto Sans SC","Microsoft YaHei",sans-serif}
+main{max-width:1120px;margin:auto;padding:36px 22px 70px} h1{font-size:38px;
+line-height:1.2;margin:0 0 10px} h2{margin-top:42px;font-size:25px}
+h3{margin:0 0 8px} .lead{font-size:19px;color:#3b465b;max-width:900px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.card{background:white;border:1px solid var(--line);border-radius:14px;padding:18px;
+box-shadow:0 4px 18px #18233a0b} .big{font-size:30px;font-weight:750}
+.muted{color:var(--muted)} .flow{display:grid;grid-template-columns:repeat(4,1fr);
+gap:10px;align-items:stretch} .step{background:white;border:1px solid var(--line);
+border-top:4px solid var(--blue);border-radius:12px;padding:14px}
+.step:nth-child(2){border-top-color:var(--green)} .step:nth-child(3){
+border-top-color:var(--amber)} .step:nth-child(4){border-top-color:#7650c5}
+table{width:100%;border-collapse:collapse;background:white;border-radius:12px;
+overflow:hidden} th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{background:#edf2fa} code{background:#eef2f8;padding:2px 5px;border-radius:5px}
+.table-wrap{max-width:100%;overflow-x:auto;border-radius:12px}
+td,th,code,a,footer{overflow-wrap:anywhere}
+.formula{font:600 18px ui-monospace,SFMono-Regular,monospace;background:#172033;
+color:white;padding:15px 18px;border-radius:10px;overflow:auto}
+.note{border-left:4px solid var(--amber);background:#fff8e8;padding:12px 15px}
+.good{color:var(--green)} .bad{color:var(--red)} a{color:var(--blue)}
+.chart-panel{margin-top:16px;background:white;border:1px solid var(--line);
+border-radius:14px;padding:14px;overflow:hidden}
+.timing-chart{display:block;width:100%;height:auto;min-height:300px}
+.chart-grid{stroke:#dfe6f0;stroke-width:1}
+.chart-label{fill:#647086;font:13px system-ui,-apple-system,"Noto Sans SC",sans-serif}
+.chart-axis-title{fill:#3b465b;font:600 14px system-ui,-apple-system,
+"Noto Sans SC",sans-serif}
+.timing-line{fill:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.first-line{stroke:var(--blue)} .final-line{stroke:var(--green)}
+footer{margin-top:42px;color:var(--muted);font-size:14px}
+@media(max-width:760px){.flow{grid-template-columns:1fr}h1{font-size:31px}}
+</style>
+</head>
+<body><main>
+<h1>Carrier-LaCAM：两遍规划控制器</h1>
+<p class="lead">最终实现保留同一个 Carrier-LaCAM 搜索内核。第一遍动态选择
+货架目标并尽快拿到可交付首解；第二遍从同一个初态重新搜索，固定首轮终态，
+只寻找第一份严格改进。找不到改进就返回首轮。</p>
+
+<div class="grid">
+  <div class="card"><div class="muted">full 求解</div><div class="big">479/509</div></div>
+  <div class="card"><div class="muted">full 成本 改进/相同/变差</div><div class="big">11/372/96</div></div>
+  <div class="card"><div class="muted">首解中位时间</div><div class="big">122 ms</div></div>
+  <div class="card"><div class="muted">参考后缀接受</div><div class="big">32</div></div>
+</div>
+
+<h2>算法从输入到返回</h2>
+<div class="flow">
+  <div class="step"><h3>1. 第一遍</h3><b>第一遍：先拿到可交付首解</b>。使用完整
+  goal sets，停止于第一份可行计划。</div>
+  <div class="step"><h3>2. 快照</h3>规范化、repair、完整重放并保存 primitive
+  actions、精确成本和目标货架实际终态。</div>
+  <div class="step"><h3>3. 第二遍</h3><b>第二遍：固定终态，只找第一份严格改进</b>。
+  首轮成本是上界，admissible 下界负责安全剪枝。</div>
+  <div class="step"><h3>4. 返回</h3>新候选完整验证且严格更好就立刻返回；
+  <b>找不到改进就返回首轮</b>，整体仍是 solved。</div>
+</div>
+
+<h2>唯一的成本顺序</h2>
+<p><b>makespan 优先，work 次优先</b>；规划 runtime 只受 deadline 约束，不参与
+计划质量比较。</p>
+<div class="formula">J(P) = (T, W)；接受 P₂ 当且仅当
+T₂ &lt; T₁，或 T₂ = T₁ 且 W₂ &lt; W₁</div>
+<p>因此 (50, 110) 可以优于 (54, 90)，而 (54, 90) 只是打平，第二遍不会接受。</p>
+
+<h2>benchmark 总览</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>层级</th><th>当前求解</th><th>共同求解成本 B/E/W</th>
+<th>成功集合</th><th>wall time</th><th>单例上限</th></tr></thead>
+<tbody>
+<tr><td>quick</td><td>47/77</td><td>1/34/12</td>
+<td>相同</td><td>46.0s</td><td>10s</td></tr>
+<tr><td>full</td><td>479/509</td><td>11/372/96</td>
+<td>相同</td><td>265.9s</td><td>10s</td></tr>
+</tbody></table></div>
+<p class="muted">B/E/W 表示相对上一版在严格词典序成本上的
+better / equal / worse。变差行是停止策略从 anytime 改为“第一份严格改进即返”
+的可见代价，不应隐藏。</p>
+
+<h3>两套历史 full 基线</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>比较</th><th>基线求解</th><th>当前求解</th>
+<th>成本 B/E/W</th><th>基线首解中位</th><th>当前首解中位</th>
+<th>基线 runtime 平均</th><th>当前 runtime 平均</th></tr></thead>
+<tbody>
+<tr><td>旧 v5 anytime full</td>
+<td>479/509</td><td>479/509</td>
+<td>11/372/96</td><td>123 ms</td><td>122 ms</td>
+<td>7913 ms</td><td>7112 ms</td></tr>
+<tr><td>pre-v5 full</td>
+<td>479/509</td><td>479/509</td>
+<td>359/51/69</td><td>127 ms</td>
+<td>122 ms</td><td>1209 ms</td>
+<td>7112 ms</td></tr>
+</tbody></table></div>
+<p class="muted">旧 v5 是第二遍继续 anytime 的直接对照；pre-v5 基本不做
+当前两遍改进，因此更快，但计划质量和当前 makespan-first 目标不同。三者使用
+相同 full case 集合和 10 秒协议。</p>
+
+<h2>首解可用时间 vs 最终返回时间</h2>
+<div class="grid">
+  <div class="card"><div class="muted">配对案例</div>
+    <div class="big">479</div></div>
+  <div class="card"><div class="muted">首解 P50</div>
+    <div class="big">122 ms</div></div>
+  <div class="card"><div class="muted">最终返回 P50</div>
+    <div class="big">8.62 s</div></div>
+  <div class="card"><div class="muted">首解 P90</div>
+    <div class="big">2.16 s</div></div>
+  <div class="card"><div class="muted">最终返回 P90</div>
+    <div class="big">8.88 s</div></div>
+  <div class="card"><div class="muted">首解到返回 P50</div>
+    <div class="big">8.11 s</div></div>
+</div>
+<div class="chart-panel">
+<svg class="timing-chart" viewBox="0 0 1000 430"
+     role="img" aria-labelledby="timing-chart-title timing-chart-desc">
+  <title id="timing-chart-title">首解可用时间与最终返回时间累计分布</title>
+  <desc id="timing-chart-desc">横轴为规划耗时，纵轴为累计案例比例。</desc>
+  <line x1="76" y1="368.0" x2="972" y2="368.0" class="chart-grid"/><text x="64" y="372.0" class="chart-label" text-anchor="end">0%</text>
+  <line x1="76" y1="283.0" x2="972" y2="283.0" class="chart-grid"/><text x="64" y="287.0" class="chart-label" text-anchor="end">25%</text>
+  <line x1="76" y1="198.0" x2="972" y2="198.0" class="chart-grid"/><text x="64" y="202.0" class="chart-label" text-anchor="end">50%</text>
+  <line x1="76" y1="113.0" x2="972" y2="113.0" class="chart-grid"/><text x="64" y="117.0" class="chart-label" text-anchor="end">75%</text>
+  <line x1="76" y1="28.0" x2="972" y2="28.0" class="chart-grid"/><text x="64" y="32.0" class="chart-label" text-anchor="end">100%</text>
+  <line x1="76.0" y1="28" x2="76.0" y2="368" class="chart-grid"/><text x="76.0" y="393" class="chart-label" text-anchor="middle">0s</text>
+  <line x1="255.2" y1="28" x2="255.2" y2="368" class="chart-grid"/><text x="255.2" y="393" class="chart-label" text-anchor="middle">2s</text>
+  <line x1="434.4" y1="28" x2="434.4" y2="368" class="chart-grid"/><text x="434.4" y="393" class="chart-label" text-anchor="middle">4s</text>
+  <line x1="613.6" y1="28" x2="613.6" y2="368" class="chart-grid"/><text x="613.6" y="393" class="chart-label" text-anchor="middle">6s</text>
+  <line x1="792.8" y1="28" x2="792.8" y2="368" class="chart-grid"/><text x="792.8" y="393" class="chart-label" text-anchor="middle">8s</text>
+  <line x1="972.0" y1="28" x2="972.0" y2="368" class="chart-grid"/><text x="972.0" y="393" class="chart-label" text-anchor="middle">10s</text>
+  <polyline points="76.0,367.3 85.0,208.3 93.9,173.5 102.9,160.7 111.8,152.2 120.8,140.2 129.8,128.8 138.7,116.0 147.7,108.2 156.6,100.4 165.6,93.3 174.6,90.5 183.5,87.6 192.5,84.8 201.4,79.8 210.4,79.1 219.4,74.8 228.3,72.0 237.3,69.2 246.2,68.5 255.2,67.0 264.2,64.9 273.1,62.1 282.1,59.9 291.0,58.5 300.0,57.8 309.0,56.4 317.9,54.3 326.9,52.8 335.8,52.1 344.8,51.4 353.8,49.3 362.7,47.2 371.7,47.2 380.6,46.5 389.6,45.7 398.6,45.0 407.5,44.3 416.5,42.2 425.4,40.8 434.4,40.1 443.4,37.9 452.3,36.5 461.3,35.8 470.2,35.8 479.2,35.8 488.2,35.1 497.1,34.4 506.1,32.3 515.0,32.3 524.0,32.3 533.0,32.3 541.9,32.3 550.9,32.3 559.8,30.8 568.8,30.1 577.8,30.1 586.7,29.4 595.7,29.4 604.6,29.4 613.6,29.4 622.6,28.7 631.5,28.7 640.5,28.7 649.4,28.7 658.4,28.7 667.4,28.0 676.3,28.0 685.3,28.0 694.2,28.0 703.2,28.0 712.2,28.0 721.1,28.0 730.1,28.0 739.0,28.0 748.0,28.0 757.0,28.0 765.9,28.0 774.9,28.0 783.8,28.0 792.8,28.0 801.8,28.0 810.7,28.0 819.7,28.0 828.6,28.0 837.6,28.0 846.6,28.0 855.5,28.0 864.5,28.0 873.4,28.0 882.4,28.0 891.4,28.0 900.3,28.0 909.3,28.0 918.2,28.0 927.2,28.0 936.2,28.0 945.1,28.0 954.1,28.0 963.0,28.0 972.0,28.0" class="timing-line first-line"/>
+  <polyline points="76.0,368.0 85.0,346.0 93.9,332.5 102.9,331.1 111.8,327.5 120.8,324.7 129.8,321.9 138.7,319.7 147.7,319.7 156.6,317.6 165.6,316.2 174.6,315.5 183.5,314.8 192.5,313.3 201.4,313.3 210.4,312.6 219.4,311.2 228.3,310.5 237.3,309.1 246.2,308.4 255.2,307.7 264.2,307.0 273.1,307.0 282.1,307.0 291.0,306.2 300.0,304.8 309.0,304.1 317.9,303.4 326.9,302.7 335.8,302.0 344.8,301.3 353.8,300.6 362.7,299.9 371.7,299.9 380.6,299.9 389.6,299.9 398.6,299.9 407.5,299.9 416.5,299.1 425.4,298.4 434.4,297.7 443.4,297.7 452.3,297.7 461.3,297.7 470.2,295.6 479.2,295.6 488.2,295.6 497.1,295.6 506.1,295.6 515.0,295.6 524.0,294.9 533.0,294.9 541.9,294.9 550.9,294.9 559.8,294.2 568.8,294.2 577.8,294.2 586.7,294.2 595.7,294.2 604.6,292.8 613.6,292.8 622.6,292.8 631.5,292.8 640.5,292.8 649.4,292.8 658.4,292.8 667.4,292.1 676.3,291.3 685.3,291.3 694.2,291.3 703.2,291.3 712.2,291.3 721.1,290.6 730.1,290.6 739.0,289.9 748.0,289.9 757.0,289.9 765.9,289.9 774.9,289.9 783.8,289.9 792.8,289.2 801.8,289.2 810.7,289.2 819.7,289.2 828.6,289.2 837.6,288.5 846.6,228.9 855.5,99.0 864.5,78.4 873.4,57.1 882.4,47.9 891.4,37.9 900.3,33.0 909.3,32.3 918.2,31.5 927.2,28.7 936.2,28.7 945.1,28.0 954.1,28.0 963.0,28.0 972.0,28.0" class="timing-line final-line"/>
+  <circle cx="86.9" cy="198.0" r="6" fill="#2463eb" stroke="white" stroke-width="2"><title>首解 P50: 122 ms</title></circle>
+  <circle cx="848.3" cy="198.0" r="6" fill="#14865a" stroke="white" stroke-width="2"><title>最终返回 P50: 8.62 s</title></circle>
+  <text x="524.0" y="422" class="chart-axis-title"
+        text-anchor="middle">规划耗时</text>
+  <text x="18" y="198.0" class="chart-axis-title"
+        text-anchor="middle" transform="rotate(-90 18 198.0)">
+        累计案例比例
+  </text>
+  <g transform="translate(620,18)">
+    <line x1="0" y1="0" x2="32" y2="0" class="timing-line first-line"/>
+    <text x="41" y="5" class="chart-label">首解可用</text>
+    <line x1="150" y1="0" x2="182" y2="0" class="timing-line final-line"/>
+    <text x="191" y="5" class="chart-label">最终返回</text>
+  </g>
+</svg>
+</div>
+<p class="note">曲线越靠左，表示越早覆盖更多案例。1 秒时已有
+<b>387/479</b> 个案例拿到首解，但只有
+<b>73/479</b> 个完成最终返回；8 秒时分别为
+<b>479/479</b> 和
+<b>111/479</b>。</p>
+<p>首解时间回答“多久第一次有保底计划”；最终返回时间使用
+<code>solver_runtime_ms</code>，包含第二遍、验证、repair 和清理。它们都是规划
+runtime，不是计划的执行 makespan。最终交付计划相对首解的质量
+改进/相同/异常变差为 <b>129/350/0</b>。</p>
+
+<h2>第二遍如何结束</h2>
+<div class="table-wrap"><table><thead><tr><th>退出原因</th><th>数量</th><th>含义</th></tr></thead>
+<tbody><tr><td><code>REFERENCE_SUFFIX_ACCEPTED</code></td><td>32</td><td>新前缀接上首轮合法后缀</td></tr>
+<tr><td><code>SEARCH_CUTOFF</code></td><td>367</td><td>未找到改进，截止后回退首轮</td></tr>
+<tr><td><code>SEARCH_EXHAUSTED</code></td><td>1</td><td>固定目标空间搜索完毕</td></tr>
+<tr><td><code>STRICT_IMPROVEMENT</code></td><td>79</td><td>直接找到第一份严格改进</td></tr></tbody></table></div>
+<p class="note"><b>共享同一个 10 秒 deadline。</b>旧实现曾在 adapter 先预留约
+1.5 秒后，又在 kernel 内重复预留约 0.85 秒，所以常在约 7.65 秒停止扩展。
+现在只保留外层一次交付余量。找到改进会提前返回；找不到改进的案例仍可用剩余
+搜索时间，因此接近 9 秒并不代表第三遍或继续 anytime。</p>
+
+<h2>首轮路径如何帮助第二轮</h2>
+<p>参考动作只调整合法候选的尝试顺序。只有机器人位置、两类货架位置和 custody
+都完全相同，才会尝试“新前缀 + 首轮 primitive-action 后缀”。<b>参考后缀不是下界</b>：
+接旧后缀不够好，不能据此剪掉可能存在更短新后缀的节点。</p>
+<p><b>brap_h6w10_a6_e15_R1_seed1</b>：首轮成本 (162, 357)，拼接并验证后为 (162, 355)，求解器运行 69 ms。这是“完整物理状态相同”时复用 primitive-action 后缀的真实案例。</p>
+<div class="table-wrap"><table><thead><tr><th>checkpoint 命中</th><th>动作提示</th>
+<th>后缀尝试</th><th>后缀接受</th></tr></thead><tbody><tr>
+<td>3135194</td><td>6208118</td><td>32</td><td>32</td>
+</tr></tbody></table></div>
+
+<h2>代表性变化与负结果</h2>
+<div class="table-wrap"><table><thead><tr><th>案例</th><th>结果</th><th>上一版 (T,W)</th>
+<th>当前 (T,W)</th></tr></thead><tbody><tr><td>brap_h10w10_a12_e3_R1_seed0</td><td>改进</td><td>(726, 1696)</td><td>(630, 1457)</td></tr>
+<tr><td>g2_dhigh_asurplus_pmixed_gshared_pool_seed0</td><td>改进</td><td>(16, 78)</td><td>(16, 77)</td></tr>
+<tr><td>g4_dlow_asurplus_pmixed_gshared_pool_seed0</td><td>改进</td><td>(19, 135)</td><td>(18, 133)</td></tr>
+<tr><td>g4_dmedium_asurplus_pmixed_gshared_pool_seed0</td><td>改进</td><td>(19, 135)</td><td>(18, 133)</td></tr>
+<tr><td>g5_dhigh_abaseline_pmixed_gshared_pool_seed0</td><td>改进</td><td>(30, 266)</td><td>(29, 289)</td></tr>
+<tr><td>brap_h10w10_a12_e3_B_seed1_pool</td><td>变差</td><td>(942, 2137)</td><td>(942, 2138)</td></tr>
+<tr><td>brap_h10w10_a12_e8_R1_seed1</td><td>变差</td><td>(1652, 3652)</td><td>(1844, 3927)</td></tr>
+<tr><td>brap_h10w10_a1_e1_R1_seed0</td><td>变差</td><td>(42, 86)</td><td>(45, 90)</td></tr>
+<tr><td>brap_h10w10_a1_e1_R1_seed1</td><td>变差</td><td>(230, 486)</td><td>(235, 494)</td></tr>
+<tr><td>brap_h4w10_a5_e10_B_seed0_pool</td><td>变差</td><td>(18, 34)</td><td>(18, 36)</td></tr></tbody></table></div>
+<p>固定 goal 会缩小终态集合，但不会自动消除中间物理状态；如果没有快速证明
+“不可能严格改进”的下界，第二遍仍可能运行到 cutoff。对固定 assignment 的
+无改进证明，也不等于原始多 goal 问题全局最优。</p>
+
+<h2>验证与可追溯性</h2>
+<p>本次通过 <b>296 个 C++ 测试</b>和 <b>159 个 Python 测试</b>。
+full benchmark 由独立 GPT-5.6 Sol/high reviewer 审批，二进制、suite 和完整 corpus
+哈希均绑定到审批文件。</p>
+<ul>
+  <li><a href="../../full_review_approval_two_pass_20260906.json">独立审批 JSON</a></li>
+  <li><a href="../../results_quick_two_pass_reference_20260906/rows.csv">quick 原始 rows.csv</a></li>
+  <li><a href="../../results_full_v5_854df1_20260905_r2/rows.csv">旧 v5 full rows.csv</a></li>
+  <li><a href="../../results_full_v5_854df1_20260905_r2/timing.json">旧 v5 full timing.json</a></li>
+  <li><a href="../../results_full_two_pass_reference_20260906/rows.csv">当前 full rows.csv</a></li>
+  <li><a href="../../results_full_two_pass_reference_20260906/timing.json">当前 full timing.json</a></li>
+  <li><a href="../../historical/pre_v5/results_full_factorial_20260905/rows.csv">pre-v5 full 原始 rows.csv</a></li>
+  <li><a href="../../historical/pre_v5/results_full_factorial_20260905/timing.json">pre-v5 full timing.json</a></li>
+</ul>
+<footer>binary SHA-256: <code>bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a</code><br>
+suite SHA-256: <code>fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed</code><br>
+review model: <code>openai.gpt-5.6-sol</code></footer>
+</main></body></html>

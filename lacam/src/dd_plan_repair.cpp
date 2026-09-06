@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <queue>
 #include <unordered_map>
@@ -14,23 +15,34 @@ namespace {
 // Weighted-SOC view of the repair (review fix 2026-09-01): production
 // candidate selection is by weighted SOC, so a repair may only be
 // accepted when it does not increase that objective either.
-struct RepairWeights {
-  double alpha = 1, beta = 1, gamma = 1, delta = 1;
-};
+using RepairWeights = SolverWeights;
 
-double joint_op_cost(const RepairWeights& w, const PhysConfig& from,
-                     const std::vector<Op>& ops)
+void add_scaled_work(int64_t& total, int64_t amount)
 {
-  double c = 0;
+  if (amount < 0 ||
+      total > std::numeric_limits<int64_t>::max() - amount)
+    throw std::overflow_error("fixed-point repair work overflow");
+  total += amount;
+}
+
+int64_t joint_op_work_scaled(
+    const RepairWeights& w, const PhysConfig& from,
+    const std::vector<Op>& ops)
+{
+  int64_t work = 0;
   for (size_t i = 0; i < ops.size(); ++i) {
     if (ops[i].kind == Op::MOVE) {
-      c += from.kappa[i] == KAPPA_FREE ? w.beta : w.alpha;
-      if (from.kappa[i] == KAPPA_ANON) c += w.delta;
+      add_scaled_work(
+          work, from.kappa[i] == KAPPA_FREE
+                    ? w.beta_scaled
+                    : w.alpha_scaled);
+      if (from.kappa[i] == KAPPA_ANON)
+        add_scaled_work(work, w.delta_scaled);
     } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
-      c += w.gamma;
+      add_scaled_work(work, w.gamma_scaled);
     }
   }
-  return c;
+  return work;
 }
 
 struct IntVectorHasher {
@@ -292,6 +304,32 @@ bool valid_goal_plan(const DDInstance& ins, const DDPlan& plan)
   return is_dd_goal(ins, state);
 }
 
+PlanCost replay_plan_cost(
+    const DDInstance& ins, const DDPlan& plan,
+    const RepairWeights& weights)
+{
+  auto state = initial_phys_config(ins);
+  int64_t work = 0;
+  for (const auto& ops : plan) {
+    add_scaled_work(
+        work, joint_op_work_scaled(weights, state, ops));
+    const auto next = apply_ops(ins, state, ops);
+    if (!next.has_value()) return PlanCost::unbounded();
+    state = *next;
+  }
+  return PlanCost::from_scaled(plan.size(), work);
+}
+
+bool repair_candidate_is_accepted(
+    const DDInstance& ins, const DDPlan& candidate,
+    const PlanCost& incumbent_cost, const RepairWeights& weights)
+{
+  const PlanCost candidate_cost =
+      replay_plan_cost(ins, candidate, weights);
+  return candidate_cost < incumbent_cost &&
+         valid_goal_plan(ins, candidate);
+}
+
 }  // namespace
 
 DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
@@ -346,24 +384,13 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
       last_projection[&states[t]] = t;
   }
 
-  // Weighted-SOC bookkeeping (review fix 2026-09-01): prefix sums of the
-  // original per-step cost give O(1) replaced-segment cost; a bridge is
-  // lower-deck-only with every shelf grounded, so its cost is beta per
-  // MOVE.  Weight validation lives in the shared parser.
+  // Carrier-LaCAM v5: repair and search share the exact PlanCost comparator.
+  // Work is still replayed with the common validated weights, but no epsilon
+  // or SOC-only gate may override a strict improvement in executed ticks.
   RepairWeights weights;
   carrier_detail::load_solver_weights(weights);
-  std::vector<double> prefix_cost(plan.size() + 1, 0.0);
-  for (size_t t = 0; t < plan.size(); ++t)
-    prefix_cost[t + 1] =
-        prefix_cost[t] + joint_op_cost(weights, states[t], plan[t]);
-  auto bridge_cost = [&](const DDPlan& bridge) {
-    long moves = 0;
-    for (const auto& ops : bridge)
-      for (const auto& op : ops) moves += op.kind == Op::MOVE ? 1 : 0;
-    return weights.beta * static_cast<double>(moves);
-  };
-  constexpr double SOC_EPS = 1e-9;
-  double repaired_cost = 0;
+  const PlanCost original_cost =
+      replay_plan_cost(ins, plan, weights);
 
   DDPlan repaired;
   repaired.reserve(plan.size());
@@ -385,14 +412,11 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
         auto bridge =
             shortest_available_bridge(ins, states, t, projected);
         if (bridge.has_value() &&
-            bridge->size() < static_cast<size_t>(projected - t) &&
-            bridge_cost(*bridge) <=
-                prefix_cost[projected] - prefix_cost[t] + SOC_EPS) {
+            bridge->size() < static_cast<size_t>(projected - t)) {
           ++local.projected_loops;
           local.bridge_steps += static_cast<long>(bridge->size());
           local.steps_removed += static_cast<long>(
               projected - t - bridge->size());
-          repaired_cost += bridge_cost(*bridge);
           repaired.insert(repaired.end(),
                           std::make_move_iterator(bridge->begin()),
                           std::make_move_iterator(bridge->end()));
@@ -402,7 +426,6 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
       }
     }
 
-    repaired_cost += prefix_cost[t + 1] - prefix_cost[t];
     repaired.push_back(plan[t]);
     ++t;
   }
@@ -411,9 +434,8 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
   // that are already at goal.  Preserve its one-wait success convention.
   if (repaired.empty()) repaired = plan;
   if (expired()) return plan;  // R1: no budget for the final replay
-  if (repaired.size() >= plan.size() ||
-      repaired_cost > prefix_cost[plan.size()] + SOC_EPS ||
-      !valid_goal_plan(ins, repaired))
+  if (!repair_candidate_is_accepted(
+          ins, repaired, original_cost, weights))
     return plan;
   if (stats != nullptr) *stats = local;
   return repaired;
@@ -424,6 +446,18 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            const Deadline* deadline)
 {
   return repair_carrier_plan_impl(ins, plan, nullptr, stats, deadline);
+}
+
+bool dd_repair_accepts_candidate_probe(
+    const DDInstance& ins, const DDPlan& incumbent,
+    const DDPlan& candidate)
+{
+  if (!valid_goal_plan(ins, incumbent)) return false;
+  RepairWeights weights;
+  carrier_detail::load_solver_weights(weights);
+  return repair_candidate_is_accepted(
+      ins, candidate,
+      replay_plan_cost(ins, incumbent, weights), weights);
 }
 
 DDPlan repair_carrier_plan_from_replay(

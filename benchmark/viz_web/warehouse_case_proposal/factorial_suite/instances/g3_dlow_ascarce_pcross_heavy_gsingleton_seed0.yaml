@@ -1,0 +1,241 @@
+name: g3_dlow_ascarce_pcross_heavy_gsingleton_seed0
+map: '....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  ....................
+
+  '
+storage_map: '....................
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  ....................
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  ....................
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  .SSS.SSS.SSS.SSS.SSS
+
+  '
+warehouse_layout:
+  map_family: g3
+  block_size: 3
+  aisle_width: 1
+  density_level: low
+  actual_density: 0.2222222222222222
+  shelves_per_block: 2
+  corridor_policy: hard_no_drop
+  block_origins:
+  - - 1
+    - 1
+  - - 1
+    - 5
+  - - 1
+    - 9
+  - - 1
+    - 13
+  - - 1
+    - 17
+  - - 5
+    - 1
+  - - 5
+    - 5
+  - - 5
+    - 9
+  - - 5
+    - 13
+  - - 5
+    - 17
+  - - 9
+    - 1
+  - - 9
+    - 5
+  - - 9
+    - 9
+  - - 9
+    - 13
+  - - 9
+    - 17
+factorial_design:
+  pairing_key: g3__cross_heavy__singleton__seed0
+  pairing_seed: 1947574978
+  layout_policy: nested_density_prefix
+  robot_start_policy: nested_agent_prefix
+  density_level: low
+  agent_level: scarce
+  task_profile: cross_heavy
+  goal_mode: singleton
+task_profile:
+  relation_basis: certificate_assignment
+  relation_counts:
+    intra: 1
+    adjacent: 4
+    remote: 3
+  core_goals: 4
+  goal_mode: singleton
+  goal_pool_size: 0
+  certificate_guarantee: validator_checked
+  certificate_steps: 160
+  certificate_sha256: e1878da8ff303c3085fa9978f9a482be5829cbc7f1ecc9d2b490f6380232db01
+robots:
+- - 0
+  - 11
+- - 8
+  - 2
+- - 0
+  - 7
+- - 4
+  - 3
+shelves:
+- - 1
+  - 5
+- - 1
+  - 19
+- - 2
+  - 10
+- - 2
+  - 14
+- - 3
+  - 2
+- - 3
+  - 3
+- - 3
+  - 5
+- - 3
+  - 11
+- - 3
+  - 13
+- - 3
+  - 17
+- - 5
+  - 1
+- - 5
+  - 19
+- - 6
+  - 1
+- - 6
+  - 6
+- - 7
+  - 6
+- - 7
+  - 9
+- - 7
+  - 10
+- - 7
+  - 13
+- - 7
+  - 15
+- - 7
+  - 18
+- - 9
+  - 5
+- - 9
+  - 13
+- - 9
+  - 15
+- - 9
+  - 18
+- - 10
+  - 3
+- - 10
+  - 11
+- - 11
+  - 3
+- - 11
+  - 7
+- - 11
+  - 11
+- - 11
+  - 17
+targets:
+- id: b0
+  start:
+  - 7
+  - 15
+  goal:
+  - 6
+  - 11
+- id: b1
+  start:
+  - 7
+  - 9
+  goal:
+  - 5
+  - 9
+- id: b2
+  start:
+  - 7
+  - 13
+  goal:
+  - 7
+  - 19
+- id: b3
+  start:
+  - 3
+  - 13
+  goal:
+  - 10
+  - 10
+- id: b4
+  start:
+  - 5
+  - 19
+  goal:
+  - 2
+  - 18
+- id: b5
+  start:
+  - 11
+  - 17
+  goal:
+  - 10
+  - 14
+- id: b6
+  start:
+  - 9
+  - 15
+  goal:
+  - 2
+  - 6
+- id: b7
+  start:
+  - 9
+  - 13
+  goal:
+  - 2
+  - 15
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false

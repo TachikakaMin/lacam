@@ -3,8 +3,15 @@
  */
 #pragma once
 
+#include <cmath>
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <ostream>
+#include <stdexcept>
+#include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 #include "planner.hpp"
@@ -23,19 +30,215 @@ enum class TAPFFocalTieBreak {
   ANTI_ALL = 4,
 };
 
+enum class TAPFObjective {
+  // Preserve the original LaCAM-TAPF scalar weighted-work objective.
+  // Costs generated under this contract keep ticks at zero, so the one
+  // PlanCost comparator naturally reduces to the historical ordering.
+  LEGACY_WEIGHTED_WORK = 0,
+  // Carrier-LaCAM v5 objective: minimize executed ticks, then weighted work.
+  MAKESPAN_THEN_WORK = 1,
+};
+
+enum class TAPFStopPolicy {
+  // Preserve the generic TAPF behavior: retain an incumbent and continue
+  // while the caller's anytime/deadline contract permits.
+  ANYTIME = 0,
+  // Unbounded feasibility pass: stop at the first accepted goal.
+  FIRST_FEASIBLE = 1,
+  // Bounded improvement pass: accept only a goal strictly below the
+  // external incumbent, then stop immediately.
+  FIRST_STRICT_IMPROVEMENT = 2,
+};
+
+struct PlanCost {
+  // Environment weights are accepted with up to micro-unit precision and
+  // converted once to this exact integer domain.  Search ordering never uses
+  // floating epsilon comparisons.
+  static constexpr int64_t WORK_SCALE = 1000000;
+
+  int64_t ticks = 0;
+  int64_t work = 0;
+
+  PlanCost() = default;
+  PlanCost(int legacy_work)
+      : PlanCost(from_values(0, static_cast<double>(legacy_work)))
+  {
+  }
+  PlanCost(double legacy_work)
+      : PlanCost(from_values(0, legacy_work))
+  {
+  }
+
+  static PlanCost from_values(int64_t ticks, double work)
+  {
+    if (ticks < 0)
+      throw std::invalid_argument("PlanCost ticks must be non-negative");
+    if (!std::isfinite(work) || work < 0)
+      throw std::invalid_argument(
+          "PlanCost work must be finite and non-negative");
+    const long double scaled =
+        static_cast<long double>(work) * WORK_SCALE;
+    if (scaled >
+        static_cast<long double>(std::numeric_limits<int64_t>::max()))
+      throw std::overflow_error("PlanCost work is out of range");
+    const long double rounded = std::round(scaled);
+    // Work is an exact fixed-point quantity.  The small tolerance only
+    // absorbs binary floating conversion of a representable decimal such
+    // as 0.1; it must never round a genuinely sub-micro coefficient.
+    if (std::fabs(scaled - rounded) > 1e-6L)
+      throw std::invalid_argument(
+          "PlanCost work must be exactly representable at 1e-6 scale");
+    return from_scaled(ticks, static_cast<int64_t>(rounded));
+  }
+
+  static PlanCost from_scaled(int64_t ticks, int64_t work)
+  {
+    if (ticks < 0 || work < 0)
+      throw std::invalid_argument(
+          "finite PlanCost components must be non-negative");
+    return PlanCost(ticks, work, RawTag{});
+  }
+
+  static PlanCost legacy(double work) { return from_values(0, work); }
+
+  static PlanCost unbounded()
+  {
+    return PlanCost(-1, -1, RawTag{});
+  }
+
+  bool is_bounded() const { return ticks >= 0; }
+
+  double work_value() const
+  {
+    return is_bounded()
+               ? static_cast<double>(work) /
+                     static_cast<double>(WORK_SCALE)
+               : -1.0;
+  }
+
+  // Compatibility reporting only.  Production ordering uses the operators
+  // below; this conversion keeps historical scalar diagnostics/tests readable
+  // while node costs migrate to PlanCost.
+  operator double() const { return work_value(); }
+
+  PlanCost& operator+=(const PlanCost& other)
+  {
+    *this = *this + other;
+    return *this;
+  }
+
+  friend PlanCost operator+(const PlanCost& a, const PlanCost& b)
+  {
+    if (!a.is_bounded() || !b.is_bounded()) return unbounded();
+    if (a.ticks > std::numeric_limits<int64_t>::max() - b.ticks ||
+        a.work > std::numeric_limits<int64_t>::max() - b.work)
+      throw std::overflow_error("PlanCost addition overflow");
+    return from_scaled(a.ticks + b.ticks, a.work + b.work);
+  }
+
+  friend bool operator==(const PlanCost& a, const PlanCost& b)
+  {
+    return a.ticks == b.ticks && a.work == b.work;
+  }
+  friend bool operator!=(const PlanCost& a, const PlanCost& b)
+  {
+    return !(a == b);
+  }
+  friend bool operator<(const PlanCost& a, const PlanCost& b)
+  {
+    if (!a.is_bounded()) return false;
+    if (!b.is_bounded()) return true;
+    return a.ticks != b.ticks ? a.ticks < b.ticks : a.work < b.work;
+  }
+  friend bool operator>(const PlanCost& a, const PlanCost& b)
+  {
+    return b < a;
+  }
+  friend bool operator<=(const PlanCost& a, const PlanCost& b)
+  {
+    return !(b < a);
+  }
+  friend bool operator>=(const PlanCost& a, const PlanCost& b)
+  {
+    return !(a < b);
+  }
+
+  template <
+      typename T,
+      typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+  friend bool operator<(const PlanCost& a, T b)
+  {
+    return a < PlanCost(static_cast<double>(b));
+  }
+  template <
+      typename T,
+      typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+  friend bool operator<(T a, const PlanCost& b)
+  {
+    return PlanCost(static_cast<double>(a)) < b;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const PlanCost& cost)
+  {
+    if (!cost.is_bounded()) return os << "unbounded";
+    return os << '(' << cost.ticks << ',' << cost.work_value() << ')';
+  }
+
+ private:
+  struct RawTag {};
+  PlanCost(int64_t ticks_, int64_t work_, RawTag)
+      : ticks(ticks_), work(work_)
+  {
+  }
+};
+
+struct TAPFReferenceCheckpoint {
+  uint64_t state_hash = 0;
+  PhysConfig state;
+  size_t action_index = 0;
+  PlanCost prefix_cost;
+  PlanCost suffix_cost;
+  std::vector<Op> next_ops;
+};
+
+struct TAPFReferencePlan {
+  // Primitive joint actions from one authoritative, replayed incumbent.
+  // Checkpoints point into this immutable sequence; no guidance metadata,
+  // reservations, or task indices are retained across searches.
+  std::vector<std::vector<Op>> actions;
+  std::vector<TAPFReferenceCheckpoint> checkpoints;
+};
+
+struct SolverWeights {
+  double alpha = 1;
+  double beta = 1;
+  double gamma = 1;
+  double delta = 1;
+  int64_t alpha_scaled = PlanCost::WORK_SCALE;
+  int64_t beta_scaled = PlanCost::WORK_SCALE;
+  int64_t gamma_scaled = PlanCost::WORK_SCALE;
+  int64_t delta_scaled = PlanCost::WORK_SCALE;
+};
+
 struct TAPFSearchConfig {
   TAPFSearchMode mode = TAPFSearchMode::DFS;
   TAPFFocalTieBreak focal_tie_break = TAPFFocalTieBreak::H;
+  TAPFObjective objective = TAPFObjective::LEGACY_WEIGHTED_WORK;
   double focal_weight = 1.5;
   // Search-kernel controls. Carrier production uses one macro-assisted
-  // first-incumbent pass; generic TAPF callers may still run anytime.
+  // first-incumbent pass and one bounded first-improvement pass; generic
+  // TAPF callers may still run anytime.
   bool macro_enabled = true;   // event-bounded rollout successors
-  bool stop_at_first = false;
+  TAPFStopPolicy stop_policy = TAPFStopPolicy::ANYTIME;
   // Carrier adapters may need to replay/finalize a found plan before the
   // large CLOSED tree is destroyed.  Cleanup is still owned by the planner
   // and runs in its destructor; only the lifetime ordering changes.
   bool defer_cleanup = false;
-  double incumbent_init = -1;  // optional external upper bound
+  PlanCost incumbent_init = PlanCost::unbounded();
+  // Non-owning, immutable hint built from the verified first-pass plan.
+  // It may only reorder existing operators or register a replayed suffix
+  // through the ordinary SearchEdge trace path.
+  const TAPFReferencePlan* reference_plan = nullptr;
 };
 
 // skeleton dedup (node-skeleton audit 2026-08-30): TAPFConstraint was a
@@ -160,13 +363,76 @@ struct TaskIdHash {
   }
 };
 
+struct TransferKey {
+  ShelfSelector shelf;
+  int source = -1;
+  int endpoint = -1;
+
+  bool operator==(const TransferKey& o) const
+  {
+    return shelf == o.shelf && source == o.source &&
+           endpoint == o.endpoint;
+  }
+  bool operator!=(const TransferKey& o) const { return !(*this == o); }
+  bool operator<(const TransferKey& o) const
+  {
+    if (shelf != o.shelf) return shelf < o.shelf;
+    return source != o.source ? source < o.source
+                              : endpoint < o.endpoint;
+  }
+};
+
+struct TransferId {
+  // A deterministic, branch-local episode identity.  `anchor` is the
+  // physical-state hash at the transition that established the binding;
+  // reroutes and leg changes preserve it, while a later Lift creates a new
+  // anchor without introducing a process-global counter into ordering.
+  TransferKey key;
+  int carrier = -1;
+  uint64_t anchor = 0;
+
+  bool valid() const
+  {
+    return key.source >= 0 && key.endpoint >= 0 && carrier >= 0;
+  }
+  bool operator==(const TransferId& o) const
+  {
+    return key == o.key && carrier == o.carrier && anchor == o.anchor;
+  }
+  bool operator!=(const TransferId& o) const { return !(*this == o); }
+  bool operator<(const TransferId& o) const
+  {
+    if (key != o.key) return key < o.key;
+    return carrier != o.carrier ? carrier < o.carrier
+                                : anchor < o.anchor;
+  }
+};
+
+enum class RebindReason {
+  NONE = 0,
+  FORCED_DEVIATION = 1,
+  NO_ROUTE = 2,
+  ENDPOINT_UNAVAILABLE = 3,
+};
+
+enum class RouteStatus {
+  OK = 0,
+  PREFIX = 1,
+  ARRIVED = 2,
+  TEMPORARILY_BLOCKED = 3,
+  BUDGET_EXHAUSTED = 4,
+  NO_ROUTE = 5,
+};
+
 struct StorageTransfer {
   int endpoint = -1;
   std::vector<int> route;
 
   bool operator==(const StorageTransfer& o) const
   {
-    return endpoint == o.endpoint && route == o.route;
+    // Endpoint identifies the transfer intent.  The route is a replaceable
+    // execution hint and is intentionally excluded from identity.
+    return endpoint == o.endpoint;
   }
   bool operator!=(const StorageTransfer& o) const
   {
@@ -185,10 +451,25 @@ struct RotationCandidate {
   std::vector<TaskId> cycle;
 };
 
+enum class CausalEventKind {
+  ENTER_CELL = 0,
+  ACQUIRE = 1,
+  DROP = 2,
+  ROBOT_AVAILABLE = 3,
+};
+
+struct CausalEdge {
+  int producer = -1;
+  int must_be_vacated = -1;
+  int consumer = -1;
+  CausalEventKind kind = CausalEventKind::ENTER_CELL;
+};
+
 struct ShelfTaskGraph {
   std::vector<ShelfTask> tasks;
   std::vector<std::vector<int>> predecessors;
   std::vector<std::vector<int>> successors;
+  std::vector<CausalEdge> causal_edges;
   std::vector<int> paused_roots;
   std::vector<RotationCandidate> rotations;
   long effect_conflicts = 0;
@@ -205,6 +486,50 @@ struct Custody {
   int priority = 0;
   StorageTransfer transfer;
   size_t transfer_index = 0;
+  TransferId transfer_id;
+  int original_endpoint = -1;
+  RebindReason rebind_reason = RebindReason::NONE;
+  RouteStatus route_status = RouteStatus::OK;
+  std::optional<TaskId> preferred_leg;
+};
+
+enum class ExecutionTaskState {
+  ACTIVE = 0,
+  FULFILLED = 1,
+  PENDING = 2,
+  SHADOWED = 3,
+};
+
+struct ExecutionTaskView {
+  ExecutionTaskState state = ExecutionTaskState::PENDING;
+  int carrier = -1;
+  std::optional<TransferId> transfer_id;
+};
+
+struct CausalConditionView {
+  bool fulfilled = false;
+};
+
+struct ExecutionView {
+  std::vector<ExecutionTaskView> tasks;
+  std::vector<CausalConditionView> causal_conditions;
+};
+
+struct TimedRouteHint {
+  RouteStatus status = RouteStatus::NO_ROUTE;
+  int endpoint = -1;
+  std::vector<int> cells;
+  int arrival_tick = -1;
+  int expansions = 0;
+};
+
+struct JointTransportGuidance {
+  std::vector<std::optional<TimedRouteHint>> by_robot;
+  int expansions = 0;
+  int frames_evaluated = 0;
+  long long predicted_all_targets_ticks = 0;
+  long long predicted_work = 0;
+  double build_time_ms = 0;
 };
 
 struct UpperEpochGuidance {
@@ -223,7 +548,14 @@ struct UpperEpochGuidance {
 
 struct DDReadyMatchProbe {
   std::vector<std::optional<TaskId>> rho_task_id;
+  std::vector<std::optional<TransferKey>> rho_transfer_key;
   std::vector<int> rho_ready_index;
+};
+
+enum class DispatchMode {
+  NONE = 0,
+  EXECUTE = 1,
+  PREPARE = 2,
 };
 
 struct CarrierGuidance {
@@ -232,9 +564,14 @@ struct CarrierGuidance {
   // the current physical state and one real parent transition.
   std::shared_ptr<const UpperEpochGuidance> upper_epoch;
   std::vector<int> ready_tasks;
+  std::vector<int> preparable_tasks;
   std::vector<std::optional<TaskId>> rho_task_id;
+  std::vector<std::optional<TransferKey>> rho_transfer_key;
   std::vector<int> rho_ready_index;
+  std::vector<DispatchMode> rho_mode;
   std::vector<std::optional<Custody>> custody_by_robot;
+  ExecutionView execution_view;
+  JointTransportGuidance timed_transport;
 };
 
 struct TAPFNode;
@@ -253,7 +590,7 @@ struct TransitionStep {
 
 struct SearchEdge {
   TAPFNode* to = nullptr;
-  double physical_cost = 0;
+  PlanCost physical_cost;
   std::vector<TransitionStep> transition_trace;
 };
 
@@ -277,9 +614,9 @@ struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {
   std::vector<int> assignment;
   TAPFAssignmentState assignment_state;
   bool queued;
-  double g;
-  double h;
-  double f;
+  PlanCost g;
+  PlanCost h;
+  PlanCost f;
   unsigned depth;
   unsigned non_goal_waits;
   unsigned reversals;
@@ -351,16 +688,32 @@ struct TAPFStats {
   long ready_task_count = 0;
   long rho_repairs = 0;
   long custody_continuations = 0;
+  long timed_transport_expansions = 0;
+  long timed_transport_frames = 0;
+  long owner_handoffs = 0;
+  long causal_waiting = 0;
+  long traffic_waiting = 0;
   long zero_empty_no_ready = 0;
   long rewire_guidance_rebuilds = 0;
   long f_pruned = 0;    // nodes discarded by the incumbent/f bound
   long g_relaxed = 0;   // duplicate-hit g relaxations (rewrite propagation)
+  long reference_checkpoint_hits = 0;
+  long reference_action_hints = 0;
+  long reference_suffix_attempts = 0;
+  long reference_suffix_accepted = 0;
   long guidance_builds = 0;  // carrier guidance constructions (M6)
   double tau_time_ms = 0;
   double guidance_time_ms = 0;
+  double timed_transport_time_ms = 0;
   unsigned solution_cost = 0;
   unsigned first_solution_cost = 0;
   double first_solution_g = -1;  // exact double (carrier weighted soc)
+  int64_t solution_ticks = -1;
+  int64_t solution_work_scaled = -1;
+  double solution_work = -1;
+  int64_t first_solution_ticks = -1;
+  int64_t first_solution_work_scaled = -1;
+  double first_solution_work = -1;
   unsigned solution_parent_edge_cost = 0;
   double assignment_time_ms = 0;
   double first_solution_time_ms = 0;
@@ -385,9 +738,7 @@ struct TAPFPlanner {
   // Physical cost weights (design 2.3/5.7, mapping M5): unit by default;
   // numeric objective inputs DD_ALPHA..DD_DELTA override them. Shelf-free
   // edge costs never read these (the carrier term loops over empty kappa).
-  struct Weights {
-    double alpha = 1, beta = 1, gamma = 1, delta = 1;
-  };
+  using Weights = SolverWeights;
   Weights weights;
   TAPFDistTable D;
   Candidates C_next;
@@ -416,6 +767,8 @@ struct TAPFPlanner {
   // priority inheritance — a shared buffer would be clobbered mid-loop;
   // same recursion-safety shape as C_next)
   std::vector<std::vector<std::pair<Vertex*, uint8_t>>> pibt_cand;
+  std::unordered_multimap<uint64_t, size_t> reference_checkpoint_index;
+  bool reference_plan_valid = false;
   // solution shelf chain (parallel to the returned Solution; empty layers
   // on shelf-free instances) — consumed by the carrier adapters/tests
   std::vector<ShelfState> solution_shelves;
@@ -438,9 +791,9 @@ struct TAPFPlanner {
     std::vector<ShelfState> shelves;
     std::shared_ptr<const CarrierGuidance> terminal_guidance;
     std::vector<int> terminal_order;
-    double terminal_h = 0;
+    PlanCost terminal_h;
     long terminal_h_guidance = 0;
-    double cost = 0;
+    PlanCost cost;
     bool reached_goal = false;
     bool shelf_moved = false;
   };
@@ -465,6 +818,8 @@ struct TAPFPlanner {
       const CarrierGuidance* transition_previous_guidance = nullptr,
       const std::vector<Op>* transition_executed_ops = nullptr);
   void ensure_guidance_fresh(TAPFNode* nd);
+  const TAPFReferenceCheckpoint* find_reference_checkpoint(
+      const PhysConfig& state) const;
   // operator-candidate construction for the lazy constraint tree (M3):
   // the ONE production implementation, shared by solve() and the G1
   // conformance enumeration adapters.  rng consumption identical to the
@@ -475,10 +830,11 @@ struct TAPFPlanner {
   void rewrite(TAPFNode* from, TAPFNode* goal,
                std::vector<TAPFNode*>& OPEN);
   SearchEdgeHandle register_outgoing_edge(
-      TAPFNode* from, TAPFNode* to, double physical_cost,
+      TAPFNode* from, TAPFNode* to, PlanCost physical_cost,
       const std::vector<TransitionStep>& transition_trace);
-  double get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
+  PlanCost get_edge_cost(const TAPFNode* from, const TAPFNode* to) const;
   double get_h_value(const Config& C);
+  int64_t get_time_h_value(const Config& C);
   // carrier helpers (M4); all no-ops / trivially true with an empty layer
   void refresh_carrier_scratch(const TAPFNode* S);
   // address-keyed scratches (occupancy + guidance occ view) must be

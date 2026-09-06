@@ -13,6 +13,34 @@
 
 using DDPlan = std::vector<std::vector<Op>>;  // per timestep, per robot
 
+enum class DDSolveStatus {
+  SOLVED = 0,
+  EXHAUSTED = 1,
+  TIMEOUT = 2,
+  INVALID = 3,
+};
+
+enum class DDImprovementExitReason {
+  NOT_ATTEMPTED = 0,
+  NO_REMAINING_BUDGET = 1,
+  STRICT_IMPROVEMENT = 2,
+  SEARCH_CUTOFF = 3,
+  SEARCH_EXHAUSTED = 4,
+  CANDIDATE_REJECTED = 5,
+  FIXED_GOAL_SETUP_FAILED = 6,
+  REFERENCE_SUFFIX_ACCEPTED = 7,
+};
+
+const char* dd_improvement_exit_reason_name(
+    DDImprovementExitReason reason);
+
+struct DDSolveResult {
+  DDSolveStatus status = DDSolveStatus::EXHAUSTED;
+  DDPlan plan;
+
+  bool solved() const { return status == DDSolveStatus::SOLVED; }
+};
+
 struct DDPlanRepairStats {
   long exact_loops = 0;
   long projected_loops = 0;
@@ -27,7 +55,10 @@ struct DDStats {
   long validator_rejects = 0;  // PIBT PROPOSALS rejected (Bug C signal)
   long g1_rejects = 0;         // G1 full-constraint combos rejected (by design)
   long duplicate_configs = 0;
-  long generator_failures = 0;  // Carrier-PIBT returned no joint op
+  // First-incumbent/baseline Carrier-PIBT calls that returned no joint op.
+  // A bounded improvement pass is reported separately so adding anytime
+  // search does not rewrite this long-standing health diagnostic.
+  long generator_failures = 0;
   long max_depth = 0;
   long best_targets_done = 0;
   long macro_successors = 0;  // event-bounded rollout successors inserted
@@ -58,6 +89,11 @@ struct DDStats {
   long ready_task_count = 0;
   long rho_repairs = 0;
   long custody_continuations = 0;
+  long timed_transport_expansions = 0;
+  long timed_transport_frames = 0;
+  long owner_handoffs = 0;
+  long causal_waiting = 0;
+  long traffic_waiting = 0;
   long zero_empty_no_ready = 0;
   long rewire_guidance_rebuilds = 0;
   long g_relaxed = 0;         // duplicate hits relaxed to a cheaper g
@@ -65,13 +101,28 @@ struct DDStats {
   long guidance_builds = 0;
   double tau_time_ms = 0;
   double guidance_time_ms = 0;
+  double timed_transport_time_ms = 0;
   double deliverable_ms = -1;  // deferred cleanup + final replay complete
   // Incumbent and output-repair cost diagnostics.
   double first_solution_ms = -1;
+  long first_solution_makespan = -1;
+  int64_t first_solution_work_scaled = -1;
   double first_solution_soc = -1;  // weighted physical cost (a=b=g=d=1)
+  long best_makespan = -1;
+  int64_t best_work_scaled = -1;
   double best_soc = -1;
   long incumbent_updates = 0;
   long f_pruned = 0;
+  long improvement_attempts = 0;
+  long improvement_candidates = 0;
+  long improvement_improvements = 0;
+  long improvement_generator_failures = 0;
+  long reference_checkpoint_hits = 0;
+  long reference_action_hints = 0;
+  long reference_suffix_attempts = 0;
+  long reference_suffix_accepted = 0;
+  DDImprovementExitReason improvement_exit_reason =
+      DDImprovementExitReason::NOT_ATTEMPTED;
   // Output normalization: exact-state loops plus shelf-projection loops
   // repaired by lower-deck robot paths.
   long exact_loops = 0;
@@ -97,10 +148,21 @@ struct DDStats {
 // Reads DD_ALPHA..DD_DELTA (finite, non-negative, fully consumed strings;
 // throws std::invalid_argument otherwise).  tools/dd_benchmark.cpp MUST
 // use this instead of a private parser.
-struct DDSocWeights {
-  double alpha = 1, beta = 1, gamma = 1, delta = 1;
-};
+using DDSocWeights = SolverWeights;
 DDSocWeights dd_load_soc_weights();
+PlanCost dd_plan_cost_probe(const DDInstance& ins, const DDPlan& plan);
+bool dd_plan_cost_better_probe(const PlanCost& candidate,
+                               const PlanCost& incumbent);
+std::optional<DDPlan> dd_normalize_goal_prefix_probe(
+    const DDInstance& ins, const DDPlan& plan);
+std::optional<TAPFReferencePlan> dd_build_reference_plan_probe(
+    const DDInstance& ins, const DDPlan& plan,
+    size_t max_checkpoints = 256);
+std::optional<TAPFReferenceCheckpoint> dd_reference_checkpoint_probe(
+    const TAPFReferencePlan& reference, const PhysConfig& state);
+std::optional<DDPlan> dd_reference_splice_probe(
+    const DDInstance& ins, const TAPFReferencePlan& reference,
+    const DDPlan& prefix, const PlanCost& incumbent);
 
 // Task-BR-PIBT Phase 1 probes. These are thin views over the same pure
 // helpers used by production guidance; they do not run a second planner.
@@ -124,6 +186,7 @@ double dd_pair_episode_cost_probe(
 std::vector<int> dd_tau_guide_probe(const DDInstance& ins,
                                     const PhysConfig& X);
 double dd_tau_lb_probe(const DDInstance& ins, const PhysConfig& X);
+int64_t dd_makespan_lb_probe(const DDInstance& ins, const PhysConfig& X);
 ShelfTaskGraph dd_compile_single_root_graph_probe(
     const DDInstance& ins, const PhysConfig& X, int target, int goal,
     int recursion_cap = 256, int backtrack_cap = 512);
@@ -151,13 +214,16 @@ DDReadyMatchProbe dd_match_ready_tasks_probe(
     const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
     const std::vector<std::optional<TaskId>>* previous_rho_task_id);
 
-// returns empty plan on failure/timeout; a trivially-solved instance yields
-// a single all-wait step (never an empty plan on success).
+// Compatibility wrapper: authoritative callers that must distinguish a
+// zero-tick success from failure use solve_carrier_lacam_result().
 // On failure, if best_effort != nullptr it receives the action sequence to
 // the deepest explored node (debug/rollout aid).
 DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
                            int seed, DDStats* stats = nullptr,
                            DDPlan* best_effort = nullptr);
+DDSolveResult solve_carrier_lacam_result(
+    const DDInstance& ins, double time_limit_sec, int seed,
+    DDStats* stats = nullptr, DDPlan* best_effort = nullptr);
 
 // Test-visible finalization classifier shared by the production return
 // path.  Invalid output is a correctness failure even when discovered
@@ -178,6 +244,12 @@ struct Deadline;
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            DDPlanRepairStats* stats = nullptr,
                            const Deadline* deadline = nullptr);
+// Test-visible view of the exact production repair acceptance boundary.
+// Both plans are replayed with the shared fixed-point weights; only a valid
+// goal candidate with strictly smaller (ticks, work) is accepted.
+bool dd_repair_accepts_candidate_probe(
+    const DDInstance& ins, const DDPlan& incumbent,
+    const DDPlan& candidate);
 // Production fast path: `states` is the already-materialized physical
 // replay parallel to `plan` (size = plan.size() + 1).  The repaired output
 // is still replayed independently before acceptance; this only avoids

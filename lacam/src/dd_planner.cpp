@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <queue>
 #include <tuple>
 #include <unordered_set>
@@ -29,9 +30,7 @@ using carrier_detail::LowerDist;
 
 // Physical-cost weights for reporting (unit unless a numeric objective
 // input DD_ALPHA..DD_DELTA is present); must match TAPFPlanner's g.
-struct SocWeights {
-  double alpha = 1, beta = 1, gamma = 1, delta = 1;
-};
+using SocWeights = SolverWeights;
 
 SocWeights soc_weights_from_env()
 {
@@ -40,25 +39,175 @@ SocWeights soc_weights_from_env()
   return w;
 }
 
-double plan_soc(const DDInstance& ins, const DDPlan& plan)
+std::optional<DDPlan> normalize_goal_prefix(const DDInstance& ins,
+                                            const DDPlan& plan)
+{
+  PhysConfig state = initial_phys_config(ins);
+  if (is_dd_goal(ins, state)) return DDPlan{};
+  DDPlan prefix;
+  prefix.reserve(plan.size());
+  for (const auto& ops : plan) {
+    const auto next = apply_ops(ins, state, ops);
+    if (!next.has_value()) return std::nullopt;
+    prefix.push_back(ops);
+    state = *next;
+    if (is_dd_goal(ins, state)) return prefix;
+  }
+  return std::nullopt;
+}
+
+void add_scaled_work(int64_t& total, int64_t amount)
+{
+  if (amount < 0 ||
+      total > std::numeric_limits<int64_t>::max() - amount)
+    throw std::overflow_error("fixed-point plan work overflow");
+  total += amount;
+}
+
+int64_t joint_ops_work_scaled(
+    const SocWeights& weights, const PhysConfig& state,
+    const std::vector<Op>& ops)
+{
+  if (ops.size() != state.robots.size() ||
+      state.kappa.size() != state.robots.size())
+    throw std::invalid_argument(
+        "joint_ops_work_scaled: state/action arity mismatch");
+  int64_t work = 0;
+  for (size_t i = 0; i < ops.size(); ++i) {
+    if (ops[i].kind == Op::MOVE) {
+      add_scaled_work(
+          work, state.kappa[i] == KAPPA_FREE
+                    ? weights.beta_scaled
+                    : weights.alpha_scaled);
+      if (state.kappa[i] == KAPPA_ANON)
+        add_scaled_work(work, weights.delta_scaled);
+    } else if (ops[i].kind == Op::LIFT ||
+               ops[i].kind == Op::DROP) {
+      add_scaled_work(work, weights.gamma_scaled);
+    }
+  }
+  return work;
+}
+
+int64_t plan_work_scaled(const DDInstance& ins, const DDPlan& plan)
 {
   const SocWeights w = soc_weights_from_env();
   auto s = initial_phys_config(ins);
-  double c = 0;
+  int64_t work = 0;
   for (const auto& ops : plan) {
-    for (size_t i = 0; i < ops.size(); ++i) {
-      if (ops[i].kind == Op::MOVE) {
-        c += s.kappa[i] == KAPPA_FREE ? w.beta : w.alpha;
-        if (s.kappa[i] == KAPPA_ANON) c += w.delta;
-      } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
-        c += w.gamma;
-      }
-    }
+    add_scaled_work(work, joint_ops_work_scaled(w, s, ops));
     auto nxt = apply_ops(ins, s, ops);
-    if (!nxt.has_value()) return c;  // derived plans always replay
+    if (!nxt.has_value()) return work;  // derived plans always replay
     s = *nxt;
   }
-  return c;
+  return work;
+}
+
+PlanCost plan_cost(const DDInstance& ins, const DDPlan& plan)
+{
+  const auto prefix = normalize_goal_prefix(ins, plan);
+  if (!prefix.has_value()) return PlanCost::unbounded();
+  return PlanCost::from_scaled(
+      prefix->size(), plan_work_scaled(ins, *prefix));
+}
+
+std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
+    const DDInstance& ins, const DDPlan& plan)
+{
+  const SocWeights weights = soc_weights_from_env();
+  PhysConfig state = initial_phys_config(ins);
+  PlanCost cost;
+  for (const auto& ops : plan) {
+    if (ops.size() != state.robots.size()) return std::nullopt;
+    const PlanCost step = PlanCost::from_scaled(
+        1, joint_ops_work_scaled(weights, state, ops));
+    const auto next = apply_ops(ins, state, ops);
+    if (!next.has_value()) return std::nullopt;
+    cost += step;
+    state = *next;
+  }
+  return std::make_pair(std::move(state), cost);
+}
+
+const TAPFReferenceCheckpoint* find_reference_checkpoint(
+    const TAPFReferencePlan& reference, const PhysConfig& state)
+{
+  const uint64_t hash = phys_config_hash(state);
+  const TAPFReferenceCheckpoint* best = nullptr;
+  for (const auto& checkpoint : reference.checkpoints) {
+    if (checkpoint.state_hash != hash ||
+        !(checkpoint.state == state))
+      continue;
+    if (best == nullptr ||
+        checkpoint.suffix_cost < best->suffix_cost ||
+        (checkpoint.suffix_cost == best->suffix_cost &&
+         checkpoint.action_index > best->action_index))
+      best = &checkpoint;
+  }
+  return best;
+}
+
+std::optional<TAPFReferencePlan> build_reference_plan(
+    const DDInstance& ins, const DDPlan& plan,
+    size_t max_checkpoints)
+{
+  if (max_checkpoints == 0) return std::nullopt;
+  const SocWeights weights = soc_weights_from_env();
+  std::vector<PhysConfig> states;
+  std::vector<PlanCost> step_costs;
+  states.reserve(plan.size() + 1);
+  step_costs.reserve(plan.size());
+  states.push_back(initial_phys_config(ins));
+  for (const auto& ops : plan) {
+    if (ops.size() != states.back().robots.size())
+      return std::nullopt;
+    step_costs.push_back(PlanCost::from_scaled(
+        1, joint_ops_work_scaled(weights, states.back(), ops)));
+    const auto next = apply_ops(ins, states.back(), ops);
+    if (!next.has_value()) return std::nullopt;
+    states.push_back(*next);
+  }
+  if (!is_dd_goal(ins, states.back())) return std::nullopt;
+
+  std::vector<PlanCost> prefix(states.size());
+  for (size_t i = 0; i < step_costs.size(); ++i)
+    prefix[i + 1] = prefix[i] + step_costs[i];
+  std::vector<PlanCost> suffix(states.size());
+  for (size_t i = step_costs.size(); i > 0; --i)
+    suffix[i - 1] = step_costs[i - 1] + suffix[i];
+
+  std::vector<size_t> selected;
+  const size_t count = states.size();
+  if (count <= max_checkpoints) {
+    selected.resize(count);
+    std::iota(selected.begin(), selected.end(), 0);
+  } else if (max_checkpoints == 1) {
+    selected.push_back(0);
+  } else {
+    selected.reserve(max_checkpoints);
+    for (size_t slot = 0; slot < max_checkpoints; ++slot) {
+      const size_t index =
+          slot * (count - 1) / (max_checkpoints - 1);
+      if (selected.empty() || selected.back() != index)
+        selected.push_back(index);
+    }
+  }
+
+  TAPFReferencePlan reference;
+  reference.actions = plan;
+  reference.checkpoints.reserve(selected.size());
+  for (const size_t index : selected) {
+    TAPFReferenceCheckpoint checkpoint;
+    checkpoint.state_hash = phys_config_hash(states[index]);
+    checkpoint.state = states[index];
+    checkpoint.action_index = index;
+    checkpoint.prefix_cost = prefix[index];
+    checkpoint.suffix_cost = suffix[index];
+    if (index < plan.size())
+      checkpoint.next_ops = plan[index];
+    reference.checkpoints.push_back(std::move(checkpoint));
+  }
+  return reference;
 }
 
 // (Config, ShelfState) of an arbitrary physical configuration
@@ -103,13 +252,11 @@ std::vector<int> tau_of(const DDInstance& ins, const PhysConfig& X)
 DDPlan plan_of(const TAPFInstance& view, const Solution& sol,
                const std::vector<ShelfState>& shelves)
 {
-  auto plan = derive_carrier_ops(view, sol, shelves);
-  if (plan.empty() && !sol.empty())  // trivially solved: single all-wait
-    plan.push_back(std::vector<Op>(view.N, Op::make_wait()));
-  return plan;
+  return derive_carrier_ops(view, sol, shelves);
 }
 
-void map_stats(const TAPFStats& t, DDStats* out)
+void map_stats(const TAPFStats& t, DDStats* out,
+               bool improvement_attempt = false)
 {
   if (out == nullptr) return;
   out->hl_nodes += t.hl_nodes_created;
@@ -118,7 +265,11 @@ void map_stats(const TAPFStats& t, DDStats* out)
   out->validator_rejects += t.carrier_validator_rejects;
   out->g1_rejects += t.carrier_g1_rejects;
   out->duplicate_configs += t.hl_duplicate_configs;
-  out->generator_failures += t.constraint_failures;
+  if (improvement_attempt)
+    out->improvement_generator_failures +=
+        t.constraint_failures;
+  else
+    out->generator_failures += t.constraint_failures;
   out->macro_successors += t.macro_successors;
   out->macro_steps += t.macro_steps;
   out->macro_after_first += t.macro_after_first;
@@ -147,34 +298,70 @@ void map_stats(const TAPFStats& t, DDStats* out)
   out->ready_task_count += t.ready_task_count;
   out->rho_repairs += t.rho_repairs;
   out->custody_continuations += t.custody_continuations;
+  out->timed_transport_expansions +=
+      t.timed_transport_expansions;
+  out->timed_transport_frames +=
+      t.timed_transport_frames;
+  out->owner_handoffs += t.owner_handoffs;
+  out->causal_waiting += t.causal_waiting;
+  out->traffic_waiting += t.traffic_waiting;
   out->zero_empty_no_ready += t.zero_empty_no_ready;
   out->rewire_guidance_rebuilds += t.rewire_guidance_rebuilds;
   out->g_relaxed += t.g_relaxed;
   out->f_pruned += t.f_pruned;
+  out->reference_checkpoint_hits +=
+      t.reference_checkpoint_hits;
+  out->reference_action_hints += t.reference_action_hints;
+  out->reference_suffix_attempts +=
+      t.reference_suffix_attempts;
+  out->reference_suffix_accepted +=
+      t.reference_suffix_accepted;
   out->incumbent_updates += t.incumbent_updates;
   out->guidance_builds += t.guidance_builds;
   out->tau_time_ms += t.tau_time_ms;
   out->guidance_time_ms += t.guidance_time_ms;
+  out->timed_transport_time_ms +=
+      t.timed_transport_time_ms;
 }
 
-DDPlan run_first_incumbent_search(
-    const TAPFInstance& view, const DDInstance& ins, double limit_sec,
-    int seed, bool macro_enabled, DDStats* stats, DDPlan* best_effort,
-    double* soc_out, double* first_ms, double* first_soc, long* max_depth,
-    long* targets_done,
+DDPlan run_search_attempt(
+    const TAPFInstance& view, const DDInstance& ins,
+    const Deadline* deadline, int seed, bool macro_enabled,
+    TAPFStopPolicy stop_policy, PlanCost incumbent_init,
+    const TAPFReferencePlan* reference_plan, DDStats* stats,
+    DDPlan* best_effort, bool* solved_out, PlanCost* cost_out,
+    double* first_ms, long* first_makespan,
+    int64_t* first_work_scaled, double* first_soc,
+    long* max_depth, long* targets_done,
+    bool* search_cutoff_out,
     std::vector<std::unique_ptr<TAPFPlanner>>* deferred_cleanup)
 {
+  if (solved_out == nullptr)
+    throw std::invalid_argument(
+        "run_search_attempt requires solved_out");
+  *solved_out = false;
+  if (search_cutoff_out != nullptr) *search_cutoff_out = false;
   std::mt19937 mt(seed);
-  Deadline deadline(std::max(0.0, limit_sec) * 1000);
   TAPFStats tstats;
   TAPFSearchConfig cfg;
   cfg.macro_enabled = macro_enabled;
-  cfg.stop_at_first = true;
+  cfg.stop_policy = stop_policy;
   cfg.defer_cleanup = deferred_cleanup != nullptr;
+  cfg.objective = TAPFObjective::MAKESPAN_THEN_WORK;
+  cfg.incumbent_init = incumbent_init;
+  cfg.reference_plan = reference_plan;
+  const bool continue_after_incumbent =
+      stop_policy == TAPFStopPolicy::ANYTIME;
   auto planner = std::make_unique<TAPFPlanner>(
-      &view, &deadline, &mt, 0, 0, 0.001f, false, &tstats, cfg);
+      &view, deadline, &mt, 0, 0, 0.001f,
+      continue_after_incumbent,
+      &tstats, cfg);
   const auto sol = planner->solve();
-  map_stats(tstats, stats);
+  if (search_cutoff_out != nullptr)
+    *search_cutoff_out = tstats.timed_out;
+  map_stats(
+      tstats, stats,
+      incumbent_init.is_bounded());
   auto defer_planner_cleanup = [&]() {
     if (deferred_cleanup != nullptr)
       deferred_cleanup->push_back(std::move(planner));
@@ -188,9 +375,14 @@ DDPlan run_first_incumbent_search(
   if (targets_done != nullptr)
     *targets_done =
         std::max<long>(*targets_done, planner->best_targets_done);
-  if (first_ms != nullptr && *first_ms < 0 && tstats.first_solution_g >= 0) {
+  if (first_ms != nullptr && *first_ms < 0 &&
+      tstats.first_solution_ticks >= 0) {
     *first_ms = tstats.first_solution_time_ms;
-    *first_soc = tstats.first_solution_g;
+    if (first_makespan != nullptr)
+      *first_makespan = tstats.first_solution_ticks;
+    if (first_work_scaled != nullptr)
+      *first_work_scaled = tstats.first_solution_work_scaled;
+    *first_soc = tstats.first_solution_work;
   }
   if (sol.empty()) {
     if (best_effort != nullptr && !planner->best_effort_solution.empty()) {
@@ -206,50 +398,58 @@ DDPlan run_first_incumbent_search(
     defer_planner_cleanup();
     return {};
   }
-  auto plan = plan_of(view, sol, planner->solution_shelves);
+  const auto normalized = normalize_goal_prefix(
+      ins, plan_of(view, sol, planner->solution_shelves));
+  if (!normalized.has_value()) {
+    defer_planner_cleanup();
+    return {};
+  }
+  auto plan = *normalized;
   std::vector<PhysConfig> replayed_states;
-  if (sol.size() == plan.size() + 1 &&
+  if (plan.size() + 1 <= sol.size() &&
       planner->solution_shelves.size() == sol.size()) {
-    replayed_states.reserve(sol.size());
-    for (size_t t = 0; t < sol.size(); ++t)
+    replayed_states.reserve(plan.size() + 1);
+    for (size_t t = 0; t <= plan.size(); ++t)
       replayed_states.push_back(
           phys_of(sol[t], planner->solution_shelves[t]));
   }
   DDPlanRepairStats repair;
-  // R1 (debug.md §10): the repair consumes the SAME pass deadline; on
-  // expiry it returns the raw plan.  A pass that cannot finish
-  // search + mandatory repair inside its budget has NOT produced its
-  // deliverable: the un-repaired raw incumbent (100k+ steps on the
-  // borderline case) cannot be printed/validated inside the protocol
-  // window either, so the pass reports an honest timeout instead.
-  plan = replayed_states.empty()
-             ? repair_carrier_plan(ins, plan, &repair, &deadline)
-             : repair_carrier_plan_from_replay(
-                   ins, plan, replayed_states, &repair, &deadline);
-  if (is_expired(&deadline)) {
-    if (stats != nullptr) stats->timed_out = true;
-    defer_planner_cleanup();
-    return {};
-  }
+  // Repair is transactional.  The normalized raw plan above is already a
+  // legal deliverable snapshot; expiry or failed repair returns that raw
+  // plan and must not erase a solution that the search already produced.
+  if (!plan.empty())
+    plan = replayed_states.empty()
+               ? repair_carrier_plan(ins, plan, &repair, deadline)
+               : repair_carrier_plan_from_replay(
+                     ins, plan, replayed_states, &repair, deadline);
   if (stats != nullptr) {
     stats->exact_loops += repair.exact_loops;
     stats->projected_loops += repair.projected_loops;
     stats->bridge_steps += repair.bridge_steps;
     stats->plan_steps_removed += repair.steps_removed;
   }
-  if (soc_out != nullptr) *soc_out = plan_soc(ins, plan);
+  const auto repaired_prefix = normalize_goal_prefix(ins, plan);
+  if (!repaired_prefix.has_value()) {
+    defer_planner_cleanup();
+    return {};
+  }
+  plan = *repaired_prefix;
+  if (cost_out != nullptr) *cost_out = plan_cost(ins, plan);
+  *solved_out = true;
   defer_planner_cleanup();
   return plan;
 }
 
-std::optional<DDInstance> fixed_assignment_from_plan(
+bool has_dynamic_goal_sets(const DDInstance& ins)
+{
+  for (const auto& goals : ins.target_goal_sets)
+    if (goals.size() > 1) return true;
+  return false;
+}
+
+std::optional<DDInstance> fixed_goal_instance_from_plan(
     const DDInstance& ins, const DDPlan& plan)
 {
-  bool has_dynamic_assignment = false;
-  for (const auto& goals : ins.target_goal_sets)
-    has_dynamic_assignment |= goals.size() > 1;
-  if (!has_dynamic_assignment) return std::nullopt;
-
   PhysConfig state = initial_phys_config(ins);
   for (const auto& ops : plan) {
     auto next = apply_ops(ins, state, ops);
@@ -274,6 +474,30 @@ uint64_t state_hash(const Config& C, const ShelfState& S)
 
 }  // namespace
 
+const char* dd_improvement_exit_reason_name(
+    DDImprovementExitReason reason)
+{
+  switch (reason) {
+    case DDImprovementExitReason::NOT_ATTEMPTED:
+      return "NOT_ATTEMPTED";
+    case DDImprovementExitReason::NO_REMAINING_BUDGET:
+      return "NO_REMAINING_BUDGET";
+    case DDImprovementExitReason::STRICT_IMPROVEMENT:
+      return "STRICT_IMPROVEMENT";
+    case DDImprovementExitReason::SEARCH_CUTOFF:
+      return "SEARCH_CUTOFF";
+    case DDImprovementExitReason::SEARCH_EXHAUSTED:
+      return "SEARCH_EXHAUSTED";
+    case DDImprovementExitReason::CANDIDATE_REJECTED:
+      return "CANDIDATE_REJECTED";
+    case DDImprovementExitReason::FIXED_GOAL_SETUP_FAILED:
+      return "FIXED_GOAL_SETUP_FAILED";
+    case DDImprovementExitReason::REFERENCE_SUFFIX_ACCEPTED:
+      return "REFERENCE_SUFFIX_ACCEPTED";
+  }
+  return "UNKNOWN";
+}
+
 DDFinalizationStatus dd_classify_finalization_probe(
     bool replay_valid, double elapsed_ms, double limit_ms)
 {
@@ -282,31 +506,26 @@ DDFinalizationStatus dd_classify_finalization_probe(
   return DDFinalizationStatus::ACCEPT;
 }
 
-DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
-                           int seed, DDStats* stats, DDPlan* best_effort)
+DDSolveResult solve_carrier_lacam_result(
+    const DDInstance& ins, double time_limit_sec, int seed,
+    DDStats* stats, DDPlan* best_effort)
 {
   const TAPFInstance view(ins);
   if (stats != nullptr) *stats = DDStats();
   const auto started = Clock::now();
-  const auto finish_at =
-      started + std::chrono::duration_cast<Clock::duration>(
-                    std::chrono::duration<double>(
-                        std::max(0.0, time_limit_sec)));
-  auto remaining = [&]() {
-    return std::max(
-        0.0,
-        std::chrono::duration<double>(finish_at - Clock::now()).count());
-  };
 
-  // Phase 1 finds one executable incumbent under dynamic shelf-goal
-  // matching. If it leaves time, phase 2 fixes the terminal assignment and
-  // reruns the same search from the root. This is automatic for multi-goal
-  // inputs and structurally absent for singleton-goal instances.
+  // One controller owns the verified incumbent and at most two calls to the
+  // same TAPFPlanner::solve() implementation.  The first call stops at the
+  // first deliverable plan.  The second call is bounded by that incumbent
+  // and spends the remaining shared search budget on improvement.  Every
+  // second pass receives a fresh singleton-goal view built from the
+  // incumbent's actual terminal target positions.
   constexpr size_t MACRO_TARGET_LIMIT = 64;
   const bool use_macro = ins.n_targets() <= MACRO_TARGET_LIMIT;
-  // A retained pass-2 planner stores a pointer to its TAPFInstance.  Keep
-  // that copied view alive until after deferred planner destruction.
+  // A retained improvement planner may store a pointer to a copied fixed
+  // assignment view. Keep that view alive through deferred destruction.
   std::unique_ptr<TAPFInstance> fixed_view_storage;
+  std::optional<TAPFReferencePlan> first_reference;
   // Search trees can take seconds to destroy on dense cases.  Their
   // destruction is mandatory solver work and is completed before the
   // strict return timestamp.
@@ -315,76 +534,138 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
   const double finalization_reserve_sec =
       std::min(1.5, std::max(0.25,
                             std::max(0.0, time_limit_sec) * 0.15));
-  double soc = -1, first_ms = -1, first_soc = -1;
+  const double search_budget_sec =
+      std::max(
+          0.0,
+          std::max(0.0, time_limit_sec) -
+              finalization_reserve_sec);
+  Deadline search_deadline(search_budget_sec * 1000.0);
+  PlanCost cost = PlanCost::unbounded();
+  double first_ms = -1, first_soc = -1;
+  long first_makespan = -1;
+  int64_t first_work_scaled = -1;
   long max_depth = 0, targets_done = 0;
-  const double phase1_limit =
-      std::max(0.0, remaining() - finalization_reserve_sec);
-  DDPlan plan = run_first_incumbent_search(
-      view, ins, phase1_limit, seed, use_macro, stats, best_effort, &soc,
-      &first_ms, &first_soc, &max_depth, &targets_done, &deferred_cleanup);
+  bool phase1_solved = false;
+  DDPlan plan = run_search_attempt(
+      view, ins, &search_deadline, seed, use_macro,
+      TAPFStopPolicy::FIRST_FEASIBLE, PlanCost::unbounded(),
+      nullptr, stats, best_effort, &phase1_solved, &cost, &first_ms,
+      &first_makespan, &first_work_scaled, &first_soc,
+      &max_depth, &targets_done,
+      nullptr,
+      &deferred_cleanup);
   // Do not accumulate two large search trees until finalization.  Pass 1's
   // tree no longer owns anything needed by the materialized incumbent.
   deferred_cleanup.clear();
 
-  if (!plan.empty()) {
-    auto fixed = fixed_assignment_from_plan(ins, plan);
-    // Pass 2 is optional improvement work.  It must not consume the
-    // incumbent's final selection/replay window: an unsuccessful restart
-    // returns pass 1, and that pass-1 plan still has to become a machine-
-    // checked deliverable before the shared deadline.
-    const double phase2_limit =
-        std::max(0.0, remaining() - finalization_reserve_sec);
-    if (fixed.has_value() && phase2_limit > 0) {
+  if (phase1_solved && is_expired(&search_deadline) &&
+      stats != nullptr)
+    stats->improvement_exit_reason =
+        DDImprovementExitReason::NO_REMAINING_BUDGET;
+
+  if (phase1_solved && !is_expired(&search_deadline)) {
+    auto fixed = fixed_goal_instance_from_plan(ins, plan);
+    if (!fixed.has_value()) {
+      if (stats != nullptr)
+        stats->improvement_exit_reason =
+            DDImprovementExitReason::FIXED_GOAL_SETUP_FAILED;
+    } else {
+      const bool fixed_restart = has_dynamic_goal_sets(ins);
+      fixed_view_storage =
+          std::make_unique<TAPFInstance>(*fixed);
+      first_reference = build_reference_plan(
+          *fixed, plan, 256);
+      const TAPFInstance* improvement_view =
+          fixed_view_storage.get();
+      const DDInstance* improvement_ins = &*fixed;
       if (stats != nullptr) {
-        ++stats->assignment_restarts;
-        stats->assignment_first_soc = soc;
-        stats->assignment_first_makespan = static_cast<long>(plan.size());
+        ++stats->improvement_attempts;
+        if (fixed_restart) {
+          ++stats->assignment_restarts;
+          stats->assignment_first_soc = cost.work_value();
+          stats->assignment_first_makespan = cost.ticks;
+        }
       }
-      const double phase2_started_ms =
-          std::chrono::duration<double, std::milli>(
-              Clock::now() - started)
-              .count();
-      fixed_view_storage = std::make_unique<TAPFInstance>(*fixed);
-      double soc2 = -1, second_ms = -1, second_soc = -1;
-      DDPlan plan2 = run_first_incumbent_search(
-          *fixed_view_storage, *fixed, phase2_limit, seed, use_macro, stats,
-          nullptr, &soc2, &second_ms, &second_soc, &max_depth,
-          &targets_done, &deferred_cleanup);
-      if (!plan2.empty()) {
+      PlanCost cost2 = PlanCost::unbounded();
+      double second_ms = -1, second_soc = -1;
+      long second_makespan = -1;
+      bool phase2_solved = false;
+      bool phase2_cutoff = false;
+      DDPlan plan2 = run_search_attempt(
+          *improvement_view, *improvement_ins,
+          &search_deadline, seed,
+          /*macro_enabled=*/false,
+          TAPFStopPolicy::FIRST_STRICT_IMPROVEMENT,
+          cost,
+          first_reference.has_value() ? &*first_reference : nullptr,
+          stats, nullptr,
+          &phase2_solved, &cost2, &second_ms,
+          &second_makespan, nullptr, &second_soc, &max_depth,
+          &targets_done, &phase2_cutoff, &deferred_cleanup);
+      if (fixed_restart && phase2_solved && stats != nullptr) {
+        // This diagnostic now means what its name says: the second search
+        // itself produced a new, strictly-better candidate.  The retained
+        // first-pass fallback is not counted as a second-pass solve.
+        ++stats->assignment_second_solved;
+        stats->assignment_second_solution_ms = second_ms;
+        stats->assignment_second_soc = cost2.work_value();
+        stats->assignment_second_makespan = cost2.ticks;
+      }
+      if (phase2_solved) {
         if (stats != nullptr) {
-          ++stats->assignment_second_solved;
-          stats->assignment_second_solution_ms =
-              phase2_started_ms + second_ms;
-          stats->assignment_second_soc = soc2;
-          stats->assignment_second_makespan =
-              static_cast<long>(plan2.size());
+          ++stats->improvement_candidates;
+          if (fixed_restart) {
+            stats->assignment_second_soc = cost2.work_value();
+            stats->assignment_second_makespan = cost2.ticks;
+          }
         }
-        if (soc2 < soc) {
-          if (stats != nullptr) ++stats->assignment_improvements;
+        if (cost2 < cost) {
+          if (stats != nullptr) {
+            ++stats->improvement_improvements;
+            if (fixed_restart)
+              ++stats->assignment_improvements;
+          }
           plan = std::move(plan2);
-          soc = soc2;
+          cost = cost2;
+          if (stats != nullptr) {
+            stats->improvement_exit_reason =
+                stats->reference_suffix_accepted > 0
+                    ? DDImprovementExitReason::
+                          REFERENCE_SUFFIX_ACCEPTED
+                    : DDImprovementExitReason::
+                          STRICT_IMPROVEMENT;
+          }
+        } else if (stats != nullptr) {
+          stats->improvement_exit_reason =
+              DDImprovementExitReason::CANDIDATE_REJECTED;
         }
+      } else if (stats != nullptr) {
+        stats->improvement_exit_reason =
+            second_ms >= 0
+                ? DDImprovementExitReason::CANDIDATE_REJECTED
+                : (phase2_cutoff
+                       ? DDImprovementExitReason::SEARCH_CUTOFF
+                       : DDImprovementExitReason::SEARCH_EXHAUSTED);
       }
     }
   }
 
-  auto finish = [&](DDPlan final_plan, double final_soc) {
+  auto finish = [&](bool solved, DDPlan final_plan, PlanCost final_cost) {
     // A plan is not returned until all deferred solver-owned search state
     // has been destroyed.  fixed_view_storage remains alive across this
     // clear, preserving the pass-2 planner's instance pointer.
     deferred_cleanup.clear();
-    if (!final_plan.empty()) {
-      auto state = initial_phys_config(ins);
-      bool valid = true;
-      for (const auto& ops : final_plan) {
-        auto next = apply_ops(ins, state, ops);
-        if (!next.has_value()) {
-          valid = false;
-          break;
-        }
-        state = std::move(*next);
+    DDSolveStatus status = solved ? DDSolveStatus::SOLVED
+                                  : (stats != nullptr && stats->timed_out
+                                         ? DDSolveStatus::TIMEOUT
+                                         : DDSolveStatus::EXHAUSTED);
+    if (solved) {
+      const auto prefix = normalize_goal_prefix(ins, final_plan);
+      const bool valid = prefix.has_value();
+      if (valid) {
+        final_plan = *prefix;
+        final_cost = plan_cost(ins, final_plan);
       }
-      valid = valid && is_dd_goal(ins, state);
       const double deliverable_ms =
           std::chrono::duration<double, std::milli>(
               Clock::now() - started)
@@ -394,28 +675,43 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
           std::max(0.0, time_limit_sec) * 1000.0);
       if (finalization != DDFinalizationStatus::ACCEPT) {
         final_plan.clear();
-        final_soc = -1;
-        if (stats != nullptr)
-          stats->timed_out =
-              finalization == DDFinalizationStatus::DEADLINE;
+        final_cost = PlanCost::unbounded();
+        status = finalization == DDFinalizationStatus::DEADLINE
+                     ? DDSolveStatus::TIMEOUT
+                     : DDSolveStatus::INVALID;
       } else if (stats != nullptr) {
         stats->deliverable_ms = deliverable_ms;
       }
     }
     if (stats != nullptr) {
       stats->first_solution_ms = first_ms;
+      stats->first_solution_makespan = first_makespan;
+      stats->first_solution_work_scaled = first_work_scaled;
       stats->first_solution_soc = first_soc;
-      stats->best_soc = final_plan.empty() ? -1 : final_soc;
+      stats->best_makespan =
+          status == DDSolveStatus::SOLVED ? final_cost.ticks : -1;
+      stats->best_work_scaled =
+          status == DDSolveStatus::SOLVED ? final_cost.work : -1;
+      stats->best_soc =
+          status == DDSolveStatus::SOLVED ? final_cost.work_value() : -1;
       stats->max_depth = max_depth;
       stats->best_targets_done = targets_done;
       // timed_out accumulated per pass above: an empty plan is a timeout
       // only if some pass actually expired; OPEN exhaustion and generator
       // failure report as a plain (non-timeout) failure.
-      stats->timed_out = final_plan.empty() && stats->timed_out;
+      stats->timed_out = status == DDSolveStatus::TIMEOUT;
     }
-    return final_plan;
+    return DDSolveResult{status, std::move(final_plan)};
   };
-  return finish(std::move(plan), soc);
+  return finish(phase1_solved, std::move(plan), cost);
+}
+
+DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
+                           int seed, DDStats* stats, DDPlan* best_effort)
+{
+  return solve_carrier_lacam_result(
+             ins, time_limit_sec, seed, stats, best_effort)
+      .plan;
 }
 
 DDPlan solve_carrier_rollout(const DDInstance& ins, double time_limit_sec,
@@ -669,6 +965,65 @@ DDSocWeights dd_load_soc_weights()
   return w;
 }
 
+PlanCost dd_plan_cost_probe(const DDInstance& ins, const DDPlan& plan)
+{
+  return plan_cost(ins, plan);
+}
+
+bool dd_plan_cost_better_probe(const PlanCost& candidate,
+                               const PlanCost& incumbent)
+{
+  return candidate < incumbent;
+}
+
+std::optional<DDPlan> dd_normalize_goal_prefix_probe(
+    const DDInstance& ins, const DDPlan& plan)
+{
+  return normalize_goal_prefix(ins, plan);
+}
+
+std::optional<TAPFReferencePlan> dd_build_reference_plan_probe(
+    const DDInstance& ins, const DDPlan& plan,
+    size_t max_checkpoints)
+{
+  return build_reference_plan(ins, plan, max_checkpoints);
+}
+
+std::optional<TAPFReferenceCheckpoint> dd_reference_checkpoint_probe(
+    const TAPFReferencePlan& reference, const PhysConfig& state)
+{
+  const auto* checkpoint =
+      find_reference_checkpoint(reference, state);
+  if (checkpoint == nullptr) return std::nullopt;
+  return *checkpoint;
+}
+
+std::optional<DDPlan> dd_reference_splice_probe(
+    const DDInstance& ins, const TAPFReferencePlan& reference,
+    const DDPlan& prefix, const PlanCost& incumbent)
+{
+  const auto replayed = replay_raw_prefix(ins, prefix);
+  if (!replayed.has_value()) return std::nullopt;
+  const auto* checkpoint =
+      find_reference_checkpoint(reference, replayed->first);
+  if (checkpoint == nullptr ||
+      checkpoint->action_index >= reference.actions.size())
+    return std::nullopt;
+  if (!(replayed->second + checkpoint->suffix_cost < incumbent))
+    return std::nullopt;
+
+  DDPlan stitched = prefix;
+  stitched.insert(
+      stitched.end(),
+      reference.actions.begin() + checkpoint->action_index,
+      reference.actions.end());
+  const auto normalized = normalize_goal_prefix(ins, stitched);
+  if (!normalized.has_value() ||
+      !(plan_cost(ins, *normalized) < incumbent))
+    return std::nullopt;
+  return normalized;
+}
+
 UpperSignature dd_upper_signature_probe(const PhysConfig& X)
 {
   return carrier_detail::make_upper_signature(X);
@@ -740,6 +1095,13 @@ double dd_tau_lb_probe(const DDInstance& ins, const PhysConfig& X)
   DDDistCache upper_wall(ins.grid);
   return carrier_detail::solve_tau_lb(
       ins, X, upper_wall, w.alpha, w.gamma);
+}
+
+int64_t dd_makespan_lb_probe(const DDInstance& ins, const PhysConfig& X)
+{
+  DDDistCache wall_distance(ins.grid);
+  return carrier_detail::solve_tau_time_lb(
+      ins, X, wall_distance);
 }
 
 ShelfTaskGraph dd_compile_single_root_graph_probe(

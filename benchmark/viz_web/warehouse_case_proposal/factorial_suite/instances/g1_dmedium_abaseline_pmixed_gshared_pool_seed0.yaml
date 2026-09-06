@@ -1,0 +1,158 @@
+name: g1_dmedium_abaseline_pmixed_gshared_pool_seed0
+map: '........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  '
+storage_map: '........
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  ........
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  '
+warehouse_layout:
+  map_family: g1
+  block_size: 3
+  aisle_width: 1
+  density_level: medium
+  actual_density: 0.5555555555555556
+  shelves_per_block: 5
+  corridor_policy: hard_no_drop
+  block_origins:
+  - - 1
+    - 1
+  - - 1
+    - 5
+  - - 5
+    - 1
+  - - 5
+    - 5
+factorial_design:
+  pairing_key: g1__mixed__shared_pool__seed0
+  pairing_seed: 1797278929
+  layout_policy: nested_density_prefix
+  robot_start_policy: nested_agent_prefix
+  density_level: medium
+  agent_level: baseline
+  task_profile: mixed
+  goal_mode: shared_pool
+task_profile:
+  relation_basis: certificate_assignment
+  relation_counts:
+    intra: 2
+    adjacent: 1
+    remote: 1
+  core_goals: 2
+  goal_mode: shared_pool
+  goal_pool_size: 6
+  certificate_guarantee: validator_checked
+  certificate_steps: 60
+  certificate_sha256: ef323b53b26d8f71734567bcd356d67ec4d54d8453483c36ac5150ffc14c78cd
+robots:
+- - 0
+  - 6
+- - 6
+  - 0
+- - 0
+  - 1
+shelves:
+- - 1
+  - 1
+- - 1
+  - 3
+- - 1
+  - 5
+- - 1
+  - 7
+- - 2
+  - 1
+- - 2
+  - 3
+- - 2
+  - 7
+- - 3
+  - 3
+- - 3
+  - 6
+- - 3
+  - 7
+- - 5
+  - 1
+- - 5
+  - 2
+- - 5
+  - 5
+- - 5
+  - 6
+- - 6
+  - 1
+- - 6
+  - 5
+- - 6
+  - 6
+- - 7
+  - 2
+- - 7
+  - 3
+- - 7
+  - 6
+targets:
+- id: b0
+  start:
+  - 3
+  - 7
+  goals: pool
+- id: b1
+  start:
+  - 3
+  - 6
+  goals: pool
+- id: b2
+  start:
+  - 5
+  - 2
+  goals: pool
+- id: b3
+  start:
+  - 5
+  - 6
+  goals: pool
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false
+goal_pool:
+- - 2
+  - 6
+- - 3
+  - 1
+- - 3
+  - 2
+- - 5
+  - 7
+- - 6
+  - 2
+- - 7
+  - 5

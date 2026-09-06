@@ -92,15 +92,16 @@ TEST(dd_planner, idle_robot_on_lift_cell)
 TEST(dd_planner, already_solved_returns_empty_but_valid_flagged)
 {
   auto ins = make_ins({"..."}, {{0, 0}}, {{0, 1}}, {{{0, 1}, {0, 1}}});
-  // start state is already goal: planner returns a trivial 0/1-step plan;
-  // contract: non-"empty means failure" -> represent as plan with single
-  // all-wait step
-  auto plan = solve_carrier_lacam(ins, 5.0, 0);
-  ASSERT_FALSE(plan.empty());
-  auto s = initial_phys_config(ins);
-  auto nxt = apply_ops(ins, s, plan[0]);
-  ASSERT_TRUE(nxt.has_value());
-  EXPECT_TRUE(is_dd_goal(ins, *nxt));
+  DDStats stats;
+  const auto result =
+      solve_carrier_lacam_result(ins, 5.0, 0, &stats);
+  ASSERT_TRUE(result.solved());
+  EXPECT_TRUE(result.plan.empty());
+  EXPECT_TRUE(is_dd_goal(ins, initial_phys_config(ins)));
+  EXPECT_EQ(stats.best_makespan, 0);
+  EXPECT_DOUBLE_EQ(stats.best_soc, 0);
+  EXPECT_FALSE(stats.timed_out);
+  EXPECT_GE(stats.deliverable_ms, 0);
 }
 
 TEST(dd_planner, two_targets_swap_positions)

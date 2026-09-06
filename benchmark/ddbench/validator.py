@@ -230,27 +230,31 @@ def validate_plan(
 
 # ---- cost model (design.md 2.3) ----
 
-def plan_cost(
+def _plan_metrics(
     s0_ins: Instance,
     plan: List[List[Action]],
     alpha: float = 1.0,
     beta: float = 1.0,
     gamma: float = 1.0,
     delta: float = 1.0,
+    stop_at_first_goal: bool = True,
 ) -> Dict[str, float]:
-    """Weighted action cost + executed makespan.  Assumes plan is valid."""
+    """Replay a valid plan and collect physical action metrics."""
     s = initial_state(s0_ins)
     loaded_moves = free_moves = liftdrops = anon_moves = 0
     shelf_switches = 0
     reversals = 0
     prev_pos = list(s.robots)      # position at t-1
     prev_prev = list(s.robots)     # position at t-2
-    executed_makespan = None       # FIRST time the goal holds
+    executed_makespan = 0 if is_goal(s0_ins, s) else None
+    trace_makespan = 0
     lift_counts = {}       # shelf identity -> number of lifts so far
     anon_id_at = {}        # cell -> anon identity (custody chain)
     carrier_custody = {}   # robot i -> identity currently carried
     next_anon_id = [0]
     for t, joint in enumerate(plan):
+        if stop_at_first_goal and executed_makespan is not None:
+            break
         for i, act in enumerate(joint):
             if act[0] == "lift":
                 cell = s.robots[i]
@@ -281,6 +285,7 @@ def plan_cost(
                     if key is not None and key[0] == "anon":
                         anon_id_at[s.robots[i]] = key[1]
         s = apply_joint_action(s0_ins, s, joint)
+        trace_makespan += 1
         # oscillation metric (design 8.3 addition, round-2 P2-13a):
         # immediate A->B->A flips in the position history — moved at t-1
         # AND back on the t-2 position now.  Wait in between doesn't count.
@@ -292,10 +297,6 @@ def plan_cost(
         prev_pos = list(s.robots)
         if executed_makespan is None and is_goal(s0_ins, s):
             executed_makespan = t + 1
-            # makespan is the FIRST time the goal holds; the replay keeps
-            # going so metrics cover the WHOLE plan (matches the long-
-            # standing comment; the old `break` truncated counters and made
-            # zero-target fixtures degenerate)
     if executed_makespan is None:
         executed_makespan = len(plan)
     # shelf switches (design 8.3): re-lifts, i.e. lift events beyond each
@@ -303,6 +304,7 @@ def plan_cost(
     # tracked by cell chain-of-custody within this replay.
     return {
         "executed_makespan": executed_makespan,
+        "trace_makespan": trace_makespan,
         "loaded_moves": loaded_moves,
         "free_moves": free_moves,
         "lift_drop": liftdrops,
@@ -310,11 +312,43 @@ def plan_cost(
         "shelf_switches": shelf_switches,
         "reversals": reversals,
         "robot_utilization": (
-            loaded_moves / (len(s0_ins.robots) * executed_makespan)
-            if executed_makespan > 0 else 0.0
+            loaded_moves / (len(s0_ins.robots) * trace_makespan)
+            if trace_makespan > 0 else 0.0
         ),
         "weighted_soc": alpha * loaded_moves
         + beta * free_moves
         + gamma * liftdrops
         + delta * anon_moves,
     }
+
+
+def plan_cost(
+    s0_ins: Instance,
+    plan: List[List[Action]],
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    gamma: float = 1.0,
+    delta: float = 1.0,
+) -> Dict[str, float]:
+    """Authoritative (makespan, work) metrics through the first goal state."""
+    return _plan_metrics(
+        s0_ins, plan, alpha, beta, gamma, delta, stop_at_first_goal=True
+    )
+
+
+def plan_trace_diagnostics(
+    s0_ins: Instance,
+    plan: List[List[Action]],
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    gamma: float = 1.0,
+    delta: float = 1.0,
+) -> Dict[str, float]:
+    """Diagnostic counters over the complete supplied trace.
+
+    Objective reporting must use :func:`plan_cost`; this helper exists for
+    oscillation and other post-goal trace diagnostics.
+    """
+    return _plan_metrics(
+        s0_ins, plan, alpha, beta, gamma, delta, stop_at_first_goal=False
+    )

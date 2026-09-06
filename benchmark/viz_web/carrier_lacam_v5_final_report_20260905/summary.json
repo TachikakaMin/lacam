@@ -1,0 +1,400 @@
+{
+  "full": {
+    "total": 509,
+    "solved": 479,
+    "failed": 30,
+    "success_rate": 0.9410609037328095,
+    "makespan_sum": 33442.0,
+    "work_sum": 145000.0,
+    "makespan_mean": 69.81628392484342,
+    "makespan_median": 27.0,
+    "work_mean": 302.71398747390396,
+    "runtime_sum": 4037.500000000001,
+    "runtime_mean": 7.932220039292731
+  },
+  "quick": {
+    "total": 77,
+    "solved": 47,
+    "failed": 30,
+    "success_rate": 0.6103896103896104,
+    "makespan_sum": 19749.0,
+    "work_sum": 54627.0,
+    "makespan_mean": 420.1914893617021,
+    "makespan_median": 162.0,
+    "work_mean": 1162.276595744681,
+    "runtime_sum": 651.7760000000002,
+    "runtime_mean": 8.464623376623377
+  },
+  "factorial": {
+    "total": 432,
+    "solved": 432,
+    "failed": 0,
+    "success_rate": 1.0,
+    "makespan_sum": 13693.0,
+    "work_sum": 90373.0,
+    "makespan_mean": 31.69675925925926,
+    "makespan_median": 26.0,
+    "work_mean": 209.19675925925927,
+    "runtime_sum": 3385.724000000003,
+    "runtime_mean": 7.837324074074074
+  },
+  "quick_comparison": {
+    "common": 47,
+    "success_sets_equal": true,
+    "makespan": {
+      "better": 29,
+      "equal": 3,
+      "worse": 15,
+      "base_sum": 19229.0,
+      "new_sum": 19749.0,
+      "geometric_ratio": 0.9405121288346568
+    },
+    "work": {
+      "better": 14,
+      "equal": 4,
+      "worse": 29,
+      "base_sum": 49014.0,
+      "new_sum": 54627.0,
+      "geometric_ratio": 1.0645688669295224
+    },
+    "lexicographic": {
+      "better": 29,
+      "equal": 1,
+      "worse": 17
+    },
+    "plan_hash_changes": 46
+  },
+  "historical_comparison": {
+    "common": 479,
+    "success_sets_equal": true,
+    "makespan": {
+      "better": 348,
+      "equal": 85,
+      "worse": 46,
+      "base_sum": 38716.0,
+      "new_sum": 33442.0,
+      "geometric_ratio": 0.8010403104290101
+    },
+    "work": {
+      "better": 136,
+      "equal": 88,
+      "worse": 255,
+      "base_sum": 135913.0,
+      "new_sum": 145000.0,
+      "geometric_ratio": 1.0282283708734252
+    },
+    "lexicographic": {
+      "better": 364,
+      "equal": 53,
+      "worse": 62
+    },
+    "plan_hash_changes": 434
+  },
+  "ablations": [
+    {
+      "label": "E1 off",
+      "summary": {
+        "total": 77,
+        "solved": 47,
+        "failed": 30,
+        "success_rate": 0.6103896103896104,
+        "makespan_sum": 17998.0,
+        "work_sum": 48932.0,
+        "makespan_mean": 382.93617021276594,
+        "makespan_median": 180.0,
+        "work_mean": 1041.1063829787233,
+        "runtime_sum": 653.661,
+        "runtime_mean": 8.489103896103897
+      },
+      "comparison": {
+        "common": 47,
+        "success_sets_equal": true,
+        "makespan": {
+          "better": 14,
+          "equal": 22,
+          "worse": 11,
+          "base_sum": 19749.0,
+          "new_sum": 17998.0,
+          "geometric_ratio": 0.9816787164015819
+        },
+        "work": {
+          "better": 18,
+          "equal": 17,
+          "worse": 12,
+          "base_sum": 54627.0,
+          "new_sum": 48932.0,
+          "geometric_ratio": 0.9747632047417525
+        },
+        "lexicographic": {
+          "better": 19,
+          "equal": 17,
+          "worse": 11
+        },
+        "plan_hash_changes": 32
+      }
+    },
+    {
+      "label": "E2 off",
+      "summary": {
+        "total": 77,
+        "solved": 47,
+        "failed": 30,
+        "success_rate": 0.6103896103896104,
+        "makespan_sum": 19749.0,
+        "work_sum": 54627.0,
+        "makespan_mean": 420.1914893617021,
+        "makespan_median": 162.0,
+        "work_mean": 1162.276595744681,
+        "runtime_sum": 653.907,
+        "runtime_mean": 8.4922987012987
+      },
+      "comparison": {
+        "common": 47,
+        "success_sets_equal": true,
+        "makespan": {
+          "better": 0,
+          "equal": 47,
+          "worse": 0,
+          "base_sum": 19749.0,
+          "new_sum": 19749.0,
+          "geometric_ratio": 1.0
+        },
+        "work": {
+          "better": 0,
+          "equal": 47,
+          "worse": 0,
+          "base_sum": 54627.0,
+          "new_sum": 54627.0,
+          "geometric_ratio": 1.0
+        },
+        "lexicographic": {
+          "better": 0,
+          "equal": 47,
+          "worse": 0
+        },
+        "plan_hash_changes": 1
+      }
+    },
+    {
+      "label": "E4 off",
+      "summary": {
+        "total": 77,
+        "solved": 47,
+        "failed": 30,
+        "success_rate": 0.6103896103896104,
+        "makespan_sum": 20679.0,
+        "work_sum": 56324.0,
+        "makespan_mean": 439.97872340425533,
+        "makespan_median": 162.0,
+        "work_mean": 1198.3829787234042,
+        "runtime_sum": 324.41,
+        "runtime_mean": 4.213116883116883
+      },
+      "comparison": {
+        "common": 47,
+        "success_sets_equal": true,
+        "makespan": {
+          "better": 0,
+          "equal": 33,
+          "worse": 14,
+          "base_sum": 19749.0,
+          "new_sum": 20679.0,
+          "geometric_ratio": 1.0416264838241898
+        },
+        "work": {
+          "better": 0,
+          "equal": 30,
+          "worse": 17,
+          "base_sum": 54627.0,
+          "new_sum": 56324.0,
+          "geometric_ratio": 1.0370362649391105
+        },
+        "lexicographic": {
+          "better": 0,
+          "equal": 30,
+          "worse": 17
+        },
+        "plan_hash_changes": 17
+      }
+    }
+  ],
+  "axes": {
+    "map_family": [
+      {
+        "value": "g1",
+        "total": 72,
+        "solved": 72,
+        "makespan_mean": 16.27777777777778,
+        "work_mean": 39.93055555555556
+      },
+      {
+        "value": "g2",
+        "total": 72,
+        "solved": 72,
+        "makespan_mean": 21.916666666666668,
+        "work_mean": 75.06944444444444
+      },
+      {
+        "value": "g3",
+        "total": 72,
+        "solved": 72,
+        "makespan_mean": 24.805555555555557,
+        "work_mean": 112.84722222222223
+      },
+      {
+        "value": "g4",
+        "total": 72,
+        "solved": 72,
+        "makespan_mean": 30.34722222222222,
+        "work_mean": 195.20833333333334
+      },
+      {
+        "value": "g5",
+        "total": 72,
+        "solved": 72,
+        "makespan_mean": 37.69444444444444,
+        "work_mean": 312.94444444444446
+      },
+      {
+        "value": "g6",
+        "total": 72,
+        "solved": 72,
+        "makespan_mean": 59.138888888888886,
+        "work_mean": 519.1805555555555
+      }
+    ],
+    "density_level": [
+      {
+        "value": "high",
+        "total": 144,
+        "solved": 144,
+        "makespan_mean": 32.69444444444444,
+        "work_mean": 216.47222222222223
+      },
+      {
+        "value": "low",
+        "total": 144,
+        "solved": 144,
+        "makespan_mean": 30.72222222222222,
+        "work_mean": 202.5625
+      },
+      {
+        "value": "medium",
+        "total": 144,
+        "solved": 144,
+        "makespan_mean": 31.67361111111111,
+        "work_mean": 208.55555555555554
+      }
+    ],
+    "agent_level": [
+      {
+        "value": "baseline",
+        "total": 108,
+        "solved": 108,
+        "makespan_mean": 32.833333333333336,
+        "work_mean": 219.40740740740742
+      },
+      {
+        "value": "equal",
+        "total": 108,
+        "solved": 108,
+        "makespan_mean": 26.87962962962963,
+        "work_mean": 209.94444444444446
+      },
+      {
+        "value": "scarce",
+        "total": 108,
+        "solved": 108,
+        "makespan_mean": 41.49074074074074,
+        "work_mean": 224.25925925925927
+      },
+      {
+        "value": "surplus",
+        "total": 108,
+        "solved": 108,
+        "makespan_mean": 25.583333333333332,
+        "work_mean": 183.17592592592592
+      }
+    ],
+    "task_profile": [
+      {
+        "value": "cross_heavy",
+        "total": 144,
+        "solved": 144,
+        "makespan_mean": 36.65277777777778,
+        "work_mean": 238.79861111111111
+      },
+      {
+        "value": "local",
+        "total": 144,
+        "solved": 144,
+        "makespan_mean": 27.645833333333332,
+        "work_mean": 184.94444444444446
+      },
+      {
+        "value": "mixed",
+        "total": 144,
+        "solved": 144,
+        "makespan_mean": 30.791666666666668,
+        "work_mean": 203.84722222222223
+      }
+    ],
+    "goal_mode": [
+      {
+        "value": "shared_pool",
+        "total": 216,
+        "solved": 216,
+        "makespan_mean": 25.26388888888889,
+        "work_mean": 173.12962962962962
+      },
+      {
+        "value": "singleton",
+        "total": 216,
+        "solved": 216,
+        "makespan_mean": 38.129629629629626,
+        "work_mean": 245.26388888888889
+      }
+    ]
+  },
+  "failures": [
+    {
+      "family": "g20x20",
+      "status": "timeout",
+      "count": 6
+    },
+    {
+      "family": "g40x40",
+      "status": "timeout",
+      "count": 8
+    },
+    {
+      "family": "g80x80",
+      "status": "timeout",
+      "count": 16
+    }
+  ],
+  "timing": {
+    "wall_time_sec": 295.6,
+    "solver_time_sum_sec": 4037.5,
+    "jobs": 14,
+    "timeout_sec": 10.0,
+    "binary_sha256": "854df1e692316017cbc26ab462ab3b22735d61caa08ff0645e28ad0cab4a574c",
+    "suite_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed",
+    "execution_snapshot": "sealed_linux_memfd",
+    "historical_wall_time_sec": 49.2,
+    "wall_ratio": 6.008130081300813
+  },
+  "testcase_c": {
+    "id": "warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0",
+    "makespan": 31,
+    "work": 93,
+    "binary_sha256": "854df1e692316017cbc26ab462ab3b22735d61caa08ff0645e28ad0cab4a574c",
+    "robots": 6,
+    "targets": 6,
+    "loaded_moves": 49,
+    "free_moves": 32,
+    "lift_drop": 12,
+    "anon_moves": 0,
+    "reversals": 0
+  }
+}

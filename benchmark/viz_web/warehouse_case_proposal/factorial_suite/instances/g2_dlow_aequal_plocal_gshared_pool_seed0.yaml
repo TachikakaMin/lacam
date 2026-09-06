@@ -1,0 +1,202 @@
+name: g2_dlow_aequal_plocal_gshared_pool_seed0
+map: '............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  ............
+
+  '
+storage_map: '............
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  ............
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  ............
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  .SSS.SSS.SSS
+
+  '
+warehouse_layout:
+  map_family: g2
+  block_size: 3
+  aisle_width: 1
+  density_level: low
+  actual_density: 0.2222222222222222
+  shelves_per_block: 2
+  corridor_policy: hard_no_drop
+  block_origins:
+  - - 1
+    - 1
+  - - 1
+    - 5
+  - - 1
+    - 9
+  - - 5
+    - 1
+  - - 5
+    - 5
+  - - 5
+    - 9
+  - - 9
+    - 1
+  - - 9
+    - 5
+  - - 9
+    - 9
+factorial_design:
+  pairing_key: g2__local__shared_pool__seed0
+  pairing_seed: 1259903424
+  layout_policy: nested_density_prefix
+  robot_start_policy: nested_agent_prefix
+  density_level: low
+  agent_level: equal
+  task_profile: local
+  goal_mode: shared_pool
+task_profile:
+  relation_basis: certificate_assignment
+  relation_counts:
+    intra: 4
+    adjacent: 2
+    remote: 0
+  core_goals: 3
+  goal_mode: shared_pool
+  goal_pool_size: 9
+  certificate_guarantee: validator_checked
+  certificate_steps: 95
+  certificate_sha256: 06698c44dac848c036cb8e62cd9e7219b0d59fba1f7feaf1610e9012615b3508
+robots:
+- - 1
+  - 0
+- - 4
+  - 8
+- - 3
+  - 8
+- - 1
+  - 8
+- - 0
+  - 0
+- - 8
+  - 1
+shelves:
+- - 1
+  - 1
+- - 1
+  - 9
+- - 2
+  - 7
+- - 3
+  - 2
+- - 3
+  - 5
+- - 3
+  - 10
+- - 5
+  - 1
+- - 5
+  - 3
+- - 5
+  - 9
+- - 7
+  - 6
+- - 7
+  - 7
+- - 7
+  - 11
+- - 9
+  - 1
+- - 9
+  - 11
+- - 10
+  - 2
+- - 10
+  - 6
+- - 10
+  - 7
+- - 11
+  - 10
+targets:
+- id: b0
+  start:
+  - 1
+  - 1
+  goals: pool
+- id: b1
+  start:
+  - 10
+  - 7
+  goals: pool
+- id: b2
+  start:
+  - 5
+  - 1
+  goals: pool
+- id: b3
+  start:
+  - 7
+  - 6
+  goals: pool
+- id: b4
+  start:
+  - 3
+  - 2
+  goals: pool
+- id: b5
+  start:
+  - 7
+  - 7
+  goals: pool
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false
+goal_pool:
+- - 2
+  - 2
+- - 2
+  - 6
+- - 2
+  - 10
+- - 6
+  - 2
+- - 6
+  - 9
+- - 7
+  - 5
+- - 7
+  - 9
+- - 9
+  - 2
+- - 11
+  - 7

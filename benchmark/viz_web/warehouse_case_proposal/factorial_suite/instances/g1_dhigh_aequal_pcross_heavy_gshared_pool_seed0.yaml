@@ -1,0 +1,176 @@
+name: g1_dhigh_aequal_pcross_heavy_gshared_pool_seed0
+map: '........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  ........
+
+  '
+storage_map: '........
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  ........
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  .SSS.SSS
+
+  '
+warehouse_layout:
+  map_family: g1
+  block_size: 3
+  aisle_width: 1
+  density_level: high
+  actual_density: 0.7777777777777778
+  shelves_per_block: 7
+  corridor_policy: hard_no_drop
+  block_origins:
+  - - 1
+    - 1
+  - - 1
+    - 5
+  - - 5
+    - 1
+  - - 5
+    - 5
+factorial_design:
+  pairing_key: g1__cross_heavy__shared_pool__seed0
+  pairing_seed: 415217303
+  layout_policy: nested_density_prefix
+  robot_start_policy: nested_agent_prefix
+  density_level: high
+  agent_level: equal
+  task_profile: cross_heavy
+  goal_mode: shared_pool
+task_profile:
+  relation_basis: certificate_assignment
+  relation_counts:
+    intra: 1
+    adjacent: 2
+    remote: 1
+  core_goals: 2
+  goal_mode: shared_pool
+  goal_pool_size: 6
+  certificate_guarantee: validator_checked
+  certificate_steps: 50
+  certificate_sha256: 02c1ef167c5182838cb8c3282e83d36ca432acbe9dc2c57e06901dca42021a40
+robots:
+- - 0
+  - 4
+- - 7
+  - 0
+- - 0
+  - 0
+- - 1
+  - 0
+shelves:
+- - 1
+  - 1
+- - 1
+  - 2
+- - 1
+  - 3
+- - 1
+  - 5
+- - 1
+  - 6
+- - 1
+  - 7
+- - 2
+  - 1
+- - 2
+  - 3
+- - 2
+  - 5
+- - 2
+  - 7
+- - 3
+  - 1
+- - 3
+  - 3
+- - 3
+  - 5
+- - 3
+  - 7
+- - 5
+  - 1
+- - 5
+  - 3
+- - 5
+  - 5
+- - 5
+  - 6
+- - 6
+  - 1
+- - 6
+  - 2
+- - 6
+  - 5
+- - 6
+  - 6
+- - 6
+  - 7
+- - 7
+  - 1
+- - 7
+  - 2
+- - 7
+  - 3
+- - 7
+  - 5
+- - 7
+  - 7
+targets:
+- id: b0
+  start:
+  - 5
+  - 3
+  goals: pool
+- id: b1
+  start:
+  - 2
+  - 5
+  goals: pool
+- id: b2
+  start:
+  - 2
+  - 1
+  goals: pool
+- id: b3
+  start:
+  - 3
+  - 5
+  goals: pool
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false
+goal_pool:
+- - 2
+  - 2
+- - 2
+  - 6
+- - 5
+  - 2
+- - 5
+  - 7
+- - 6
+  - 3
+- - 7
+  - 6

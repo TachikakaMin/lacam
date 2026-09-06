@@ -44,6 +44,24 @@ class TestPrimitives(unittest.TestCase):
         self.assertEqual(cost["free_moves"], 1)
         self.assertEqual(cost["lift_drop"], 2)
 
+    def test_cost_uses_first_goal_prefix_and_initial_goal_is_zero(self):
+        ins = make(
+            "...",
+            [(0, 0)],
+            [(0, 2)],
+            [("b0", (0, 2), (0, 2))],
+        )
+        trailing_plan = [
+            [("move", (0, 1))],
+            [("move", (0, 0))],
+        ]
+
+        cost = plan_cost(ins, trailing_plan)
+
+        self.assertEqual(cost["executed_makespan"], 0)
+        self.assertEqual(cost["weighted_soc"], 0)
+        self.assertEqual(cost["free_moves"], 0)
+
     def test_goal_requires_grounded(self):
         # carrying the shelf onto its goal is NOT a goal state (D10)
         ins = make("....", [(0, 0)], [(0, 1)], [("b0", (0, 1), (0, 3))])

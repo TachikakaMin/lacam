@@ -1,0 +1,36 @@
+m 1 0;w
+m 1 1;w
+l;w
+m 1 2;w
+d;w
+m 2 2;w
+m 3 2;w
+m 4 2;w
+m 5 2;w
+m 6 2;w
+m 7 2;w
+m 7 3;w
+m 7 4;w
+m 7 5;w
+m 7 6;w
+m 7 7;w
+l;w
+m 7 6;w
+d;w
+m 6 6;w
+m 5 6;w
+m 4 6;w
+m 3 6;w
+m 2 6;w
+m 2 5;w
+m 2 4;w
+m 2 3;w
+l;w
+m 2 4;w
+m 2 5;w
+d;w
+m 3 5;w
+l;w
+m 3 4;w
+m 3 3;w
+d;w

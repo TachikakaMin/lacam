@@ -2,7 +2,7 @@
 //
 // Contract:
 //  1. plans remain legal after macro extraction and output repair;
-//  2. best_soc equals independent replay of the returned plan;
+//  2. best (ticks, fixed-point work) equals independent replay;
 //  3. numeric objective inputs affect both search and reporting with the
 //     same weights.
 //
@@ -156,19 +156,29 @@ TEST(dd_rewire, first_incumbent_family_is_valid_and_costed)
     auto plan = solve_carrier_lacam(ins, 1.0, 0, &st);
     ASSERT_FALSE(plan.empty()) << "seed " << seed;
     PhysConfig X = initial_phys_config(ins);
-    double replayed = 0;
+    int64_t replayed_work = 0;
     for (const auto& ops : plan) {
-      replayed += edge_cost(X, ops);
+      replayed_work +=
+          PlanCost::from_values(0, edge_cost(X, ops)).work;
       auto nxt = apply_ops(ins, X, ops);
       ASSERT_TRUE(nxt.has_value()) << "returned plan illegal at seed " << seed;
       X = *nxt;
     }
     EXPECT_TRUE(is_dd_goal(ins, X));
-    EXPECT_NEAR(st.best_soc, replayed, 1e-6) << "seed " << seed;
-    EXPECT_GE(st.best_soc + 1e-6, opt) << "seed " << seed;
-    if (st.first_solution_soc >= 0) {
-      EXPECT_LE(st.best_soc, st.first_solution_soc + 1e-6)
-          << "output repair increased cost at seed " << seed;
+    const PlanCost best =
+        PlanCost::from_scaled(st.best_makespan, st.best_work_scaled);
+    EXPECT_EQ(
+        best,
+        PlanCost::from_scaled(
+            static_cast<int64_t>(plan.size()), replayed_work))
+        << "seed " << seed;
+    EXPECT_GE(st.best_work_scaled, PlanCost::from_values(0, opt).work)
+        << "seed " << seed;
+    if (st.first_solution_makespan >= 0) {
+      const PlanCost first = PlanCost::from_scaled(
+          st.first_solution_makespan, st.first_solution_work_scaled);
+      EXPECT_LE(best, first)
+          << "output repair worsened strict (ticks, work) at seed " << seed;
     }
   }
   EXPECT_GE(checked, 6) << "family degenerated";
@@ -192,16 +202,32 @@ TEST(dd_rewire, weighted_objective_matches_replayed_plan_cost)
     auto plan = solve_carrier_lacam(ins, 1.0, 0, &st);
     ASSERT_FALSE(plan.empty()) << "seed " << seed;
     auto X = initial_phys_config(ins);
-    double replayed = 0;
+    int64_t replayed_work = 0;
     for (const auto& ops : plan) {
-      replayed += edge_cost(X, ops, 2, 1, 5, 3);
+      replayed_work +=
+          PlanCost::from_values(0, edge_cost(X, ops, 2, 1, 5, 3)).work;
       auto next = apply_ops(ins, X, ops);
       ASSERT_TRUE(next.has_value()) << "seed " << seed;
       X = *next;
     }
     EXPECT_TRUE(is_dd_goal(ins, X));
-    EXPECT_NEAR(st.best_soc, replayed, 1e-6) << "seed " << seed;
-    EXPECT_GE(st.best_soc + 1e-6, opt) << "seed " << seed;
+    const PlanCost best =
+        PlanCost::from_scaled(st.best_makespan, st.best_work_scaled);
+    EXPECT_EQ(
+        best,
+        PlanCost::from_scaled(
+            static_cast<int64_t>(plan.size()), replayed_work))
+        << "seed " << seed;
+    EXPECT_GE(st.best_work_scaled, PlanCost::from_values(0, opt).work)
+        << "seed " << seed;
+    if (st.first_solution_makespan >= 0) {
+      EXPECT_LE(
+          best,
+          PlanCost::from_scaled(
+              st.first_solution_makespan,
+              st.first_solution_work_scaled))
+          << "seed " << seed;
+    }
   }
   unsetenv("DD_ALPHA");
   unsetenv("DD_BETA");

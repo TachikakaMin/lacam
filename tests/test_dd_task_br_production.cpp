@@ -124,7 +124,7 @@ TEST(dd_task_br_production,
 }
 
 TEST(dd_task_br_production,
-     carrier_pibt_executes_adjacent_tasks_and_drops_when_unbound)
+     carrier_pibt_executes_adjacent_tasks_and_drops_arrived_custody)
 {
   const auto ins = line_instance(3, {0}, {0}, {0}, {{2}});
   const TAPFInstance view(ins);
@@ -156,10 +156,24 @@ TEST(dd_task_br_production,
   const auto X3 = apply_ops(ins, *X2, O2);
   ASSERT_TRUE(X3.has_value());
   const auto G3 = dd_task_br_guidance_probe(ins, *X3, &*X2, &G2, &O2);
-  EXPECT_FALSE(G3.custody_by_robot[0].has_value());
+  ASSERT_TRUE(G3.custody_by_robot[0].has_value());
+  EXPECT_EQ(
+      G3.custody_by_robot[0]->transfer_id,
+      G2.custody_by_robot[0]->transfer_id);
+  EXPECT_EQ(
+      G3.custody_by_robot[0]->route_status,
+      RouteStatus::ARRIVED);
+  EXPECT_FALSE(G3.custody_by_robot[0]->preferred_leg.has_value());
   const auto O3 = preferred_ops(planner, view, *X3, G3);
   ASSERT_EQ(O3.size(), 1u);
   EXPECT_EQ(O3[0], Op::make_drop());
+
+  const auto X4 = apply_ops(ins, *X3, O3);
+  ASSERT_TRUE(X4.has_value());
+  const auto G4 =
+      dd_task_br_guidance_probe(ins, *X4, &*X3, &G3, &O3);
+  EXPECT_FALSE(G4.custody_by_robot[0].has_value());
+  EXPECT_TRUE(is_dd_goal(ins, *X4));
 }
 
 TEST(dd_task_br_production, forced_unassigned_lift_prefers_drop_unbound)

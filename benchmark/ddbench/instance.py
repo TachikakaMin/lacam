@@ -32,6 +32,43 @@ import yaml
 Cell = Tuple[int, int]  # (row, col)
 
 
+def _parse_cell(value):
+    return (value[0], value[1])
+
+
+def _yaml_cpp_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        token = value.lower()
+        if token in {"y", "yes", "true", "on"}:
+            return True
+        if token in {"n", "no", "false", "off"}:
+            return False
+    raise ValueError(f"invalid yaml-cpp boolean scalar: {value!r}")
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    pass
+
+
+def _construct_unique_mapping(loader, node, deep=False):
+    loader.flatten_mapping(node)
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise ValueError(f"duplicate YAML key: {key!r}")
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeySafeLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_mapping,
+)
+
+
 @dataclass
 class Target:
     id: str
@@ -223,11 +260,18 @@ def parse_storage_map_str(
 
 
 def load_instance(path) -> Instance:
-    data = yaml.safe_load(Path(path).read_text())
+    data = yaml.load(
+        Path(path).read_text(),
+        Loader=_UniqueKeySafeLoader,
+    )
     # debug.md P0-4: v1 implements default flag semantics only; fail loudly
     # on any non-default value instead of silently ignoring it.
     for key, value in dict(data.get("flags") or {}).items():
-        if bool(value):
+        try:
+            enabled = _yaml_cpp_bool(value)
+        except ValueError:
+            enabled = True
+        if enabled:
             raise ValueError(
                 f"load_instance: unsupported non-default flag {key!r} "
                 "(v1 implements defaults only)"
@@ -240,10 +284,10 @@ def load_instance(path) -> Instance:
         if data.get("storage_map") is not None
         else None
     )
-    robots = [tuple(x) for x in data.get("robots", [])]
-    shelves = [tuple(x) for x in data.get("shelves", [])]
+    robots = [_parse_cell(x) for x in data.get("robots", [])]
+    shelves = [_parse_cell(x) for x in data.get("shelves", [])]
     pool = (
-        sorted(tuple(x) for x in data["goal_pool"])
+        sorted(_parse_cell(x) for x in data["goal_pool"])
         if data.get("goal_pool")
         else None
     )
@@ -262,10 +306,10 @@ def load_instance(path) -> Instance:
                     )
                 goals = list(pool)
             else:
-                goals = sorted({tuple(g) for g in t["goals"]})
-        rep = goals[0] if goals else tuple(t["goal"])
+                goals = sorted({_parse_cell(g) for g in t["goals"]})
+        rep = goals[0] if goals else _parse_cell(t["goal"])
         targets.append(
-            Target(id=str(t["id"]), start=tuple(t["start"]), goal=rep,
+            Target(id=str(t["id"]), start=_parse_cell(t["start"]), goal=rep,
                    goals=goals)
         )
     return Instance(
@@ -277,7 +321,8 @@ def load_instance(path) -> Instance:
         name=str(data.get("name", Path(path).stem)),
         goal_pool=pool,
         anon_goals=[
-            (tuple(pair[0]), tuple(pair[1])) for pair in data["anon_goals"]
+            (_parse_cell(pair[0]), _parse_cell(pair[1]))
+            for pair in data["anon_goals"]
         ]
         if data.get("anon_goals")
         else None,

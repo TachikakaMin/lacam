@@ -213,8 +213,31 @@ TEST(dd_storage_transfer,
   const auto completed = carrier_detail::recover_task_br_custody(
       ins, *at_endpoint, empty_new_graph, &*in_aisle, &middle_guidance,
       &second_leg);
-  EXPECT_FALSE(completed.custody_by_robot[0].has_value());
+  ASSERT_TRUE(completed.custody_by_robot[0].has_value());
+  const auto& arrived = *completed.custody_by_robot[0];
+  EXPECT_EQ(arrived.transfer_id, continued.transfer_id);
+  EXPECT_EQ(arrived.original_endpoint, ins.grid.idx(0, 4));
+  EXPECT_EQ(arrived.transfer.endpoint, ins.grid.idx(0, 4));
+  EXPECT_EQ(arrived.route_status, RouteStatus::ARRIVED);
+  EXPECT_FALSE(arrived.preferred_leg.has_value());
+  EXPECT_TRUE(carrier_detail::episode_active(arrived));
   EXPECT_TRUE(ins.can_store_shelf(at_endpoint->robots[0]));
+  EXPECT_NE(at_endpoint->kappa[0], KAPPA_FREE);
+
+  CarrierGuidance endpoint_guidance;
+  endpoint_guidance.upper_epoch =
+      std::make_shared<UpperEpochGuidance>();
+  endpoint_guidance.custody_by_robot =
+      completed.custody_by_robot;
+  const std::vector<Op> drop = {Op::make_drop()};
+  const auto grounded = apply_ops(ins, *at_endpoint, drop);
+  ASSERT_TRUE(grounded.has_value());
+  const auto after_drop =
+      carrier_detail::recover_task_br_custody(
+          ins, *grounded, empty_new_graph, &*at_endpoint,
+          &endpoint_guidance, &drop);
+  EXPECT_FALSE(after_drop.custody_by_robot[0].has_value());
+  EXPECT_EQ(grounded->kappa[0], KAPPA_FREE);
 }
 
 TEST(dd_storage_transfer,

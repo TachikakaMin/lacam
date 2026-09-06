@@ -1,0 +1,123 @@
+# Witness-certified warehouse testcase proposal sample
+# The witness is a proof artifact; benchmark solvers must not read it.
+name: warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0
+map: |
+  ..........
+  ..........
+  ..........
+  ..........
+  ..........
+  ..........
+  ..........
+  ..........
+  ..........
+  ..........
+storage_map: |
+  ..........
+  .SSSS.SSSS
+  .SSSS.SSSS
+  .SSSS.SSSS
+  .SSSS.SSSS
+  ..........
+  .SSSS.SSSS
+  .SSSS.SSSS
+  .SSSS.SSSS
+  .SSSS.SSSS
+warehouse_layout:
+  block_size: 4
+  aisle_width: 1
+  requested_density: 0.75000000
+  actual_density: 0.75000000
+  shelves_per_block: 12
+  corridor_policy: hard_no_drop
+  block_origins:
+    - [1, 1]
+    - [1, 6]
+    - [6, 1]
+    - [6, 6]
+task_profile:
+  goal_mode: fixed_singleton
+  goals_per_target: 1
+  goal_pool_size: 0
+  relation_basis: witness_assignment
+  witness_kind: sequential_single_robot
+  active_robot_count: 1
+  active_robot_indices: [0]
+  relation_counts:
+    intra: 2
+    adjacent: 2
+    remote: 0
+  core_goals: 1
+  witness_guarantee: validator_checked
+  witness_steps: 32
+  witness_sha256: 76f64e7f0974aee2d6957fe158b83c442bbfabf16d7b45b647dd3415db095734
+robots:
+  - [0, 0]
+  - [5, 5]
+  - [0, 5]
+  - [5, 0]
+shelves:
+  - [1, 1]
+  - [1, 3]
+  - [1, 4]
+  - [1, 6]
+  - [1, 7]
+  - [1, 8]
+  - [1, 9]
+  - [2, 1]
+  - [2, 2]
+  - [2, 3]
+  - [2, 4]
+  - [2, 6]
+  - [2, 7]
+  - [2, 8]
+  - [2, 9]
+  - [3, 1]
+  - [3, 2]
+  - [3, 3]
+  - [3, 4]
+  - [3, 7]
+  - [3, 8]
+  - [3, 9]
+  - [4, 1]
+  - [4, 6]
+  - [6, 1]
+  - [6, 2]
+  - [6, 3]
+  - [6, 4]
+  - [6, 6]
+  - [6, 7]
+  - [6, 8]
+  - [6, 9]
+  - [7, 1]
+  - [7, 2]
+  - [7, 3]
+  - [7, 4]
+  - [7, 6]
+  - [7, 7]
+  - [7, 8]
+  - [7, 9]
+  - [8, 1]
+  - [8, 2]
+  - [8, 3]
+  - [8, 4]
+  - [8, 6]
+  - [8, 7]
+  - [9, 6]
+  - [9, 9]
+targets:
+  - id: b0
+    start: [1, 1]
+    goal: [1, 2]
+  - id: b2
+    start: [3, 4]
+    goal: [3, 6]
+  - id: b3
+    start: [4, 6]
+    goal: [4, 4]
+  - id: b1
+    start: [9, 9]
+    goal: [8, 8]
+flags:
+  remove_on_complete: false
+  robots_return_to_rest: false

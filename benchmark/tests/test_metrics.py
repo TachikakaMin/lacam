@@ -10,7 +10,7 @@ visible A->B->A jitter, not legitimate return trips.
 import unittest
 
 from ddbench.instance import Instance, Target, parse_map_str
-from ddbench.validator import plan_cost, validate_plan
+from ddbench.validator import plan_trace_diagnostics, validate_plan
 
 
 def make(map_str, robots, shelves, targets):
@@ -26,7 +26,7 @@ class TestReversalsMetric(unittest.TestCase):
     def _cost(self, ins, plan):
         ok, errs, _ = validate_plan(ins, plan, require_goal=False)
         self.assertTrue(ok, errs)
-        return plan_cost(ins, plan)
+        return plan_trace_diagnostics(ins, plan)
 
     def test_immediate_flip_counts_once(self):
         ins = make("...", [(0, 0)], [], [])

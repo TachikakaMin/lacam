@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <map>
 #include <queue>
 #include <unordered_set>
 
@@ -28,7 +29,7 @@ namespace
                3 * node->non_goal_waits + 2 * node->distance_increases;
       case TAPFFocalTieBreak::H:
       default:
-        return node->h;
+        return node->h.work_value();
     }
   }
 
@@ -120,6 +121,48 @@ namespace
 
   constexpr int MACRO_CAP = 64;
   constexpr int MACRO_TARGET_LIMIT = 64;
+
+  double focal_numeric_cost(const PlanCost& cost, TAPFObjective objective)
+  {
+    if (!cost.is_bounded()) return -1;
+    return objective == TAPFObjective::MAKESPAN_THEN_WORK
+               ? static_cast<double>(cost.ticks)
+               : cost.work_value();
+  }
+
+  void add_scaled_work(int64_t& total, int64_t amount)
+  {
+    if (amount < 0 ||
+        total > std::numeric_limits<int64_t>::max() - amount)
+      throw std::overflow_error("fixed-point search work overflow");
+    total += amount;
+  }
+
+  std::optional<PlanCost> reference_joint_cost(
+      const SolverWeights& weights, const PhysConfig& state,
+      const std::vector<Op>& ops, TAPFObjective objective)
+  {
+    if (ops.size() != state.robots.size() ||
+        state.kappa.size() != state.robots.size())
+      return std::nullopt;
+    int64_t work = 0;
+    for (size_t i = 0; i < ops.size(); ++i) {
+      if (ops[i].kind == Op::MOVE) {
+        add_scaled_work(
+            work, state.kappa[i] == KAPPA_FREE
+                      ? weights.beta_scaled
+                      : weights.alpha_scaled);
+        if (state.kappa[i] == KAPPA_ANON)
+          add_scaled_work(work, weights.delta_scaled);
+      } else if (ops[i].kind == Op::LIFT ||
+                 ops[i].kind == Op::DROP) {
+        add_scaled_work(work, weights.gamma_scaled);
+      }
+    }
+    return PlanCost::from_scaled(
+        objective == TAPFObjective::MAKESPAN_THEN_WORK ? 1 : 0,
+        work);
+  }
 }  // namespace
 
 // out-of-line: CarrierEngine is an implementation type
@@ -157,6 +200,29 @@ TAPFPlanner::~TAPFPlanner()
   for (auto a : A) delete a;
 }
 
+const TAPFReferenceCheckpoint*
+TAPFPlanner::find_reference_checkpoint(
+    const PhysConfig& state) const
+{
+  if (search_config.reference_plan == nullptr ||
+      !reference_plan_valid)
+    return nullptr;
+  const uint64_t hash = phys_config_hash(state);
+  const auto range = reference_checkpoint_index.equal_range(hash);
+  const TAPFReferenceCheckpoint* best = nullptr;
+  for (auto it = range.first; it != range.second; ++it) {
+    const auto& checkpoint =
+        search_config.reference_plan->checkpoints[it->second];
+    if (!(checkpoint.state == state)) continue;
+    if (best == nullptr ||
+        checkpoint.suffix_cost < best->suffix_cost ||
+        (checkpoint.suffix_cost == best->suffix_cost &&
+         checkpoint.action_index > best->action_index))
+      best = &checkpoint;
+  }
+  return best;
+}
+
 void TAPFPlanner::attach_carrier_guidance(
     TAPFNode* nd, const PhysConfig* transition_previous_X,
     const CarrierGuidance* transition_previous_guidance,
@@ -189,6 +255,11 @@ void TAPFPlanner::attach_carrier_guidance(
       previous_guidance != nullptr
           ? previous_guidance->rho_task_id
           : std::vector<std::optional<TaskId>>{};
+  const std::vector<std::optional<TransferKey>>
+      previous_rho_transfer_key =
+          previous_guidance != nullptr
+              ? previous_guidance->rho_transfer_key
+              : std::vector<std::optional<TransferKey>>{};
   const std::vector<int> previous_tau =
       previous_guidance != nullptr && previous_guidance->upper_epoch != nullptr
           ? previous_guidance->upper_epoch->tau_guide
@@ -231,7 +302,14 @@ void TAPFPlanner::attach_carrier_guidance(
     const double shelf_lb = solve_tau_lb(
         dd_instance, physical, task_br_engine.upper_wall,
         weights.alpha, weights.gamma);
-    nd->h += shelf_lb;
+    nd->h += PlanCost::legacy(shelf_lb);
+    if (search_config.objective ==
+        TAPFObjective::MAKESPAN_THEN_WORK) {
+      nd->h.ticks = std::max(
+          nd->h.ticks,
+          solve_tau_time_lb(
+              dd_instance, physical, task_br_engine.upper_wall));
+    }
     nd->f = nd->g + nd->h;
   }
   nd->guide = std::move(guide);
@@ -265,6 +343,12 @@ void TAPFPlanner::attach_carrier_guidance(
           epoch.task_graph.paused_roots.size();
     }
     stats->ready_task_count += nd->guide->ready_tasks.size();
+    stats->timed_transport_expansions +=
+        nd->guide->timed_transport.expansions;
+    stats->timed_transport_frames +=
+        nd->guide->timed_transport.frames_evaluated;
+    stats->timed_transport_time_ms +=
+        nd->guide->timed_transport.build_time_ms;
 
     if (previous_upper != nullptr &&
         nd->guide->upper_epoch != nullptr &&
@@ -283,13 +367,57 @@ void TAPFPlanner::attach_carrier_guidance(
         stats->rho_repairs +=
             previous_rho[robot] != nd->guide->rho_task_id[robot];
     }
+    if (!previous_rho_transfer_key.empty()) {
+      std::map<TransferKey, int> previous_owner;
+      std::map<TransferKey, int> current_owner;
+      for (size_t robot = 0;
+           robot < previous_rho_transfer_key.size(); ++robot)
+        if (previous_rho_transfer_key[robot].has_value())
+          previous_owner.emplace(
+              *previous_rho_transfer_key[robot], (int)robot);
+      for (size_t robot = 0;
+           robot < nd->guide->rho_transfer_key.size(); ++robot)
+        if (nd->guide->rho_transfer_key[robot].has_value())
+          current_owner.emplace(
+              *nd->guide->rho_transfer_key[robot], (int)robot);
+      for (const auto& [key, owner] : current_owner) {
+        const auto previous = previous_owner.find(key);
+        if (previous != previous_owner.end() &&
+            previous->second != owner)
+          ++stats->owner_handoffs;
+      }
+    }
     if (previous_physical != nullptr && transition_ops != nullptr) {
-      for (size_t robot = 0; robot < physical.kappa.size(); ++robot)
+      for (size_t robot = 0; robot < physical.kappa.size(); ++robot) {
+        if (robot >= transition_ops->size()) continue;
         if ((*previous_physical).kappa[robot] != KAPPA_FREE &&
             (*transition_ops)[robot].kind == Op::MOVE &&
             robot < nd->guide->custody_by_robot.size() &&
             nd->guide->custody_by_robot[robot].has_value())
           ++stats->custody_continuations;
+        if ((*transition_ops)[robot].kind != Op::WAIT ||
+            previous_guidance == nullptr)
+          continue;
+        if (robot < previous_guidance->rho_mode.size() &&
+            previous_guidance->rho_mode[robot] ==
+                DispatchMode::PREPARE)
+          ++stats->causal_waiting;
+        if ((*previous_physical).kappa[robot] != KAPPA_FREE &&
+            robot <
+                previous_guidance->timed_transport.by_robot.size() &&
+            previous_guidance->timed_transport.by_robot[robot]
+                .has_value()) {
+          const auto& hint =
+              *previous_guidance->timed_transport.by_robot[robot];
+          if ((hint.status == RouteStatus::OK ||
+               hint.status == RouteStatus::PREFIX) &&
+              hint.cells.size() >= 2 &&
+              hint.cells.front() ==
+                  (*previous_physical).robots[robot] &&
+              hint.cells[1] == hint.cells.front())
+            ++stats->traffic_waiting;
+        }
+      }
     }
 
     if (nd->guide->upper_epoch != nullptr) {
@@ -316,9 +444,9 @@ void TAPFPlanner::ensure_guidance_fresh(TAPFNode* nd)
   }
   if (nd->parent != nullptr) ensure_guidance_fresh(nd->parent);
 
-  const double saved_g = nd->g;
-  const double saved_h = nd->h;
-  const double saved_f = nd->f;
+  const PlanCost saved_g = nd->g;
+  const PlanCost saved_h = nd->h;
+  const PlanCost saved_f = nd->f;
   const auto saved_constraint_order = nd->constraint_order;
 
   if (nd->parent == nullptr || nd->incoming_edge == nullptr ||
@@ -474,6 +602,25 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       occupied_next(Agents(V_size, nullptr)),
       pibt_cand(N)
 {
+  if (search_config.stop_policy ==
+          TAPFStopPolicy::FIRST_FEASIBLE &&
+      search_config.incumbent_init.is_bounded())
+    throw std::invalid_argument(
+        "FIRST_FEASIBLE requires an unbounded external incumbent");
+  if (search_config.stop_policy ==
+          TAPFStopPolicy::FIRST_STRICT_IMPROVEMENT &&
+      !search_config.incumbent_init.is_bounded())
+    throw std::invalid_argument(
+        "FIRST_STRICT_IMPROVEMENT requires an external incumbent");
+  if (search_config.reference_plan != nullptr) {
+    reference_checkpoint_index.reserve(
+        search_config.reference_plan->checkpoints.size() * 2);
+    for (size_t i = 0;
+         i < search_config.reference_plan->checkpoints.size(); ++i) {
+      reference_checkpoint_index.emplace(
+          search_config.reference_plan->checkpoints[i].state_hash, i);
+    }
+  }
   if (stats != nullptr) *stats = TAPFStats();
   for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
   // Solver-objective weights default to one; optional numeric objective
@@ -500,6 +647,52 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     carrier_grounded.assign(n_cells, 0);
     carrier_upper_delta.assign(n_cells, 0);
     carrier = std::make_unique<CarrierEngine>(*dd_view);
+  }
+  if (search_config.reference_plan != nullptr && dd_view != nullptr) {
+    const auto& reference = *search_config.reference_plan;
+    std::vector<PhysConfig> states;
+    std::vector<PlanCost> steps;
+    states.reserve(reference.actions.size() + 1);
+    steps.reserve(reference.actions.size());
+    states.push_back(initial_phys_config(*dd_view));
+    bool valid = true;
+    for (const auto& ops : reference.actions) {
+      const auto step = reference_joint_cost(
+          weights, states.back(), ops, search_config.objective);
+      const auto next = apply_ops(*dd_view, states.back(), ops);
+      if (!step.has_value() || !next.has_value()) {
+        valid = false;
+        break;
+      }
+      steps.push_back(*step);
+      states.push_back(*next);
+    }
+    valid = valid && is_dd_goal(*dd_view, states.back());
+    if (valid) {
+      std::vector<PlanCost> prefix(states.size());
+      std::vector<PlanCost> suffix(states.size());
+      for (size_t i = 0; i < steps.size(); ++i)
+        prefix[i + 1] = prefix[i] + steps[i];
+      for (size_t i = steps.size(); i > 0; --i)
+        suffix[i - 1] = steps[i - 1] + suffix[i];
+      for (const auto& checkpoint : reference.checkpoints) {
+        const size_t index = checkpoint.action_index;
+        const bool next_matches =
+            index < reference.actions.size()
+                ? checkpoint.next_ops == reference.actions[index]
+                : checkpoint.next_ops.empty();
+        if (index >= states.size() ||
+            checkpoint.state_hash != phys_config_hash(states[index]) ||
+            !(checkpoint.state == states[index]) ||
+            checkpoint.prefix_cost != prefix[index] ||
+            checkpoint.suffix_cost != suffix[index] ||
+            !next_matches) {
+          valid = false;
+          break;
+        }
+      }
+    }
+    reference_plan_valid = valid;
   }
 }
 
@@ -529,23 +722,27 @@ Solution TAPFPlanner::solve()
 
   // Pruning bound (M11): the incumbent's g, or an externally supplied
   // upper bound; -1 means no bound.
-  auto current_bound = [&]() -> double {
+  auto current_bound = [&]() -> PlanCost {
     if (S_goal != nullptr) return S_goal->g;
     return search_config.incumbent_init;
   };
 
   auto select_open_index = [&]() -> size_t {
     if (search_config.mode == TAPFSearchMode::DFS ||
-        (S_goal == nullptr && search_config.incumbent_init < 0)) {
+        (S_goal == nullptr &&
+         !search_config.incumbent_init.is_bounded())) {
       return OPEN.size() - 1;
     }
     // shared FOCAL kernel (search_kernel.hpp) — same semantics as before
     return focal_select_index(
         OPEN, search_config.focal_weight,
-        [](const TAPFNode* n) { return static_cast<double>(n->f); },
         [&](const TAPFNode* n) {
-          const double b = current_bound();
-          return !n->search_tree.empty() && (b < 0 || n->f < b);
+          return focal_numeric_cost(n->f, search_config.objective);
+        },
+        [&](const TAPFNode* n) {
+          const PlanCost b = current_bound();
+          return !n->search_tree.empty() &&
+                 (!b.is_bounded() || n->f < b);
         },
         [&](const TAPFNode* a, const TAPFNode* b) {
           return focal_better(a, b, search_config.focal_tie_break);
@@ -561,10 +758,18 @@ Solution TAPFPlanner::solve()
                                 initial_agents, true, &assignment_stats);
   if (!initial_assignment.feasible) return Solution();
 
+  auto make_node_h = [&](const Config& config, double work_lb) {
+    auto h = PlanCost::legacy(work_lb);
+    if (search_config.objective ==
+        TAPFObjective::MAKESPAN_THEN_WORK)
+      h.ticks = get_time_h_value(config);
+    return h;
+  };
+
   auto S_init =
       new TAPFNode(ins->starts, initial_shelf_state(*ins), D, ins,
                    initial_assignment.agent_to_task, initial_assignment_state);
-  S_init->h = initial_assignment.cost;
+  S_init->h = make_node_h(ins->starts, initial_assignment.cost);
   S_init->f = S_init->g + S_init->h;
   attach_carrier_guidance(S_init);
   deepest_node = S_init;
@@ -576,23 +781,113 @@ Solution TAPFPlanner::solve()
     stats->open_max_size = 1;
   }
 
-  const auto initial_lower_bound = S_init->h;
-  const auto cleanup_reserve_ms =
-      deadline == nullptr
-          ? 0.0
-          : std::min(1000.0, std::max(100.0, deadline->time_limit_ms * 0.1));
-  const auto incumbent_search_limit_ms =
-      deadline == nullptr
-          ? 0.0
-          : std::max(0.0, deadline->time_limit_ms - cleanup_reserve_ms);
-
-  auto incumbent_search_expired = [&]() {
-    return S_goal != nullptr && deadline != nullptr &&
-           deadline->elapsed_ms() >= incumbent_search_limit_ms;
+  auto accept_goal = [&](TAPFNode* candidate) {
+    const bool improves =
+        candidate != nullptr &&
+        (S_goal == nullptr || candidate->g < S_goal->g) &&
+        (!search_config.incumbent_init.is_bounded() ||
+         candidate->g < search_config.incumbent_init);
+    if (!improves) return false;
+    if (stats != nullptr) {
+      ++stats->incumbent_updates;
+      if (stats->first_solution_ticks < 0) {
+        stats->first_solution_cost =
+            (unsigned)std::lround(candidate->g.work_value());
+        stats->first_solution_g = candidate->g.work_value();
+        stats->first_solution_ticks = candidate->g.ticks;
+        stats->first_solution_work_scaled = candidate->g.work;
+        stats->first_solution_work = candidate->g.work_value();
+        stats->first_solution_time_ms = elapsed_ms(deadline);
+      }
+      ++stats->anytime_cost_updates;
+    }
+    S_goal = candidate;
+    info(1, verbose, "elapsed:", elapsed_ms(deadline),
+         "ms\tfound TAPF solution\tcost:", S_goal->g);
+    return true;
   };
 
-  while (!OPEN.empty() && !is_expired(deadline) &&
-         !incumbent_search_expired()) {
+  auto try_reference_suffix = [&](TAPFNode* start) {
+    if (search_config.stop_policy !=
+            TAPFStopPolicy::FIRST_STRICT_IMPROVEMENT ||
+        search_config.reference_plan == nullptr ||
+        dd_view == nullptr || !reference_plan_valid)
+      return false;
+    const PhysConfig start_state =
+        physical_state_of(start->C, start->shelf);
+    const auto* checkpoint =
+        find_reference_checkpoint(start_state);
+    if (checkpoint == nullptr) return false;
+    if (stats != nullptr) ++stats->reference_checkpoint_hits;
+    const auto& reference = *search_config.reference_plan;
+    if (checkpoint->action_index >= reference.actions.size())
+      return false;
+    const PlanCost bound = current_bound();
+    if (!bound.is_bounded() ||
+        !(start->g + checkpoint->suffix_cost < bound))
+      return false;
+    if (stats != nullptr) ++stats->reference_suffix_attempts;
+
+    std::vector<TransitionStep> trace;
+    trace.reserve(
+        reference.actions.size() - checkpoint->action_index);
+    PhysConfig state = start_state;
+    PlanCost suffix_cost;
+    for (size_t action = checkpoint->action_index;
+         action < reference.actions.size(); ++action) {
+      if (is_expired(deadline)) return false;
+      const auto step_cost = reference_joint_cost(
+          weights, state, reference.actions[action],
+          search_config.objective);
+      if (!step_cost.has_value()) return false;
+      const auto next =
+          apply_ops(*dd_view, state, reference.actions[action]);
+      if (!next.has_value()) return false;
+      suffix_cost += *step_cost;
+      trace.push_back(TransitionStep{
+          state, reference.actions[action], *next});
+      state = *next;
+    }
+    if (trace.empty() ||
+        suffix_cost != checkpoint->suffix_cost ||
+        !(start->g + suffix_cost < bound) ||
+        !is_dd_goal(*dd_view, state))
+      return false;
+
+    Config terminal_config = config_of_physical(*ins, state);
+    ShelfState terminal_shelf = shelf_of_physical(state);
+    if (!is_goal_config(terminal_config, terminal_shelf))
+      return false;
+    SearchKey terminal_key{terminal_config, terminal_shelf};
+    TAPFNode* terminal = nullptr;
+    const auto existing = CLOSED.find(terminal_key);
+    if (existing == CLOSED.end()) {
+      terminal = new TAPFNode(
+          terminal_config, terminal_shelf, D, ins,
+          start->assignment, start->assignment_state, start);
+      terminal->g = start->g + suffix_cost;
+      terminal->h = PlanCost();
+      terminal->f = terminal->g;
+      terminal->incoming_edge = register_outgoing_edge(
+          start, terminal, suffix_cost, trace);
+      CLOSED.emplace(std::move(terminal_key), terminal);
+      if (stats != nullptr) ++stats->hl_nodes_created;
+    } else {
+      terminal = existing->second;
+      register_outgoing_edge(
+          start, terminal, suffix_cost, trace);
+      rewrite(start, S_goal, OPEN);
+    }
+    if (!accept_goal(terminal)) return false;
+    if (stats != nullptr) ++stats->reference_suffix_accepted;
+    return true;
+  };
+
+  const auto initial_lower_bound = S_init->h;
+  // The caller owns the one search/finalization split.  Do not subtract a
+  // second cleanup reserve here: doing so turned a 10 s controller budget
+  // into an 8.5 s pass deadline and then a 7.65 s bounded-search cutoff.
+  while (!OPEN.empty() && !is_expired(deadline)) {
     if (stats != nullptr) {
       ++stats->hl_loop_iterations;
       stats->open_max_size = std::max<int>(stats->open_max_size, OPEN.size());
@@ -615,34 +910,21 @@ Solution TAPFPlanner::solve()
     }
 
     {
-      const double bound = current_bound();
-      if (bound >= 0 && S->f >= bound) {
+      const PlanCost bound = current_bound();
+      if (bound.is_bounded() && S->f >= bound) {
         if (stats != nullptr) ++stats->f_pruned;
         erase_open(open_index);
         continue;
       }
     }
 
+    if (try_reference_suffix(S)) break;
+
     if (is_goal_config(S->C, S->shelf)) {
-      const bool improves =
-          (S_goal == nullptr || S->g < S_goal->g) &&
-          (search_config.incumbent_init < 0 ||
-           S->g < search_config.incumbent_init);
-      if (improves) {
-        if (stats != nullptr) {
-          ++stats->incumbent_updates;
-          if (stats->first_solution_cost == 0) {
-            stats->first_solution_cost = (unsigned)std::lround(S->g);
-            stats->first_solution_g = S->g;
-            stats->first_solution_time_ms = elapsed_ms(deadline);
-          }
-        }
-        S_goal = S;
-        if (stats != nullptr) ++stats->anytime_cost_updates;
-        info(1, verbose, "elapsed:", elapsed_ms(deadline),
-             "ms\tfound TAPF solution\tcost:", S_goal->g);
-      }
-      if (search_config.stop_at_first && S_goal != nullptr) break;
+      accept_goal(S);
+      if (search_config.stop_policy != TAPFStopPolicy::ANYTIME &&
+          S_goal != nullptr)
+        break;
       if (!anytime || deadline == nullptr ||
           (S_goal != nullptr && S_goal->g <= initial_lower_bound)) {
         break;
@@ -657,6 +939,7 @@ Solution TAPFPlanner::solve()
     // The node's constraint tree is untouched (completeness free);
     // structurally unreachable on shelf-free instances (h_guidance == 0).
     if (search_config.macro_enabled && S_goal == nullptr &&
+        !search_config.incumbent_init.is_bounded() &&
         !S->macro_tried && S->h_guidance > 0 && ins->tasks.empty() &&
         (int)ins->target_starts.size() <= MACRO_TARGET_LIMIT) {
       S->macro_tried = true;
@@ -780,8 +1063,9 @@ Solution TAPFPlanner::solve()
         S_insert = S_init;
       }
       {
-        const double b = current_bound();
-        if ((b < 0 || S_insert->f < b) && !S_insert->queued &&
+        const PlanCost b = current_bound();
+        if ((!b.is_bounded() || S_insert->f < b) &&
+            !S_insert->queued &&
             !S_insert->search_tree.empty()) {
           push_open(S_insert);
           if (stats != nullptr) ++stats->hl_reinsertions;
@@ -831,9 +1115,9 @@ Solution TAPFPlanner::solve()
 
     auto S_new = new TAPFNode(C_new, shelf_next_scratch, D, ins,
                               assignment.agent_to_task, assignment_state, S);
-    const double edge_cost = get_edge_cost(S, S_new);
+    const PlanCost edge_cost = get_edge_cost(S, S_new);
     S_new->g = S->g + edge_cost;
-    S_new->h = assignment.cost;
+    S_new->h = make_node_h(C_new, assignment.cost);
     S_new->f = S_new->g + S_new->h;
     S_new->incoming_edge = register_outgoing_edge(
         S, S_new, edge_cost, one_step_trace);
@@ -859,8 +1143,8 @@ Solution TAPFPlanner::solve()
       best_targets_done = std::max(best_targets_done, done);
     }
     {
-      const double b = current_bound();
-      if (b < 0 || S_new->f < b) {
+      const PlanCost b = current_bound();
+      if (!b.is_bounded() || S_new->f < b) {
         push_open(S_new);
       }
     }
@@ -902,13 +1186,18 @@ Solution TAPFPlanner::solve()
     stats->assignment_calls = assignment_stats.calls;
     stats->assignment_time_ms = assignment_stats.time_ms;
     if (!solution.empty()) {
-      stats->solution_cost = (unsigned)std::lround(S_goal->g);
-      double parent_edge_cost = 0;
+      stats->solution_cost =
+          (unsigned)std::lround(S_goal->g.work_value());
+      stats->solution_ticks = S_goal->g.ticks;
+      stats->solution_work_scaled = S_goal->g.work;
+      stats->solution_work = S_goal->g.work_value();
+      PlanCost parent_edge_cost;
       for (size_t step = 1; step < solution_nodes.size(); ++step) {
         parent_edge_cost +=
             get_edge_cost(solution_nodes[step - 1], solution_nodes[step]);
       }
-      stats->solution_parent_edge_cost = (unsigned)std::lround(parent_edge_cost);
+      stats->solution_parent_edge_cost =
+          (unsigned)std::lround(parent_edge_cost.work_value());
       stats->solution_depth = solution.size() - 1;
       for (size_t step = 1; step < solution_nodes.size(); ++step) {
         auto changed = false;
@@ -930,7 +1219,7 @@ Solution TAPFPlanner::solve()
                         : "TAPF solution found",
        "\texplored:", CLOSED.size());
 
-  if (deadline != nullptr && deadline->elapsed_ms() >= incumbent_search_limit_ms) {
+  if (is_expired(deadline)) {
     for (auto p : CLOSED) p.second->discard_search_tree();
   }
 
@@ -996,9 +1285,9 @@ void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* goal,
           ++stats->anytime_cost_updates;
           ++stats->g_relaxed;
         }
-        const double bound =
+        const PlanCost bound =
             goal != nullptr ? goal->g : search_config.incumbent_init;
-        if ((bound < 0 || node_to->f < bound) &&
+        if ((!bound.is_bounded() || node_to->f < bound) &&
             !node_to->queued && !node_to->search_tree.empty()) {
           OPEN.push_back(node_to);
           node_to->queued = true;
@@ -1009,7 +1298,7 @@ void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* goal,
 }
 
 SearchEdgeHandle TAPFPlanner::register_outgoing_edge(
-    TAPFNode* from, TAPFNode* to, double physical_cost,
+    TAPFNode* from, TAPFNode* to, PlanCost physical_cost,
     const std::vector<TransitionStep>& transition_trace)
 {
   if (from == nullptr || to == nullptr)
@@ -1066,18 +1355,19 @@ SearchEdgeHandle TAPFPlanner::register_outgoing_edge(
   return handle;
 }
 
-double TAPFPlanner::get_edge_cost(const TAPFNode* from,
-                                  const TAPFNode* to) const
+PlanCost TAPFPlanner::get_edge_cost(const TAPFNode* from,
+                                    const TAPFNode* to) const
 {
   if (to != nullptr && to->parent == from &&
       to->incoming_edge != nullptr)
     return to->incoming_edge->physical_cost;
-  auto cost = 0.0;
+  int64_t work = 0;
   for (size_t i = 0; i < ins->N; ++i) {
     const auto task = to->assignment[i];
     if (task < 0) continue;  // carrier agent: physical term below
     const auto goal = ins->tasks[task];
-    if (from->C[i] != goal || to->C[i] != goal) ++cost;
+    if (from->C[i] != goal || to->C[i] != goal)
+      add_scaled_work(work, PlanCost::WORK_SCALE);
   }
   // physical carrier term (design 2.3, mapping M5): loaded/free moves,
   // lift/drop, anonymous-carry moves.  kappa is empty on shelf-free
@@ -1087,16 +1377,20 @@ double TAPFPlanner::get_edge_cost(const TAPFNode* from,
     const int k_to = to->shelf.kappa[i];
     if (from->C[i] != to->C[i]) {  // MOVE (kappa preserved by moves)
       if (k_from == KAPPA_FREE) {
-        if (to->assignment[i] < 0) cost += weights.beta;
+        if (to->assignment[i] < 0)
+          add_scaled_work(work, weights.beta_scaled);
       } else {
-        cost += weights.alpha;
-        if (k_from == KAPPA_ANON) cost += weights.delta;
+        add_scaled_work(work, weights.alpha_scaled);
+        if (k_from == KAPPA_ANON)
+          add_scaled_work(work, weights.delta_scaled);
       }
     } else if (k_from != k_to) {  // LIFT or DROP (same cell)
-      cost += weights.gamma;
+      add_scaled_work(work, weights.gamma_scaled);
     }
   }
-  return cost;
+  const int64_t ticks =
+      search_config.objective == TAPFObjective::MAKESPAN_THEN_WORK ? 1 : 0;
+  return PlanCost::from_scaled(ticks, work);
 }
 
 double TAPFPlanner::get_h_value(const Config& C)
@@ -1112,6 +1406,21 @@ double TAPFPlanner::get_h_value(const Config& C)
     cost += best < D.K ? best : D.K;
   }
   return cost;
+}
+
+int64_t TAPFPlanner::get_time_h_value(const Config& C)
+{
+  int64_t bound = 0;
+  for (size_t i = 0; i < ins->N; ++i) {
+    if (ins->allowed[i].empty()) continue;
+    auto best = D.K;
+    for (size_t j = 0; j < ins->tasks.size(); ++j) {
+      if (!ins->allowed[i][j]) continue;
+      best = std::min(best, D.get(j, C[i]));
+    }
+    if (best < D.K) bound = std::max<int64_t>(bound, best);
+  }
+  return bound;
 }
 
 bool TAPFPlanner::is_goal_config(const Config& C, const ShelfState& S) const
@@ -1165,6 +1474,24 @@ void TAPFPlanner::build_op_candidates(TAPFNode* S, int i,
         out.push_back(OpCand{S->C[i], (uint8_t)Op::LIFT});
     } else {
       out.push_back(OpCand{S->C[i], (uint8_t)Op::DROP});
+    }
+  }
+
+  const auto* checkpoint =
+      find_reference_checkpoint(physical_state_of(S->C, S->shelf));
+  if (checkpoint != nullptr &&
+      checkpoint->next_ops.size() == S->C.size()) {
+    const Op& wanted = checkpoint->next_ops[i];
+    const int wanted_cell =
+        wanted.kind == Op::MOVE ? wanted.to : S->C[i]->index;
+    const auto it = std::find_if(
+        out.begin(), out.end(), [&](const OpCand& candidate) {
+          return candidate.kind == wanted.kind &&
+                 candidate.v->index == wanted_cell;
+        });
+    if (it != out.end()) {
+      std::rotate(out.begin(), it, std::next(it));
+      if (stats != nullptr) ++stats->reference_action_hints;
     }
   }
 }
@@ -1344,12 +1671,39 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
           guide->custody_by_robot[i].has_value())
         custody = &*guide->custody_by_robot[i];
       if (custody != nullptr && custody->from == q) {
-        append_exact_move(custody->to);
+        const bool at_endpoint =
+            q == custody_endpoint(*custody) &&
+            custody->route_status == RouteStatus::ARRIVED;
+        if (at_endpoint && dd_view->can_store_shelf(q))
+          append_candidate(ai->v_now, (uint8_t)Op::DROP);
+        const TimedRouteHint* timed_hint = nullptr;
+        if (guide != nullptr &&
+            i < (int)guide->timed_transport.by_robot.size() &&
+            guide->timed_transport.by_robot[i].has_value()) {
+          const auto& candidate =
+              *guide->timed_transport.by_robot[i];
+          if ((candidate.status == RouteStatus::OK ||
+               candidate.status == RouteStatus::PREFIX) &&
+              candidate.endpoint == custody_endpoint(*custody) &&
+              candidate.cells.size() >= 2 &&
+              candidate.cells.front() == q)
+            timed_hint = &candidate;
+        }
+        if (!at_endpoint && timed_hint != nullptr) {
+          if (timed_hint->cells[1] == q)
+            append_candidate(ai->v_now, (uint8_t)Op::WAIT);
+          else
+            append_exact_move(timed_hint->cells[1]);
+        }
+        if (!at_endpoint && custody->preferred_leg.has_value() &&
+            custody->preferred_leg->from == q)
+          append_exact_move(custody->preferred_leg->to);
         append_candidate(ai->v_now, (uint8_t)Op::WAIT);
-        if (dd_view->can_store_shelf(q))
+        if (!at_endpoint && dd_view->can_store_shelf(q))
           append_candidate(ai->v_now, (uint8_t)Op::DROP);
         append_all_moves([&](int cell) {
-          return cell == custody->to
+          return custody->preferred_leg.has_value() &&
+                         cell == custody->preferred_leg->to
                      ? std::make_pair(0, cell)
                      : std::make_pair(1, cell);
         });
@@ -1385,6 +1739,10 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
           guide->rho_task_id[i].has_value())
         assigned = &*guide->rho_task_id[i];
       if (assigned != nullptr) {
+        const bool preparing =
+            guide != nullptr &&
+            i < (int)guide->rho_mode.size() &&
+            guide->rho_mode[i] == DispatchMode::PREPARE;
         const bool exact_shelf_here =
             assigned->from == q &&
             ((assigned->shelf.kind == ShelfSelector::Kind::TARGET &&
@@ -1393,8 +1751,10 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
                   ShelfSelector::Kind::ANON_AT_EPOCH_CELL &&
               assigned->shelf.value == q &&
               carrier_grounded[q] == -1));
-        if (exact_shelf_here)
+        if (exact_shelf_here && !preparing)
           append_candidate(ai->v_now, (uint8_t)Op::LIFT);
+        if (exact_shelf_here && preparing)
+          append_candidate(ai->v_now, (uint8_t)Op::WAIT);
         append_all_moves([&](int cell) {
           return std::make_pair(
               eng.lower.dist(assigned->from, cell), cell);
@@ -1432,6 +1792,29 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
       }
     }
 
+  }
+
+  if (carrier_scratch_node != nullptr) {
+    const auto* checkpoint = find_reference_checkpoint(
+        physical_state_of(
+            carrier_scratch_node->C,
+            carrier_scratch_node->shelf));
+    if (checkpoint != nullptr &&
+        checkpoint->next_ops.size() ==
+            carrier_scratch_node->C.size()) {
+      const Op& wanted = checkpoint->next_ops[i];
+      const int wanted_cell =
+          wanted.kind == Op::MOVE ? wanted.to : ai->v_now->index;
+      const auto it = std::find_if(
+          cand.begin(), cand.end(), [&](const auto& candidate) {
+            return candidate.second == wanted.kind &&
+                   candidate.first->index == wanted_cell;
+          });
+      if (it != cand.end()) {
+        std::rotate(cand.begin(), it, std::next(it));
+        if (stats != nullptr) ++stats->reference_action_hints;
+      }
+    }
   }
 
   // ---- unified try loop ----
@@ -1736,20 +2119,24 @@ std::vector<std::vector<Op>> derive_carrier_ops(
 }
 
 // physical cost of one joint op (design 2.3; solver weights)
-static double carrier_ops_cost(const TAPFPlanner::Weights& w,
-                               const ShelfState& from,
-                               const std::vector<Op>& ops)
+static int64_t carrier_ops_work_scaled(
+    const TAPFPlanner::Weights& w, const ShelfState& from,
+    const std::vector<Op>& ops)
 {
-  double c = 0;
+  int64_t work = 0;
   for (size_t i = 0; i < ops.size(); ++i) {
     if (ops[i].kind == Op::MOVE) {
-      c += from.kappa[i] == KAPPA_FREE ? w.beta : w.alpha;
-      if (from.kappa[i] == KAPPA_ANON) c += w.delta;
+      add_scaled_work(
+          work, from.kappa[i] == KAPPA_FREE
+                    ? w.beta_scaled
+                    : w.alpha_scaled);
+      if (from.kappa[i] == KAPPA_ANON)
+        add_scaled_work(work, w.delta_scaled);
     } else if (ops[i].kind == Op::LIFT || ops[i].kind == Op::DROP) {
-      c += w.gamma;
+      add_scaled_work(work, w.gamma_scaled);
     }
   }
-  return c;
+  return work;
 }
 
 TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
@@ -1827,7 +2214,12 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
       out.shelf_moved = true;
       if (stats != nullptr) ++stats->rollout_shelf_motion_steps;
     }
-    out.cost += carrier_ops_cost(weights, curS, ops);
+    out.cost += PlanCost::from_scaled(
+        search_config.objective ==
+                TAPFObjective::MAKESPAN_THEN_WORK
+            ? 1
+            : 0,
+        carrier_ops_work_scaled(weights, curS, ops));
     out.ops.push_back(ops);
     out.configs.push_back(C_step);
     out.shelves.push_back(shelf_next_scratch);
