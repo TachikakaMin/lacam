@@ -4755,22 +4755,13 @@ inline DDReadyMatchProbe match_ready_tasks(
         previous_rho_transfer_key = nullptr,
     const std::vector<uint8_t>* eligible_robot = nullptr,
     DispatchMode mode = DispatchMode::EXECUTE,
-    bool collect_audit = false,
-    const RhoNodeAssignmentState* previous_rho_state = nullptr,
-    const std::vector<std::optional<Custody>>* custody_by_robot =
-        nullptr,
-    bool transition_valid = true,
-    bool parent_stale = false)
+    bool collect_audit = false)
 {
   const auto candidate_started = std::chrono::steady_clock::now();
   DDReadyMatchProbe out;
   out.telemetry.objective_version =
       RhoObjectiveVersion::ADDITIVE_SERVICE_MINUS_DEFER_V1;
   const size_t robot_count = ins.n_robots();
-  const auto* continuity_task_id =
-      transition_valid ? previous_rho_task_id : nullptr;
-  const auto* continuity_transfer_key =
-      transition_valid ? previous_rho_transfer_key : nullptr;
   out.rho_task_id.resize(robot_count);
   out.rho_transfer_key.resize(robot_count);
   out.rho_ready_index.assign(robot_count, -1);
@@ -4804,19 +4795,19 @@ inline DDReadyMatchProbe match_ready_tasks(
          (robot < eligible_robot->size() &&
           (*eligible_robot)[robot]));
     rho_fingerprint_add(fingerprint, eligible ? 1 : 0);
-    if (continuity_transfer_key != nullptr &&
-        robot < continuity_transfer_key->size() &&
-        (*continuity_transfer_key)[robot].has_value()) {
+    if (previous_rho_transfer_key != nullptr &&
+        robot < previous_rho_transfer_key->size() &&
+        (*previous_rho_transfer_key)[robot].has_value()) {
       rho_fingerprint_add(fingerprint, 1);
       rho_fingerprint_add(
           fingerprint,
-          *(*continuity_transfer_key)[robot]);
-    } else if (continuity_task_id != nullptr &&
-               robot < continuity_task_id->size() &&
-               (*continuity_task_id)[robot].has_value()) {
+          *(*previous_rho_transfer_key)[robot]);
+    } else if (previous_rho_task_id != nullptr &&
+               robot < previous_rho_task_id->size() &&
+               (*previous_rho_task_id)[robot].has_value()) {
       rho_fingerprint_add(fingerprint, 2);
       rho_fingerprint_add(
-          fingerprint, *(*continuity_task_id)[robot]);
+          fingerprint, *(*previous_rho_task_id)[robot]);
     } else {
       rho_fingerprint_add(fingerprint, 0);
     }
@@ -4979,65 +4970,6 @@ inline DDReadyMatchProbe match_ready_tasks(
   const size_t column_count = task_count + robot_count;
   out.telemetry.matrix_rows = static_cast<long>(robot_count);
   out.telemetry.matrix_cols = static_cast<long>(column_count);
-  constexpr RhoCost kUrgencyScale = 4;
-  const auto checked_urgency =
-      [&](const RhoCandidate& candidate) -> RhoCost {
-        const __int128 urgency_wide =
-            static_cast<__int128>(
-                std::max(0, candidate.priority)) *
-            static_cast<__int128>(kUrgencyScale);
-        if (urgency_wide >=
-            static_cast<__int128>(kRhoAssignmentInf))
-          throw std::overflow_error(
-              "rho urgency fixed-point overflow");
-        return static_cast<RhoCost>(urgency_wide);
-      };
-  const auto candidate_column_key =
-      [](const RhoCandidate& candidate) {
-        RhoColumnKey key;
-        key.kind = RhoColumnKind::TASK;
-        key.transfer = candidate.key;
-        key.task = candidate.id;
-        key.task_index = candidate.task_index;
-        return key;
-      };
-
-  RhoColumnModelVersion column_model;
-  column_model.mode = mode;
-  column_model.mode_semantics_version = 1;
-  column_model.objective_version =
-      static_cast<uint32_t>(out.telemetry.objective_version);
-  column_model.scaling_version = 1;
-  column_model.inf_version = 1;
-  column_model.canonical_version = 1;
-  column_model.ordered_columns.reserve(column_count);
-  column_model.service.reserve(column_count);
-  column_model.urgency.reserve(column_count);
-  column_model.root_delay.assign(column_count, 0);
-  column_model.endpoint_conflict_version.assign(
-      column_count, 0);
-  for (const auto& candidate : candidates) {
-    column_model.ordered_columns.push_back(
-        candidate_column_key(candidate));
-    const int task_index = candidate.task_index;
-    column_model.service.push_back(
-        mode == DispatchMode::EXECUTE &&
-                task_index >= 0 &&
-                task_index < (int)graph.tasks.size()
-            ? task_service_ticks(graph.tasks[task_index])
-            : 0);
-    column_model.urgency.push_back(
-        checked_urgency(candidate));
-  }
-  for (size_t robot = 0; robot < robot_count; ++robot) {
-    RhoColumnKey idle;
-    idle.kind = RhoColumnKind::OWN_IDLE;
-    idle.owner_robot = static_cast<int>(robot);
-    column_model.ordered_columns.push_back(idle);
-    column_model.service.push_back(0);
-    column_model.urgency.push_back(0);
-  }
-  rho_finalize_column_model(column_model);
 
   uint64_t identity_fingerprint = rho_fingerprint_mix(0x52484f49ULL);
   rho_fingerprint_add(
@@ -5065,6 +4997,7 @@ inline DDReadyMatchProbe match_ready_tasks(
           .count();
 
   const auto matrix_started = std::chrono::steady_clock::now();
+  constexpr RhoCost kUrgencyScale = 4;
   std::vector<std::vector<RhoCost>> cost(
       robot_count,
       std::vector<RhoCost>(
@@ -5084,18 +5017,27 @@ inline DDReadyMatchProbe match_ready_tasks(
           candidate.id.from, physical.robots[robot]);
       if (distance >= INT_MAX / 4) continue;
       const bool switched =
-          continuity_transfer_key != nullptr &&
+          previous_rho_transfer_key != nullptr &&
                   robot <
-                      continuity_transfer_key->size() &&
-                  (*continuity_transfer_key)[robot].has_value()
-              ? *(*continuity_transfer_key)[robot] !=
+                      previous_rho_transfer_key->size() &&
+                  (*previous_rho_transfer_key)[robot].has_value()
+              ? *(*previous_rho_transfer_key)[robot] !=
                     candidate.key
-              : continuity_task_id != nullptr &&
-                    robot < continuity_task_id->size() &&
-                    (*continuity_task_id)[robot].has_value() &&
-                    *(*continuity_task_id)[robot] !=
+              : previous_rho_task_id != nullptr &&
+                    robot < previous_rho_task_id->size() &&
+                    (*previous_rho_task_id)[robot].has_value() &&
+                    *(*previous_rho_task_id)[robot] !=
                         candidate.id;
-      const RhoCost urgency = checked_urgency(candidate);
+      const __int128 urgency_wide =
+          static_cast<__int128>(
+              std::max(0, candidate.priority)) *
+          static_cast<__int128>(kUrgencyScale);
+      if (urgency_wide >=
+          static_cast<__int128>(kRhoAssignmentInf))
+        throw std::overflow_error(
+            "rho urgency fixed-point overflow");
+      const RhoCost urgency =
+          static_cast<RhoCost>(urgency_wide);
       RhoCostBreakdown edge;
       if (mode == DispatchMode::PREPARE) {
         edge = rho_prepare_cost(
@@ -5117,67 +5059,6 @@ inline DDReadyMatchProbe match_ready_tasks(
             "rho additive edge is outside checked range");
       cost[robot][task_column] = edge.total;
     }
-  }
-
-  std::vector<std::optional<RhoColumnKey>> anchor_used(
-      robot_count);
-  std::vector<RhoRowFingerprint> row_fingerprint(robot_count);
-  for (size_t robot = 0; robot < robot_count; ++robot) {
-    const bool have_key =
-        continuity_transfer_key != nullptr &&
-        robot < continuity_transfer_key->size() &&
-        (*continuity_transfer_key)[robot].has_value();
-    const bool have_task =
-        continuity_task_id != nullptr &&
-        robot < continuity_task_id->size() &&
-        (*continuity_task_id)[robot].has_value();
-    if (have_key || have_task) {
-      const auto match = std::find_if(
-          candidates.begin(), candidates.end(),
-          [&](const RhoCandidate& candidate) {
-            return have_key
-                       ? candidate.key ==
-                             *(*continuity_transfer_key)[robot]
-                       : candidate.id ==
-                             *(*continuity_task_id)[robot];
-          });
-      if (match != candidates.end()) {
-        anchor_used[robot] = candidate_column_key(*match);
-      } else {
-        RhoColumnKey anchor;
-        anchor.kind = RhoColumnKind::TASK;
-        if (have_key)
-          anchor.transfer =
-              *(*continuity_transfer_key)[robot];
-        if (have_task)
-          anchor.task = *(*continuity_task_id)[robot];
-        else if (have_key) {
-          anchor.task.shelf = anchor.transfer.shelf;
-          anchor.task.from = anchor.transfer.source;
-          anchor.task.to = anchor.transfer.endpoint;
-        }
-        anchor_used[robot] = std::move(anchor);
-      }
-    }
-
-    auto& row = row_fingerprint[robot];
-    row.robot_position = physical.robots[robot];
-    row.kappa = physical.kappa[robot];
-    if (custody_by_robot != nullptr &&
-        robot < custody_by_robot->size() &&
-        (*custody_by_robot)[robot].has_value()) {
-      const auto& custody = *(*custody_by_robot)[robot];
-      row.custody = TransferKey{
-          custody.shelf, custody.from,
-          custody_endpoint(custody)};
-    }
-    row.phase = mode;
-    row.eligibility.resize(column_count, 0);
-    for (size_t column = 0; column < column_count; ++column)
-      row.eligibility[column] =
-          cost[robot][column] > -kRhoAssignmentInf &&
-          cost[robot][column] < kRhoAssignmentInf;
-    row.anchor_used = anchor_used[robot];
   }
 
   uint64_t value_fingerprint = rho_fingerprint_mix(0x52484f56ULL);
@@ -5230,15 +5111,10 @@ inline DDReadyMatchProbe match_ready_tasks(
   if (!assignment.feasible)
     throw std::logic_error(
         "rho additive assignment is infeasible despite own idle slots");
-  out.telemetry.shadow_full_objective = assignment.objective;
-  std::vector<std::optional<RhoColumnKey>> canonical_mate(
-      robot_count);
   for (size_t robot = 0; robot < robot_count; ++robot) {
     const int column = assignment.row_to_col[robot];
     if (column >= 0 &&
         column < static_cast<int>(task_count)) {
-      canonical_mate[robot] =
-          candidate_column_key(candidates[column]);
       out.rho_task_id[robot] = candidates[column].id;
       out.rho_transfer_key[robot] =
           candidates[column].key;
@@ -5248,106 +5124,6 @@ inline DDReadyMatchProbe match_ready_tasks(
     } else {
       ++out.telemetry.idle_assignments;
     }
-  }
-
-  RhoReuseDecision reuse;
-  std::optional<RhoNodeAssignmentState> parent_snapshot;
-  if (previous_rho_state == nullptr) {
-    reuse.fallback =
-        RhoIncrementalFallbackReason::NO_PARENT_STATE;
-  } else if (!transition_valid || parent_stale) {
-    reuse.fallback = RhoIncrementalFallbackReason::
-        STALE_OR_REWIRED_PARENT;
-  } else {
-    reuse.fallback = classify_rho_column_model_change(
-        previous_rho_state->column_model, column_model);
-    if (reuse.fallback ==
-        RhoIncrementalFallbackReason::NONE) {
-      const auto copy_started =
-          std::chrono::steady_clock::now();
-      parent_snapshot = *previous_rho_state;
-      out.telemetry.incremental_copy_time_ms =
-          std::chrono::duration<double, std::milli>(
-              std::chrono::steady_clock::now() - copy_started)
-              .count();
-      reuse = assess_rho_incremental_reuse(
-          parent_snapshot, column_model, row_fingerprint,
-          true, false);
-    }
-  }
-  out.telemetry.incremental_fallback = reuse.fallback;
-  out.telemetry.incremental_changed_rows_valid =
-      reuse.may_repair;
-  out.telemetry.incremental_changed_rows =
-      static_cast<long>(reuse.changed_rows.size());
-
-  const auto solve_shadow_full = [&]() {
-    const auto started = std::chrono::steady_clock::now();
-    auto solved = solve_rho_assignment_state_full(cost);
-    out.telemetry.incremental_full_time_ms +=
-        std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - started)
-            .count();
-    ++out.telemetry.incremental_full_solves;
-    return solved;
-  };
-
-  RhoStateSolveResult shadow;
-  bool attempted_repair = false;
-  if (reuse.may_repair && parent_snapshot.has_value()) {
-    attempted_repair = true;
-    const auto repair_started =
-        std::chrono::steady_clock::now();
-    shadow = repair_rho_assignment_state_rows(
-        parent_snapshot->optimum, cost, reuse.changed_rows);
-    out.telemetry.incremental_repair_time_ms =
-        std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - repair_started)
-            .count();
-    out.telemetry.incremental_augmentations =
-        shadow.augmentations;
-    if (reuse.changed_rows.empty())
-      ++out.telemetry.incremental_zero_row_reuses;
-    else
-      ++out.telemetry.incremental_repairs;
-    if (!shadow.parent_valid ||
-        !shadow.assignment.feasible) {
-      out.telemetry.incremental_fallback =
-          RhoIncrementalFallbackReason::
-              STATE_VALIDATION_FAILED;
-      shadow = solve_shadow_full();
-    }
-  } else {
-    shadow = solve_shadow_full();
-  }
-
-  if (shadow.assignment.feasible)
-    out.telemetry.shadow_incremental_objective =
-        shadow.assignment.objective;
-  if (!shadow.assignment.feasible ||
-      shadow.assignment.objective != assignment.objective) {
-    ++out.telemetry.shadow_mismatches;
-    out.telemetry.incremental_fallback =
-        RhoIncrementalFallbackReason::SHADOW_MISMATCH;
-    if (attempted_repair) {
-      shadow = solve_shadow_full();
-      if (shadow.assignment.feasible)
-        out.telemetry.shadow_incremental_objective =
-            shadow.assignment.objective;
-    }
-  }
-
-  if (shadow.assignment.feasible &&
-      shadow.assignment.objective == assignment.objective) {
-    RhoNodeAssignmentState node_state;
-    node_state.optimum = std::move(shadow.state);
-    node_state.column_model = std::move(column_model);
-    node_state.row_fingerprint = std::move(row_fingerprint);
-    node_state.mate = std::move(canonical_mate);
-    node_state.anchor_used = std::move(anchor_used);
-    out.rho_state = std::move(node_state);
-    out.telemetry.incremental_state_bytes =
-        rho_node_assignment_state_payload_bytes(*out.rho_state);
   }
   return out;
 }
@@ -5758,24 +5534,15 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
       recovered.transition_valid && previous_guidance != nullptr
           ? &previous_guidance->rho_transfer_key
           : nullptr;
-  const auto* previous_execute_state =
-      previous_guidance != nullptr &&
-              previous_guidance->rho_execute_state.has_value()
-          ? &*previous_guidance->rho_execute_state
-          : nullptr;
   auto rho = match_ready_tasks(
       ins, physical, out.upper_epoch->task_graph,
-      grounded_ready, previous_rho, previous_rho_key,
-      nullptr, DispatchMode::EXECUTE, false,
-      previous_execute_state, &out.custody_by_robot,
-      recovered.transition_valid, false);
+      grounded_ready, previous_rho, previous_rho_key);
   rho.telemetry.candidates_input = ready_before_claims;
   rho.telemetry.candidates_after_claims =
       static_cast<long>(grounded_ready.size());
   rho.telemetry.upstream_claim_filtered =
       ready_claims_filtered;
   out.rho_execute_telemetry = rho.telemetry;
-  out.rho_execute_state = std::move(rho.rho_state);
   out.rho_task_id = std::move(rho.rho_task_id);
   out.rho_transfer_key = std::move(rho.rho_transfer_key);
   out.rho_ready_index = std::move(rho.rho_ready_index);
@@ -5796,14 +5563,8 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
   auto preparation = match_ready_tasks(
       ins, physical, out.upper_epoch->task_graph,
       out.preparable_tasks, previous_rho, previous_rho_key,
-      &eligible_for_preparation, DispatchMode::PREPARE, false,
-      previous_guidance != nullptr &&
-              previous_guidance->rho_prepare_state.has_value()
-          ? &*previous_guidance->rho_prepare_state
-          : nullptr,
-      &out.custody_by_robot, recovered.transition_valid, false);
+      &eligible_for_preparation, DispatchMode::PREPARE);
   out.rho_prepare_telemetry = preparation.telemetry;
-  out.rho_prepare_state = std::move(preparation.rho_state);
   for (size_t robot = 0; robot < ins.n_robots(); ++robot) {
     if (robot >= preparation.rho_task_id.size() ||
         !preparation.rho_task_id[robot].has_value())

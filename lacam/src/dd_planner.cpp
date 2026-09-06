@@ -344,60 +344,6 @@ void map_stats(const TAPFStats& t, DDStats* out,
   out->rho_changed_rows_2 += t.rho_changed_rows_2;
   out->rho_changed_rows_gt2 += t.rho_changed_rows_gt2;
   out->rho_assignment_changes += t.rho_assignment_changes;
-  out->rho_incremental_full_solves +=
-      t.rho_incremental_full_solves;
-  out->rho_incremental_repairs +=
-      t.rho_incremental_repairs;
-  out->rho_incremental_zero_row_reuses +=
-      t.rho_incremental_zero_row_reuses;
-  out->rho_incremental_augmentations +=
-      t.rho_incremental_augmentations;
-  out->rho_incremental_changed_rows_0 +=
-      t.rho_incremental_changed_rows_0;
-  out->rho_incremental_changed_rows_1 +=
-      t.rho_incremental_changed_rows_1;
-  out->rho_incremental_changed_rows_2 +=
-      t.rho_incremental_changed_rows_2;
-  out->rho_incremental_changed_rows_gt2 +=
-      t.rho_incremental_changed_rows_gt2;
-  out->rho_shadow_mismatches += t.rho_shadow_mismatches;
-  out->rho_incremental_copy_time_ms +=
-      t.rho_incremental_copy_time_ms;
-  out->rho_incremental_repair_time_ms +=
-      t.rho_incremental_repair_time_ms;
-  out->rho_incremental_full_time_ms +=
-      t.rho_incremental_full_time_ms;
-  out->rho_incremental_state_bytes_total +=
-      t.rho_incremental_state_bytes_total;
-  out->rho_incremental_state_bytes_max = std::max(
-      out->rho_incremental_state_bytes_max,
-      t.rho_incremental_state_bytes_max);
-  out->rho_fallback_no_parent_state +=
-      t.rho_fallback_no_parent_state;
-  out->rho_fallback_stale_or_rewired_parent +=
-      t.rho_fallback_stale_or_rewired_parent;
-  out->rho_fallback_shape_changed +=
-      t.rho_fallback_shape_changed;
-  out->rho_fallback_column_identity_changed +=
-      t.rho_fallback_column_identity_changed;
-  out->rho_fallback_column_value_changed +=
-      t.rho_fallback_column_value_changed;
-  out->rho_fallback_mode_changed +=
-      t.rho_fallback_mode_changed;
-  out->rho_fallback_conflict_changed +=
-      t.rho_fallback_conflict_changed;
-  out->rho_fallback_objective_version_changed +=
-      t.rho_fallback_objective_version_changed;
-  out->rho_fallback_scaling_version_changed +=
-      t.rho_fallback_scaling_version_changed;
-  out->rho_fallback_inf_version_changed +=
-      t.rho_fallback_inf_version_changed;
-  out->rho_fallback_canonical_version_changed +=
-      t.rho_fallback_canonical_version_changed;
-  out->rho_fallback_state_validation_failed +=
-      t.rho_fallback_state_validation_failed;
-  out->rho_fallback_shadow_mismatch +=
-      t.rho_fallback_shadow_mismatch;
   out->rho_candidate_time_ms += t.rho_candidate_time_ms;
   out->rho_matrix_time_ms += t.rho_matrix_time_ms;
   out->rho_bottleneck_time_ms += t.rho_bottleneck_time_ms;
@@ -1314,17 +1260,11 @@ CarrierGuidance dd_task_br_cached_guidance_probe(
 DDReadyMatchProbe dd_match_ready_tasks_probe(
     const DDInstance& ins, const PhysConfig& X,
     const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
-    const std::vector<std::optional<TaskId>>* previous_rho_task_id,
-    const std::vector<std::optional<TransferKey>>*
-        previous_rho_transfer_key,
-    const RhoNodeAssignmentState* previous_rho_state,
-    const std::vector<uint8_t>* eligible_robot,
-    DispatchMode mode, bool transition_valid)
+    const std::vector<std::optional<TaskId>>* previous_rho_task_id)
 {
   return carrier_detail::match_ready_tasks(
       ins, X, graph, ready_tasks, previous_rho_task_id,
-      previous_rho_transfer_key, eligible_robot, mode, true,
-      previous_rho_state, nullptr, transition_valid, false);
+      nullptr, nullptr, DispatchMode::EXECUTE, true);
 }
 
 double dd_root_admissible_h(const DDInstance& ins)

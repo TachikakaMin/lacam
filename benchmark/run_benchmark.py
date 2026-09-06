@@ -109,32 +109,6 @@ FIELDS = [
     "rho_mode_or_conflict_same", "rho_changed_rows_0",
     "rho_changed_rows_1", "rho_changed_rows_2",
     "rho_changed_rows_gt2", "rho_assignment_changes",
-    "rho_incremental_full_solves", "rho_incremental_repairs",
-    "rho_incremental_zero_row_reuses",
-    "rho_incremental_augmentations",
-    "rho_incremental_changed_rows_0",
-    "rho_incremental_changed_rows_1",
-    "rho_incremental_changed_rows_2",
-    "rho_incremental_changed_rows_gt2",
-    "rho_shadow_mismatches",
-    "rho_incremental_copy_time_ms",
-    "rho_incremental_repair_time_ms",
-    "rho_incremental_full_time_ms",
-    "rho_incremental_state_bytes_total",
-    "rho_incremental_state_bytes_max",
-    "rho_fallback_no_parent_state",
-    "rho_fallback_stale_or_rewired_parent",
-    "rho_fallback_shape_changed",
-    "rho_fallback_column_identity_changed",
-    "rho_fallback_column_value_changed",
-    "rho_fallback_mode_changed",
-    "rho_fallback_conflict_changed",
-    "rho_fallback_objective_version_changed",
-    "rho_fallback_scaling_version_changed",
-    "rho_fallback_inf_version_changed",
-    "rho_fallback_canonical_version_changed",
-    "rho_fallback_state_validation_failed",
-    "rho_fallback_shadow_mismatch",
     "custody_continuations", "zero_empty_no_ready",
     "rewire_guidance_rebuilds",
     "tau_time_ms", "guidance_time_ms",
@@ -1194,87 +1168,6 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 ),
                 rho_assignment_changes=metrics.get(
                     "rho_assignment_changes", ""
-                ),
-                rho_incremental_full_solves=metrics.get(
-                    "rho_incremental_full_solves", ""
-                ),
-                rho_incremental_repairs=metrics.get(
-                    "rho_incremental_repairs", ""
-                ),
-                rho_incremental_zero_row_reuses=metrics.get(
-                    "rho_incremental_zero_row_reuses", ""
-                ),
-                rho_incremental_augmentations=metrics.get(
-                    "rho_incremental_augmentations", ""
-                ),
-                rho_incremental_changed_rows_0=metrics.get(
-                    "rho_incremental_changed_rows_0", ""
-                ),
-                rho_incremental_changed_rows_1=metrics.get(
-                    "rho_incremental_changed_rows_1", ""
-                ),
-                rho_incremental_changed_rows_2=metrics.get(
-                    "rho_incremental_changed_rows_2", ""
-                ),
-                rho_incremental_changed_rows_gt2=metrics.get(
-                    "rho_incremental_changed_rows_gt2", ""
-                ),
-                rho_shadow_mismatches=metrics.get(
-                    "rho_shadow_mismatches", ""
-                ),
-                rho_incremental_copy_time_ms=metrics.get(
-                    "rho_incremental_copy_time_ms", ""
-                ),
-                rho_incremental_repair_time_ms=metrics.get(
-                    "rho_incremental_repair_time_ms", ""
-                ),
-                rho_incremental_full_time_ms=metrics.get(
-                    "rho_incremental_full_time_ms", ""
-                ),
-                rho_incremental_state_bytes_total=metrics.get(
-                    "rho_incremental_state_bytes_total", ""
-                ),
-                rho_incremental_state_bytes_max=metrics.get(
-                    "rho_incremental_state_bytes_max", ""
-                ),
-                rho_fallback_no_parent_state=metrics.get(
-                    "rho_fallback_no_parent_state", ""
-                ),
-                rho_fallback_stale_or_rewired_parent=metrics.get(
-                    "rho_fallback_stale_or_rewired_parent", ""
-                ),
-                rho_fallback_shape_changed=metrics.get(
-                    "rho_fallback_shape_changed", ""
-                ),
-                rho_fallback_column_identity_changed=metrics.get(
-                    "rho_fallback_column_identity_changed", ""
-                ),
-                rho_fallback_column_value_changed=metrics.get(
-                    "rho_fallback_column_value_changed", ""
-                ),
-                rho_fallback_mode_changed=metrics.get(
-                    "rho_fallback_mode_changed", ""
-                ),
-                rho_fallback_conflict_changed=metrics.get(
-                    "rho_fallback_conflict_changed", ""
-                ),
-                rho_fallback_objective_version_changed=metrics.get(
-                    "rho_fallback_objective_version_changed", ""
-                ),
-                rho_fallback_scaling_version_changed=metrics.get(
-                    "rho_fallback_scaling_version_changed", ""
-                ),
-                rho_fallback_inf_version_changed=metrics.get(
-                    "rho_fallback_inf_version_changed", ""
-                ),
-                rho_fallback_canonical_version_changed=metrics.get(
-                    "rho_fallback_canonical_version_changed", ""
-                ),
-                rho_fallback_state_validation_failed=metrics.get(
-                    "rho_fallback_state_validation_failed", ""
-                ),
-                rho_fallback_shadow_mismatch=metrics.get(
-                    "rho_fallback_shadow_mismatch", ""
                 ),
                 custody_continuations=metrics.get(
                     "custody_continuations", ""
