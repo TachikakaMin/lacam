@@ -324,6 +324,9 @@ void map_stats(const TAPFStats& t, DDStats* out,
   out->rho_matrix_cols_total += t.rho_matrix_cols_total;
   out->rho_matrix_max_rows = std::max(
       out->rho_matrix_max_rows, t.rho_matrix_max_rows);
+  if (out->rho_objective_version != t.rho_objective_version)
+    throw std::logic_error(
+        "mixed rho objective versions across search attempts");
   out->rho_column_identity_same +=
       t.rho_column_identity_same;
   out->rho_column_value_same += t.rho_column_value_same;

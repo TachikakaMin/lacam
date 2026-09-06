@@ -345,6 +345,10 @@ void TAPFPlanner::attach_carrier_guidance(
     stats->ready_task_count += nd->guide->ready_tasks.size();
     const auto accumulate_rho_telemetry =
         [&](const RhoMatchTelemetry& telemetry, bool execute) {
+          if (telemetry.objective_version !=
+              stats->rho_objective_version)
+            throw std::logic_error(
+                "mixed rho objective versions in one search");
           if (execute)
             ++stats->rho_match_calls_execute;
           else

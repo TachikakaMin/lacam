@@ -61,6 +61,9 @@ TEST(dd_dispatch,
 TEST(dd_dispatch,
      priority_is_a_low_order_term_after_physical_secondary_cost)
 {
+  const long long scale =
+      carrier_detail::rho_priority_lex_scale(10);
+  EXPECT_EQ(scale, 11);
   EXPECT_EQ(
       carrier_detail::rho_priority_lex_cost(3, 11, 0), 33);
   EXPECT_EQ(
@@ -68,6 +71,11 @@ TEST(dd_dispatch,
   EXPECT_LT(
       carrier_detail::rho_priority_lex_cost(3, 11, 9),
       carrier_detail::rho_priority_lex_cost(4, 11, 0));
+  EXPECT_LT(
+      carrier_detail::rho_priority_lex_cost(7, scale, 10),
+      carrier_detail::rho_priority_lex_cost(8, scale, 0))
+      << "the sum of all finite priority terms must not override one "
+         "unit of physical secondary cost";
 }
 
 TEST(dd_dispatch,

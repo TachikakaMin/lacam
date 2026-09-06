@@ -99,7 +99,8 @@ FIELDS = [
     "rho_upstream_claim_filtered", "rho_mode_ineligible_filtered",
     "rho_no_reachable_robot_filtered", "rho_priority_filtered",
     "rho_matrix_rows_total", "rho_matrix_cols_total",
-    "rho_matrix_max_rows", "rho_candidate_time_ms",
+    "rho_matrix_max_rows", "rho_objective_version",
+    "rho_candidate_time_ms",
     "rho_matrix_time_ms", "rho_bottleneck_time_ms",
     "rho_secondary_full_time_ms", "rho_canonical_time_ms",
     "rho_column_identity_same", "rho_column_value_same",
@@ -1114,6 +1115,9 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 ),
                 rho_matrix_max_rows=metrics.get(
                     "rho_matrix_max_rows", ""
+                ),
+                rho_objective_version=metrics.get(
+                    "rho_objective_version", ""
                 ),
                 rho_candidate_time_ms=metrics.get(
                     "rho_candidate_time_ms", ""

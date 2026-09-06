@@ -4707,6 +4707,16 @@ struct RhoCandidate {
 constexpr long long kRhoDispatchInf =
     std::numeric_limits<long long>::max() / 16;
 
+inline long long rho_priority_lex_scale(
+    __int128 nonnegative_priority_sum)
+{
+  if (nonnegative_priority_sum < 0 ||
+      nonnegative_priority_sum + 1 >= kRhoDispatchInf)
+    throw std::overflow_error(
+        "rho priority scale overflow");
+  return static_cast<long long>(nonnegative_priority_sum + 1);
+}
+
 inline long long rho_priority_lex_cost(
     long long physical_secondary, long long priority_scale,
     int deferred_priority)
@@ -5032,14 +5042,11 @@ inline DDReadyMatchProbe match_ready_tasks(
   const auto matrix_started = std::chrono::steady_clock::now();
   constexpr long long INF = kRhoDispatchInf;
   const long long switch_scale = (long long)free_count + 1;
-  __int128 priority_scale_wide = 1;
+  __int128 priority_sum = 0;
   for (const auto& candidate : candidates)
-    priority_scale_wide += std::max(0, candidate.priority);
-  if (priority_scale_wide >= INF)
-    throw std::overflow_error(
-        "rho priority scale overflow");
+    priority_sum += std::max(0, candidate.priority);
   const long long priority_scale =
-      static_cast<long long>(priority_scale_wide);
+      rho_priority_lex_scale(priority_sum);
   const auto critical_tail = task_critical_tail_ticks(graph);
   std::vector<std::vector<long long>> completion(
       task_count, std::vector<long long>(column_count, INF));

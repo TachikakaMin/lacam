@@ -773,6 +773,10 @@ int main(int argc, char** argv)
             << stats.rho_matrix_cols_total << "\n";
   std::cout << "rho_matrix_max_rows="
             << stats.rho_matrix_max_rows << "\n";
+  std::cout << "rho_objective_version="
+            << rho_objective_version_name(
+                   stats.rho_objective_version)
+            << "\n";
   std::cout << "rho_candidate_time_ms="
             << stats.rho_candidate_time_ms << "\n";
   std::cout << "rho_matrix_time_ms="

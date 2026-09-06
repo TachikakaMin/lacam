@@ -561,6 +561,20 @@ enum class RhoDropReason {
   NO_REACHABLE_ROBOT = 5,
 };
 
+enum class RhoObjectiveVersion : uint32_t {
+  BOTTLENECK_SECONDARY_PRIORITY_V1 = 3,
+};
+
+inline const char* rho_objective_version_name(
+    RhoObjectiveVersion version)
+{
+  switch (version) {
+    case RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1:
+      return "BOTTLENECK_SECONDARY_PRIORITY_V1";
+  }
+  return "UNKNOWN";
+}
+
 struct RhoCandidateAudit {
   int task_index = -1;
   TransferKey key;
@@ -572,6 +586,8 @@ struct RhoCandidateAudit {
 };
 
 struct RhoMatchTelemetry {
+  RhoObjectiveVersion objective_version =
+      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1;
   long candidates_input = 0;
   long candidates_after_claims = 0;
   long candidates_after_key_dedupe = 0;
@@ -755,6 +771,8 @@ struct TAPFStats {
   long rho_matrix_rows_total = 0;
   long rho_matrix_cols_total = 0;
   long rho_matrix_max_rows = 0;
+  RhoObjectiveVersion rho_objective_version =
+      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1;
   long rho_column_identity_same = 0;
   long rho_column_value_same = 0;
   long rho_mode_or_conflict_same = 0;

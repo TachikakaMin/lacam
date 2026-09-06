@@ -105,6 +105,8 @@ struct DDStats {
   long rho_matrix_rows_total = 0;
   long rho_matrix_cols_total = 0;
   long rho_matrix_max_rows = 0;
+  RhoObjectiveVersion rho_objective_version =
+      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1;
   long rho_column_identity_same = 0;
   long rho_column_value_same = 0;
   long rho_mode_or_conflict_same = 0;

@@ -205,3 +205,29 @@ TEST(dd_rho_candidates,
   EXPECT_EQ(audit->reason, RhoDropReason::NO_REACHABLE_ROBOT);
   EXPECT_EQ(audit->nearest_robot_distance, -1);
 }
+
+TEST(dd_rho_candidates, production_objective_version_is_explicit)
+{
+  const auto ins = line_instance(4, {0});
+  const auto X = initial_phys_config(ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      make_task(
+          ShelfSelector{
+              ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+              ins.grid.idx(0, 1)},
+          ins.grid.idx(0, 1), ins.grid.idx(0, 2), 3),
+  };
+  graph.predecessors = {{}};
+  graph.successors = {{}};
+
+  const auto probe =
+      dd_match_ready_tasks_probe(ins, X, graph, {0}, nullptr);
+
+  EXPECT_EQ(
+      probe.telemetry.objective_version,
+      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1);
+  EXPECT_STREQ(
+      rho_objective_version_name(probe.telemetry.objective_version),
+      "BOTTLENECK_SECONDARY_PRIORITY_V1");
+}
