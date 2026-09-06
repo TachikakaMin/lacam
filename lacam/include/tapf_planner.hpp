@@ -563,6 +563,7 @@ enum class RhoDropReason {
 
 enum class RhoObjectiveVersion : uint32_t {
   BOTTLENECK_SECONDARY_PRIORITY_V1 = 3,
+  BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2 = 4,
 };
 
 inline const char* rho_objective_version_name(
@@ -571,6 +572,9 @@ inline const char* rho_objective_version_name(
   switch (version) {
     case RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1:
       return "BOTTLENECK_SECONDARY_PRIORITY_V1";
+    case RhoObjectiveVersion::
+        BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2:
+      return "BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2";
   }
   return "UNKNOWN";
 }
@@ -587,7 +591,9 @@ struct RhoCandidateAudit {
 
 struct RhoMatchTelemetry {
   RhoObjectiveVersion objective_version =
-      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1;
+      RhoObjectiveVersion::
+          BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2;
+  bool direct_target_phase = false;
   long candidates_input = 0;
   long candidates_after_claims = 0;
   long candidates_after_key_dedupe = 0;
@@ -772,7 +778,8 @@ struct TAPFStats {
   long rho_matrix_cols_total = 0;
   long rho_matrix_max_rows = 0;
   RhoObjectiveVersion rho_objective_version =
-      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1;
+      RhoObjectiveVersion::
+          BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2;
   long rho_column_identity_same = 0;
   long rho_column_value_same = 0;
   long rho_mode_or_conflict_same = 0;

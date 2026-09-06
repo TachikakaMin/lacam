@@ -106,7 +106,8 @@ struct DDStats {
   long rho_matrix_cols_total = 0;
   long rho_matrix_max_rows = 0;
   RhoObjectiveVersion rho_objective_version =
-      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1;
+      RhoObjectiveVersion::
+          BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2;
   long rho_column_identity_same = 0;
   long rho_column_value_same = 0;
   long rho_mode_or_conflict_same = 0;
@@ -244,7 +245,10 @@ CarrierGuidance dd_task_br_cached_guidance_probe(
 DDReadyMatchProbe dd_match_ready_tasks_probe(
     const DDInstance& ins, const PhysConfig& X,
     const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
-    const std::vector<std::optional<TaskId>>* previous_rho_task_id);
+    const std::vector<std::optional<TaskId>>* previous_rho_task_id,
+    DispatchMode mode = DispatchMode::EXECUTE,
+    const std::vector<std::optional<TransferKey>>*
+        previous_rho_transfer_key = nullptr);
 
 // Compatibility wrapper: authoritative callers that must distinguish a
 // zero-tick success from failure use solve_carrier_lacam_result().

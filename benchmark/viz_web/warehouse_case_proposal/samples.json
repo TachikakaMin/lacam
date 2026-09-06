@@ -399,41 +399,41 @@
       "seed": 0,
       "time_limit_sec": 10,
       "mode": "lacam",
-      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
-      "plan_sha256": "f811358103e97beb4c3d7738ee08fda9bcbb078b672f827e7e951afb961855b5",
+      "binary_sha256": "d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d",
+      "plan_sha256": "882701b39b2bdbf6c0cab46d8164e94171bd87c5ae9e358a36000c176bcb1023",
       "plan": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0.planner.plan",
       "animation": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0.html",
-      "steps": 18,
+      "steps": 17,
       "metrics": {
-        "executed_makespan": 18,
-        "trace_makespan": 18,
+        "executed_makespan": 17,
+        "trace_makespan": 17,
         "loaded_moves": 6,
-        "free_moves": 20,
+        "free_moves": 18,
         "lift_drop": 8,
         "anon_moves": 0,
         "shelf_switches": 0,
         "reversals": 0,
-        "robot_utilization": 0.16666666666666666,
-        "weighted_soc": 34.0
+        "robot_utilization": 0.17647058823529413,
+        "weighted_soc": 32.0
       },
       "robot_activity": [
         {
-          "move": 13,
+          "move": 11,
           "lift": 2,
           "drop": 2,
-          "wait": 1
+          "wait": 2
         },
         {
           "move": 13,
           "lift": 2,
           "drop": 2,
-          "wait": 1
+          "wait": 0
         }
       ],
       "robot_target_ids": [
         [
-          "b2",
-          "b0"
+          "b0",
+          "b2"
         ],
         [
           "b3",
@@ -1188,7 +1188,7 @@
       "seed": 0,
       "time_limit_sec": 10,
       "mode": "lacam",
-      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "binary_sha256": "d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d",
       "plan_sha256": "e37df74d67ac0d66390c2fe4d05cf0a0c3b506539a1784d8de7864fac4b2a773",
       "plan": "planner_runs/warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0.planner.plan",
       "animation": "planner_runs/warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0.html",
@@ -2585,7 +2585,7 @@
       "seed": 0,
       "time_limit_sec": 10,
       "mode": "lacam",
-      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "binary_sha256": "d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d",
       "plan_sha256": "8a103b1a80ad24ab5889d1c158c5983009d7719663c28869414b5634e7e52c4d",
       "plan": "planner_runs/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.planner.plan",
       "animation": "planner_runs/warehouse_cert_h12w20_b3_a1_s7of9_r6_t6_remote_seed0.html",
@@ -3216,7 +3216,7 @@
       "seed": 0,
       "time_limit_sec": 10,
       "mode": "lacam",
-      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "binary_sha256": "d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d",
       "plan_sha256": "0565ea061693c19c06ae4eafbd851bd43aa9b825bba4753bf77881407612a6c9",
       "plan": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0.planner.plan",
       "animation": "planner_runs/warehouse_cert_h8w8_b3_a1_s4of9_r3_t3_pool4_seed0.html",

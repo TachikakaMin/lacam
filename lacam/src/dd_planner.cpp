@@ -1254,11 +1254,14 @@ CarrierGuidance dd_task_br_cached_guidance_probe(
 DDReadyMatchProbe dd_match_ready_tasks_probe(
     const DDInstance& ins, const PhysConfig& X,
     const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
-    const std::vector<std::optional<TaskId>>* previous_rho_task_id)
+    const std::vector<std::optional<TaskId>>* previous_rho_task_id,
+    DispatchMode mode,
+    const std::vector<std::optional<TransferKey>>*
+        previous_rho_transfer_key)
 {
   return carrier_detail::match_ready_tasks(
       ins, X, graph, ready_tasks, previous_rho_task_id,
-      nullptr, nullptr, DispatchMode::EXECUTE, true);
+      previous_rho_transfer_key, nullptr, mode, true);
 }
 
 double dd_root_admissible_h(const DDInstance& ins)

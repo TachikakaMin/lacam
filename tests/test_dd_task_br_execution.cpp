@@ -65,6 +65,32 @@ void swap_task_graph_indices(ShelfTaskGraph& graph, int a, int b)
   }
 }
 
+ShelfTask direct_target_leg_task(
+    int target, int from, int next, int goal, int priority)
+{
+  return ShelfTask{
+      TaskId{
+          ShelfSelector{ShelfSelector::Kind::TARGET, target},
+          from,
+          next},
+      {RootDemand{target, goal}},
+      priority,
+      StorageTransfer{goal, {from, next, goal}}};
+}
+
+ShelfTask direct_target_task(
+    int target, int from, int goal, int priority)
+{
+  return ShelfTask{
+      TaskId{
+          ShelfSelector{ShelfSelector::Kind::TARGET, target},
+          from,
+          goal},
+      {RootDemand{target, goal}},
+      priority,
+      StorageTransfer{goal, {from, goal}}};
+}
+
 }  // namespace
 
 TEST(dd_task_br_execution, rho_sees_only_the_ready_leaf)
@@ -461,4 +487,265 @@ TEST(dd_task_br_execution,
   EXPECT_EQ(result.telemetry.matrix_rows, 4);
   EXPECT_EQ(result.telemetry.matrix_cols, 4);
   EXPECT_TRUE(result.audit.empty());
+}
+
+TEST(dd_task_br_execution,
+     direct_target_execute_uses_finite_frontier_without_filtering)
+{
+  const auto ins = line_instance(
+      10, {0, 5}, {1, 3, 6, 9}, {3, 6, 1, 9},
+      {{4}, {7}, {2}, {8}});
+  const auto X = initial_phys_config(ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      direct_target_task(0, 3, 4, 4),
+      direct_target_task(1, 6, 7, 3),
+      direct_target_task(2, 1, 2, 2),
+      direct_target_task(3, 9, 8, 1),
+  };
+  graph.predecessors = {{}, {}, {}, {}};
+  graph.successors = {{}, {}, {}, {}};
+
+  const auto result = dd_match_ready_tasks_probe(
+      ins, X, graph, {0, 1, 2, 3}, nullptr);
+
+  EXPECT_TRUE(result.telemetry.direct_target_phase);
+  std::set<TaskId> assigned;
+  for (const auto& id : result.rho_task_id)
+    if (id.has_value()) assigned.insert(*id);
+  EXPECT_EQ(
+      assigned,
+      (std::set<TaskId>{graph.tasks[0].id, graph.tasks[1].id}));
+  EXPECT_EQ(result.telemetry.candidates_after_priority, 4);
+  EXPECT_EQ(result.telemetry.priority_filtered, 0);
+  EXPECT_EQ(result.telemetry.matrix_rows, 4);
+  EXPECT_EQ(result.telemetry.matrix_cols, 4);
+}
+
+TEST(dd_task_br_execution,
+     multileg_direct_target_uses_transfer_endpoint_not_next_leg)
+{
+  const auto ins =
+      line_instance(8, {0}, {2}, {2}, {{5}});
+  const auto X = initial_phys_config(ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      direct_target_leg_task(0, 2, 3, 5, 1),
+  };
+  graph.predecessors = {{}};
+  graph.successors = {{}};
+
+  const auto result =
+      dd_match_ready_tasks_probe(ins, X, graph, {0}, nullptr);
+
+  EXPECT_TRUE(result.telemetry.direct_target_phase);
+  ASSERT_TRUE(result.rho_task_id[0].has_value());
+  EXPECT_EQ(*result.rho_task_id[0], graph.tasks[0].id);
+  EXPECT_NE(
+      graph.tasks[0].id.to,
+      graph.tasks[0].transfer.endpoint);
+}
+
+TEST(dd_task_br_execution,
+     direct_target_continuity_is_finite_and_prepare_does_not_use_it)
+{
+  const auto ins =
+      line_instance(30, {0}, {2, 29}, {2, 29}, {{3}, {28}});
+  const auto X = initial_phys_config(ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      direct_target_task(0, 2, 3, 9),
+      direct_target_task(1, 29, 28, 1),
+  };
+  graph.predecessors = {{}, {}};
+  graph.successors = {{}, {}};
+  const std::vector<std::optional<TransferKey>> previous_keys = {
+      TransferKey{
+          graph.tasks[0].id.shelf,
+          graph.tasks[0].id.from,
+          graph.tasks[0].transfer.endpoint}};
+
+  const auto execute = dd_match_ready_tasks_probe(
+      ins, X, graph, {0, 1}, nullptr,
+      DispatchMode::EXECUTE, &previous_keys);
+  ASSERT_TRUE(execute.rho_task_id[0].has_value());
+  EXPECT_EQ(*execute.rho_task_id[0], graph.tasks[1].id)
+      << "even frontier plus continuity must remain finite when the "
+         "other task has a much larger physical completion";
+  EXPECT_TRUE(execute.telemetry.direct_target_phase);
+  EXPECT_EQ(execute.telemetry.priority_filtered, 0);
+
+  const auto prepare = dd_match_ready_tasks_probe(
+      ins, X, graph, {0, 1}, nullptr,
+      DispatchMode::PREPARE, &previous_keys);
+  ASSERT_TRUE(prepare.rho_task_id[0].has_value());
+  EXPECT_EQ(*prepare.rho_task_id[0], graph.tasks[1].id);
+  EXPECT_FALSE(prepare.telemetry.direct_target_phase);
+  EXPECT_EQ(prepare.telemetry.priority_filtered, 0);
+}
+
+TEST(dd_task_br_execution,
+     available_direct_target_continuation_can_break_a_close_bottleneck)
+{
+  const auto ins =
+      line_instance(10, {0}, {2, 7}, {2, 7}, {{3}, {6}});
+  const auto X = initial_phys_config(ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      direct_target_task(0, 2, 3, 9),
+      direct_target_task(1, 7, 6, 1),
+  };
+  graph.predecessors = {{}, {}};
+  graph.successors = {{}, {}};
+
+  const auto without_anchor = dd_match_ready_tasks_probe(
+      ins, X, graph, {0, 1}, nullptr);
+  ASSERT_TRUE(without_anchor.rho_task_id[0].has_value());
+  EXPECT_EQ(*without_anchor.rho_task_id[0], graph.tasks[1].id);
+
+  const std::vector<std::optional<TransferKey>> previous_keys = {
+      TransferKey{
+          graph.tasks[0].id.shelf,
+          graph.tasks[0].id.from,
+          graph.tasks[0].transfer.endpoint}};
+  const auto continued = dd_match_ready_tasks_probe(
+      ins, X, graph, {0, 1}, nullptr,
+      DispatchMode::EXECUTE, &previous_keys);
+  ASSERT_TRUE(continued.rho_task_id[0].has_value());
+  EXPECT_EQ(*continued.rho_task_id[0], graph.tasks[0].id);
+  EXPECT_TRUE(continued.telemetry.direct_target_phase);
+  EXPECT_EQ(continued.telemetry.priority_filtered, 0);
+}
+
+TEST(dd_task_br_execution,
+     target_blocker_or_mixed_candidate_disables_direct_target_phase)
+{
+  const auto ins =
+      line_instance(10, {0}, {2, 7, 8}, {2, 7}, {{3}, {6}});
+  const auto X = initial_phys_config(ins);
+  ShelfTaskGraph target_blocker;
+  target_blocker.tasks = {
+      direct_target_task(0, 2, 3, 9),
+      ShelfTask{
+          TaskId{
+              ShelfSelector{ShelfSelector::Kind::TARGET, 1},
+              7,
+              6},
+          {RootDemand{0, 3}},
+          1,
+          StorageTransfer{6, {7, 6}}},
+  };
+  target_blocker.predecessors = {{}, {}};
+  target_blocker.successors = {{}, {}};
+  const std::vector<std::optional<TaskId>> previous = {
+      target_blocker.tasks[0].id};
+
+  const auto blocker = dd_match_ready_tasks_probe(
+      ins, X, target_blocker, {0, 1}, &previous);
+  ASSERT_TRUE(blocker.rho_task_id[0].has_value());
+  EXPECT_EQ(*blocker.rho_task_id[0], target_blocker.tasks[1].id);
+  EXPECT_FALSE(blocker.telemetry.direct_target_phase);
+  EXPECT_EQ(blocker.telemetry.priority_filtered, 0);
+
+  ShelfTaskGraph mixed = target_blocker;
+  mixed.tasks[1].id.shelf = ShelfSelector{
+      ShelfSelector::Kind::ANON_AT_EPOCH_CELL, 8};
+  mixed.tasks[1].id.from = 8;
+  mixed.tasks[1].id.to = 7;
+  mixed.tasks[1].transfer =
+      StorageTransfer{7, {8, 7}};
+  const auto mixed_result = dd_match_ready_tasks_probe(
+      ins, X, mixed, {0, 1}, &previous);
+  ASSERT_TRUE(mixed_result.rho_task_id[0].has_value());
+  EXPECT_EQ(*mixed_result.rho_task_id[0], mixed.tasks[1].id);
+  EXPECT_FALSE(mixed_result.telemetry.direct_target_phase);
+  EXPECT_EQ(mixed_result.telemetry.priority_filtered, 0);
+  EXPECT_EQ(mixed_result.telemetry.matrix_rows, 2);
+  EXPECT_EQ(mixed_result.telemetry.matrix_cols, 2);
+}
+
+TEST(dd_task_br_execution,
+     nonterminal_or_mismatched_goal_disables_direct_target_phase)
+{
+  const auto ins =
+      line_instance(8, {0}, {2}, {2}, {{5}});
+  const auto X = initial_phys_config(ins);
+
+  ShelfTaskGraph nonterminal;
+  nonterminal.tasks = {
+      direct_target_leg_task(0, 2, 3, 5, 1),
+      direct_target_leg_task(0, 3, 4, 5, 1),
+  };
+  nonterminal.predecessors = {{}, {0}};
+  nonterminal.successors = {{1}, {}};
+  const auto nonterminal_result = dd_match_ready_tasks_probe(
+      ins, X, nonterminal, {0}, nullptr);
+  EXPECT_FALSE(
+      nonterminal_result.telemetry.direct_target_phase);
+
+  ShelfTaskGraph root_endpoint_mismatch;
+  root_endpoint_mismatch.tasks = {
+      direct_target_leg_task(0, 2, 3, 5, 1),
+  };
+  root_endpoint_mismatch.tasks[0].transfer.endpoint = 4;
+  root_endpoint_mismatch.predecessors = {{}};
+  root_endpoint_mismatch.successors = {{}};
+  const auto mismatch_result = dd_match_ready_tasks_probe(
+      ins, X, root_endpoint_mismatch, {0}, nullptr);
+  EXPECT_FALSE(mismatch_result.telemetry.direct_target_phase);
+
+  ShelfTaskGraph ineligible_endpoint;
+  ineligible_endpoint.tasks = {
+      direct_target_leg_task(0, 2, 3, 4, 1),
+  };
+  ineligible_endpoint.predecessors = {{}};
+  ineligible_endpoint.successors = {{}};
+  const auto ineligible_result = dd_match_ready_tasks_probe(
+      ins, X, ineligible_endpoint, {0}, nullptr);
+  EXPECT_FALSE(ineligible_result.telemetry.direct_target_phase);
+}
+
+TEST(dd_task_br_execution,
+     direct_target_cutoff_ties_and_free_robot_count_are_deterministic)
+{
+  const auto two_robot_ins = line_instance(
+      10, {0, 5}, {1, 3, 6, 9}, {3, 6, 1, 9},
+      {{4}, {7}, {2}, {8}});
+  const auto two_robot_X = initial_phys_config(two_robot_ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      direct_target_task(0, 3, 4, 9),
+      direct_target_task(1, 6, 7, 8),
+      direct_target_task(2, 1, 2, 8),
+      direct_target_task(3, 9, 8, 1),
+  };
+  graph.predecessors = {{}, {}, {}, {}};
+  graph.successors = {{}, {}, {}, {}};
+  const auto forward = dd_match_ready_tasks_probe(
+      two_robot_ins, two_robot_X, graph, {0, 1, 2, 3}, nullptr);
+  const auto reversed = dd_match_ready_tasks_probe(
+      two_robot_ins, two_robot_X, graph, {3, 2, 1, 0}, nullptr);
+  EXPECT_EQ(forward.rho_task_id, reversed.rho_task_id);
+  ASSERT_TRUE(forward.rho_task_id[0].has_value());
+  ASSERT_TRUE(forward.rho_task_id[1].has_value());
+  EXPECT_EQ(*forward.rho_task_id[0], graph.tasks[2].id);
+  EXPECT_EQ(*forward.rho_task_id[1], graph.tasks[0].id);
+  EXPECT_TRUE(forward.telemetry.direct_target_phase);
+  EXPECT_EQ(forward.telemetry.priority_filtered, 0);
+
+  const auto one_robot_ins = line_instance(
+      10, {0}, {1, 3, 6, 9}, {3, 6, 1, 9},
+      {{4}, {7}, {2}, {8}});
+  const auto one_robot_X = initial_phys_config(one_robot_ins);
+  const auto one_robot = dd_match_ready_tasks_probe(
+      one_robot_ins, one_robot_X, graph, {0, 1, 2, 3}, nullptr);
+  const auto one_robot_reversed = dd_match_ready_tasks_probe(
+      one_robot_ins, one_robot_X, graph, {3, 2, 1, 0}, nullptr);
+  EXPECT_EQ(one_robot.rho_task_id, one_robot_reversed.rho_task_id);
+  ASSERT_TRUE(one_robot.rho_task_id[0].has_value());
+  EXPECT_EQ(*one_robot.rho_task_id[0], graph.tasks[3].id);
+  EXPECT_TRUE(one_robot.telemetry.direct_target_phase);
+  EXPECT_EQ(one_robot.telemetry.priority_filtered, 0);
+  EXPECT_EQ(one_robot.telemetry.matrix_rows, 4);
+  EXPECT_EQ(one_robot.telemetry.matrix_cols, 4);
 }

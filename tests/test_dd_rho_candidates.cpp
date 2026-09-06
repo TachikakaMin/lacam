@@ -226,8 +226,9 @@ TEST(dd_rho_candidates, production_objective_version_is_explicit)
 
   EXPECT_EQ(
       probe.telemetry.objective_version,
-      RhoObjectiveVersion::BOTTLENECK_SECONDARY_PRIORITY_V1);
+      RhoObjectiveVersion::
+          BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2);
   EXPECT_STREQ(
       rho_objective_version_name(probe.telemetry.objective_version),
-      "BOTTLENECK_SECONDARY_PRIORITY_V1");
+      "BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2");
 }

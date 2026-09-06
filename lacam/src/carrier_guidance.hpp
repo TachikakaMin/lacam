@@ -4707,6 +4707,32 @@ struct RhoCandidate {
 constexpr long long kRhoDispatchInf =
     std::numeric_limits<long long>::max() / 16;
 
+inline long long rho_checked_dispatch_add(
+    long long left, long long right)
+{
+  if (left < 0 || right < 0 ||
+      static_cast<__int128>(left) + right >= kRhoDispatchInf)
+    throw std::overflow_error(
+        "rho dispatch completion overflow");
+  return left + right;
+}
+
+inline long long rho_bottleneck_defer_delay(
+    long long service, bool priority_frontier,
+    bool continued_assignment)
+{
+  const long long base = std::max(1LL, service);
+  const long long multiplier =
+      1 + static_cast<long long>(priority_frontier) +
+      static_cast<long long>(continued_assignment);
+  const __int128 value =
+      static_cast<__int128>(base) * multiplier;
+  if (value >= kRhoDispatchInf)
+    throw std::overflow_error(
+        "rho bottleneck defer delay overflow");
+  return static_cast<long long>(value);
+}
+
 inline long long rho_priority_lex_scale(
     __int128 nonnegative_priority_sum)
 {
@@ -5017,6 +5043,10 @@ inline DDReadyMatchProbe match_ready_tasks(
   const size_t dummy_count =
       task_count > free_count ? task_count - free_count : 0;
   const size_t column_count = free_count + dummy_count;
+  const int priority_cutoff =
+      task_count > free_count
+          ? candidates[free_count - 1].priority
+          : std::numeric_limits<int>::min();
   out.telemetry.matrix_rows = static_cast<long>(task_count);
   out.telemetry.matrix_cols = static_cast<long>(column_count);
 
@@ -5048,6 +5078,35 @@ inline DDReadyMatchProbe match_ready_tasks(
   const long long priority_scale =
       rho_priority_lex_scale(priority_sum);
   const auto critical_tail = task_critical_tail_ticks(graph);
+  out.telemetry.direct_target_phase =
+      mode == DispatchMode::EXECUTE &&
+      std::all_of(
+          candidates.begin(), candidates.end(),
+          [&](const RhoCandidate& candidate) {
+            if (candidate.task_index < 0 ||
+                candidate.task_index >= (int)graph.tasks.size() ||
+                candidate.task_index >= (int)critical_tail.size() ||
+                candidate.id.shelf.kind !=
+                    ShelfSelector::Kind::TARGET ||
+                critical_tail[candidate.task_index] != 0)
+              return false;
+            const int target = candidate.id.shelf.value;
+            if (target < 0 ||
+                target >= (int)ins.target_goal_sets.size())
+              return false;
+            const auto& task = graph.tasks[candidate.task_index];
+            const int endpoint = task.transfer.endpoint;
+            const auto& goals = ins.target_goal_sets[target];
+            if (!std::binary_search(
+                    goals.begin(), goals.end(), endpoint))
+              return false;
+            return std::any_of(
+                task.roots.begin(), task.roots.end(),
+                [&](const RootDemand& root) {
+                  return root.target == target &&
+                         root.goal == endpoint;
+                });
+          });
   std::vector<std::vector<long long>> completion(
       task_count, std::vector<long long>(column_count, INF));
   std::vector<std::vector<long long>> cost(
@@ -5064,7 +5123,7 @@ inline DDReadyMatchProbe match_ready_tasks(
                 task_index < (int)critical_tail.size()
             ? critical_tail[task_index]
             : 0;
-    long long best_real_completion = INF;
+    long long best_physical_completion = INF;
     long long best_real_approach = INF;
     for (size_t col = 0; col < free_count; ++col) {
       const int robot = free_robots[col];
@@ -5084,8 +5143,8 @@ inline DDReadyMatchProbe match_ready_tasks(
                     (*previous_rho_task_id)[robot].has_value() &&
                     *(*previous_rho_task_id)[robot] !=
                         candidates[row].id;
-      completion[row][col] =
-          (long long)distance + service + tail;
+      completion[row][col] = rho_checked_dispatch_add(
+          rho_checked_dispatch_add(distance, service), tail);
       const __int128 physical_secondary =
           static_cast<__int128>(distance) * switch_scale +
           (switched ? 1 : 0);
@@ -5095,20 +5154,58 @@ inline DDReadyMatchProbe match_ready_tasks(
       cost[row][col] = rho_priority_lex_cost(
           static_cast<long long>(physical_secondary),
           priority_scale, 0);
-      best_real_completion =
-          std::min(best_real_completion, completion[row][col]);
+      best_physical_completion =
+          std::min(
+              best_physical_completion,
+              completion[row][col]);
       best_real_approach =
           std::min(best_real_approach, (long long)distance);
     }
-    if (best_real_completion < INF &&
+    if (best_physical_completion < INF &&
         best_real_approach < INF) {
-      const long long defer_delay = std::max(1LL, service);
+      bool continued_assignment = false;
+      if (out.telemetry.direct_target_phase) {
+        for (const int robot : free_robots) {
+          if (previous_rho_transfer_key != nullptr &&
+              robot <
+                  (int)previous_rho_transfer_key->size() &&
+              (*previous_rho_transfer_key)[robot].has_value()) {
+            if (*(*previous_rho_transfer_key)[robot] ==
+                candidates[row].key) {
+              continued_assignment = true;
+              break;
+            }
+            continue;
+          }
+          if (previous_rho_task_id != nullptr &&
+              robot < (int)previous_rho_task_id->size() &&
+              (*previous_rho_task_id)[robot].has_value() &&
+              *(*previous_rho_task_id)[robot] ==
+                  candidates[row].id) {
+            continued_assignment = true;
+            break;
+          }
+        }
+      }
+      const bool priority_frontier =
+          out.telemetry.direct_target_phase &&
+          task_count > free_count &&
+          candidates[row].priority >= priority_cutoff;
+      const long long defer_delay =
+          out.telemetry.direct_target_phase
+              ? rho_bottleneck_defer_delay(
+                    service, priority_frontier,
+                    continued_assignment)
+              : std::max(1LL, service);
       for (size_t col = free_count; col < column_count; ++col) {
         completion[row][col] =
-            best_real_completion + defer_delay;
+            rho_checked_dispatch_add(
+                best_physical_completion, defer_delay);
+        const long long deferred_approach =
+            rho_checked_dispatch_add(
+                best_real_approach, defer_delay);
         const __int128 physical_secondary =
-            (static_cast<__int128>(best_real_approach) +
-             defer_delay) *
+            static_cast<__int128>(deferred_approach) *
             switch_scale;
         if (physical_secondary >= INF)
           throw std::overflow_error(

@@ -86,3 +86,36 @@ TEST(dd_dispatch,
           std::numeric_limits<long long>::max(), 2, 1),
       std::overflow_error);
 }
+
+TEST(dd_dispatch,
+     direct_target_defer_delay_has_only_two_finite_bonuses)
+{
+  EXPECT_EQ(
+      carrier_detail::rho_bottleneck_defer_delay(
+          3, false, false),
+      3);
+  EXPECT_EQ(
+      carrier_detail::rho_bottleneck_defer_delay(
+          3, true, false),
+      6);
+  EXPECT_EQ(
+      carrier_detail::rho_bottleneck_defer_delay(
+          3, false, true),
+      6);
+  EXPECT_EQ(
+      carrier_detail::rho_bottleneck_defer_delay(
+          3, true, true),
+      9);
+  EXPECT_EQ(
+      carrier_detail::rho_checked_dispatch_add(8, 9),
+      17);
+  EXPECT_THROW(
+      carrier_detail::rho_bottleneck_defer_delay(
+          std::numeric_limits<long long>::max(),
+          true, true),
+      std::overflow_error);
+  EXPECT_THROW(
+      carrier_detail::rho_checked_dispatch_add(
+          carrier_detail::kRhoDispatchInf - 1, 1),
+      std::overflow_error);
+}
