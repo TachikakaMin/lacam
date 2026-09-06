@@ -773,6 +773,12 @@ int main(int argc, char** argv)
             << stats.rho_matrix_cols_total << "\n";
   std::cout << "rho_matrix_max_rows="
             << stats.rho_matrix_max_rows << "\n";
+  std::cout << "rho_objective_version="
+            << stats.rho_objective_version << "\n";
+  std::cout << "rho_task_assignments="
+            << stats.rho_task_assignments << "\n";
+  std::cout << "rho_idle_assignments="
+            << stats.rho_idle_assignments << "\n";
   std::cout << "rho_candidate_time_ms="
             << stats.rho_candidate_time_ms << "\n";
   std::cout << "rho_matrix_time_ms="
@@ -781,6 +787,8 @@ int main(int argc, char** argv)
             << stats.rho_bottleneck_time_ms << "\n";
   std::cout << "rho_secondary_full_time_ms="
             << stats.rho_secondary_full_time_ms << "\n";
+  std::cout << "rho_additive_full_time_ms="
+            << stats.rho_additive_full_time_ms << "\n";
   std::cout << "rho_canonical_time_ms="
             << stats.rho_canonical_time_ms << "\n";
   std::cout << "rho_column_identity_same="

@@ -552,6 +552,12 @@ enum class DispatchMode {
   PREPARE = 2,
 };
 
+enum class RhoObjectiveVersion : uint32_t {
+  NONE = 0,
+  BOTTLENECK_THEN_SUM_V1 = 1,
+  ADDITIVE_SERVICE_MINUS_DEFER_V1 = 2,
+};
+
 enum class RhoDropReason {
   INVALID_TASK = 0,
   DUPLICATE_TRANSFER_KEY = 1,
@@ -572,6 +578,8 @@ struct RhoCandidateAudit {
 };
 
 struct RhoMatchTelemetry {
+  RhoObjectiveVersion objective_version =
+      RhoObjectiveVersion::NONE;
   long candidates_input = 0;
   long candidates_after_claims = 0;
   long candidates_after_key_dedupe = 0;
@@ -586,10 +594,13 @@ struct RhoMatchTelemetry {
   long priority_filtered = 0;
   long matrix_rows = 0;
   long matrix_cols = 0;
+  long task_assignments = 0;
+  long idle_assignments = 0;
   double candidate_time_ms = 0;
   double matrix_time_ms = 0;
   double bottleneck_time_ms = 0;
   double secondary_full_time_ms = 0;
+  double additive_full_time_ms = 0;
   double canonical_time_ms = 0;
   uint64_t column_identity_fingerprint = 0;
   uint64_t column_value_fingerprint = 0;
@@ -755,6 +766,9 @@ struct TAPFStats {
   long rho_matrix_rows_total = 0;
   long rho_matrix_cols_total = 0;
   long rho_matrix_max_rows = 0;
+  int rho_objective_version = 0;
+  long rho_task_assignments = 0;
+  long rho_idle_assignments = 0;
   long rho_column_identity_same = 0;
   long rho_column_value_same = 0;
   long rho_mode_or_conflict_same = 0;
@@ -767,6 +781,7 @@ struct TAPFStats {
   double rho_matrix_time_ms = 0;
   double rho_bottleneck_time_ms = 0;
   double rho_secondary_full_time_ms = 0;
+  double rho_additive_full_time_ms = 0;
   double rho_canonical_time_ms = 0;
   long custody_continuations = 0;
   long timed_transport_expansions = 0;
@@ -878,10 +893,24 @@ struct TAPFPlanner {
     bool reached_goal = false;
     bool shelf_moved = false;
   };
+  struct CarrierRolloutStep {
+    Config config;
+    ShelfState shelf;
+    std::vector<Op> ops;
+  };
+  // Greedy executors first use the ordinary unconstrained Carrier-PIBT
+  // result.  If and only if that result is the exact same physical state,
+  // reuse LaCAM's existing low-level constraint tree to select the first
+  // legal non-self-loop successor.  Rho remains unchanged (idle is still a
+  // valid additive assignment); this only prevents a greedy rollout from
+  // mistaking "idle was preferred" for "no physical successor exists".
+  std::optional<CarrierRolloutStep> next_carrier_rollout_step(
+      TAPFNode* node, bool escape_preferred_self_loop = true);
   CarrierRollout carrier_rollout(const Config& C0, const ShelfState& S0,
                                  int max_steps, int min_chunk,
                                  bool stop_on_event,
-                                 const TAPFNode* initial_anchor = nullptr);
+                                 const TAPFNode* initial_anchor = nullptr,
+                                 bool escape_preferred_self_loop = true);
 
   TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
               std::mt19937* _MT, int _verbose = 0, int _sticky_penalty = 0,

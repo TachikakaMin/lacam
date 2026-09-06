@@ -99,9 +99,12 @@ FIELDS = [
     "rho_upstream_claim_filtered", "rho_mode_ineligible_filtered",
     "rho_no_reachable_robot_filtered", "rho_priority_filtered",
     "rho_matrix_rows_total", "rho_matrix_cols_total",
-    "rho_matrix_max_rows", "rho_candidate_time_ms",
+    "rho_matrix_max_rows", "rho_objective_version",
+    "rho_task_assignments", "rho_idle_assignments",
+    "rho_candidate_time_ms",
     "rho_matrix_time_ms", "rho_bottleneck_time_ms",
-    "rho_secondary_full_time_ms", "rho_canonical_time_ms",
+    "rho_secondary_full_time_ms", "rho_additive_full_time_ms",
+    "rho_canonical_time_ms",
     "rho_column_identity_same", "rho_column_value_same",
     "rho_mode_or_conflict_same", "rho_changed_rows_0",
     "rho_changed_rows_1", "rho_changed_rows_2",
@@ -1115,6 +1118,15 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 rho_matrix_max_rows=metrics.get(
                     "rho_matrix_max_rows", ""
                 ),
+                rho_objective_version=metrics.get(
+                    "rho_objective_version", ""
+                ),
+                rho_task_assignments=metrics.get(
+                    "rho_task_assignments", ""
+                ),
+                rho_idle_assignments=metrics.get(
+                    "rho_idle_assignments", ""
+                ),
                 rho_candidate_time_ms=metrics.get(
                     "rho_candidate_time_ms", ""
                 ),
@@ -1126,6 +1138,9 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 ),
                 rho_secondary_full_time_ms=metrics.get(
                     "rho_secondary_full_time_ms", ""
+                ),
+                rho_additive_full_time_ms=metrics.get(
+                    "rho_additive_full_time_ms", ""
                 ),
                 rho_canonical_time_ms=metrics.get(
                     "rho_canonical_time_ms", ""

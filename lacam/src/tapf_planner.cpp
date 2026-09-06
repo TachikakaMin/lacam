@@ -377,6 +377,20 @@ void TAPFPlanner::attach_carrier_guidance(
           stats->rho_matrix_cols_total += telemetry.matrix_cols;
           stats->rho_matrix_max_rows = std::max(
               stats->rho_matrix_max_rows, telemetry.matrix_rows);
+          const int objective_version =
+              static_cast<int>(telemetry.objective_version);
+          if (objective_version != 0) {
+            if (stats->rho_objective_version == 0)
+              stats->rho_objective_version = objective_version;
+            else if (stats->rho_objective_version !=
+                     objective_version)
+              throw std::logic_error(
+                  "mixed rho objective versions in one search");
+          }
+          stats->rho_task_assignments +=
+              telemetry.task_assignments;
+          stats->rho_idle_assignments +=
+              telemetry.idle_assignments;
           stats->rho_candidate_time_ms +=
               telemetry.candidate_time_ms;
           stats->rho_matrix_time_ms += telemetry.matrix_time_ms;
@@ -384,6 +398,8 @@ void TAPFPlanner::attach_carrier_guidance(
               telemetry.bottleneck_time_ms;
           stats->rho_secondary_full_time_ms +=
               telemetry.secondary_full_time_ms;
+          stats->rho_additive_full_time_ms +=
+              telemetry.additive_full_time_ms;
           stats->rho_canonical_time_ms +=
               telemetry.canonical_time_ms;
         };
@@ -1042,7 +1058,8 @@ Solution TAPFPlanner::solve()
         (int)ins->target_starts.size() <= MACRO_TARGET_LIMIT) {
       S->macro_tried = true;
       auto r = carrier_rollout(S->C, S->shelf, MACRO_CAP, 0,
-                               /*stop_on_event=*/true, S);
+                               /*stop_on_event=*/true, S,
+                               /*escape_preferred_self_loop=*/false);
       // rollout probes died: their addresses may be recycled by the
       // nodes created below — stale address-keyed scratches are poison
       invalidate_carrier_scratch();
@@ -2237,13 +2254,85 @@ static int64_t carrier_ops_work_scaled(
   return work;
 }
 
+std::optional<TAPFPlanner::CarrierRolloutStep>
+TAPFPlanner::next_carrier_rollout_step(
+    TAPFNode* node, bool escape_preferred_self_loop)
+{
+  const auto capture = [&]() {
+    CarrierRolloutStep step;
+    step.config.resize(N);
+    for (const auto* agent : A)
+      step.config[agent->id] = agent->v_next;
+    step.shelf = shelf_next_scratch;
+    step.ops = ops_scratch;
+    return step;
+  };
+  const auto is_self_loop = [&](const CarrierRolloutStep& step) {
+    return is_same_config(step.config, node->C) &&
+           step.shelf == node->shelf;
+  };
+
+  TAPFConstraint root;
+  if (!get_new_config(node, &root) ||
+      !apply_carrier_effects(node))
+    return std::nullopt;
+  CarrierRolloutStep preferred = capture();
+  if (!escape_preferred_self_loop ||
+      !is_self_loop(preferred))
+    return preferred;
+
+  // The additive assignment deliberately permits idle.  A greedy rollout,
+  // unlike the complete high-level search, otherwise has no opportunity to
+  // visit the remaining legal operators.  Drain the same lazy low-level
+  // constraint tree used by solve(); do not mutate the node's own tree.
+  std::queue<TAPFConstraint*> constraints;
+  std::vector<OpCand> candidates;
+  if (N > 0) {
+    const int robot = node->constraint_order[0];
+    build_op_candidates(node, robot, candidates);
+    lacam_expand_constraint_vec<TAPFConstraint>(
+        &root, robot, candidates, constraints);
+  }
+  const auto clear_constraints = [&]() {
+    while (!constraints.empty()) {
+      delete constraints.front();
+      constraints.pop();
+    }
+  };
+
+  while (!constraints.empty() && !is_expired(deadline)) {
+    TAPFConstraint* constraint = constraints.front();
+    constraints.pop();
+    if (constraint->depth < N) {
+      const int robot =
+          node->constraint_order[constraint->depth];
+      build_op_candidates(node, robot, candidates);
+      lacam_expand_constraint_vec<TAPFConstraint>(
+          constraint, robot, candidates, constraints);
+    }
+    const bool generated =
+        get_new_config(node, constraint) &&
+        apply_carrier_effects(node);
+    delete constraint;
+    if (!generated) continue;
+    CarrierRolloutStep alternative = capture();
+    if (is_self_loop(alternative)) continue;
+    clear_constraints();
+    return alternative;
+  }
+  clear_constraints();
+  return preferred;
+}
+
 TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
                                                          const ShelfState& S0,
                                                          int max_steps,
                                                          int min_chunk,
                                                          bool stop_on_event,
                                                          const TAPFNode*
-                                                             initial_anchor)
+                                                             initial_anchor,
+                                                         bool
+                                                             escape_preferred_self_loop)
 {
   CarrierRollout out;
   if (stats != nullptr) ++stats->rollout_calls;
@@ -2294,12 +2383,14 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
       return out;
     }
     const PhysConfig previous_X = carrier->phys_view(current.get());
-    TAPFConstraint root;
-    if (!get_new_config(current.get(), &root)) return out;
-    if (!apply_carrier_effects(current.get())) return out;
-    for (auto a : A) C_step[a->id] = a->v_next;
-    const auto ops = ops_scratch;
-    if (!local_seen.insert(state_hash(C_step, shelf_next_scratch)).second) {
+    const auto generated =
+        next_carrier_rollout_step(
+            current.get(), escape_preferred_self_loop);
+    if (!generated.has_value()) return out;
+    C_step = generated->config;
+    const auto& next_shelf = generated->shelf;
+    const auto& ops = generated->ops;
+    if (!local_seen.insert(state_hash(C_step, next_shelf)).second) {
       if (stats != nullptr) ++stats->rollout_cycles;
       return out;
     }
@@ -2320,10 +2411,10 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
         carrier_ops_work_scaled(weights, curS, ops));
     out.ops.push_back(ops);
     out.configs.push_back(C_step);
-    out.shelves.push_back(shelf_next_scratch);
+    out.shelves.push_back(next_shelf);
     if (stats != nullptr) ++stats->macro_steps;
 
-    auto next = make_rollout_node(C_step, shelf_next_scratch);
+    auto next = make_rollout_node(C_step, next_shelf);
     invalidate_carrier_scratch();
     attach_carrier_guidance(
         next.get(), &previous_X, current->guide.get(), &ops);
