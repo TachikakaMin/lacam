@@ -86,6 +86,7 @@ add_test(test_dd_transfer_episode ./tests/test_dd_transfer_episode.cpp)
 add_test(test_dd_timed_transport ./tests/test_dd_timed_transport.cpp)
 add_test(test_dd_causal_preparation ./tests/test_dd_causal_preparation.cpp)
 add_test(test_dd_dispatch ./tests/test_dd_dispatch.cpp)
+add_test(test_dd_rho_candidates ./tests/test_dd_rho_candidates.cpp)
 add_test(test_tapf_hungarian_shared ./tests/test_tapf_hungarian_shared.cpp)
 add_test(test_lazy_dist ./tests/test_lazy_dist.cpp)
 

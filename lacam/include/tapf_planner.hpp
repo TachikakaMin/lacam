@@ -546,16 +546,64 @@ struct UpperEpochGuidance {
   ShelfTaskGraph task_graph;
 };
 
-struct DDReadyMatchProbe {
-  std::vector<std::optional<TaskId>> rho_task_id;
-  std::vector<std::optional<TransferKey>> rho_transfer_key;
-  std::vector<int> rho_ready_index;
-};
-
 enum class DispatchMode {
   NONE = 0,
   EXECUTE = 1,
   PREPARE = 2,
+};
+
+enum class RhoDropReason {
+  INVALID_TASK = 0,
+  DUPLICATE_TRANSFER_KEY = 1,
+  SAME_SHELF_PRESELECTED = 2,
+  UPSTREAM_TRANSFER_CLAIM = 3,
+  MODE_INELIGIBLE = 4,
+  NO_REACHABLE_ROBOT = 5,
+  PRIORITY_TOP_F = 6,
+};
+
+struct RhoCandidateAudit {
+  int task_index = -1;
+  TransferKey key;
+  TaskId id;
+  DispatchMode mode = DispatchMode::NONE;
+  int priority = 0;
+  int nearest_robot_distance = -1;
+  RhoDropReason reason = RhoDropReason::INVALID_TASK;
+};
+
+struct RhoMatchTelemetry {
+  long candidates_input = 0;
+  long candidates_after_claims = 0;
+  long candidates_after_key_dedupe = 0;
+  long candidates_after_shelf_preselect = 0;
+  long candidates_after_priority = 0;
+  long invalid_filtered = 0;
+  long duplicate_key_filtered = 0;
+  long same_shelf_filtered = 0;
+  long upstream_claim_filtered = 0;
+  long mode_ineligible_filtered = 0;
+  long no_reachable_robot_filtered = 0;
+  long priority_filtered = 0;
+  long matrix_rows = 0;
+  long matrix_cols = 0;
+  double candidate_time_ms = 0;
+  double matrix_time_ms = 0;
+  double bottleneck_time_ms = 0;
+  double secondary_full_time_ms = 0;
+  double canonical_time_ms = 0;
+  uint64_t column_identity_fingerprint = 0;
+  uint64_t column_value_fingerprint = 0;
+  uint64_t mode_or_conflict_fingerprint = 0;
+  std::vector<uint64_t> robot_row_fingerprints;
+};
+
+struct DDReadyMatchProbe {
+  std::vector<std::optional<TaskId>> rho_task_id;
+  std::vector<std::optional<TransferKey>> rho_transfer_key;
+  std::vector<int> rho_ready_index;
+  RhoMatchTelemetry telemetry;
+  std::vector<RhoCandidateAudit> audit;
 };
 
 struct CarrierGuidance {
@@ -569,6 +617,10 @@ struct CarrierGuidance {
   std::vector<std::optional<TransferKey>> rho_transfer_key;
   std::vector<int> rho_ready_index;
   std::vector<DispatchMode> rho_mode;
+  RhoMatchTelemetry rho_execute_telemetry;
+  RhoMatchTelemetry rho_prepare_telemetry;
+  uint64_t rho_mode_or_conflict_fingerprint = 0;
+  std::vector<uint64_t> rho_row_fingerprints;
   std::vector<std::optional<Custody>> custody_by_robot;
   ExecutionView execution_view;
   JointTransportGuidance timed_transport;
@@ -687,6 +739,36 @@ struct TAPFStats {
   long joint_paused_roots = 0;
   long ready_task_count = 0;
   long rho_repairs = 0;
+  long rho_match_calls_execute = 0;
+  long rho_match_calls_prepare = 0;
+  long rho_candidates_input = 0;
+  long rho_candidates_after_claims = 0;
+  long rho_candidates_after_key_dedupe = 0;
+  long rho_candidates_after_shelf_preselect = 0;
+  long rho_candidates_after_priority = 0;
+  long rho_invalid_filtered = 0;
+  long rho_duplicate_key_filtered = 0;
+  long rho_same_shelf_filtered = 0;
+  long rho_upstream_claim_filtered = 0;
+  long rho_mode_ineligible_filtered = 0;
+  long rho_no_reachable_robot_filtered = 0;
+  long rho_priority_filtered = 0;
+  long rho_matrix_rows_total = 0;
+  long rho_matrix_cols_total = 0;
+  long rho_matrix_max_rows = 0;
+  long rho_column_identity_same = 0;
+  long rho_column_value_same = 0;
+  long rho_mode_or_conflict_same = 0;
+  long rho_changed_rows_0 = 0;
+  long rho_changed_rows_1 = 0;
+  long rho_changed_rows_2 = 0;
+  long rho_changed_rows_gt2 = 0;
+  long rho_assignment_changes = 0;
+  double rho_candidate_time_ms = 0;
+  double rho_matrix_time_ms = 0;
+  double rho_bottleneck_time_ms = 0;
+  double rho_secondary_full_time_ms = 0;
+  double rho_canonical_time_ms = 0;
   long custody_continuations = 0;
   long timed_transport_expansions = 0;
   long timed_transport_frames = 0;

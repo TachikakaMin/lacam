@@ -297,6 +297,49 @@ void map_stats(const TAPFStats& t, DDStats* out,
   out->joint_paused_roots += t.joint_paused_roots;
   out->ready_task_count += t.ready_task_count;
   out->rho_repairs += t.rho_repairs;
+  out->rho_match_calls_execute += t.rho_match_calls_execute;
+  out->rho_match_calls_prepare += t.rho_match_calls_prepare;
+  out->rho_candidates_input += t.rho_candidates_input;
+  out->rho_candidates_after_claims +=
+      t.rho_candidates_after_claims;
+  out->rho_candidates_after_key_dedupe +=
+      t.rho_candidates_after_key_dedupe;
+  out->rho_candidates_after_shelf_preselect +=
+      t.rho_candidates_after_shelf_preselect;
+  out->rho_candidates_after_priority +=
+      t.rho_candidates_after_priority;
+  out->rho_invalid_filtered += t.rho_invalid_filtered;
+  out->rho_duplicate_key_filtered +=
+      t.rho_duplicate_key_filtered;
+  out->rho_same_shelf_filtered +=
+      t.rho_same_shelf_filtered;
+  out->rho_upstream_claim_filtered +=
+      t.rho_upstream_claim_filtered;
+  out->rho_mode_ineligible_filtered +=
+      t.rho_mode_ineligible_filtered;
+  out->rho_no_reachable_robot_filtered +=
+      t.rho_no_reachable_robot_filtered;
+  out->rho_priority_filtered += t.rho_priority_filtered;
+  out->rho_matrix_rows_total += t.rho_matrix_rows_total;
+  out->rho_matrix_cols_total += t.rho_matrix_cols_total;
+  out->rho_matrix_max_rows = std::max(
+      out->rho_matrix_max_rows, t.rho_matrix_max_rows);
+  out->rho_column_identity_same +=
+      t.rho_column_identity_same;
+  out->rho_column_value_same += t.rho_column_value_same;
+  out->rho_mode_or_conflict_same +=
+      t.rho_mode_or_conflict_same;
+  out->rho_changed_rows_0 += t.rho_changed_rows_0;
+  out->rho_changed_rows_1 += t.rho_changed_rows_1;
+  out->rho_changed_rows_2 += t.rho_changed_rows_2;
+  out->rho_changed_rows_gt2 += t.rho_changed_rows_gt2;
+  out->rho_assignment_changes += t.rho_assignment_changes;
+  out->rho_candidate_time_ms += t.rho_candidate_time_ms;
+  out->rho_matrix_time_ms += t.rho_matrix_time_ms;
+  out->rho_bottleneck_time_ms += t.rho_bottleneck_time_ms;
+  out->rho_secondary_full_time_ms +=
+      t.rho_secondary_full_time_ms;
+  out->rho_canonical_time_ms += t.rho_canonical_time_ms;
   out->custody_continuations += t.custody_continuations;
   out->timed_transport_expansions +=
       t.timed_transport_expansions;
@@ -1211,7 +1254,8 @@ DDReadyMatchProbe dd_match_ready_tasks_probe(
     const std::vector<std::optional<TaskId>>* previous_rho_task_id)
 {
   return carrier_detail::match_ready_tasks(
-      ins, X, graph, ready_tasks, previous_rho_task_id);
+      ins, X, graph, ready_tasks, previous_rho_task_id,
+      nullptr, nullptr, DispatchMode::EXECUTE, true);
 }
 
 double dd_root_admissible_h(const DDInstance& ins)

@@ -739,6 +739,66 @@ int main(int argc, char** argv)
   std::cout << "joint_paused_roots=" << stats.joint_paused_roots << "\n";
   std::cout << "ready_task_count=" << stats.ready_task_count << "\n";
   std::cout << "rho_repairs=" << stats.rho_repairs << "\n";
+  std::cout << "rho_match_calls_execute="
+            << stats.rho_match_calls_execute << "\n";
+  std::cout << "rho_match_calls_prepare="
+            << stats.rho_match_calls_prepare << "\n";
+  std::cout << "rho_candidates_input="
+            << stats.rho_candidates_input << "\n";
+  std::cout << "rho_candidates_after_claims="
+            << stats.rho_candidates_after_claims << "\n";
+  std::cout << "rho_candidates_after_key_dedupe="
+            << stats.rho_candidates_after_key_dedupe << "\n";
+  std::cout << "rho_candidates_after_shelf_preselect="
+            << stats.rho_candidates_after_shelf_preselect << "\n";
+  std::cout << "rho_candidates_after_priority="
+            << stats.rho_candidates_after_priority << "\n";
+  std::cout << "rho_invalid_filtered="
+            << stats.rho_invalid_filtered << "\n";
+  std::cout << "rho_duplicate_key_filtered="
+            << stats.rho_duplicate_key_filtered << "\n";
+  std::cout << "rho_same_shelf_filtered="
+            << stats.rho_same_shelf_filtered << "\n";
+  std::cout << "rho_upstream_claim_filtered="
+            << stats.rho_upstream_claim_filtered << "\n";
+  std::cout << "rho_mode_ineligible_filtered="
+            << stats.rho_mode_ineligible_filtered << "\n";
+  std::cout << "rho_no_reachable_robot_filtered="
+            << stats.rho_no_reachable_robot_filtered << "\n";
+  std::cout << "rho_priority_filtered="
+            << stats.rho_priority_filtered << "\n";
+  std::cout << "rho_matrix_rows_total="
+            << stats.rho_matrix_rows_total << "\n";
+  std::cout << "rho_matrix_cols_total="
+            << stats.rho_matrix_cols_total << "\n";
+  std::cout << "rho_matrix_max_rows="
+            << stats.rho_matrix_max_rows << "\n";
+  std::cout << "rho_candidate_time_ms="
+            << stats.rho_candidate_time_ms << "\n";
+  std::cout << "rho_matrix_time_ms="
+            << stats.rho_matrix_time_ms << "\n";
+  std::cout << "rho_bottleneck_time_ms="
+            << stats.rho_bottleneck_time_ms << "\n";
+  std::cout << "rho_secondary_full_time_ms="
+            << stats.rho_secondary_full_time_ms << "\n";
+  std::cout << "rho_canonical_time_ms="
+            << stats.rho_canonical_time_ms << "\n";
+  std::cout << "rho_column_identity_same="
+            << stats.rho_column_identity_same << "\n";
+  std::cout << "rho_column_value_same="
+            << stats.rho_column_value_same << "\n";
+  std::cout << "rho_mode_or_conflict_same="
+            << stats.rho_mode_or_conflict_same << "\n";
+  std::cout << "rho_changed_rows_0="
+            << stats.rho_changed_rows_0 << "\n";
+  std::cout << "rho_changed_rows_1="
+            << stats.rho_changed_rows_1 << "\n";
+  std::cout << "rho_changed_rows_2="
+            << stats.rho_changed_rows_2 << "\n";
+  std::cout << "rho_changed_rows_gt2="
+            << stats.rho_changed_rows_gt2 << "\n";
+  std::cout << "rho_assignment_changes="
+            << stats.rho_assignment_changes << "\n";
   std::cout << "custody_continuations=" << stats.custody_continuations
             << "\n";
   std::cout << "zero_empty_no_ready=" << stats.zero_empty_no_ready << "\n";

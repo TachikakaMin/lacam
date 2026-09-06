@@ -4059,7 +4059,9 @@ inline std::vector<int> ready_tasks_with_custody(
     const ShelfTaskGraph& graph,
     const std::vector<std::optional<Custody>>& custody_by_robot,
     const std::vector<uint8_t>& continuation_carrier,
-    const ExecutionView* execution_view = nullptr)
+    const ExecutionView* execution_view = nullptr,
+    long* candidates_before_claims = nullptr,
+    long* claims_filtered = nullptr)
 {
   const auto upper = make_upper_signature(physical);
   std::vector<uint8_t> occupied(ins.grid.size(), 0);
@@ -4114,6 +4116,8 @@ inline std::vector<int> ready_tasks_with_custody(
       return graph.tasks[a].priority > graph.tasks[b].priority;
     return graph.tasks[a].id < graph.tasks[b].id;
   });
+  if (candidates_before_claims != nullptr)
+    *candidates_before_claims = static_cast<long>(ready.size());
   auto claims = active_transfer_claims(
       ins.grid.size(), custody_by_robot);
   std::vector<int> filtered;
@@ -4126,6 +4130,9 @@ inline std::vector<int> ready_tasks_with_custody(
     filtered.push_back(index);
     add_transfer_claim(claims, transfer);
   }
+  if (claims_filtered != nullptr)
+    *claims_filtered =
+        static_cast<long>(ready.size() - filtered.size());
   return filtered;
 }
 
@@ -4698,19 +4705,68 @@ struct RhoCandidate {
   bool mandatory = false;
 };
 
+inline uint64_t rho_fingerprint_mix(uint64_t value)
+{
+  value += 0x9e3779b97f4a7c15ULL;
+  value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
+  value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
+  return value ^ (value >> 31);
+}
+
+inline void rho_fingerprint_add(uint64_t& hash, uint64_t value)
+{
+  hash ^= rho_fingerprint_mix(
+      value + 0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2));
+}
+
+inline void rho_fingerprint_add(
+    uint64_t& hash, const ShelfSelector& shelf)
+{
+  rho_fingerprint_add(hash, static_cast<uint64_t>(shelf.kind));
+  rho_fingerprint_add(
+      hash, static_cast<uint64_t>(static_cast<uint32_t>(shelf.value)));
+}
+
+inline void rho_fingerprint_add(
+    uint64_t& hash, const TransferKey& key)
+{
+  rho_fingerprint_add(hash, key.shelf);
+  rho_fingerprint_add(
+      hash, static_cast<uint64_t>(static_cast<uint32_t>(key.source)));
+  rho_fingerprint_add(
+      hash, static_cast<uint64_t>(static_cast<uint32_t>(key.endpoint)));
+}
+
+inline void rho_fingerprint_add(
+    uint64_t& hash, const TaskId& id)
+{
+  rho_fingerprint_add(hash, id.shelf);
+  rho_fingerprint_add(
+      hash, static_cast<uint64_t>(static_cast<uint32_t>(id.from)));
+  rho_fingerprint_add(
+      hash, static_cast<uint64_t>(static_cast<uint32_t>(id.to)));
+}
+
 inline DDReadyMatchProbe match_ready_tasks(
     const DDInstance& ins, const PhysConfig& physical,
     const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
     const std::vector<std::optional<TaskId>>* previous_rho_task_id,
     const std::vector<std::optional<TransferKey>>*
         previous_rho_transfer_key = nullptr,
-    const std::vector<uint8_t>* eligible_robot = nullptr)
+    const std::vector<uint8_t>* eligible_robot = nullptr,
+    DispatchMode mode = DispatchMode::EXECUTE,
+    bool collect_audit = false)
 {
+  const auto candidate_started = std::chrono::steady_clock::now();
   DDReadyMatchProbe out;
   const size_t robot_count = ins.n_robots();
   out.rho_task_id.resize(robot_count);
   out.rho_transfer_key.resize(robot_count);
   out.rho_ready_index.assign(robot_count, -1);
+  out.telemetry.candidates_input =
+      static_cast<long>(ready_tasks.size());
+  out.telemetry.candidates_after_claims =
+      static_cast<long>(ready_tasks.size());
 
   std::vector<int> free_robots;
   for (size_t robot = 0; robot < robot_count; ++robot)
@@ -4719,21 +4775,141 @@ inline DDReadyMatchProbe match_ready_tasks(
          (robot < eligible_robot->size() &&
           (*eligible_robot)[robot])))
       free_robots.push_back((int)robot);
-  if (free_robots.empty()) return out;
+
+  out.telemetry.robot_row_fingerprints.resize(robot_count);
+  for (size_t robot = 0; robot < robot_count; ++robot) {
+    uint64_t fingerprint = rho_fingerprint_mix(robot + 1);
+    rho_fingerprint_add(
+        fingerprint,
+        static_cast<uint64_t>(
+            static_cast<uint32_t>(physical.robots[robot])));
+    rho_fingerprint_add(
+        fingerprint,
+        static_cast<uint64_t>(
+            static_cast<uint32_t>(physical.kappa[robot])));
+    const bool eligible =
+        physical.kappa[robot] == KAPPA_FREE &&
+        (eligible_robot == nullptr ||
+         (robot < eligible_robot->size() &&
+          (*eligible_robot)[robot]));
+    rho_fingerprint_add(fingerprint, eligible ? 1 : 0);
+    if (previous_rho_transfer_key != nullptr &&
+        robot < previous_rho_transfer_key->size() &&
+        (*previous_rho_transfer_key)[robot].has_value()) {
+      rho_fingerprint_add(fingerprint, 1);
+      rho_fingerprint_add(
+          fingerprint,
+          *(*previous_rho_transfer_key)[robot]);
+    } else if (previous_rho_task_id != nullptr &&
+               robot < previous_rho_task_id->size() &&
+               (*previous_rho_task_id)[robot].has_value()) {
+      rho_fingerprint_add(fingerprint, 2);
+      rho_fingerprint_add(
+          fingerprint, *(*previous_rho_task_id)[robot]);
+    } else {
+      rho_fingerprint_add(fingerprint, 0);
+    }
+    out.telemetry.robot_row_fingerprints[robot] = fingerprint;
+  }
+
+  uint64_t mode_fingerprint = rho_fingerprint_mix(
+      static_cast<uint64_t>(mode) + 1);
+  for (const int robot : free_robots)
+    rho_fingerprint_add(
+        mode_fingerprint,
+        static_cast<uint64_t>(static_cast<uint32_t>(robot)));
+  out.telemetry.mode_or_conflict_fingerprint = mode_fingerprint;
+  if (free_robots.empty()) {
+    out.telemetry.candidate_time_ms =
+        std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - candidate_started)
+            .count();
+    return out;
+  }
 
   std::vector<RhoCandidate> candidates;
   std::map<TransferKey, int> seen;
   std::map<ShelfSelector, int> selected_for_shelf;
+  std::set<TransferKey> distinct_keys;
+  LowerDist lower_distance(ins.grid);
+  const auto nearest_robot_distance = [&](const TaskId& id) {
+    int nearest = INT_MAX / 4;
+    for (const int robot : free_robots)
+      nearest = std::min(
+          nearest,
+          lower_distance.dist(id.from, physical.robots[robot]));
+    return nearest >= INT_MAX / 4 ? -1 : nearest;
+  };
+  const auto record_drop =
+      [&](int task_index, const ShelfTask& task,
+          const TransferKey& key, RhoDropReason reason) {
+        switch (reason) {
+          case RhoDropReason::INVALID_TASK:
+            ++out.telemetry.invalid_filtered;
+            break;
+          case RhoDropReason::DUPLICATE_TRANSFER_KEY:
+            ++out.telemetry.duplicate_key_filtered;
+            break;
+          case RhoDropReason::SAME_SHELF_PRESELECTED:
+            ++out.telemetry.same_shelf_filtered;
+            break;
+          case RhoDropReason::UPSTREAM_TRANSFER_CLAIM:
+            ++out.telemetry.upstream_claim_filtered;
+            break;
+          case RhoDropReason::MODE_INELIGIBLE:
+            ++out.telemetry.mode_ineligible_filtered;
+            break;
+          case RhoDropReason::NO_REACHABLE_ROBOT:
+            ++out.telemetry.no_reachable_robot_filtered;
+            break;
+          case RhoDropReason::PRIORITY_TOP_F:
+            break;
+        }
+        if (!collect_audit) return;
+        out.audit.push_back(
+            RhoCandidateAudit{
+                task_index,
+                key,
+                task.id,
+                mode,
+                task.priority,
+                nearest_robot_distance(task.id),
+                reason});
+      };
   for (const int index : ready_tasks) {
-    if (index < 0 || index >= (int)graph.tasks.size()) continue;
+    if (index < 0 || index >= (int)graph.tasks.size()) {
+      ++out.telemetry.invalid_filtered;
+      if (collect_audit)
+        out.audit.push_back(
+            RhoCandidateAudit{
+                index,
+                TransferKey{},
+                TaskId{},
+                mode,
+                0,
+                -1,
+                RhoDropReason::INVALID_TASK});
+      continue;
+    }
     const auto& task = graph.tasks[index];
     const TransferKey key = transfer_key(task);
+    distinct_keys.insert(key);
     auto it = seen.find(key);
     if (it != seen.end()) {
       if (task.priority > candidates[it->second].priority) {
+        const auto& replaced =
+            graph.tasks[candidates[it->second].task_index];
+        record_drop(
+            candidates[it->second].task_index, replaced,
+            candidates[it->second].key,
+            RhoDropReason::DUPLICATE_TRANSFER_KEY);
         candidates[it->second].task_index = index;
         candidates[it->second].id = task.id;
         candidates[it->second].priority = task.priority;
+      } else {
+        record_drop(
+            index, task, key,
+            RhoDropReason::DUPLICATE_TRANSFER_KEY);
       }
       continue;
     }
@@ -4748,11 +4924,20 @@ inline DDReadyMatchProbe match_ready_tasks(
             (key == existing.key &&
              index < existing.task_index)));
       if (replace) {
+        const auto& replaced =
+            graph.tasks[existing.task_index];
+        record_drop(
+            existing.task_index, replaced, existing.key,
+            RhoDropReason::SAME_SHELF_PRESELECTED);
         seen.erase(existing.key);
         existing =
             RhoCandidate{
                 index, task.id, key, task.priority, false};
         seen.emplace(key, selected->second);
+      } else {
+        record_drop(
+            index, task, key,
+            RhoDropReason::SAME_SHELF_PRESELECTED);
       }
       continue;
     }
@@ -4763,7 +4948,17 @@ inline DDReadyMatchProbe match_ready_tasks(
         RhoCandidate{
             index, task.id, key, task.priority, false});
   }
-  if (candidates.empty()) return out;
+  out.telemetry.candidates_after_key_dedupe =
+      static_cast<long>(distinct_keys.size());
+  out.telemetry.candidates_after_shelf_preselect =
+      static_cast<long>(candidates.size());
+  if (candidates.empty()) {
+    out.telemetry.candidate_time_ms =
+        std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - candidate_started)
+            .count();
+    return out;
+  }
   std::stable_sort(candidates.begin(), candidates.end(),
                    [](const RhoCandidate& a, const RhoCandidate& b) {
                      if (a.priority != b.priority)
@@ -4776,6 +4971,13 @@ inline DDReadyMatchProbe match_ready_tasks(
   const size_t free_count = free_robots.size();
   if (candidates.size() > free_count) {
     const int cutoff = candidates[free_count - 1].priority;
+    for (const auto& candidate : candidates)
+      if (candidate.priority < cutoff) {
+        const auto& task = graph.tasks[candidate.task_index];
+        record_drop(
+            candidate.task_index, task, candidate.key,
+            RhoDropReason::PRIORITY_TOP_F);
+      }
     candidates.erase(
         std::remove_if(candidates.begin(), candidates.end(),
                        [&](const RhoCandidate& candidate) {
@@ -4789,12 +4991,39 @@ inline DDReadyMatchProbe match_ready_tasks(
   }
 
   const size_t task_count = candidates.size();
+  out.telemetry.candidates_after_priority =
+      static_cast<long>(task_count);
+  out.telemetry.priority_filtered =
+      out.telemetry.candidates_after_shelf_preselect -
+      out.telemetry.candidates_after_priority;
   const size_t dummy_count =
       task_count > free_count ? task_count - free_count : 0;
   const size_t column_count = free_count + dummy_count;
+  out.telemetry.matrix_rows = static_cast<long>(task_count);
+  out.telemetry.matrix_cols = static_cast<long>(column_count);
+
+  uint64_t identity_fingerprint = rho_fingerprint_mix(0x52484f49ULL);
+  rho_fingerprint_add(
+      identity_fingerprint, static_cast<uint64_t>(mode));
+  for (const int robot : free_robots)
+    rho_fingerprint_add(
+        identity_fingerprint,
+        static_cast<uint64_t>(static_cast<uint32_t>(robot)));
+  rho_fingerprint_add(identity_fingerprint, dummy_count);
+  for (const auto& candidate : candidates) {
+    rho_fingerprint_add(identity_fingerprint, candidate.key);
+    rho_fingerprint_add(identity_fingerprint, candidate.id);
+  }
+  out.telemetry.column_identity_fingerprint =
+      identity_fingerprint;
+  out.telemetry.candidate_time_ms =
+      std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - candidate_started)
+          .count();
+
+  const auto matrix_started = std::chrono::steady_clock::now();
   constexpr long long INF = std::numeric_limits<long long>::max() / 16;
   const long long switch_scale = (long long)free_count + 1;
-  LowerDist lower_distance(ins.grid);
   const auto critical_tail = task_critical_tail_ticks(graph);
   std::vector<std::vector<long long>> completion(
       task_count, std::vector<long long>(column_count, INF));
@@ -4854,8 +5083,36 @@ inline DDReadyMatchProbe match_ready_tasks(
     }
   }
 
+  uint64_t value_fingerprint = rho_fingerprint_mix(0x52484f56ULL);
+  for (size_t row = 0; row < task_count; ++row) {
+    rho_fingerprint_add(
+        value_fingerprint,
+        static_cast<uint64_t>(
+            static_cast<uint32_t>(candidates[row].priority)));
+    rho_fingerprint_add(
+        value_fingerprint, candidates[row].mandatory ? 1 : 0);
+    for (size_t col = 0; col < column_count; ++col) {
+      rho_fingerprint_add(
+          value_fingerprint,
+          static_cast<uint64_t>(completion[row][col]));
+      rho_fingerprint_add(
+          value_fingerprint,
+          static_cast<uint64_t>(cost[row][col]));
+    }
+  }
+  out.telemetry.column_value_fingerprint = value_fingerprint;
+  out.telemetry.matrix_time_ms =
+      std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - matrix_started)
+          .count();
+
+  const auto bottleneck_started = std::chrono::steady_clock::now();
   const auto bottleneck =
       bottleneck_then_sum_assignment(completion, cost);
+  out.telemetry.bottleneck_time_ms =
+      std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - bottleneck_started)
+          .count();
   if (!bottleneck.feasible) return out;
   for (size_t row = 0; row < task_count; ++row)
     for (size_t col = 0; col < column_count; ++col)
@@ -4891,9 +5148,15 @@ inline DDReadyMatchProbe match_ready_tasks(
   std::iota(active_rows.begin(), active_rows.end(), 0);
   std::vector<int> active_cols(column_count);
   std::iota(active_cols.begin(), active_cols.end(), 0);
+  const auto secondary_started = std::chrono::steady_clock::now();
   auto remaining_optimum = minimum_cost(active_rows, active_cols);
+  out.telemetry.secondary_full_time_ms =
+      std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - secondary_started)
+          .count();
   if (!remaining_optimum.has_value()) return out;
 
+  const auto canonical_started = std::chrono::steady_clock::now();
   for (size_t real_col = 0; real_col < free_count; ++real_col) {
     const auto col_it =
         std::find(active_cols.begin(), active_cols.end(), (int)real_col);
@@ -4945,6 +5208,10 @@ inline DDReadyMatchProbe match_ready_tasks(
     throw std::logic_error(
         "match_ready_tasks: failed deterministic lexicographic refinement");
   }
+  out.telemetry.canonical_time_ms =
+      std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - canonical_started)
+          .count();
   return out;
 }
 
@@ -5322,10 +5589,13 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
       reconcile_execution_view(
           ins, physical, out.upper_epoch->task_graph,
           out.custody_by_robot);
+  long ready_before_claims = 0;
+  long ready_claims_filtered = 0;
   out.ready_tasks = ready_tasks_with_custody(
       ins, physical, out.upper_epoch->task_graph,
       out.custody_by_robot, recovered.continuation_carrier,
-      &preliminary_execution_view);
+      &preliminary_execution_view, &ready_before_claims,
+      &ready_claims_filtered);
   bind_ready_continuations(
       ins, physical, out.upper_epoch->task_graph, out.ready_tasks,
       recovered.continuation_carrier,
@@ -5354,6 +5624,12 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
   auto rho = match_ready_tasks(
       ins, physical, out.upper_epoch->task_graph,
       grounded_ready, previous_rho, previous_rho_key);
+  rho.telemetry.candidates_input = ready_before_claims;
+  rho.telemetry.candidates_after_claims =
+      static_cast<long>(grounded_ready.size());
+  rho.telemetry.upstream_claim_filtered =
+      ready_claims_filtered;
+  out.rho_execute_telemetry = rho.telemetry;
   out.rho_task_id = std::move(rho.rho_task_id);
   out.rho_transfer_key = std::move(rho.rho_transfer_key);
   out.rho_ready_index = std::move(rho.rho_ready_index);
@@ -5374,7 +5650,8 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
   auto preparation = match_ready_tasks(
       ins, physical, out.upper_epoch->task_graph,
       out.preparable_tasks, previous_rho, previous_rho_key,
-      &eligible_for_preparation);
+      &eligible_for_preparation, DispatchMode::PREPARE);
+  out.rho_prepare_telemetry = preparation.telemetry;
   for (size_t robot = 0; robot < ins.n_robots(); ++robot) {
     if (robot >= preparation.rho_task_id.size() ||
         !preparation.rho_task_id[robot].has_value())
@@ -5386,6 +5663,34 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
     out.rho_ready_index[robot] =
         preparation.rho_ready_index[robot];
     out.rho_mode[robot] = DispatchMode::PREPARE;
+  }
+  out.rho_mode_or_conflict_fingerprint =
+      rho_fingerprint_mix(0x52484f4dULL);
+  rho_fingerprint_add(
+      out.rho_mode_or_conflict_fingerprint,
+      out.rho_execute_telemetry.mode_or_conflict_fingerprint);
+  rho_fingerprint_add(
+      out.rho_mode_or_conflict_fingerprint,
+      out.rho_prepare_telemetry.mode_or_conflict_fingerprint);
+  out.rho_row_fingerprints.resize(ins.n_robots());
+  for (size_t robot = 0; robot < ins.n_robots(); ++robot) {
+    uint64_t fingerprint = rho_fingerprint_mix(robot + 1);
+    if (robot <
+        out.rho_execute_telemetry.robot_row_fingerprints.size())
+      rho_fingerprint_add(
+          fingerprint,
+          out.rho_execute_telemetry.robot_row_fingerprints[robot]);
+    if (robot <
+        out.rho_prepare_telemetry.robot_row_fingerprints.size())
+      rho_fingerprint_add(
+          fingerprint,
+          out.rho_prepare_telemetry.robot_row_fingerprints[robot]);
+    rho_fingerprint_add(
+        fingerprint, static_cast<uint64_t>(out.rho_mode[robot]));
+    out.rho_row_fingerprints[robot] = fingerprint;
+    rho_fingerprint_add(
+        out.rho_mode_or_conflict_fingerprint,
+        static_cast<uint64_t>(out.rho_mode[robot]));
   }
   const auto timed_started =
       std::chrono::steady_clock::now();

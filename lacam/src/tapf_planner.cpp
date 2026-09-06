@@ -343,6 +343,54 @@ void TAPFPlanner::attach_carrier_guidance(
           epoch.task_graph.paused_roots.size();
     }
     stats->ready_task_count += nd->guide->ready_tasks.size();
+    const auto accumulate_rho_telemetry =
+        [&](const RhoMatchTelemetry& telemetry, bool execute) {
+          if (execute)
+            ++stats->rho_match_calls_execute;
+          else
+            ++stats->rho_match_calls_prepare;
+          stats->rho_candidates_input +=
+              telemetry.candidates_input;
+          stats->rho_candidates_after_claims +=
+              telemetry.candidates_after_claims;
+          stats->rho_candidates_after_key_dedupe +=
+              telemetry.candidates_after_key_dedupe;
+          stats->rho_candidates_after_shelf_preselect +=
+              telemetry.candidates_after_shelf_preselect;
+          stats->rho_candidates_after_priority +=
+              telemetry.candidates_after_priority;
+          stats->rho_invalid_filtered +=
+              telemetry.invalid_filtered;
+          stats->rho_duplicate_key_filtered +=
+              telemetry.duplicate_key_filtered;
+          stats->rho_same_shelf_filtered +=
+              telemetry.same_shelf_filtered;
+          stats->rho_upstream_claim_filtered +=
+              telemetry.upstream_claim_filtered;
+          stats->rho_mode_ineligible_filtered +=
+              telemetry.mode_ineligible_filtered;
+          stats->rho_no_reachable_robot_filtered +=
+              telemetry.no_reachable_robot_filtered;
+          stats->rho_priority_filtered +=
+              telemetry.priority_filtered;
+          stats->rho_matrix_rows_total += telemetry.matrix_rows;
+          stats->rho_matrix_cols_total += telemetry.matrix_cols;
+          stats->rho_matrix_max_rows = std::max(
+              stats->rho_matrix_max_rows, telemetry.matrix_rows);
+          stats->rho_candidate_time_ms +=
+              telemetry.candidate_time_ms;
+          stats->rho_matrix_time_ms += telemetry.matrix_time_ms;
+          stats->rho_bottleneck_time_ms +=
+              telemetry.bottleneck_time_ms;
+          stats->rho_secondary_full_time_ms +=
+              telemetry.secondary_full_time_ms;
+          stats->rho_canonical_time_ms +=
+              telemetry.canonical_time_ms;
+        };
+    accumulate_rho_telemetry(
+        nd->guide->rho_execute_telemetry, true);
+    accumulate_rho_telemetry(
+        nd->guide->rho_prepare_telemetry, false);
     stats->timed_transport_expansions +=
         nd->guide->timed_transport.expansions;
     stats->timed_transport_frames +=
@@ -363,9 +411,59 @@ void TAPFPlanner::attach_carrier_guidance(
     }
     if (!previous_rho.empty() &&
         previous_rho.size() == nd->guide->rho_task_id.size()) {
-      for (size_t robot = 0; robot < previous_rho.size(); ++robot)
-        stats->rho_repairs +=
+      for (size_t robot = 0; robot < previous_rho.size(); ++robot) {
+        const bool changed =
             previous_rho[robot] != nd->guide->rho_task_id[robot];
+        stats->rho_repairs += changed;
+        stats->rho_assignment_changes += changed;
+      }
+    }
+    if (previous_guidance != nullptr) {
+      const bool identity_same =
+          previous_guidance->rho_execute_telemetry
+                  .column_identity_fingerprint ==
+              nd->guide->rho_execute_telemetry
+                  .column_identity_fingerprint &&
+          previous_guidance->rho_prepare_telemetry
+                  .column_identity_fingerprint ==
+              nd->guide->rho_prepare_telemetry
+                  .column_identity_fingerprint;
+      const bool value_same =
+          previous_guidance->rho_execute_telemetry
+                  .column_value_fingerprint ==
+              nd->guide->rho_execute_telemetry
+                  .column_value_fingerprint &&
+          previous_guidance->rho_prepare_telemetry
+                  .column_value_fingerprint ==
+              nd->guide->rho_prepare_telemetry
+                  .column_value_fingerprint;
+      stats->rho_column_identity_same += identity_same;
+      stats->rho_column_value_same += value_same;
+      stats->rho_mode_or_conflict_same +=
+          previous_guidance->rho_mode_or_conflict_fingerprint ==
+          nd->guide->rho_mode_or_conflict_fingerprint;
+
+      size_t changed_rows = 0;
+      const size_t common_rows = std::min(
+          previous_guidance->rho_row_fingerprints.size(),
+          nd->guide->rho_row_fingerprints.size());
+      for (size_t row = 0; row < common_rows; ++row)
+        changed_rows +=
+            previous_guidance->rho_row_fingerprints[row] !=
+            nd->guide->rho_row_fingerprints[row];
+      changed_rows +=
+          std::max(
+              previous_guidance->rho_row_fingerprints.size(),
+              nd->guide->rho_row_fingerprints.size()) -
+          common_rows;
+      if (changed_rows == 0)
+        ++stats->rho_changed_rows_0;
+      else if (changed_rows == 1)
+        ++stats->rho_changed_rows_1;
+      else if (changed_rows == 2)
+        ++stats->rho_changed_rows_2;
+      else
+        ++stats->rho_changed_rows_gt2;
     }
     if (!previous_rho_transfer_key.empty()) {
       std::map<TransferKey, int> previous_owner;

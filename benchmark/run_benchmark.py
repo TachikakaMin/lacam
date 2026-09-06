@@ -90,6 +90,22 @@ FIELDS = [
     "joint_task_nodes", "joint_task_edges", "joint_shared_effects",
     "joint_effect_conflicts", "joint_candidate_backtracks",
     "joint_paused_roots", "ready_task_count", "rho_repairs",
+    "rho_match_calls_execute", "rho_match_calls_prepare",
+    "rho_candidates_input", "rho_candidates_after_claims",
+    "rho_candidates_after_key_dedupe",
+    "rho_candidates_after_shelf_preselect",
+    "rho_candidates_after_priority", "rho_invalid_filtered",
+    "rho_duplicate_key_filtered", "rho_same_shelf_filtered",
+    "rho_upstream_claim_filtered", "rho_mode_ineligible_filtered",
+    "rho_no_reachable_robot_filtered", "rho_priority_filtered",
+    "rho_matrix_rows_total", "rho_matrix_cols_total",
+    "rho_matrix_max_rows", "rho_candidate_time_ms",
+    "rho_matrix_time_ms", "rho_bottleneck_time_ms",
+    "rho_secondary_full_time_ms", "rho_canonical_time_ms",
+    "rho_column_identity_same", "rho_column_value_same",
+    "rho_mode_or_conflict_same", "rho_changed_rows_0",
+    "rho_changed_rows_1", "rho_changed_rows_2",
+    "rho_changed_rows_gt2", "rho_assignment_changes",
     "custody_continuations", "zero_empty_no_ready",
     "rewire_guidance_rebuilds",
     "tau_time_ms", "guidance_time_ms",
@@ -1048,6 +1064,96 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                 ),
                 ready_task_count=metrics.get("ready_task_count", ""),
                 rho_repairs=metrics.get("rho_repairs", ""),
+                rho_match_calls_execute=metrics.get(
+                    "rho_match_calls_execute", ""
+                ),
+                rho_match_calls_prepare=metrics.get(
+                    "rho_match_calls_prepare", ""
+                ),
+                rho_candidates_input=metrics.get(
+                    "rho_candidates_input", ""
+                ),
+                rho_candidates_after_claims=metrics.get(
+                    "rho_candidates_after_claims", ""
+                ),
+                rho_candidates_after_key_dedupe=metrics.get(
+                    "rho_candidates_after_key_dedupe", ""
+                ),
+                rho_candidates_after_shelf_preselect=metrics.get(
+                    "rho_candidates_after_shelf_preselect", ""
+                ),
+                rho_candidates_after_priority=metrics.get(
+                    "rho_candidates_after_priority", ""
+                ),
+                rho_invalid_filtered=metrics.get(
+                    "rho_invalid_filtered", ""
+                ),
+                rho_duplicate_key_filtered=metrics.get(
+                    "rho_duplicate_key_filtered", ""
+                ),
+                rho_same_shelf_filtered=metrics.get(
+                    "rho_same_shelf_filtered", ""
+                ),
+                rho_upstream_claim_filtered=metrics.get(
+                    "rho_upstream_claim_filtered", ""
+                ),
+                rho_mode_ineligible_filtered=metrics.get(
+                    "rho_mode_ineligible_filtered", ""
+                ),
+                rho_no_reachable_robot_filtered=metrics.get(
+                    "rho_no_reachable_robot_filtered", ""
+                ),
+                rho_priority_filtered=metrics.get(
+                    "rho_priority_filtered", ""
+                ),
+                rho_matrix_rows_total=metrics.get(
+                    "rho_matrix_rows_total", ""
+                ),
+                rho_matrix_cols_total=metrics.get(
+                    "rho_matrix_cols_total", ""
+                ),
+                rho_matrix_max_rows=metrics.get(
+                    "rho_matrix_max_rows", ""
+                ),
+                rho_candidate_time_ms=metrics.get(
+                    "rho_candidate_time_ms", ""
+                ),
+                rho_matrix_time_ms=metrics.get(
+                    "rho_matrix_time_ms", ""
+                ),
+                rho_bottleneck_time_ms=metrics.get(
+                    "rho_bottleneck_time_ms", ""
+                ),
+                rho_secondary_full_time_ms=metrics.get(
+                    "rho_secondary_full_time_ms", ""
+                ),
+                rho_canonical_time_ms=metrics.get(
+                    "rho_canonical_time_ms", ""
+                ),
+                rho_column_identity_same=metrics.get(
+                    "rho_column_identity_same", ""
+                ),
+                rho_column_value_same=metrics.get(
+                    "rho_column_value_same", ""
+                ),
+                rho_mode_or_conflict_same=metrics.get(
+                    "rho_mode_or_conflict_same", ""
+                ),
+                rho_changed_rows_0=metrics.get(
+                    "rho_changed_rows_0", ""
+                ),
+                rho_changed_rows_1=metrics.get(
+                    "rho_changed_rows_1", ""
+                ),
+                rho_changed_rows_2=metrics.get(
+                    "rho_changed_rows_2", ""
+                ),
+                rho_changed_rows_gt2=metrics.get(
+                    "rho_changed_rows_gt2", ""
+                ),
+                rho_assignment_changes=metrics.get(
+                    "rho_assignment_changes", ""
+                ),
                 custody_continuations=metrics.get(
                     "custody_continuations", ""
                 ),
