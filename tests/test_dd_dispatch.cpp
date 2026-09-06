@@ -1,5 +1,7 @@
 #include "../lacam/src/carrier_guidance.hpp"
 
+#include <limits>
+#include <stdexcept>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -54,4 +56,25 @@ TEST(dd_dispatch,
   EXPECT_EQ(tail[0], 3);
   EXPECT_EQ(tail[1], 0);
   EXPECT_EQ(tail[2], 0);
+}
+
+TEST(dd_dispatch,
+     priority_is_a_low_order_term_after_physical_secondary_cost)
+{
+  EXPECT_EQ(
+      carrier_detail::rho_priority_lex_cost(3, 11, 0), 33);
+  EXPECT_EQ(
+      carrier_detail::rho_priority_lex_cost(3, 11, 9), 42);
+  EXPECT_LT(
+      carrier_detail::rho_priority_lex_cost(3, 11, 9),
+      carrier_detail::rho_priority_lex_cost(4, 11, 0));
+}
+
+TEST(dd_dispatch,
+     priority_lex_cost_rejects_dispatch_sentinel_overflow)
+{
+  EXPECT_THROW(
+      carrier_detail::rho_priority_lex_cost(
+          std::numeric_limits<long long>::max(), 2, 1),
+      std::overflow_error);
 }

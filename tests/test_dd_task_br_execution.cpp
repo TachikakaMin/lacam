@@ -386,6 +386,36 @@ TEST(dd_task_br_execution,
 }
 
 TEST(dd_task_br_execution,
+     finite_priority_breaks_only_a_secondary_assignment_tie)
+{
+  const auto ins = line_instance(5, {2}, {}, {}, {});
+  const auto X = initial_phys_config(ins);
+  const TaskId low_priority_left{
+      ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, 1}, 1, 0};
+  const TaskId high_priority_right{
+      ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, 3}, 3, 4};
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      ShelfTask{low_priority_left, {RootDemand{0, 10}}, 1},
+      ShelfTask{high_priority_right, {RootDemand{1, 11}}, 9},
+  };
+  graph.predecessors = {{}, {}};
+  graph.successors = {{}, {}};
+
+  const auto result =
+      dd_match_ready_tasks_probe(ins, X, graph, {0, 1}, nullptr);
+
+  ASSERT_TRUE(result.rho_task_id[0].has_value());
+  EXPECT_EQ(*result.rho_task_id[0], high_priority_right)
+      << "equal bottleneck and physical secondary costs must defer the "
+         "lower-priority row without filtering either task";
+  EXPECT_EQ(result.telemetry.candidates_after_priority, 2);
+  EXPECT_EQ(result.telemetry.priority_filtered, 0);
+  EXPECT_EQ(result.telemetry.matrix_rows, 2);
+  EXPECT_EQ(result.telemetry.matrix_cols, 2);
+}
+
+TEST(dd_task_br_execution,
      multirow_bottleneck_compares_every_ordinary_candidate)
 {
   const auto ins = line_instance(12, {0, 11}, {}, {}, {});

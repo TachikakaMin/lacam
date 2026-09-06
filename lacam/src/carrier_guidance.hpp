@@ -4704,6 +4704,28 @@ struct RhoCandidate {
   int priority = 0;
 };
 
+constexpr long long kRhoDispatchInf =
+    std::numeric_limits<long long>::max() / 16;
+
+inline long long rho_priority_lex_cost(
+    long long physical_secondary, long long priority_scale,
+    int deferred_priority)
+{
+  if (physical_secondary < 0 || priority_scale <= 0)
+    throw std::invalid_argument(
+        "rho priority lex cost requires non-negative inputs");
+  const long long priority =
+      static_cast<long long>(std::max(0, deferred_priority));
+  const __int128 value =
+      static_cast<__int128>(physical_secondary) *
+          priority_scale +
+      priority;
+  if (value >= kRhoDispatchInf)
+    throw std::overflow_error(
+        "rho priority lex cost overflow");
+  return static_cast<long long>(value);
+}
+
 inline uint64_t rho_fingerprint_mix(uint64_t value)
 {
   value += 0x9e3779b97f4a7c15ULL;
@@ -5008,8 +5030,16 @@ inline DDReadyMatchProbe match_ready_tasks(
           .count();
 
   const auto matrix_started = std::chrono::steady_clock::now();
-  constexpr long long INF = std::numeric_limits<long long>::max() / 16;
+  constexpr long long INF = kRhoDispatchInf;
   const long long switch_scale = (long long)free_count + 1;
+  __int128 priority_scale_wide = 1;
+  for (const auto& candidate : candidates)
+    priority_scale_wide += std::max(0, candidate.priority);
+  if (priority_scale_wide >= INF)
+    throw std::overflow_error(
+        "rho priority scale overflow");
+  const long long priority_scale =
+      static_cast<long long>(priority_scale_wide);
   const auto critical_tail = task_critical_tail_ticks(graph);
   std::vector<std::vector<long long>> completion(
       task_count, std::vector<long long>(column_count, INF));
@@ -5049,8 +5079,15 @@ inline DDReadyMatchProbe match_ready_tasks(
                         candidates[row].id;
       completion[row][col] =
           (long long)distance + service + tail;
-      cost[row][col] =
-          (long long)distance * switch_scale + (switched ? 1 : 0);
+      const __int128 physical_secondary =
+          static_cast<__int128>(distance) * switch_scale +
+          (switched ? 1 : 0);
+      if (physical_secondary >= INF)
+        throw std::overflow_error(
+            "rho physical secondary cost overflow");
+      cost[row][col] = rho_priority_lex_cost(
+          static_cast<long long>(physical_secondary),
+          priority_scale, 0);
       best_real_completion =
           std::min(best_real_completion, completion[row][col]);
       best_real_approach =
@@ -5062,8 +5099,16 @@ inline DDReadyMatchProbe match_ready_tasks(
       for (size_t col = free_count; col < column_count; ++col) {
         completion[row][col] =
             best_real_completion + defer_delay;
-        cost[row][col] =
-            (best_real_approach + defer_delay) * switch_scale;
+        const __int128 physical_secondary =
+            (static_cast<__int128>(best_real_approach) +
+             defer_delay) *
+            switch_scale;
+        if (physical_secondary >= INF)
+          throw std::overflow_error(
+              "rho deferred secondary cost overflow");
+        cost[row][col] = rho_priority_lex_cost(
+            static_cast<long long>(physical_secondary),
+            priority_scale, candidates[row].priority);
       }
     }
   }
