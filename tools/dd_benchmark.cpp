@@ -807,6 +807,60 @@ int main(int argc, char** argv)
             << stats.rho_changed_rows_gt2 << "\n";
   std::cout << "rho_assignment_changes="
             << stats.rho_assignment_changes << "\n";
+  std::cout << "rho_incremental_full_solves="
+            << stats.rho_incremental_full_solves << "\n";
+  std::cout << "rho_incremental_repairs="
+            << stats.rho_incremental_repairs << "\n";
+  std::cout << "rho_incremental_zero_row_reuses="
+            << stats.rho_incremental_zero_row_reuses << "\n";
+  std::cout << "rho_incremental_augmentations="
+            << stats.rho_incremental_augmentations << "\n";
+  std::cout << "rho_incremental_changed_rows_0="
+            << stats.rho_incremental_changed_rows_0 << "\n";
+  std::cout << "rho_incremental_changed_rows_1="
+            << stats.rho_incremental_changed_rows_1 << "\n";
+  std::cout << "rho_incremental_changed_rows_2="
+            << stats.rho_incremental_changed_rows_2 << "\n";
+  std::cout << "rho_incremental_changed_rows_gt2="
+            << stats.rho_incremental_changed_rows_gt2 << "\n";
+  std::cout << "rho_shadow_mismatches="
+            << stats.rho_shadow_mismatches << "\n";
+  std::cout << "rho_incremental_copy_time_ms="
+            << stats.rho_incremental_copy_time_ms << "\n";
+  std::cout << "rho_incremental_repair_time_ms="
+            << stats.rho_incremental_repair_time_ms << "\n";
+  std::cout << "rho_incremental_full_time_ms="
+            << stats.rho_incremental_full_time_ms << "\n";
+  std::cout << "rho_incremental_state_bytes_total="
+            << stats.rho_incremental_state_bytes_total << "\n";
+  std::cout << "rho_incremental_state_bytes_max="
+            << stats.rho_incremental_state_bytes_max << "\n";
+  std::cout << "rho_fallback_no_parent_state="
+            << stats.rho_fallback_no_parent_state << "\n";
+  std::cout << "rho_fallback_stale_or_rewired_parent="
+            << stats.rho_fallback_stale_or_rewired_parent << "\n";
+  std::cout << "rho_fallback_shape_changed="
+            << stats.rho_fallback_shape_changed << "\n";
+  std::cout << "rho_fallback_column_identity_changed="
+            << stats.rho_fallback_column_identity_changed << "\n";
+  std::cout << "rho_fallback_column_value_changed="
+            << stats.rho_fallback_column_value_changed << "\n";
+  std::cout << "rho_fallback_mode_changed="
+            << stats.rho_fallback_mode_changed << "\n";
+  std::cout << "rho_fallback_conflict_changed="
+            << stats.rho_fallback_conflict_changed << "\n";
+  std::cout << "rho_fallback_objective_version_changed="
+            << stats.rho_fallback_objective_version_changed << "\n";
+  std::cout << "rho_fallback_scaling_version_changed="
+            << stats.rho_fallback_scaling_version_changed << "\n";
+  std::cout << "rho_fallback_inf_version_changed="
+            << stats.rho_fallback_inf_version_changed << "\n";
+  std::cout << "rho_fallback_canonical_version_changed="
+            << stats.rho_fallback_canonical_version_changed << "\n";
+  std::cout << "rho_fallback_state_validation_failed="
+            << stats.rho_fallback_state_validation_failed << "\n";
+  std::cout << "rho_fallback_shadow_mismatch="
+            << stats.rho_fallback_shadow_mismatch << "\n";
   std::cout << "custody_continuations=" << stats.custody_continuations
             << "\n";
   std::cout << "zero_empty_no_ready=" << stats.zero_empty_no_ready << "\n";

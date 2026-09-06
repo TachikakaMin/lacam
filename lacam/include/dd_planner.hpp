@@ -116,6 +116,33 @@ struct DDStats {
   long rho_changed_rows_2 = 0;
   long rho_changed_rows_gt2 = 0;
   long rho_assignment_changes = 0;
+  long rho_incremental_full_solves = 0;
+  long rho_incremental_repairs = 0;
+  long rho_incremental_zero_row_reuses = 0;
+  long rho_incremental_augmentations = 0;
+  long rho_incremental_changed_rows_0 = 0;
+  long rho_incremental_changed_rows_1 = 0;
+  long rho_incremental_changed_rows_2 = 0;
+  long rho_incremental_changed_rows_gt2 = 0;
+  long rho_shadow_mismatches = 0;
+  double rho_incremental_copy_time_ms = 0;
+  double rho_incremental_repair_time_ms = 0;
+  double rho_incremental_full_time_ms = 0;
+  uint64_t rho_incremental_state_bytes_total = 0;
+  uint64_t rho_incremental_state_bytes_max = 0;
+  long rho_fallback_no_parent_state = 0;
+  long rho_fallback_stale_or_rewired_parent = 0;
+  long rho_fallback_shape_changed = 0;
+  long rho_fallback_column_identity_changed = 0;
+  long rho_fallback_column_value_changed = 0;
+  long rho_fallback_mode_changed = 0;
+  long rho_fallback_conflict_changed = 0;
+  long rho_fallback_objective_version_changed = 0;
+  long rho_fallback_scaling_version_changed = 0;
+  long rho_fallback_inf_version_changed = 0;
+  long rho_fallback_canonical_version_changed = 0;
+  long rho_fallback_state_validation_failed = 0;
+  long rho_fallback_shadow_mismatch = 0;
   double rho_candidate_time_ms = 0;
   double rho_matrix_time_ms = 0;
   double rho_bottleneck_time_ms = 0;
@@ -246,7 +273,13 @@ CarrierGuidance dd_task_br_cached_guidance_probe(
 DDReadyMatchProbe dd_match_ready_tasks_probe(
     const DDInstance& ins, const PhysConfig& X,
     const ShelfTaskGraph& graph, const std::vector<int>& ready_tasks,
-    const std::vector<std::optional<TaskId>>* previous_rho_task_id);
+    const std::vector<std::optional<TaskId>>* previous_rho_task_id,
+    const std::vector<std::optional<TransferKey>>*
+        previous_rho_transfer_key = nullptr,
+    const RhoNodeAssignmentState* previous_rho_state = nullptr,
+    const std::vector<uint8_t>* eligible_robot = nullptr,
+    DispatchMode mode = DispatchMode::EXECUTE,
+    bool transition_valid = true);
 
 // Compatibility wrapper: authoritative callers that must distinguish a
 // zero-tick success from failure use solve_carrier_lacam_result().

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <deque>
 #include <functional>
 #include <limits>
 #include <numeric>
@@ -9,7 +10,7 @@
 
 namespace {
 
-using WideCost = __int128_t;
+using WideCost = RhoWideCost;
 
 constexpr WideCost kWideInf = (static_cast<WideCost>(1) << 120);
 
@@ -40,6 +41,293 @@ bool fits_rho_cost(WideCost value)
          value <=
              static_cast<WideCost>(
                  std::numeric_limits<RhoCost>::max());
+}
+
+bool matrix_shape(
+    const std::vector<std::vector<RhoCost>>& cost,
+    int& row_count, int& column_count, bool& overflow)
+{
+  overflow = false;
+  row_count = static_cast<int>(cost.size());
+  column_count =
+      cost.empty() ? 0 : static_cast<int>(cost.front().size());
+  for (const auto& row : cost) {
+    if (static_cast<int>(row.size()) != column_count)
+      return false;
+    for (const RhoCost value : row) {
+      if (invalid_negative_cost(value)) {
+        overflow = true;
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+WideCost padded_edge(
+    const std::vector<std::vector<RhoCost>>& cost,
+    int real_rows, int row, int column)
+{
+  if (row >= real_rows) return 0;
+  const RhoCost value = cost[row][column];
+  return finite_cost(value)
+             ? static_cast<WideCost>(value)
+             : kWideInf;
+}
+
+bool guarded_potential(WideCost value)
+{
+  return value > -kWideInf && value < kWideInf;
+}
+
+bool state_objective(
+    const std::vector<std::vector<RhoCost>>& cost,
+    const RhoHungarianState& state, RhoCost& objective)
+{
+  WideCost total = 0;
+  for (int row = 0; row < state.real_rows; ++row) {
+    const int column = state.mate_l[row];
+    if (column < 0 || column >= state.columns ||
+        !finite_cost(cost[row][column]))
+      return false;
+    total += static_cast<WideCost>(cost[row][column]);
+  }
+  if (!fits_rho_cost(total)) return false;
+  objective = static_cast<RhoCost>(total);
+  return true;
+}
+
+bool validate_state_internal(
+    const std::vector<std::vector<RhoCost>>& cost,
+    const RhoHungarianState& state)
+{
+  int real_rows = 0;
+  int columns = 0;
+  bool overflow = false;
+  if (!matrix_shape(cost, real_rows, columns, overflow) ||
+      overflow || real_rows > columns ||
+      (real_rows > 0 && columns == 0) || !state.valid ||
+      state.real_rows != real_rows ||
+      state.columns != columns ||
+      state.real_cost != cost)
+    return false;
+
+  const int dimension = columns;
+  if (static_cast<int>(state.mate_l.size()) != dimension ||
+      static_cast<int>(state.mate_r.size()) != dimension ||
+      static_cast<int>(state.row_potential.size()) != dimension ||
+      static_cast<int>(state.column_potential.size()) != dimension)
+    return false;
+
+  for (int row = 0; row < dimension; ++row) {
+    if (!guarded_potential(state.row_potential[row]))
+      return false;
+    const int column = state.mate_l[row];
+    if (column < 0 || column >= dimension ||
+        state.mate_r[column] != row)
+      return false;
+  }
+  for (int column = 0; column < dimension; ++column) {
+    if (!guarded_potential(state.column_potential[column]))
+      return false;
+    const int row = state.mate_r[column];
+    if (row < 0 || row >= dimension ||
+        state.mate_l[row] != column)
+      return false;
+  }
+
+  for (int row = 0; row < dimension; ++row) {
+    for (int column = 0; column < dimension; ++column) {
+      const WideCost edge =
+          padded_edge(cost, real_rows, row, column);
+      if (edge >= kWideInf) continue;
+      if (state.row_potential[row] +
+              state.column_potential[column] >
+          edge)
+        return false;
+    }
+    const int matched_column = state.mate_l[row];
+    const WideCost matched_edge =
+        padded_edge(cost, real_rows, row, matched_column);
+    if (matched_edge >= kWideInf ||
+        state.row_potential[row] +
+                state.column_potential[matched_column] !=
+            matched_edge)
+      return false;
+  }
+
+  RhoCost objective = 0;
+  if (!state_objective(cost, state, objective) ||
+      objective != state.objective)
+    return false;
+  WideCost dual_objective = 0;
+  for (const WideCost value : state.row_potential)
+    dual_objective += value;
+  for (const WideCost value : state.column_potential)
+    dual_objective += value;
+  return dual_objective == static_cast<WideCost>(objective);
+}
+
+RhoAssignmentResult assignment_from_state(
+    const std::vector<std::vector<RhoCost>>& cost,
+    const RhoHungarianState& state)
+{
+  RhoAssignmentResult out;
+  out.row_to_col.assign(cost.size(), -1);
+  if (!state.valid) return out;
+  for (int row = 0; row < state.real_rows; ++row)
+    out.row_to_col[row] = state.mate_l[row];
+  RhoCost objective = 0;
+  if (!state_objective(cost, state, objective)) {
+    out.overflow = true;
+    return out;
+  }
+  out.objective = objective;
+  out.feasible = true;
+  return out;
+}
+
+bool augment_state_from_row(
+    const std::vector<std::vector<RhoCost>>& cost,
+    RhoHungarianState& state, int root)
+{
+  const int dimension = state.columns;
+  if (root < 0 || root >= dimension ||
+      state.mate_l[root] != -1)
+    return false;
+
+  std::vector<uint8_t> in_left(dimension, 0);
+  std::vector<uint8_t> in_right(dimension, 0);
+  std::vector<WideCost> slack(dimension, kWideInf);
+  std::vector<int> slack_from(dimension, -1);
+  std::deque<int> queue;
+  in_left[root] = 1;
+  queue.push_back(root);
+
+  const auto augment_path = [&](int free_column) {
+    int column = free_column;
+    while (column >= 0) {
+      const int row = slack_from[column];
+      if (row < 0) return false;
+      const int previous_column = state.mate_l[row];
+      state.mate_l[row] = column;
+      state.mate_r[column] = row;
+      column = previous_column;
+    }
+    return true;
+  };
+
+  while (true) {
+    while (!queue.empty()) {
+      const int row = queue.front();
+      queue.pop_front();
+      for (int column = 0; column < dimension; ++column) {
+        if (in_right[column]) continue;
+        const WideCost edge =
+            padded_edge(cost, state.real_rows, row, column);
+        if (edge >= kWideInf) continue;
+        const WideCost reduced =
+            edge - state.row_potential[row] -
+            state.column_potential[column];
+        if (reduced < 0) return false;
+        if (reduced < slack[column]) {
+          slack[column] = reduced;
+          slack_from[column] = row;
+        }
+        if (slack[column] != 0) continue;
+        in_right[column] = 1;
+        const int matched_row = state.mate_r[column];
+        if (matched_row < 0)
+          return augment_path(column);
+        if (!in_left[matched_row]) {
+          in_left[matched_row] = 1;
+          queue.push_back(matched_row);
+        }
+      }
+    }
+
+    WideCost delta = kWideInf;
+    for (int column = 0; column < dimension; ++column)
+      if (!in_right[column])
+        delta = std::min(delta, slack[column]);
+    if (delta >= kWideInf || delta < 0) return false;
+
+    for (int row = 0; row < dimension; ++row)
+      if (in_left[row])
+        state.row_potential[row] += delta;
+    for (int column = 0; column < dimension; ++column) {
+      if (in_right[column]) {
+        state.column_potential[column] -= delta;
+      } else if (slack[column] < kWideInf) {
+        slack[column] -= delta;
+      }
+    }
+
+    for (int column = 0; column < dimension; ++column) {
+      if (in_right[column] || slack[column] != 0) continue;
+      in_right[column] = 1;
+      const int matched_row = state.mate_r[column];
+      if (matched_row < 0)
+        return augment_path(column);
+      if (!in_left[matched_row]) {
+        in_left[matched_row] = 1;
+        queue.push_back(matched_row);
+      }
+    }
+  }
+}
+
+RhoStateSolveResult solve_state_full_internal(
+    const std::vector<std::vector<RhoCost>>& cost)
+{
+  RhoStateSolveResult out;
+  out.assignment.row_to_col.assign(cost.size(), -1);
+  int real_rows = 0;
+  int columns = 0;
+  bool overflow = false;
+  if (!matrix_shape(cost, real_rows, columns, overflow)) {
+    out.assignment.overflow = overflow;
+    return out;
+  }
+  if (real_rows > columns ||
+      (real_rows > 0 && columns == 0))
+    return out;
+
+  RhoHungarianState state;
+  state.real_rows = real_rows;
+  state.columns = columns;
+  state.real_cost = cost;
+  state.mate_l.assign(columns, -1);
+  state.mate_r.assign(columns, -1);
+  state.row_potential.assign(columns, 0);
+  state.column_potential.assign(columns, 0);
+
+  for (int row = 0; row < columns; ++row) {
+    WideCost best = kWideInf;
+    for (int column = 0; column < columns; ++column) {
+      const WideCost edge =
+          padded_edge(cost, real_rows, row, column);
+      if (edge >= kWideInf) continue;
+      best = std::min(
+          best, edge - state.column_potential[column]);
+    }
+    if (best >= kWideInf) return out;
+    state.row_potential[row] = best;
+    if (!augment_state_from_row(cost, state, row))
+      return out;
+    ++out.augmentations;
+  }
+
+  state.valid = true;
+  if (!state_objective(cost, state, state.objective)) {
+    out.assignment.overflow = true;
+    return out;
+  }
+  if (!validate_state_internal(cost, state))
+    return out;
+  out.state = std::move(state);
+  out.assignment = assignment_from_state(cost, out.state);
+  return out;
 }
 
 WideAssignmentResult solve_minimum_wide(
@@ -372,4 +660,118 @@ RhoAssignmentResult solve_rho_assignment_full(
   out.objective = static_cast<RhoCost>(optimum.objective);
   out.feasible = true;
   return out;
+}
+
+RhoStateSolveResult solve_rho_assignment_state_full(
+    const std::vector<std::vector<RhoCost>>& cost)
+{
+  return solve_state_full_internal(cost);
+}
+
+RhoStateSolveResult repair_rho_assignment_state_rows(
+    const RhoHungarianState& parent,
+    const std::vector<std::vector<RhoCost>>& cost,
+    const std::vector<int>& changed_rows)
+{
+  RhoStateSolveResult out;
+  out.assignment.row_to_col.assign(cost.size(), -1);
+
+  int real_rows = 0;
+  int columns = 0;
+  bool overflow = false;
+  if (!matrix_shape(cost, real_rows, columns, overflow)) {
+    out.assignment.overflow = overflow;
+    return out;
+  }
+  if (real_rows > columns ||
+      (real_rows > 0 && columns == 0) ||
+      parent.real_rows != real_rows ||
+      parent.columns != columns ||
+      !validate_state_internal(parent.real_cost, parent))
+    return out;
+
+  std::vector<uint8_t> changed_mask(real_rows, 0);
+  std::vector<int> normalized_rows;
+  normalized_rows.reserve(changed_rows.size());
+  for (const int row : changed_rows) {
+    if (row < 0 || row >= real_rows) return out;
+    if (changed_mask[row]) continue;
+    changed_mask[row] = 1;
+    normalized_rows.push_back(row);
+  }
+  std::sort(normalized_rows.begin(), normalized_rows.end());
+
+  for (int row = 0; row < real_rows; ++row)
+    if (!changed_mask[row] &&
+        cost[row] != parent.real_cost[row])
+      return out;
+
+  out.parent_valid = true;
+  out.used_parent = true;
+  if (normalized_rows.empty()) {
+    out.state = parent;
+    out.assignment = assignment_from_state(cost, out.state);
+    return out;
+  }
+
+  RhoHungarianState state = parent;
+  state.real_cost = cost;
+  for (const int row : normalized_rows) {
+    const int column = state.mate_l[row];
+    if (column < 0 || column >= columns ||
+        state.mate_r[column] != row)
+      return out;
+    state.mate_l[row] = -1;
+    state.mate_r[column] = -1;
+  }
+
+  for (const int row : normalized_rows) {
+    WideCost best = kWideInf;
+    for (int column = 0; column < columns; ++column) {
+      const WideCost edge =
+          padded_edge(cost, real_rows, row, column);
+      if (edge >= kWideInf) continue;
+      best = std::min(
+          best, edge - state.column_potential[column]);
+    }
+    if (best >= kWideInf) {
+      state.valid = false;
+      out.state = std::move(state);
+      return out;
+    }
+    state.row_potential[row] = best;
+  }
+
+  for (const int row : normalized_rows) {
+    if (!augment_state_from_row(cost, state, row)) {
+      state.valid = false;
+      out.state = std::move(state);
+      return out;
+    }
+    ++out.augmentations;
+  }
+
+  state.valid = true;
+  if (!state_objective(cost, state, state.objective)) {
+    state.valid = false;
+    out.assignment.overflow = true;
+    out.state = std::move(state);
+    return out;
+  }
+  if (!validate_state_internal(cost, state)) {
+    state.valid = false;
+    out.state = std::move(state);
+    return out;
+  }
+
+  out.state = std::move(state);
+  out.assignment = assignment_from_state(cost, out.state);
+  return out;
+}
+
+bool validate_rho_assignment_state(
+    const std::vector<std::vector<RhoCost>>& cost,
+    const RhoHungarianState& state)
+{
+  return validate_state_internal(cost, state);
 }

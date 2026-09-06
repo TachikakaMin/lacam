@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -15,6 +16,7 @@
 #include <vector>
 
 #include "planner.hpp"
+#include "rho_assignment.hpp"
 #include "tapf_assignment.hpp"
 
 enum class TAPFSearchMode {
@@ -558,6 +560,126 @@ enum class RhoObjectiveVersion : uint32_t {
   ADDITIVE_SERVICE_MINUS_DEFER_V1 = 2,
 };
 
+enum class RhoColumnKind : uint8_t {
+  TASK = 0,
+  OWN_IDLE = 1,
+};
+
+struct RhoColumnKey {
+  RhoColumnKind kind = RhoColumnKind::TASK;
+  TransferKey transfer;
+  TaskId task;
+  int task_index = -1;
+  int owner_robot = -1;
+
+  bool operator==(const RhoColumnKey& o) const
+  {
+    return kind == o.kind && transfer == o.transfer &&
+           task == o.task && task_index == o.task_index &&
+           owner_robot == o.owner_robot;
+  }
+  bool operator!=(const RhoColumnKey& o) const
+  {
+    return !(*this == o);
+  }
+  bool operator<(const RhoColumnKey& o) const
+  {
+    if (kind != o.kind) return kind < o.kind;
+    if (transfer != o.transfer) return transfer < o.transfer;
+    if (task != o.task) return task < o.task;
+    return task_index != o.task_index
+               ? task_index < o.task_index
+               : owner_robot < o.owner_robot;
+  }
+};
+
+struct RhoColumnModelVersion {
+  std::vector<RhoColumnKey> ordered_columns;
+  std::vector<RhoCost> service;
+  std::vector<RhoCost> urgency;
+  std::vector<RhoCost> root_delay;
+  std::vector<uint64_t> endpoint_conflict_version;
+  DispatchMode mode = DispatchMode::NONE;
+  uint32_t mode_semantics_version = 0;
+  uint32_t objective_version = 0;
+  uint32_t scaling_version = 0;
+  uint32_t inf_version = 0;
+  uint32_t canonical_version = 0;
+  uint64_t quick_hash = 0;
+};
+
+struct RhoRowFingerprint {
+  int robot_position = -1;
+  int kappa = KAPPA_FREE;
+  std::optional<TransferKey> custody;
+  DispatchMode phase = DispatchMode::NONE;
+  std::vector<uint8_t> eligibility;
+  std::optional<RhoColumnKey> anchor_used;
+
+  bool operator==(const RhoRowFingerprint& o) const
+  {
+    return robot_position == o.robot_position &&
+           kappa == o.kappa && custody == o.custody &&
+           phase == o.phase && eligibility == o.eligibility &&
+           anchor_used == o.anchor_used;
+  }
+  bool operator!=(const RhoRowFingerprint& o) const
+  {
+    return !(*this == o);
+  }
+};
+
+enum class RhoIncrementalFallbackReason : uint8_t {
+  NONE = 0,
+  NO_PARENT_STATE,
+  STALE_OR_REWIRED_PARENT,
+  SHAPE_CHANGED,
+  COLUMN_IDENTITY_CHANGED,
+  COLUMN_VALUE_CHANGED,
+  MODE_CHANGED,
+  CONFLICT_CHANGED,
+  OBJECTIVE_VERSION_CHANGED,
+  SCALING_VERSION_CHANGED,
+  INF_VERSION_CHANGED,
+  CANONICAL_VERSION_CHANGED,
+  STATE_VALIDATION_FAILED,
+  SHADOW_MISMATCH,
+};
+
+struct RhoNodeAssignmentState {
+  RhoHungarianState optimum;
+  RhoColumnModelVersion column_model;
+  std::vector<RhoRowFingerprint> row_fingerprint;
+  // `mate` is the current canonical production assignment.  `anchor_used`
+  // is the previous assignment that was actually priced into this matrix.
+  std::vector<std::optional<RhoColumnKey>> mate;
+  std::vector<std::optional<RhoColumnKey>> anchor_used;
+};
+
+struct RhoReuseDecision {
+  bool may_repair = false;
+  RhoIncrementalFallbackReason fallback =
+      RhoIncrementalFallbackReason::NO_PARENT_STATE;
+  std::vector<int> changed_rows;
+};
+
+void rho_finalize_column_model(RhoColumnModelVersion& model);
+bool rho_column_models_exactly_equal(
+    const RhoColumnModelVersion& a,
+    const RhoColumnModelVersion& b);
+RhoIncrementalFallbackReason classify_rho_column_model_change(
+    const RhoColumnModelVersion& parent,
+    const RhoColumnModelVersion& current);
+const char* rho_incremental_fallback_reason_name(
+    RhoIncrementalFallbackReason reason);
+RhoReuseDecision assess_rho_incremental_reuse(
+    const std::optional<RhoNodeAssignmentState>& parent,
+    const RhoColumnModelVersion& current_model,
+    const std::vector<RhoRowFingerprint>& current_rows,
+    bool transition_valid, bool parent_stale);
+size_t rho_node_assignment_state_payload_bytes(
+    const RhoNodeAssignmentState& state);
+
 enum class RhoDropReason {
   INVALID_TASK = 0,
   DUPLICATE_TRANSFER_KEY = 1,
@@ -602,6 +724,21 @@ struct RhoMatchTelemetry {
   double secondary_full_time_ms = 0;
   double additive_full_time_ms = 0;
   double canonical_time_ms = 0;
+  RhoIncrementalFallbackReason incremental_fallback =
+      RhoIncrementalFallbackReason::NO_PARENT_STATE;
+  bool incremental_changed_rows_valid = false;
+  long incremental_changed_rows = 0;
+  long incremental_augmentations = 0;
+  long incremental_full_solves = 0;
+  long incremental_repairs = 0;
+  long incremental_zero_row_reuses = 0;
+  long shadow_mismatches = 0;
+  RhoCost shadow_full_objective = 0;
+  RhoCost shadow_incremental_objective = 0;
+  double incremental_copy_time_ms = 0;
+  double incremental_repair_time_ms = 0;
+  double incremental_full_time_ms = 0;
+  uint64_t incremental_state_bytes = 0;
   uint64_t column_identity_fingerprint = 0;
   uint64_t column_value_fingerprint = 0;
   uint64_t mode_or_conflict_fingerprint = 0;
@@ -612,6 +749,7 @@ struct DDReadyMatchProbe {
   std::vector<std::optional<TaskId>> rho_task_id;
   std::vector<std::optional<TransferKey>> rho_transfer_key;
   std::vector<int> rho_ready_index;
+  std::optional<RhoNodeAssignmentState> rho_state;
   RhoMatchTelemetry telemetry;
   std::vector<RhoCandidateAudit> audit;
 };
@@ -629,6 +767,10 @@ struct CarrierGuidance {
   std::vector<DispatchMode> rho_mode;
   RhoMatchTelemetry rho_execute_telemetry;
   RhoMatchTelemetry rho_prepare_telemetry;
+  // H0/H1: node-local value states.  They are never stored in the shared
+  // UpperEpochGuidance cache.
+  std::optional<RhoNodeAssignmentState> rho_execute_state;
+  std::optional<RhoNodeAssignmentState> rho_prepare_state;
   uint64_t rho_mode_or_conflict_fingerprint = 0;
   std::vector<uint64_t> rho_row_fingerprints;
   std::vector<std::optional<Custody>> custody_by_robot;
@@ -777,6 +919,33 @@ struct TAPFStats {
   long rho_changed_rows_2 = 0;
   long rho_changed_rows_gt2 = 0;
   long rho_assignment_changes = 0;
+  long rho_incremental_full_solves = 0;
+  long rho_incremental_repairs = 0;
+  long rho_incremental_zero_row_reuses = 0;
+  long rho_incremental_augmentations = 0;
+  long rho_incremental_changed_rows_0 = 0;
+  long rho_incremental_changed_rows_1 = 0;
+  long rho_incremental_changed_rows_2 = 0;
+  long rho_incremental_changed_rows_gt2 = 0;
+  long rho_shadow_mismatches = 0;
+  double rho_incremental_copy_time_ms = 0;
+  double rho_incremental_repair_time_ms = 0;
+  double rho_incremental_full_time_ms = 0;
+  uint64_t rho_incremental_state_bytes_total = 0;
+  uint64_t rho_incremental_state_bytes_max = 0;
+  long rho_fallback_no_parent_state = 0;
+  long rho_fallback_stale_or_rewired_parent = 0;
+  long rho_fallback_shape_changed = 0;
+  long rho_fallback_column_identity_changed = 0;
+  long rho_fallback_column_value_changed = 0;
+  long rho_fallback_mode_changed = 0;
+  long rho_fallback_conflict_changed = 0;
+  long rho_fallback_objective_version_changed = 0;
+  long rho_fallback_scaling_version_changed = 0;
+  long rho_fallback_inf_version_changed = 0;
+  long rho_fallback_canonical_version_changed = 0;
+  long rho_fallback_state_validation_failed = 0;
+  long rho_fallback_shadow_mismatch = 0;
   double rho_candidate_time_ms = 0;
   double rho_matrix_time_ms = 0;
   double rho_bottleneck_time_ms = 0;
