@@ -1,8 +1,8 @@
 # Carrier-LaCAM 机器人—任务全局匹配与增量 Hungarian 方案报告
 
 日期：2026-09-06；审计基线：`80148a7`；当前 production：`64a3941`；
-问题实例：`brap_h10w10_a12_e8_R1_seed1`；状态：审计、分阶段实验与
-quick 验证已完成，full 509 待独立终审
+问题实例：`brap_h10w10_a12_e8_R1_seed1`；状态：审计、分阶段实验、
+quick、独立终审与 sealed full 509 均已完成
 
 ## 1. 结论摘要
 
@@ -1197,7 +1197,7 @@ ready tasks
 方便复用 Hungarian 而保留；production 继续使用 task-row bottleneck，
 只在 §13.2.1 的严格同质阶段增加有限 dummy 延期。
 
-最终代码通过 C++ 312/312、Python 162/162。最终 quick 相对 F2S 的 47 个
+最终代码通过 C++ 312/312、Python 164/164。最终 quick 相对 F2S 的 47 个
 共同成功实例为 2 个更好、42 个完全相同、3 个更差，solved-set 不变。
 两个改善是 `(1361,2964)→(1359,2958)` 与 `(53,106)→(45,89)`；三个回退
 包括同 makespan 下 work `817→818`，以及两个 warehouse case 的 makespan
@@ -1206,4 +1206,28 @@ ready tasks
 
 当前二进制 SHA-256 为
 `d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d`。
-full 509、最终比较网页及其独立审查仍是发布前剩余步骤。
+
+正式 full 保持 `479/509` solved，factorial 为 `432/432`，没有 gained/lost
+case；但 479 个共同成功实例的词典序为 `60/261/158`，factorial 为
+`51/247/134`。factorial makespan 几何比为 `1.0294`，scarce-agent 组为
+`18/14/76`、几何比 `1.0929`。因此 full 进一步确认：
+
+> 候选准入合同已修复，求解覆盖率保持；但当前 direct-target V2 不是总体
+> makespan 改进，主要风险集中在机器人稀缺时的全局 bottleneck。
+
+wall time 为 `266.3s`，基线 `265.9s`；成功实例首解中位数
+`122ms→130ms`。479 个成功实例中 `rho_priority_filtered=0`，累计
+`after_priority=matrix_rows=13,517,441`。
+
+最终页面：
+
+- `benchmark/viz_web/carrier_lacam_rho_v2_final_report_20260906/index.html`
+- `benchmark/viz_web/full_benchmark_rho_v2_20260906/index.html`
+- `benchmark/viz_web/full_comparison_two_pass_vs_rho_v2_20260906/index.html`
+
+最终网页已通过独立内容与链接复核，结论为 `APPROVE`。
+
+同一 V2 二进制在 quick/full 的
+`brap_h4w10_a5_e10_R1_seed1` 上得到两条等成本合法计划，均为
+`(58,118)`，但 plan SHA 不同；发布口径因此只声明成本和合法性确定，不声明
+deadline 边界下的计划字节唯一。

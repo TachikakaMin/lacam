@@ -356,12 +356,59 @@ def _relative_url(path, output):
     ).as_posix()
 
 
+def _js_template_text(value):
+    return (
+        html.escape(str(value))
+        .replace("\\", "\\\\")
+        .replace("`", "\\`")
+        .replace("${", "\\${")
+    )
+
+
+def _navigation_links(
+    baseline_label,
+    current_label,
+    baseline_rows_url,
+    current_rows_url,
+    report_url,
+    baseline_dashboard_url,
+    current_dashboard_url,
+):
+    links = [("../index.html", "可视化首页")]
+    if report_url:
+        links.append((report_url, "本次最终报告"))
+    if baseline_dashboard_url:
+        links.append(
+            (baseline_dashboard_url, "{} dashboard".format(baseline_label))
+        )
+    if current_dashboard_url:
+        links.append(
+            (current_dashboard_url, "{} dashboard".format(current_label))
+        )
+    links.extend(
+        (
+            (baseline_rows_url, "{} rows.csv".format(baseline_label)),
+            (current_rows_url, "{} rows.csv".format(current_label)),
+        )
+    )
+    return "\n  ".join(
+        '<a href="{}">{}</a>'.format(
+            html.escape(str(url), quote=True),
+            html.escape(str(label)),
+        )
+        for url, label in links
+    )
+
+
 def _generate_html(
     data,
     baseline_label,
     current_label,
     baseline_rows_url,
     current_rows_url,
+    report_url=None,
+    baseline_dashboard_url=None,
+    current_dashboard_url=None,
 ):
     overview = data["overview"]
     timing = data["timing"]
@@ -437,16 +484,12 @@ canvas {{ display:block; width:100%; height:330px; background:#081522;
 <h1>{baseline_label} vs {current_label}</h1>
 <p>逐例配对相同的 {total} 个 case。先比较是否解出；两版都成功时，再按
 严格词典序 <b>(T, W)</b> 判断：T（完成时间）优先，T 相同才比较 W。
-表中 better/equal/worse 均从当前 v5 的角度计算，负 Δ 表示更小。</p>
-<p class="note">旧 full 使用 pre-v5 二进制，仅作回顾性对比，不是当前 v5
-完成证据。两次运行 suite SHA 相同，但算法和运行成本不同。</p>
+表中 better/equal/worse 均从 {current_label} 的角度计算，负 Δ 表示更小。</p>
+<p class="note">这是两个独立 full benchmark 产物的回顾性配对比较。两次运行
+suite SHA 相同，但算法版本和实际运行成本不同；每一侧的完成证据以各自
+dashboard、rows.csv、timing.json 和 provenance 为准。</p>
 <div class="nav">
-  <a href="../index.html">可视化首页</a>
-  <a href="../carrier_lacam_v5_final_report_20260905/index.html">v5 最终汇报</a>
-  <a href="../full_benchmark_v5_854df1_20260905/index.html">v5 full dashboard</a>
-  <a href="../historical_pre_v5_full_benchmark_509_20260905/index.html">pre-v5 dashboard</a>
-  <a href="{baseline_rows_url}">旧 rows.csv</a>
-  <a href="{current_rows_url}">v5 rows.csv</a>
+  {navigation_links}
 </div>
 
 <section class="cards">
@@ -466,14 +509,16 @@ canvas {{ display:block; width:100%; height:330px; background:#081522;
 
 <div class="two">
   <div class="panel">
-    <h2>Makespan：旧值 vs v5</h2>
+    <h2>Makespan：{baseline_label} vs {current_label}</h2>
     <canvas id="scatterT" width="700" height="330"></canvas>
-    <div class="legend">对数坐标；对角线下方（绿色）表示 v5 更快。</div>
+    <div class="legend">横轴为 {baseline_label}，纵轴为 {current_label}；
+      对数坐标，对角线下方（绿色）表示 {current_label} 更快。</div>
   </div>
   <div class="panel">
-    <h2>Work：旧值 vs v5</h2>
+    <h2>Work：{baseline_label} vs {current_label}</h2>
     <canvas id="scatterW" width="700" height="330"></canvas>
-    <div class="legend">对数坐标；对角线下方为 v5 work 更小。</div>
+    <div class="legend">横轴为 {baseline_label}，纵轴为 {current_label}；
+      对数坐标，对角线下方表示 {current_label} 的 work 更小。</div>
   </div>
 </div>
 
@@ -524,8 +569,10 @@ canvas {{ display:block; width:100%; height:330px; background:#081522;
   </div>
   <div class="table-wrap"><table id="caseTable">
     <thead><tr><th>instance</th><th>范围</th><th>family</th><th>结论</th>
-      <th>状态 old → v5</th><th>T old → v5</th><th>ΔT</th>
-      <th>W old → v5</th><th>ΔW</th><th>runtime old → v5</th>
+      <th>状态 {baseline_label} → {current_label}</th>
+      <th>T {baseline_label} → {current_label}</th><th>ΔT</th>
+      <th>W {baseline_label} → {current_label}</th><th>ΔW</th>
+      <th>runtime {baseline_label} → {current_label}</th>
       <th>动画</th></tr></thead>
     <tbody id="caseBody"></tbody>
   </table></div>
@@ -565,8 +612,8 @@ function renderCases(){{
     (!family||r.family===family));
   document.getElementById("visibleCount").textContent=`显示 ${{rows.length}} / ${{CASES.length}}`;
   document.getElementById("caseBody").innerHTML=rows.map(r=>{{
-    const links=[r.baseline_animation?`<a href="${{esc(r.baseline_animation)}}">old</a>`:"",
-      r.current_animation?`<a href="${{esc(r.current_animation)}}">v5</a>`:""].filter(Boolean).join(" · ");
+    const links=[r.baseline_animation?`<a href="${{esc(r.baseline_animation)}}">{baseline_link_label}</a>`:"",
+      r.current_animation?`<a href="${{esc(r.current_animation)}}">{current_link_label}</a>`:""].filter(Boolean).join(" · ");
     return `<tr><td>${{esc(r.instance)}}</td><td>${{r.scope}}</td><td>${{esc(r.family)}}</td>
       <td><span class="pill ${{r.verdict}}">${{r.verdict}}</span></td>
       <td>${{esc(r.baseline_status)}} → ${{esc(r.current_status)}}</td>
@@ -585,8 +632,9 @@ function scatter(id,baseKey,currentKey){{
   ctx.clearRect(0,0,canvas.width,canvas.height); ctx.strokeStyle="#46617b";
   ctx.beginPath();ctx.moveTo(pad,pad+h);ctx.lineTo(pad+w,pad);ctx.stroke();
   ctx.fillStyle="#9fb3c7";ctx.font="11px sans-serif";
-  ctx.fillText("旧值",canvas.width/2,canvas.height-7);
-  ctx.save();ctx.translate(11,canvas.height/2);ctx.rotate(-Math.PI/2);ctx.fillText("v5",0,0);ctx.restore();
+  ctx.fillText({baseline_label_js},canvas.width/2,canvas.height-7);
+  ctx.save();ctx.translate(11,canvas.height/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText({current_label_js},0,0);ctx.restore();
   rows.forEach(r=>{{
     const x=pad+scale(r[baseKey])*w,y=pad+h-scale(r[currentKey])*h;
     ctx.fillStyle=r[currentKey]<r[baseKey]?"#2dd4bf":r[currentKey]>r[baseKey]?"#fb7185":"#94a3b8";
@@ -603,6 +651,19 @@ scatter("scatterW","baseline_work","current_work");
 """.format(
         baseline_label=html.escape(baseline_label),
         current_label=html.escape(current_label),
+        baseline_link_label=_js_template_text(baseline_label),
+        current_link_label=_js_template_text(current_label),
+        baseline_label_js=json.dumps(baseline_label, ensure_ascii=False),
+        current_label_js=json.dumps(current_label, ensure_ascii=False),
+        navigation_links=_navigation_links(
+            baseline_label=baseline_label,
+            current_label=current_label,
+            baseline_rows_url=baseline_rows_url,
+            current_rows_url=current_rows_url,
+            report_url=report_url,
+            baseline_dashboard_url=baseline_dashboard_url,
+            current_dashboard_url=current_dashboard_url,
+        ),
         total=overview["total"],
         base_solved=overview["baseline_solved"],
         current_solved=overview["current_solved"],
@@ -630,8 +691,6 @@ scatter("scatterW","baseline_work","current_work");
             ensure_ascii=False,
             separators=(",", ":"),
         ).replace("<", "\\u003c"),
-        baseline_rows_url=html.escape(baseline_rows_url),
-        current_rows_url=html.escape(current_rows_url),
         base_binary=html.escape(timing["baseline"]["binary_sha256"]),
         current_binary=html.escape(timing["current"]["binary_sha256"]),
         suite=html.escape(timing["current"]["suite_sha256"]),
@@ -650,8 +709,11 @@ def generate_comparison_dashboard(
     out_dir,
     baseline_case_prefix,
     current_case_prefix,
-    baseline_label="pre-v5 historical full",
-    current_label="v5 production full",
+    baseline_label="baseline full",
+    current_label="current full",
+    report_url=None,
+    baseline_dashboard_url=None,
+    current_dashboard_url=None,
 ):
     data = build_comparison_data(
         baseline_rows_path=baseline_rows_path,
@@ -670,6 +732,9 @@ def generate_comparison_dashboard(
         current_label=current_label,
         baseline_rows_url=_relative_url(baseline_rows_path, output),
         current_rows_url=_relative_url(current_rows_path, output),
+        report_url=report_url,
+        baseline_dashboard_url=baseline_dashboard_url,
+        current_dashboard_url=current_dashboard_url,
     )
     (output / "index.html").write_text(page, encoding="utf-8")
     (output / "summary.json").write_text(
@@ -689,10 +754,11 @@ def main():
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--baseline-case-prefix", required=True)
     parser.add_argument("--current-case-prefix", required=True)
-    parser.add_argument(
-        "--baseline-label", default="pre-v5 historical full"
-    )
-    parser.add_argument("--current-label", default="v5 production full")
+    parser.add_argument("--baseline-label", default="baseline full")
+    parser.add_argument("--current-label", default="current full")
+    parser.add_argument("--report-url")
+    parser.add_argument("--baseline-dashboard-url")
+    parser.add_argument("--current-dashboard-url")
     args = parser.parse_args()
     data = generate_comparison_dashboard(
         baseline_rows_path=args.baseline_rows,
@@ -705,6 +771,9 @@ def main():
         current_case_prefix=args.current_case_prefix,
         baseline_label=args.baseline_label,
         current_label=args.current_label,
+        report_url=args.report_url,
+        baseline_dashboard_url=args.baseline_dashboard_url,
+        current_dashboard_url=args.current_dashboard_url,
     )
     print(
         "wrote {}: {} cases; solved {}/{} -> {}/{}".format(

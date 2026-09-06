@@ -1,0 +1,1604 @@
+{
+  "overview": {
+    "total": 509,
+    "baseline_solved": 479,
+    "current_solved": 479,
+    "common_solved": 479,
+    "gained": 0,
+    "lost": 0,
+    "both_failed": 30,
+    "success_sets_equal": true,
+    "makespan": {
+      "better_equal_worse": [
+        49,
+        299,
+        131
+      ],
+      "baseline_sum": 33752.0,
+      "current_sum": 32714.0,
+      "sum_delta": -1038.0,
+      "geometric_ratio": 1.032795636723172
+    },
+    "work": {
+      "better_equal_worse": [
+        68,
+        263,
+        148
+      ],
+      "baseline_sum": 145597.0,
+      "current_sum": 139427.0,
+      "sum_delta": -6170.0,
+      "geometric_ratio": 1.0304634148835885
+    },
+    "lexicographic": {
+      "better_equal_worse": [
+        60,
+        261,
+        158
+      ]
+    },
+    "plan_hash_changes": 222,
+    "baseline_runtime_sum": 3629.4259999999995,
+    "current_runtime_sum": 3630.4739999999965,
+    "baseline_runtime_mean": 7.130502946954813,
+    "current_runtime_mean": 7.13256188605108
+  },
+  "quick": {
+    "total": 77,
+    "baseline_solved": 47,
+    "current_solved": 47,
+    "common_solved": 47,
+    "gained": 0,
+    "lost": 0,
+    "both_failed": 30,
+    "success_sets_equal": true,
+    "makespan": {
+      "better_equal_worse": [
+        8,
+        16,
+        23
+      ],
+      "baseline_sum": 19876.0,
+      "current_sum": 18290.0,
+      "sum_delta": -1586.0,
+      "geometric_ratio": 1.0653198224598535
+    },
+    "work": {
+      "better_equal_worse": [
+        13,
+        14,
+        20
+      ],
+      "baseline_sum": 54703.0,
+      "current_sum": 47157.0,
+      "sum_delta": -7546.0,
+      "geometric_ratio": 1.0538753024170255
+    },
+    "lexicographic": {
+      "better_equal_worse": [
+        9,
+        14,
+        24
+      ]
+    },
+    "plan_hash_changes": 33,
+    "baseline_runtime_sum": 564.6979999999996,
+    "current_runtime_sum": 624.001,
+    "baseline_runtime_mean": 7.33374025974026,
+    "current_runtime_mean": 8.103909090909092
+  },
+  "factorial": {
+    "total": 432,
+    "baseline_solved": 432,
+    "current_solved": 432,
+    "common_solved": 432,
+    "gained": 0,
+    "lost": 0,
+    "both_failed": 0,
+    "success_sets_equal": true,
+    "makespan": {
+      "better_equal_worse": [
+        41,
+        283,
+        108
+      ],
+      "baseline_sum": 13876.0,
+      "current_sum": 14424.0,
+      "sum_delta": 548.0,
+      "geometric_ratio": 1.0293914482840896
+    },
+    "work": {
+      "better_equal_worse": [
+        55,
+        249,
+        128
+      ],
+      "baseline_sum": 90894.0,
+      "current_sum": 92270.0,
+      "sum_delta": 1376.0,
+      "geometric_ratio": 1.0280013261050212
+    },
+    "lexicographic": {
+      "better_equal_worse": [
+        51,
+        247,
+        134
+      ]
+    },
+    "plan_hash_changes": 189,
+    "baseline_runtime_sum": 3064.7279999999996,
+    "current_runtime_sum": 3006.472999999997,
+    "baseline_runtime_mean": 7.094277777777778,
+    "current_runtime_mean": 6.959428240740741
+  },
+  "timing": {
+    "baseline": {
+      "wall_time_sec": 265.9,
+      "solver_time_sum_sec": 3629.4,
+      "binary_sha256": "bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a",
+      "suite_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed"
+    },
+    "current": {
+      "wall_time_sec": 266.3,
+      "solver_time_sum_sec": 3630.5,
+      "binary_sha256": "d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d",
+      "suite_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed"
+    },
+    "wall_ratio": 1.001504324934186,
+    "solver_sum_ratio": 1.000303080398964
+  },
+  "groups": {
+    "scope": [
+      {
+        "key": "factorial",
+        "total": 432,
+        "baseline_solved": 432,
+        "current_solved": 432,
+        "common_solved": 432,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            41,
+            283,
+            108
+          ],
+          "baseline_sum": 13876.0,
+          "current_sum": 14424.0,
+          "sum_delta": 548.0,
+          "geometric_ratio": 1.0293914482840896
+        },
+        "work": {
+          "better_equal_worse": [
+            55,
+            249,
+            128
+          ],
+          "baseline_sum": 90894.0,
+          "current_sum": 92270.0,
+          "sum_delta": 1376.0,
+          "geometric_ratio": 1.0280013261050212
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            51,
+            247,
+            134
+          ]
+        },
+        "plan_hash_changes": 189,
+        "baseline_runtime_sum": 3064.7279999999996,
+        "current_runtime_sum": 3006.472999999997,
+        "baseline_runtime_mean": 7.094277777777778,
+        "current_runtime_mean": 6.959428240740741
+      },
+      {
+        "key": "quick",
+        "total": 77,
+        "baseline_solved": 47,
+        "current_solved": 47,
+        "common_solved": 47,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 30,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            8,
+            16,
+            23
+          ],
+          "baseline_sum": 19876.0,
+          "current_sum": 18290.0,
+          "sum_delta": -1586.0,
+          "geometric_ratio": 1.0653198224598535
+        },
+        "work": {
+          "better_equal_worse": [
+            13,
+            14,
+            20
+          ],
+          "baseline_sum": 54703.0,
+          "current_sum": 47157.0,
+          "sum_delta": -7546.0,
+          "geometric_ratio": 1.0538753024170255
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            9,
+            14,
+            24
+          ]
+        },
+        "plan_hash_changes": 33,
+        "baseline_runtime_sum": 564.6979999999996,
+        "current_runtime_sum": 624.001,
+        "baseline_runtime_mean": 7.33374025974026,
+        "current_runtime_mean": 8.103909090909092
+      }
+    ],
+    "family": [
+      {
+        "key": "g10x10",
+        "total": 12,
+        "baseline_solved": 12,
+        "current_solved": 12,
+        "common_solved": 12,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            4,
+            4,
+            4
+          ],
+          "baseline_sum": 7948.0,
+          "current_sum": 7438.0,
+          "sum_delta": -510.0,
+          "geometric_ratio": 1.0008367904293933
+        },
+        "work": {
+          "better_equal_worse": [
+            4,
+            4,
+            4
+          ],
+          "baseline_sum": 17421.0,
+          "current_sum": 16228.0,
+          "sum_delta": -1193.0,
+          "geometric_ratio": 0.992252652132523
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            4,
+            4,
+            4
+          ]
+        },
+        "plan_hash_changes": 8,
+        "baseline_runtime_sum": 66.295,
+        "current_runtime_sum": 64.57300000000001,
+        "baseline_runtime_mean": 5.524583333333333,
+        "current_runtime_mean": 5.381083333333333
+      },
+      {
+        "key": "g20x20",
+        "total": 8,
+        "baseline_solved": 2,
+        "current_solved": 2,
+        "common_solved": 2,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 6,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            1,
+            0,
+            1
+          ],
+          "baseline_sum": 3583.0,
+          "current_sum": 2516.0,
+          "sum_delta": -1067.0,
+          "geometric_ratio": 0.7829260931818738
+        },
+        "work": {
+          "better_equal_worse": [
+            1,
+            0,
+            1
+          ],
+          "baseline_sum": 18933.0,
+          "current_sum": 12180.0,
+          "sum_delta": -6753.0,
+          "geometric_ratio": 0.7168983843168355
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            1,
+            0,
+            1
+          ]
+        },
+        "plan_hash_changes": 2,
+        "baseline_runtime_sum": 69.129,
+        "current_runtime_sum": 69.16,
+        "baseline_runtime_mean": 8.641125,
+        "current_runtime_mean": 8.645
+      },
+      {
+        "key": "g40x40",
+        "total": 8,
+        "baseline_solved": 0,
+        "current_solved": 0,
+        "common_solved": 0,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 8,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            0,
+            0
+          ],
+          "baseline_sum": 0.0,
+          "current_sum": 0.0,
+          "sum_delta": 0.0,
+          "geometric_ratio": null
+        },
+        "work": {
+          "better_equal_worse": [
+            0,
+            0,
+            0
+          ],
+          "baseline_sum": 0.0,
+          "current_sum": 0.0,
+          "sum_delta": 0.0,
+          "geometric_ratio": null
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            0,
+            0,
+            0
+          ]
+        },
+        "plan_hash_changes": 0,
+        "baseline_runtime_sum": 72.938,
+        "current_runtime_sum": 75.854,
+        "baseline_runtime_mean": 9.11725,
+        "current_runtime_mean": 9.48175
+      },
+      {
+        "key": "g4x10",
+        "total": 8,
+        "baseline_solved": 8,
+        "current_solved": 8,
+        "common_solved": 8,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            6,
+            2
+          ],
+          "baseline_sum": 1103.0,
+          "current_sum": 1282.0,
+          "sum_delta": 179.0,
+          "geometric_ratio": 1.1180283180977584
+        },
+        "work": {
+          "better_equal_worse": [
+            0,
+            6,
+            2
+          ],
+          "baseline_sum": 2195.0,
+          "current_sum": 2560.0,
+          "sum_delta": 365.0,
+          "geometric_ratio": 1.1148903734830802
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            0,
+            6,
+            2
+          ]
+        },
+        "plan_hash_changes": 2,
+        "baseline_runtime_sum": 27.142000000000003,
+        "current_runtime_sum": 46.78,
+        "baseline_runtime_mean": 3.39275,
+        "current_runtime_mean": 5.8475
+      },
+      {
+        "key": "g6x10",
+        "total": 8,
+        "baseline_solved": 8,
+        "current_solved": 8,
+        "common_solved": 8,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            4,
+            4
+          ],
+          "baseline_sum": 2625.0,
+          "current_sum": 2849.0,
+          "sum_delta": 224.0,
+          "geometric_ratio": 1.2299824643050543
+        },
+        "work": {
+          "better_equal_worse": [
+            0,
+            4,
+            4
+          ],
+          "baseline_sum": 5549.0,
+          "current_sum": 5979.0,
+          "sum_delta": 430.0,
+          "geometric_ratio": 1.1983806913456285
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            0,
+            4,
+            4
+          ]
+        },
+        "plan_hash_changes": 4,
+        "baseline_runtime_sum": 64.484,
+        "current_runtime_sum": 74.20299999999999,
+        "baseline_runtime_mean": 8.0605,
+        "current_runtime_mean": 9.275375
+      },
+      {
+        "key": "g80x80",
+        "total": 16,
+        "baseline_solved": 0,
+        "current_solved": 0,
+        "common_solved": 0,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 16,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            0,
+            0
+          ],
+          "baseline_sum": 0.0,
+          "current_sum": 0.0,
+          "sum_delta": 0.0,
+          "geometric_ratio": null
+        },
+        "work": {
+          "better_equal_worse": [
+            0,
+            0,
+            0
+          ],
+          "baseline_sum": 0.0,
+          "current_sum": 0.0,
+          "sum_delta": 0.0,
+          "geometric_ratio": null
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            0,
+            0,
+            0
+          ]
+        },
+        "plan_hash_changes": 0,
+        "baseline_runtime_sum": 150.143,
+        "current_runtime_sum": 151.70100000000002,
+        "baseline_runtime_mean": 9.3839375,
+        "current_runtime_mean": 9.4813125
+      },
+      {
+        "key": "g8x10",
+        "total": 8,
+        "baseline_solved": 8,
+        "current_solved": 8,
+        "common_solved": 8,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            3,
+            0,
+            5
+          ],
+          "baseline_sum": 4405.0,
+          "current_sum": 3981.0,
+          "sum_delta": -424.0,
+          "geometric_ratio": 1.0455667914972981
+        },
+        "work": {
+          "better_equal_worse": [
+            4,
+            0,
+            4
+          ],
+          "baseline_sum": 9221.0,
+          "current_sum": 8803.0,
+          "sum_delta": -418.0,
+          "geometric_ratio": 1.0900049096023439
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            3,
+            0,
+            5
+          ]
+        },
+        "plan_hash_changes": 8,
+        "baseline_runtime_sum": 36.547,
+        "current_runtime_sum": 63.565,
+        "baseline_runtime_mean": 4.568375,
+        "current_runtime_mean": 7.945625
+      },
+      {
+        "key": "warehouse_blocks",
+        "total": 9,
+        "baseline_solved": 9,
+        "current_solved": 9,
+        "common_solved": 9,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            2,
+            7
+          ],
+          "baseline_sum": 212.0,
+          "current_sum": 224.0,
+          "sum_delta": 12.0,
+          "geometric_ratio": 1.055470507118164
+        },
+        "work": {
+          "better_equal_worse": [
+            4,
+            0,
+            5
+          ],
+          "baseline_sum": 1384.0,
+          "current_sum": 1407.0,
+          "sum_delta": 23.0,
+          "geometric_ratio": 1.0176799339479115
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            1,
+            0,
+            8
+          ]
+        },
+        "plan_hash_changes": 9,
+        "baseline_runtime_sum": 78.02,
+        "current_runtime_sum": 78.16500000000002,
+        "baseline_runtime_mean": 8.668888888888889,
+        "current_runtime_mean": 8.685
+      },
+      {
+        "key": "warehouse_random_factorial",
+        "total": 432,
+        "baseline_solved": 432,
+        "current_solved": 432,
+        "common_solved": 432,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            41,
+            283,
+            108
+          ],
+          "baseline_sum": 13876.0,
+          "current_sum": 14424.0,
+          "sum_delta": 548.0,
+          "geometric_ratio": 1.0293914482840896
+        },
+        "work": {
+          "better_equal_worse": [
+            55,
+            249,
+            128
+          ],
+          "baseline_sum": 90894.0,
+          "current_sum": 92270.0,
+          "sum_delta": 1376.0,
+          "geometric_ratio": 1.0280013261050212
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            51,
+            247,
+            134
+          ]
+        },
+        "plan_hash_changes": 189,
+        "baseline_runtime_sum": 3064.7279999999996,
+        "current_runtime_sum": 3006.472999999997,
+        "baseline_runtime_mean": 7.094277777777778,
+        "current_runtime_mean": 6.959428240740741
+      }
+    ],
+    "map_family": [
+      {
+        "key": "g1",
+        "total": 72,
+        "baseline_solved": 72,
+        "current_solved": 72,
+        "common_solved": 72,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            62,
+            10
+          ],
+          "baseline_sum": 1191.0,
+          "current_sum": 1254.0,
+          "sum_delta": 63.0,
+          "geometric_ratio": 1.035231110203441
+        },
+        "work": {
+          "better_equal_worse": [
+            0,
+            59,
+            13
+          ],
+          "baseline_sum": 2903.0,
+          "current_sum": 3047.0,
+          "sum_delta": 144.0,
+          "geometric_ratio": 1.0390561037586967
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            0,
+            59,
+            13
+          ]
+        },
+        "plan_hash_changes": 16,
+        "baseline_runtime_sum": 469.08800000000014,
+        "current_runtime_sum": 439.854,
+        "baseline_runtime_mean": 6.5151111111111115,
+        "current_runtime_mean": 6.109083333333333
+      },
+      {
+        "key": "g2",
+        "total": 72,
+        "baseline_solved": 72,
+        "current_solved": 72,
+        "common_solved": 72,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            6,
+            47,
+            19
+          ],
+          "baseline_sum": 1608.0,
+          "current_sum": 1686.0,
+          "sum_delta": 78.0,
+          "geometric_ratio": 1.0393672226781732
+        },
+        "work": {
+          "better_equal_worse": [
+            3,
+            42,
+            27
+          ],
+          "baseline_sum": 5449.0,
+          "current_sum": 5846.0,
+          "sum_delta": 397.0,
+          "geometric_ratio": 1.0612554354395625
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            6,
+            41,
+            25
+          ]
+        },
+        "plan_hash_changes": 32,
+        "baseline_runtime_sum": 412.04200000000003,
+        "current_runtime_sum": 400.80799999999994,
+        "baseline_runtime_mean": 5.7228055555555555,
+        "current_runtime_mean": 5.566777777777777
+      },
+      {
+        "key": "g3",
+        "total": 72,
+        "baseline_solved": 72,
+        "current_solved": 72,
+        "common_solved": 72,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            7,
+            51,
+            14
+          ],
+          "baseline_sum": 1792.0,
+          "current_sum": 1842.0,
+          "sum_delta": 50.0,
+          "geometric_ratio": 1.017899944883728
+        },
+        "work": {
+          "better_equal_worse": [
+            6,
+            40,
+            26
+          ],
+          "baseline_sum": 8123.0,
+          "current_sum": 8367.0,
+          "sum_delta": 244.0,
+          "geometric_ratio": 1.0306103691344535
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            9,
+            40,
+            23
+          ]
+        },
+        "plan_hash_changes": 32,
+        "baseline_runtime_sum": 540.2499999999999,
+        "current_runtime_sum": 553.297,
+        "baseline_runtime_mean": 7.503472222222222,
+        "current_runtime_mean": 7.6846805555555555
+      },
+      {
+        "key": "g4",
+        "total": 72,
+        "baseline_solved": 72,
+        "current_solved": 72,
+        "common_solved": 72,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            9,
+            44,
+            19
+          ],
+          "baseline_sum": 2189.0,
+          "current_sum": 2247.0,
+          "sum_delta": 58.0,
+          "geometric_ratio": 1.0194967867186195
+        },
+        "work": {
+          "better_equal_worse": [
+            11,
+            36,
+            25
+          ],
+          "baseline_sum": 14061.0,
+          "current_sum": 14416.0,
+          "sum_delta": 355.0,
+          "geometric_ratio": 1.023860037938026
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            12,
+            36,
+            24
+          ]
+        },
+        "plan_hash_changes": 36,
+        "baseline_runtime_sum": 556.2380000000002,
+        "current_runtime_sum": 548.3280000000002,
+        "baseline_runtime_mean": 7.725527777777778,
+        "current_runtime_mean": 7.615666666666667
+      },
+      {
+        "key": "g5",
+        "total": 72,
+        "baseline_solved": 72,
+        "current_solved": 72,
+        "common_solved": 72,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            8,
+            42,
+            22
+          ],
+          "baseline_sum": 2741.0,
+          "current_sum": 2945.0,
+          "sum_delta": 204.0,
+          "geometric_ratio": 1.045260174189746
+        },
+        "work": {
+          "better_equal_worse": [
+            17,
+            36,
+            19
+          ],
+          "baseline_sum": 22678.0,
+          "current_sum": 23055.0,
+          "sum_delta": 377.0,
+          "geometric_ratio": 1.016652060710106
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            12,
+            36,
+            24
+          ]
+        },
+        "plan_hash_changes": 36,
+        "baseline_runtime_sum": 541.3980000000001,
+        "current_runtime_sum": 522.413,
+        "baseline_runtime_mean": 7.519416666666666,
+        "current_runtime_mean": 7.255736111111111
+      },
+      {
+        "key": "g6",
+        "total": 72,
+        "baseline_solved": 72,
+        "current_solved": 72,
+        "common_solved": 72,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            11,
+            37,
+            24
+          ],
+          "baseline_sum": 4355.0,
+          "current_sum": 4450.0,
+          "sum_delta": 95.0,
+          "geometric_ratio": 1.0194399500811928
+        },
+        "work": {
+          "better_equal_worse": [
+            18,
+            36,
+            18
+          ],
+          "baseline_sum": 37680.0,
+          "current_sum": 37539.0,
+          "sum_delta": -141.0,
+          "geometric_ratio": 0.9976901360615396
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            12,
+            35,
+            25
+          ]
+        },
+        "plan_hash_changes": 37,
+        "baseline_runtime_sum": 545.712,
+        "current_runtime_sum": 541.7730000000001,
+        "baseline_runtime_mean": 7.5793333333333335,
+        "current_runtime_mean": 7.524625
+      }
+    ],
+    "density_level": [
+      {
+        "key": "high",
+        "total": 144,
+        "baseline_solved": 144,
+        "current_solved": 144,
+        "common_solved": 144,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            11,
+            98,
+            35
+          ],
+          "baseline_sum": 4738.0,
+          "current_sum": 5003.0,
+          "sum_delta": 265.0,
+          "geometric_ratio": 1.032083982294234
+        },
+        "work": {
+          "better_equal_worse": [
+            17,
+            83,
+            44
+          ],
+          "baseline_sum": 31210.0,
+          "current_sum": 31710.0,
+          "sum_delta": 500.0,
+          "geometric_ratio": 1.0262643509940614
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            17,
+            82,
+            45
+          ]
+        },
+        "plan_hash_changes": 64,
+        "baseline_runtime_sum": 1153.4909999999993,
+        "current_runtime_sum": 1138.3789999999997,
+        "baseline_runtime_mean": 8.010354166666666,
+        "current_runtime_mean": 7.905409722222222
+      },
+      {
+        "key": "low",
+        "total": 144,
+        "baseline_solved": 144,
+        "current_solved": 144,
+        "common_solved": 144,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            18,
+            89,
+            37
+          ],
+          "baseline_sum": 4533.0,
+          "current_sum": 4683.0,
+          "sum_delta": 150.0,
+          "geometric_ratio": 1.0324464959445918
+        },
+        "work": {
+          "better_equal_worse": [
+            17,
+            82,
+            45
+          ],
+          "baseline_sum": 29502.0,
+          "current_sum": 30070.0,
+          "sum_delta": 568.0,
+          "geometric_ratio": 1.034910580744969
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            19,
+            82,
+            43
+          ]
+        },
+        "plan_hash_changes": 64,
+        "baseline_runtime_sum": 860.2950000000002,
+        "current_runtime_sum": 838.3190000000002,
+        "baseline_runtime_mean": 5.974270833333334,
+        "current_runtime_mean": 5.821659722222222
+      },
+      {
+        "key": "medium",
+        "total": 144,
+        "baseline_solved": 144,
+        "current_solved": 144,
+        "common_solved": 144,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            12,
+            96,
+            36
+          ],
+          "baseline_sum": 4605.0,
+          "current_sum": 4738.0,
+          "sum_delta": 133.0,
+          "geometric_ratio": 1.0236678775060901
+        },
+        "work": {
+          "better_equal_worse": [
+            21,
+            84,
+            39
+          ],
+          "baseline_sum": 30182.0,
+          "current_sum": 30490.0,
+          "sum_delta": 308.0,
+          "geometric_ratio": 1.0228664979134439
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            15,
+            83,
+            46
+          ]
+        },
+        "plan_hash_changes": 61,
+        "baseline_runtime_sum": 1050.9420000000005,
+        "current_runtime_sum": 1029.7749999999999,
+        "baseline_runtime_mean": 7.298208333333333,
+        "current_runtime_mean": 7.151215277777777
+      }
+    ],
+    "agent_level": [
+      {
+        "key": "baseline",
+        "total": 108,
+        "baseline_solved": 108,
+        "current_solved": 108,
+        "common_solved": 108,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            26,
+            41,
+            41
+          ],
+          "baseline_sum": 3591.0,
+          "current_sum": 3771.0,
+          "sum_delta": 180.0,
+          "geometric_ratio": 1.0274267562634734
+        },
+        "work": {
+          "better_equal_worse": [
+            37,
+            18,
+            53
+          ],
+          "baseline_sum": 23919.0,
+          "current_sum": 24053.0,
+          "sum_delta": 134.0,
+          "geometric_ratio": 1.025717747762696
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            33,
+            18,
+            57
+          ]
+        },
+        "plan_hash_changes": 90,
+        "baseline_runtime_sum": 791.181,
+        "current_runtime_sum": 759.7609999999997,
+        "baseline_runtime_mean": 7.32575,
+        "current_runtime_mean": 7.034824074074074
+      },
+      {
+        "key": "equal",
+        "total": 108,
+        "baseline_solved": 108,
+        "current_solved": 108,
+        "common_solved": 108,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            108,
+            0
+          ],
+          "baseline_sum": 2974.0,
+          "current_sum": 2974.0,
+          "sum_delta": 0.0,
+          "geometric_ratio": 1.0
+        },
+        "work": {
+          "better_equal_worse": [
+            0,
+            107,
+            1
+          ],
+          "baseline_sum": 22837.0,
+          "current_sum": 22838.0,
+          "sum_delta": 1.0,
+          "geometric_ratio": 1.0000221781230232
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            0,
+            107,
+            1
+          ]
+        },
+        "plan_hash_changes": 1,
+        "baseline_runtime_sum": 766.441,
+        "current_runtime_sum": 767.3299999999999,
+        "baseline_runtime_mean": 7.0966759259259256,
+        "current_runtime_mean": 7.104907407407407
+      },
+      {
+        "key": "scarce",
+        "total": 108,
+        "baseline_solved": 108,
+        "current_solved": 108,
+        "common_solved": 108,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            15,
+            26,
+            67
+          ],
+          "baseline_sum": 4536.0,
+          "current_sum": 4904.0,
+          "sum_delta": 368.0,
+          "geometric_ratio": 1.092877167150409
+        },
+        "work": {
+          "better_equal_worse": [
+            18,
+            16,
+            74
+          ],
+          "baseline_sum": 24361.0,
+          "current_sum": 25602.0,
+          "sum_delta": 1241.0,
+          "geometric_ratio": 1.088772637256826
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            18,
+            14,
+            76
+          ]
+        },
+        "plan_hash_changes": 98,
+        "baseline_runtime_sum": 744.748,
+        "current_runtime_sum": 717.2869999999999,
+        "baseline_runtime_mean": 6.895814814814814,
+        "current_runtime_mean": 6.641546296296296
+      },
+      {
+        "key": "surplus",
+        "total": 108,
+        "baseline_solved": 108,
+        "current_solved": 108,
+        "common_solved": 108,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            0,
+            108,
+            0
+          ],
+          "baseline_sum": 2775.0,
+          "current_sum": 2775.0,
+          "sum_delta": 0.0,
+          "geometric_ratio": 1.0
+        },
+        "work": {
+          "better_equal_worse": [
+            0,
+            108,
+            0
+          ],
+          "baseline_sum": 19777.0,
+          "current_sum": 19777.0,
+          "sum_delta": 0.0,
+          "geometric_ratio": 1.0
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            0,
+            108,
+            0
+          ]
+        },
+        "plan_hash_changes": 0,
+        "baseline_runtime_sum": 762.3580000000002,
+        "current_runtime_sum": 762.095,
+        "baseline_runtime_mean": 7.058870370370371,
+        "current_runtime_mean": 7.056435185185185
+      }
+    ],
+    "task_profile": [
+      {
+        "key": "cross_heavy",
+        "total": 144,
+        "baseline_solved": 144,
+        "current_solved": 144,
+        "common_solved": 144,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            10,
+            98,
+            36
+          ],
+          "baseline_sum": 5339.0,
+          "current_sum": 5452.0,
+          "sum_delta": 113.0,
+          "geometric_ratio": 1.0171895516602756
+        },
+        "work": {
+          "better_equal_worse": [
+            18,
+            87,
+            39
+          ],
+          "baseline_sum": 34499.0,
+          "current_sum": 34685.0,
+          "sum_delta": 186.0,
+          "geometric_ratio": 1.0139220303396617
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            14,
+            86,
+            44
+          ]
+        },
+        "plan_hash_changes": 59,
+        "baseline_runtime_sum": 1019.6530000000002,
+        "current_runtime_sum": 988.3209999999999,
+        "baseline_runtime_mean": 7.080923611111111,
+        "current_runtime_mean": 6.863340277777778
+      },
+      {
+        "key": "local",
+        "total": 144,
+        "baseline_solved": 144,
+        "current_solved": 144,
+        "common_solved": 144,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            10,
+            93,
+            41
+          ],
+          "baseline_sum": 3997.0,
+          "current_sum": 4183.0,
+          "sum_delta": 186.0,
+          "geometric_ratio": 1.0372533562439759
+        },
+        "work": {
+          "better_equal_worse": [
+            10,
+            80,
+            54
+          ],
+          "baseline_sum": 26660.0,
+          "current_sum": 27726.0,
+          "sum_delta": 1066.0,
+          "geometric_ratio": 1.0448746682028092
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            12,
+            79,
+            53
+          ]
+        },
+        "plan_hash_changes": 67,
+        "baseline_runtime_sum": 1022.0759999999999,
+        "current_runtime_sum": 1029.2040000000002,
+        "baseline_runtime_mean": 7.09775,
+        "current_runtime_mean": 7.14725
+      },
+      {
+        "key": "mixed",
+        "total": 144,
+        "baseline_solved": 144,
+        "current_solved": 144,
+        "common_solved": 144,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            21,
+            92,
+            31
+          ],
+          "baseline_sum": 4540.0,
+          "current_sum": 4789.0,
+          "sum_delta": 249.0,
+          "geometric_ratio": 1.0338438026334695
+        },
+        "work": {
+          "better_equal_worse": [
+            27,
+            82,
+            35
+          ],
+          "baseline_sum": 29735.0,
+          "current_sum": 29859.0,
+          "sum_delta": 124.0,
+          "geometric_ratio": 1.025444747524036
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            25,
+            82,
+            37
+          ]
+        },
+        "plan_hash_changes": 63,
+        "baseline_runtime_sum": 1022.9990000000001,
+        "current_runtime_sum": 988.948,
+        "baseline_runtime_mean": 7.104159722222223,
+        "current_runtime_mean": 6.867694444444444
+      }
+    ],
+    "goal_mode": [
+      {
+        "key": "shared_pool",
+        "total": 216,
+        "baseline_solved": 216,
+        "current_solved": 216,
+        "common_solved": 216,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            15,
+            138,
+            63
+          ],
+          "baseline_sum": 5600.0,
+          "current_sum": 5866.0,
+          "sum_delta": 266.0,
+          "geometric_ratio": 1.0357685475351497
+        },
+        "work": {
+          "better_equal_worse": [
+            25,
+            119,
+            72
+          ],
+          "baseline_sum": 37873.0,
+          "current_sum": 38746.0,
+          "sum_delta": 873.0,
+          "geometric_ratio": 1.0322145329923647
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            22,
+            119,
+            75
+          ]
+        },
+        "plan_hash_changes": 100,
+        "baseline_runtime_sum": 1592.5949999999998,
+        "current_runtime_sum": 1547.493,
+        "baseline_runtime_mean": 7.373125,
+        "current_runtime_mean": 7.164319444444445
+      },
+      {
+        "key": "singleton",
+        "total": 216,
+        "baseline_solved": 216,
+        "current_solved": 216,
+        "common_solved": 216,
+        "gained": 0,
+        "lost": 0,
+        "both_failed": 0,
+        "success_sets_equal": true,
+        "makespan": {
+          "better_equal_worse": [
+            26,
+            145,
+            45
+          ],
+          "baseline_sum": 8276.0,
+          "current_sum": 8558.0,
+          "sum_delta": 282.0,
+          "geometric_ratio": 1.023053612046909
+        },
+        "work": {
+          "better_equal_worse": [
+            30,
+            130,
+            56
+          ],
+          "baseline_sum": 53021.0,
+          "current_sum": 53524.0,
+          "sum_delta": 503.0,
+          "geometric_ratio": 1.0238053163329166
+        },
+        "lexicographic": {
+          "better_equal_worse": [
+            29,
+            128,
+            59
+          ]
+        },
+        "plan_hash_changes": 89,
+        "baseline_runtime_sum": 1472.133,
+        "current_runtime_sum": 1458.9799999999996,
+        "baseline_runtime_mean": 6.815430555555555,
+        "current_runtime_mean": 6.754537037037037
+      }
+    ]
+  },
+  "tests": {
+    "cpp": 312,
+    "python": 164
+  },
+  "evaluation": {
+    "schema_version": 1,
+    "production_commit": "64a3941",
+    "objective_version": "BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2",
+    "protected_examples": [
+      {
+        "label": "发布样例 A",
+        "before_label": "F2S",
+        "before": [
+          28,
+          45
+        ],
+        "after": [
+          17,
+          32
+        ]
+      },
+      {
+        "label": "发布样例 B",
+        "before_label": "F2S",
+        "before": [
+          12,
+          36
+        ],
+        "after": [
+          12,
+          36
+        ]
+      },
+      {
+        "label": "Testcase C",
+        "before_label": "F2S",
+        "before": [
+          31,
+          93
+        ],
+        "after": [
+          31,
+          93
+        ]
+      },
+      {
+        "label": "发布样例 D",
+        "before_label": "F2S",
+        "before": [
+          8,
+          23
+        ],
+        "after": [
+          8,
+          23
+        ]
+      },
+      {
+        "label": "大实例 seed0",
+        "before_label": "F2S",
+        "before": [
+          1273,
+          5796
+        ],
+        "after": [
+          1273,
+          5796
+        ]
+      },
+      {
+        "label": "大实例 seed1",
+        "before_label": "F2S",
+        "before": [
+          1243,
+          6384
+        ],
+        "after": [
+          1243,
+          6384
+        ]
+      }
+    ],
+    "rejected_experiments": [
+      {
+        "label": "additive G1",
+        "testcase_cost": [
+          231,
+          268
+        ],
+        "reason": "Testcase C 从保护值 (31, 93) 严重回归，已回滚"
+      },
+      {
+        "label": "H1 incremental shadow",
+        "testcase_cost": [
+          231,
+          268
+        ],
+        "reason": "建立在已回归的 additive 目标上，没有 production 采用价值，已回滚"
+      }
+    ],
+    "known_issues": [
+      "full 中 solved 集不变，但共同成功实例为 60 better / 261 equal / 158 worse，不能宣称整体质量提升。",
+      "factorial 的 scarce-agent 组明显回退；这说明有限 direct-target defer 仍可能损害全局 bottleneck。",
+      "同一 V2 二进制在 quick/full 的 brap_h4w10_a5_e10_R1_seed1 上返回了两条等成本合法计划，计划 SHA 不同。"
+    ]
+  },
+  "approval": {
+    "schema_version": 2,
+    "decision": "APPROVE",
+    "reviewer_model": "openai.gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "reviewer_agent_id": "01a07571-4f57-70a1-8a6e-4144784e2d39",
+    "reviewed_at_utc": "2026-09-06T07:55:02Z",
+    "suite_definition_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed",
+    "full_corpus_sha256": "7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae",
+    "binary_sha256": "d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d",
+    "review_summary": "APPROVE: V2 gate, finite priority semantics, rollback cleanliness, telemetry, protected samples, 312 C++ tests, 162 Python tests, and fixed quick 47/77 were independently verified. Full 509 may run; three quick quality regressions remain non-blocking evidence to evaluate."
+  },
+  "telemetry": {
+    "objective_versions": [
+      "BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2"
+    ],
+    "candidates_input": 15820413,
+    "candidates_after_priority": 13517441,
+    "priority_filtered": 0,
+    "matrix_rows": 13517441,
+    "assignment_changes": 4166162,
+    "guidance_time_ms": 1685175.2461679995
+  },
+  "first_solution": {
+    "baseline_median_ms": 122.0,
+    "current_median_ms": 130.0
+  }
+}

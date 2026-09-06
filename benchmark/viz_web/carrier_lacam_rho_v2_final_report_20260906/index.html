@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier-LaCAM rho V2 最终汇报</title>
+<style>
+:root{--bg:#07111d;--panel:#0d1b2a;--line:#20364d;--text:#e8f0f8;
+--muted:#9eb0c2;--cyan:#50d6d7;--green:#54d68c;--red:#ff7b7b;
+--amber:#ffc96b}*{box-sizing:border-box}body{margin:0;background:var(--bg);
+color:var(--text);font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;
+line-height:1.65}main{max-width:1180px;margin:auto;padding:40px 24px 72px}
+h1{font-size:clamp(30px,5vw,54px);line-height:1.15;margin:.2em 0}
+h2{margin-top:44px}a{color:var(--cyan)}.lead{font-size:19px;color:#c9d8e6;
+max-width:920px}.warning{border-left:5px solid var(--amber);padding:16px 20px;
+background:#251d0e;border-radius:8px}.cards{display:grid;
+grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:24px 0}
+.card,.panel{background:var(--panel);border:1px solid var(--line);
+border-radius:14px;padding:20px}.big{font-size:31px;font-weight:750}
+.sub{color:var(--muted);font-size:14px}.good{color:var(--green)}
+.bad{color:var(--red)}.flow{display:grid;grid-template-columns:1fr auto 1fr;
+gap:14px;align-items:center}.flow pre{white-space:pre-wrap;margin:0;
+font:15px/1.6 ui-monospace,SFMono-Regular,monospace}.arrow{font-size:30px;
+color:var(--cyan)}table{width:100%;border-collapse:collapse;margin:14px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{color:#bfd0df}.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;
+padding:3px 9px;color:var(--muted);font-size:13px}code{color:#b7f1f2}
+@media(max-width:760px){.cols,.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);
+text-align:center}table{font-size:13px}th,td{padding:8px 6px}}
+</style>
+</head>
+<body><main>
+<span class="tag">2026-09-06 · production 64a3941</span>
+<h1>候选准入修好了，<br>但 full 结果不是整体质量胜利</h1>
+<p class="lead">这次修改让普通低 priority 任务真正进入全局匹配，并用严格
+direct-target gate 限制有限延期权重。合法性和求解率保持，但 509 例显示：
+新规则在一部分实例显著改善，也在更多实例上变差，尤其是机器人稀缺场景。</p>
+
+<div class="cards">
+ <div class="card"><div class="big">479/509</div>
+  <div class="sub">solved，与基线 479/509 完全相同</div></div>
+ <div class="card"><div class="big">60 / 261 / 158</div>
+  <div class="sub">full 词典序：更好 / 相同 / 更差</div></div>
+ <div class="card"><div class="big bad">+2.94%</div>
+  <div class="sub">432 factorial 的几何平均 makespan 变化</div></div>
+ <div class="card"><div class="big">266.3s</div>
+  <div class="sub">full wall time；基线 265.9s</div></div>
+</div>
+
+<div class="warning"><b>结论边界：</b>V2 可以作为“候选公平性与直接交付连续性”
+的正确实现，但不能宣称它让整体 makespan 更好。full 中 60 个实例更好、
+158 个更差；factorial 中 51 / 247 / 134。后续研究应优先处理 scarce-agent
+下的 bottleneck 调度，不应把 additive 或增量 Hungarian 当作自动解法。</div>
+
+<h2>改了什么</h2>
+<div class="flow">
+ <div class="panel"><b>审计前</b><pre>ready tasks
+→ priority top-F 硬过滤
+→ 只有幸存任务进入矩阵
+→ bottleneck + secondary</pre></div>
+ <div class="arrow">→</div>
+ <div class="panel"><b>当前 V2</b><pre>物理/因果可行 tasks
+→ 全部进入 task-row 矩阵
+→ 混合清障：原物理 bottleneck
+→ 纯直接交付：有限 frontier / continuity defer
+→ 无 INF、无 mandatory、无 priority cutoff</pre></div>
+</div>
+<p>成功行导出的 objective 是 <code>BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2</code>；累计
+<code>priority_filtered=0</code>，且
+<code>after_priority=13,517,441</code> 与
+<code>matrix_rows=13,517,441</code> 相同。</p>
+
+<h2>full 509：先看整体，再看结构</h2>
+<div class="cards">
+ <div class="card"><div class="big">9 / 14 / 24</div><div class="sub">
+  quick 47 个共同成功实例：更好 / 相同 / 更差</div></div>
+ <div class="card"><div class="big">51 / 247 / 134</div><div class="sub">
+  factorial 432 例：更好 / 相同 / 更差</div></div>
+ <div class="card"><div class="big">122 → 130 ms</div>
+  <div class="sub">成功实例首解时间中位数</div></div>
+ <div class="card"><div class="big">4,166,162</div>
+  <div class="sub">相邻 guidance assignment-id changes；不是增量 repair 次数</div></div>
+</div>
+<table><thead><tr><th>机器人供给</th><th>共同成功</th>
+<th>更好 / 相同 / 更差</th><th>几何平均 makespan</th></tr></thead>
+<tbody><tr><td>baseline</td><td>108</td><td>33 / 18 / 57</td><td>+2.74%</td></tr>
+<tr><td>equal</td><td>108</td><td>0 / 107 / 1</td><td>+0.00%</td></tr>
+<tr><td>scarce</td><td>108</td><td>18 / 14 / 76</td><td>+9.29%</td></tr>
+<tr><td>surplus</td><td>108</td><td>0 / 108 / 0</td><td>+0.00%</td></tr></tbody></table>
+<p>最清楚的信号来自 <b>scarce</b>：18 / 14 / 76，几何平均 makespan
++9.29%。相反，equal 和 surplus 基本保持不变
+（0 / 107 / 1；0 / 108 / 0）。说明 V2 的直接交付延期在机器人不足时更容易
+牺牲全局 bottleneck，而机器人够用时通常不改变选择。</p>
+
+<div class="cols">
+ <section class="panel"><h3>改善最大的例子</h3>
+  <table><thead><tr><th>实例</th><th>基线</th><th>V2</th><th>动画</th></tr></thead>
+  <tbody><tr><td>brap_h20w20_a40_e100_R1_seed1</td><td>(2584, 13664)</td><td>(1243, 6384)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h20w20_a40_e100_R1_seed1.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h20w20_a40_e100_R1_seed1.html">V2</a></td></tr>
+<tr><td>brap_h10w10_a12_e8_R1_seed1</td><td>(1844, 3927)</td><td>(1359, 2958)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h10w10_a12_e8_R1_seed1.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e8_R1_seed1.html">V2</a></td></tr>
+<tr><td>brap_h8w10_a10_e2_R1_seed0</td><td>(1737, 3818)</td><td>(1368, 3136)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h8w10_a10_e2_R1_seed0.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h8w10_a10_e2_R1_seed0.html">V2</a></td></tr>
+<tr><td>brap_h10w10_a12_e8_R1_seed0</td><td>(2092, 4651)</td><td>(1734, 3744)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h10w10_a12_e8_R1_seed0.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e8_R1_seed0.html">V2</a></td></tr>
+<tr><td>brap_h8w10_a10_e2_R1_seed1</td><td>(1173, 2339)</td><td>(932, 2118)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h8w10_a10_e2_R1_seed1.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h8w10_a10_e2_R1_seed1.html">V2</a></td></tr>
+<tr><td>brap_h10w10_a12_e8_B_seed0_pool</td><td>(622, 1221)</td><td>(425, 861)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h10w10_a12_e8_B_seed0_pool.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e8_B_seed0_pool.html">V2</a></td></tr></tbody></table></section>
+ <section class="panel"><h3>回退最大的例子</h3>
+  <table><thead><tr><th>实例</th><th>基线</th><th>V2</th><th>动画</th></tr></thead>
+  <tbody><tr><td>brap_h10w10_a12_e3_R1_seed1</td><td>(829, 1889)</td><td>(1129, 2558)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h10w10_a12_e3_R1_seed1.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e3_R1_seed1.html">V2</a></td></tr>
+<tr><td>brap_h20w20_a40_e100_R1_seed0</td><td>(999, 5269)</td><td>(1273, 5796)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h20w20_a40_e100_R1_seed0.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h20w20_a40_e100_R1_seed0.html">V2</a></td></tr>
+<tr><td>brap_h10w10_a12_e3_R1_seed0</td><td>(630, 1457)</td><td>(893, 1980)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h10w10_a12_e3_R1_seed0.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e3_R1_seed0.html">V2</a></td></tr>
+<tr><td>brap_h4w10_a5_e10_R1_seed0</td><td>(150, 323)</td><td>(322, 673)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h4w10_a5_e10_R1_seed0.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h4w10_a5_e10_R1_seed0.html">V2</a></td></tr>
+<tr><td>brap_h6w10_a6_e15_R1_seed1</td><td>(162, 355)</td><td>(302, 635)</td><td><a href="../full_benchmark_two_pass_20260906/cases/brap_h6w10_a6_e15_R1_seed1.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/brap_h6w10_a6_e15_R1_seed1.html">V2</a></td></tr>
+<tr><td>g5_dhigh_abaseline_pmixed_gsingleton_seed0</td><td>(47, 405)</td><td>(154, 543)</td><td><a href="../full_benchmark_two_pass_20260906/cases/g5_dhigh_abaseline_pmixed_gsingleton_seed0.html">基线</a> · <a href="../full_benchmark_rho_v2_20260906/cases/g5_dhigh_abaseline_pmixed_gsingleton_seed0.html">V2</a></td></tr></tbody></table></section>
+</div>
+
+<h2>为什么没有发布 additive / incremental Hungarian</h2>
+<p>候选模型决定“派谁做什么”，增量求解只决定“多快算出同一个答案”。
+实验先实现 additive full solver，再实现节点局部 shadow；结果如下：</p>
+<table><thead><tr><th>实验</th><th>保护实例成本</th><th>决策</th></tr></thead>
+<tbody><tr><td>additive G1</td><td>(231, 268)</td><td>Testcase C 从保护值 (31, 93) 严重回归，已回滚</td></tr>
+<tr><td>H1 incremental shadow</td><td>(231, 268)</td><td>建立在已回归的 additive 目标上，没有 production 采用价值，已回滚</td></tr></tbody></table>
+<p>因此 G/H 被完整回滚。当前 production 没有 additive path、node-local
+matching state 或运行时切换开关。</p>
+
+<h2>保护样例与验证</h2>
+<table><thead><tr><th>样例</th><th>对照</th><th>成本变化</th></tr></thead>
+<tbody><tr><td>发布样例 A</td><td>F2S</td><td>(28, 45) → (17, 32)</td></tr>
+<tr><td>发布样例 B</td><td>F2S</td><td>(12, 36) → (12, 36)</td></tr>
+<tr><td>Testcase C</td><td>F2S</td><td>(31, 93) → (31, 93)</td></tr>
+<tr><td>发布样例 D</td><td>F2S</td><td>(8, 23) → (8, 23)</td></tr>
+<tr><td>大实例 seed0</td><td>F2S</td><td>(1273, 5796) → (1273, 5796)</td></tr>
+<tr><td>大实例 seed1</td><td>F2S</td><td>(1243, 6384) → (1243, 6384)</td></tr></tbody></table>
+<div class="cards">
+ <div class="card"><div class="big">312 / 312</div>
+  <div class="sub">C++ tests</div></div>
+ <div class="card"><div class="big">164 / 164</div>
+  <div class="sub">Python tests</div></div>
+ <div class="card"><div class="big">APPROVE</div>
+  <div class="sub">独立 openai.gpt-5.6-sol / high 终审</div></div>
+</div>
+
+<h2>已知限制</h2>
+<ul><li>full 中 solved 集不变，但共同成功实例为 60 better / 261 equal / 158 worse，不能宣称整体质量提升。</li><li>factorial 的 scarce-agent 组明显回退；这说明有限 direct-target defer 仍可能损害全局 bottleneck。</li><li>同一 V2 二进制在 quick/full 的 brap_h4w10_a5_e10_R1_seed1 上返回了两条等成本合法计划，计划 SHA 不同。</li></ul>
+<p>另外，baseline→V2 有 222 个共同成功实例改变了计划 SHA，
+这是算法行为变化的预期结果；同一 V2 的 quick/full 字节差异见上方已知限制。</p>
+
+<h2>查看原始证据</h2>
+<p><a href="../full_benchmark_rho_v2_20260906/index.html">V2 full dashboard（479 个真实动画）</a> ·
+<a href="../full_comparison_two_pass_vs_rho_v2_20260906/index.html">逐 case 基线对照 dashboard</a> ·
+<a href="../../results_full_rho_v2_20260906/rows.csv">current rows.csv</a> ·
+<a href="../../results_full_two_pass_reference_20260906/rows.csv">baseline rows.csv</a></p>
+<p class="sub">binary <code>d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d</code><br>
+suite <code>fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed</code><br>
+approval: APPROVE · openai.gpt-5.6-sol</p>
+</main></body></html>

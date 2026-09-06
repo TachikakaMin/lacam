@@ -9,7 +9,8 @@
 实现并完成固定 quick 77：production 取消普通 cutoff，并只在严格同质的
 直接目标交付阶段启用有限 frontier/continuity defer V2。additive G 与
 节点局部 H shadow 已独立实现、测量并因 Testcase C 回归而回滚；它们不是
-当前 production 功能。正式 full 509 尚待独立终审放行。**
+当前 production 功能。独立终审、sealed full 509 和最终数据网页均已完成；
+full 保持 479/509 solved，但质量分布不是整体改善，见 §25。**
 **日期：2026-09-06。实现起点：commit `03e99ba`；专项审计基线：
 commit `80148a7`；当前 production commit：`64a3941`。**
 **2026-09-05 设计独立审查：主设计有条件通过，`debug.md` 按审查重写。本版已并入
@@ -54,10 +55,10 @@ objective 显式契约与单一控制器（§12.2/§13.7）、compiler 接纳条
   它是当前 priority cutoff、bottleneck matching、retarget、利用率口径及
   增量 Hungarian 契约的依据；不回写或覆盖 §20/§22/§23 的历史证据。
 - **S7：2026-09-06 \(\rho\) 修订实现。** F0/F1/F2 的独立提交、G/H
-  实验及回滚、312 个 C++ tests、162 个 Python tests、四个受保护样例和
-  固定 quick 77。当前 production 为 `64a3941`，二进制 SHA-256 为
+  实验及回滚、312 个 C++ tests、164 个 Python tests、四个受保护样例和
+  固定 quick 77 和 sealed full 509。当前 production 为 `64a3941`，二进制 SHA-256 为
   `d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d`；
-  完整证据见 §25。full 509 在独立终审前不属于 S7 已完成证据。
+  完整证据见 §25。
 
 ## 0. 最终决策
 
@@ -2374,9 +2375,71 @@ solved-set 差异 0
 case 的 makespan `24→26`、`21→23`。因此 V2 的结论是“以严格边界修复
 受保护直接交付回归，同时大部分保持 F2S”，不是全 corpus 单调改善。
 
-### 25.4 尚未完成
+### 25.4 sealed full 509
 
-正式 full 509 只能在最终 diff、全部测试和 quick 通过后，由独立
-GPT-5.6 Sol/high reviewer 明确批准再运行。full 结果、最终数据网页和网页
-独立审查将在完成后补入本节；在此之前不得把 quick 47/77 外推成 full
-结论，也不得宣称增量 Hungarian 已进入 production。
+独立 GPT-5.6 Sol/high reviewer 在复跑 C++ 312/312、Python 162/162 并
+审查最终代码、quick 与负面证据后明确 `APPROVE`。approval 绑定：
+
+```text
+suite  fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed
+corpus 7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae
+binary d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d
+```
+
+sealed full 使用 14 并发、每例 10 秒、seed 0，结果为：
+
+| 范围 | solved | 词典序 better/equal/worse | makespan 几何比 |
+|---|---:|---:|---:|
+| full 509 | `479/509` | `60/261/158` | `1.0328` |
+| quick 77 | `47/77` | `9/14/24` | `1.0653` |
+| factorial 432 | `432/432` | `51/247/134` | `1.0294` |
+
+solved 集与审计基线完全相同，30 个失败仍是原 quick timeout，没有 invalid
+plan。wall time 为 `266.3s`，基线为 `265.9s`；总 runtime 几乎不变。
+成功实例首解中位数由 `122ms` 变为 `130ms`。
+
+factorial 的 agent-level 分组揭示了主要问题：
+
+| agent level | better/equal/worse | makespan 几何比 |
+|---|---:|---:|
+| baseline | `33/18/57` | `1.0274` |
+| equal | `0/107/1` | `1.0000` |
+| scarce | `18/14/76` | `1.0929` |
+| surplus | `0/108/0` | `1.0000` |
+
+这说明有限 direct-target defer 在机器人足够时通常不改变结果，但在 scarce
+场景会更频繁地损害全局 bottleneck。full 的最终评价因此是：
+
+> V2 正确修复了“普通任务没有参加比较”的机制问题，也保持 solved 集；
+> 但它不是整体 makespan 改进，尤其不能作为 scarce-agent 调度的最终方案。
+
+### 25.5 telemetry、确定性与网页
+
+479 个成功实例累计：
+
+```text
+rho candidates input          15,820,413
+after priority / matrix rows  13,517,441
+priority filtered                       0
+assignment-id changes           4,166,162
+guidance time                 1,685.175 s
+```
+
+所有成功行导出
+`BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2`。相对基线，222 个共同成功
+实例改变计划 SHA，这是算法行为变化的正常结果。另有一个同一 V2 二进制的
+quick/full 等成本实例
+`brap_h4w10_a5_e10_R1_seed1` 返回两条不同的合法 58 拍、work 118 计划；
+这说明 deadline 附近不保证计划字节逐位唯一，成本与合法性仍一致。
+
+正式产物：
+
+- `benchmark/results_full_rho_v2_20260906/{rows.csv,timing.json}`
+- `benchmark/viz_web/full_benchmark_rho_v2_20260906/index.html`
+- `benchmark/viz_web/full_comparison_two_pass_vs_rho_v2_20260906/index.html`
+- `benchmark/viz_web/carrier_lacam_rho_v2_final_report_20260906/index.html`
+
+新增报告与标签回归测试后，最终 Python tests 为 164/164。网页由正式 rows/timing、
+factorial manifest、evaluation JSON 和 approval 生成，不手抄 full 核心统计。
+独立网页复核最终明确 `APPROVE`：报告数据、负面结论、对比标签和导航一致，
+静态引用没有缺失。

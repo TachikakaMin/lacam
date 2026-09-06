@@ -3,8 +3,8 @@
 状态：2026-09-06，F0 诊断、F1 取消普通 priority cutoff、F2S 对照和收紧后
 的直接目标交付 V2 已完成；production 代码停在 commit `64a3941`。additive
 G0/G1 与节点局部 H1 shadow 已按本计划做过独立实验，但因调度质量回归而
-完整回滚，没有留在 production。C++ 312/312、Python 162/162 和最终固定
-quick 77 已通过；独立终审与 full 509 尚未完成。审计起点为
+完整回滚，没有留在 production。C++ 312/312、Python 164/164、最终固定
+quick 77、独立终审和 sealed full 509 均已完成。审计起点为
 `80148a7db6ee9a756dbe314b4f393d15c8f018e9`。
 
 本文件同时保留原始实施计划和实际执行结果。未勾选的长期 G/H 项不表示当前
@@ -81,6 +81,23 @@ F2S→V2 的 5 个 quick 质量变化也必须保留负面证据：两个改善�
 `h8w10 a10 e20 R1 seed0` 同 makespan 下 work `817→818`，以及两个
 warehouse `b3/d50`、`b3/d75` case 的 makespan `24→26`、`21→23`。
 这些回退不能在报告中省略，full 509 用于判断其总体分布。
+
+正式 full 位于
+`benchmark/results_full_rho_v2_20260906/rows.csv`。结果为 479/509，
+与审计基线 solved 集完全相同，factorial 为 432/432；但共同成功实例的
+词典序比较是：
+
+```text
+V2 更好    60
+完全相同  261
+V2 更差   158
+```
+
+factorial 子集为 51/247/134，几何平均 makespan 增加 2.94%。最明显的
+结构性回退是 scarce-agent 组：18/14/76，几何平均 makespan 增加 9.29%；
+equal 为 0/107/1，surplus 为 0/108/0。因此最终结论是：V2 完成了候选准入
+和严格 direct-target 行为合同，但不是整体质量提升；不能把 479/509 不变
+写成 makespan 改善。
 
 ---
 
@@ -1326,12 +1343,12 @@ timed transport time
 - [x] 当前测试、样例和 quick 输出通过 C++ replay 和 Python validator；
 - [x] no instance/seed special case；
 - [x] no hidden runtime policy switch；
-- [ ] quick/full artifacts、binary/hash、比较报告可审计；
-- [ ] `design_final.md`、报告与本文件同步更新实际完成状态。
+- [x] quick/full artifacts、binary/hash、比较报告可审计；
+- [x] `design_final.md`、报告与本文件同步更新实际完成状态。
 
-当前剩余项只包括独立终审、sealed full 509、最终比较网页及其独立网页审查。
-G/H 的 production checkbox 保持未勾选，因为实验结论是“不采用”，不是把
-已回滚的替代目标伪装成完成。
+最终网页的独立内容/链接审查已明确 `APPROVE`，本文件对应的发布候选已
+完成。G/H 的 production checkbox 保持未勾选，因为实验结论是“不采用”，
+不是把已回滚的替代目标伪装成完成。
 
 ---
 

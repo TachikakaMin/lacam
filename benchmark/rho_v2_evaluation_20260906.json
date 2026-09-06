@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "production_commit": "64a3941",
+  "objective_version": "BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2",
+  "protected_examples": [
+    {
+      "label": "发布样例 A",
+      "before_label": "F2S",
+      "before": [28, 45],
+      "after": [17, 32]
+    },
+    {
+      "label": "发布样例 B",
+      "before_label": "F2S",
+      "before": [12, 36],
+      "after": [12, 36]
+    },
+    {
+      "label": "Testcase C",
+      "before_label": "F2S",
+      "before": [31, 93],
+      "after": [31, 93]
+    },
+    {
+      "label": "发布样例 D",
+      "before_label": "F2S",
+      "before": [8, 23],
+      "after": [8, 23]
+    },
+    {
+      "label": "大实例 seed0",
+      "before_label": "F2S",
+      "before": [1273, 5796],
+      "after": [1273, 5796]
+    },
+    {
+      "label": "大实例 seed1",
+      "before_label": "F2S",
+      "before": [1243, 6384],
+      "after": [1243, 6384]
+    }
+  ],
+  "rejected_experiments": [
+    {
+      "label": "additive G1",
+      "testcase_cost": [231, 268],
+      "reason": "Testcase C 从保护值 (31, 93) 严重回归，已回滚"
+    },
+    {
+      "label": "H1 incremental shadow",
+      "testcase_cost": [231, 268],
+      "reason": "建立在已回归的 additive 目标上，没有 production 采用价值，已回滚"
+    }
+  ],
+  "known_issues": [
+    "full 中 solved 集不变，但共同成功实例为 60 better / 261 equal / 158 worse，不能宣称整体质量提升。",
+    "factorial 的 scarce-agent 组明显回退；这说明有限 direct-target defer 仍可能损害全局 bottleneck。",
+    "同一 V2 二进制在 quick/full 的 brap_h4w10_a5_e10_R1_seed1 上返回了两条等成本合法计划，计划 SHA 不同。"
+  ]
+}
