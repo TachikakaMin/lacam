@@ -46,7 +46,7 @@ const RhoCandidateAudit* find_audit(
 }  // namespace
 
 TEST(dd_rho_candidates,
-     current_priority_cutoff_is_visible_without_changing_assignment)
+     ordinary_low_priority_task_reaches_the_assignment_problem)
 {
   const auto ins = line_instance(8, {0});
   const auto X = initial_phys_config(ins);
@@ -72,19 +72,16 @@ TEST(dd_rho_candidates,
   ASSERT_EQ(probe.rho_task_id.size(), 1u);
   ASSERT_TRUE(probe.rho_task_id[0].has_value());
   EXPECT_EQ(*probe.rho_task_id[0], graph.tasks[0].id)
-      << "F0 must preserve the current assignment exactly";
+      << "the far task wins by the bottleneck objective";
+  EXPECT_EQ(probe.rho_ready_index[0], 0);
   EXPECT_EQ(probe.telemetry.candidates_input, 2);
   EXPECT_EQ(probe.telemetry.candidates_after_key_dedupe, 2);
   EXPECT_EQ(probe.telemetry.candidates_after_shelf_preselect, 2);
-  EXPECT_EQ(probe.telemetry.candidates_after_priority, 1);
-  EXPECT_EQ(probe.telemetry.priority_filtered, 1);
-  EXPECT_EQ(probe.telemetry.matrix_rows, 1);
-  EXPECT_EQ(probe.telemetry.matrix_cols, 1);
-
-  const auto* audit = find_audit(probe, 1);
-  ASSERT_NE(audit, nullptr);
-  EXPECT_EQ(audit->reason, RhoDropReason::PRIORITY_TOP_F);
-  EXPECT_EQ(audit->nearest_robot_distance, 1);
+  EXPECT_EQ(probe.telemetry.candidates_after_priority, 2);
+  EXPECT_EQ(probe.telemetry.priority_filtered, 0);
+  EXPECT_EQ(probe.telemetry.matrix_rows, 2);
+  EXPECT_EQ(probe.telemetry.matrix_cols, 2);
+  EXPECT_TRUE(probe.audit.empty());
 }
 
 TEST(dd_rho_candidates,
@@ -167,4 +164,44 @@ TEST(dd_rho_candidates, telemetry_is_finite_and_fingerprints_are_stable)
   EXPECT_EQ(first.rho_task_id, second.rho_task_id);
   EXPECT_EQ(first.rho_transfer_key, second.rho_transfer_key);
   EXPECT_EQ(first.rho_ready_index, second.rho_ready_index);
+}
+
+TEST(dd_rho_candidates,
+     no_reachable_task_has_an_explicit_hard_reason)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"..@.."});
+  ins.robots = {ins.grid.idx(0, 0)};
+  ins.finalize();
+  const auto X = initial_phys_config(ins);
+  ShelfTaskGraph graph;
+  graph.tasks = {
+      make_task(
+          ShelfSelector{
+              ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+              ins.grid.idx(0, 1)},
+          ins.grid.idx(0, 1), ins.grid.idx(0, 0), 4),
+      make_task(
+          ShelfSelector{
+              ShelfSelector::Kind::ANON_AT_EPOCH_CELL,
+              ins.grid.idx(0, 4)},
+          ins.grid.idx(0, 4), ins.grid.idx(0, 3), 4),
+  };
+  graph.predecessors = {{}, {}};
+  graph.successors = {{}, {}};
+
+  const auto probe =
+      dd_match_ready_tasks_probe(ins, X, graph, {0, 1}, nullptr);
+
+  ASSERT_EQ(probe.rho_task_id.size(), 1u);
+  ASSERT_TRUE(probe.rho_task_id[0].has_value());
+  EXPECT_EQ(*probe.rho_task_id[0], graph.tasks[0].id);
+  EXPECT_EQ(probe.telemetry.no_reachable_robot_filtered, 1);
+  EXPECT_EQ(probe.telemetry.priority_filtered, 0);
+  EXPECT_EQ(probe.telemetry.matrix_rows, 1);
+  EXPECT_EQ(probe.telemetry.matrix_cols, 1);
+  const auto* audit = find_audit(probe, 1);
+  ASSERT_NE(audit, nullptr);
+  EXPECT_EQ(audit->reason, RhoDropReason::NO_REACHABLE_ROBOT);
+  EXPECT_EQ(audit->nearest_robot_distance, -1);
 }

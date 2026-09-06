@@ -335,7 +335,7 @@ TEST(dd_task_br_execution,
 }
 
 TEST(dd_task_br_execution,
-     rho_priority_then_bottleneck_completion_then_switch)
+     rho_priority_is_not_an_admission_gate_before_bottleneck)
 {
   const auto ins = line_instance(7, {0}, {}, {}, {});
   const auto X = initial_phys_config(ins);
@@ -355,7 +355,12 @@ TEST(dd_task_br_execution,
       ins, X, priority_graph, {0, 1}, nullptr);
   ASSERT_TRUE(priority.rho_task_id[0].has_value());
   EXPECT_EQ(*priority.rho_task_id[0], far)
-      << "higher-than-cutoff priority must own the scarce row";
+      << "the far task minimizes the assigned/deferred bottleneck";
+  EXPECT_EQ(priority.telemetry.candidates_after_priority, 2);
+  EXPECT_EQ(priority.telemetry.priority_filtered, 0);
+  EXPECT_EQ(priority.telemetry.matrix_rows, 2);
+  EXPECT_EQ(priority.telemetry.matrix_cols, 2);
+  EXPECT_TRUE(priority.audit.empty());
 
   ShelfTaskGraph distance_graph = priority_graph;
   distance_graph.tasks[0].priority = 5;
@@ -367,32 +372,43 @@ TEST(dd_task_br_execution,
   EXPECT_EQ(*distance.rho_task_id[0], far)
       << "starting the farther task minimizes the predicted completion "
          "of both the assigned and deferred rows";
+
+  ShelfTaskGraph reversed_priority = priority_graph;
+  reversed_priority.tasks[0].priority = 9;
+  reversed_priority.tasks[1].priority = 1;
+  const auto reversed = dd_match_ready_tasks_probe(
+      ins, X, reversed_priority, {0, 1}, nullptr);
+  ASSERT_TRUE(reversed.rho_task_id[0].has_value());
+  EXPECT_EQ(*reversed.rho_task_id[0], far)
+      << "finite priority must not make the near task mandatory";
+  EXPECT_EQ(reversed.telemetry.candidates_after_priority, 2);
+  EXPECT_EQ(reversed.telemetry.priority_filtered, 0);
 }
 
 TEST(dd_task_br_execution,
-     multirow_cutoff_assigns_mandatory_rows_then_limits_deferred_tail)
+     multirow_bottleneck_compares_every_ordinary_candidate)
 {
   const auto ins = line_instance(12, {0, 11}, {}, {}, {});
   const auto X = initial_phys_config(ins);
-  const TaskId mandatory{
+  const TaskId high_priority{
       ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, 0}, 0, 1};
-  const TaskId cutoff_near{
+  const TaskId medium_near{
       ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, 10}, 10, 9};
-  const TaskId cutoff_far{
+  const TaskId medium_far{
       ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, 5}, 5, 6};
-  const TaskId below_cutoff{
+  const TaskId low_priority{
       ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, 7}, 7, 8};
   ShelfTaskGraph graph;
   graph.tasks = {
-      ShelfTask{mandatory, {RootDemand{0, 20}}, 9},
-      ShelfTask{cutoff_near, {RootDemand{1, 21}}, 8},
-      ShelfTask{cutoff_far, {RootDemand{2, 22}}, 8},
-      ShelfTask{below_cutoff, {RootDemand{3, 23}}, 1},
+      ShelfTask{high_priority, {RootDemand{0, 20}}, 9},
+      ShelfTask{medium_near, {RootDemand{1, 21}}, 8},
+      ShelfTask{medium_far, {RootDemand{2, 22}}, 8},
+      ShelfTask{low_priority, {RootDemand{3, 23}}, 1},
   };
   graph.predecessors = {{}, {}, {}, {}};
   graph.successors = {{}, {}, {}, {}};
   const std::vector<std::optional<TaskId>> previous = {
-      std::nullopt, cutoff_far};
+      std::nullopt, medium_far};
 
   const auto result = dd_match_ready_tasks_probe(
       ins, X, graph, {0, 1, 2, 3}, &previous);
@@ -400,10 +416,19 @@ TEST(dd_task_br_execution,
   for (const auto& id : result.rho_task_id)
     if (id.has_value()) assigned.insert(*id);
   ASSERT_EQ(assigned.size(), 2u);
-  EXPECT_TRUE(assigned.count(mandatory))
-      << "every row above the priority cutoff is mandatory";
-  EXPECT_TRUE(assigned.count(cutoff_far))
-      << "the cutoff row with the later deferred completion must start";
-  EXPECT_FALSE(assigned.count(cutoff_near));
-  EXPECT_FALSE(assigned.count(below_cutoff));
+  EXPECT_TRUE(assigned.count(medium_far))
+      << "the first selected task must minimize the global bottleneck";
+  EXPECT_TRUE(assigned.count(low_priority))
+      << "a low-priority task remains eligible when its delay dominates";
+  EXPECT_FALSE(assigned.count(high_priority))
+      << "high priority is not an infinite mandatory constraint";
+  EXPECT_FALSE(assigned.count(medium_near));
+  EXPECT_EQ(result.telemetry.candidates_input, 4);
+  EXPECT_EQ(result.telemetry.candidates_after_key_dedupe, 4);
+  EXPECT_EQ(result.telemetry.candidates_after_shelf_preselect, 4);
+  EXPECT_EQ(result.telemetry.candidates_after_priority, 4);
+  EXPECT_EQ(result.telemetry.priority_filtered, 0);
+  EXPECT_EQ(result.telemetry.matrix_rows, 4);
+  EXPECT_EQ(result.telemetry.matrix_cols, 4);
+  EXPECT_TRUE(result.audit.empty());
 }

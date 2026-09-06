@@ -4702,7 +4702,6 @@ struct RhoCandidate {
   TaskId id;
   TransferKey key;
   int priority = 0;
-  bool mandatory = false;
 };
 
 inline uint64_t rho_fingerprint_mix(uint64_t value)
@@ -4862,8 +4861,6 @@ inline DDReadyMatchProbe match_ready_tasks(
           case RhoDropReason::NO_REACHABLE_ROBOT:
             ++out.telemetry.no_reachable_robot_filtered;
             break;
-          case RhoDropReason::PRIORITY_TOP_F:
-            break;
         }
         if (!collect_audit) return;
         out.audit.push_back(
@@ -4931,8 +4928,7 @@ inline DDReadyMatchProbe match_ready_tasks(
             RhoDropReason::SAME_SHELF_PRESELECTED);
         seen.erase(existing.key);
         existing =
-            RhoCandidate{
-                index, task.id, key, task.priority, false};
+            RhoCandidate{index, task.id, key, task.priority};
         seen.emplace(key, selected->second);
       } else {
         record_drop(
@@ -4945,8 +4941,7 @@ inline DDReadyMatchProbe match_ready_tasks(
     selected_for_shelf.emplace(
         task.id.shelf, (int)candidates.size());
     candidates.push_back(
-        RhoCandidate{
-            index, task.id, key, task.priority, false});
+        RhoCandidate{index, task.id, key, task.priority});
   }
   out.telemetry.candidates_after_key_dedupe =
       static_cast<long>(distinct_keys.size());
@@ -4969,33 +4964,24 @@ inline DDReadyMatchProbe match_ready_tasks(
                    });
 
   const size_t free_count = free_robots.size();
-  if (candidates.size() > free_count) {
-    const int cutoff = candidates[free_count - 1].priority;
-    for (const auto& candidate : candidates)
-      if (candidate.priority < cutoff) {
-        const auto& task = graph.tasks[candidate.task_index];
-        record_drop(
-            candidate.task_index, task, candidate.key,
-            RhoDropReason::PRIORITY_TOP_F);
-      }
-    candidates.erase(
-        std::remove_if(candidates.begin(), candidates.end(),
-                       [&](const RhoCandidate& candidate) {
-                         return candidate.priority < cutoff;
-                       }),
-        candidates.end());
-    for (auto& candidate : candidates)
-      candidate.mandatory = candidate.priority > cutoff;
-  } else {
-    for (auto& candidate : candidates) candidate.mandatory = true;
-  }
+  candidates.erase(
+      std::remove_if(
+          candidates.begin(), candidates.end(),
+          [&](const RhoCandidate& candidate) {
+            if (nearest_robot_distance(candidate.id) >= 0)
+              return false;
+            const auto& task = graph.tasks[candidate.task_index];
+            record_drop(
+                candidate.task_index, task, candidate.key,
+                RhoDropReason::NO_REACHABLE_ROBOT);
+            return true;
+          }),
+      candidates.end());
 
   const size_t task_count = candidates.size();
   out.telemetry.candidates_after_priority =
       static_cast<long>(task_count);
-  out.telemetry.priority_filtered =
-      out.telemetry.candidates_after_shelf_preselect -
-      out.telemetry.candidates_after_priority;
+  out.telemetry.priority_filtered = 0;
   const size_t dummy_count =
       task_count > free_count ? task_count - free_count : 0;
   const size_t column_count = free_count + dummy_count;
@@ -5070,8 +5056,7 @@ inline DDReadyMatchProbe match_ready_tasks(
       best_real_approach =
           std::min(best_real_approach, (long long)distance);
     }
-    if (!candidates[row].mandatory &&
-        best_real_completion < INF &&
+    if (best_real_completion < INF &&
         best_real_approach < INF) {
       const long long defer_delay = std::max(1LL, service);
       for (size_t col = free_count; col < column_count; ++col) {
@@ -5089,8 +5074,6 @@ inline DDReadyMatchProbe match_ready_tasks(
         value_fingerprint,
         static_cast<uint64_t>(
             static_cast<uint32_t>(candidates[row].priority)));
-    rho_fingerprint_add(
-        value_fingerprint, candidates[row].mandatory ? 1 : 0);
     for (size_t col = 0; col < column_count; ++col) {
       rho_fingerprint_add(
           value_fingerprint,

@@ -559,7 +559,6 @@ enum class RhoDropReason {
   UPSTREAM_TRANSFER_CLAIM = 3,
   MODE_INELIGIBLE = 4,
   NO_REACHABLE_ROBOT = 5,
-  PRIORITY_TOP_F = 6,
 };
 
 struct RhoCandidateAudit {
