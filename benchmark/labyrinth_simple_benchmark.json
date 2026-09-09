@@ -129,7 +129,7 @@
       "MaxActivitiesToCommitPerPlan": "3",
       "MaxConnectedDestinations": "3",
       "InterleaveDigouts": "True",
-      "EnableDsrDigins": "True",
+      "EnableDsrDigins": "False",
       "MppfParallelWorkers": "1",
       "MppfChainLengthLimit": "2",
       "MppfMaxCommits": "10",
@@ -143,7 +143,8 @@
       "MppfDigCost": "5",
       "EnableSafeRestAllocation": "False",
       "EnableVisualizationWriter": "False",
-      "EnableEventBasedLogger": "False"
+      "EnableEventBasedLogger": "True",
+      "EventBasedLoggerFlushFrequency": "60"
     }
   }
 }

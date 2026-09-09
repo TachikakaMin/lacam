@@ -36,13 +36,13 @@
 
 | 阶段 | 状态 | 当前证据 |
 |---|---|---|
-| Phase 0：设计和基线 | 完成（FC smoke 待 Carrier lifecycle） | §28、两个分支、固定 benchmark、Brazil workspace、425-test 与 3-case BR-LaCAM baseline 已完成 |
+| Phase 0：设计和基线 | 完成 | §28、两个分支、固定 benchmark、Brazil workspace、425-test、3-case BR-LaCAM baseline 与 SAZ1 FC smoke 已完成 |
 | Phase 1：normal arbitrary-root | GREEN | public from-state API 与 root-aware search/finalization 已接入同一条 `TAPFPlanner::solve()` 路径；432/432 C++ tests 与 quick 77 无回归 |
 | Phase 2：C ABI/shared library | GREEN | portable、YAML-free `libcarrier_lacam.so` 已完成；C ABI 5/5、异常边界 1/1、portable build 回归、432/432 主测试与 quick 77 均通过 |
-| Phase 3：Java adapter/JNA | GREEN | graph/JNA/state adapter、严格 sidecar loader、cold planning session 和真实 adapter→native round-trip 均通过；native sidecar 的 Brazil packaging 留待 lifecycle build wiring |
-| Phase 4：joint executor | 未开始 | 等 Phase 3 GREEN |
-| Phase 5：DSR lifecycle | 未开始 | 等 Phase 4 GREEN |
-| Phase 6：跨 prefix session | 未开始 | 等端到端 cold session 正确 |
+| Phase 3：Java adapter/JNA | GREEN | graph/JNA/state adapter、严格 sidecar loader、cold planning session、真实 adapter→native round-trip 和 Brazil sidecar packaging 均通过 |
+| Phase 4：joint executor | GREEN | joint timestep、WAIT barrier、MOVE/LIFT/DROP、真实 dynamics、custody 原子提交、偏差截断和 MAS reset 均通过完整 Brazil release 与独立复审 |
+| Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；独立 Sol/high 已 APPROVE |
+| Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
 | Phase 7：rho incremental repair | 未开始 | 等 session telemetry |
 | Phase 8：一般并发 | 未开始 | 首版独占 epoch 完成后再做 |
 
@@ -91,8 +91,8 @@ seed、drive count、请求、模拟时长、线程数和统计口径完全相�
 validator 的 invalid diagnostic。第二例说明原版在 10 秒 search deadline
 之后还有约 0.85 秒收尾，因此后续报告必须分开记录首次解、10 秒最终解和
 总返回时间，不能把三者混成一个 runtime。SAZ1 已进入固定 Brazil
-workspace；当前缺口是 Carrier planning session、joint executor 和 DSR
-lifecycle 尚未接通，因此 smoke 保留为 pending，不得换成别的 KMAP。
+workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
+已通过；该 case 不得换成别的 KMAP。
 
 ## 5. RED/GREEN 与验证日志
 
@@ -146,15 +146,39 @@ lifecycle 尚未接通，因此 smoke 保留为 pending，不得换成别的 KMA
 | 2026-09-09 | Phase 3 symlink RED/GREEN | `CarrierLacamLibrarySymlinkRegressionTest` | 当前 loader 对最终 `.so` 和 runtime `lib` symlink 的两例均先 RED；增加 real-path containment 与 NOFOLLOW 检查后 2/2 GREEN，JNA 调用次数保持 0 |
 | 2026-09-09 | Phase 3 hardened regression | Code-Labyrinth `brazil-build release` + 真实 loader smoke | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-085753-25994.log`，10 秒；真实 `.so` 返回 OK、首次解 `<1 ms`、可交付解 0.677 ms、4 步 |
 | 2026-09-09 | Phase 3 re-review | 修正后的完整 Phase 3 diff | 独立 GPT-5.6 Sol/low：APPROVE；backend seam 可承接 Phase 6，loader fail closed，未发现第二条 planner、fallback、snapshot 错配、关闭竞态或 native context 泄漏 |
+| 2026-09-09 | Phase 4 RED | joint executor、动态 drive、Pod custody、DSR 完成判定和 execution reset tests | 按预期缺少完整联合执行协议、物理 transfer 共享语义和 post-Carrier MAS resync |
+| 2026-09-09 | Phase 4 GREEN | `CarrierJointExecutorTest`、`CarrierDynamicJointExecutorTest`、`PodTransferStateUpdaterTest`、`DsrBlockManagerCarrierCompletionTest`、`DeterministicExecutionCarrierResetTest` | GREEN：6/6、2/2、2/2、1/1、1/1 |
+| 2026-09-09 | Phase 4 review regression | queued ordinary motion、异构 MOVE duration、transfer 原子性、prepare cleanup、reset fail-before-write | 五个新增测试先 RED；修复后全部 GREEN，日志分别为 `.build-logs/brazil-build-20260909-151012-3469.log`、`151022-6220.log`、`151029-7444.log`、`151048-9286.log`、`151102-11060.log` |
+| 2026-09-09 | Phase 4 regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-151157-20728.log`，10 秒 |
+| 2026-09-09 | Phase 4 re-review | joint executor 与普通 MAS handoff 边界 | 独立 GPT-5.6 Sol/low：APPROVE；Phase 5 必须补 participant control owner 和 participant-scoped reset |
+| 2026-09-09 | Phase 4 commit | Code-Labyrinth joint executor | Brazil 工作树 `c24fdd6`；集成分支 `e8a2b56`。远端 push 首次因 SSH host-key verification 失败，待复用已认证的 Amazon Git 配置重试 |
+| 2026-09-09 | Phase 5 RED/GREEN | Carrier coordinator、drive staging、execution lease、control owner、freeze、participant-scoped reset、DSR bypass 和 completion handoff | GREEN：无可达 portal 时保持 pending；target 多于 robot、anonymous blocker、storage reservation、epoch abort 和普通 traffic 隔离均由 protected tests 固化 |
+| 2026-09-09 | Phase 5 native integration | 真实 Carrier-LaCAM 求解两个 target/两个 border goal | GREEN：tau 产生 injective border assignment，Java 完整执行并在 DROP 后完成两个 DsrDigout |
+| 2026-09-09 | Phase 5 business lifecycle | 完整 Pick → Carrier DIG → border DROP → 原 Pick 送站 | RED 首先暴露 `DriveShell` 被错误强转为 `DynamicDrive`；改为通过 `IDrive` 委托 lift/lower timing 后 GREEN，日志 `.build-logs/brazil-build-20260909-163519-31028.log` |
+| 2026-09-09 | Phase 5 legacy regression | baseline/adaptive/mppf assembly 与 legacy DSR execution | GREEN：legacy FC 不创建 MAS/Carrier backend，single/multi legacy planner 分支仍生成原 `Digout`、reservation 和 pending 状态；日志 `.build-logs/brazil-build-20260909-163609-4537.log`、`.build-logs/brazil-build-20260909-163659-9641.log` |
+| 2026-09-09 | Phase 5 telemetry | `CarrierPlanStats.csv` 与 coordinator aggregate | GREEN：列顺序固定为 first-solution、deliverable、cost 和 adapter/native/staging/execution/replan；Phase 6 前 cache/rho 字段显式为 unsupported；日志 `.build-logs/brazil-build-20260909-164034-2630.log` |
+| 2026-09-09 | Phase 5 native coexistence RED | 同一 JVM 先加载 legacy BrLaCAM，再运行 Carrier-LaCAM | 稳定复现 `free(): invalid pointer`；两个 `.so` 暴露 242 个同名 C++ 符号，日志 `.build-logs/brazil-build-20260909-164350-25362.log` |
+| 2026-09-09 | Phase 5 native coexistence GREEN | Carrier shared object 隐藏静态 core symbols，仅导出 JNA C ABI | 最小 coexistence 回归和完整 Brazil release 均 GREEN；日志 `.build-logs/brazil-build-20260909-164444-30480.log`、`.build-logs/brazil-build-20260909-164505-2397.log` |
+| 2026-09-09 | Phase 5 real FC smoke | 固定 SAZ1、seed 0、8 drives、60 simulated seconds、Carrier strategy | GREEN：Java 17 运行完成 `Building model` → `Running model` → `Finished running model`，无 ERROR/Exception；结果 `/tmp/carrier-saz1-smoke.STBtuS` |
+| 2026-09-09 | Phase 5 review | DSR lifecycle、lease、control ownership、legacy 隔离和 benchmark 配置 | 独立 GPT-5.6 Sol/high：APPROVE；Carrier owner 会暂停 Pick/Stow/普通 Drive，Carrier 模式不进入 legacy DIG path，baseline/Carrier smoke 除 strategy 外共享参数 |
+| 2026-09-09 | Phase 6 C++ RED/GREEN | persistent planning session、prefix commit、external-state rebase、schema guard、PairCost dependency reuse 和增量 C ABI | GREEN：schema 2、session 4、rebase 2、pair incremental 5、carried commitment 2、arbitrary-root 7、old C API 5、incremental C API 2、rebase C API 2、exception boundary 1 |
+| 2026-09-09 | Phase 6 C++ review/commit | normal root continuation 与 cache 生命周期 | 独立 GPT-5.6 Sol/low 在补齐完整 grid/wall/entity/goal schema guard 后 APPROVE；提交并推送 `df3deba carrier: persist incremental planning continuation` |
+| 2026-09-09 | Phase 6 Java RED/GREEN | `CarrierPersistentPlanningSessionTest`、`CarrierJointExecutorCheckpointTest`、`CarrierDsrCoordinatorIncrementalSessionTest` | GREEN：同一 native handle 跨 solve 复用；精确 prefix 走 commit，偏差走 rebase；生产 coordinator 每执行一拍续算并最终只关闭一次 session |
+| 2026-09-09 | Phase 6 Brazil regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-174840-16028.log`，11 秒 |
+| 2026-09-09 | Phase 6 Java review RED/GREEN | persistent backend 构造失败的 native handle 生命周期 | 独立 GPT-5.6 Sol/low 首轮 REJECT：`setGrid`/`setEntities` 失败会泄漏已创建 handle；新增独立 protected regression 先 RED（`create=1,destroy=0`），再用局部 candidate 初始化并在失败时 close，GREEN 后复审 APPROVE；日志 `.build-logs/brazil-build-20260909-180915-8338.log`、`180945-12504.log` |
+| 2026-09-09 | Phase 6 final Brazil regression | 修复 handle leak 后 `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-181014-18084.log`，10 秒 |
+| 2026-09-09 | Phase 5/6 Code-Labyrinth checkpoint | production wiring、persistent session、全部新增 tests 与 Carrier gitlink | 提交 `0cf86ce lms: route DSR through persistent Carrier sessions`，已推送到 `share/yimint/carrier-lacam-phase3-ws` |
+| 2026-09-09 | Phase 6 SAZ1 assembly smoke | 固定 SAZ1、seed 0、8 drives、60 simulated seconds、Carrier strategy | GREEN：最新 Phase 6 Java/native package 完成 `Building model` → `Running model` → `Finished running model`，无 ERROR/Exception；结果 `/tmp/carrier-saz1-phase6.4tPZ7G`。该随机窗口没有产生 DIG，因此只证明真实 FC 装配与运行，不作为 incremental DSR 性能证据 |
+| 2026-09-09 | Phase 6 Labyrinth simple subset | 固定 3-case、10 秒、seed 1、objective 4 | GREEN：3/3；首次解 0.152116/0.161280/0.156828 ms，最终 cost 26/38/10，结果非空、`solved=1` 且无 `invalid solution`；结果 `/tmp/carrier-labyrinth-phase6.NOP0YC` |
+| 2026-09-09 | Phase 6 C++ full regression | `cmake --build build -j14 && ./build/test_all --gtest_brief=1` | GREEN：440/440，245.695 秒 |
+| 2026-09-09 | Phase 6 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | GREEN：47/77，solver runtime 总和 590.1 秒，墙钟 47.1 秒；与 Phase 2 的成功集合、plan hash、makespan、SOC、work 和首解质量逐 case 零差异；结果 `benchmark/results_quick_carrier_dsr_phase6_20260909` |
 
 ## 6. 当前下一步
 
-1. 按 TDD 实现 Phase 4 joint executor，逐 timestep 原子执行完整动作矩阵，
-   同时保存 Java 侧 Pod identity/custody。
-2. 修正 Carrier 模式的 DSR 完成判定：target 必须完成 DROP，并由
-   `StorageManager` 在 border cell 绑定后才算完成。
-3. 接入 `CarrierDsrCoordinator`、execution lease 和
-   `DsrPlanningStrategy=carrier`，同时补齐 `${ENVROOT}/lib` native sidecar
-   的 Brazil build/package wiring。
-4. 接通 lifecycle 后运行固定 SAZ1 smoke；开发期继续只用固定
-   Labyrinth simple subset 和 quick 77，不运行 full 518。
+1. 将 `external/carrier-lacam` 从 GitHub URL 改为 Brazil/Amazon 内部可获取
+   的固定来源；当前本地 build 已通过，但还不满足正式离线发布合同。
+2. 用确实触发多拍 Carrier DIG 的 Labyrinth 场景读取 session telemetry，
+   再按 TDD 实现 Phase 7 exact incremental rho repair；没有 profile 证据前
+   不做算法语义改动。
+3. Phase 7 后处理 Phase 8 一般并发，随后运行全部代码测试、quick、最终
+   Sol/high review、获批 full 518，并生成最终汇报网页。
