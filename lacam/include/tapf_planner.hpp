@@ -176,6 +176,8 @@ struct TAPFStats {
   long rewire_guidance_rebuilds = 0;
   long f_pruned = 0;    // nodes discarded by the incumbent/f bound
   long g_relaxed = 0;   // duplicate-hit g relaxations (rewrite propagation)
+  long reference_plans_received = 0;
+  long reference_plans_validated = 0;
   long reference_checkpoint_hits = 0;
   long reference_action_hints = 0;
   long reference_suffix_attempts = 0;

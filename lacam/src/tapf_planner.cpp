@@ -84,6 +84,9 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     }
   }
   if (stats != nullptr) *stats = TAPFStats();
+  if (stats != nullptr &&
+      search_config.reference_plan != nullptr)
+    ++stats->reference_plans_received;
   for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
   // Solver-objective weights default to one; optional numeric objective
   // inputs DD_ALPHA..DD_DELTA are read once.  Shelf-free instances never
@@ -110,13 +113,18 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     carrier_upper_delta.assign(n_cells, 0);
     carrier = std::make_unique<CarrierEngine>(*dd_view);
   }
-  if (search_config.event_contract == nullptr) {
-    if (search_config.initial_physical.has_value())
+  if (search_config.initial_physical.has_value()) {
+    if (dd_view == nullptr)
       throw std::invalid_argument(
-          "initial_physical requires an event contract");
-  } else {
-    if (dd_view == nullptr ||
-        !search_config.initial_physical.has_value())
+          "carrier physical root requires a shelf layer");
+    const auto validation = validate_phys_config_root(
+        *dd_view, *search_config.initial_physical);
+    if (!validation.valid())
+      throw std::invalid_argument(
+          "invalid carrier physical root");
+  }
+  if (search_config.event_contract != nullptr) {
+    if (!search_config.initial_physical.has_value())
       throw std::invalid_argument(
           "event contract requires a carrier physical root");
     if (!(*search_config.initial_physical ==
@@ -135,7 +143,10 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     std::vector<PlanCost> steps;
     states.reserve(reference.actions.size() + 1);
     steps.reserve(reference.actions.size());
-    states.push_back(initial_phys_config(*dd_view));
+    states.push_back(
+        search_config.initial_physical.has_value()
+            ? *search_config.initial_physical
+            : initial_phys_config(*dd_view));
     bool valid = true;
     for (const auto& ops : reference.actions) {
       const auto step = reference_joint_cost(
@@ -174,6 +185,8 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       }
     }
     reference_plan_valid = valid;
+    if (stats != nullptr && reference_plan_valid)
+      ++stats->reference_plans_validated;
   }
 }
 
@@ -234,7 +247,7 @@ Solution TAPFPlanner::solve()
   initial_assignment_state.init(ins->N, ins->tasks.size());
   Config root_config = ins->starts;
   ShelfState root_shelf = initial_shelf_state(*ins);
-  if (search_config.event_contract != nullptr) {
+  if (search_config.initial_physical.has_value()) {
     const auto& root = *search_config.initial_physical;
     root_config = config_of_physical(*ins, root);
     root_shelf = shelf_of_physical(root);

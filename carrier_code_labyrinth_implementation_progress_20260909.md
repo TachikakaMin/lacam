@@ -37,7 +37,7 @@
 | 阶段 | 状态 | 当前证据 |
 |---|---|---|
 | Phase 0：设计和基线 | 完成（FC smoke 待 Brazil workspace） | §28、两个分支、固定 benchmark、425-test 与 3-case BR-LaCAM baseline 已完成 |
-| Phase 1：normal arbitrary-root | RED | protected tests 已固定；缺少 public API 与 root-aware finalization helpers |
+| Phase 1：normal arbitrary-root | GREEN | public from-state API 与 root-aware search/finalization 已接入同一条 `TAPFPlanner::solve()` 路径；432/432 C++ tests 与 quick 77 无回归 |
 | Phase 2：C ABI/shared library | 未开始 | 等 Phase 1 GREEN |
 | Phase 3：Java adapter/JNA | 未开始 | 等 Phase 2 GREEN |
 | Phase 4：joint executor | 未开始 | 等 Phase 3 GREEN |
@@ -108,9 +108,21 @@ validator 的 invalid diagnostic。第二例说明原版在 10 秒 search deadli
 | 2026-09-09 | baseline | 固定 3-case BR-LaCAM planner subset，10 秒/seed 1/objective 4 | GREEN：3/3；首次解均约 0.16ms，详见 baseline JSON |
 | 2026-09-09 | review | protected EventContract test 语义变更 | 独立 GPT-5.6 Sol/high：APPROVE；contract validation 必须原样保留 |
 | 2026-09-09 | Phase 1 RED | `test_dd_arbitrary_root` + EventContract root 语义测试 | 预期编译失败：缺少 from-state API，以及 root-aware normalize/cost/replay/reference/fixed-goal/repair |
+| 2026-09-09 | review | protected arbitrary-root reference assertion 变更 | 第一次方案被独立 GPT-5.6 Sol/high REJECT；加入生产 pass-2 `reference_plans_received/validated` telemetry 后，第二次方案 APPROVE |
+| 2026-09-09 | Phase 1 GREEN | arbitrary-root、EventContract、plan cost、reference、repair 定向测试 | GREEN：7/7、6/6、11/11、8/8、7/7 |
+| 2026-09-09 | Phase 1 regression | `cmake --build build -j14 && ./build/test_all --gtest_brief=1` | GREEN：432/432，245.801 秒 |
+| 2026-09-09 | Phase 1 compatibility | `test_tapf_compat --gtest_brief=1` | GREEN：7/7，120.462 秒；shelf-free 原路径保持兼容 |
+| 2026-09-09 | benchmark tooling | Python benchmark tests | 200 项直接通过；4 项因初次启动缺少 `PYTHONPATH=benchmark`，按正确入口补跑 12/12 通过；另 1 项正确识别旧网页仍绑定旧 binary SHA，留待最终发布时重生成 |
+| 2026-09-09 | Phase 1 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | 47/77，首次可交付 solver runtime 总和 588.4 秒，墙钟 47.1 秒；与上一权威 quick 的成功集合和全部 solution metrics 逐 case 完全相同 |
+| 2026-09-09 | Phase 1 code review | 当前实现 diff | 独立 GPT-5.6 Sol/low：APPROVE；未发现 root 丢失、兼容 wrapper 误用、EventContract 弱化、parallel planner、fallback 或 dead production code |
 
 ## 6. 当前下一步
 
-1. 只修改现有 root/search/finalization execution path，使 Phase 1 GREEN。
-2. 运行相关 tests、全量 C++ tests 和固定 simple benchmark，记录结果。
-3. Code-Labyrinth Java package 放入 Brazil workspace 后再跑固定 SAZ1 smoke。
+1. 提交并推送 Phase 1 arbitrary-root 实现和验证证据。
+2. 按 TDD 开始 Phase 2：在现有 Carrier 入口外增加独立 C ABI 数据边界和
+   shared-library build target，但 native 内部仍只调用同一条
+   `solve_carrier_lacam_from_state_result()` 路径。
+3. C ABI 能表达完整 `DDInstance`、当前 `PhysConfig`、逐 timestep 联合动作、
+   status、首次解 runtime 和最终 cost 后，再把固定三个 Labyrinth planner
+   case 转入 Carrier adapter 的 simple benchmark。
+4. Code-Labyrinth Java package 放入 Brazil workspace 后再跑固定 SAZ1 smoke。

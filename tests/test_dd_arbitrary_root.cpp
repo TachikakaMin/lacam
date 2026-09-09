@@ -179,7 +179,8 @@ TEST(dd_arbitrary_root,
           ins, initial_phys_config(ins), result.plan));
 
   EXPECT_EQ(stats.improvement_attempts, 1);
-  EXPECT_GT(stats.reference_checkpoint_hits, 0);
+  EXPECT_EQ(stats.reference_plans_received, 1);
+  EXPECT_EQ(stats.reference_plans_validated, 1);
   EXPECT_GE(stats.first_solution_ms, 0);
 }
 

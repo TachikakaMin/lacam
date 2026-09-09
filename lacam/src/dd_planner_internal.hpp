@@ -33,10 +33,10 @@ inline SocWeights soc_weights_from_env()
   return w;
 }
 
-inline std::optional<DDPlan> normalize_goal_prefix(const DDInstance& ins,
-                                            const DDPlan& plan,
-                                            const Deadline* deadline = nullptr,
-                                            bool* cutoff = nullptr)
+inline std::optional<DDPlan> normalize_goal_prefix(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan, const Deadline* deadline = nullptr,
+    bool* cutoff = nullptr)
 {
   if (cutoff != nullptr) *cutoff = false;
   const auto expired = [&]() {
@@ -45,7 +45,7 @@ inline std::optional<DDPlan> normalize_goal_prefix(const DDInstance& ins,
     return true;
   };
   if (expired()) return std::nullopt;
-  PhysConfig state = initial_phys_config(ins);
+  PhysConfig state = root;
   if (is_dd_goal(ins, state)) {
     if (expired()) return std::nullopt;
     return DDPlan{};
@@ -62,6 +62,14 @@ inline std::optional<DDPlan> normalize_goal_prefix(const DDInstance& ins,
     if (is_dd_goal(ins, state)) return prefix;
   }
   return std::nullopt;
+}
+
+inline std::optional<DDPlan> normalize_goal_prefix(
+    const DDInstance& ins, const DDPlan& plan,
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+{
+  return normalize_goal_prefix(
+      ins, initial_phys_config(ins), plan, deadline, cutoff);
 }
 
 inline void add_scaled_work(int64_t& total, int64_t amount)
@@ -108,7 +116,8 @@ inline std::optional<int64_t> joint_ops_work_scaled(
 }
 
 inline std::optional<int64_t> plan_work_scaled(
-    const DDInstance& ins, const DDPlan& plan,
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan,
     const Deadline* deadline = nullptr, bool* cutoff = nullptr)
 {
   if (cutoff != nullptr) *cutoff = false;
@@ -119,7 +128,7 @@ inline std::optional<int64_t> plan_work_scaled(
   };
   if (expired()) return std::nullopt;
   const SocWeights w = soc_weights_from_env();
-  auto s = initial_phys_config(ins);
+  auto s = root;
   int64_t work = 0;
   for (const auto& ops : plan) {
     if (expired()) return std::nullopt;
@@ -141,14 +150,23 @@ inline std::optional<int64_t> plan_work_scaled(
   return work;
 }
 
-inline std::optional<PlanCost> plan_cost_checked(
+inline std::optional<int64_t> plan_work_scaled(
     const DDInstance& ins, const DDPlan& plan,
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+{
+  return plan_work_scaled(
+      ins, initial_phys_config(ins), plan, deadline, cutoff);
+}
+
+inline std::optional<PlanCost> plan_cost_checked(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan,
     const Deadline* deadline = nullptr, bool* cutoff = nullptr)
 {
   if (cutoff != nullptr) *cutoff = false;
   bool prefix_cutoff = false;
   const auto prefix = normalize_goal_prefix(
-      ins, plan, deadline, &prefix_cutoff);
+      ins, root, plan, deadline, &prefix_cutoff);
   if (prefix_cutoff) {
     if (cutoff != nullptr) *cutoff = true;
     return std::nullopt;
@@ -157,7 +175,7 @@ inline std::optional<PlanCost> plan_cost_checked(
 
   bool work_cutoff = false;
   const auto work = plan_work_scaled(
-      ins, *prefix, deadline, &work_cutoff);
+      ins, root, *prefix, deadline, &work_cutoff);
   if (work_cutoff) {
     if (cutoff != nullptr) *cutoff = true;
     return std::nullopt;
@@ -170,14 +188,30 @@ inline std::optional<PlanCost> plan_cost_checked(
   return PlanCost::from_scaled(prefix->size(), *work);
 }
 
-inline PlanCost plan_cost(const DDInstance& ins, const DDPlan& plan)
+inline std::optional<PlanCost> plan_cost_checked(
+    const DDInstance& ins, const DDPlan& plan,
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
 {
-  const auto cost = plan_cost_checked(ins, plan);
+  return plan_cost_checked(
+      ins, initial_phys_config(ins), plan, deadline, cutoff);
+}
+
+inline PlanCost plan_cost(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan)
+{
+  const auto cost = plan_cost_checked(ins, root, plan);
   return cost.has_value() ? *cost : PlanCost::unbounded();
 }
 
+inline PlanCost plan_cost(const DDInstance& ins, const DDPlan& plan)
+{
+  return plan_cost(ins, initial_phys_config(ins), plan);
+}
+
 inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
-    const DDInstance& ins, const DDPlan& plan,
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan,
     const Deadline* deadline = nullptr, bool* cutoff = nullptr)
 {
   if (cutoff != nullptr) *cutoff = false;
@@ -188,7 +222,7 @@ inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
   };
   if (expired()) return std::nullopt;
   const SocWeights weights = soc_weights_from_env();
-  PhysConfig state = initial_phys_config(ins);
+  PhysConfig state = root;
   PlanCost cost;
   for (const auto& ops : plan) {
     if (expired()) return std::nullopt;
@@ -213,6 +247,14 @@ inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
   return std::make_pair(std::move(state), cost);
 }
 
+inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
+    const DDInstance& ins, const DDPlan& plan,
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+{
+  return replay_raw_prefix(
+      ins, initial_phys_config(ins), plan, deadline, cutoff);
+}
+
 inline const TAPFReferenceCheckpoint* find_reference_checkpoint(
     const TAPFReferencePlan& reference, const PhysConfig& state)
 {
@@ -232,7 +274,8 @@ inline const TAPFReferenceCheckpoint* find_reference_checkpoint(
 }
 
 inline std::optional<TAPFReferencePlan> build_reference_plan(
-    const DDInstance& ins, const DDPlan& plan,
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan,
     size_t max_checkpoints)
 {
   if (max_checkpoints == 0) return std::nullopt;
@@ -241,7 +284,7 @@ inline std::optional<TAPFReferencePlan> build_reference_plan(
   std::vector<PlanCost> step_costs;
   states.reserve(plan.size() + 1);
   step_costs.reserve(plan.size());
-  states.push_back(initial_phys_config(ins));
+  states.push_back(root);
   for (const auto& ops : plan) {
     if (ops.size() != states.back().robots.size())
       return std::nullopt;
@@ -295,6 +338,14 @@ inline std::optional<TAPFReferencePlan> build_reference_plan(
     reference.checkpoints.push_back(std::move(checkpoint));
   }
   return reference;
+}
+
+inline std::optional<TAPFReferencePlan> build_reference_plan(
+    const DDInstance& ins, const DDPlan& plan,
+    size_t max_checkpoints)
+{
+  return build_reference_plan(
+      ins, initial_phys_config(ins), plan, max_checkpoints);
 }
 
 // (Config, ShelfState) of an arbitrary physical configuration
@@ -476,6 +527,10 @@ inline void map_stats(const TAPFStats& t, DDStats* out,
   out->rewire_guidance_rebuilds += t.rewire_guidance_rebuilds;
   out->g_relaxed += t.g_relaxed;
   out->f_pruned += t.f_pruned;
+  out->reference_plans_received +=
+      t.reference_plans_received;
+  out->reference_plans_validated +=
+      t.reference_plans_validated;
   out->reference_checkpoint_hits +=
       t.reference_checkpoint_hits;
   out->reference_action_hints += t.reference_action_hints;
@@ -493,6 +548,7 @@ inline void map_stats(const TAPFStats& t, DDStats* out,
 
 inline DDPlan run_search_attempt(
     const TAPFInstance& view, const DDInstance& ins,
+    const PhysConfig& root,
     const Deadline* deadline, int seed, bool macro_enabled,
     TAPFStopPolicy stop_policy, PlanCost incumbent_init,
     const TAPFReferencePlan* reference_plan, DDStats* stats,
@@ -517,6 +573,7 @@ inline DDPlan run_search_attempt(
   cfg.objective = TAPFObjective::MAKESPAN_THEN_WORK;
   cfg.incumbent_init = incumbent_init;
   cfg.reference_plan = reference_plan;
+  cfg.initial_physical = root;
   const bool continue_after_incumbent =
       stop_policy == TAPFStopPolicy::ANYTIME;
   auto planner = std::make_unique<TAPFPlanner>(
@@ -566,7 +623,7 @@ inline DDPlan run_search_attempt(
     return {};
   }
   const auto normalized = normalize_goal_prefix(
-      ins, plan_of(view, sol, planner->solution_shelves));
+      ins, root, plan_of(view, sol, planner->solution_shelves));
   if (!normalized.has_value()) {
     defer_planner_cleanup();
     return {};
@@ -586,22 +643,26 @@ inline DDPlan run_search_attempt(
   // plan and must not erase a solution that the search already produced.
   if (!plan.empty())
     plan = replayed_states.empty()
-               ? repair_carrier_plan(ins, plan, &repair, deadline)
+               ? repair_carrier_plan(
+                     ins, root, plan, &repair, deadline)
                : repair_carrier_plan_from_replay(
-                     ins, plan, replayed_states, &repair, deadline);
+                     ins, root, plan, replayed_states, &repair,
+                     deadline);
   if (stats != nullptr) {
     stats->exact_loops += repair.exact_loops;
     stats->projected_loops += repair.projected_loops;
     stats->bridge_steps += repair.bridge_steps;
     stats->plan_steps_removed += repair.steps_removed;
   }
-  const auto repaired_prefix = normalize_goal_prefix(ins, plan);
+  const auto repaired_prefix =
+      normalize_goal_prefix(ins, root, plan);
   if (!repaired_prefix.has_value()) {
     defer_planner_cleanup();
     return {};
   }
   plan = *repaired_prefix;
-  if (cost_out != nullptr) *cost_out = plan_cost(ins, plan);
+  if (cost_out != nullptr)
+    *cost_out = plan_cost(ins, root, plan);
   *solved_out = true;
   defer_planner_cleanup();
   return plan;
@@ -615,9 +676,10 @@ inline bool has_dynamic_goal_sets(const DDInstance& ins)
 }
 
 inline std::optional<DDInstance> fixed_goal_instance_from_plan(
-    const DDInstance& ins, const DDPlan& plan)
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan)
 {
-  PhysConfig state = initial_phys_config(ins);
+  PhysConfig state = root;
   for (const auto& ops : plan) {
     auto next = apply_ops(ins, state, ops);
     if (!next.has_value()) return std::nullopt;
@@ -632,6 +694,13 @@ inline std::optional<DDInstance> fixed_goal_instance_from_plan(
   }
   fixed.finalize();
   return fixed;
+}
+
+inline std::optional<DDInstance> fixed_goal_instance_from_plan(
+    const DDInstance& ins, const DDPlan& plan)
+{
+  return fixed_goal_instance_from_plan(
+      ins, initial_phys_config(ins), plan);
 }
 
 inline uint64_t state_hash(const Config& C, const ShelfState& S)

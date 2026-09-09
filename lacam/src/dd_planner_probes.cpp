@@ -19,6 +19,13 @@ PlanCost dd_plan_cost_probe(const DDInstance& ins, const DDPlan& plan)
   return plan_cost(ins, plan);
 }
 
+PlanCost dd_plan_cost_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan)
+{
+  return plan_cost(ins, root, plan);
+}
+
 std::optional<PlanCost> dd_plan_cost_deadline_probe(
     const DDInstance& ins, const DDPlan& plan,
     const Deadline* deadline, bool* cutoff)
@@ -38,6 +45,13 @@ std::optional<DDPlan> dd_normalize_goal_prefix_probe(
   return normalize_goal_prefix(ins, plan);
 }
 
+std::optional<DDPlan> dd_normalize_goal_prefix_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan)
+{
+  return normalize_goal_prefix(ins, root, plan);
+}
+
 std::optional<DDPlan> dd_normalize_goal_prefix_deadline_probe(
     const DDInstance& ins, const DDPlan& plan,
     const Deadline* deadline, bool* cutoff)
@@ -52,11 +66,34 @@ bool dd_replay_raw_prefix_deadline_probe(
   return replay_raw_prefix(ins, plan, deadline, cutoff).has_value();
 }
 
+std::optional<std::pair<PhysConfig, PlanCost>>
+dd_replay_raw_prefix_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan)
+{
+  return replay_raw_prefix(ins, root, plan);
+}
+
 std::optional<TAPFReferencePlan> dd_build_reference_plan_probe(
     const DDInstance& ins, const DDPlan& plan,
     size_t max_checkpoints)
 {
   return build_reference_plan(ins, plan, max_checkpoints);
+}
+
+std::optional<TAPFReferencePlan> dd_build_reference_plan_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan, size_t max_checkpoints)
+{
+  return build_reference_plan(
+      ins, root, plan, max_checkpoints);
+}
+
+std::optional<DDInstance> dd_fixed_goal_instance_from_plan_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan)
+{
+  return fixed_goal_instance_from_plan(ins, root, plan);
 }
 
 std::optional<TAPFReferenceCheckpoint> dd_reference_checkpoint_probe(

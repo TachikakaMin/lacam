@@ -293,9 +293,11 @@ std::optional<DDPlan> shortest_available_bridge(
   return std::nullopt;
 }
 
-bool valid_goal_plan(const DDInstance& ins, const DDPlan& plan)
+bool valid_goal_plan(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan)
 {
-  PhysConfig state = initial_phys_config(ins);
+  PhysConfig state = root;
   for (const auto& ops : plan) {
     auto next = apply_ops(ins, state, ops);
     if (!next.has_value()) return false;
@@ -305,10 +307,11 @@ bool valid_goal_plan(const DDInstance& ins, const DDPlan& plan)
 }
 
 PlanCost replay_plan_cost(
-    const DDInstance& ins, const DDPlan& plan,
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan,
     const RepairWeights& weights)
 {
-  auto state = initial_phys_config(ins);
+  auto state = root;
   int64_t work = 0;
   for (const auto& ops : plan) {
     add_scaled_work(
@@ -321,21 +324,23 @@ PlanCost replay_plan_cost(
 }
 
 bool repair_candidate_is_accepted(
-    const DDInstance& ins, const DDPlan& candidate,
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& candidate,
     const PlanCost& incumbent_cost, const RepairWeights& weights)
 {
   const PlanCost candidate_cost =
-      replay_plan_cost(ins, candidate, weights);
+      replay_plan_cost(ins, root, candidate, weights);
   return candidate_cost < incumbent_cost &&
-         valid_goal_plan(ins, candidate);
+         valid_goal_plan(ins, root, candidate);
 }
 
 }  // namespace
 
-DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
-                                const std::vector<PhysConfig>* replayed_states,
-                                DDPlanRepairStats* stats,
-                                const Deadline* deadline)
+DDPlan repair_carrier_plan_impl(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan,
+    const std::vector<PhysConfig>* replayed_states,
+    DDPlanRepairStats* stats, const Deadline* deadline)
 {
   if (stats != nullptr) *stats = DDPlanRepairStats();
   if (plan.size() < 2 || ins.n_robots() == 0) return plan;
@@ -350,7 +355,7 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
   std::vector<PhysConfig> owned_states;
   if (replayed_states == nullptr) {
     owned_states.reserve(plan.size() + 1);
-    owned_states.push_back(initial_phys_config(ins));
+    owned_states.push_back(root);
     for (const auto& ops : plan) {
       auto next = apply_ops(ins, owned_states.back(), ops);
       if (!next.has_value()) return plan;
@@ -362,7 +367,7 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
   const auto& states =
       replayed_states != nullptr ? *replayed_states : owned_states;
   if (states.size() != plan.size() + 1 ||
-      !(states.front() == initial_phys_config(ins)))
+      !(states.front() == root))
     return plan;
   if (!is_dd_goal(ins, states.back())) return plan;
 
@@ -390,7 +395,7 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
   RepairWeights weights;
   carrier_detail::load_solver_weights(weights);
   const PlanCost original_cost =
-      replay_plan_cost(ins, plan, weights);
+      replay_plan_cost(ins, root, plan, weights);
 
   DDPlan repaired;
   repaired.reserve(plan.size());
@@ -435,7 +440,7 @@ DDPlan repair_carrier_plan_impl(const DDInstance& ins, const DDPlan& plan,
   if (repaired.empty()) repaired = plan;
   if (expired()) return plan;  // R1: no budget for the final replay
   if (!repair_candidate_is_accepted(
-          ins, repaired, original_cost, weights))
+          ins, root, repaired, original_cost, weights))
     return plan;
   if (stats != nullptr) *stats = local;
   return repaired;
@@ -445,19 +450,30 @@ DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            DDPlanRepairStats* stats,
                            const Deadline* deadline)
 {
-  return repair_carrier_plan_impl(ins, plan, nullptr, stats, deadline);
+  return repair_carrier_plan(
+      ins, initial_phys_config(ins), plan, stats, deadline);
+}
+
+DDPlan repair_carrier_plan(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan, DDPlanRepairStats* stats,
+    const Deadline* deadline)
+{
+  return repair_carrier_plan_impl(
+      ins, root, plan, nullptr, stats, deadline);
 }
 
 bool dd_repair_accepts_candidate_probe(
     const DDInstance& ins, const DDPlan& incumbent,
     const DDPlan& candidate)
 {
-  if (!valid_goal_plan(ins, incumbent)) return false;
+  const PhysConfig root = initial_phys_config(ins);
+  if (!valid_goal_plan(ins, root, incumbent)) return false;
   RepairWeights weights;
   carrier_detail::load_solver_weights(weights);
   return repair_candidate_is_accepted(
-      ins, candidate,
-      replay_plan_cost(ins, incumbent, weights), weights);
+      ins, root, candidate,
+      replay_plan_cost(ins, root, incumbent, weights), weights);
 }
 
 DDPlan repair_carrier_plan_from_replay(
@@ -465,5 +481,15 @@ DDPlan repair_carrier_plan_from_replay(
     const std::vector<PhysConfig>& states, DDPlanRepairStats* stats,
     const Deadline* deadline)
 {
-  return repair_carrier_plan_impl(ins, plan, &states, stats, deadline);
+  return repair_carrier_plan_from_replay(
+      ins, initial_phys_config(ins), plan, states, stats, deadline);
+}
+
+DDPlan repair_carrier_plan_from_replay(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan, const std::vector<PhysConfig>& states,
+    DDPlanRepairStats* stats, const Deadline* deadline)
+{
+  return repair_carrier_plan_impl(
+      ins, root, plan, &states, stats, deadline);
 }

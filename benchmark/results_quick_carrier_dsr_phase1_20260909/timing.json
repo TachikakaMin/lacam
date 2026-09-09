@@ -1,0 +1,39 @@
+{
+  "wall_time_sec": 47.1,
+  "jobs": 14,
+  "n_tasks": 77,
+  "timeout_per_run_sec": 10,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "gamma": 1.0,
+    "delta": 1.0
+  },
+  "following": "allowed",
+  "provenance": {
+    "git_commit": "9a6edbf54810151295c5c7574d3eea52f36a6441",
+    "binary_path": "/local/home/yimint/research/dd-lacam/build/dd_benchmark",
+    "binary_sha256": "15fc30cda22b432be10fc9d0d277dc076c639ad928648bd4cf6e46a8dee66a25",
+    "host": "dev-dsk-yimint-1d-d32fcf71.us-east-1.amazon.com"
+  },
+  "methods": {
+    "carrier": {
+      "solved": 47,
+      "total": 77,
+      "solver_time_sum_sec": 588.4
+    }
+  },
+  "suite": {
+    "name": "carrier_release_77",
+    "definition_path": "/local/home/yimint/research/dd-lacam/benchmark/release_benchmark.json",
+    "definition_sha256": "a881292163ff2fcd2797cc83fddd8f9ebd12def79619586b940976bce07111c6",
+    "groups": {
+      "brap_pool": 68,
+      "warehouse_blocks": 9
+    },
+    "tier": "quick",
+    "review_approval": null,
+    "full_only_case_count": 0
+  }
+}

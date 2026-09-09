@@ -79,12 +79,18 @@ const char* carrier_brd_exit_reason_name(
   return "UNKNOWN";
 }
 
-DDSolveResult solve_carrier_lacam_result(
-    const DDInstance& ins, double time_limit_sec, int seed,
-    DDStats* stats, DDPlan* best_effort)
+DDSolveResult solve_carrier_lacam_from_state_result(
+    const DDInstance& ins, const PhysConfig& current,
+    double time_limit_sec, int seed, DDStats* stats,
+    DDPlan* best_effort)
 {
-  const TAPFInstance view(ins);
   if (stats != nullptr) *stats = DDStats();
+  if (best_effort != nullptr) best_effort->clear();
+  if (ins.shelves.empty() ||
+      !validate_phys_config_root(ins, current).valid())
+    return DDSolveResult{DDSolveStatus::INVALID, {}};
+
+  const TAPFInstance view(ins);
   const auto started = Clock::now();
 
   // One controller owns the verified incumbent and at most two calls to the
@@ -120,7 +126,7 @@ DDSolveResult solve_carrier_lacam_result(
   long max_depth = 0, targets_done = 0;
   bool phase1_solved = false;
   DDPlan plan = run_search_attempt(
-      view, ins, &search_deadline, seed, use_macro,
+      view, ins, current, &search_deadline, seed, use_macro,
       TAPFStopPolicy::FIRST_FEASIBLE, PlanCost::unbounded(),
       nullptr, stats, best_effort, &phase1_solved, &cost, &first_ms,
       &first_makespan, &first_work_scaled, &first_soc,
@@ -137,7 +143,8 @@ DDSolveResult solve_carrier_lacam_result(
         DDImprovementExitReason::NO_REMAINING_BUDGET;
 
   if (phase1_solved && !is_expired(&search_deadline)) {
-    auto fixed = fixed_goal_instance_from_plan(ins, plan);
+    auto fixed =
+        fixed_goal_instance_from_plan(ins, current, plan);
     if (!fixed.has_value()) {
       if (stats != nullptr)
         stats->improvement_exit_reason =
@@ -147,7 +154,7 @@ DDSolveResult solve_carrier_lacam_result(
       fixed_view_storage =
           std::make_unique<TAPFInstance>(*fixed);
       first_reference = build_reference_plan(
-          *fixed, plan, 256);
+          *fixed, current, plan, 256);
       const TAPFInstance* improvement_view =
           fixed_view_storage.get();
       const DDInstance* improvement_ins = &*fixed;
@@ -165,7 +172,7 @@ DDSolveResult solve_carrier_lacam_result(
       bool phase2_solved = false;
       bool phase2_cutoff = false;
       DDPlan plan2 = run_search_attempt(
-          *improvement_view, *improvement_ins,
+          *improvement_view, *improvement_ins, current,
           &search_deadline, seed,
           /*macro_enabled=*/false,
           TAPFStopPolicy::FIRST_STRICT_IMPROVEMENT,
@@ -233,11 +240,12 @@ DDSolveResult solve_carrier_lacam_result(
                                          ? DDSolveStatus::TIMEOUT
                                          : DDSolveStatus::EXHAUSTED);
     if (solved) {
-      const auto prefix = normalize_goal_prefix(ins, final_plan);
+      const auto prefix =
+          normalize_goal_prefix(ins, current, final_plan);
       const bool valid = prefix.has_value();
       if (valid) {
         final_plan = *prefix;
-        final_cost = plan_cost(ins, final_plan);
+        final_cost = plan_cost(ins, current, final_plan);
       }
       const double deliverable_ms =
           std::chrono::duration<double, std::milli>(
@@ -277,6 +285,15 @@ DDSolveResult solve_carrier_lacam_result(
     return DDSolveResult{status, std::move(final_plan)};
   };
   return finish(phase1_solved, std::move(plan), cost);
+}
+
+DDSolveResult solve_carrier_lacam_result(
+    const DDInstance& ins, double time_limit_sec, int seed,
+    DDStats* stats, DDPlan* best_effort)
+{
+  return solve_carrier_lacam_from_state_result(
+      ins, initial_phys_config(ins), time_limit_sec, seed,
+      stats, best_effort);
 }
 
 DDSolveResult dd_solve_carrier_lacam_fixed_tau_probe(

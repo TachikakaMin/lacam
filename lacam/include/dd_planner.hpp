@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "dd_carrier.hpp"
@@ -253,6 +254,8 @@ struct DDStats {
   long improvement_candidates = 0;
   long improvement_improvements = 0;
   long improvement_generator_failures = 0;
+  long reference_plans_received = 0;
+  long reference_plans_validated = 0;
   long reference_checkpoint_hits = 0;
   long reference_action_hints = 0;
   long reference_suffix_attempts = 0;
@@ -287,6 +290,9 @@ struct DDStats {
 using DDSocWeights = SolverWeights;
 DDSocWeights dd_load_soc_weights();
 PlanCost dd_plan_cost_probe(const DDInstance& ins, const DDPlan& plan);
+PlanCost dd_plan_cost_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan);
 std::optional<PlanCost> dd_plan_cost_deadline_probe(
     const DDInstance& ins, const DDPlan& plan,
     const Deadline* deadline, bool* cutoff);
@@ -294,15 +300,28 @@ bool dd_plan_cost_better_probe(const PlanCost& candidate,
                                const PlanCost& incumbent);
 std::optional<DDPlan> dd_normalize_goal_prefix_probe(
     const DDInstance& ins, const DDPlan& plan);
+std::optional<DDPlan> dd_normalize_goal_prefix_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan);
 std::optional<DDPlan> dd_normalize_goal_prefix_deadline_probe(
     const DDInstance& ins, const DDPlan& plan,
     const Deadline* deadline, bool* cutoff);
+std::optional<std::pair<PhysConfig, PlanCost>>
+dd_replay_raw_prefix_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan);
 bool dd_replay_raw_prefix_deadline_probe(
     const DDInstance& ins, const DDPlan& plan,
     const Deadline* deadline, bool* cutoff);
 std::optional<TAPFReferencePlan> dd_build_reference_plan_probe(
     const DDInstance& ins, const DDPlan& plan,
     size_t max_checkpoints = 256);
+std::optional<TAPFReferencePlan> dd_build_reference_plan_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan, size_t max_checkpoints = 256);
+std::optional<DDInstance> dd_fixed_goal_instance_from_plan_probe(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan);
 std::optional<TAPFReferenceCheckpoint> dd_reference_checkpoint_probe(
     const TAPFReferencePlan& reference, const PhysConfig& state);
 std::optional<DDPlan> dd_reference_splice_probe(
@@ -376,6 +395,10 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
 DDSolveResult solve_carrier_lacam_result(
     const DDInstance& ins, double time_limit_sec, int seed,
     DDStats* stats = nullptr, DDPlan* best_effort = nullptr);
+DDSolveResult solve_carrier_lacam_from_state_result(
+    const DDInstance& ins, const PhysConfig& current,
+    double time_limit_sec, int seed, DDStats* stats = nullptr,
+    DDPlan* best_effort = nullptr);
 
 // Diagnostic-only fixed-assignment seam.  It narrows each target's
 // eligible set to the supplied tau, then calls the unchanged production
@@ -419,6 +442,10 @@ DDFinalizationStatus dd_classify_finalization_probe(
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            DDPlanRepairStats* stats = nullptr,
                            const Deadline* deadline = nullptr);
+DDPlan repair_carrier_plan(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan, DDPlanRepairStats* stats = nullptr,
+    const Deadline* deadline = nullptr);
 // Test-visible view of the exact production repair acceptance boundary.
 // Both plans are replayed with the shared fixed-point weights; only a valid
 // goal candidate with strictly smaller (ticks, work) is accepted.
@@ -432,6 +459,11 @@ bool dd_repair_accepts_candidate_probe(
 DDPlan repair_carrier_plan_from_replay(
     const DDInstance& ins, const DDPlan& plan,
     const std::vector<PhysConfig>& states,
+    DDPlanRepairStats* stats = nullptr,
+    const Deadline* deadline = nullptr);
+DDPlan repair_carrier_plan_from_replay(
+    const DDInstance& ins, const PhysConfig& root,
+    const DDPlan& plan, const std::vector<PhysConfig>& states,
     DDPlanRepairStats* stats = nullptr,
     const Deadline* deadline = nullptr);
 
