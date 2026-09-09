@@ -97,6 +97,15 @@ int64_t carrier_lacam_get_root_pair_cache_misses(void* handle);
 int64_t carrier_lacam_get_changed_pair_edges(void* handle);
 int64_t carrier_lacam_get_total_pair_edges(void* handle);
 int64_t carrier_lacam_get_reused_pair_edges(void* handle);
+int64_t carrier_lacam_get_rho_incremental_full_solves(void* handle);
+int64_t carrier_lacam_get_rho_incremental_repairs(void* handle);
+int64_t carrier_lacam_get_rho_incremental_zero_row_reuses(
+    void* handle);
+int64_t carrier_lacam_get_rho_incremental_changed_rows(void* handle);
+double carrier_lacam_get_rho_bottleneck_ms(void* handle);
+double carrier_lacam_get_rho_secondary_full_ms(void* handle);
+double carrier_lacam_get_rho_secondary_repair_ms(void* handle);
+double carrier_lacam_get_rho_canonical_ms(void* handle);
 
 // The returned pointer remains valid until the next call on this handle.
 // Callers crossing JNA should copy it immediately.

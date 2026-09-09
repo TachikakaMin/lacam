@@ -512,6 +512,14 @@ inline void map_stats(const TAPFStats& t, DDStats* out,
   out->rho_matrix_cols_total += t.rho_matrix_cols_total;
   out->rho_matrix_max_rows = std::max(
       out->rho_matrix_max_rows, t.rho_matrix_max_rows);
+  out->rho_incremental_full_solves +=
+      t.rho_incremental_full_solves;
+  out->rho_incremental_repairs +=
+      t.rho_incremental_repairs;
+  out->rho_incremental_zero_row_reuses +=
+      t.rho_incremental_zero_row_reuses;
+  out->rho_incremental_changed_rows_total +=
+      t.rho_incremental_changed_rows_total;
   if (out->rho_objective_version != t.rho_objective_version)
     throw std::logic_error(
         "mixed rho objective versions across search attempts");
@@ -530,6 +538,8 @@ inline void map_stats(const TAPFStats& t, DDStats* out,
   out->rho_bottleneck_time_ms += t.rho_bottleneck_time_ms;
   out->rho_secondary_full_time_ms +=
       t.rho_secondary_full_time_ms;
+  out->rho_secondary_repair_time_ms +=
+      t.rho_secondary_repair_time_ms;
   out->rho_canonical_time_ms += t.rho_canonical_time_ms;
   out->custody_continuations += t.custody_continuations;
   out->timed_transport_expansions +=

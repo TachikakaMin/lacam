@@ -218,6 +218,10 @@ struct DDStats {
   long rho_matrix_rows_total = 0;
   long rho_matrix_cols_total = 0;
   long rho_matrix_max_rows = 0;
+  long rho_incremental_full_solves = 0;
+  long rho_incremental_repairs = 0;
+  long rho_incremental_zero_row_reuses = 0;
+  long rho_incremental_changed_rows_total = 0;
   RhoObjectiveVersion rho_objective_version =
       RhoObjectiveVersion::
           BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2;
@@ -233,6 +237,7 @@ struct DDStats {
   double rho_matrix_time_ms = 0;
   double rho_bottleneck_time_ms = 0;
   double rho_secondary_full_time_ms = 0;
+  double rho_secondary_repair_time_ms = 0;
   double rho_canonical_time_ms = 0;
   long custody_continuations = 0;
   long timed_transport_expansions = 0;
@@ -392,7 +397,8 @@ DDReadyMatchProbe dd_match_ready_tasks_probe(
     CandidateAdmission admission =
         CandidateAdmission::DROP_GLOBALLY_UNREACHABLE,
     const Deadline* deadline = nullptr,
-    const std::vector<uint8_t>* eligible_robot = nullptr);
+    const std::vector<uint8_t>* eligible_robot = nullptr,
+    const RhoIncrementalState* previous_rho_state = nullptr);
 
 // Compatibility wrapper: authoritative callers that must distinguish a
 // zero-tick success from failure use solve_carrier_lacam_result().

@@ -85,6 +85,13 @@ target_link_libraries(
   test_carrier_lacam_rebase_c_api
   carrier_lacam gtest)
 add_executable(
+  test_carrier_lacam_rho_metrics_c_api
+  ./tests/test_carrier_lacam_rho_metrics_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_rho_metrics_c_api
+  carrier_lacam gtest)
+add_executable(
   test_carrier_lacam_exception_boundary
   ./tests/test_carrier_lacam_exception_boundary.cpp
   ${TEST_MAIN_FUNC})
@@ -206,6 +213,10 @@ add_test(test_dd_timed_transport ./tests/test_dd_timed_transport.cpp)
 add_test(test_dd_causal_preparation ./tests/test_dd_causal_preparation.cpp)
 add_test(test_dd_dispatch ./tests/test_dd_dispatch.cpp)
 add_test(test_dd_rho_candidates ./tests/test_dd_rho_candidates.cpp)
+add_test(test_dd_rho_incremental_v2
+         ./tests/test_dd_rho_incremental_v2.cpp)
+add_test(test_dd_rho_incremental_deadline
+         ./tests/test_dd_rho_incremental_deadline.cpp)
 add_test(test_tapf_hungarian_shared ./tests/test_tapf_hungarian_shared.cpp)
 add_test(test_lazy_dist ./tests/test_lazy_dist.cpp)
 add_test(test_lacam_search_kernel ./tests/test_lacam_search_kernel.cpp)

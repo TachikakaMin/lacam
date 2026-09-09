@@ -292,15 +292,25 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
       recovered.transition_valid && previous_guidance != nullptr
           ? &previous_guidance->rho_transfer_key
           : nullptr;
+  const auto* previous_rho_execute_state =
+      recovered.transition_valid &&
+              previous_guidance != nullptr &&
+              previous_guidance->rho_execute_state.has_value()
+          ? &*previous_guidance->rho_execute_state
+          : nullptr;
   auto rho = match_ready_tasks(
       ins, physical, out.upper_epoch->task_graph,
-      grounded_ready, previous_rho, previous_rho_key);
+      grounded_ready, previous_rho, previous_rho_key,
+      nullptr, DispatchMode::EXECUTE, false,
+      CandidateAdmission::DROP_GLOBALLY_UNREACHABLE,
+      nullptr, previous_rho_execute_state);
   rho.telemetry.candidates_input = ready_before_claims;
   rho.telemetry.candidates_after_claims =
       static_cast<long>(grounded_ready.size());
   rho.telemetry.upstream_claim_filtered =
       ready_claims_filtered;
   out.rho_execute_telemetry = rho.telemetry;
+  out.rho_execute_state = std::move(rho.rho_state);
   out.rho_task_id = std::move(rho.rho_task_id);
   out.rho_transfer_key = std::move(rho.rho_transfer_key);
   out.rho_ready_index = std::move(rho.rho_ready_index);
@@ -318,11 +328,20 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
           ins, physical, out.upper_epoch->task_graph,
           out.execution_view, out.custody_by_robot, grounded_ready,
           out.rho_ready_index);
+  const auto* previous_rho_prepare_state =
+      recovered.transition_valid &&
+              previous_guidance != nullptr &&
+              previous_guidance->rho_prepare_state.has_value()
+          ? &*previous_guidance->rho_prepare_state
+          : nullptr;
   auto preparation = match_ready_tasks(
       ins, physical, out.upper_epoch->task_graph,
       out.preparable_tasks, previous_rho, previous_rho_key,
-      &eligible_for_preparation, DispatchMode::PREPARE);
+      &eligible_for_preparation, DispatchMode::PREPARE,
+      false, CandidateAdmission::DROP_GLOBALLY_UNREACHABLE,
+      nullptr, previous_rho_prepare_state);
   out.rho_prepare_telemetry = preparation.telemetry;
+  out.rho_prepare_state = std::move(preparation.rho_state);
   for (size_t robot = 0; robot < ins.n_robots(); ++robot) {
     if (robot >= preparation.rho_task_id.size() ||
         !preparation.rho_task_id[robot].has_value())

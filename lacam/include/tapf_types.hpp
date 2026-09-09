@@ -824,6 +824,48 @@ inline const char* rho_objective_version_name(
   return "UNKNOWN";
 }
 
+enum class RhoIncrementalFallbackReason : uint8_t {
+  NONE = 0,
+  NO_PARENT_STATE = 1,
+  COLUMN_MODEL_CHANGED = 2,
+  INVALID_PARENT_STATE = 3,
+};
+
+// Exact node-local state for the production rho objective.  The Hungarian
+// rows are the transposed original columns (real robots plus rho dummies);
+// task columns are followed by zero-cost padding columns.  This makes a
+// robot-only movement a row update while preserving the original rectangular
+// task-to-robot/dummy assignment problem exactly.
+struct RhoIncrementalState {
+  static constexpr uint32_t MATRIX_ENCODING_VERSION = 1;
+  static constexpr uint32_t CANONICAL_VERSION = 1;
+
+  uint32_t matrix_encoding_version = MATRIX_ENCODING_VERSION;
+  uint32_t canonical_version = CANONICAL_VERSION;
+  RhoObjectiveVersion objective_version =
+      RhoObjectiveVersion::
+          BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2;
+  DispatchMode mode = DispatchMode::NONE;
+  CandidateAdmission admission =
+      CandidateAdmission::DROP_GLOBALLY_UNREACHABLE;
+  std::vector<int> free_robots;
+  std::vector<int> candidate_task_indices;
+  std::vector<int> candidate_priorities;
+  std::vector<TaskId> candidate_ids;
+  std::vector<TransferKey> candidate_keys;
+  int task_count = 0;
+  int free_robot_count = 0;
+  int dimension = 0;
+  long long bottleneck = 0;
+  long long secondary_cost = 0;
+  std::vector<
+      std::shared_ptr<const std::vector<long long>>>
+      transposed_task_cost_rows;
+  tapf_assignment_detail::
+      IncrementalHungarianState<long long> hungarian;
+  bool valid = false;
+};
+
 struct RhoCandidateAudit {
   int task_index = -1;
   TransferKey key;
@@ -862,7 +904,16 @@ struct RhoMatchTelemetry {
   double matrix_time_ms = 0;
   double bottleneck_time_ms = 0;
   double secondary_full_time_ms = 0;
+  double secondary_repair_time_ms = 0;
   double canonical_time_ms = 0;
+  long long bottleneck = 0;
+  long long secondary_cost = 0;
+  RhoIncrementalFallbackReason incremental_fallback =
+      RhoIncrementalFallbackReason::NO_PARENT_STATE;
+  long incremental_full_solves = 0;
+  long incremental_repairs = 0;
+  long incremental_zero_row_reuses = 0;
+  long incremental_changed_rows = 0;
   uint64_t column_identity_fingerprint = 0;
   uint64_t column_value_fingerprint = 0;
   uint64_t mode_or_conflict_fingerprint = 0;
@@ -876,6 +927,7 @@ struct DDReadyMatchProbe {
   std::vector<int> rho_ready_index;
   RhoMatchTelemetry telemetry;
   std::vector<RhoCandidateAudit> audit;
+  std::optional<RhoIncrementalState> rho_state;
 };
 
 struct CarrierGuidance {
@@ -891,6 +943,8 @@ struct CarrierGuidance {
   std::vector<DispatchMode> rho_mode;
   RhoMatchTelemetry rho_execute_telemetry;
   RhoMatchTelemetry rho_prepare_telemetry;
+  std::optional<RhoIncrementalState> rho_execute_state;
+  std::optional<RhoIncrementalState> rho_prepare_state;
   uint64_t rho_mode_or_conflict_fingerprint = 0;
   std::vector<uint64_t> rho_row_fingerprints;
   std::vector<std::optional<Custody>> custody_by_robot;

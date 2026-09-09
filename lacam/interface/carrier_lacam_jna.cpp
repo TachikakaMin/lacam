@@ -227,6 +227,35 @@ bool action_index(
   return true;
 }
 
+int64_t integer_metric(
+    void* handle, long DDStats::*member)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (!has_completed_result(context)) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM solve result is available");
+    return -1;
+  }
+  return static_cast<int64_t>(
+      context.stats.*member);
+}
+
+double duration_metric(
+    void* handle, double DDStats::*member)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (!has_completed_result(context)) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM solve result is available");
+    return -1;
+  }
+  return context.stats.*member;
+}
+
 }  // namespace
 
 extern "C" {
@@ -824,6 +853,55 @@ int64_t carrier_lacam_get_reused_pair_edges(void* handle)
     return -1;
   }
   return context.stats.root_pair_edges_reused;
+}
+
+int64_t carrier_lacam_get_rho_incremental_full_solves(void* handle)
+{
+  return integer_metric(
+      handle, &DDStats::rho_incremental_full_solves);
+}
+
+int64_t carrier_lacam_get_rho_incremental_repairs(void* handle)
+{
+  return integer_metric(
+      handle, &DDStats::rho_incremental_repairs);
+}
+
+int64_t carrier_lacam_get_rho_incremental_zero_row_reuses(
+    void* handle)
+{
+  return integer_metric(
+      handle, &DDStats::rho_incremental_zero_row_reuses);
+}
+
+int64_t carrier_lacam_get_rho_incremental_changed_rows(void* handle)
+{
+  return integer_metric(
+      handle, &DDStats::rho_incremental_changed_rows_total);
+}
+
+double carrier_lacam_get_rho_bottleneck_ms(void* handle)
+{
+  return duration_metric(
+      handle, &DDStats::rho_bottleneck_time_ms);
+}
+
+double carrier_lacam_get_rho_secondary_full_ms(void* handle)
+{
+  return duration_metric(
+      handle, &DDStats::rho_secondary_full_time_ms);
+}
+
+double carrier_lacam_get_rho_secondary_repair_ms(void* handle)
+{
+  return duration_metric(
+      handle, &DDStats::rho_secondary_repair_time_ms);
+}
+
+double carrier_lacam_get_rho_canonical_ms(void* handle)
+{
+  return duration_metric(
+      handle, &DDStats::rho_canonical_time_ms);
 }
 
 const char* carrier_lacam_last_error(void* handle)

@@ -356,6 +356,14 @@ void TAPFPlanner::attach_carrier_guidance(
           stats->rho_matrix_cols_total += telemetry.matrix_cols;
           stats->rho_matrix_max_rows = std::max(
               stats->rho_matrix_max_rows, telemetry.matrix_rows);
+          stats->rho_incremental_full_solves +=
+              telemetry.incremental_full_solves;
+          stats->rho_incremental_repairs +=
+              telemetry.incremental_repairs;
+          stats->rho_incremental_zero_row_reuses +=
+              telemetry.incremental_zero_row_reuses;
+          stats->rho_incremental_changed_rows_total +=
+              telemetry.incremental_changed_rows;
           stats->rho_candidate_time_ms +=
               telemetry.candidate_time_ms;
           stats->rho_matrix_time_ms += telemetry.matrix_time_ms;
@@ -363,6 +371,8 @@ void TAPFPlanner::attach_carrier_guidance(
               telemetry.bottleneck_time_ms;
           stats->rho_secondary_full_time_ms +=
               telemetry.secondary_full_time_ms;
+          stats->rho_secondary_repair_time_ms +=
+              telemetry.secondary_repair_time_ms;
           stats->rho_canonical_time_ms +=
               telemetry.canonical_time_ms;
         };

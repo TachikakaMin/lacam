@@ -345,12 +345,13 @@ DDReadyMatchProbe dd_match_ready_tasks_probe(
         previous_rho_transfer_key,
     CandidateAdmission admission,
     const Deadline* deadline,
-    const std::vector<uint8_t>* eligible_robot)
+    const std::vector<uint8_t>* eligible_robot,
+    const RhoIncrementalState* previous_rho_state)
 {
   return carrier_detail::match_ready_tasks(
       ins, X, graph, ready_tasks, previous_rho_task_id,
       previous_rho_transfer_key, eligible_robot, mode, true,
-      admission, deadline);
+      admission, deadline, previous_rho_state);
 }
 
 double dd_root_admissible_h(const DDInstance& ins)
