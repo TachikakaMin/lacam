@@ -87,6 +87,17 @@ target_include_directories(
 target_link_libraries(
   carrier_lacam PRIVATE carrier_lacam_core)
 
+# The legacy BrLaCAM sidecar is loaded into the same JVM and contains an
+# unrelated fork of classes such as Graph, Instance, and Planner with the same
+# C++ symbol names. Keep every symbol pulled from the static core local to
+# this shared object so the dynamic loader cannot interpose one fork on the
+# other. The C ABI object remains exported for JNA.
+if(UNIX AND NOT APPLE)
+  target_link_options(
+    carrier_lacam PRIVATE
+    "LINKER:--exclude-libs,ALL")
+endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
    CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
   if(CARRIER_LACAM_BUILD_NATIVE)
