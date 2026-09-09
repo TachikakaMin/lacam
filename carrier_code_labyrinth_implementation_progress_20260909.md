@@ -39,7 +39,7 @@
 | Phase 0：设计和基线 | 完成（FC smoke 待 Carrier lifecycle） | §28、两个分支、固定 benchmark、Brazil workspace、425-test 与 3-case BR-LaCAM baseline 已完成 |
 | Phase 1：normal arbitrary-root | GREEN | public from-state API 与 root-aware search/finalization 已接入同一条 `TAPFPlanner::solve()` 路径；432/432 C++ tests 与 quick 77 无回归 |
 | Phase 2：C ABI/shared library | GREEN | portable、YAML-free `libcarrier_lacam.so` 已完成；C ABI 5/5、异常边界 1/1、portable build 回归、432/432 主测试与 quick 77 均通过 |
-| Phase 3：Java adapter/JNA | 进行中 | graph/JNA/state adapter 与真实 Java→native round-trip 已 GREEN；稳定 native 装载、planning session 和 DSR wiring 待完成 |
+| Phase 3：Java adapter/JNA | GREEN | graph/JNA/state adapter、严格 sidecar loader、cold planning session 和真实 adapter→native round-trip 均通过；native sidecar 的 Brazil packaging 留待 lifecycle build wiring |
 | Phase 4：joint executor | 未开始 | 等 Phase 3 GREEN |
 | Phase 5：DSR lifecycle | 未开始 | 等 Phase 4 GREEN |
 | Phase 6：跨 prefix session | 未开始 | 等端到端 cold session 正确 |
@@ -134,14 +134,27 @@ lifecycle 尚未接通，因此 smoke 保留为 pending，不得换成别的 KMA
 | 2026-09-09 | Phase 3 native round-trip | Java/JNA 直接装载 Phase 2 `libcarrier_lacam.so` | GREEN：1×4、2 robots、1 target；首次解 `<1 ms`，可交付解 0.687796 ms，返回 4 步 MOVE/WAIT、LIFT/WAIT、MOVE/WAIT、DROP/WAIT |
 | 2026-09-09 | Phase 3 failure telemetry RED/GREEN | `CarrierLacamFailureMetricsRegressionTest` | timeout 路径原先把 native 的 12.5 ms 首次解覆盖成 0 而 RED；wrapper 保留 failure-side first/deliverable timing 后 GREEN |
 | 2026-09-09 | Phase 3 regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 构建通过，最新日志 `.build-logs/brazil-build-20260909-084256-15296.log`，9 秒 |
+| 2026-09-09 | Phase 3 planning session RED | `CarrierPlanningSessionTest` | 预期编译失败：缺少稳定 Java schema 与每次 solve 的 cold native context 协调层 |
+| 2026-09-09 | Phase 3 planning session GREEN | cold `CarrierPlanningSession` | GREEN：4/4；每次 attempt 重新抓 live snapshot、创建并关闭独立 native context，TIMEOUT/JNA 异常不污染外层 session，结果绑定本次输入 snapshot |
+| 2026-09-09 | Phase 3 loader RED/GREEN | `CarrierLacamLibraryLoaderTest` | 先因缺少 loader 而 RED，随后 4/4 GREEN；只接受显式绝对 `libcarrier_lacam.so` 或 `${root}/lib` sidecar，拒绝 cwd、系统路径、默认 JNA 搜索和 fallback，并立即校验 ABI 1 |
+| 2026-09-09 | Phase 3 real loader smoke | 新 loader → JNA → Phase 2 `.so` | GREEN：首次解 `<1 ms`，可交付解 0.669906 ms，完整 4 步 MOVE/WAIT、LIFT/WAIT、MOVE/WAIT、DROP/WAIT |
+| 2026-09-09 | Phase 3 real adapter smoke | `CarrierProblemAdapter` → `CarrierPlanningSession` → native | GREEN：root robots `[1,4]`、targets `[4,2]`、anonymous `[1,3]`；首次解 5.0 ms，可交付解 6.210154 ms，9 步 |
+| 2026-09-09 | Phase 3 regression | Code-Labyrinth `brazil-build release` | GREEN：planning session 与 loader tests 各 4/4；完整 package 构建日志 `.build-logs/brazil-build-20260909-085135-12899.log`，10 秒 |
+| 2026-09-09 | Phase 3 simple benchmark | 固定 Labyrinth 3-case subset，10 秒/seed 1/objective 4 | GREEN：3/3；首次解 0.158906/0.164177/0.156555 ms，最终 cost 26/38/10，与冻结 baseline 质量一致且无 invalid diagnostic |
+| 2026-09-09 | Phase 3 code review | planning session 与 loader 边界 | 独立 GPT-5.6 Sol/low 首轮 REJECT：cold context 被焊死在外层 session 会卡住 Phase 6，runtime sidecar 允许 symlink 逃逸 |
+| 2026-09-09 | Phase 3 backend fix | 可替换 `CarrierPlanningBackend` | GREEN：cold create/destroy 下沉到 `ColdCarrierPlanningBackend`；外层 session 只捕获 snapshot、绑定 result 和串行调用，未来 persistent backend 不需修改 protected cold test |
+| 2026-09-09 | Phase 3 symlink RED/GREEN | `CarrierLacamLibrarySymlinkRegressionTest` | 当前 loader 对最终 `.so` 和 runtime `lib` symlink 的两例均先 RED；增加 real-path containment 与 NOFOLLOW 检查后 2/2 GREEN，JNA 调用次数保持 0 |
+| 2026-09-09 | Phase 3 hardened regression | Code-Labyrinth `brazil-build release` + 真实 loader smoke | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-085753-25994.log`，10 秒；真实 `.so` 返回 OK、首次解 `<1 ms`、可交付解 0.677 ms、4 步 |
+| 2026-09-09 | Phase 3 re-review | 修正后的完整 Phase 3 diff | 独立 GPT-5.6 Sol/low：APPROVE；backend seam 可承接 Phase 6，loader fail closed，未发现第二条 planner、fallback、snapshot 错配、关闭竞态或 native context 泄漏 |
 
 ## 6. 当前下一步
 
-1. 为 `libcarrier_lacam.so` 增加严格、可部署的装载入口；在 native Brazil
-   package 落地前，只允许显式绝对路径，不从 cwd 或系统库路径猜测。
-2. 按 TDD 增加 `CarrierPlanningSession`，把固定 grid/entity 和每轮动态
-   state/goal 快照送入现有 JNA wrapper，并覆盖真实 adapter→native solve。
-3. 按 TDD 实现 Phase 4 joint executor，逐 timestep 原子执行完整动作矩阵，
+1. 按 TDD 实现 Phase 4 joint executor，逐 timestep 原子执行完整动作矩阵，
    同时保存 Java 侧 Pod identity/custody。
-4. 接入 DSR lifecycle 后运行固定 SAZ1 smoke；开发期继续只用固定
+2. 修正 Carrier 模式的 DSR 完成判定：target 必须完成 DROP，并由
+   `StorageManager` 在 border cell 绑定后才算完成。
+3. 接入 `CarrierDsrCoordinator`、execution lease 和
+   `DsrPlanningStrategy=carrier`，同时补齐 `${ENVROOT}/lib` native sidecar
+   的 Brazil build/package wiring。
+4. 接通 lifecycle 后运行固定 SAZ1 smoke；开发期继续只用固定
    Labyrinth simple subset 和 quick 77，不运行 full 518。
