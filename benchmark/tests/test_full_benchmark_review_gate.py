@@ -13,6 +13,7 @@ from run_benchmark import (
     corpus_sha256_for_cases,
     create_approved_execution_snapshot,
     full_corpus_sha256,
+    guard_full_only_cases,
     guard_protected_suite,
     provenance_info,
     semantic_case_fingerprint,
@@ -35,6 +36,22 @@ class TestFullBenchmarkReviewGate(unittest.TestCase):
             BENCH / "release_benchmark.json",
         )
 
+    def test_dense_channel_case_cannot_bypass_full_review_by_path(self):
+        case = next(
+            (
+                BENCH
+                / "viz_web"
+                / "dense_channel_block_edge_40x40_suite_v1_20260907"
+                / "instances"
+            ).glob("*.yaml")
+        )
+        with self.assertRaisesRegex(
+            ValueError, "independent review approval"
+        ):
+            guard_full_only_cases(
+                [(case, "dense_channel_block_edge_40x40")]
+            )
+
     def test_custom_carrier_binary_must_match_approved_bytes(self):
         suite = BENCH / "full_benchmark.json"
         with tempfile.TemporaryDirectory() as tmp:
@@ -51,6 +68,11 @@ class TestFullBenchmarkReviewGate(unittest.TestCase):
                         "schema_version": 2,
                         "decision": "APPROVE",
                         "reviewer_model": "openai.gpt-5.6-sol",
+                        "reasoning_effort": "high",
+                        "reviewer_agent_id": "test-reviewer-agent",
+                        "reviewed_at_utc": "2026-09-07T00:00:00Z",
+                        "review_summary": "Fixture approval.",
+                        "blocking_findings": [],
                         "suite_definition_sha256": hashlib.sha256(
                             suite.read_bytes()
                         ).hexdigest(),

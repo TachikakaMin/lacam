@@ -72,6 +72,80 @@ add_test(test_dd_objective_benchmark_regression ./tests/test_dd_objective_benchm
 add_test(test_dd_objective_dense_repair_regression ./tests/test_dd_objective_dense_repair_regression.cpp)
 add_test(test_dd_task_br_two_vacancy_regression ./tests/test_dd_task_br_two_vacancy_regression.cpp)
 add_test(test_dd_storage_transfer ./tests/test_dd_storage_transfer.cpp)
+add_test(test_dd_vacancy_potential
+         ./tests/test_dd_vacancy_potential.cpp)
+add_test(test_dd_vacancy_channel_regression
+         ./tests/test_dd_vacancy_channel_regression.cpp)
+add_test(test_dd_vacancy_goal_source_regression
+         ./tests/test_dd_vacancy_goal_source_regression.cpp)
+add_test(test_dd_vacancy_duplicate_shelf_regression
+         ./tests/test_dd_vacancy_duplicate_shelf_regression.cpp)
+add_test(test_dd_vacancy_oscillation_regression
+         ./tests/test_dd_vacancy_oscillation_regression.cpp)
+add_test(test_dd_vacancy_large_upper_regression
+         ./tests/test_dd_vacancy_large_upper_regression.cpp)
+add_test(test_dd_vacancy_upper_cache
+         ./tests/test_dd_vacancy_upper_cache.cpp)
+add_test(test_carrier_brd_candidate_legality
+         ./tests/test_carrier_brd_candidate_legality.cpp)
+add_test(test_dd_vacancy_cache
+         ./tests/test_dd_vacancy_cache.cpp)
+add_test(test_dd_pair_incremental
+         ./tests/test_dd_pair_incremental.cpp)
+add_test(test_pair_staged_lower_bound
+         ./tests/test_pair_staged_lower_bound.cpp)
+add_test(test_incremental_hungarian_core
+         ./tests/test_incremental_hungarian_core.cpp)
+add_test(test_pair_incremental_invalid_dual
+         ./tests/test_pair_incremental_invalid_dual.cpp)
+add_test(test_dd_storage_topology_routes
+         ./tests/test_dd_storage_topology_routes.cpp)
+add_test(test_dd_vacancy_unit_bfs
+         ./tests/test_dd_vacancy_unit_bfs.cpp)
+add_test(test_dd_vacancy_churn_telemetry
+         ./tests/test_dd_vacancy_churn_telemetry.cpp)
+add_test(test_dd_fixed_tau_probe
+         ./tests/test_dd_fixed_tau_probe.cpp)
+add_test(test_dd_vacancy_continuity
+         ./tests/test_dd_vacancy_continuity.cpp)
+add_test(test_dd_vacancy_continuity_transition
+         ./tests/test_dd_vacancy_continuity_transition.cpp)
+add_test(test_dd_vacancy_continuity_fixed_goal_scope
+         ./tests/test_dd_vacancy_continuity_fixed_goal_scope.cpp)
+add_test(test_dd_vacancy_continuity_stale_key
+         ./tests/test_dd_vacancy_continuity_stale_key.cpp)
+add_test(test_dd_vacancy_continuity_expiry
+         ./tests/test_dd_vacancy_continuity_expiry.cpp)
+add_test(test_dd_vacancy_inflight_forced_effect
+         ./tests/test_dd_vacancy_inflight_forced_effect.cpp)
+add_test(test_dd_vacancy_forced_effect_scope
+         ./tests/test_dd_vacancy_forced_effect_scope.cpp)
+add_test(test_dd_vacancy_forced_effect_redundancy
+         ./tests/test_dd_vacancy_forced_effect_redundancy.cpp)
+add_test(test_dd_vacancy_forced_effect_priority_normalization
+         ./tests/test_dd_vacancy_forced_effect_priority_normalization.cpp)
+add_test(test_dd_vacancy_forced_effect_frontier_normalization
+         ./tests/test_dd_vacancy_forced_effect_frontier_normalization.cpp)
+add_test(test_dd_vacancy_forced_effect_storage_scope
+         ./tests/test_dd_vacancy_forced_effect_storage_scope.cpp)
+add_test(test_dd_vacancy_forced_normalization_cache
+         ./tests/test_dd_vacancy_forced_normalization_cache.cpp)
+add_test(test_dd_vacancy_root_goal_commitment
+         ./tests/test_dd_vacancy_root_goal_commitment.cpp)
+add_test(test_dd_vacancy_root_commitment_transition
+         ./tests/test_dd_vacancy_root_commitment_transition.cpp)
+add_test(test_dd_vacancy_carried_goal_commitment
+         ./tests/test_dd_vacancy_carried_goal_commitment.cpp)
+add_test(test_dd_vacancy_singleton_commitment
+         ./tests/test_dd_vacancy_singleton_commitment.cpp)
+add_test(test_dd_vacancy_narrow_regression
+         ./tests/test_dd_vacancy_narrow_regression.cpp)
+add_test(test_dd_vacancy_terminal_delivery_regression
+         ./tests/test_dd_vacancy_terminal_delivery_regression.cpp)
+add_test(test_dd_terminal_delivery_scope_regression
+         ./tests/test_dd_terminal_delivery_scope_regression.cpp)
+add_test(test_dd_carrier_vacancy_regression
+         ./tests/test_dd_carrier_vacancy_regression.cpp)
 add_test(test_dd_storage_transfer_claims ./tests/test_dd_storage_transfer_claims.cpp)
 add_test(test_dd_storage_transfer_stats ./tests/test_dd_storage_transfer_stats.cpp)
 add_test(test_dd_deliverable ./tests/test_dd_deliverable.cpp)
@@ -89,6 +163,32 @@ add_test(test_dd_dispatch ./tests/test_dd_dispatch.cpp)
 add_test(test_dd_rho_candidates ./tests/test_dd_rho_candidates.cpp)
 add_test(test_tapf_hungarian_shared ./tests/test_tapf_hungarian_shared.cpp)
 add_test(test_lazy_dist ./tests/test_lazy_dist.cpp)
+add_test(test_lacam_search_kernel ./tests/test_lacam_search_kernel.cpp)
+add_test(test_lacam_search_kernel_cleanup
+         ./tests/test_lacam_search_kernel_cleanup.cpp)
+add_test(test_carrier_brd_upper ./tests/test_carrier_brd_upper.cpp)
+add_test(test_carrier_brd_upper_search
+         ./tests/test_carrier_brd_upper_search.cpp)
+add_test(test_carrier_brd_upper_partial
+         ./tests/test_carrier_brd_upper_partial.cpp)
+add_test(test_carrier_brd_frozen_tasks
+         ./tests/test_carrier_brd_frozen_tasks.cpp)
+add_test(test_carrier_brd_matcher
+         ./tests/test_carrier_brd_matcher.cpp)
+add_test(test_carrier_brd_event_contract
+         ./tests/test_carrier_brd_event_contract.cpp)
+add_test(test_carrier_brd_lower_segment
+         ./tests/test_carrier_brd_lower_segment.cpp)
+add_test(test_carrier_brd_controller
+         ./tests/test_carrier_brd_controller.cpp)
+add_test(test_carrier_brd_deadline
+         ./tests/test_carrier_brd_deadline.cpp)
+add_test(test_carrier_brd_budget_probes
+         ./tests/test_carrier_brd_budget_probes.cpp)
+add_test(test_carrier_brd_materialization_deadline
+         ./tests/test_carrier_brd_materialization_deadline.cpp)
+add_test(test_carrier_brd_final_cost_deadline
+         ./tests/test_carrier_brd_final_cost_deadline.cpp)
 
 add_executable(test_all ${TEST_ALL_SRC})
 target_link_libraries(test_all lacam gtest ${YAML_CPP_LIBRARIES})

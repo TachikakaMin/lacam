@@ -4,6 +4,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from run_benchmark import (
@@ -11,6 +12,7 @@ from run_benchmark import (
     assert_approved_binary_unchanged,
     full_corpus_sha256,
     resolve_benchmark_tier,
+    validate_full_review_approval,
 )
 
 
@@ -29,17 +31,17 @@ class TestBenchmarkTiers(unittest.TestCase):
                 },
                 "full": {
                     "suite": BENCH / "full_benchmark.json",
-                    "expected_cases": 509,
+                    "expected_cases": 518,
                     "requires_review": True,
                 },
             },
         )
 
-    def test_full_manifest_is_quick_plus_432_new_cases(self):
+    def test_full_manifest_is_quick_plus_441_new_cases(self):
         definition = json.loads(
             (BENCH / "full_benchmark.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(definition["name"], "carrier_full_509")
+        self.assertEqual(definition["name"], "carrier_full_518")
         self.assertEqual(
             {
                 group["name"]: group["expected_cases"]
@@ -49,6 +51,7 @@ class TestBenchmarkTiers(unittest.TestCase):
                 "brap_pool": 68,
                 "warehouse_blocks": 9,
                 "warehouse_random_factorial": 432,
+                "dense_channel_block_edge_40x40_v1": 9,
             },
         )
         self.assertEqual(
@@ -88,6 +91,11 @@ class TestBenchmarkTiers(unittest.TestCase):
                         "schema_version": 2,
                         "decision": "APPROVE",
                         "reviewer_model": "openai.gpt-5.6-sol",
+                        "reasoning_effort": "high",
+                        "reviewer_agent_id": "test-reviewer-agent",
+                        "reviewed_at_utc": "2026-09-07T00:00:00Z",
+                        "review_summary": "Fixture approval.",
+                        "blocking_findings": [],
                         "suite_definition_sha256": digest,
                         "full_corpus_sha256": corpus_digest,
                         "binary_sha256": binary_digest,
@@ -155,6 +163,72 @@ class TestBenchmarkTiers(unittest.TestCase):
                 resolve_benchmark_tier(
                     "full", approval, carrier_bin=binary_a
                 )
+
+    def test_full_review_approval_requires_complete_review_metadata(self):
+        suite = BENCH / "full_benchmark.json"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            binary = root / "carrier"
+            binary.write_bytes(b"approved carrier bytes")
+            approval_path = root / "approval.json"
+            valid = {
+                "schema_version": 2,
+                "decision": "APPROVE",
+                "reviewer_model": "openai.gpt-5.6-sol",
+                "reasoning_effort": "high",
+                "reviewer_agent_id": "test-reviewer-agent",
+                "reviewed_at_utc": "2026-09-07T00:00:00Z",
+                "review_summary": "Fixture approval.",
+                "blocking_findings": [],
+                "suite_definition_sha256": hashlib.sha256(
+                    suite.read_bytes()
+                ).hexdigest(),
+                "full_corpus_sha256": "a" * 64,
+                "binary_sha256": hashlib.sha256(
+                    binary.read_bytes()
+                ).hexdigest(),
+            }
+
+            invalid_metadata = [
+                ("reasoning_effort", None, "reasoning_effort"),
+                ("reasoning_effort", "medium", "reasoning_effort"),
+                ("reviewer_agent_id", "   ", "reviewer_agent_id"),
+                ("reviewed_at_utc", "2026-09-07", "reviewed_at_utc"),
+                (
+                    "reviewed_at_utc",
+                    "2026-09-07T00:00:00+00:00",
+                    "reviewed_at_utc",
+                ),
+                ("review_summary", "", "review_summary"),
+                (
+                    "blocking_findings",
+                    ["unresolved correctness issue"],
+                    "blocking_findings",
+                ),
+                (
+                    "blocking_findings",
+                    "none",
+                    "blocking_findings",
+                ),
+            ]
+            with mock.patch(
+                "run_benchmark.full_corpus_sha256",
+                return_value="a" * 64,
+            ):
+                for field, value, message in invalid_metadata:
+                    with self.subTest(field=field, value=value):
+                        payload = dict(valid)
+                        if value is None:
+                            del payload[field]
+                        else:
+                            payload[field] = value
+                        approval_path.write_text(
+                            json.dumps(payload), encoding="utf-8"
+                        )
+                        with self.assertRaisesRegex(ValueError, message):
+                            validate_full_review_approval(
+                                approval_path, carrier_bin=binary
+                            )
 
 
 if __name__ == "__main__":

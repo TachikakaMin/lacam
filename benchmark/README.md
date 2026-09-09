@@ -146,14 +146,15 @@ python3 benchmark/run_benchmark.py \
   --out-dir benchmark/results_quick
 ```
 
-The protected full suite is the same 77 cases plus these 432 cases, for 509
-total. It can run only after implementation completion and an independent
-GPT-5.6 Sol review. The runner requires schema-v2 APPROVE JSON bound to the
-full-suite definition SHA-256, semantic-corpus SHA-256, and the exact
-`dd_benchmark` binary SHA-256. For the fixed full suite it copies that binary
-and all 509 YAML inputs into read-only Linux sealed memfd snapshots; workers
-receive only those snapshot paths. It rechecks the sealed binary and semantic
-corpus immediately before dispatch and before publishing `rows.csv`:
+The protected full suite is the same 77 cases plus the 432 factorial cases
+and nine 40x40 dense-channel block-edge cases, for 518 total. It can run only
+after implementation completion and an independent GPT-5.6 Sol review. The
+runner requires schema-v2 APPROVE JSON bound to the full-suite definition
+SHA-256, semantic-corpus SHA-256, and the exact `dd_benchmark` binary SHA-256.
+For the fixed full suite it copies that binary and all 518 YAML inputs into
+read-only Linux sealed memfd snapshots; workers receive only those snapshot
+paths. It rechecks the sealed binary and semantic corpus immediately before
+dispatch and before publishing `rows.csv`:
 
 ```sh
 python3 benchmark/run_benchmark.py \

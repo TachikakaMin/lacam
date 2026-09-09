@@ -1,1375 +1,370 @@
-# Carrier-LaCAM \(\rho\) 全局匹配实现计划与执行记录
+# carrier 方法 vacancy Phase A 收尾：回退诊断与实施计划（debug.md）
 
-状态：2026-09-06，F0 诊断、F1 取消普通 priority cutoff、F2S 对照和收紧后
-的直接目标交付 V2 已完成；production 代码停在 commit `64a3941`。additive
-G0/G1 与节点局部 H1 shadow 已按本计划做过独立实验，但因调度质量回归而
-完整回滚，没有留在 production。C++ 312/312、Python 164/164、最终固定
-quick 77、独立终审和 sealed full 509 均已完成。审计起点为
-`80148a7db6ee9a756dbe314b4f393d15c8f018e9`。
+状态：2026-09-07 实现、quick、全量代码回归、独立复审和当前 sealed
+full 509 均已完成。
+上游文档
+`carrier_vacancy_shared_carrier_method_plan_20260906.md`（下称 plan）。
+本文第 1、2 节保留实施前的核实与诊断证据，第 3、4 节记录执行方案，
+第 6 节给出实际落地结果。工作树基线：commit `36622a9` + vacancy
+Phase A；当前二进制和结果均来自其上的 shared-carrier 修复。
 
-本文件同时保留原始实施计划和实际执行结果。未勾选的长期 G/H 项不表示当前
-production 缺少承诺功能：additive 与增量 Hungarian 本来就是必须先由实验
-证明收益的候选路线；实验失败后停止，正是 §7 的预定决策。
-
-设计依据：
-
-- `carrier_lacam_rho_global_matching_report_20260906.md`
-- `design_final.md` §8、§10、§13.4、§14 F–H、§16、§17.5、§24
-- 当前实现：
-  `lacam/src/carrier_guidance.hpp::match_ready_tasks()`
-- 可复用实现：
-  `lacam/include/tapf_assignment.hpp::TAPFAssignmentState`
-  与 `third_party/ITA-CBS2`
-
-所有阶段遵循：
-
-```text
-冻结输入与基线
-  → 先写 RED 测试
-  → 最小实现
-  → 定向 GREEN
-  → C++/Python 全量 GREEN
-  → 目标实例
-  → quick 77
-  → 独立审查
-  → 必要时 full 509
-```
-
-每个阶段使用独立提交和独立 benchmark 目录。不得把候选模型、调度目标和
-增量求解三个变化压在一个提交中。
+一句话结论：plan 的三个待办已经完成。A/B 证明主要回退来自执行期的
+"epoch 间链重选/引导翻转"；最终实现把有限 continuity 保留在会发生
+动态 tau 分配的 flexible shared-pool 实例，固定目标实例自然使用当前
+几何重新编译，并补齐 telemetry、在途 effect、goal commitment 与缓存
+归一化。carrier quick 已过门槛，carrier_brd quick 与原结果逐项一致。
 
 ---
 
-## 当前实施结论
+## 1. plan 文档需要修改的地方（逐条核实）
 
-| 阶段 | 提交/结果 | 决策 |
+1. **§5 初诊假设需要修订（最重要）**。plan 写"恶化发生在首解…在于
+   多 target 场景下空位引导与联合编译/rho 匹配的交互"。本轮用 HEAD
+   worktree（36622a9，无 vacancy 改动）与工作树做了 A/B：
+   - 初始联合任务图（`dd_compile_joint_graph_probe`，
+     `brap_h10w10_a12_e3_B_seed1_pool`）：HEAD 63 tasks /
+     9193 effect_conflicts / 3451 backtracks；vacancy 树 **47 tasks /
+     175 conflicts / 52 backtracks**。初始编译在新树上明显更好。
+   - 同案例端到端 matched rerun（同机同参 10s，确定性复现）：
+     HEAD mk 780 / soc 1738 / causal_waiting 1 / custody 1186 /
+     epoch_builds 516；vacancy mk 1512 / soc 3286 /
+     **causal_waiting 817 / custody 4207 / epoch_builds 1004**。
+   即回退是**执行期累积**的，不是 t=0 的编译交互。§5 的诊断步骤 1
+   （对比初始联合图）已执行且结论反向，后续步骤按本文 §2/§4 重写。
+2. **§5 缺一个关键判别数据**：回退清单里有单 target 案例
+   （warehouse b3_a1），多 root 交互假说对它们不成立。本轮 matched
+   rerun（`warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0`）：
+   loaded_moves 33、lift_drop 24 **两树完全相同**，恶化全部来自
+   free_moves 100→122 与 upper_epoch_builds 39→98。"链本身变贵"被
+   排除，指向"epoch 间链选择翻转，机器人空跑接错任务"。
+3. **§3 证据面已过时**：plan 写于 full 509 之前。现补：brd full
+   `results_full_carrier_brd_20260906`(326/509) →
+   `results_full_vacancy_phase_a_20260906`(**336/509**，+10 新解 0 丢失，
+   公共 326 例 sum mk -21.8%、sum soc -14.2%，soc>5% 恶化 10 例)。
+   carrier 的 full（479/509 @ rho-v2）在 vacancy 树上尚未跑（需审批）。
+4. **§4.2 telemetry gap 已补齐**：`TAPFStats`、`DDStats`、
+   `dd_benchmark` 与 runner 现在统一导出 vacancy potential、首选回退、
+   epoch churn、cache eviction 与 guidance version。
+5. **§4.3 carrier 入口回归测试已补齐**：
+   `test_dd_carrier_vacancy_regression` 覆盖多目标 pool、单目标 warehouse
+   churn 和报告案例；窄图边界另由
+   `test_dd_vacancy_narrow_regression` 固化。
+6. **§6 quick 验收已完成，full 尚未运行**：carrier 为 47/77，
+   公共 47 例 sum mk/soc 为 14454/37216；carrier_brd 为 51/77，
+   与 vacancy Phase A r3 的公共 51 例逐项相同，报告案例仍为
+   15 transfers。full 继续受独立 APPROVE gate 约束。
+7. §2 的行号在当前树上全部复核准确（1335/1813/2021/2039/2076/
+   2233/2452/3274/3582、tapf 501/508/555/650、brd 1345+/415/428/500/517）。
+
+## 2. 本轮代码 review 与诊断证据
+
+### 2.1 实现质量结论（共享层，无需改动的部分）
+
+- `build_vacancy_potential_layer`（1882+）：多源 Dijkstra/BFS 双路径、
+  确定性 tie（`next_vacancy_cell` 取小 cell）、periodic deadline、
+  INF 溢出保护（`clearance_cost_add_component`）齐全。
+- tau 变体（2039+）已实现 plan §5 提到的保护：assigned goal 置为
+  excluded source + settled-target 逐格罚项（词典序第一键），并分
+  `cost` / `anonymous_cost` 两层。
+- `VacancyPotentialCache`（2076+）key 只含占据位图——**正确**，因为
+  只有非 tau 变体走缓存（3106-3115 单 root 路径）；tau 变体在联合
+  编译内本地构建（3306-3319），无 stale-tau 风险。容量启发
+  `262144/cells`。
+- `record_first_choice_fallback`（2640-2643）只在
+  `candidate_index==0 && count>1` 计数，语义是"首选被拒"，符合
+  telemetry 命名。
+
+### 2.2 回退机制的证据链（本轮新增）
+
+复现命令（全部已跑通，数字确定性）：
+
+```sh
+# HEAD 对照树（一次性）：
+git worktree add /tmp/dd-lacam-head HEAD
+# 该 worktree 缺 submodule：把 third_party/{argparse,googletest,lacam2,ITA-CBS2}
+# symlink 到主树；cmake 需 PKG_CONFIG_PATH=/home/yimint/.local/lib64/pkgconfig
+cmake -B build-head && make -C build-head lacam dd_benchmark -j12
+
+# A/B 初始联合图（tools/diag_joint_graph_probe.cpp，两树均可编译）：
+g++ -std=c++17 -O3 -DNDEBUG -I lacam/include tools/diag_joint_graph_probe.cpp \
+    <tree>/liblacam.a -L/home/yimint/.local/lib64 -lyaml-cpp -lstdc++fs -o probe
+
+# matched 端到端：
+<tree>/dd_benchmark benchmark/instances_brap_pool/g10x10/brap_h10w10_a12_e3_B_seed1_pool.yaml \
+    10 out.plan 0 lacam
+```
+
+观测汇总（vacancy 树相对 HEAD）：
+
+| 信号 | a12_e3_B_seed1（12 目标/3 空位/2 robot） | wh b3_a1_d50（单目标） |
 |---|---|---|
-| F0 telemetry | `c8c59b2` | 47/77；确认 priority 在矩阵前大量过滤候选 |
-| F1 no-cutoff | `5085efb` | 45/77；普通候选全部进入比较，但两个大型实例超时 |
-| F2S 有限低阶 priority tie | `266e69b`、`be720df` | 恢复 47/77 和两个大型实例，但受保护样例 A 退化到 `(28,45)` |
-| additive G0/G1 | `7b829b1`、`d7e5412` | quick 47/77，但 Testcase C 退化到 `(231,268)`；由 `968d02a`、`34d92be` 回滚 |
-| H1 node-local shadow | `339fe7e` | 建立在已回归的 additive 目标上，没有独立采用价值；由 `dcaf496` 回滚 |
-| 收紧 F2 V2 | `64a3941` | production；严格 direct-target gate 下使用有限 frontier/continuity dummy defer |
-
-最终 V2 的明确边界是：
-
-```text
-所有普通可行任务仍进入矩阵，priority_filtered = 0；
-只有 EXECUTE 且全部候选都是“自己的目标货架 → 自己的合法最终 goal”
-时，priority frontier 与 parent continuity 才有限增加 dummy 延期；
-一旦出现 blocker、非终端 task 或 PREPARE，整次 matching 保持 F2S/V1
-的物理 bottleneck 语义。
-```
-
-最终 quick 位于
-`benchmark/results_quick_rho_v2_20260906/rows.csv`，结果为 47/77，
-runner wall time 47.9 秒。相对 F2S，47 个共同成功实例中 2 个词典序更好、
-42 个完全相同、3 个更差；没有 solved-set 变化。关键保护结果为：
-
-| 检查项 | F2S | 最终 V2 |
-|---|---:|---:|
-| 发布样例 A | `(28,45)` | `(17,32)` |
-| 发布样例 B | `(12,36)` | `(12,36)` |
-| Testcase C | `(31,93)` | `(31,93)` |
-| 发布样例 D | `(8,23)` | `(8,23)` |
-| `h20w20 a40 e100 R1 seed0` | `(1273,5796)` | `(1273,5796)` |
-| `h20w20 a40 e100 R1 seed1` | `(1243,6384)` | `(1243,6384)` |
-
-F2S→V2 的 5 个 quick 质量变化也必须保留负面证据：两个改善是
-`h10w10 a12 e8 R1 seed1` 的 `(1361,2964)→(1359,2958)` 和
-`h6w10 a6 e15 B seed1` 的 `(53,106)→(45,89)`；三个回退是
-`h8w10 a10 e20 R1 seed0` 同 makespan 下 work `817→818`，以及两个
-warehouse `b3/d50`、`b3/d75` case 的 makespan `24→26`、`21→23`。
-这些回退不能在报告中省略，full 509 用于判断其总体分布。
-
-正式 full 位于
-`benchmark/results_full_rho_v2_20260906/rows.csv`。结果为 479/509，
-与审计基线 solved 集完全相同，factorial 为 432/432；但共同成功实例的
-词典序比较是：
-
-```text
-V2 更好    60
-完全相同  261
-V2 更差   158
-```
-
-factorial 子集为 51/247/134，几何平均 makespan 增加 2.94%。最明显的
-结构性回退是 scarce-agent 组：18/14/76，几何平均 makespan 增加 9.29%；
-equal 为 0/107/1，surplus 为 0/108/0。因此最终结论是：V2 完成了候选准入
-和严格 direct-target 行为合同，但不是整体质量提升；不能把 479/509 不变
-写成 makespan 改善。
-
----
-
-## 0. 本轮目标与非目标
-
-本轮依次回答三个问题：
-
-1. **候选边界：**普通可行任务是否都获得了参加 matching 的机会？
-2. **调度目标：**bottleneck 与 additive `S-D` 哪个更有利于真实
-   `(makespan, work)`？
-3. **求解方法：**在数学问题冻结后，能否用节点局部 matching/duals
-   更快地得到同一个 canonical assignment？
-
-最终目标不是让机器人“看起来总在同一区域”，而是：
-
-```text
-priority 不再拥有无限准入权
-  + 所有普通可行任务经过同一有限成本比较
-  + 搜索仍返回合法且按 (T,W) 比较的计划
-  + 增量版本不改变 full solver 的数学结果
-```
-
-本轮明确不做：
-
-- 不修改 `PairCost` 或 `tau_guide` 的 robot-independence；
-- 不改变 `SearchKey`、goal、`apply_ops()` 或 primitive successor 集；
-- 不把“最近任务”写成硬规则；
-- 不把同区域 lease/永久 owner 当作正确性条件；
-- 不把 maximum-cardinality 设为默认主目标；
-- 不同时实现动态 column repair、统一 EXECUTE/PREPARE、min-cost flow；
-- 不用运行时环境变量在 production 中切换调度策略；
-- 不把旧 v5 结果与新结果的差异直接归因于 \(\rho\)。
-
-实验变体使用独立提交、独立 worktree/build 和
-`benchmark/run_benchmark.py --carrier-bin`；production 始终只有一个明确
-的 \(\rho\) 实现。
-
----
-
-## 1. 不可违背的实现合同
-
-### 1.1 候选合同
-
-- 普通 task 只有在以下原因之一成立时才允许不进入矩阵：
-  - 当前 dispatch mode 的因果条件不满足；
-  - source/shelf/custody 与真实物理状态不一致；
-  - robot 到 pickup 在静态墙图上不可达；
-  - 同一实体货架或当前 endpoint 的显式 conflict group 不允许同时服务；
-  - task 已由真实 carrier 执行或被兼容 active episode 覆盖；
-  - task identity 无效或重复。
-- priority rank 本身不是硬过滤理由。
-- 第一版可以保留上游 priority-ordered transfer claims 和 same-shelf
-  兼容预选，但必须单独计数、记录删除原因并做后续消融。
-- 测试只要求附近 task 进入同一比较，不要求最终一定选择附近 task。
-
-### 1.2 目标合同
-
-- F 阶段保留当前：
-
-```text
-task rows
-robot + dummy columns
-bottleneck completion
-secondary distance/continuity
-deterministic canonical refinement
-EXECUTE 先、PREPARE 后
-```
-
-- G 阶段的 `S-D` 是新的 additive guidance，不宣称与 makespan 等价。
-- priority 只能改变“现在服务”和“本轮延期”的相对成本；给 task 整行所有
-  列加同一个常数无效。
-- `criticalTail` 不直接作为正的 additive 即时服务成本。
-- idle 必须是合法选择；PREPARE 不能获得完整 EXECUTE 延期收益。
-
-### 1.3 增量合同
-
-- 相同 `RhoProblem`、相同 objective、相同 canonical 规则时：
-
-```text
-full objective == incremental objective
-full assignment == incremental assignment
-```
-
-- matching/duals 属于具体 LaCAM 节点，不得放入 `UpperEpochCache`。
-- 不能只比较 task identities。任何列数值、mode、conflict、objective、
-  scaling、INF 或 canonical 版本变化都使第一版增量状态失效。
-- joint transition 可以改变 0、1 或多台机器人；接口必须是
-  `repair_rows(changed_rows)`。
-- incremental 失败、状态不可信或 shadow 不一致时必须安全 full solve。
-- 仅保存 duals 不应改变 retarget；如果 assignment 变化，必须能归因于
-  候选/成本语义变化，而不是 warm solver 随机选择了另一个最优解。
-
-### 1.4 交付合同
-
-- search、rewrite、两遍、repair 和最终 replay 继续使用同一 `(T,W)`。
-- 第二遍失败仍返回第一遍已验证 incumbent。
-- benchmark 先报告 solved/合法性，再比较首解、最终质量和 runtime。
-- `rho_repairs` 保留为旧字段时必须明确它是 assignment-id change count，
-  不能重新解释为 incremental repair count。
-
----
-
-## 2. 冻结基线
-
-### 2.1 代码与正式产物
-
-- [x] 源码 commit：
-  `80148a7db6ee9a756dbe314b4f393d15c8f018e9`
-- [x] `build/dd_benchmark` SHA-256：
-  `bc08b69ab26ad026e890420b59cb58dadb58daa0b55edc2319ccecc16a57598a`
-- [x] 正式 rows：
-  `benchmark/results_full_two_pass_reference_20260906/rows.csv`
-- [x] rows SHA-256：
-  `0a60c0a45e99b919a313add482674e1231e712ef0eeb58b65acf1af7849160ab`
-- [x] timing SHA-256：
-  `9fa63cd81d91c9282a6faa27ace04a95a77118832f98b8c35b703c0040ce9ee6`
-- [x] 目标计划：
-  `benchmark/results_full_two_pass_reference_20260906/work/`
-  `brap_h10w10_a12_e8_R1_seed1.carrier.plan`
-- [x] 目标计划 SHA-256：
-  `561631698435e1372d10c593b9b1df8072e73c8bf9e4989880d19318de19c8a9`
-
-### 2.2 目标实例口径
-
-实例：
-
-```text
-benchmark/instances_brap_pool/g10x10/
-brap_h10w10_a12_e8_R1_seed1.yaml
-```
-
-冻结指标：
-
-| 指标 | 当前值 |
-|---|---:|
-| first solution | `1188 ms` |
-| first `(T,W)` | `(2659,5691)` |
-| final `(T,W)` | `(1844,3927)` |
-| loaded/free/LiftDrop | `556 / 1871 / 1090` |
-| phase-2 candidate/improvement | `0 / 0` |
-| projection removed | `815` |
-| reconstructed free→free retarget | `310` |
-| deliverable runtime | `9030.13 ms` |
-| guidance time | `3976.05 ms` |
-
-必须保留两个状态回归：
-
-- `state_t=724`：附近距离 2 task 当前被 top-\(F\) cutoff 删除；
-- `state_t=1108`：距离 1、2 tasks 当前被 cutoff 删除。
-
-### 2.3 full 509 基线
-
-| 指标 | 当前值 |
-|---|---:|
-| solved | `479/509` |
-| ready task count | `13,625,227` |
-| `rho_task_id` changes | `3,917,608` |
-| owner handoffs | `961,068` |
-| upper epoch builds | `387,854` |
-| guidance time | `1697.780 s` |
-
-这些数值只说明 \(\rho\) 高频构造且值得测量；不能在 F0 之前推断 Hungarian
-占了多少时间，也不能用 upper epoch hit 推断矩阵完全相同。
-
-### 2.4 基线验证命令
-
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j 16 --target test_all dd_benchmark
-./build/test_all --gtest_color=no
-
-cd benchmark
-python3 -m unittest discover -s tests -p 'test_*.py' -v
-cd ..
-```
-
-目标实例：
-
-```sh
-./build/dd_benchmark \
-  benchmark/instances_brap_pool/g10x10/brap_h10w10_a12_e8_R1_seed1.yaml \
-  10 /tmp/brap_h10w10_a12_e8_R1_seed1.plan 0
-```
-
-quick 77：
-
-```sh
-python3 benchmark/run_benchmark.py \
-  --benchmark-tier quick \
-  --carrier-bin build/dd_benchmark \
-  --out-dir benchmark/results_quick_rho_<stage>_20260906
-```
-
----
-
-## 3. 计划中的代码落点
-
-| 文件 | 主要修改 |
-|---|---|
-| `lacam/src/carrier_guidance.hpp` | 拆分候选收集、当前 bottleneck problem、canonicalization；F1 删除 cutoff；G 构建 robot-row `S-D` problem |
-| `lacam/include/tapf_planner.hpp` | 扩展 `DDReadyMatchProbe`、`CarrierGuidance`、`TAPFStats`；H 增加节点局部 `RhoAssignmentState` |
-| `lacam/src/tapf_planner.cpp` | 聚合 \(\rho\) telemetry；从真实 parent transition 继承/失效节点局部 state |
-| `lacam/include/dd_planner.hpp` | 将新计数和耗时汇总到 `DDPlanStats` |
-| `lacam/src/dd_planner.cpp` | attempt/两遍之间累计新 stats，不改变 incumbent 语义 |
-| `tools/dd_benchmark.cpp` | 输出新增标量指标；保留旧字段兼容 |
-| `benchmark/run_benchmark.py` | 新增 CSV fields、严格解析与 schema tests |
-| `lacam/include/rho_assignment.hpp` | G/H 专用 64 位 full/incremental assignment 类型；不直接改变旧 TAPF public contract |
-| `lacam/src/rho_assignment.cpp` | 64 位矩形负成本 Hungarian、checked arithmetic、动态 row repair |
-| `tests/test_dd_dispatch.cpp` | 保留当前 bottleneck tests；增加 cutoff-removal 与 defer tests |
-| `tests/test_dd_rho_candidates.cpp` | 新增候选边界、删除原因、目标状态最小 fixture |
-| `tests/test_dd_rho_additive.cpp` | 新增 `S-D`、idle、PREPARE、conflict/canonical tests |
-| `tests/test_dd_rho_incremental.cpp` | 新增 full/incremental differential、rewire、anchor/version tests |
-| `tests/test_tapf_hungarian_shared.cpp` | 只在抽取共享整数核心时扩展；旧 int API 必须逐位兼容 |
-| `benchmark/tests/test_rho_metrics.py` | 新字段解析、非负/求和关系、旧 `rho_repairs` 口径 |
-| `CMakeLists.txt` | 注册三个新 C++ test targets 和 `test_all` |
-
-实现倾向：新建 `RhoAssignmentState`，不要直接把现有
-`TAPFAssignmentState` 的 `int`、sentinel 和 hash tie 改成另一套语义。
-若抽取共享 Hungarian 核心，旧 `tapf_hungarian_row_to_col(int)` 和 TAPF
-assignment 的输出必须保持原样。
-
----
-
-## Stage F0：补全诊断，不改变派工行为
-
-目标：先测清矩阵是否稳定、时间花在哪里、task 在哪一层消失。
-
-### F0.1 拆分 `match_ready_tasks()` 的内部阶段
-
-- [ ] 将当前大函数拆成私有 helper，但保持输出逐位一致：
-
-```text
-collect_current_rho_candidates(...)
-build_current_bottleneck_problem(...)
-solve_current_bottleneck_problem(...)
-canonicalize_current_rho_assignment(...)
-materialize_rho_probe(...)
-```
-
-- [ ] 保留当前 priority cutoff、mandatory、dummy、bottleneck、
-  secondary、canonical 行为，不在 F0 修复它。
-- [ ] 保留 EXECUTE 和 PREPARE 两次独立调用。
-- [ ] `DDReadyMatchProbe` 增加测试可见的诊断，不把完整矩阵永久存入每个
-  production node。
-
-### F0.2 候选诊断
-
-建议增加：
-
-```cpp
-enum class RhoDropReason {
-  INVALID_TASK,
-  DUPLICATE_TRANSFER_KEY,
-  SAME_SHELF_PRESELECTED,
-  UPSTREAM_TRANSFER_CLAIM,
-  MODE_INELIGIBLE,
-  NO_REACHABLE_ROBOT,
-  PRIORITY_TOP_F,
-};
-
-struct RhoCandidateAudit {
-  int task_index;
-  TransferKey key;
-  TaskId id;
-  DispatchMode mode;
-  int priority;
-  int nearest_robot_distance;
-  RhoDropReason reason;
-};
-```
-
-- [ ] 分别记录：
-  - `ready_tasks_with_custody()` 输入及 transfer-claim 删除；
-  - `match_ready_tasks()` 输入；
-  - same-key 去重后；
-  - same-shelf 预选后；
-  - priority cutoff 后；
-  - 最终 matrix rows/columns。
-- [ ] EXECUTE/PREPARE 分开累计，不能混成一个候选数。
-- [ ] 对每个被删 task 记录最近 eligible robot 距离；production 只保存
-  reason counters，完整列表仅由 probe/有界 debug trace 输出。
-- [ ] 增加断言和计数：同一 shelf 在 preselection 前有多少候选、当前
-  endpoint conflict group 出现多少次。
-
-### F0.3 耗时和输入稳定性
-
-新增聚合字段：
-
-```text
-rho_match_calls_execute / rho_match_calls_prepare
-rho_candidates_input
-rho_candidates_after_claims
-rho_candidates_after_key_dedupe
-rho_candidates_after_shelf_preselect
-rho_candidates_after_priority
-rho_priority_filtered
-rho_matrix_rows_total / rho_matrix_cols_total / rho_matrix_max_rows
-
-rho_candidate_time_ms
-rho_matrix_time_ms
-rho_bottleneck_time_ms
-rho_secondary_full_time_ms
-rho_canonical_time_ms
-
-rho_column_identity_same
-rho_column_value_same
-rho_mode_or_conflict_same
-rho_changed_rows_0 / _1 / _2 / _gt2
-```
-
-- [ ] F0 只计算便宜且确定的 identity/value fingerprints，不复用
-  assignment。
-- [ ] fingerprint 必须由实际有序内容计算；测试中还要比较完整内容，不能
-  把 hash 相等当正确性证明。
-- [ ] changed rows 根据真实 parent transition、robot position、
-  free/carry/custody 和 continuity anchor 计算。
-- [ ] `rho_repairs` 保留原输出；新增 `rho_assignment_changes` 后可让旧字段
-  成为兼容别名，但不得改名后偷换语义。
-
-### F0.4 stats 管线
-
-- [ ] `TAPFStats`、`DDPlanStats`、`accumulate_attempt_stats()`、
-  `dd_benchmark` 和 `run_benchmark.py::FIELDS` 全部接线。
-- [ ] 新字段必须有 Python schema/非负整数/有限浮点测试。
-- [ ] raw log 与 CSV 数值逐项一致。
-- [ ] F0 不增加按节点无上限的字符串或 vector stats，避免诊断本身耗尽
-  deadline/内存。
-
-### F0.5 RED/GREEN 测试
-
-- [ ] 在重构前增加 direct probe golden，锁定当前 assignment、
-  bottleneck、secondary 与 canonical 结果。
-- [ ] 同一输入重构前后 `rho_task_id/rho_transfer_key/rho_ready_index`
-  完全一致。
-- [ ] 每次调用满足：
-
-```text
-input
-  >= after_claims
-  >= after_key_dedupe
-  >= after_shelf_preselect
-  >= after_priority
-  == matrix rows
-```
-
-- [ ] priority 删除数量只出现在 F0 当前语义下。
-- [ ] timing 字段有限、非负；计数不会因 stats disabled 改变 assignment。
-- [ ] full benchmark parser 对旧 rows 缺失新字段仍能明确报 schema version，
-  不静默填错含义。
-
-### F0 完成门
-
-- [ ] 定向 C++ tests GREEN；
-- [ ] 全 C++/Python GREEN；
-- [ ] 目标实例 direct assignment/probe 与当前基线一致；
-- [ ] quick 77 没有因重构产生非预期合法性/目标变化；
-- [ ] 输出一份 F0 telemetry 摘要，决定是否值得继续 H。
-
-建议提交：
-
-```text
-rho-f0: split matching stages and add behavior-preserving telemetry
-```
-
----
-
-## Stage F1：取消普通 priority top-\(F\) cutoff
-
-目标：只改变候选边界，保留当前 bottleneck dispatch 的其余语义。
-
-### F1.1 RED 测试
-
-- [ ] 两台 free robots、三个 tasks：
-  - 远处高 priority；
-  - 近处低 priority；
-  - 另一个高 priority；
-  三个 tasks 都必须到达 assignment problem。
-- [ ] 低 priority task 可以匹配 dummy，但不能在矩阵前被删除。
-- [ ] 每个未进入矩阵的 task 都有非 priority 的硬原因。
-- [ ] synthetic `state_t=724` fixture：距离 2 task 进入矩阵。
-- [ ] synthetic `state_t=1108` fixture：距离 1、2 tasks 进入矩阵。
-- [ ] 测试不断言最终必须选择最近 task，只断言其 completion/secondary
-  成本被显式计算。
-- [ ] same-shelf/transfer-claim 的预选仍可发生，但原因和数量可见。
-
-目标状态建议使用两层测试：
-
-1. 快速 C++ synthetic fixture 固定 task graph、robots、priority 和距离；
-2. 独立诊断脚本重放正式 1844 拍计划，在 724/1108 状态检查 probe。
-
-不要让每次 `test_all` 都重放完整 1844 拍并依赖 deadline。
-
-### F1.2 最小代码修改
-
-当前删除块：
-
-```cpp
-const int cutoff = candidates[free_count - 1].priority;
-erase(priority < cutoff);
-mandatory = priority > cutoff;
-```
-
-修改为：
-
-- [ ] 删除普通 top-\(F\) erase；
-- [ ] 删除 `RhoCandidate::mandatory`，避免以后隐藏恢复无限优先级；
-- [ ] 保留当前 deterministic candidate ordering；
-- [ ] 保留 same-key 和 same-shelf 预选，留到单独阶段；
-- [ ] `dummy_count = max(0, task_count - free_count)`；
-- [ ] 当存在 dummy columns 时，**每一个**普通 candidate row 都可连接
-  dummy；
-- [ ] F1 继续使用当前：
-
-```text
-dummy completion = best_real_completion + max(1, service)
-dummy secondary  = (best_real_approach + defer_delay) * switch_scale
-```
-
-此处不加入 priority 权重，确保唯一主要变量是 cutoff removal。
-
-- [ ] 如果 task 对所有 eligible robots 都静态不可达，在建矩阵前以
-  `NO_REACHABLE_ROBOT` 硬原因删除；不得让一行全 INF 导致整个 matching
-  无解释失败。
-- [ ] EXECUTE/PREPARE 两次调用都使用相同的“无 priority cutoff”合同。
-
-### F1.3 兼容性检查
-
-- [ ] 当前 bottleneck threshold 计算不变；
-- [ ] threshold 内 secondary cost 不变；
-- [ ] 当前 repeated optimum canonical refinement 不变；
-- [ ] `criticalTail`、service、switch penalty 不变；
-- [ ] task_count \(\le\) free_count 时仍保持当前“所有 tasks 可服务”的
-  行为；F1 不解决 cardinality/idle 策略；
-- [ ] 不改变上游 transfer claims、Task-BR priority propagation 或
-  PairCost。
-
-### F1.4 benchmark
-
-依次运行：
-
-1. direct unit/probe；
-2. 目标实例；
-3. quick 77；
-4. 若 quick 无合法性/求解率阻塞，再申请 full 509 新 approval。
-
-必须比较：
-
-```text
-solved
-first_solution_ms
-first/final (T,W)
-free moves / LiftDrop
-generator failures / search nodes
-candidate counts at each stage
-guidance and rho sub-timers
-owner handoffs
-reconstructed retarget
-```
-
-成功标准不是“310 必须下降”，也不是“724 必须选择距离 2 task”。F1 只需
-证明附近 task 获得同一 objective 下的比较机会，并报告最终为何选中或未选中。
-
-建议提交：
-
-```text
-rho-f1: remove priority top-F admission cutoff
-```
-
----
-
-## Stage F2：版本化的有限 priority/continuity defer delay
-
-F1 证明普通任务可以全部进入矩阵，但也暴露了一个边界：在纯直接目标交付
-阶段，V1 的物理 bottleneck 可能为了照顾远端低 priority task，打断已经
-开始的目标交付。F2 不恢复 cutoff，而是只在严格、可测试的同质阶段增加
-有限 dummy 延期。
-
-### F2.1 规则
-
-生产 objective 版本命名为：
-
-```text
-BOTTLENECK_TARGET_FRONTIER_CONTINUITY_V2
-```
-
-V2 gate 必须同时满足：
-
-```text
-mode == EXECUTE
-所有当前候选都是 TARGET b
-critical_tail == 0
-task roots 包含该货架自己的 (b, g)
-transfer.endpoint == g
-g ∈ target_goal_sets[b]
-```
-
-任一候选是匿名 blocker、替其他 root 清障的目标货架、非终端任务，或者
-本轮是 PREPARE，则整次 matching 与 V1 数值和 assignment 等价。这个
-all-candidates gate 是刻意的：混合清障阶段继续让附近 blocker 与远端任务
-按 F2S 物理 bottleneck 比较，不能重新制造 priority 饥饿。
-
-只有 gate 成立时，priority 与 continuity 修改 dummy 延期成本：
-
-\[
-\operatorname{completion}(m,\operatorname{dummy})
-=\operatorname{bestPhysicalCompletion}(m)+\Delta_{\mathrm{defer}}(m),
-\]
-
-其中：
-
-\[
-\Delta_{\mathrm{defer}}(m)
-=\operatorname{service}(m)
- \left(1+I_{\mathrm{frontier}}(m)+I_{\mathrm{continue}}(m)\right).
-\]
-
-- `frontier`：候选多于 free robots 时，priority 不低于第 \(F\) 名；
-- `continue`：某台当前 free robot 的 parent assignment 仍是该 task；
-- 三项只作用于 dummy，最大 multiplier 固定为 3；
-- priority/continuity 在 V2 中明确改变主 bottleneck completion，不只是
-  secondary tie；
-- V1 的 physical secondary、有限 priority tie 和 canonical refinement
-  保持不变。
-
-- [x] `DeltaDefer(service, frontier, continue)` 写成纯函数，返回有限
-  `int64_t`。
-- [x] 不允许任何 priority 值产生 INF/mandatory。
-- [x] 不给真实列和 dummy 列统一加同一个 task 常数。
-- [x] target-shelf blocker、匿名 blocker 和 PREPARE 不触发 V2。
-- [x] mixed phase 必须逐矩阵、逐 assignment 等价于 V1。
-- [x] frontier cutoff tie 和 free-robot 数变化保持确定。
-- [x] 参数集合在 quick benchmark 前冻结；禁止按实例、尺寸或 seed 调参。
-- [x] 不增加 production 运行时环境开关；使用独立提交/二进制做消融。
-
-### F2.2 测试
-
-- [x] true direct-target EXECUTE 激活 V2；
-- [x] target-shelf blocker 和 PREPARE 保持 V1；
-- [x] mixed target/blocker phase 的矩阵和 assignment 与 V1 相同；
-- [x] priority 较高只增加“延期损失”，不会删除低 priority row；
-- [x] continued assignment 只在旧 task 仍是候选时增加其 dummy 延期；
-- [x] 足够大的距离差仍可让附近低 priority task 胜出；
-- [x] cutoff ties 与 free robot 数变化有 canonical 确定结果；
-- [x] `candidates_after_priority == matrix_rows` 且
-  `priority_filtered == 0`；
-- [x] 所有成本在 checked range 内；
-- [x] C++ telemetry 与 benchmark runner 导出精确 V2 名称。
-
-### F2 决策门
-
-F2 只与 F1/F2S 比较，不与 G/H 捆绑。进入正式实现前的隔离实验必须同时
-满足：
-
-```text
-样例 A：严格优于旧 (18,34)
-样例 B/C/D：保持 (12,36)/(31,93)/(8,23)
-quick 中两个大回归：
-    seed0 保持 (1273,5796)
-    seed1 保持 (1243,6384)
-```
-
-若 quick 出现 solved-set 回退，production 回到 F2S；不得修改 benchmark
-或用实例特判兜底。additive G/H 仍是独立实验，不能用其历史结果替代 F2
-验证。
-
----
-
-## Stage G0：冻结 additive `S-D` 数学问题
-
-目标：在写 solver 前先冻结 column、cost、idle、mode 和 canonical 语义。
-
-### G0.1 第一版范围
-
-最低风险版本继续：
-
-```text
-先对 EXECUTE 做 robot-row additive full solve
-锁定已获 EXECUTE 的 robots
-再对 PREPARE 做第二次 robot-row additive full solve
-```
-
-第一版不统一两个 mode，不解决任意 task-group conflict。same-shelf 和
-transfer-claim 仍是显式、可计数的预选兼容集合。
-
-第一版关闭 age：
-
-```text
-lambda_age = 0
-```
-
-因为 age 尚未进入可重放搜索状态。禁止用 guidance rebuild 次数或 wall-clock
-模拟 age。
-
-### G0.2 问题类型
-
-建议类型：
-
-```cpp
-enum class RhoColumnKind {
-  EXECUTE_TASK,
-  PREPARE_TASK,
-  IDLE,
-  LOCKED,
-};
-
-struct RhoColumnKey {
-  RhoColumnKind kind;
-  TransferKey transfer;
-  TaskId task;
-  int stable_slot;
-};
-
-struct RhoCostBreakdown {
-  int64_t approach;
-  int64_t immediate_service;
-  int64_t continuity;
-  int64_t mode;
-  int64_t urgency_reward;
-  int64_t root_delay_reward;
-  int64_t total;
-};
-
-struct RhoProblem {
-  std::vector<int> robots;             // 固定为全部 robots
-  std::vector<RhoColumnKey> columns;   // tasks + N idle/locked
-  std::vector<std::vector<int64_t>> cost;
-  std::vector<std::vector<RhoCostBreakdown>> breakdown;
-};
-```
-
-矩阵：
-
-```text
-rows    = all N robots
-columns = explicit task columns + N own idle/locked columns
-```
-
-- free eligible robot：合法 task edges + 自己的 idle；
-- carrying/不可用 robot：只连接自己的 locked/continuation；
-- task column：最多一台 robot；
-- 未选择的 task column：保持 unmatched，表示本轮延期；
-- 每个 robot row：始终有一个有限 idle/locked edge。
-
-### G0.3 成本合同
-
-EXECUTE：
-
-\[
-S^E_{rm}
-=w_d\,distance
-+w_s\,immediateService
-+w_c\,switch
-+w_{\mathrm{mode}}\,modePenalty
-\]
-
-\[
-D_m
-=\lambda_p\,urgency
-+\lambda_k\,rootDelayImpact
-\]
-
-\[
-C^E_{rm}=S^E_{rm}-D_m.
-\]
-
-第一版最小模型：
-
-- [ ] `urgency` 使用有限 priority rank 的固定点映射；
-- [ ] `rootDelayImpact=0`，待单独定义和消融；
-- [ ] `age=0`；
-- [ ] `immediateService` 使用当前 transfer 的立即资源占用，不加入正的
-  successor `criticalTail`；
-- [ ] continuity 是有限成本，不是永久 owner；
-- [ ] idle edge 有明确定义的有限成本，不能通过 cardinality 前置强制服务。
-
-PREPARE：
-
-\[
-C^P_{rm}=S^P_{rm}-B^P_{rm},
-\qquad 0\le B^P_{rm}\le D_m.
-\]
-
-- [ ] `B^P` 只表示预计减少的未来 approach；
-- [ ] PREPARE 不执行 Lift、不完成 transfer；
-- [ ] 第一版两阶段求解确保同一 transfer 不同时获得 EXECUTE/PREPARE 两个
-  owner；
-- [ ] 后续统一矩阵前必须显式实现 owner/conflict group。
-
-### G0.4 canonical 合同
-
-定义唯一 canonical 顺序：
-
-1. robot id 升序；
-2. 在保持全局最优 objective 的 columns 中按
-   `(kind-order, TransferKey, TaskId, stable_slot)` 选择；
-3. task columns 在同成本时可排在 own idle 之前，但这只是确定性 tie，
-   不是高于真实 cost 的 maximum-cardinality 层级。
-
-- [ ] canonical 规则写入 version；
-- [ ] full solver 单元测试要求 assignment 逐位稳定；
-- [ ] 不使用普通有限 hash 宣称 matching 总和唯一。
-
-G0 先形成设计测试和纯 cost-builder tests，不接 production。
-
----
-
-## Stage G1：实现 64 位 additive full solver
-
-### G1.1 数值实现
-
-新建 `rho_assignment.hpp/.cpp`：
-
-- [ ] `using RhoCost = int64_t`；
-- [ ] `kRhoInf` 与最大合法有限成本分离；
-- [ ] potentials、slack、总和及缩放中间值使用 checked `__int128`；
-- [ ] 支持 rows \(\le\) columns；
-- [ ] 支持负有限成本；
-- [ ] forbidden edge 不参与最优性计算；
-- [ ] 返回 objective、row→column 和 feasible；
-- [ ] 禁止对 task column 做非负平移；
-- [ ] 若做 row shift，必须同时平移该 row 的 task 和 idle/locked 合法列，
-  并把常数正确还原到 objective。
-
-优先从现有 Hungarian 抽取共享整数核心；旧
-`tapf_hungarian_row_to_col(int)`、`TAPFAssignmentState` 和 zero-shelf TAPF
-行为必须保持逐位兼容。
-
-### G1.2 full canonical oracle
-
-- [ ] 先求最小 additive objective；
-- [ ] 再按 G0.4 顺序反复检查“固定此 edge 后剩余问题是否仍达到同一最优
-  objective”；
-- [ ] 返回唯一 canonical assignment；
-- [ ] 单独计时：
-  - cold optimum；
-  - canonical refinement；
-  - cost matrix construction。
-
-G1 的 full canonical solver 是 H 阶段唯一行为 oracle。即使它暂时较慢，也
-不能为了速度换成无证明的 tie hash。
-
-### G1.3 RED 测试
-
-新增 `tests/test_dd_rho_additive.cpp`：
-
-- [ ] priority 作为 `D_m` 会影响服务/延期选择；
-- [ ] 给 task 整行所有列加同一常数不改变 assignment；
-- [ ] min-sum 与 bottleneck 的 2×2 反例得到不同结果；
-- [ ] idle 可在弱 task 不值得立即启动时胜出；
-- [ ] 不先最大化非空 task 数；
-- [ ] 长 `criticalTail` 不因正即时 service 自动受罚；
-- [ ] PREPARE 收益小于等于完整延期收益；
-- [ ] 同一 transfer 两个 mode 不出现双 owner；
-- [ ] shared blocker root reward 不重复；
-- [ ] negative rectangular matrix；
-- [ ] INF 与最大固定点边界；
-- [ ] 多最优解 canonical assignment 固定；
-- [ ] cold solver 重复运行逐位一致。
-
-### G1.4 production 接线
-
-- [ ] 仅在 G 独立提交中将两次 `match_ready_tasks()` 替换为 additive full
-  solver；
-- [ ] 上游 candidates 与 F1 相同；
-- [ ] EXECUTE/PREPARE 仍分两阶段；
-- [ ] 现有 `rho_task_id/rho_transfer_key/rho_ready_index/rho_mode` 接口
-  不变；
-- [ ] timed transport 和 PIBT 消费接口不变；
-- [ ] stats 明确记录 objective kind/version。
-
-### G1.5 benchmark 与决策
-
-比较至少三组独立二进制：
-
-```text
-F1: no-cutoff bottleneck
-F2: no-cutoff bottleneck + finite defer（若实现）
-G1: no-cutoff additive S-D full solver
-```
-
-报告：
-
-- solved；
-- first/final `(T,W)`；
-- first solution / deliverable runtime；
-- free moves、Lift/Drop、shelf switches；
-- search nodes、generator failures；
-- candidate counts；
-- full solver/canonical CPU；
-- owner handoffs、retarget；
-- raw search、projection repair、phase 2 贡献。
-
-决策规则：
-
-- 不能因为 G 容易增量化就默认采用 G；
-- 不能只看目标实例；
-- 若 G 在固定 quick/full 上明显劣于 F，停止 additive H 路线；
-- 若最终保留 bottleneck，另开“动态 threshold + secondary matching”
-  设计，不把 H 的 additive state 硬套上去。
-
-建议提交：
-
-```text
-rho-g0: define additive rho problem and exact full oracle
-rho-g1: route production rho through additive full solver
-```
-
----
-
-## Stage H0：定义节点局部复用边界
-
-只有 G1 数学问题和 canonical assignment 冻结后开始。
-
-### H0.1 状态位置
-
-`CarrierGuidance` 本身是具体 `TAPFNode` 的 node-local 数据，可增加：
-
-```cpp
-std::optional<RhoAssignmentState> rho_execute_state;
-std::optional<RhoAssignmentState> rho_prepare_state;
-```
-
-禁止加入：
-
-```text
-UpperEpochGuidance
-UpperEpochCache
-全局 map<UpperSignature, matching>
-```
-
-父→子复用必须经过 `attach_carrier_guidance()` 已验证的真实 transition：
-
-- transition replay 与 child physical state 一致；
-- parent guidance 不是 stale；
-- rewire 时先刷新新 parent；
-- sibling 各自复制 value state，不能共享可变 potentials。
-
-### H0.2 `ColumnModelVersion`
-
-不要只保存一个 hash。建议保存 exact descriptor，并附 hash 加速：
-
-```cpp
-struct ColumnModelVersion {
-  std::vector<RhoColumnKey> ordered_columns;
-  std::vector<int64_t> service;
-  std::vector<int64_t> urgency;
-  std::vector<int64_t> root_delay;
-  std::vector<uint64_t> endpoint_conflict_version;
-  uint32_t mode_semantics_version;
-  uint32_t objective_version;
-  uint32_t scaling_version;
-  uint32_t inf_version;
-  uint32_t canonical_version;
-  uint64_t quick_hash;
-};
-```
-
-- [ ] quick hash 相等后仍做 exact equality；
-- [ ] task identities 相同但任一数值改变 → full solve；
-- [ ] EXECUTE/PREPARE 分别保存各自 column model；
-- [ ] age 第一版关闭，因此不进入版本；以后启用时必须是节点状态。
-
-### H0.3 `RowFingerprint`
-
-```cpp
-struct RowFingerprint {
-  Cell robot_position;
-  KappaMode kappa;
-  std::optional<TransferKey> custody;
-  DispatchMode phase;
-  EligibilityBits eligibility;
-  std::optional<RhoColumnKey> anchor_used;
-};
-```
-
-必须分开：
-
-```text
-mate         = 当前 problem 求出的 assignment
-anchor_used  = 构建当前 row continuity cost 时使用的上一代 assignment
-```
-
-- [ ] parent augmenting path 改变多个 mates 后，child 对应 rows 即使没移动
-  也因新 anchor 重新计算；
-- [ ] Lift/Drop 使 task 对其他 robots 失效时通常属于 column/model 变化，
-  第一版 full solve；
-- [ ] changed rows 分布写入 telemetry。
-
-### H0.4 fallback 原因
-
-枚举并统计：
-
-```text
-NO_PARENT_STATE
-STALE_OR_REWIRED_PARENT
-SHAPE_CHANGED
-COLUMN_IDENTITY_CHANGED
-COLUMN_VALUE_CHANGED
-MODE_CHANGED
-CONFLICT_CHANGED
-OBJECTIVE_VERSION_CHANGED
-CANONICAL_VERSION_CHANGED
-STATE_VALIDATION_FAILED
-SHADOW_MISMATCH
-```
-
-任何无法分类的 fallback 是 bug，不使用笼统 `OTHER` 长期隐藏。
-
----
-
-## Stage H1：64 位增量 objective solver（先 shadow）
-
-### H1.1 动态状态
-
-```cpp
-struct RhoAssignmentState {
-  int rows;
-  int columns;
-  std::vector<int> mateL;
-  std::vector<int> mateR;
-  std::vector<WideCost> row_potential;
-  std::vector<WideCost> column_potential;
-  ColumnModelVersion column_model;
-  std::vector<RowFingerprint> row_fingerprint;
-  std::vector<std::optional<RhoColumnKey>> anchor_used;
-  int64_t objective;
-  uint32_t canonical_version;
-};
-```
-
-- [ ] `solve_full(problem)` 初始化 matching/duals；
-- [ ] `repair_rows(changed_rows, problem)` 解除 changed rows 并重新增广；
-- [ ] augmenting path 允许重分配未改变 rows；
-- [ ] 0 rows 变化直接复用；
-- [ ] 状态 validation 检查 matching injective、所有 matched edges 有限、
-  primal/dual objective 一致；
-- [ ] validation 失败 full solve，不把坏状态继续传播。
-
-### H1.2 shadow 模式
-
-H1 不立即用 incremental assignment 驱动 PIBT：
-
-1. 正常运行 G1 full canonical solver；
-2. 同时运行 incremental objective solver；
-3. 比较 objective；
-4. 记录 changed rows、copy/repair/full 时间与 fallback；
-5. production 仍返回 full canonical assignment。
-
-这样可以先回答：
-
-- 列模型到底多常不变？
-- 0/1/k row repair 比例是多少？
-- state copy 是否比 full solve 更贵？
-- objective repair 是否正确？
-
-shadow 不通过时不能进入 H2。
-
-### H1.3 differential tests
-
-新增 `tests/test_dd_rho_incremental.cpp`：
-
-- [ ] 随机小矩阵单行改变，objective 与 full 一致；
-- [ ] 多行改变一致；
-- [ ] 0 行变化不增广；
-- [ ] 一行变化通过 augmenting path 全局重分配其他 rows；
-- [ ] 报告中的矩形例：
-
-\[
-C_{\mathrm{parent}}=
-\begin{bmatrix}
-0&100&100\\
-0&1&2
-\end{bmatrix},
-\quad
-C_{\mathrm{child}}=
-\begin{bmatrix}
-100&100&0\\
-0&1&2
-\end{bmatrix}
-\]
-
-  child 必须得到成本 0，而不是只局部替换后保留成本 1。
-- [ ] negative costs；
-- [ ] task identities 不变但 urgency 数值改变 → full fallback；
-- [ ] mode/conflict/INF/canonical version 改变 → full fallback；
-- [ ] augment 改变多个 mates 后 child anchors 正确变化；
-- [ ] sibling state value-copy 隔离；
-- [ ] duplicate/rewire 从新真实 parent 重建；
-- [ ] Lift 造成跨 rows eligibility 改变时不错误单行修复；
-- [ ] checked overflow/INF；
-- [ ] 随机 differential 至少覆盖数千个小矩阵和 row-update 序列。
-
-建议提交：
-
-```text
-rho-h0: add node-local rho model versions and shadow state
-rho-h1: add exact incremental objective repair in shadow mode
-```
-
----
-
-## Stage H2：canonical 等价与生产启用
-
-objective 相同不够。H2 必须保证 warm/cold assignment 逐位一致。
-
-### H2.1 最安全的第一步
-
-- [ ] incremental repair 先给出最优 objective；
-- [ ] 仍运行 G1 full canonical refinement；
-- [ ] 比较 incremental mate 与 full canonical mate；
-- [ ] production 返回 full canonical mate。
-
-这一步可能没有净加速，但能分离：
-
-```text
-matrix construction
-incremental optimum
-full canonical refinement
-```
-
-如果 canonical 占主要时间，不得把“objective repair 很快”报告成整体
-matching 已加速。
-
-### H2.2 精确 canonical incremental oracle
-
-只有 H2.1 数据证明值得继续时实现：
-
-- [ ] 把 canonical refinement 写成消费抽象
-  `OptimumUnderFixedEdges` oracle；
-- [ ] full oracle 与 incremental oracle 使用同一 robot/column 顺序；
-- [ ] 每次临时固定 edge 后，受影响 state 使用独立副本，失败不污染 parent；
-- [ ] 任何 restricted problem 改变 columns/shape 时安全 full solve；
-- [ ] 不用有限 tie hash 代替证明；
-- [ ] 多最优解 tests 要求 full/incremental assignment 逐位相同。
-
-### H2.3 启用门
-
-仅当以下条件全部满足，production 才可使用 incremental 结果：
-
-- [ ] 单元随机 differential 全绿；
-- [ ] 目标实例逐次 shadow mismatch = 0；
-- [ ] quick 77 shadow mismatch = 0；
-- [ ] benchmark sample 中 objective/canonical mismatch = 0；
-- [ ] 所有 fallback 都有原因；
-- [ ] state copy + repair + canonical 总耗时小于 full solver；
-- [ ] 峰值内存和 cleanup 未造成 deadline 回退；
-- [ ] 输出计划全部 replay 合法；
-- [ ] independent review 通过。
-
-若没有净收益，保留 G1 full solver；“增量未上线”是允许的正确结论。
-
-建议提交：
-
-```text
-rho-h2: enable canonical-equivalent incremental assignment
-```
-
----
-
-## Stage I：只在 telemetry 证明需要时扩展
-
-这些项目不属于首轮闭环：
-
-- [ ] 单列/少量列 repair；
-- [ ] EXECUTE/PREPARE 统一矩阵；
-- [ ] task-group/endpoint conflict 的有界枚举；
-- [ ] 冲突普遍时引入 min-cost flow；
-- [ ] 把 rank urgency 升级为 PairCost/slack 固定点延期代价；
-- [ ] 把 transition age 加入可重放节点状态；
-- [ ] 有限区域 continuity/lease；
-- [ ] strict bottleneck 的动态 threshold + secondary matching。
-
-每项必须独立测试和消融。不能因为 H 的 robot-row state 已存在，就默认这些
-变化也正确。
-
----
-
-## 4. Benchmark 协议
-
-### 4.1 变体隔离
-
-建议目录：
-
-```text
-benchmark/results_quick_rho_f0_20260906
-benchmark/results_quick_rho_f1_20260906
-benchmark/results_quick_rho_f2_20260906
-benchmark/results_quick_rho_g1_20260906
-benchmark/results_quick_rho_h_shadow_20260906
-benchmark/results_full_rho_<accepted-stage>_20260906
-```
-
-每个结果目录必须记录：
-
-- git commit；
-- binary SHA-256；
-- suite/manifest SHA-256；
-- objective/canonical version；
-- result rows/timing SHA-256；
-- 是否 full、shadow 或 production assignment。
-
-### 4.2 quick 与 full
-
-quick：
-
-```sh
-python3 benchmark/run_benchmark.py \
-  --benchmark-tier quick \
-  --carrier-bin <variant-build>/dd_benchmark \
-  --out-dir benchmark/results_quick_rho_<stage>_20260906
-```
-
-full：
-
-```sh
-python3 benchmark/run_benchmark.py \
-  --benchmark-tier full \
-  --review-approval <new-approval-bound-to-new-binary>.json \
-  --carrier-bin <variant-build>/dd_benchmark \
-  --out-dir benchmark/results_full_rho_<stage>_20260906
-```
-
-旧 approval 绑定旧 binary，不能复用于新实现。
-
-### 4.3 必报指标
-
-质量：
-
-```text
-solved
-first/final makespan
-first/final weighted work
-first-solution time
-deliverable runtime
-raw search / repair / phase-2 contribution
-```
-
-动作：
-
-```text
-loaded moves
-free moves
-Lift/Drop
-shelf switches
-reversals
-```
-
-\(\rho\)：
-
-```text
-candidate counts by stage/reason
-matrix rows/columns
-full/reuse/repair/fallback counts
-changed rows distribution
-column identity/value/mode/conflict change rates
-matrix/full/incremental/canonical/copy/cleanup time
-matching state average/peak memory
-assignment changes
-owner handoffs
-reconstructed free→free retarget
-```
-
-搜索：
-
-```text
-nodes/iterations
-generator failures
-rewire rebuilds
-guidance total time
-timed transport time
-```
-
-### 4.4 解释规则
-
-- `robot_utilization` 是 loaded-move ratio，不是闲置率。
-- `rho_repairs` 是 assignment change count，不是 incremental repairs。
-- 310 retarget 是交付路径重建 guidance 指标，不是原搜索错误次数。
-- nearby task 被纳入比较不意味着必须被选择。
-- matching microbenchmark 变快不等于总 planner 变快。
-- 同一 10 秒预算下，solver 加速可能改变搜索覆盖；必须同时报告计划质量。
-- 旧 v5 单例 1652/3652 与当前 1844/3927 不是本轮直接 A/B。
-
----
-
-## 5. 提交顺序与回滚点
-
-| 提交 | 唯一主要变化 | 可安全回滚到 |
-|---|---|---|
-| `rho-f0` | 重构 + telemetry，行为不变 | `80148a7` |
-| `rho-f1` | 删除普通 top-\(F\) cutoff | `rho-f0` |
-| `rho-f2` | 有限 dummy defer delay | `rho-f1` |
-| `rho-g0` | additive problem + full oracle，不接 production | `rho-f1/f2` |
-| `rho-g1` | production 使用 additive full solver | `rho-g0` |
-| `rho-h0` | node-local version/fingerprint + shadow state | `rho-g1` |
-| `rho-h1` | incremental objective shadow | `rho-h0` |
-| `rho-h2` | canonical-equivalent incremental production | `rho-h1` |
-
-禁止：
-
-- 在 `rho-f1` 同时改 continuity 权重；
-- 在 `rho-g1` 同时接 incremental；
-- 在 `rho-h*` 修改 `S-D` 权重或 mode 语义；
-- 用 feature flag 在同一 production binary 中隐藏未审查的替代算法；
-- benchmark 失败后覆盖已有结果目录。
-
----
-
-## 6. Definition of Done
-
-### F 完成
-
-- [ ] F0 telemetry 完整，matching 独立耗时和矩阵稳定率可测；
-- [ ] F1 普通低 priority task 不再被 top-\(F\) 删除；
-- [ ] 724/1108 附近 task 进入比较；
-- [ ] 每个未进入矩阵的 task 都有硬原因；
-- [ ] 当前 bottleneck/secondary/canonical 语义未被偷换；
-- [ ] C++/Python 全绿，计划 replay 合法；
-- [ ] quick/full 报告完整，不用 retarget 单指标判定成功。
-
-### G 完成
-
-- [ ] `S-D` cost 合同、idle、PREPARE、canonical 已冻结；
-- [ ] 64 位矩形负成本 full solver 有穷举/随机 oracle；
-- [ ] full canonical assignment 确定；
-- [ ] additive 与 bottleneck 使用独立 benchmark；
-- [ ] 是否采用 additive 由真实 `(T,W)` 结果决定，而不是实现便利。
-
-### H 完成
-
-- [ ] matching/duals 节点局部，不污染 upper cache/sibling；
-- [ ] `ColumnModelVersion` 覆盖结构和实际数值；
-- [ ] `mate` 与 `anchor_used` 分离；
-- [ ] 0/1/k changed rows 正确；
-- [ ] 列变化安全 full fallback；
-- [ ] full/incremental objective 和 canonical assignment 逐次一致；
-- [ ] state copy、canonical 和 cleanup 纳入总性能；
-- [ ] 无净收益时不启用 production incremental。
-
-### 全局完成
-
-- [x] 不改变物理 successor、goal、PairCost/tau 边界；
-- [x] search/rewrite/two-pass/repair 仍统一 `(T,W)`；
-- [x] 当前测试、样例和 quick 输出通过 C++ replay 和 Python validator；
-- [x] no instance/seed special case；
-- [x] no hidden runtime policy switch；
-- [x] quick/full artifacts、binary/hash、比较报告可审计；
-- [x] `design_final.md`、报告与本文件同步更新实际完成状态。
-
-最终网页的独立内容/链接审查已明确 `APPROVE`，本文件对应的发布候选已
-完成。G/H 的 production checkbox 保持未勾选，因为实验结论是“不采用”，
-不是把已回滚的替代目标伪装成完成。
-
----
-
-## 7. 停止与重新决策条件
-
-出现以下情况时停止当前路线，不继续堆复杂度：
-
-1. F0 显示列模型几乎每节点都变化：暂缓增量，先分析 column change 来源。
-2. F1 让低 priority tasks 进入后求解率/首解明显恶化：检查矩阵规模、
-   dummy 语义和上游冲突，不立即切 additive 掩盖问题。
-3. G1 additive 在固定 corpus 上明显劣于 F：保留 bottleneck，单独设计
-   dynamic threshold，不继续 additive H。
-4. H1 objective repair 快但 canonical full 占绝大多数时间：不宣称整体
-   加速，先决定是否值得实现 exact incremental canonicalization。
-5. state copy/内存/cleanup 抵消增广收益：保留 full solver。
-6. conflict-group 预选删除比例很高：下一步优先解决组约束，而不是继续调
-   priority/continuity 权重。
-7. 任一阶段出现合法性、replay、deadline 或 incumbent 保底回归：立即回滚
-   到上一独立提交。
-
-最终原则：
-
-> 先修复候选边界，再选择调度目标，最后才优化求解器；任何性能优化都不能
-> 改变已经冻结的数学问题和 canonical assignment。
+| 初始联合图 | 47/175/52 vs 63/9193/3451（更好） | — |
+| tau 变化 | 7/12 root 改选 | — |
+| loaded/lift_drop | 变差（505/842 vs 267/494） | **完全相同**（33/24） |
+| free_moves | 1553 vs 773 | 122 vs 100 |
+| upper_epoch_builds | 1004 vs 516 | 98 vs 39 |
+| causal_waiting | 817 vs 1 | 0 vs 0 |
+| custody_continuations | 4207 vs 1186 | — |
+
+### 2.3 根因候选（按证据强度排序）
+
+- **H1 epoch 间链重选（churn）**：势能对上层状态高度敏感——每次
+  transfer 都移动空位，下一个 epoch 的 Q 排序可能整体翻转，PIBT
+  期望算子随之改向，机器人空跑/交还任务（custody ×3.5、free_moves
+  +22% 且 loaded 不变）。单 root 案例是它的最纯净证据。
+- **H2 新 tau 在低 robot 数下丢并行**：a12 案例 7/12 tau 改选 +
+  causal_waiting 1→817，说明新链间因果依赖更深（b9 一条 27 任务链）。
+  与 H1 叠加放大。
+- **H3 epoch 缓存键抖动**：`UpperEpochCache` key 含
+  priority_commitment；若 commitment 在等价状态间翻转会造成重复
+  build（epoch_builds ×2.5 的一部分）。次要，先测量再定。
+
+## 3. 不变约束
+
+沿 rules.md：无 feature flag / legacy 路径 / fallback；先 RED 后改码；
+开发期只跑 quick；分阶段独立提交与结果目录。诊断用的对照一律走
+"HEAD worktree 二进制 vs 工作树二进制"，不在产品代码里做开关。
+
+## 4. 阶段计划
+
+### R1：churn 可观测性（先做，纯 telemetry，不改行为）
+
+1. 共享层加计数（`VacancyGuidanceTelemetry` 旁）：
+   - `epoch_first_transfer_flips`：同一 root 在相邻 epoch 的首选
+     transfer（TransferKey）变化次数；
+   - `epoch_chain_overlap_pct`：相邻 epoch ready 链的 TransferKey
+     Jaccard；挂在 `build_task_br_guidance` 的 previous_guidance
+     对比处（7340+ 已有 previous_epoch 访问）。
+   - `upper_epoch_cache_evictions`（容量 256 驱逐计数）。
+2. 导出到 lacam 模式（与 T 阶段合并做）：`TAPFStats`（866+）→
+   `map_stats`（dd_planner.cpp:355）→ `dd_benchmark.cpp` 通用段 →
+   `run_benchmark.py` 列。
+3. RED：单 root warehouse 案例上断言 telemetry 字段存在且
+   flips 在 HEAD 语义下为小值的合同不好写——改为纯观测，不设阈值
+   断言；测试只验证字段导出与非负。
+4. 验收：两个 focused 回退案例的 flips/overlap 数据支持或否定 H1。
+
+### R2：判别实验（test-only probe，不动产品路径）
+
+1. `dd_planner.hpp` 加 probe：`dd_solve_carrier_lacam_fixed_tau_probe(
+   ins, tau_override, …)`——复用 b1 的 fixed-tau 装配方式，只在测试/
+   诊断中调用（与现有 *_probe 家族同规格，rules.md 允许 probe）。
+2. 交叉试验：新树 × HEAD tau、新树 × 新 tau，在 a12 案例上比较
+   mk/soc/causal_waiting。tau 固定后回退消失 → H2 主导；仍在 →
+   H1 主导。
+3. 同时给 joint 图 probe 加 `--tau-override` 输入跑 t=0 交叉（已有
+   `dd_compile_joint_graph_probe(tau_override)` 参数，纯脚本工作）。
+
+### F：修复（依 R1/R2 结论选择，均在共享层，两方法同享）
+
+- **F-H1 链连续性（hysteresis）**：候选排序在 Q 之后、reserved 之前
+  加一个 continuity 键——上一 epoch 已选中的 TransferKey（经
+  priority_commitment 通道传入，挂点 build_task_br_guidance 7340+ 与
+  `ordered_shelf_candidate_window`）得 0，其余得 1。只影响 tie 区，
+  不改变 exact oracle 与候选集合。
+- **F-H2 tau 稳定性**：`solve_tau_guide` 的 moved_away 次键已有；若
+  H2 主导，考虑把"上一 epoch tau"作为同成本 tie 的第三键（同样经
+  epoch 通道传入）。禁止直接加权惩罚（会破坏 L(e)≤C(e) 合同需重验）。
+- **F-H3**：若驱逐显著，容量自适应或 key 归一化（commitment 排序）。
+- 每个 F 独立提交独立 quick 目录；RED 测试先行：
+  1. a12_e3_B_seed1：lacam 模式 soc ≤ 1738×1.05（回到基线水平）；
+  2. wh b3_a1_d50：free_moves ≤ 110（loaded 不变前提下）；
+  3. 报告案例保持 mk≤49/soc≤101；
+  4. brd quick 51/77 与 focused 15 transfer 不回退。
+
+### T：telemetry parity（plan §4.2，独立小提交）
+
+`TAPFStats` 增 `vacancy_potential_builds/_time_ms/_unreachable_cells`、
+`clearance_first_choice_fallbacks`、`guidance_version`；CarrierEngine
+的 compile/rollout 路径把 `VacancyGuidanceTelemetry` 累计进来
+（tapf_planner.cpp 651-655 一处 + rollout 2718+ 共用）；
+`map_stats`→`dd_benchmark` 通用段→`run_benchmark.py` 列。RED：跑
+报告案例 lacam 模式断言字段非零。
+
+### C：carrier 入口回归测试（plan §4.3）
+
+`tests/test_dd_carrier_vacancy_entry.cpp`：报告案例
+`solve_carrier_lacam_result` 10s 内 soc ≤ 101、mk ≤ 49（阈值给 10%
+余量：soc ≤ 111）；断言引导首个 target transfer endpoint 为 (5,2)
+（用 `dd_task_br_guidance_probe`）。
+
+### 收尾
+
+C++/Python 全量 GREEN → quick 77 双方法（carrier 主 slot +
+carrier_brd 替换 slot）→ 独立审查 → full 509（需 APPROVE JSON）→
+汇报页面（rules.md Final validation）。
+
+## 5. 验收标准（在 plan §6 基础上修订）
+
+- carrier quick：solved ≥47；公共案例 sum mk ≤ 15133、sum soc ≤ 38673
+  （不劣于当前 vacancy 树）；§1.2 表 8 例中 soc>5% 恶化收敛到 ≤2，
+  且 a12_e3_B_seed1 回到 soc ≤ 1825（基线×1.05）。
+- carrier_brd quick 51/77、full ≥336/509 不回退；报告案例 15 transfer。
+- telemetry：carrier 行可见 vacancy_potential_* 与 churn 字段。
+- 新增测试全绿且进 protected 集。
+
+## 6. 实际落地与当前证据
+
+实现仍只有一条生产路径：
+
+- `build_task_br_guidance` 在相邻合法物理转移上恢复 custody、forced
+  effect、priority 与 root-goal commitment，再调用原有 Task-BR 编译；
+- vacancy potential 只改变候选的 Q 排序，continuity 只在 exact-Q
+  tie 后、reservation tie 前生效，不改变候选集合或合法性；
+- continuity 只用于至少含一个多候选 goal set 的实例。singleton
+  fixed-goal 实例没有动态 tau 抖动，因此不把历史首 transfer 写入新
+  epoch；shared-pool 合同仍保留，并具有一 epoch 生命周期和 stale-source
+  过滤；
+- 在途货架只有位于非 storage transit cell 时才需要给新任务图注入
+  forced transfer。位于 storage cell 的 episode 由 custody 延续，避免
+  把已经可由当前 frontier 重现的 effect 再次强制；
+- fixed-goal forced effect 先与当前无强制 frontier 比较。同 root 集的
+  predecessorless transfer 已足够时归一化为空；真正参与共享依赖、后继
+  解锁或 rotation 的 effect 才保留；
+- flexible target 在搬运中或仍有 active root 时保持上一 tau goal，
+  commitment 必须合法且全局 injective，到达目标后释放。singleton
+  target 不创建历史依赖。
+
+最终 quick 产物：
+
+| 路径 | solved | 公共例 makespan | 公共例 SOC | 备注 |
+|---|---:|---:|---:|---|
+| carrier Phase A | 47/77 | 15133 | 38673 | 修复前对照 |
+| carrier shared fix | 47/77 | **14454** | **37216** | SOC>5% 回归 2 例 |
+| carrier_brd Phase A r3 | 51/77 | 25033 | 76005 | 共享层对照 |
+| carrier_brd shared fix | 51/77 | **25033** | **76005** | 逐例相同 |
+
+最终 release-candidate 二进制为
+`build/dd_benchmark`，SHA-256
+`e986ba3740aa259e8d485f2bbe96e32e887cf09494df470873b6b667eee8e1ae`。
+carrier quick 位于
+`benchmark/results_quick_vacancy_shared_carrier_20260907_r5`，
+carrier_brd quick 位于
+`benchmark/results_quick_vacancy_shared_carrier_brd_20260907_r2`。
+r5 与 r4、brd r2 与上一版在 success、cost、动作计数和 plan SHA 上均为
+零差异。
+
+carrier 剩余两例 SOC>5% 回归是
+`brap_h8w10_a10_e2_B_seed1_pool`（509→831）和
+`brap_h6w10_a6_e1_B_seed0_pool`（287→321）。它们都是 flexible-pool
+场景，已按 plan 的“≤2”边界保留为负面证据，不再据此选择 seed 或修改
+benchmark。与此同时，`a12_e3_B_seed1` 从 3286 降至 1562，报告案例
+保持 49/101，窄图 protected case 保持 389/769。
+
+验证状态：
+
+- C++ `test_all`：412/412；
+- Python benchmark tests：198/198（含最终报告、去模板化、静态证据
+  portability 与主索引回归测试）；
+- warehouse proposal：5/5，四个 planner plan SHA 保持
+  `64693a…`、`e37df7…`、`8a103b…`、`0565ea…`；
+- warehouse proposal 的四条记录均绑定当前 `d1ea40…` 二进制；
+- `git diff --check` clean；
+- quick 使用 16 个物理核中的 14 个、每例 10 秒、seed 0、unit weights。
+
+封存后对
+`g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0` 做了终局交付定点修复。
+原计划中，携带 `b11` 的机器人已经与固定目标相邻，却被一台普通取货机器人
+抢先占用终点，随后把货架带走再送回来，最终得到 `(T,W)=(198,857)`。
+当前排序只在“另一台空闲 dispatch 的下一单正是在该终点取货”时优先完成
+相邻交付；终点只是去往别处取货的最短路中间格时，不覆盖原任务优先级。
+同时只在另一台载货机器人下一拍将进入当前通道格、原时序提示又会让本车
+离目的地更远时，优先驶入相邻的空 storage 会车位。修复后为
+`(106,770)`；载货移动由 377 降为 371。新增 terminal-delivery scope
+回归后，曾稳定退化的 `brap_h10w10_a12_e8_R1_seed0` 连跑三次均恢复为
+`(1099,2360)`。当前 quick 位于
+`benchmark/results_quick_terminal_scope_20260907`，为 47/77，公共成功例
+sum makespan/SOC 为 `14454/37216`，与 shared-fix r5 的成功集合和逐例
+cost 完全相同；rows SHA-256 为 `e1ad57fc…`。
+
+当前 sealed release 二进制
+SHA-256 为
+`d1ea40f67d281da6a82eea649d7de8e2d8a5e7d13d22407523608c3b44881fe2`。
+旧 `e986ba…` sealed full 继续保留为历史证据，不回写其汇总。
+
+终审指出的两个代码阻塞项已经完成 RED→GREEN：fixed-goal forced-effect
+normalization cache key/API 已删除不参与计算的 continuity 维度；full
+approval gate 现在强制 `reasoning_effort=high`、非空 reviewer agent、
+严格 UTC 时间、非空摘要和空 `blocking_findings`，并继续绑定
+suite/corpus/binary。相关 protected-test 修改已由独立 GPT-5.6 Sol/high
+agent `01a079d6-79d0-7072-9927-507dafd5c3ab` 明确 `APPROVE`。
+
+旧 `e986ba…` sealed full 的代码终审由 GPT-5.6 Sol/high agent
+`01a079ea-2f3f-7a11-a13e-655e42b7e803` 明确 `APPROVE`。approval
+绑定 full suite
+`fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed`、
+corpus
+`7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae`
+和 release binary `e986ba…`。该 approval 不适用于当前 `d1ea40…`
+候选。当前候选随后由同一独立 agent 在 `2026-09-07T21:27:58Z` 重新
+`APPROVE`；schema-v2 approval 位于
+`benchmark/full_review_approval_terminal_scope_20260907.json`，重新绑定
+同一 suite/corpus 和 `d1ea40…` binary。
+
+旧 `e986ba…` sealed full 509 的结果必须保留为负面证据：
+
+- carrier 为 475/509，低于 rho V2 的 479/509，没有新增求解，新增 4 个
+  timeout；公共 475 例为 141/201/133（更好/相同/更差），makespan
+  几何平均变化 `-0.72%`，总 makespan `32471→28717`，SOC
+  `137491→128793`。共同成功例的质量改善不能抵消 solved-set 回退；
+- 4 个丢解全部是 g6 shared-pool factorial：三例 scarce、一例 surplus。
+  它们已在报告中逐项列出，不能据此重新选 seed、删 case 或调参；
+- carrier_brd 为 336/509，与 Phase A solved 集相同；336 个成功例的
+  cost、动作计数和 plan SHA 全部相同。只有
+  `brap_h40w40_a160_e40_R1_seed1` 的失败标签从
+  `SEGMENT_TIMEOUT` 变为 `SEARCH_TIMEOUT`；
+- carrier rows/timing SHA 分别为 `b061eef4…`、`53fcee47…`；
+  carrier_brd 分别为 `30ae4722…`、`e2b4ecbb…`。两次 full 都使用
+  14 jobs、10 秒/例和同一 `e986ba…` 二进制，没有 invalid success，
+  失败行也没有残留 plan hash。
+
+当前 `d1ea40…` sealed full 位于
+`benchmark/results_full_terminal_scope_20260907`：
+
+- 结果仍为 475/509，factorial 为 428/432，和旧 `e986ba…` 的 solved
+  set 完全相同；wall time 263.1 秒，14 jobs，10 秒/例；
+- 对旧版 475 个共同成功例，词典序为 30/393/52
+  （更好/相同/更差），总 makespan `28717→28875`，SOC
+  `128793→129669`。因此关键案例修好，但整体质量略退；
+- 目标案例从 `(198,857)` 改为 `(106,770)`。同时必须保留明显回退：
+  `g6_dlow_abaseline_plocal_gsingleton_seed0` 从 `(73,663)` 变为
+  `(187,986)`，`g6_dmedium_abaseline_plocal_gsingleton_seed0` 从
+  `(74,690)` 变为 `(173,881)`；
+- 相对 rho V2 仍丢失同 4 个 g6 shared-pool case。公共 475 例为
+  137/195/143，总 makespan `32471→28875`，SOC `137491→129669`；
+- rows/timing SHA-256 分别为 `d938787b…`、`c72ed2fc…`，approval SHA-256
+  为 `0b5c50a4…`。当前 dashboard、旧版对比和 rho V2 对比分别位于
+  `full_benchmark_terminal_scope_20260907`、
+  `full_comparison_vacancy_shared_carrier_vs_terminal_scope_20260907` 和
+  `full_comparison_rho_v2_vs_terminal_scope_20260907`。
+
+网页终审首次指出旧版对比页把实际回退的总指标错误标成绿色。新增
+`test_full_comparison_semantics.py` 先复现 RED，再让严格词典序计数、
+makespan/work 几何比和 wall ratio 按真实方向选择 good/bad/same。
+相关 6/6 测试与 Python 全套 198/198 通过；两个 comparison 页面重生后，
+独立 GPT-5.6 Sol/high reviewer 最终 `APPROVE`。
+
+正式静态报告位于
+`benchmark/viz_web/vacancy_shared_carrier_final_report_20260907/`，
+并链接 current full dashboard 与 rho V2 逐例对比。报告生成器中的 lost
+数量已按 protected-test 流程由硬编码改为 `len(full["lost"])`；测试变更由
+agent `01a07a02-d678-7162-9a7b-134d844c3fad` 批准。报告共有 34 个本地
+链接，全部存在；最终网页由 GPT-5.6 Sol/high agent
+`01a07a03-f792-7b01-91cd-e02def74dd8c` 独立核对数字、负面结论、导航、
+中文可读性与移动端布局后 `APPROVE`。本轮实现、验证、sealed full 和汇报
+均已完成；尚存的算法回退就是上述 4 个 full timeout 与 2 个 quick SOC
+回退，不在 sealed 结果后继续调参。
+
+随后按 `kill-ai-slop` 清理最终报告展示：删除等权统计卡、彩色状态盒、
+机制 tile、panel 套 table 和“不是 X，而是 Y”式文案，改为单一强调色、
+主指标优先的数据行、definition list 与直表。根索引只展开当前
+2026-09-07 结果，基线、专题和旧版本进入两个折叠归档；历史 benchmark
+证据不删除，只去掉“最新”误标和首页内嵌旧图。
+
+窄目录 HTTP 服务暴露出原报告的四个 `../../` 证据链接会 404。新增
+`test_vacancy_shared_carrier_report_portability.py` 先复现，再由生成器把
+carrier full、carrier_brd full、quick rows 和 approval 原样复制到报告
+`evidence/` 下。四个 URL 均为 HTTP 200，副本 SHA 与源文件一致。最终
+GPT-5.6 Sol/high reviewer
+`01a07a50-1bbf-73e3-aea9-00ae8647ea49` 在独立复跑 197/197 后
+`APPROVE`；`kill-ai-slop` scanner 为 0 命中。

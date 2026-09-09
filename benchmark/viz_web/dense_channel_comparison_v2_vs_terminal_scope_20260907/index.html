@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full 509 对比：旧版 dense-channel V2 vs 当前 terminal-scope</title>
+<style>
+:root { --bg:#07101b; --panel:#0d1c2d; --line:#28445f; --text:#edf6ff;
+  --muted:#9fb3c7; --good:#2dd4bf; --bad:#fb7185; --same:#94a3b8;
+  --blue:#60a5fa; --amber:#fbbf24; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--text); background:
+  radial-gradient(circle at 10% 0,#173b61 0,transparent 35rem),
+  radial-gradient(circle at 100% 10%,#123d3e 0,transparent 32rem),var(--bg);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.55; }
+main { max-width:1500px; margin:auto; padding:28px 20px 60px; }
+a { color:#93c5fd; } h1 { margin:7px 0 9px; font-size:clamp(30px,4vw,52px); }
+h2 { margin:32px 0 12px; } p { color:var(--muted); }
+.eyebrow { color:var(--good); font-weight:800; letter-spacing:.12em;
+  text-transform:uppercase; font-size:12px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:12px; margin:22px 0; }
+.card,.panel { border:1px solid var(--line); border-radius:15px;
+  background:linear-gradient(145deg,#11253aee,#091724ee);
+  box-shadow:0 16px 42px #0004; }
+.card { padding:16px; } .card small { color:var(--muted); }
+.card b { display:block; font-size:27px; margin:4px 0; }
+.panel { padding:18px; margin:14px 0; } .good { color:var(--good); }
+.bad { color:var(--bad); } .same { color:var(--same); }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.nav,.filters { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+.nav a { border:1px solid var(--line); padding:8px 11px; border-radius:9px;
+  text-decoration:none; background:#091724; }
+select,input { background:#081522; color:var(--text); border:1px solid var(--line);
+  border-radius:8px; padding:8px 10px; max-width:100%; }
+input { min-width:260px; }
+.table-wrap { overflow:auto; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th,td { border-bottom:1px solid #1d3851; padding:8px 7px; text-align:right;
+  white-space:nowrap; }
+th:first-child,td:first-child { text-align:left; }
+th { position:sticky; top:0; background:#0d1c2d; z-index:1; color:#c9d9e8; }
+canvas { display:block; width:100%; height:330px; background:#081522;
+  border:1px solid var(--line); border-radius:10px; }
+.legend { font-size:12px; color:var(--muted); }
+.pill { border-radius:999px; padding:2px 7px; font-weight:700; }
+.pill.better,.pill.gained { color:var(--good); background:#0c3b39; }
+.pill.worse,.pill.lost { color:var(--bad); background:#481d2a; }
+.pill.equal,.pill.both_failed { color:#cbd5e1; background:#263446; }
+.note { border-left:4px solid var(--amber); padding:10px 14px;
+  background:#241d0d; color:#f8deb0; }
+.foot { margin-top:28px; font-size:12px; color:var(--muted); }
+@media(max-width:900px) { .two { grid-template-columns:1fr; } }
+@media(max-width:600px) {
+  input { min-width:0; width:100%; max-width:100%; }
+}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">同一套 full benchmark · 全部 8 行</div>
+<h1>旧版 dense-channel V2 vs 当前 terminal-scope</h1>
+<p>逐例配对相同的 8 个 case。先比较是否解出；两版都成功时，再按
+严格词典序 <b>(T, W)</b> 判断：T（完成时间）优先，T 相同才比较 W。
+表中 better/equal/worse 均从 当前 terminal-scope 的角度计算，负 Δ 表示更小。</p>
+<p class="note">这是两个独立 full benchmark 产物的回顾性配对比较。两次运行
+suite SHA 相同，但算法版本和实际运行成本不同；每一侧的完成证据以各自
+dashboard、rows.csv、timing.json 和 provenance 为准。</p>
+<div class="nav">
+  <a href="../index.html">可视化首页</a>
+  <a href="../dense_channel_benchmark_v2_20260906/">旧版 dense-channel V2 dashboard</a>
+  <a href="../dense_channel_benchmark_terminal_scope_20260907/">当前 terminal-scope dashboard</a>
+  <a href="baseline_rows.csv">旧版 dense-channel V2 rows.csv</a>
+  <a href="current_rows.csv">当前 terminal-scope rows.csv</a>
+</div>
+
+<section class="cards">
+  <div class="card"><small>solved</small><b>8/8 → 7/8</b>
+    <span class="same">gained 0 · lost 1</span></div>
+  <div class="card"><small>严格 (T,W) B / E / W</small><b class="good">6 / 0 / 1</b>
+    <span class="same">7 个共同成功例</span></div>
+  <div class="card"><small>Makespan T B / E / W</small><b>6 / 0 / 1</b>
+    <span class="good">几何比 0.642089</span></div>
+  <div class="card"><small>Work W B / E / W</small><b>6 / 0 / 1</b>
+    <span class="good">几何比 0.745799</span></div>
+  <div class="card"><small>wall time</small><b>8.8s → 8.8s</b>
+    <span class="same">1.00×</span></div>
+  <div class="card"><small>plan hash changed</small><b>7/7</b>
+    <span class="same">共同成功例</span></div>
+</section>
+
+<div class="two">
+  <div class="panel">
+    <h2>Makespan：旧版 dense-channel V2 vs 当前 terminal-scope</h2>
+    <canvas id="scatterT" width="700" height="330"></canvas>
+    <div class="legend">横轴为 旧版 dense-channel V2，纵轴为 当前 terminal-scope；
+      对数坐标，对角线下方（绿色）表示 当前 terminal-scope 更快。</div>
+  </div>
+  <div class="panel">
+    <h2>Work：旧版 dense-channel V2 vs 当前 terminal-scope</h2>
+    <canvas id="scatterW" width="700" height="330"></canvas>
+    <div class="legend">横轴为 旧版 dense-channel V2，纵轴为 当前 terminal-scope；
+      对数坐标，对角线下方表示 当前 terminal-scope 的 work 更小。</div>
+  </div>
+</div>
+
+<h2>范围汇总</h2>
+<div class="panel table-wrap"><table>
+<thead><tr><th>范围</th><th>cases</th><th>solved</th>
+<th>T B/E/W</th><th>T 几何比</th><th>T sum</th>
+<th>W B/E/W</th><th>W 几何比</th><th>W sum</th></tr></thead>
+<tbody><tr><td>factorial</td><td>8</td><td>8/8 → 7/8</td><td>6 / 0 / 1</td><td>0.642</td><td>877 → 395</td><td>6 / 0 / 1</td><td>0.746</td><td>4470 → 3065</td></tr></tbody></table></div>
+
+<h2>Family 汇总</h2>
+<div class="panel table-wrap"><table>
+<thead><tr><th>family</th><th>cases</th><th>solved</th>
+<th>T B/E/W</th><th>T 几何比</th><th>T sum</th>
+<th>W B/E/W</th><th>W 几何比</th><th>W sum</th></tr></thead>
+<tbody><tr><td>dense_channel</td><td>8</td><td>8/8 → 7/8</td><td>6 / 0 / 1</td><td>0.642</td><td>877 → 395</td><td>6 / 0 / 1</td><td>0.746</td><td>4470 → 3065</td></tr></tbody></table></div>
+
+<h2>Factorial 五个设计轴</h2>
+<div class="panel">
+  <select id="axisSelect">
+    <option value="map_family">地图规模</option>
+    <option value="density_level">货架密度</option>
+    <option value="agent_level">机器人数量</option>
+    <option value="task_profile">任务分布</option>
+    <option value="goal_mode">Goal 模式</option>
+  </select>
+  <div class="table-wrap"><table>
+    <thead><tr><th>组</th><th>cases</th><th>solved</th>
+    <th>T B/E/W</th><th>T 几何比</th><th>T sum</th>
+    <th>W B/E/W</th><th>W 几何比</th><th>W sum</th></tr></thead>
+    <tbody id="axisBody"></tbody>
+  </table></div>
+</div>
+
+<h2>全部 8 行逐例对比</h2>
+<div class="panel">
+  <div class="filters">
+    <input id="search" placeholder="搜索 instance">
+    <select id="scopeFilter"><option value="">全部范围</option>
+      <option value="quick">quick 77</option>
+      <option value="factorial">factorial 432</option></select>
+    <select id="verdictFilter"><option value="">全部结论</option>
+      <option value="better">better</option><option value="equal">equal</option>
+      <option value="worse">worse</option><option value="gained">gained</option>
+      <option value="lost">lost</option><option value="both_failed">both failed</option></select>
+    <select id="familyFilter"><option value="">全部 family</option><option value="dense_channel">dense_channel</option></select>
+    <span id="visibleCount" class="same"></span>
+  </div>
+  <div class="table-wrap"><table id="caseTable">
+    <thead><tr><th>instance</th><th>范围</th><th>family</th><th>结论</th>
+      <th>状态 旧版 dense-channel V2 → 当前 terminal-scope</th>
+      <th>T 旧版 dense-channel V2 → 当前 terminal-scope</th><th>ΔT</th>
+      <th>W 旧版 dense-channel V2 → 当前 terminal-scope</th><th>ΔW</th>
+      <th>runtime 旧版 dense-channel V2 → 当前 terminal-scope</th>
+      <th>动画</th></tr></thead>
+    <tbody id="caseBody"></tbody>
+  </table></div>
+</div>
+
+<div class="foot">Binary: d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d → d1ea40f67d281da6a82eea649d7de8e2d8a5e7d13d22407523608c3b44881fe2<br>
+Suite: 4e6df11d63a51a1100800f5150ed7516023a1a1867d8c426d90a0862422f7fa3<br>
+solver-time sum: 32.3s → 38.4s (1.19×)</div>
+</main>
+<script>
+const CASES=[{"instance":"dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b3","density_level":"7/9","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":true,"baseline_status":"ok","current_status":"ok","baseline_makespan":33.0,"current_makespan":32.0,"makespan_delta":-1.0,"baseline_work":251.0,"current_work":234.0,"work_delta":-17.0,"baseline_runtime":8.684,"current_runtime":8.688,"baseline_plan_sha256":"656bd33ae7ff4ea52f00e01602c1a76a114b7ffe3aadeb942bc1de73c8da9f28","current_plan_sha256":"6f7c6a529ad2435f84689b6b4761975c812225613abf4b7f255c84dd673ab10b","verdict":"better","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0.html","current_animation":"../dense_channel_benchmark_terminal_scope_20260907/cases/dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0.html"},{"instance":"dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b3","density_level":"8/9","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":true,"baseline_status":"ok","current_status":"ok","baseline_makespan":68.0,"current_makespan":52.0,"makespan_delta":-16.0,"baseline_work":527.0,"current_work":396.0,"work_delta":-131.0,"baseline_runtime":8.683,"current_runtime":0.94,"baseline_plan_sha256":"3dc5c85d0d7f34f765d63ff1545f987f55848836325348873b7296831630e67d","current_plan_sha256":"a13f618252a6713e00b846227a4b0610a79eb0734c6c19a1756b262eade3478b","verdict":"better","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0.html","current_animation":"../dense_channel_benchmark_terminal_scope_20260907/cases/dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0.html"},{"instance":"dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b4","density_level":"12/16","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":true,"baseline_status":"ok","current_status":"ok","baseline_makespan":45.0,"current_makespan":58.0,"makespan_delta":13.0,"baseline_work":315.0,"current_work":398.0,"work_delta":83.0,"baseline_runtime":0.292,"current_runtime":0.809,"baseline_plan_sha256":"5588c7ff59ca9ada387a27c706a5d4d36297f6fec7d50fd1ec48f266a5d36450","current_plan_sha256":"afb92496f16034a6db738b550969976bc1546cb29f0566b0662d9883bfca5515","verdict":"worse","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0.html","current_animation":"../dense_channel_benchmark_terminal_scope_20260907/cases/dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0.html"},{"instance":"dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b4","density_level":"14/16","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":true,"baseline_status":"ok","current_status":"ok","baseline_makespan":67.0,"current_makespan":55.0,"makespan_delta":-12.0,"baseline_work":527.0,"current_work":405.0,"work_delta":-122.0,"baseline_runtime":0.617,"current_runtime":1.143,"baseline_plan_sha256":"5eae9b38ab947a2d8bff14c2fb975c253171445d3234a7fa24af1719066b7b9b","current_plan_sha256":"cdd66f9df19089dacedc0bc12b2c8109cafe054273bce8a0032463c2930d03c2","verdict":"better","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0.html","current_animation":"../dense_channel_benchmark_terminal_scope_20260907/cases/dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0.html"},{"instance":"dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b4","density_level":"15/16","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":true,"baseline_status":"ok","current_status":"ok","baseline_makespan":92.0,"current_makespan":65.0,"makespan_delta":-27.0,"baseline_work":756.0,"current_work":547.0,"work_delta":-209.0,"baseline_runtime":1.253,"current_runtime":8.665,"baseline_plan_sha256":"745bd80bf0937ac1cc5fe658dafc51cf27dbd4e55384ed1d8c12ac58bd8b59aa","current_plan_sha256":"f7974582bc9811891e8b0f3b577bec68794745af9759610681d554357980f7f7","verdict":"better","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0.html","current_animation":"../dense_channel_benchmark_terminal_scope_20260907/cases/dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0.html"},{"instance":"dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b9","density_level":"61/81","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":true,"baseline_status":"ok","current_status":"ok","baseline_makespan":457.0,"current_makespan":54.0,"makespan_delta":-403.0,"baseline_work":1140.0,"current_work":439.0,"work_delta":-701.0,"baseline_runtime":8.718,"current_runtime":8.687,"baseline_plan_sha256":"b954c9a8f608841ab027e34d7779fc763554e447db8fa33c5aca3860b8c537da","current_plan_sha256":"28c274bd0db7e97856a8db5c544fdca63a99d16f4b418f422dce2c9aa81016b6","verdict":"better","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0.html","current_animation":"../dense_channel_benchmark_terminal_scope_20260907/cases/dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0.html"},{"instance":"dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b9","density_level":"71/81","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":true,"baseline_status":"ok","current_status":"ok","baseline_makespan":115.0,"current_makespan":79.0,"makespan_delta":-36.0,"baseline_work":954.0,"current_work":646.0,"work_delta":-308.0,"baseline_runtime":0.446,"current_runtime":0.711,"baseline_plan_sha256":"cc2151b71ddc1598f4b23c183425d1551c93b5235073927a188d06a871bf2484","current_plan_sha256":"a9e5bc9b63d3aab9d22c4b73819aeafcee1a675159374365ed1aa545f2ed4c7b","verdict":"better","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0.html","current_animation":"../dense_channel_benchmark_terminal_scope_20260907/cases/dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0.html"},{"instance":"dense_channel_h20w20_b9_a1_s76of81_r8_t12_seed0","scope":"factorial","family":"dense_channel","map_family":"dense-channel-b9","density_level":"76/81","agent_level":"baseline","task_profile":"depth_stratified","goal_mode":"singleton","baseline_success":true,"current_success":false,"baseline_status":"ok","current_status":"timeout","baseline_makespan":252.0,"current_makespan":null,"makespan_delta":null,"baseline_work":2090.0,"current_work":null,"work_delta":null,"baseline_runtime":3.591,"current_runtime":8.731,"baseline_plan_sha256":"890e3711378d0a77cc145ba8170b1c2f0dbb60461338b71ef48d1d3e459e68b7","current_plan_sha256":"","verdict":"lost","baseline_animation":"../dense_channel_benchmark_v2_20260906/cases/dense_channel_h20w20_b9_a1_s76of81_r8_t12_seed0.html","current_animation":null}];
+const GROUPS={"map_family":[{"key":"dense-channel-b3","total":2,"baseline_solved":2,"current_solved":2,"common_solved":2,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[2,0,0],"baseline_sum":101.0,"current_sum":84.0,"sum_delta":-17.0,"geometric_ratio":0.8611230904040922},"work":{"better_equal_worse":[2,0,0],"baseline_sum":778.0,"current_sum":630.0,"sum_delta":-148.0,"geometric_ratio":0.8369766714294532},"lexicographic":{"better_equal_worse":[2,0,0]},"plan_hash_changes":2,"baseline_runtime_sum":17.366999999999997,"current_runtime_sum":9.628,"baseline_runtime_mean":8.683499999999999,"current_runtime_mean":4.814},{"key":"dense-channel-b4","total":3,"baseline_solved":3,"current_solved":3,"common_solved":3,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[2,0,1],"baseline_sum":204.0,"current_sum":178.0,"sum_delta":-26.0,"geometric_ratio":0.9075619898101763},"work":{"better_equal_worse":[2,0,1],"baseline_sum":1598.0,"current_sum":1350.0,"sum_delta":-248.0,"geometric_ratio":0.8889844253516407},"lexicographic":{"better_equal_worse":[2,0,1]},"plan_hash_changes":3,"baseline_runtime_sum":2.162,"current_runtime_sum":10.616999999999999,"baseline_runtime_mean":0.7206666666666666,"current_runtime_mean":3.5389999999999997},{"key":"dense-channel-b9","total":3,"baseline_solved":3,"current_solved":2,"common_solved":2,"gained":0,"lost":1,"both_failed":0,"success_sets_equal":false,"makespan":{"better_equal_worse":[2,0,0],"baseline_sum":572.0,"current_sum":133.0,"sum_delta":-439.0,"geometric_ratio":0.2849071873670028},"work":{"better_equal_worse":[2,0,0],"baseline_sum":2094.0,"current_sum":1085.0,"sum_delta":-1009.0,"geometric_ratio":0.5106483184162343},"lexicographic":{"better_equal_worse":[2,0,0]},"plan_hash_changes":2,"baseline_runtime_sum":12.754999999999999,"current_runtime_sum":18.128999999999998,"baseline_runtime_mean":4.251666666666667,"current_runtime_mean":6.043}],"density_level":[{"key":"12/16","total":1,"baseline_solved":1,"current_solved":1,"common_solved":1,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[0,0,1],"baseline_sum":45.0,"current_sum":58.0,"sum_delta":13.0,"geometric_ratio":1.288888888888889},"work":{"better_equal_worse":[0,0,1],"baseline_sum":315.0,"current_sum":398.0,"sum_delta":83.0,"geometric_ratio":1.2634920634920634},"lexicographic":{"better_equal_worse":[0,0,1]},"plan_hash_changes":1,"baseline_runtime_sum":0.292,"current_runtime_sum":0.809,"baseline_runtime_mean":0.292,"current_runtime_mean":0.809},{"key":"14/16","total":1,"baseline_solved":1,"current_solved":1,"common_solved":1,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[1,0,0],"baseline_sum":67.0,"current_sum":55.0,"sum_delta":-12.0,"geometric_ratio":0.8208955223880597},"work":{"better_equal_worse":[1,0,0],"baseline_sum":527.0,"current_sum":405.0,"sum_delta":-122.0,"geometric_ratio":0.7685009487666035},"lexicographic":{"better_equal_worse":[1,0,0]},"plan_hash_changes":1,"baseline_runtime_sum":0.617,"current_runtime_sum":1.143,"baseline_runtime_mean":0.617,"current_runtime_mean":1.143},{"key":"15/16","total":1,"baseline_solved":1,"current_solved":1,"common_solved":1,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[1,0,0],"baseline_sum":92.0,"current_sum":65.0,"sum_delta":-27.0,"geometric_ratio":0.7065217391304348},"work":{"better_equal_worse":[1,0,0],"baseline_sum":756.0,"current_sum":547.0,"sum_delta":-209.0,"geometric_ratio":0.7235449735449735},"lexicographic":{"better_equal_worse":[1,0,0]},"plan_hash_changes":1,"baseline_runtime_sum":1.253,"current_runtime_sum":8.665,"baseline_runtime_mean":1.253,"current_runtime_mean":8.665},{"key":"61/81","total":1,"baseline_solved":1,"current_solved":1,"common_solved":1,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[1,0,0],"baseline_sum":457.0,"current_sum":54.0,"sum_delta":-403.0,"geometric_ratio":0.11816192560175057},"work":{"better_equal_worse":[1,0,0],"baseline_sum":1140.0,"current_sum":439.0,"sum_delta":-701.0,"geometric_ratio":0.3850877192982456},"lexicographic":{"better_equal_worse":[1,0,0]},"plan_hash_changes":1,"baseline_runtime_sum":8.718,"current_runtime_sum":8.687,"baseline_runtime_mean":8.718,"current_runtime_mean":8.687},{"key":"7/9","total":1,"baseline_solved":1,"current_solved":1,"common_solved":1,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[1,0,0],"baseline_sum":33.0,"current_sum":32.0,"sum_delta":-1.0,"geometric_ratio":0.9696969696969697},"work":{"better_equal_worse":[1,0,0],"baseline_sum":251.0,"current_sum":234.0,"sum_delta":-17.0,"geometric_ratio":0.9322709163346613},"lexicographic":{"better_equal_worse":[1,0,0]},"plan_hash_changes":1,"baseline_runtime_sum":8.684,"current_runtime_sum":8.688,"baseline_runtime_mean":8.684,"current_runtime_mean":8.688},{"key":"71/81","total":1,"baseline_solved":1,"current_solved":1,"common_solved":1,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[1,0,0],"baseline_sum":115.0,"current_sum":79.0,"sum_delta":-36.0,"geometric_ratio":0.6869565217391305},"work":{"better_equal_worse":[1,0,0],"baseline_sum":954.0,"current_sum":646.0,"sum_delta":-308.0,"geometric_ratio":0.6771488469601677},"lexicographic":{"better_equal_worse":[1,0,0]},"plan_hash_changes":1,"baseline_runtime_sum":0.446,"current_runtime_sum":0.711,"baseline_runtime_mean":0.446,"current_runtime_mean":0.711},{"key":"76/81","total":1,"baseline_solved":1,"current_solved":0,"common_solved":0,"gained":0,"lost":1,"both_failed":0,"success_sets_equal":false,"makespan":{"better_equal_worse":[0,0,0],"baseline_sum":0.0,"current_sum":0.0,"sum_delta":0.0,"geometric_ratio":null},"work":{"better_equal_worse":[0,0,0],"baseline_sum":0.0,"current_sum":0.0,"sum_delta":0.0,"geometric_ratio":null},"lexicographic":{"better_equal_worse":[0,0,0]},"plan_hash_changes":0,"baseline_runtime_sum":3.591,"current_runtime_sum":8.731,"baseline_runtime_mean":3.591,"current_runtime_mean":8.731},{"key":"8/9","total":1,"baseline_solved":1,"current_solved":1,"common_solved":1,"gained":0,"lost":0,"both_failed":0,"success_sets_equal":true,"makespan":{"better_equal_worse":[1,0,0],"baseline_sum":68.0,"current_sum":52.0,"sum_delta":-16.0,"geometric_ratio":0.7647058823529411},"work":{"better_equal_worse":[1,0,0],"baseline_sum":527.0,"current_sum":396.0,"sum_delta":-131.0,"geometric_ratio":0.7514231499051234},"lexicographic":{"better_equal_worse":[1,0,0]},"plan_hash_changes":1,"baseline_runtime_sum":8.683,"current_runtime_sum":0.94,"baseline_runtime_mean":8.683,"current_runtime_mean":0.94}],"agent_level":[{"key":"baseline","total":8,"baseline_solved":8,"current_solved":7,"common_solved":7,"gained":0,"lost":1,"both_failed":0,"success_sets_equal":false,"makespan":{"better_equal_worse":[6,0,1],"baseline_sum":877.0,"current_sum":395.0,"sum_delta":-482.0,"geometric_ratio":0.6420889085751988},"work":{"better_equal_worse":[6,0,1],"baseline_sum":4470.0,"current_sum":3065.0,"sum_delta":-1405.0,"geometric_ratio":0.7457990978902762},"lexicographic":{"better_equal_worse":[6,0,1]},"plan_hash_changes":7,"baseline_runtime_sum":32.284,"current_runtime_sum":38.373999999999995,"baseline_runtime_mean":4.0355,"current_runtime_mean":4.79675}],"task_profile":[{"key":"depth_stratified","total":8,"baseline_solved":8,"current_solved":7,"common_solved":7,"gained":0,"lost":1,"both_failed":0,"success_sets_equal":false,"makespan":{"better_equal_worse":[6,0,1],"baseline_sum":877.0,"current_sum":395.0,"sum_delta":-482.0,"geometric_ratio":0.6420889085751988},"work":{"better_equal_worse":[6,0,1],"baseline_sum":4470.0,"current_sum":3065.0,"sum_delta":-1405.0,"geometric_ratio":0.7457990978902762},"lexicographic":{"better_equal_worse":[6,0,1]},"plan_hash_changes":7,"baseline_runtime_sum":32.284,"current_runtime_sum":38.373999999999995,"baseline_runtime_mean":4.0355,"current_runtime_mean":4.79675}],"goal_mode":[{"key":"singleton","total":8,"baseline_solved":8,"current_solved":7,"common_solved":7,"gained":0,"lost":1,"both_failed":0,"success_sets_equal":false,"makespan":{"better_equal_worse":[6,0,1],"baseline_sum":877.0,"current_sum":395.0,"sum_delta":-482.0,"geometric_ratio":0.6420889085751988},"work":{"better_equal_worse":[6,0,1],"baseline_sum":4470.0,"current_sum":3065.0,"sum_delta":-1405.0,"geometric_ratio":0.7457990978902762},"lexicographic":{"better_equal_worse":[6,0,1]},"plan_hash_changes":7,"baseline_runtime_sum":32.284,"current_runtime_sum":38.373999999999995,"baseline_runtime_mean":4.0355,"current_runtime_mean":4.79675}]};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=(v,d=0)=>v==null?"—":Number(v).toFixed(d);
+const pair=(a,b,d=0)=>`${num(a,d)} → ${num(b,d)}`;
+const delta=v=>v==null?"—":`${v>0?"+":""}${num(v,0)}`;
+const bwe=m=>m.better_equal_worse.join(" / ");
+function groupRows(rows){
+  return rows.map(r=>`<tr><td>${esc(r.key)}</td><td>${r.total}</td>
+    <td>${r.baseline_solved}/${r.total} → ${r.current_solved}/${r.total}</td>
+    <td>${bwe(r.makespan)}</td><td>${num(r.makespan.geometric_ratio,3)}</td>
+    <td>${num(r.makespan.baseline_sum)} → ${num(r.makespan.current_sum)}</td>
+    <td>${bwe(r.work)}</td><td>${num(r.work.geometric_ratio,3)}</td>
+    <td>${num(r.work.baseline_sum)} → ${num(r.work.current_sum)}</td></tr>`).join("");
+}
+function renderAxis(){
+  document.getElementById("axisBody").innerHTML=
+    groupRows(GROUPS[document.getElementById("axisSelect").value]);
+}
+function renderCases(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const scope=document.getElementById("scopeFilter").value;
+  const verdict=document.getElementById("verdictFilter").value;
+  const family=document.getElementById("familyFilter").value;
+  const rows=CASES.filter(r=>(!q||r.instance.toLowerCase().includes(q))&&
+    (!scope||r.scope===scope)&&(!verdict||r.verdict===verdict)&&
+    (!family||r.family===family));
+  document.getElementById("visibleCount").textContent=`显示 ${rows.length} / ${CASES.length}`;
+  document.getElementById("caseBody").innerHTML=rows.map(r=>{
+    const links=[r.baseline_animation?`<a href="${esc(r.baseline_animation)}">旧版 dense-channel V2</a>`:"",
+      r.current_animation?`<a href="${esc(r.current_animation)}">当前 terminal-scope</a>`:""].filter(Boolean).join(" · ");
+    return `<tr><td>${esc(r.instance)}</td><td>${r.scope}</td><td>${esc(r.family)}</td>
+      <td><span class="pill ${r.verdict}">${r.verdict}</span></td>
+      <td>${esc(r.baseline_status)} → ${esc(r.current_status)}</td>
+      <td>${pair(r.baseline_makespan,r.current_makespan)}</td><td>${delta(r.makespan_delta)}</td>
+      <td>${pair(r.baseline_work,r.current_work)}</td><td>${delta(r.work_delta)}</td>
+      <td>${pair(r.baseline_runtime,r.current_runtime,3)}</td><td>${links||"—"}</td></tr>`;
+  }).join("");
+}
+function scatter(id,baseKey,currentKey){
+  const canvas=document.getElementById(id),ctx=canvas.getContext("2d");
+  const rows=CASES.filter(r=>r.baseline_success&&r.current_success);
+  const values=rows.flatMap(r=>[r[baseKey],r[currentKey]]).filter(v=>v>0);
+  const lo=Math.log10(Math.min(...values)),hi=Math.log10(Math.max(...values));
+  const pad=36,w=canvas.width-pad*2,h=canvas.height-pad*2;
+  const scale=v=>(Math.log10(v)-lo)/(hi-lo||1);
+  ctx.clearRect(0,0,canvas.width,canvas.height); ctx.strokeStyle="#46617b";
+  ctx.beginPath();ctx.moveTo(pad,pad+h);ctx.lineTo(pad+w,pad);ctx.stroke();
+  ctx.fillStyle="#9fb3c7";ctx.font="11px sans-serif";
+  ctx.fillText("旧版 dense-channel V2",canvas.width/2,canvas.height-7);
+  ctx.save();ctx.translate(11,canvas.height/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText("当前 terminal-scope",0,0);ctx.restore();
+  rows.forEach(r=>{
+    const x=pad+scale(r[baseKey])*w,y=pad+h-scale(r[currentKey])*h;
+    ctx.fillStyle=r[currentKey]<r[baseKey]?"#2dd4bf":r[currentKey]>r[baseKey]?"#fb7185":"#94a3b8";
+    ctx.globalAlpha=.66;ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();
+  });ctx.globalAlpha=1;
+}
+["search","scopeFilter","verdictFilter","familyFilter"].forEach(id=>
+  document.getElementById(id).addEventListener("input",renderCases));
+document.getElementById("axisSelect").addEventListener("change",renderAxis);
+renderAxis();renderCases();scatter("scatterT","baseline_makespan","current_makespan");
+scatter("scatterW","baseline_work","current_work");
+</script>
+</body></html>

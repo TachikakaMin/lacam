@@ -33,6 +33,85 @@ Node::Node(Config _C, DistTable& D, Node* _parent)
   init_priorities_and_order([&](size_t i) { return D.get(i, C[i]); });
 }
 
+namespace {
+
+struct MapfLacamDomain {
+  using Node = ::Node;
+  using Constraint = ::Constraint;
+  using Successor = Config;
+  using Key = Config;
+  using KeyHasher = ConfigHasher;
+  using Result = Solution;
+
+  Planner& planner;
+
+  explicit MapfLacamDomain(Planner& planner_) : planner(planner_) {}
+
+  bool expired() const { return is_expired(planner.deadline); }
+
+  Node* make_root()
+  {
+    return new Node(planner.ins->starts, planner.D);
+  }
+
+  Key node_key(const Node* node) const { return node->C; }
+
+  Key successor_key(const Successor& successor) const { return successor; }
+
+  bool is_goal(const Node* node) const
+  {
+    return is_same_config(node->C, planner.ins->goals);
+  }
+
+  Result extract_result(const Node* node) const
+  {
+    Result solution;
+    while (node != nullptr) {
+      solution.push_back(node->C);
+      node = node->parent;
+    }
+    std::reverse(solution.begin(), solution.end());
+    return solution;
+  }
+
+  void expand_constraint(Node* node, Constraint* constraint)
+  {
+    if (constraint->depth >= planner.N) return;
+    const int agent = node->order[constraint->depth];
+    auto candidates = node->C[agent]->neighbor;
+    candidates.push_back(node->C[agent]);
+    if (planner.MT != nullptr)
+      std::shuffle(candidates.begin(), candidates.end(), *planner.MT);
+    lacam_expand_constraint_vec<Constraint>(
+        constraint, agent, candidates, node->search_tree);
+  }
+
+  std::optional<Successor> generate_successor(
+      Node* node, Constraint* constraint)
+  {
+    if (!planner.get_new_config(node, constraint)) return std::nullopt;
+    Successor successor(planner.N, nullptr);
+    for (auto* agent : planner.A)
+      successor[agent->id] = agent->v_next;
+    return successor;
+  }
+
+  Node* make_child(const Successor& successor, Node* parent)
+  {
+    return new Node(successor, planner.D, parent);
+  }
+
+  void before_search_object_cleanup()
+  {
+    for (auto*& agent : planner.A) {
+      delete agent;
+      agent = nullptr;
+    }
+  }
+};
+
+}  // namespace
+
 Planner::Planner(const Instance* _ins, const Deadline* _deadline,
                  std::mt19937* _MT, int _verbose)
     : ins(_ins),
@@ -57,85 +136,16 @@ Solution Planner::solve()
   // setup agents
   for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
 
-  // setup search queues
-  std::stack<Node*> OPEN;
-  std::unordered_map<Config, Node*, ConfigHasher> CLOSED;
-  std::vector<Constraint*> GC;  // garbage collection of constraints
-
-  // insert initial node
-  auto S = new Node(ins->starts, D);
-  OPEN.push(S);
-  CLOSED[S->C] = S;
-
-  // depth first search
-  int loop_cnt = 0;
-  std::vector<Config> solution;
-
-  while (!OPEN.empty() && !is_expired(deadline)) {
-    loop_cnt += 1;
-
-    // do not pop here!
-    S = OPEN.top();
-
-    // check goal condition
-    if (is_same_config(S->C, ins->goals)) {
-      // backtrack
-      while (S != nullptr) {
-        solution.push_back(S->C);
-        S = S->parent;
-      }
-      std::reverse(solution.begin(), solution.end());
-      break;
-    }
-
-    // low-level search end
-    if (S->search_tree.empty()) {
-      OPEN.pop();
-      continue;
-    }
-
-    // create successors at the low-level search
-    auto M = S->search_tree.front();
-    GC.push_back(M);
-    S->search_tree.pop();
-    if (M->depth < N) {
-      auto i = S->order[M->depth];
-      auto C = S->C[i]->neighbor;
-      C.push_back(S->C[i]);
-      if (MT != nullptr) std::shuffle(C.begin(), C.end(), *MT);  // randomize
-      lacam_expand_constraint_vec<Constraint>(M, i, C, S->search_tree);
-    }
-
-    // create successors at the high-level search
-    if (!get_new_config(S, M)) continue;
-
-    // create new configuration
-    auto C = Config(N, nullptr);
-    for (auto a : A) C[a->id] = a->v_next;
-
-    // check explored list
-    auto iter = CLOSED.find(C);
-    if (iter != CLOSED.end()) {
-      OPEN.push(iter->second);
-      continue;
-    }
-
-    // insert new search node
-    auto S_new = new Node(C, D, S);
-    OPEN.push(S_new);
-    CLOSED[S_new->C] = S_new;
-  }
+  MapfLacamDomain domain(*this);
+  auto outcome = run_lacam_dfs_search(domain);
 
   info(1, verbose, "elapsed:", elapsed_ms(deadline), "ms\t",
-       solution.empty() ? (OPEN.empty() ? "no solution" : "failed")
-                        : "solution found",
-       "\tloop_itr:", loop_cnt, "\texplored:", CLOSED.size());
-  // memory management
-  for (auto a : A) delete a;
-  for (auto M : GC) delete M;
-  for (auto p : CLOSED) delete p.second;
-
-  return solution;
+       outcome.solution_found
+           ? "solution found"
+           : (outcome.open_exhausted ? "no solution" : "failed"),
+       "\tloop_itr:", outcome.loop_count,
+       "\texplored:", outcome.explored);
+  return outcome.result;
 }
 
 bool Planner::get_new_config(Node* S, Constraint* M)

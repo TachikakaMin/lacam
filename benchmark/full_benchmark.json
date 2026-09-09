@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "name": "carrier_full_509",
+  "name": "carrier_full_518",
   "protocol": {
     "methods": [
       "carrier"
@@ -36,6 +36,13 @@
       "pattern": "instances/*.yaml",
       "family": "warehouse_random_factorial",
       "expected_cases": 432
+    },
+    {
+      "name": "dense_channel_block_edge_40x40_v1",
+      "root": "viz_web/dense_channel_block_edge_40x40_suite_v1_20260907",
+      "pattern": "instances/*.yaml",
+      "family": "dense_channel_block_edge_40x40",
+      "expected_cases": 9
     }
   ]
 }

@@ -317,6 +317,87 @@ PhysConfig initial_phys_config(const DDInstance& ins)
   return s;
 }
 
+PhysRootValidation validate_phys_config_root(
+    const DDInstance& ins, const PhysConfig& state)
+{
+  const size_t robot_count = ins.n_robots();
+  const size_t target_count = ins.n_targets();
+  if (state.robots.size() != robot_count ||
+      state.kappa.size() != robot_count ||
+      state.target_pos.size() != target_count)
+    return {PhysRootInvalidReason::VECTOR_SIZE};
+
+  std::unordered_set<int> robot_cells;
+  for (const int cell : state.robots) {
+    if (cell < 0 || cell >= ins.grid.size() ||
+        ins.grid.is_wall(cell))
+      return {PhysRootInvalidReason::INVALID_ROBOT_CELL};
+    if (!robot_cells.insert(cell).second)
+      return {PhysRootInvalidReason::ROBOT_COLLISION};
+  }
+
+  std::vector<int> target_carrier(target_count, -1);
+  size_t carried_anonymous = 0;
+  for (size_t robot = 0; robot < robot_count; ++robot) {
+    const int kappa = state.kappa[robot];
+    if (kappa == KAPPA_FREE) continue;
+    if (kappa == KAPPA_ANON) {
+      ++carried_anonymous;
+      continue;
+    }
+    if (kappa < 0 || kappa >= (int)target_count)
+      return {PhysRootInvalidReason::INVALID_KAPPA};
+    if (target_carrier[kappa] >= 0)
+      return {
+          PhysRootInvalidReason::DUPLICATE_TARGET_CARRIER};
+    target_carrier[kappa] = (int)robot;
+  }
+
+  std::unordered_set<int> upper_cells;
+  for (size_t target = 0; target < target_count; ++target) {
+    const int cell = state.target_pos[target];
+    if (cell < 0 || cell >= ins.grid.size() ||
+        ins.grid.is_wall(cell))
+      return {PhysRootInvalidReason::INVALID_TARGET_CELL};
+    const int carrier = target_carrier[target];
+    if (carrier >= 0) {
+      if (cell != state.robots[carrier])
+        return {
+            PhysRootInvalidReason::TARGET_CARRIER_MISMATCH};
+    } else if (!ins.can_store_shelf(cell)) {
+      return {PhysRootInvalidReason::INVALID_TARGET_CELL};
+    }
+    if (!upper_cells.insert(cell).second)
+      return {PhysRootInvalidReason::SHELF_COLLISION};
+  }
+
+  if (!std::is_sorted(
+          state.anon_occ.begin(), state.anon_occ.end()) ||
+      std::adjacent_find(
+          state.anon_occ.begin(), state.anon_occ.end()) !=
+          state.anon_occ.end())
+    return {
+        PhysRootInvalidReason::ANONYMOUS_ORDER_OR_DUPLICATE};
+  for (const int cell : state.anon_occ) {
+    if (cell < 0 || cell >= ins.grid.size() ||
+        !ins.can_store_shelf(cell))
+      return {
+          PhysRootInvalidReason::INVALID_ANONYMOUS_CELL};
+    if (!upper_cells.insert(cell).second)
+      return {PhysRootInvalidReason::SHELF_COLLISION};
+  }
+  for (size_t robot = 0; robot < robot_count; ++robot)
+    if (state.kappa[robot] == KAPPA_ANON &&
+        !upper_cells.insert(state.robots[robot]).second)
+      return {PhysRootInvalidReason::SHELF_COLLISION};
+
+  if (ins.shelves.size() < target_count ||
+      state.anon_occ.size() + carried_anonymous !=
+          ins.shelves.size() - target_count)
+    return {PhysRootInvalidReason::SHELF_COUNT_MISMATCH};
+  return {};
+}
+
 bool is_dd_goal(const DDInstance& ins, const PhysConfig& s)
 {
   // Prop 3 (design_final 4.1): membership in the eligible set is exact

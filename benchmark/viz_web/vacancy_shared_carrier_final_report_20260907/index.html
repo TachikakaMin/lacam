@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vacancy-aware shared carrier 最终报告</title>
+<style>
+:root{--bg:#111315;--line:#393d41;--text:#f1f3f4;
+--muted:#aab0b5;--accent:#79b7e8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
+font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;line-height:1.7;
+font-variant-numeric:tabular-nums}main{max-width:1080px;margin:auto;
+padding:44px 24px 76px}.report-head{border-bottom:1px solid var(--line);
+padding-bottom:30px}.meta{color:var(--muted);font-size:14px}h1{font-size:
+clamp(38px,6vw,64px);line-height:1.08;margin:12px 0 16px;letter-spacing:-.025em}
+.lede{font-size:18px;max-width:820px;margin:0;color:#d5d9dc}h2{font-size:
+26px;line-height:1.25;margin:48px 0 18px}h3{font-size:18px;margin:0 0 8px}
+p{color:#d5d9dc}a{color:var(--accent)}.verdict{display:grid;
+grid-template-columns:minmax(270px,1.15fr) minmax(0,2fr);align-items:stretch;
+border-bottom:1px solid var(--line)}.verdict-main{padding:26px 28px 24px 0}
+.verdict-label,.measurements dt,.audit-list dt{color:var(--muted);
+font-size:13px}.verdict-value{font-size:clamp(25px,3.5vw,38px);
+font-weight:750;line-height:1.2;margin-top:7px}.measurements{display:grid;
+grid-template-columns:repeat(3,1fr);margin:0;border-left:1px solid var(--line)}
+.measurements div{padding:26px 18px 22px}.measurements div+div{border-left:
+1px solid var(--line)}.measurements dd{font-size:24px;font-weight:700;
+margin:6px 0 0}.reading-note{margin:24px 0 0;padding:13px 0;border-top:
+1px solid var(--line);border-bottom:1px solid var(--line)}.mechanism-list{
+margin:0}.mechanism-list div{display:grid;grid-template-columns:190px 1fr;
+gap:24px;padding:12px 0;border-top:1px solid var(--line)}.mechanism-list
+div:last-child{border-bottom:1px solid var(--line)}.mechanism-list dt{
+font-weight:700}.mechanism-list dd{margin:0;color:#d5d9dc}.columns{
+display:grid;grid-template-columns:1fr 1fr;gap:48px;margin:0 0 22px}
+.columns section{min-width:0}.table-wrap{overflow-x:auto;border-top:
+1px solid var(--line);border-bottom:1px solid var(--line)}table{width:100%;
+border-collapse:collapse;min-width:680px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);
+vertical-align:top}tbody tr:last-child td{border-bottom:0}th{color:#cbd5dc;
+font-weight:650}code{color:#b8dcfa}.audit-list{margin:0;border-top:
+1px solid var(--line)}.audit-list div{display:grid;grid-template-columns:
+210px 1fr;padding:10px 0;border-bottom:1px solid var(--line)}.audit-list dd{
+margin:0;font-weight:700}.links{columns:2;column-gap:42px;padding-left:20px}
+.links li{break-inside:avoid;margin:0 0 8px}.provenance{border-top:
+1px solid var(--line);padding-top:14px;color:var(--muted);font-size:12px;
+overflow-wrap:anywhere}@media(max-width:760px){main{padding:28px 15px 60px}
+.verdict,.columns{grid-template-columns:1fr}.measurements{border-left:0;
+border-top:1px solid var(--line);grid-template-columns:1fr}.measurements div{
+padding:14px 0}.measurements div+div{border-left:0;border-top:
+1px solid var(--line)}.mechanism-list div{grid-template-columns:1fr;gap:2px}
+.audit-list div{grid-template-columns:1fr;gap:2px}.links{columns:1}}
+</style>
+</head>
+<body><main>
+<header class="report-head">
+ <div class="meta">2026-09-07 · 同一 509-case 协议 · 14 jobs · 10 秒/例</div>
+ <h1>Full 少解 4 例</h1>
+ <p class="lede">空位引导、跨 epoch 连续性和在途任务恢复已经接入同一条
+ LaCAM-TAPF 主路径。固定 quick 的已解集合不变且总成本下降；sealed full
+ 从 rho V2 的 479/509 降到 475/509，其中
+ 4 个新 timeout。机制已经落地，但当前版本还不能替代 rho V2。</p>
+</header>
+
+<section class="verdict" aria-label="核心对比">
+ <div class="verdict-main">
+  <div class="verdict-label">求解率（首要指标）</div>
+  <div class="verdict-value">rho V2 479/509 → 当前 475/509</div>
+ </div>
+ <dl class="measurements">
+  <div><dt>共同成功 475 例<br>更好 / 相同 / 更差</dt><dd>141 / 201 / 133</dd></div>
+  <div><dt>共同成功例<br>makespan 几何平均</dt><dd>-0.72%</dd></div>
+  <div><dt>full wall time<br>rho V2 266.3s</dt><dd>261.6s</dd></div>
+ </dl>
+</section>
+<p class="reading-note"><strong>先看丢解。</strong>共同成功例的成本只描述已解
+子集，不能补偿 solved-set 回退，也不用于重新挑选 case 或调参。</p>
+
+<h2>实现边界</h2>
+<dl class="mechanism-list">
+ <div><dt>空位势能</dt><dd>只给现有合法候选排序。</dd></div>
+ <div><dt>有限 continuity</dt><dd>只打破 flexible pool 的 exact-Q tie。</dd></div>
+ <div><dt>在途 effect</dt><dd>只恢复无法从当前 frontier 重现的搬运。</dd></div>
+ <div><dt>goal commitment</dt><dd>未完成的 flexible root 暂时保留合法目标。</dd></div>
+ <div><dt>执行路径</dt><dd>继续进入原 rho、PIBT 与 timed transport。</dd></div>
+</dl>
+<p>singleton fixed-goal 不继承 continuity；stale source 会被过滤，历史选择
+只活一个 epoch。normalization cache 的 key 只有
+<code>(upper, raw effects, priority)</code>，没有测试专用维度。无
+pick/place 的普通 LaCAM-TAPF 不会生成 carrier task，因此自然保持原行为。</p>
+
+<h2>full 的 4 个丢解</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>实例</th><th>结构</th><th>rho V2 成本</th><th>旧动画</th></tr></thead>
+<tbody><tr><td>g6_dhigh_ascarce_pcross_heavy_gshared_pool_seed0</td><td>g6 / high / scarce / cross_heavy / shared_pool</td><td>(69, 530)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g6_dhigh_ascarce_pcross_heavy_gshared_pool_seed0.html">rho V2 动画</a></td></tr>
+<tr><td>g6_dhigh_asurplus_pcross_heavy_gshared_pool_seed0</td><td>g6 / high / surplus / cross_heavy / shared_pool</td><td>(54, 505)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g6_dhigh_asurplus_pcross_heavy_gshared_pool_seed0.html">rho V2 动画</a></td></tr>
+<tr><td>g6_dlow_ascarce_plocal_gshared_pool_seed0</td><td>g6 / low / scarce / local / shared_pool</td><td>(54, 405)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g6_dlow_ascarce_plocal_gshared_pool_seed0.html">rho V2 动画</a></td></tr>
+<tr><td>g6_dmedium_ascarce_pcross_heavy_gshared_pool_seed0</td><td>g6 / medium / scarce / cross_heavy / shared_pool</td><td>(66, 496)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g6_dmedium_ascarce_pcross_heavy_gshared_pool_seed0.html">rho V2 动画</a></td></tr></tbody></table></div>
+<p>这 4 例都来自 g6 的 shared-pool factorial，其中 3 例是 scarce agent。
+当前行均为 timeout，没有 invalid plan，也没有失败后残留 plan 文件。按照
+sealed 协议，这些结果只用于评价，不能反向调整 seed、case 或算法。</p>
+
+<h2>Quick 结果</h2>
+<div class="columns">
+ <section><h3>Phase A → shared fix</h3>
+  <p>公共 47 例的 makespan 总和
+  <b>15133 → 14454</b>，SOC 总和
+  <b>38673 → 37216</b>；solved 为
+  47/77 → 47/77。</p>
+ </section>
+ <section><h3>仍有 2 例回退</h3>
+  <p>仍有 <b>2 个 SOC 超过 5%</b> 的公共成功例。
+  quick 是实现前冻结的 77 例，这些回退不会从样本中移除。</p>
+ </section>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>quick 回退实例</th><th>(T,SOC) Phase A → 当前</th></tr></thead>
+<tbody><tr><td>brap_h6w10_a6_e1_B_seed0_pool</td><td>(128, 287) → (147, 321)</td></tr>
+<tr><td>brap_h8w10_a10_e2_B_seed1_pool</td><td>(222, 509) → (359, 831)</td></tr></tbody></table></div>
+
+<h2>共同成功例的成本变化</h2>
+<div class="columns">
+ <section><h3>改善样例</h3><div class="table-wrap"><table>
+  <thead><tr><th>实例</th><th>成本</th><th>动画</th></tr></thead>
+  <tbody><tr><td>brap_h10w10_a12_e8_R1_seed0</td><td>(1734, 3744) → (1099, 2360)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e8_R1_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h10w10_a12_e8_R1_seed0.html">当前</a></td></tr>
+<tr><td>brap_h8w10_a10_e2_R1_seed0</td><td>(1368, 3136) → (889, 2014)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h8w10_a10_e2_R1_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h8w10_a10_e2_R1_seed0.html">当前</a></td></tr>
+<tr><td>brap_h20w20_a40_e100_R1_seed1</td><td>(1243, 6384) → (876, 4413)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h20w20_a40_e100_R1_seed1.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h20w20_a40_e100_R1_seed1.html">当前</a></td></tr>
+<tr><td>brap_h10w10_a12_e3_R1_seed0</td><td>(893, 1980) → (541, 1208)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e3_R1_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h10w10_a12_e3_R1_seed0.html">当前</a></td></tr>
+<tr><td>brap_h20w20_a40_e100_R1_seed0</td><td>(1273, 5796) → (947, 4934)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h20w20_a40_e100_R1_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h20w20_a40_e100_R1_seed0.html">当前</a></td></tr>
+<tr><td>brap_h10w10_a12_e8_R1_seed1</td><td>(1359, 2958) → (1080, 2258)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e8_R1_seed1.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h10w10_a12_e8_R1_seed1.html">当前</a></td></tr></tbody></table></div></section>
+ <section><h3>回退样例</h3><div class="table-wrap"><table>
+  <thead><tr><th>实例</th><th>成本</th><th>动画</th></tr></thead>
+  <tbody><tr><td>g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0</td><td>(116, 741) → (198, 857)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0.html">当前</a></td></tr>
+<tr><td>brap_h8w10_a10_e2_B_seed1_pool</td><td>(279, 653) → (359, 831)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h8w10_a10_e2_B_seed1_pool.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h8w10_a10_e2_B_seed1_pool.html">当前</a></td></tr>
+<tr><td>g4_dhigh_abaseline_pcross_heavy_gsingleton_seed0</td><td>(40, 248) → (118, 340)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g4_dhigh_abaseline_pcross_heavy_gsingleton_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/g4_dhigh_abaseline_pcross_heavy_gsingleton_seed0.html">当前</a></td></tr>
+<tr><td>brap_h4w10_a5_e1_R1_seed0</td><td>(448, 879) → (511, 965)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h4w10_a5_e1_R1_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/brap_h4w10_a5_e1_R1_seed0.html">当前</a></td></tr>
+<tr><td>g6_dhigh_abaseline_plocal_gsingleton_seed0</td><td>(83, 670) → (109, 758)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g6_dhigh_abaseline_plocal_gsingleton_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/g6_dhigh_abaseline_plocal_gsingleton_seed0.html">当前</a></td></tr>
+<tr><td>g2_dhigh_ascarce_pcross_heavy_gsingleton_seed0</td><td>(38, 102) → (63, 147)</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g2_dhigh_ascarce_pcross_heavy_gsingleton_seed0.html">rho V2</a> · <a href="../full_benchmark_vacancy_shared_carrier_20260907/cases/g2_dhigh_ascarce_pcross_heavy_gsingleton_seed0.html">当前</a></td></tr></tbody></table></div></section>
+</div>
+
+<h2>carrier_brd 兼容性</h2>
+<p>carrier_brd full 为 Phase A 336/509 → 当前
+336/509；成功计划零差异。一个未解例的
+exit label 发生变化（共 1 个），但 solved、成功成本、
+动作计数和 plan SHA 不变。</p>
+
+<h2>验证与审查</h2>
+<dl class="audit-list">
+ <div><dt>C++ tests</dt><dd>408 / 408</dd></div>
+ <div><dt>Python tests</dt><dd>197 / 197</dd></div>
+ <div><dt>独立审查</dt><dd>APPROVE · openai.gpt-5.6-sol / high</dd></div>
+ <div><dt>release binary SHA 前 12 位</dt><dd>e986ba3740aa</dd></div>
+</dl>
+<p>reviewer 独立复跑测试并确认：无平行 planner、feature flag、旧算法
+fallback、instance/seed hack 或 test-only production API。full gate 同时绑定
+reviewer metadata、suite、corpus 与 binary，且 blocking findings 为空。</p>
+
+<h2>原始证据</h2>
+<ul class="links">
+ <li><a href="../full_benchmark_vacancy_shared_carrier_20260907/index.html">当前 full dashboard（475 个动画）</a></li>
+ <li><a href="../full_comparison_rho_v2_vs_vacancy_shared_carrier_20260907/index.html">rho V2 vs 当前逐例对比</a></li>
+ <li><a href="evidence/carrier_full/rows.csv">当前 carrier rows.csv</a></li>
+ <li><a href="evidence/carrier_brd_full/rows.csv">当前 carrier_brd rows.csv</a></li>
+ <li><a href="evidence/carrier_quick/rows.csv">当前 quick rows.csv</a></li>
+ <li><a href="evidence/full_review_approval_vacancy_shared_carrier_20260907.json">full_review_approval_vacancy_shared_carrier_20260907.json</a></li>
+</ul>
+<p class="provenance">binary e986ba3740aa259e8d485f2bbe96e32e887cf09494df470873b6b667eee8e1ae<br>suite fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed<br>
+corpus 7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae<br>telemetry totals: vacancy builds=4627185,
+epoch flips=1710232, cache evictions=257018</p>
+</main></body></html>

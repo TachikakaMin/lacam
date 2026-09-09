@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier BR-LaCAM 分解基线最终报告</title>
+<style>
+:root{--bg:#07111d;--panel:#0d1c2b;--line:#29435b;--text:#edf6ff;
+--muted:#9fb3c7;--cyan:#37d5ce;--green:#5ddd91;--red:#ff7f88;
+--amber:#ffc966}*{box-sizing:border-box}body{margin:0;background:var(--bg);
+color:var(--text);font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;
+line-height:1.65}main{max-width:1180px;margin:auto;padding:34px 22px 70px}
+h1{font-size:clamp(30px,5vw,52px);line-height:1.18;margin:.25em 0}h2{margin-top:38px}
+h3{margin-bottom:8px}p{color:#c5d4e2}a{color:#8bc8ff}.muted{color:var(--muted)}
+.cards,.two,.flow{display:grid;gap:14px}.cards{grid-template-columns:
+repeat(auto-fit,minmax(190px,1fr));margin:20px 0}.two{grid-template-columns:1fr 1fr}
+.flow{grid-template-columns:repeat(6,1fr);align-items:stretch}.card,.panel,.step{
+background:linear-gradient(145deg,#11263a,#0a1827);border:1px solid var(--line);
+border-radius:14px;padding:18px}.big{font-size:29px;font-weight:800}.good{color:var(--green)}
+.bad{color:var(--red)}.warn{border-left:5px solid var(--amber);background:#241d0d;
+padding:14px 17px;border-radius:8px;color:#f7dfb5}.step{text-align:center;padding:14px 7px}
+.step b{display:block;color:var(--cyan)}.table-wrap{overflow-x:auto;border:1px solid
+var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #20384e;white-space:nowrap}
+th{color:#c8d8e7;background:#102236}.nav{display:flex;flex-wrap:wrap;gap:9px}
+.nav a{border:1px solid var(--line);padding:7px 10px;border-radius:8px;text-decoration:none}
+code{color:#b8f3ef}.small{font-size:13px}.event{border-top:4px solid var(--cyan)}
+@media(max-width:820px){.two{grid-template-columns:1fr}.flow{grid-template-columns:
+repeat(2,1fr)}}@media(max-width:500px){.flow{grid-template-columns:1fr}
+main{padding:24px 14px}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<div class="muted small">2026-09-06 · Carrier BR-LaCAM decomposition baseline</div>
+<h1>分解流程跑通了，<br>但它还不能替代 production Carrier</h1>
+<p>这份报告记录一个研究基线：先用 BR-LaCAM 冻结货架路线，再把路线编译成
+task waves；每当任一机器人完成一次 Drop，就立刻重新匹配并再次调用同一个
+<code>TAPFPlanner::solve()</code>。实现语义正确，但 full benchmark 显示固定
+货架计划与逐段 first-feasible 执行带来明显完备性和质量损失。</p>
+<div class="nav">
+ <a href="../full_benchmark_carrier_brd_20260906/index.html">BRD full dashboard</a>
+ <a href="../full_comparison_rho_v2_vs_carrier_brd_20260906/index.html">production vs BRD</a>
+ <a href="../full_benchmark_rho_v2_20260906/index.html">production dashboard</a>
+ <a href="../../results_full_rho_v2_20260906/rows.csv">production rows.csv</a>
+ <a href="../../results_full_carrier_brd_20260906/rows.csv">BRD rows.csv</a>
+ <a href="../../results_full_carrier_brd_20260906/timing.json">BRD timing.json</a>
+ <a href="../../review_approval_carrier_brd_20260906.json">review approval</a>
+</div>
+
+<section class="cards">
+ <div class="card"><div class="big">production Carrier 479/509 → Carrier BRD 326/509</div>
+  <div class="muted">同一 509-case full corpus</div></div>
+ <div class="card"><div class="big bad">41 / 17 / 265</div>
+  <div class="muted">共同成功 323 例：严格 (T,W) 更好 / 相同 / 更差</div></div>
+ <div class="card"><div class="big">266.3 s → 115.8 s</div>
+  <div class="muted">full wall time；失败更早不等于算法更强</div></div>
+ <div class="card"><div class="big">8481</div>
+  <div class="muted">completion events；每次都触发重匹配</div></div>
+</section>
+<div class="warn"><b>最重要的结论：</b>求解率从 479/509 降到
+326/509；BRD 新解出 3 个 production 失败例，但丢失
+156 个 production 成功例。它是可审计的分解基线，不是 production 替代品。</div>
+
+<h2>算法流程</h2>
+<div class="flow" aria-label="tau to upper to waves to matching to lower to return">
+ <div class="step"><b>tau</b>选择目标位置</div>
+ <div class="step"><b>upper</b>BR-LaCAM 搬货架</div>
+ <div class="step"><b>waves</b>冻结并编译 tasks</div>
+ <div class="step"><b>matching</b>全量 Hungarian</div>
+ <div class="step"><b>lower</b>同一 TAPFPlanner</div>
+ <div class="step"><b>return</b>验证并交付</div>
+</div>
+<p class="muted">缩写就是：<b>tau → upper → waves → matching → lower → return</b>。
+upper 和普通 MAPF 复用同一 LaCAM DFS kernel；lower 不是另一套 planner，而是
+从当前完整物理状态再次进入现有 <code>TAPFPlanner::solve()</code>。</p>
+
+<h2>用户纠正后的 completion-event 语义</h2>
+<p><b>一次 solve 只到下一个 Drop</b>，不等待一批 task 全部完成。同一拍若有
+多个 Drop，一次性记为完成，只触发一轮重匹配。重匹配矩阵是
+<b>所有 free robots × 全部 PENDING tasks</b>；已完成 task 移除，
+<b>已 Lift 保持 hard lock</b>，直到它自己的 endpoint Drop。</p>
+<div class="two">
+ <div class="panel event"><h3>R6：未 Lift，立即重匹配</h3>
+  <p>R0 先 Drop；R1 还在接近旧任务、尚未 Lift。当前 segment 当场结束，
+  R1 的临时 assignment 被释放。R0、R1 与当前 wave 的全部 pending tasks
+  重新进入匹配，因此 R1 可以改做更合适的任务。</p></div>
+ <div class="panel event"><h3>R7：已 Lift，继续锁定</h3>
+  <p>R0 先 Drop；R1 已经 Lift 另一件货架。R1 不进入下一轮匹配，
+  robot–task pair 跨 event 保持 hard lock；其他 free robots 和 pending tasks
+  正常重新匹配。</p></div>
+</div>
+<p>实跑累计 8632 次 matching、8632 个 dispatch epochs、
+8630 个 lower segments；发生 1630 次未 Lift provisional
+reassignment，单例最多同时锁定 16 个 carrying robots。</p>
+
+<h2>同一 full 509 的正面对比</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>指标</th><th>production Carrier</th><th>Carrier BRD</th></tr></thead>
+<tbody>
+ <tr><td>solved</td><td>479/509</td><td>326/509</td></tr>
+ <tr><td>solver-time sum</td><td>3630.5 s</td><td>1525.8 s</td></tr>
+ <tr><td>wall time</td><td>266.3 s</td><td>115.8 s</td></tr>
+ <tr><td>binary SHA</td><td>d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d</td><td>e1261800dd6454b2f02e745aef7e648df3610301d61999e758ec06bb15b556de</td></tr>
+</tbody></table></div>
+<p>共同成功 323 例中，严格词典序 <code>(makespan, work)</code> 为
+<b>41 / 17 / 265</b>；只看 makespan 是 38 / 30 / 255，只看 work 是 77 / 24 / 222。
+低 runtime 的主要原因之一是 183 个失败例中许多在上界或逐段搜索阶段提前退出，
+不能把它解释为同等质量下更快。</p>
+
+<h3>最明显的结构性差异：goal mode</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>goal mode</th><th>BRD solved</th><th>成功率</th></tr></thead>
+<tbody><tr><td>shared_pool</td><td>215/216</td><td>99.5%</td></tr>
+<tr><td>singleton</td><td>68/216</td><td>31.5%</td></tr></tbody></table></div>
+<p>shared-pool 给 upper 更多终点选择；singleton 把每个目标货架固定到唯一终点。
+当前分解基线先冻结整条 shelf plan，lower 某一段失败后不会回到 upper 改路线，
+所以 singleton 更容易把错误的次序或临时占据固化成 segment timeout。</p>
+
+<h2>时间花在哪里</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>阶段</th><th>全体累计 ms</th><th>成功 P50</th><th>失败 P50</th>
+<th>成功均值</th><th>失败均值</th></tr></thead>
+<tbody><tr><td>tau</td><td>152545.4</td><td>3.11</td><td>3.13</td><td>38.57</td><td>764.88</td></tr>
+<tr><td>upper BR-LaCAM</td><td>145568.3</td><td>7.47</td><td>14.59</td><td>20.00</td><td>759.83</td></tr>
+<tr><td>task compile</td><td>2582.1</td><td>1.21</td><td>3.02</td><td>2.42</td><td>9.81</td></tr>
+<tr><td>matching</td><td>15043.7</td><td>0.43</td><td>0.65</td><td>3.73</td><td>75.56</td></tr>
+<tr><td>lower segments</td><td>1190483.2</td><td>1.54</td><td>8510.45</td><td>7.76</td><td>6491.56</td></tr>
+<tr><td>cleanup</td><td>222.5</td><td>0.01</td><td>0.03</td><td>0.03</td><td>1.16</td></tr>
+<tr><td>replay</td><td>390.7</td><td>0.17</td><td>0.00</td><td>1.20</td><td>0.00</td></tr>
+<tr><td>goal-prefix</td><td>25376.0</td><td>17.00</td><td>—</td><td>78.08</td><td>—</td></tr></tbody></table></div>
+<p>失败例的主要成本集中在 lower segment，而不是 matching。换言之，全量重匹配
+本身不是当前最大瓶颈；更大的问题是固定 upper 计划后，逐段物理搜索可能在某个
+Drop 前耗尽剩余预算。</p>
+
+<h2>失败原因</h2>
+<div class="table-wrap"><table><thead><tr><th>BRD exit reason</th><th>cases</th></tr></thead>
+<tbody><tr><td>DISPATCH_TIMEOUT</td><td>2</td></tr>
+<tr><td>SEARCH_TIMEOUT</td><td>16</td></tr>
+<tr><td>SEGMENT_EXHAUSTED</td><td>11</td></tr>
+<tr><td>SEGMENT_TIMEOUT</td><td>138</td></tr>
+<tr><td>UPPER_TIMEOUT</td><td>16</td></tr></tbody></table></div>
+
+<h2>raw 计划与最终交付计划</h2>
+<p>搜索先产生 raw primitive actions，再重放、截到第一个合法原始 goal prefix，
+并重新核算成本。2/326 个成功例发生截短，共移除
+50 拍，最大单例移除 35 拍。报告中的 makespan/work
+全部来自最终验证后的 deliverable plan，而不是 raw 搜索路径。</p>
+
+<h2>差异样例</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>instance</th><th>结论</th><th>(T,W) production → BRD</th>
+<th>动画</th></tr></thead><tbody><tr><td>brap_h20w20_a40_e100_B_seed0_pool</td><td>gained</td><td>— → (1568, 6678)</td><td>— · <a href="../full_benchmark_carrier_brd_20260906/cases/brap_h20w20_a40_e100_B_seed0_pool.html">BRD</a></td></tr>
+<tr><td>brap_h20w20_a40_e100_B_seed1_pool</td><td>gained</td><td>— → (1820, 8012)</td><td>— · <a href="../full_benchmark_carrier_brd_20260906/cases/brap_h20w20_a40_e100_B_seed1_pool.html">BRD</a></td></tr>
+<tr><td>brap_h20w20_a40_e10_R1_seed1</td><td>gained</td><td>— → (3108, 10743)</td><td>— · <a href="../full_benchmark_carrier_brd_20260906/cases/brap_h20w20_a40_e10_R1_seed1.html">BRD</a></td></tr>
+<tr><td>brap_h10w10_a12_e3_R1_seed0</td><td>lost</td><td>(893, 1980) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h10w10_a12_e3_R1_seed0.html">production</a> · —</td></tr>
+<tr><td>brap_h20w20_a40_e100_R1_seed0</td><td>lost</td><td>(1273, 5796) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h20w20_a40_e100_R1_seed0.html">production</a> · —</td></tr>
+<tr><td>brap_h20w20_a40_e100_R1_seed1</td><td>lost</td><td>(1243, 6384) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h20w20_a40_e100_R1_seed1.html">production</a> · —</td></tr>
+<tr><td>brap_h4w10_a5_e1_R1_seed0</td><td>lost</td><td>(448, 879) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h4w10_a5_e1_R1_seed0.html">production</a> · —</td></tr>
+<tr><td>brap_h6w10_a6_e1_B_seed0_pool</td><td>lost</td><td>(263, 570) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h6w10_a6_e1_B_seed0_pool.html">production</a> · —</td></tr>
+<tr><td>brap_h6w10_a6_e1_R1_seed0</td><td>lost</td><td>(845, 1753) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h6w10_a6_e1_R1_seed0.html">production</a> · —</td></tr>
+<tr><td>brap_h6w10_a6_e1_R1_seed1</td><td>lost</td><td>(953, 2046) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/brap_h6w10_a6_e1_R1_seed1.html">production</a> · —</td></tr>
+<tr><td>g2_dhigh_abaseline_pcross_heavy_gsingleton_seed0</td><td>lost</td><td>(32, 112) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g2_dhigh_abaseline_pcross_heavy_gsingleton_seed0.html">production</a> · —</td></tr>
+<tr><td>g2_dhigh_abaseline_plocal_gsingleton_seed0</td><td>lost</td><td>(21, 76) → —</td><td><a href="../full_benchmark_rho_v2_20260906/cases/g2_dhigh_abaseline_plocal_gsingleton_seed0.html">production</a> · —</td></tr></tbody></table></div>
+
+<h2>carrier_b0 / carrier_b1：仅作历史背景</h2>
+<div class="warn"><b>历史对照（不同 corpus）：</b>下面三列来自另一个
+164-case 旧 benchmark、旧二进制和旧协议，不能与本次 full 509
+做严格 head-to-head，也不能据此排序 BRD。</div>
+<div class="table-wrap"><table>
+<thead><tr><th>method</th><th>solved</th><th>成功例 makespan sum</th>
+<th>成功例 work sum</th><th>runtime sum</th></tr></thead>
+<tbody><tr><td>carrier</td><td>162/164</td><td>84252</td><td>2390775</td><td>1418.0s</td></tr>
+<tr><td>carrier_b0</td><td>147/164</td><td>320625</td><td>9240231</td><td>311.3s</td></tr>
+<tr><td>carrier_b1</td><td>77/164</td><td>1113</td><td>4034</td><td>9.4s</td></tr></tbody></table></div>
+
+<h2>验证与边界</h2>
+<div class="cards">
+ <div class="card"><div class="big">361 / 361</div>
+  <div class="muted">C++ tests</div></div>
+ <div class="card"><div class="big">187 / 187</div>
+  <div class="muted">Python tests</div></div>
+ <div class="card"><div class="big">45 / 45</div>
+  <div class="muted">no-pick/place compatibility checks</div></div>
+ <div class="card"><div class="big">APPROVE</div>
+  <div class="muted">openai.gpt-5.6-sol independent review</div></div>
+</div>
+<ul>
+ <li>已实现：同一 search kernel、冻结 waves、稳定 anonymous shelf identity、
+ completion-event 重匹配、Lift 后硬锁、全链路 deadline 与最终 replay。</li>
+ <li>尚未实现：segment 失败后返回 upper 改货架路线；对失败 assignment edge
+ 做约束学习；跨 event 的增量 Hungarian dual/state 复用；upper anytime 改进。</li>
+ <li>当前语义是 first-feasible upper + first-completion lower。它保证每个返回
+ plan 可重放，不保证分解后仍保持原 production planner 的完备性或质量。</li>
+</ul>
+
+<h2>实验协议与证据</h2>
+<p class="small muted">同一 suite、seed、validator、objective weights、14 jobs，
+每 case 10 秒。Suite SHA: fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed<br>BRD binary SHA: e1261800dd6454b2f02e745aef7e648df3610301d61999e758ec06bb15b556de<br>
+Full corpus approval SHA: 7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae<br>Reviewer: openai.gpt-5.6-sol ·
+decision=APPROVE</p>
+</main></body></html>

@@ -12,7 +12,7 @@ from ddbench.validator import (
     legal_actions_for_robot,
 )
 from generate_web_viz import TEMPLATE as PLAN_VIZ_TEMPLATE
-from generate_warehouse_block_sample import build_case, write_yaml
+from generate_warehouse_block_sample import build_case, write_html, write_yaml
 from generate_warehouse_block_suite import (
     BLOCK_SIZES,
     DENSITY_LEVELS,
@@ -22,6 +22,19 @@ from verify_warehouse_block_suite import verify_suite
 
 
 class WarehouseGeneratorTest(unittest.TestCase):
+    def test_static_preview_renders_explicit_eligible_goal_sets(self):
+        case = build_case(20, 20, 3, 1, 0.75, 2, 2, 0)
+        case["targets"][0]["eligible_goals"] = [
+            case["targets"][0]["goal"],
+            case["targets"][1]["goal"],
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            page = Path(tmp) / "case.html"
+            write_html(case, page)
+            text = page.read_text(encoding="utf-8")
+        self.assertIn("eligibleGoals", text)
+        self.assertIn("可选 edge 目标", text)
+
     def test_plan_visualizer_uses_frame_interpolation(self):
         self.assertIn("requestAnimationFrame", PLAN_VIZ_TEMPLATE)
         self.assertIn("lerpPos", PLAN_VIZ_TEMPLATE)

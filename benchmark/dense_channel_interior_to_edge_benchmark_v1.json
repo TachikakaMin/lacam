@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "name": "dense_channel_i2e_v1_8",
+  "protocol": {
+    "methods": [
+      "carrier"
+    ],
+    "timeout_sec": 10,
+    "jobs": 8,
+    "solver_seed": 0,
+    "objective_weights": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "following": "allowed"
+  },
+  "groups": [
+    {
+      "name": "dense_channel_i2e_v1",
+      "root": "viz_web/dense_channel_i2e_suite_v1_20260907",
+      "pattern": "instances/*.yaml",
+      "family": "dense_channel_i2e",
+      "expected_cases": 8
+    }
+  ]
+}

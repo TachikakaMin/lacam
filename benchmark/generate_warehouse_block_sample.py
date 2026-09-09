@@ -607,6 +607,15 @@ draw();
 
 def write_html(case: Dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    has_goal_sets = any(
+        target.get("eligible_goals") for target in case["targets"]
+    )
+    targets = []
+    for target in case["targets"]:
+        row = dict(target)
+        if row.get("eligible_goals"):
+            row["eligibleGoals"] = row.pop("eligible_goals")
+        targets.append(row)
     data = {
         "name": case["name"],
         "height": case["height"],
@@ -620,9 +629,58 @@ def write_html(case: Dict, path: Path) -> None:
         "storage": sorted(case["storage"]),
         "shelves": case["shelves"],
         "robots": case["robots"],
-        "targets": case["targets"],
+        "targets": targets,
     }
-    html = HTML_TEMPLATE.replace("__TITLE__", case["name"])
+    template = HTML_TEMPLATE
+    if has_goal_sets:
+        template = template.replace(
+            '<div class="legend-item"><span class="swatch" '
+            'style="border:3px solid var(--goal)"></span>目标空位</div>',
+            '<div class="legend-item"><span class="swatch" '
+            'style="border:3px dashed var(--goal)"></span>'
+            '可选 edge 目标</div>',
+        )
+        template = template.replace(
+            "const goalAt = new Map(D.targets.map(t => "
+            "[key(t.goal), t.id]));",
+            """const goalAt = new Map(D.targets.map(t => [key(t.goal), t.id]));
+const eligibleGoalAt = new Map();
+for (const target of D.targets) {
+  for (const goal of (target.eligibleGoals || [target.goal])) {
+    const k = key(goal);
+    if (!eligibleGoalAt.has(k)) eligibleGoalAt.set(k, []);
+    eligibleGoalAt.get(k).push(target.id);
+  }
+}""",
+        )
+        template = template.replace(
+            """  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#22c55e";
+  for (const target of D.targets) {
+    const p = target.goal;
+    ctx.strokeRect(p[1] * cell + 4, p[0] * cell + 4, cell - 8, cell - 8);
+    ctx.fillStyle = "#14532d";
+    ctx.font = "bold 8px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(target.id, p[1] * cell + cell / 2, p[0] * cell + cell / 2);
+  }""",
+            """  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#22c55e";
+  ctx.setLineDash([5, 3]);
+  for (const k of eligibleGoalAt.keys()) {
+    const p = k.split(",").map(Number);
+    ctx.strokeRect(p[1] * cell + 4, p[0] * cell + 4, cell - 8, cell - 8);
+  }
+  ctx.setLineDash([]);""",
+        )
+        template = template.replace(
+            "  if (goalAt.has(k)) items.push(`goal ${goalAt.get(k)}`);",
+            """  if (eligibleGoalAt.has(k)) {
+    items.push(`eligible edge goal for ${eligibleGoalAt.get(k).length} targets`);
+  }""",
+        )
+    html = template.replace("__TITLE__", case["name"])
     html = html.replace(
         "__MAP_SIZE__", f"{case['height']}×{case['width']}"
     )

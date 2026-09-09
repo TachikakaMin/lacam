@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <limits>
 #include <queue>
 #include <vector>
@@ -34,49 +35,372 @@ struct TAPFAssignmentStats {
   double time_ms = 0;
 };
 
+namespace tapf_assignment_detail {
+
+enum class IncrementalHungarianStatus {
+  OK,
+  INFEASIBLE,
+  CUTOFF,
+  INVALID_DUAL,
+};
+
+template <typename Scalar>
+struct ExactIncrementalHungarianArithmetic {
+  bool normalize_reduced(
+      Scalar&, Scalar, Scalar, Scalar) const
+  {
+    return true;
+  }
+
+  bool normalize_slack(Scalar&, Scalar) const
+  {
+    return true;
+  }
+
+  bool is_zero(Scalar value) const
+  {
+    return value == Scalar{0};
+  }
+};
+
+struct NeverStopIncrementalHungarian {
+  bool operator()() const { return false; }
+};
+
+// Shared square primal/dual state and ITA-style row repair.  Callers own
+// their cost encoding and dummy-edge semantics through score_fn, which
+// returns false for a forbidden edge and otherwise writes a maximization
+// score.  TAPFAssignmentState and PairCost must both use this one core.
+template <typename Scalar>
+struct IncrementalHungarianState {
+  int dimension = 0;
+  std::vector<int> row_to_column;
+  std::vector<int> column_to_row;
+  std::vector<Scalar> row_dual;
+  std::vector<Scalar> column_dual;
+
+  void init(int new_dimension)
+  {
+    dimension = std::max(0, new_dimension);
+    row_to_column.assign(dimension, -1);
+    column_to_row.assign(dimension, -1);
+    row_dual.assign(dimension, Scalar{0});
+    column_dual.assign(dimension, Scalar{0});
+  }
+
+  bool ready() const { return dimension > 0; }
+
+  bool structurally_valid() const
+  {
+    if (dimension < 0 ||
+        row_to_column.size() !=
+            static_cast<size_t>(dimension) ||
+        column_to_row.size() !=
+            static_cast<size_t>(dimension) ||
+        row_dual.size() !=
+            static_cast<size_t>(dimension) ||
+        column_dual.size() !=
+            static_cast<size_t>(dimension))
+      return false;
+    for (int row = 0; row < dimension; ++row) {
+      const int column = row_to_column[row];
+      if (column < 0 || column >= dimension ||
+          column_to_row[column] != row)
+        return false;
+    }
+    for (int column = 0; column < dimension; ++column) {
+      const int row = column_to_row[column];
+      if (row < 0 || row >= dimension ||
+          row_to_column[row] != column)
+        return false;
+    }
+    return true;
+  }
+
+  template <
+      typename ScoreFn, typename Arithmetic,
+      typename StopFn>
+  IncrementalHungarianStatus solve_full(
+      const ScoreFn& score_fn,
+      const Arithmetic& arithmetic,
+      const StopFn& stop)
+  {
+    if (stop())
+      return IncrementalHungarianStatus::CUTOFF;
+    reset_matching();
+    if (dimension == 0)
+      return IncrementalHungarianStatus::OK;
+
+    for (int row = 0; row < dimension; ++row) {
+      if (stop())
+        return IncrementalHungarianStatus::CUTOFF;
+      Scalar best =
+          std::numeric_limits<Scalar>::lowest();
+      bool found = false;
+      for (int column = 0;
+           column < dimension; ++column) {
+        Scalar score = Scalar{0};
+        if (!score_fn(row, column, score))
+          continue;
+        best = found ? std::max(best, score) : score;
+        found = true;
+      }
+      if (!found)
+        return IncrementalHungarianStatus::INFEASIBLE;
+      row_dual[row] = best;
+    }
+
+    for (int row = 0; row < dimension; ++row) {
+      const auto status =
+          augment_from_row(
+              row, score_fn, arithmetic, stop);
+      if (status != IncrementalHungarianStatus::OK)
+        return status;
+    }
+    return IncrementalHungarianStatus::OK;
+  }
+
+  template <
+      typename ScoreFn, typename Arithmetic,
+      typename StopFn>
+  IncrementalHungarianStatus repair_rows(
+      int real_row_count,
+      const std::vector<int>& changed_rows,
+      const ScoreFn& score_fn,
+      const Arithmetic& arithmetic,
+      const StopFn& stop)
+  {
+    if (stop())
+      return IncrementalHungarianStatus::CUTOFF;
+    if (dimension == 0)
+      return changed_rows.empty()
+                 ? IncrementalHungarianStatus::OK
+                 : IncrementalHungarianStatus::INFEASIBLE;
+    const int row_limit =
+        std::max(0, std::min(
+                        real_row_count, dimension));
+    std::vector<int> rows;
+    std::vector<uint8_t> seen(row_limit, 0);
+    rows.reserve(changed_rows.size());
+    for (const int row : changed_rows) {
+      if (row < 0 || row >= row_limit || seen[row])
+        continue;
+      seen[row] = 1;
+      rows.push_back(row);
+    }
+    if (rows.empty())
+      return IncrementalHungarianStatus::OK;
+
+    for (const int row : rows) {
+      if (stop())
+        return IncrementalHungarianStatus::CUTOFF;
+      const int column = row_to_column[row];
+      if (column >= 0)
+        column_to_row[column] = -1;
+      row_to_column[row] = -1;
+
+      Scalar best =
+          std::numeric_limits<Scalar>::lowest();
+      bool found = false;
+      for (int candidate = 0;
+           candidate < dimension; ++candidate) {
+        Scalar score = Scalar{0};
+        if (!score_fn(row, candidate, score))
+          continue;
+        const Scalar candidate_dual =
+            score - column_dual[candidate];
+        best = found
+                   ? std::max(best, candidate_dual)
+                   : candidate_dual;
+        found = true;
+      }
+      if (!found)
+        return IncrementalHungarianStatus::INFEASIBLE;
+      row_dual[row] = best;
+    }
+
+    for (const int row : rows) {
+      const auto status =
+          augment_from_row(
+              row, score_fn, arithmetic, stop);
+      if (status != IncrementalHungarianStatus::OK)
+        return status;
+    }
+    return IncrementalHungarianStatus::OK;
+  }
+
+ private:
+  void reset_matching()
+  {
+    std::fill(
+        row_to_column.begin(),
+        row_to_column.end(), -1);
+    std::fill(
+        column_to_row.begin(),
+        column_to_row.end(), -1);
+  }
+
+  template <
+      typename ScoreFn, typename Arithmetic,
+      typename StopFn>
+  IncrementalHungarianStatus augment_from_row(
+      int root, const ScoreFn& score_fn,
+      const Arithmetic& arithmetic,
+      const StopFn& stop)
+  {
+    std::vector<uint8_t> in_left(dimension, 0);
+    std::vector<uint8_t> in_right(dimension, 0);
+    std::vector<int> parent_column(dimension, -1);
+    std::vector<Scalar> slack(
+        dimension,
+        std::numeric_limits<Scalar>::max());
+    std::queue<int> queue;
+    queue.push(root);
+    in_left[root] = 1;
+
+    while (true) {
+      while (!queue.empty()) {
+        if (stop())
+          return IncrementalHungarianStatus::CUTOFF;
+        const int row = queue.front();
+        queue.pop();
+        for (int column = 0;
+             column < dimension; ++column) {
+          if (in_right[column]) continue;
+          Scalar score = Scalar{0};
+          if (!score_fn(row, column, score))
+            continue;
+          Scalar reduced =
+              row_dual[row] +
+              column_dual[column] - score;
+          if (!arithmetic.normalize_reduced(
+                  reduced, row_dual[row],
+                  column_dual[column], score))
+            return IncrementalHungarianStatus::
+                INVALID_DUAL;
+          if (reduced < slack[column]) {
+            slack[column] = reduced;
+            parent_column[column] = row;
+          }
+          if (!arithmetic.is_zero(
+                  slack[column]))
+            continue;
+          in_right[column] = 1;
+          if (column_to_row[column] < 0) {
+            augment_path(
+                column, parent_column);
+            return IncrementalHungarianStatus::OK;
+          }
+          const int matched =
+              column_to_row[column];
+          if (!in_left[matched]) {
+            in_left[matched] = 1;
+            queue.push(matched);
+          }
+        }
+      }
+
+      Scalar delta =
+          std::numeric_limits<Scalar>::max();
+      for (int column = 0;
+           column < dimension; ++column)
+        if (!in_right[column])
+          delta = std::min(
+              delta, slack[column]);
+      if (delta ==
+          std::numeric_limits<Scalar>::max())
+        return IncrementalHungarianStatus::INFEASIBLE;
+
+      for (int row = 0;
+           row < dimension; ++row)
+        if (in_left[row])
+          row_dual[row] -= delta;
+      for (int column = 0;
+           column < dimension; ++column) {
+        if (in_right[column]) {
+          column_dual[column] += delta;
+        } else if (
+            slack[column] !=
+            std::numeric_limits<Scalar>::max()) {
+          slack[column] -= delta;
+          if (!arithmetic.normalize_slack(
+                  slack[column], delta))
+            return IncrementalHungarianStatus::
+                INVALID_DUAL;
+        }
+      }
+
+      for (int column = 0;
+           column < dimension; ++column) {
+        if (in_right[column] ||
+            !arithmetic.is_zero(slack[column]))
+          continue;
+        in_right[column] = 1;
+        if (column_to_row[column] < 0) {
+          augment_path(
+              column, parent_column);
+          return IncrementalHungarianStatus::OK;
+        }
+        const int matched =
+            column_to_row[column];
+        if (!in_left[matched]) {
+          in_left[matched] = 1;
+          queue.push(matched);
+        }
+      }
+    }
+  }
+
+  void augment_path(
+      int column,
+      const std::vector<int>& parent_column)
+  {
+    while (column >= 0) {
+      const int row = parent_column[column];
+      const int next_column =
+          row_to_column[row];
+      row_to_column[row] = column;
+      column_to_row[column] = row;
+      column = next_column;
+    }
+  }
+};
+
+}  // namespace tapf_assignment_detail
+
 struct TAPFAssignmentState {
   int org_n = 0;
   int org_m = 0;
-  int n = 0;
-  std::vector<int> mateL;
-  std::vector<int> mateR;
-  std::vector<long> lx;
-  std::vector<long> ly;
   long cost_scale = 1;
   long tie_hash_mod = 1;
+  tapf_assignment_detail::
+      IncrementalHungarianState<long> hungarian;
 
   void init(const int agent_num, const int task_num)
   {
     org_n = agent_num;
     org_m = task_num;
-    n = std::max(org_n, org_m);
-    mateL.assign(n, -1);
-    mateR.assign(n, -1);
-    lx.assign(n, 0);
-    ly.assign(n, 0);
+    hungarian.init(std::max(org_n, org_m));
     tie_hash_mod = compute_tie_hash_mod(org_n, org_m);
     cost_scale = compute_cost_scale(org_n, org_m, tie_hash_mod);
   }
 
-  bool ready() const { return n > 0; }
+  bool ready() const { return hungarian.ready(); }
 
   template <typename CostFn>
   TAPFAssignmentResult solve_full(const CostFn& cost_fn)
   {
-    reset_matching();
-    for (int i = 0; i < n; ++i) {
-      long best = 0;
-      if (i < org_n) {
-        best = std::numeric_limits<long>::min();
-        for (int j = 0; j < n; ++j) {
-          best = std::max(best, weight(i, j, cost_fn));
-        }
-      }
-      lx[i] = best;
-    }
-    for (int i = 0; i < n; ++i) {
-      if (mateL[i] == -1) augment_from_row(i, cost_fn);
-    }
+    const auto score =
+        [&](int row, int column, long& out) {
+          out = weight(row, column, cost_fn);
+          return true;
+        };
+    (void)hungarian.solve_full(
+        score,
+        tapf_assignment_detail::
+            ExactIncrementalHungarianArithmetic<long>{},
+        tapf_assignment_detail::
+            NeverStopIncrementalHungarian{});
     return make_result(cost_fn);
   }
 
@@ -86,34 +410,21 @@ struct TAPFAssignmentState {
   {
     if (!ready()) return solve_full(cost_fn);
     if (changed_rows.empty()) return make_result(cost_fn);
-
-    for (const auto row : changed_rows) {
-      if (row < 0 || row >= org_n) continue;
-      if (mateL[row] != -1) {
-        mateR[mateL[row]] = -1;
-        mateL[row] = -1;
-      }
-      long best = std::numeric_limits<long>::min();
-      for (int j = 0; j < n; ++j) {
-        best = std::max(best, weight(row, j, cost_fn) - ly[j]);
-      }
-      lx[row] = best;
-    }
-
-    for (const auto row : changed_rows) {
-      if (row < 0 || row >= org_n) continue;
-      if (mateL[row] == -1) augment_from_row(row, cost_fn);
-    }
+    const auto score =
+        [&](int row, int column, long& out) {
+          out = weight(row, column, cost_fn);
+          return true;
+        };
+    (void)hungarian.repair_rows(
+        org_n, changed_rows, score,
+        tapf_assignment_detail::
+            ExactIncrementalHungarianArithmetic<long>{},
+        tapf_assignment_detail::
+            NeverStopIncrementalHungarian{});
     return make_result(cost_fn);
   }
 
  private:
-  void reset_matching()
-  {
-    std::fill(mateL.begin(), mateL.end(), -1);
-    std::fill(mateR.begin(), mateR.end(), -1);
-  }
-
   static long compute_tie_hash_mod(const int agent_num, const int task_num)
   {
     const auto safe_task_num = std::max(1, task_num);
@@ -160,87 +471,6 @@ struct TAPFAssignmentState {
   }
 
   template <typename CostFn>
-  bool augment_from_row(const int root, const CostFn& cost_fn)
-  {
-    std::vector<bool> in_left(n, false);
-    std::vector<bool> in_right(n, false);
-    std::vector<int> parent_col(n, -1);
-    std::vector<long> slack(n, std::numeric_limits<long>::max());
-    std::queue<int> queue;
-
-    queue.push(root);
-    in_left[root] = true;
-
-    while (true) {
-      while (!queue.empty()) {
-        const auto u = queue.front();
-        queue.pop();
-        for (int v = 0; v < n; ++v) {
-          if (in_right[v]) continue;
-          const auto cur = lx[u] + ly[v] - weight(u, v, cost_fn);
-          if (cur < slack[v]) {
-            slack[v] = cur;
-            parent_col[v] = u;
-          }
-          if (slack[v] != 0) continue;
-          in_right[v] = true;
-          if (mateR[v] == -1) {
-            augment_path(v, parent_col);
-            return true;
-          }
-          const auto matched_row = mateR[v];
-          if (!in_left[matched_row]) {
-            in_left[matched_row] = true;
-            queue.push(matched_row);
-          }
-        }
-      }
-
-      long delta = std::numeric_limits<long>::max();
-      for (int v = 0; v < n; ++v) {
-        if (!in_right[v]) delta = std::min(delta, slack[v]);
-      }
-      if (delta == std::numeric_limits<long>::max()) return false;
-
-      for (int u = 0; u < n; ++u) {
-        if (in_left[u]) lx[u] -= delta;
-      }
-      for (int v = 0; v < n; ++v) {
-        if (in_right[v]) {
-          ly[v] += delta;
-        } else {
-          slack[v] -= delta;
-        }
-      }
-
-      for (int v = 0; v < n; ++v) {
-        if (in_right[v] || slack[v] != 0) continue;
-        in_right[v] = true;
-        if (mateR[v] == -1) {
-          augment_path(v, parent_col);
-          return true;
-        }
-        const auto matched_row = mateR[v];
-        if (!in_left[matched_row]) {
-          in_left[matched_row] = true;
-          queue.push(matched_row);
-        }
-      }
-    }
-  }
-
-  void augment_path(int right_vertex, const std::vector<int>& parent_col)
-  {
-    while (right_vertex != -1) {
-      const auto left_vertex = parent_col[right_vertex];
-      const auto next_right = mateL[left_vertex];
-      mateL[left_vertex] = right_vertex;
-      mateR[right_vertex] = left_vertex;
-      right_vertex = next_right;
-    }
-  }
-
-  template <typename CostFn>
   TAPFAssignmentResult make_result(const CostFn& cost_fn) const
   {
     TAPFAssignmentResult result;
@@ -248,7 +478,8 @@ struct TAPFAssignmentState {
     result.cost = 0;
     result.feasible = true;
     for (int i = 0; i < org_n; ++i) {
-      const auto task = mateL[i];
+      const auto task =
+          hungarian.row_to_column[i];
       if (task < 0 || task >= org_m) {
         result.feasible = false;
         continue;

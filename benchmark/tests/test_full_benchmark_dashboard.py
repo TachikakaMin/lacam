@@ -26,6 +26,7 @@ class TestFullBenchmarkDashboard(unittest.TestCase):
                     "status": "ok",
                     "executed_makespan": 11,
                     "weighted_soc": 21,
+                    "first_solution_ms": 40,
                     "runtime_sec": 0.11,
                     "plan_sha256": "a" * 64,
                 },
@@ -36,6 +37,7 @@ class TestFullBenchmarkDashboard(unittest.TestCase):
                     "status": "ok",
                     "executed_makespan": 13,
                     "weighted_soc": 23,
+                    "first_solution_ms": 60,
                     "runtime_sec": 0.13,
                     "plan_sha256": "b" * 64,
                 },
@@ -46,6 +48,7 @@ class TestFullBenchmarkDashboard(unittest.TestCase):
                     "status": "ok",
                     "executed_makespan": 17,
                     "weighted_soc": 27,
+                    "first_solution_ms": 80,
                     "runtime_sec": 0.17,
                     "plan_sha256": "c" * 64,
                 },
@@ -56,6 +59,7 @@ class TestFullBenchmarkDashboard(unittest.TestCase):
                     "status": "timeout",
                     "executed_makespan": "",
                     "weighted_soc": "",
+                    "first_solution_ms": -1,
                     "runtime_sec": 10.0,
                     "plan_sha256": "",
                 },
@@ -66,6 +70,7 @@ class TestFullBenchmarkDashboard(unittest.TestCase):
                     "status": "invalid_plan",
                     "executed_makespan": "",
                     "weighted_soc": "",
+                    "first_solution_ms": -1,
                     "runtime_sec": 0.2,
                     "plan_sha256": "",
                 },
@@ -127,6 +132,13 @@ class TestFullBenchmarkDashboard(unittest.TestCase):
 
         self.assertEqual(data["overview"]["total"], 5)
         self.assertEqual(data["overview"]["solved"], 3)
+        self.assertEqual(data["overview"]["first_solution_count"], 3)
+        self.assertAlmostEqual(
+            data["overview"]["median_first_solution_runtime"], 0.06
+        )
+        self.assertAlmostEqual(
+            data["overview"]["p95_first_solution_runtime"], 0.08
+        )
         self.assertEqual(data["factorial"]["solved"], 2)
         self.assertEqual(summary["factorial"]["total"], 2)
         self.assertIn("全量 benchmark", page)
@@ -146,6 +158,13 @@ class TestFullBenchmarkDashboard(unittest.TestCase):
         self.assertIn("task_profile", page)
         self.assertIn("goal_mode", page)
         self.assertIn("caseScatter", page)
+        self.assertIn("首解 Runtime 中位数", page)
+        self.assertIn("0.060s", page)
+        self.assertIn("平均首解 Runtime", page)
+        self.assertLess(
+            page.index("<th>首解 Runtime</th>"),
+            page.index("<th>总 Runtime</th>"),
+        )
 
 
 if __name__ == "__main__":

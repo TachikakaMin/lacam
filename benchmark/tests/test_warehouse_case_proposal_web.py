@@ -75,7 +75,7 @@ class WarehouseCaseProposalWebTest(unittest.TestCase):
     PLANNER_EXPECTED = {
         "warehouse_cert_h8w8_b3_a1_s4of9_r2_t4_mixed_seed0":
             (17, 32.0, 2,
-             "882701b39b2bdbf6c0cab46d8164e94171bd87c5ae9e358a36000c176bcb1023"),
+             "64693a5dd3a080c9a811d94883320ebc4793facdcd2f7d8ec20c644993193c36"),
         "warehouse_cert_h10w10_b4_a1_s12of16_r4_t4_core_seed0":
             (12, 36.0, 4,
              "e37df74d67ac0d66390c2fe4d05cf0a0c3b506539a1784d8de7864fac4b2a773"),

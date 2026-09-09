@@ -1,0 +1,76 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>40×40 Dense-channel block-edge scaling V1</title><style>
+body{margin:auto;max-width:1180px;padding:30px;background:#111315;color:#f1f3f4;
+font:15px/1.65 system-ui}a{color:#79b7e8}.lead{color:#aab0b5}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+gap:14px}article{border-top:1px solid #393d41;padding:14px 0}
+h2{font-size:15px;overflow-wrap:anywhere}b{color:#f1f3f4}
+</style></head><body><h1>40×40 Dense-channel：终点为起始 block 任一边缘</h1>
+<p class="lead">三档负载分别为 8/12、16/24、32/48（机器人/目标）。
+每个目标货箱从 block 内部出发，最终 goal 可选择其起始 block 的任意
+edge storage。这只约束终态；运输途中可经过其他 block，也可在其他合法
+storage 临时落箱。生成 witness 只用于证明实例可解，solver 不读取。</p>
+<div class="grid"><article><h2>dense_channel_bedge_h40w40_b3_a1_s8of9_r8_t12_seed0</h2>
+<p>3×3 block · 密度 <b>88.9%</b> ·
+8 robots / 12 targets · 每个 target 有
+8 个最终候选（均为起始 block edge）· witness 18593 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b3_a1_s8of9_r8_t12_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b3_a1_s8of9_r8_t12_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b3_a1_s8of9_r8_t12_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b3_a1_s8of9_r16_t24_seed0</h2>
+<p>3×3 block · 密度 <b>88.9%</b> ·
+16 robots / 24 targets · 每个 target 有
+8 个最终候选（均为起始 block edge）· witness 18610 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b3_a1_s8of9_r16_t24_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b3_a1_s8of9_r16_t24_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b3_a1_s8of9_r16_t24_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b3_a1_s8of9_r32_t48_seed0</h2>
+<p>3×3 block · 密度 <b>88.9%</b> ·
+32 robots / 48 targets · 每个 target 有
+8 个最终候选（均为起始 block edge）· witness 18598 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b3_a1_s8of9_r32_t48_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b3_a1_s8of9_r32_t48_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b3_a1_s8of9_r32_t48_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b4_a1_s15of16_r8_t12_seed0</h2>
+<p>4×4 block · 密度 <b>93.8%</b> ·
+8 robots / 12 targets · 每个 target 有
+12 个最终候选（均为起始 block edge）· witness 21008 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b4_a1_s15of16_r8_t12_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b4_a1_s15of16_r8_t12_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b4_a1_s15of16_r8_t12_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b4_a1_s15of16_r16_t24_seed0</h2>
+<p>4×4 block · 密度 <b>93.8%</b> ·
+16 robots / 24 targets · 每个 target 有
+12 个最终候选（均为起始 block edge）· witness 20996 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b4_a1_s15of16_r16_t24_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b4_a1_s15of16_r16_t24_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b4_a1_s15of16_r16_t24_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b4_a1_s15of16_r32_t48_seed0</h2>
+<p>4×4 block · 密度 <b>93.8%</b> ·
+32 robots / 48 targets · 每个 target 有
+12 个最终候选（均为起始 block edge）· witness 20968 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b4_a1_s15of16_r32_t48_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b4_a1_s15of16_r32_t48_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b4_a1_s15of16_r32_t48_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t12_seed0</h2>
+<p>9×9 block · 密度 <b>93.8%</b> ·
+8 robots / 12 targets · 每个 target 有
+32 个最终候选（均为起始 block edge）· witness 42767 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t12_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t12_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t12_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed0</h2>
+<p>9×9 block · 密度 <b>93.8%</b> ·
+16 robots / 24 targets · 每个 target 有
+32 个最终候选（均为起始 block edge）· witness 42971 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed0.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed0</h2>
+<p>9×9 block · 密度 <b>93.8%</b> ·
+32 robots / 48 targets · 每个 target 有
+32 个最终候选（均为起始 block edge）· witness 43232 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed0.html">查看初始布局</a> ·
+<a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed0.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed0.plan">可解性 witness</a></p></article></div></body></html>

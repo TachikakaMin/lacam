@@ -22,9 +22,13 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <queue>
+#include <stack>
+#include <unordered_map>
 #include <vector>
 
 #include "graph.hpp"
@@ -66,6 +70,100 @@ inline size_t focal_select_index(const std::vector<NodeP>& open,
     if (best == open.size() || better(n, open[best])) best = idx;
   }
   return best == open.size() ? open.size() - 1 : best;
+}
+
+// Shared upstream-style DFS LaCAM control loop.  Domain adapters own only
+// domain semantics (goal, constraint expansion and successor generation);
+// OPEN/CLOSED, duplicate pushes, path-stop order and search-object cleanup
+// live here once for both MAPF and Carrier BR upper search.
+template <typename Domain>
+struct LacamDfsSearchOutcome {
+  typename Domain::Result result{};
+  bool solution_found = false;
+  bool open_exhausted = false;
+  bool expired = false;
+  size_t loop_count = 0;
+  size_t explored = 0;
+  size_t duplicate_pushes = 0;
+};
+
+namespace lacam_kernel_detail {
+
+template <typename Domain>
+auto before_search_object_cleanup(Domain& domain, int)
+    -> decltype(domain.before_search_object_cleanup(), void())
+{
+  domain.before_search_object_cleanup();
+}
+
+template <typename Domain>
+void before_search_object_cleanup(Domain&, long)
+{
+}
+
+}  // namespace lacam_kernel_detail
+
+template <typename Domain>
+LacamDfsSearchOutcome<Domain> run_lacam_dfs_search(Domain& domain)
+{
+  using Node = typename Domain::Node;
+  using Constraint = typename Domain::Constraint;
+  using Key = typename Domain::Key;
+  using KeyHasher = typename Domain::KeyHasher;
+
+  LacamDfsSearchOutcome<Domain> outcome;
+  std::stack<Node*> open;
+  std::unordered_map<Key, Node*, KeyHasher> closed;
+
+  Node* current = domain.make_root();
+  open.push(current);
+  closed.emplace(domain.node_key(current), current);
+
+  while (!open.empty() && !domain.expired()) {
+    ++outcome.loop_count;
+    current = open.top();
+
+    // Goal is checked before low-level exhaustion, matching upstream LaCAM.
+    if (domain.is_goal(current)) {
+      outcome.result = domain.extract_result(current);
+      outcome.solution_found = true;
+      break;
+    }
+
+    if (current->search_tree.empty()) {
+      open.pop();
+      continue;
+    }
+
+    std::unique_ptr<Constraint> constraint(
+        current->search_tree.front());
+    current->search_tree.pop();
+    domain.expand_constraint(current, constraint.get());
+
+    auto successor =
+        domain.generate_successor(current, constraint.get());
+    if (!successor.has_value()) continue;
+
+    const Key key = domain.successor_key(*successor);
+    const auto duplicate = closed.find(key);
+    if (duplicate != closed.end()) {
+      open.push(duplicate->second);
+      ++outcome.duplicate_pushes;
+      continue;
+    }
+
+    Node* child = domain.make_child(*successor, current);
+    open.push(child);
+    closed.emplace(key, child);
+  }
+
+  outcome.open_exhausted = open.empty();
+  outcome.expired = domain.expired();
+  outcome.explored = closed.size();
+
+  lacam_kernel_detail::before_search_object_cleanup(domain, 0);
+  for (auto& entry : closed) delete entry.second;
+  return outcome;
 }
 
 // LacamNodeCore: the high-level search node fields and priority machinery

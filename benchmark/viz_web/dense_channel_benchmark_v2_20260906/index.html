@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dense-channel benchmark V2 · 高密度与内层目标</title>
+<style>
+:root {
+  color-scheme:dark; --bg:#07111e; --panel:#101d30; --panel2:#0a1626;
+  --line:#29405c; --text:#eef6ff; --muted:#94a8bf; --blue:#4b9dff;
+  --green:#47d7a6; --amber:#f5bc58; --red:#ff7585;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; color:var(--text); font:14px/1.55 system-ui,sans-serif;
+  background:
+    radial-gradient(circle at 8% 0,#173968 0,transparent 30rem),
+    radial-gradient(circle at 92% 4%,#342446 0,transparent 29rem),var(--bg);
+}
+main { max-width:1460px; margin:auto; padding:28px; }
+h1 { margin:0; font-size:30px; }
+h2 { margin:0; font-size:20px; }
+h3 {
+  margin:9px 0 11px; font:600 13px/1.45 ui-monospace,monospace;
+  overflow-wrap:anywhere;
+}
+a { color:#75b6ff; text-decoration:none; }
+a:hover { text-decoration:underline; }
+.lead { max-width:1050px; color:var(--muted); font-size:15px; }
+.cards { display:grid; grid-template-columns:repeat(6,1fr); gap:11px; }
+.summary,.panel,.case-card {
+  border:1px solid var(--line); border-radius:14px;
+  background:linear-gradient(145deg,#122139f5,#0b1729f5);
+}
+.summary { padding:15px; }
+.summary .label { color:var(--muted); font-size:11px; letter-spacing:.07em; }
+.summary .value { margin-top:7px; font-size:25px; font-weight:780; }
+.panel { margin-top:16px; padding:18px; }
+.audit { display:grid; grid-template-columns:1.35fr .65fr; gap:16px; }
+.audit p { color:var(--muted); margin:5px 0; }
+.section-title {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:13px;
+}
+.section-title span { color:var(--muted); }
+.case-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(350px,1fr)); gap:12px;
+}
+.case-card { padding:15px; background:var(--panel2); }
+.case-top { display:flex; justify-content:space-between; align-items:center; }
+.state { font-weight:750; font-size:12px; }
+.state.ok { color:var(--green); } .state.bad { color:var(--red); }
+.density { color:#09101b; background:var(--amber); border-radius:999px;
+  padding:3px 8px; font-weight:800; }
+.tags { display:flex; flex-wrap:wrap; gap:6px; }
+.tags span { color:#bfd0e3; background:#14243a; border:1px solid #263d59;
+  border-radius:999px; padding:3px 7px; font-size:11px; }
+.timing { margin:14px 0 10px; }
+.timing-row {
+  display:grid; grid-template-columns:130px 1fr; gap:9px; align-items:center;
+  color:#c8d6e7; font-size:12px; margin:7px 0;
+}
+.track { height:10px; border-radius:999px; overflow:hidden;
+  background:#18243a; border:1px solid #2b405c; }
+.track span { display:block; height:100%; min-width:2px; border-radius:999px; }
+.track .first { background:var(--green); }
+.track .final { background:linear-gradient(90deg,#337ee7,#9a63ed); }
+.cost { color:var(--muted); background:#0d1929; border-radius:9px;
+  padding:9px; font-size:12px; }
+.links { display:flex; flex-wrap:wrap; gap:12px; margin-top:11px; }
+.primary { color:white; background:#1d65ba; padding:5px 9px; border-radius:7px; }
+.disabled { color:#708198; }
+code { color:#d7e7fb; overflow-wrap:anywhere; }
+.foot { color:var(--muted); font-size:12px; }
+@media(max-width:1050px) {
+  .cards { grid-template-columns:repeat(3,1fr); } .audit { grid-template-columns:1fr; }
+}
+@media(max-width:650px) {
+  main { padding:16px; } .cards { grid-template-columns:repeat(2,1fr); }
+  .case-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body><main>
+<h1>Dense-channel benchmark V2</h1>
+<p class="lead">这是独立于已发布 509 例的新压力集。旧通道实例的目标起点
+93.5% 位于 block 边缘；本套件提高实际货架密度，并明确按 edge / inner /
+deep 分层选择目标。生成见证只证明实例可解，Carrier-LaCAM benchmark
+不会读取见证。</p>
+
+<section class="cards">
+  <article class="summary"><div class="label">解出率</div>
+    <div class="value">8 / 8</div></article>
+  <article class="summary"><div class="label">密度范围</div>
+    <div class="value">75.0%–93.8%</div></article>
+  <article class="summary"><div class="label">内层起点</div>
+    <div class="value">54 / 96</div></article>
+  <article class="summary"><div class="label">深层起点</div>
+    <div class="value">12 / 96</div></article>
+  <article class="summary"><div class="label">内层 goals</div>
+    <div class="value">84 / 96</div></article>
+  <article class="summary"><div class="label">并行 wall time</div>
+    <div class="value">8.8 s</div></article>
+</section>
+
+<section class="panel audit">
+  <div>
+    <h2>怎样读时间条</h2>
+    <p>绿色是 kernel 原始首解时刻：搜索第一次到达 goal，但尚未经过 normalize、
+    repair 和最终验证；紫色是第二遍严格改进搜索、验证和清理完成后的最终返回
+    时刻。两条都以本例 10 秒预算为横轴，它们不是机器人执行计划的 makespan。</p>
+  </div>
+  <div>
+    <p>Suite：<code>dense_channel_v2_8</code></p>
+    <p>Commit：<code>36622a9d42fe682eaca49dd05ff5e166f117bbb2</code></p>
+    <p>Binary SHA：<code>d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d</code></p>
+    <p><a href="rows.csv">rows.csv</a> ·
+       <a href="timing.json">timing.json</a> ·
+       <a href="summary.json">summary.json</a></p>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-title"><h2>3×3 storage blocks</h2>
+  <span>2 个密度档</span></div>
+  <div class="case-grid"><article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">77.8%</span>
+  </div>
+  <h3>dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>3×3 block</span>
+    <span>7/9 shelves</span>
+    <span>start: edge 6 · inner 6 · deep 0</span>
+    <span>goal: edge 6 · inner 6</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 0.189 s</div>
+      <div class="track"><span class="first" style="width:1.89%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 8.664 s</div>
+      <div class="track"><span class="final" style="width:86.64%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 33 → 最终 33<br>Weighted SOC 251 ·
+    phase 2: SEARCH_CUTOFF</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b3_a1_s7of9_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">88.9%</span>
+  </div>
+  <h3>dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>3×3 block</span>
+    <span>8/9 shelves</span>
+    <span>start: edge 6 · inner 6 · deep 0</span>
+    <span>goal: edge 6 · inner 6</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 0.309 s</div>
+      <div class="track"><span class="first" style="width:3.09%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 8.663 s</div>
+      <div class="track"><span class="final" style="width:86.63%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 68 → 最终 68<br>Weighted SOC 527 ·
+    phase 2: SEARCH_CUTOFF</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b3_a1_s8of9_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article></div>
+</section>
+<section class="panel">
+  <div class="section-title"><h2>4×4 storage blocks</h2>
+  <span>3 个密度档</span></div>
+  <div class="case-grid"><article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">75.0%</span>
+  </div>
+  <h3>dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>4×4 block</span>
+    <span>12/16 shelves</span>
+    <span>start: edge 6 · inner 6 · deep 0</span>
+    <span>goal: edge 0 · inner 12</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 0.135 s</div>
+      <div class="track"><span class="first" style="width:1.35%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 0.283 s</div>
+      <div class="track"><span class="final" style="width:2.83%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 45 → 最终 45<br>Weighted SOC 315 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b4_a1_s12of16_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">87.5%</span>
+  </div>
+  <h3>dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>4×4 block</span>
+    <span>14/16 shelves</span>
+    <span>start: edge 6 · inner 6 · deep 0</span>
+    <span>goal: edge 0 · inner 12</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 0.296 s</div>
+      <div class="track"><span class="first" style="width:2.96%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 0.608 s</div>
+      <div class="track"><span class="final" style="width:6.08%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 67 → 最终 67<br>Weighted SOC 527 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b4_a1_s14of16_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>4×4 block</span>
+    <span>15/16 shelves</span>
+    <span>start: edge 6 · inner 6 · deep 0</span>
+    <span>goal: edge 0 · inner 12</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 0.607 s</div>
+      <div class="track"><span class="first" style="width:6.07%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 1.243 s</div>
+      <div class="track"><span class="final" style="width:12.43%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 92 → 最终 92<br>Weighted SOC 756 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b4_a1_s15of16_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article></div>
+</section>
+<section class="panel">
+  <div class="section-title"><h2>9×9 storage blocks</h2>
+  <span>3 个密度档</span></div>
+  <div class="case-grid"><article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">75.3%</span>
+  </div>
+  <h3>dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>61/81 shelves</span>
+    <span>start: edge 4 · inner 8 · deep 4</span>
+    <span>goal: edge 0 · inner 12</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 1.139 s</div>
+      <div class="track"><span class="first" style="width:11.39%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 8.688 s</div>
+      <div class="track"><span class="final" style="width:86.88%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 3218 → 最终 457<br>Weighted SOC 1140 ·
+    phase 2: SEARCH_CUTOFF</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b9_a1_s61of81_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">87.7%</span>
+  </div>
+  <h3>dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>71/81 shelves</span>
+    <span>start: edge 4 · inner 8 · deep 4</span>
+    <span>goal: edge 0 · inner 12</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 0.202 s</div>
+      <div class="track"><span class="first" style="width:2.02%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 0.434 s</div>
+      <div class="track"><span class="final" style="width:4.34%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 115 → 最终 115<br>Weighted SOC 954 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b9_a1_s71of81_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_h20w20_b9_a1_s76of81_r8_t12_seed0</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    <span>start: edge 4 · inner 8 · deep 4</span>
+    <span>goal: edge 0 · inner 12</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 1.751 s</div>
+      <div class="track"><span class="first" style="width:17.51%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 3.575 s</div>
+      <div class="track"><span class="final" style="width:35.75%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 329 → 最终 252<br>Weighted SOC 2090 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_h20w20_b9_a1_s76of81_r8_t12_seed0.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_suite_v2_20260906/cases/dense_channel_h20w20_b9_a1_s76of81_r8_t12_seed0.html">初始布局</a>
+    <a href="../dense_channel_suite_v2_20260906/instances/dense_channel_h20w20_b9_a1_s76of81_r8_t12_seed0.yaml">YAML</a>
+    <a href="../dense_channel_suite_v2_20260906/certificates/dense_channel_h20w20_b9_a1_s76of81_r8_t12_seed0.plan">生成见证</a>
+  </div>
+</article></div>
+</section>
+
+<p class="foot">协议：carrier · seed 0 · unit weights · following allowed ·
+单例上限 10 秒 · 8 个并行 worker。动画只为 rows.csv 中
+success=1 且 plan SHA 匹配的计划生成，生成工具还会调用 authoritative
+validator 完整重放。</p>
+</main></body></html>

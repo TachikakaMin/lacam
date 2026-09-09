@@ -3,7 +3,9 @@
 #include <dd_planner.hpp>
 
 #include <algorithm>
+#include <memory>
 #include <optional>
+#include <random>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -202,6 +204,93 @@ TEST(dd_timed_transport,
         ins.grid.row(b[tick]) == 1;
   }
   EXPECT_TRUE(used_passing_bay);
+}
+
+TEST(dd_timed_transport,
+     loaded_carrier_uses_empty_storage_pocket_instead_of_backing_down_corridor)
+{
+  DDInstance ins;
+  ins.grid = DDGrid({"##.##", "....."});
+  ins.shelf_storage.assign(ins.grid.size(), 0);
+  const int west = ins.grid.idx(1, 0);
+  const int east = ins.grid.idx(1, 4);
+  const int pocket = ins.grid.idx(0, 2);
+  ins.shelf_storage[west] = 1;
+  ins.shelf_storage[east] = 1;
+  ins.shelf_storage[pocket] = 1;
+  ins.robots = {ins.grid.idx(1, 1), ins.grid.idx(1, 2)};
+  ins.shelves = {west, east};
+  ins.target_starts = {west, east};
+  ins.target_goals = {east, west};
+  ins.target_goal_sets = {{east}, {west}};
+  ins.finalize();
+
+  PhysConfig physical = initial_phys_config(ins);
+  physical.kappa = {0, 1};
+  physical.target_pos = physical.robots;
+  CarrierGuidance guidance;
+  guidance.custody_by_robot = {
+      carried_task_custody(
+          ins, 0, 0, ins.grid.idx(1, 1),
+          ins.grid.idx(1, 2), east,
+          {ins.grid.idx(1, 1), ins.grid.idx(1, 2),
+           ins.grid.idx(1, 3), east},
+          physical),
+      carried_task_custody(
+          ins, 1, 1, ins.grid.idx(1, 2),
+          ins.grid.idx(1, 1), west,
+          {ins.grid.idx(1, 2), ins.grid.idx(1, 1), west},
+          physical),
+  };
+  guidance.timed_transport.by_robot.resize(2);
+  guidance.timed_transport.by_robot[0] = TimedRouteHint{
+      RouteStatus::OK, east,
+      {ins.grid.idx(1, 1), ins.grid.idx(1, 2),
+       ins.grid.idx(1, 3), east},
+      3, 0};
+  guidance.timed_transport.by_robot[1] = TimedRouteHint{
+      RouteStatus::OK, west,
+      {ins.grid.idx(1, 2), ins.grid.idx(1, 3),
+       ins.grid.idx(1, 4)},
+      4, 0};
+
+  for (const int seed : {0, 1, 2}) {
+    const TAPFInstance view(ins);
+    std::mt19937 mt(seed);
+    TAPFStats stats;
+    TAPFPlanner planner(
+        &view, nullptr, &mt, 0, 0, 0.001f, true, &stats);
+    Config config;
+    for (const int cell : physical.robots)
+      config.push_back(view.G.U[cell]);
+    ShelfState shelf;
+    shelf.target_pos = physical.target_pos;
+    shelf.anon_occ = physical.anon_occ;
+    shelf.kappa = physical.kappa;
+    auto node = std::make_unique<TAPFNode>(
+        config, shelf, planner.D, &view,
+        std::vector<int>(view.N, -1),
+        TAPFAssignmentState(), nullptr);
+    node->guide =
+        std::make_unique<CarrierGuidance>(guidance);
+    node->order = {1, 0};
+    node->constraint_order = node->order;
+    planner.invalidate_carrier_scratch();
+    TAPFConstraint root;
+    ASSERT_TRUE(planner.get_new_config(node.get(), &root));
+    ASSERT_TRUE(planner.apply_carrier_effects(node.get()));
+
+    ASSERT_EQ(planner.ops_scratch.size(), 2u);
+    EXPECT_EQ(planner.ops_scratch[0].kind, Op::MOVE);
+    EXPECT_EQ(
+        planner.ops_scratch[0].to, ins.grid.idx(1, 2));
+    EXPECT_EQ(planner.ops_scratch[1].kind, Op::MOVE);
+    EXPECT_EQ(planner.ops_scratch[1].to, pocket)
+        << "an empty storage slot one cell off the aisle is a legal "
+           "temporary passing pocket; the yielding loaded carrier should "
+           "not be driven backward along the aisle (seed "
+        << seed << ")";
+  }
 }
 
 TEST(dd_timed_transport,

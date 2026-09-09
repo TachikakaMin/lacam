@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pair 增量 Hungarian：518 例最终结果</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202124;
+      --muted: #62676d;
+      --line: #d8dadd;
+      --paper: #ffffff;
+      --soft: #f5f6f7;
+      --accent: #075d75;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 16px/1.65 system-ui, -apple-system, BlinkMacSystemFont,
+            "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(980px, calc(100% - 36px));
+      margin: 48px auto 72px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin: 0 0 12px; font-size: clamp(30px, 5vw, 48px); }
+    h2 {
+      margin: 42px 0 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      font-size: 23px;
+    }
+    p { max-width: 76ch; }
+    .lead { font-size: 19px; }
+    .muted { color: var(--muted); }
+    .verdict {
+      margin: 26px 0;
+      padding: 18px 20px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+    }
+    .verdict strong { color: var(--accent); }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    th { background: var(--soft); }
+    td:last-child, th:last-child { white-space: normal; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+    }
+    a { color: var(--accent); }
+    ul { padding-left: 22px; }
+    .evidence li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Pair 增量 Hungarian：实现正确，整体没有加速</h1>
+  <p class="lead">
+    这次改动把 Pair lazy certificate 接到了 LaCAM-TAPF 已有的增量
+    Hungarian 核心上。代码复用、正确性和兼容性都通过了，但正式
+    518 例结果没有显示整体性能收益。
+  </p>
+  <p class="muted">
+    正式协议：14 workers，每例 10 秒，seed 0，unit weights；
+    full = quick 77 + factorial 432 + 40×40 dense-channel 9。
+  </p>
+
+  <div class="verdict">
+    <strong>结论：</strong>
+    这是一个正确的共享核心重构和增量实现，但还不是有效的整体性能优化。
+    full 的 solved set 完全不变，累计 solver time 增加 5.8 秒；
+    40×40 仍为 6/9。后续若继续优化，应先补 Pair 阶段的独立耗时统计，
+    再判断开销来自 row repair、forced certificate，还是其他 guidance 工作。
+  </div>
+
+  <h2>正式对比</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>指标</th>
+          <th>pre-Pair 基线</th>
+          <th>共享增量版</th>
+          <th>判断</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>quick solved</td>
+          <td>47 / 77</td>
+          <td>47 / 77</td>
+          <td>77 例的成功状态、cost、plan SHA 全部相同</td>
+        </tr>
+        <tr>
+          <td>full solved</td>
+          <td>485 / 518</td>
+          <td>485 / 518</td>
+          <td>无新增求解，也无丢解</td>
+        </tr>
+        <tr>
+          <td>共同成功例 cost</td>
+          <td colspan="2">0 better / 484 equal / 1 worse</td>
+          <td>一例 makespan 增加 1</td>
+        </tr>
+        <tr>
+          <td>成功例总 makespan</td>
+          <td>29,463</td>
+          <td>29,464</td>
+          <td>增加 1</td>
+        </tr>
+        <tr>
+          <td>成功例总 weighted SOC</td>
+          <td>135,070</td>
+          <td>135,067</td>
+          <td>减少 3，但 makespan 优先</td>
+        </tr>
+        <tr>
+          <td>累计 solver time</td>
+          <td>3,557.3 s</td>
+          <td>3,563.1 s</td>
+          <td>增加 5.8 s（约 0.16%）</td>
+        </tr>
+        <tr>
+          <td>并行 wall time</td>
+          <td>260.9 s</td>
+          <td>260.5 s</td>
+          <td>调度噪声范围，不代表单例加速</td>
+        </tr>
+        <tr>
+          <td>40×40 solved</td>
+          <td>6 / 9</td>
+          <td>6 / 9</td>
+          <td>六个成功计划的 cost 和 SHA 均相同</td>
+        </tr>
+        <tr>
+          <td>40×40 runtime 总和</td>
+          <td>72.222 s</td>
+          <td>72.934 s</td>
+          <td>没有净收益</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>代码到底复用了什么</h2>
+  <pre>tapf_assignment.hpp
+  IncrementalHungarianState&lt;Scalar&gt;
+  ├── solve_full()
+  ├── repair_rows()
+  └── 唯一的 augment / dual update
+
+TAPFAssignmentState
+  └── 整数 cost 与 stable tie 适配
+
+Pair lazy certificate
+  └── long double、INF、deadline 适配
+      ├── 跨 upper epoch 恢复 primal/dual state
+      ├── 只 repair 发生变化的 target rows
+      └── forced edge 在状态副本上单行 repair</pre>
+  <p>
+    仓库里只剩一份增广路径和 dual 更新循环。Pair 层不再维护第二套
+    Hungarian。若浮点 dual invariant 已损坏，代码会显式报错，不会偷偷
+    退回一次 full solve。
+  </p>
+
+  <h2>三个具体例子</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>例子</th>
+          <th>基线 → 当前</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>b9, 8 robots, 12 targets</code></td>
+          <td>7.522 s → 7.439 s<br>232,623 → 148,237 rollout steps</td>
+          <td>局部工作量明显下降，最终计划仍为 (99, 820)</td>
+        </tr>
+        <tr>
+          <td><code>b4, 8 robots, 12 targets</code></td>
+          <td>8.628 s → 8.633 s<br>23,792 → 19,446 rollout steps</td>
+          <td>Pair 工作减少，但总时间几乎不变，说明还有其他主导开销</td>
+        </tr>
+        <tr>
+          <td><code>g2 medium scarce cross-heavy shared-pool</code></td>
+          <td>(27, 76) → (28, 73)</td>
+          <td>makespan 增加 1，属于正式 full 中唯一的 cost 回退</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>验证与未解决问题</h2>
+  <ul>
+    <li>C++：423 / 423 通过，包括原 TAPF compatibility。</li>
+    <li>benchmark gate：11 / 11 通过；独立 GPT-5.6 Sol/high 审查 APPROVE。</li>
+    <li>quick 77：逐例零语义差异。</li>
+    <li>full 518：4 个成功计划 SHA 变化，其中 3 个 cost 相同、1 个 cost 回退。</li>
+    <li>
+      当前 CSV 没有 Pair Hungarian 的独立毫秒统计，因此只能确定“整体未加速”，
+      还不能精确拆出 row repair 与 forced certificate 各占多少时间。
+    </li>
+  </ul>
+
+  <h2>原始证据</h2>
+  <ul class="evidence">
+    <li><a href="../../results_full_incremental_vacancy_518_20260908/rows.csv">pre-Pair full rows.csv</a></li>
+    <li><a href="../../results_full_incremental_vacancy_518_20260908/timing.json">pre-Pair full timing.json</a></li>
+    <li><a href="../../results_full_pair_shared_hungarian_518_20260908/rows.csv">当前 full rows.csv</a></li>
+    <li><a href="../../results_full_pair_shared_hungarian_518_20260908/timing.json">当前 full timing.json</a></li>
+    <li><a href="../../results_quick_pair_shared_hungarian_20260908_r2/rows.csv">当前 quick rows.csv</a></li>
+    <li><a href="../../full_review_approval_pair_shared_hungarian_518_20260908.json">full approval JSON</a></li>
+    <li><a href="../../../lacam/include/tapf_assignment.hpp">共享 Hungarian 核心</a></li>
+    <li><a href="../../../lacam/src/carrier_assignment.hpp">Pair 薄适配层</a></li>
+    <li><a href="../../../tests/test_pair_incremental_invalid_dual.cpp">invalid-dual regression</a></li>
+  </ul>
+</main>
+</body>
+</html>

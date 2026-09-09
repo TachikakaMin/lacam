@@ -19,6 +19,7 @@ AXES = (
     "task_profile",
     "goal_mode",
 )
+DENSE_FAMILY = "dense_channel_block_edge_40x40"
 
 
 def _success(row):
@@ -154,10 +155,15 @@ def _group_summaries(records, key):
 
 def _timing_payload(timing):
     wall = float(timing["wall_time_sec"])
-    solver_sum = float(
-        timing["methods"]["carrier"]["solver_time_sum_sec"]
-    )
+    methods = timing.get("methods", {})
+    if len(methods) != 1:
+        raise ValueError(
+            "comparison timing must contain exactly one method"
+        )
+    method, values = next(iter(methods.items()))
+    solver_sum = float(values["solver_time_sum_sec"])
     return {
+        "method": method,
         "wall_time_sec": wall,
         "solver_time_sum_sec": solver_sum,
         "binary_sha256": timing["provenance"]["binary_sha256"],
@@ -215,13 +221,20 @@ def build_comparison_data(
         else:
             verdict = "both_failed"
         meta = metadata.get(name, {})
+        family = current_row.get(
+            "family", baseline_row.get("family", "")
+        )
+        if name in metadata:
+            scope = "factorial"
+        elif family == DENSE_FAMILY:
+            scope = "dense"
+        else:
+            scope = "quick"
         records.append(
             {
                 "instance": name,
-                "scope": "factorial" if name in metadata else "quick",
-                "family": current_row.get(
-                    "family", baseline_row.get("family", "")
-                ),
+                "scope": scope,
+                "family": family,
                 **{axis: meta.get(axis) for axis in AXES},
                 "baseline_success": baseline_success,
                 "current_success": current_success,
@@ -279,6 +292,7 @@ def build_comparison_data(
         raise ValueError("suite definition hashes differ")
     factorial = [record for record in records if record["scope"] == "factorial"]
     quick = [record for record in records if record["scope"] == "quick"]
+    dense = [record for record in records if record["scope"] == "dense"]
     timing = {
         "baseline": baseline_timing,
         "current": current_timing,
@@ -295,6 +309,7 @@ def build_comparison_data(
         "overview": _summary(records),
         "quick": _summary(quick),
         "factorial": _summary(factorial),
+        "dense": _summary(dense),
         "timing": timing,
         "groups": {
             "scope": _group_summaries(records, "scope"),
@@ -322,6 +337,21 @@ def _bwe(summary):
     return " / ".join(
         str(value) for value in summary["better_equal_worse"]
     )
+
+
+def _bwe_class(summary):
+    better, _, worse = summary["better_equal_worse"]
+    if better > worse:
+        return "good"
+    if worse > better:
+        return "bad"
+    return "same"
+
+
+def _ratio_class(ratio):
+    if ratio is None or ratio == 1:
+        return "same"
+    return "good" if ratio < 1 else "bad"
 
 
 def _group_table(rows):
@@ -427,7 +457,7 @@ def _generate_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Full 509 对比：{baseline_label} vs {current_label}</title>
+<title>Full benchmark 对比：{baseline_label} vs {current_label}</title>
 <style>
 :root {{ --bg:#07101b; --panel:#0d1c2d; --line:#28445f; --text:#edf6ff;
   --muted:#9fb3c7; --good:#2dd4bf; --bad:#fb7185; --same:#94a3b8;
@@ -457,7 +487,7 @@ h2 {{ margin:32px 0 12px; }} p {{ color:var(--muted); }}
 .nav a {{ border:1px solid var(--line); padding:8px 11px; border-radius:9px;
   text-decoration:none; background:#091724; }}
 select,input {{ background:#081522; color:var(--text); border:1px solid var(--line);
-  border-radius:8px; padding:8px 10px; }}
+  border-radius:8px; padding:8px 10px; max-width:100%; }}
 input {{ min-width:260px; }}
 .table-wrap {{ overflow:auto; }}
 table {{ width:100%; border-collapse:collapse; font-size:12px; }}
@@ -476,6 +506,9 @@ canvas {{ display:block; width:100%; height:330px; background:#081522;
   background:#241d0d; color:#f8deb0; }}
 .foot {{ margin-top:28px; font-size:12px; color:var(--muted); }}
 @media(max-width:900px) {{ .two {{ grid-template-columns:1fr; }} }}
+@media(max-width:600px) {{
+  input {{ min-width:0; width:100%; max-width:100%; }}
+}}
 </style>
 </head>
 <body>
@@ -495,14 +528,14 @@ dashboard、rows.csv、timing.json 和 provenance 为准。</p>
 <section class="cards">
   <div class="card"><small>solved</small><b>{base_solved}/{total} → {current_solved}/{total}</b>
     <span class="same">gained {gained} · lost {lost}</span></div>
-  <div class="card"><small>严格 (T,W) B / E / W</small><b class="good">{lex_bwe}</b>
+  <div class="card"><small>严格 (T,W) B / E / W</small><b class="{lex_class}">{lex_bwe}</b>
     <span class="same">{common} 个共同成功例</span></div>
   <div class="card"><small>Makespan T B / E / W</small><b>{t_bwe}</b>
-    <span class="good">几何比 {t_ratio}</span></div>
+    <span class="{t_ratio_class}">几何比 {t_ratio}</span></div>
   <div class="card"><small>Work W B / E / W</small><b>{w_bwe}</b>
-    <span class="bad">几何比 {w_ratio}</span></div>
+    <span class="{w_ratio_class}">几何比 {w_ratio}</span></div>
   <div class="card"><small>wall time</small><b>{base_wall}s → {current_wall}s</b>
-    <span class="bad">{wall_ratio}×</span></div>
+    <span class="{wall_ratio_class}">{wall_ratio}×</span></div>
   <div class="card"><small>plan hash changed</small><b>{plan_changes}/{common}</b>
     <span class="same">共同成功例</span></div>
 </section>
@@ -559,7 +592,8 @@ dashboard、rows.csv、timing.json 和 provenance 为准。</p>
     <input id="search" placeholder="搜索 instance">
     <select id="scopeFilter"><option value="">全部范围</option>
       <option value="quick">quick 77</option>
-      <option value="factorial">factorial 432</option></select>
+      <option value="factorial">factorial 432</option>
+      <option value="dense">dense 40×40</option></select>
     <select id="verdictFilter"><option value="">全部结论</option>
       <option value="better">better</option><option value="equal">equal</option>
       <option value="worse">worse</option><option value="gained">gained</option>
@@ -671,13 +705,21 @@ scatter("scatterW","baseline_work","current_work");
         lost=overview["lost"],
         common=overview["common_solved"],
         lex_bwe=_bwe(overview["lexicographic"]),
+        lex_class=_bwe_class(overview["lexicographic"]),
         t_bwe=_bwe(overview["makespan"]),
         t_ratio=_fmt(overview["makespan"]["geometric_ratio"], 6),
+        t_ratio_class=_ratio_class(
+            overview["makespan"]["geometric_ratio"]
+        ),
         w_bwe=_bwe(overview["work"]),
         w_ratio=_fmt(overview["work"]["geometric_ratio"], 6),
+        w_ratio_class=_ratio_class(
+            overview["work"]["geometric_ratio"]
+        ),
         base_wall=_fmt(timing["baseline"]["wall_time_sec"], 1),
         current_wall=_fmt(timing["current"]["wall_time_sec"], 1),
         wall_ratio=_fmt(timing["wall_ratio"], 2),
+        wall_ratio_class=_ratio_class(timing["wall_ratio"]),
         plan_changes=overview["plan_hash_changes"],
         scope_rows=_group_table(data["groups"]["scope"]),
         family_rows=_group_table(data["groups"]["family"]),
@@ -726,12 +768,20 @@ def generate_comparison_dashboard(
     )
     output = Path(out_dir)
     output.mkdir(parents=True, exist_ok=True)
+    baseline_rows_name = "baseline_rows.csv"
+    current_rows_name = "current_rows.csv"
+    (output / baseline_rows_name).write_bytes(
+        Path(baseline_rows_path).read_bytes()
+    )
+    (output / current_rows_name).write_bytes(
+        Path(current_rows_path).read_bytes()
+    )
     page = _generate_html(
         data,
         baseline_label=baseline_label,
         current_label=current_label,
-        baseline_rows_url=_relative_url(baseline_rows_path, output),
-        current_rows_url=_relative_url(current_rows_path, output),
+        baseline_rows_url=baseline_rows_name,
+        current_rows_url=current_rows_name,
         report_url=report_url,
         baseline_dashboard_url=baseline_dashboard_url,
         current_dashboard_url=current_dashboard_url,

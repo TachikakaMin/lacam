@@ -473,6 +473,61 @@ allocation 的贡献。
 多目标共享 blocker、vacancy、robot capacity 时，两种可分估计都可能失真，
 不能宣称简单换成 min-max 就得到全局 makespan matching。
 
+#### 5.1.1 Pair lazy certificate 复用 LaCAM-TAPF 增量 Hungarian
+
+PairCost lazy-exact certificate 只加速上述同一个 injective min-sum 问题，
+不改变 PairCost、primary objective、stable tie 或最终 `tau_guide` 语义。
+实现必须直接复用 `TAPFAssignmentState` 所基于的 ITA primal/dual
+augmenting-path 核心，禁止在 carrier 模块维护第二份
+`augment_from_row()` / dual-repair 实现。
+
+对应修改位置固定为：
+
+* `lacam/include/tapf_assignment.hpp`：从现有 `TAPFAssignmentState` 抽出唯一的
+  square-padded primal/dual state、full solve 与 `repair_rows()` 核心；
+  `TAPFAssignmentState` 保持原整数 cost/tie 编码，只作为该核心的薄适配层；
+* `lacam/src/carrier_assignment.hpp`：Pair 只提供 `long double`、INF、deadline
+  与结果转换适配，不得复制增广或 dual 更新循环；
+* `lacam/src/carrier_tau.hpp`：同一 lazy certificate 内，PairCost 精算只标记
+  发生数值变化的 target rows；跨 upper epoch 保存并恢复同一 primal/dual
+  state；root-goal commitment 变化只标记允许列集合改变的 rows；
+* forced-edge lower bound 在共享状态的副本上把一个 target row 限制到指定
+  goal，再调用同一个 `repair_rows()`。副本只隔离假设检查，不代表第二套
+  assignment pipeline。
+
+矩形 Pair 矩阵继续补零权 dummy rows；浮点 reduced cost 只允许容忍舍入级负
+误差。每轮 row repair、状态恢复和 forced-edge 检查都必须与 full
+`hungarian_long_double()` shadow oracle 的最优值一致。列集合、cost/tie
+版本或状态维度不匹配时才允许 full solve。
+
+#### 5.1.2 Pair 下界采用按需三级精化
+
+增量 Hungarian 之前不得为了初始化矩阵而无条件运行所有 eligible edge 的
+8-step prefix compiler。每条边改为单调经过以下三个阶段：
+
+```text
+CHEAP_BOUND -> PREFIX_BOUND -> EXACT
+```
+
+`CHEAP_BOUND` 只使用当前 target 位置到 goal 的 wall distance，以及非零任务
+必需的一次 Lift/Drop 下界；它必须满足 `L0(e) <= PairCost(e)`，且不读取其他
+shelf/vacancy。`PREFIX_BOUND` 保留现有 8-step
+`pair_cost_prefix_lower_bound()`，继续满足 `L1(e) <= PairCost(e)`。
+
+lazy certificate 每次只把一条仍可能进入 primary-optimal assignment 的边提升
+一个阶段：当前 assignment 选中的边最终必须达到 `EXACT`；未选边只有在
+forced-edge lower bound 不大于当前 exact assignment cost 时才从
+`CHEAP_BOUND` 提升到 `PREFIX_BOUND`，再按同一条件从 `PREFIX_BOUND` 提升到
+`EXACT`。阶段提升即使没有改变数值也必须被视为有效进展，避免循环停滞。
+
+跨 upper epoch 时，dependency 仍有效的 `PREFIX_BOUND`/`EXACT` 可以直接复用；
+dependency 失效的边先退回 `CHEAP_BOUND`，不得立即重跑 prefix compiler。
+cheap bound 的依赖只包含该 target 的当前位置，因此其他 shelf/vacancy 变化
+不会令它失效。终止证明仍使用 §5.1.1 的 mixed lower-bound matrix：选中边均为
+exact，且每条未精化边的 forced lower bound 严格大于 exact incumbent，所以
+最终 `tau_guide`、primary objective 与 stable tie 必须和 fully evaluated
+PairCost matrix 完全一致。
+
 ### 5.2 Makespan lower bound
 
 下面是本稿的推导，要求当前模型为单位时长、四邻接、robot 是唯一
@@ -2443,3 +2498,273 @@ quick/full 等成本实例
 factorial manifest、evaluation JSON 和 approval 生成，不手抄 full 核心统计。
 独立网页复核最终明确 `APPROVE`：报告数据、负面结论、对比标签和导航一致，
 静态引用没有缺失。
+
+## 26. Dense-channel benchmark V2
+
+2026-09-06 对已发布通道类 benchmark 的生成逻辑做了单独审计。旧
+`warehouse_blocks` 9 例的最高实际密度只有 `75.0%–77.8%`；108 个目标
+货架起点中有 `101` 个位于 storage block 边界，108 个 goal 中有 `105`
+个位于边界。432 个 factorial 例的 4608 个目标货架起点则全部位于边界。
+
+这不是随机 seed 偶然造成的。旧 9 例按相邻 block 间的最短
+`shelf→vacancy` 距离配对，最近点自然贴近中间通道；factorial 生成器为了
+构造直达型顺序证书，把 target start 固定为 `_gateway_options()` 的
+`slot`，该位置按定义就是 block 边界。
+
+这些结果仍作为已发布 509 例的历史证据保留，不原地改写。新增
+`dense-channel-v2` 独立压力集，专门覆盖旧集合缺失的高密度内层清障：
+
+- 3×3 block 使用 7/9 与 8/9 个货架；8/9 已是保留至少一个空位时的最高
+  非退化密度；
+- 4×4 block 使用 12/16、14/16、15/16；
+- 9×9 block 使用 61/81、71/81、76/81；
+- 每例仍为 20×20、单格通道、8 台机器人、12 个目标和 seed 0；
+- 3×3/4×4 的目标起点至少一半来自 depth≥1，9×9 同时覆盖 edge、
+  depth=1 与 depth≥2；goal 也必须保留可测量的内层覆盖；
+- 不能再用“最近 endpoint”或“gateway-only”生成目标。
+
+可解性采用反向构造，而不是把目标旁边预留一条简单空路。生成器先建立每个
+block 货架数完全一致的合法终态，再在每个 block 内执行 validator 接受的
+`Lift→Move-to-vacancy→Drop` 滑块扰动。目标身份在扰动后按深度分层选择，
+逆序并逐动作取逆得到 witness。最终 YAML、witness 和网页都来自同一物理
+状态；witness 必须通过 authoritative validator，但不能作为 solver 输入。
+
+实现边界：
+
+- 新生成器和新 suite 使用现有 `ddbench.instance`、`validator`、
+  `block_geometry` 与网页工具；
+- 不修改已发布的 quick 77/full 509 membership、结果或 approval；
+- 新 suite 使用同样的 carrier、10 秒、seed 0、unit weights 与 success
+  semantics 独立运行；
+- 测试必须固定实际密度、每块均匀货架数、目标深度配额、机器人通道起点、
+  witness 合法性和生成确定性。
+
+### 26.1 Interior-to-edge 压力集
+
+2026-09-07 在相同高密度几何上新增 `dense_channel_i2e_v1_8`。它复用原
+V2 的 8 个 block-size/密度组合和同一份物理扰动，只改变目标货架的选择：
+每个起点都必须满足 block depth≥1，每个 singleton goal 都必须满足
+block depth=0。这样直接覆盖“从拥挤内部取货，送到紧邻通道的边缘货位”，
+同时保持与旧深度分层集合可控对照。
+
+生成结果共 8 例、96 个目标；内部起点 96/96，其中 depth≥2 的深层起点
+25 个；边缘 goal 96/96。所有 YAML 对应的逆向 witness 均通过
+authoritative validator。正式配置为
+`benchmark/dense_channel_interior_to_edge_benchmark_v1.json`，生成页为
+`benchmark/viz_web/dense_channel_i2e_suite_v1_20260907/`。
+
+当前 terminal-scope 二进制按 carrier、10 秒、seed 0、unit weights 和
+8 worker 跑出 8/8；makespan 总和 617，weighted SOC 总和 4851，并行
+wall time 8.7 秒。结果与动画位于
+`benchmark/results_dense_channel_i2e_terminal_scope_20260907/` 和
+`benchmark/viz_web/dense_channel_i2e_benchmark_terminal_scope_20260907/`。
+
+### 26.2 40×40 per-block edge goal-set 扩展
+
+同日新增 40×40 扩展集。它不再给每个 target 绑定一个 singleton 边缘格，
+而是写入显式 `goals` 集合：每个内部货箱的最终 eligible goal set 是其
+起始 storage block 的全部 edge cell。这个集合只约束最终停放位置；运输
+途中仍可穿过其他 block 和通道，也可在任何合法 storage cell 临时 DROP。
+3×3、4×4、9×9 block 分别提供 8、12、32 个 eligible goals/target。
+
+规模矩阵使用三个高密度布局（8/9、15/16、76/81）与三档负载：
+8 robots/12 targets、16/24、32/48，共 9 例。所有 target 起点满足
+depth≥1，目标集合全部满足 depth=0 且与起点属于同一 block；每例均附有
+authoritative validator 接受的逆向 witness。
+
+正式 carrier 10 秒结果为 0/9，说明当前 40×40 多目标集路径已超出默认
+预算。对最小档 `b4、15/16、8 robots、12 targets` 单独使用 60 秒诊断时，
+33.052 秒获得首解，makespan 57、weighted SOC 461，58.727 秒完成返回。
+其中 guidance 耗时 48.800 秒，vacancy potential 构建耗时 33.470 秒，
+因此瓶颈是大图引导构建，而不是实例无解。
+
+定义、结果和页面分别位于：
+
+- `benchmark/dense_channel_block_edge_40x40_benchmark_v1.json`
+- `benchmark/viz_web/dense_channel_block_edge_40x40_suite_v1_20260907/`
+- `benchmark/results_dense_channel_block_edge_40x40_terminal_scope_20260907/`
+- `benchmark/viz_web/dense_channel_block_edge_40x40_benchmark_terminal_scope_20260907/`
+- `benchmark/viz_web/dense_channel_block_edge_40x40_diagnostic_60s_20260907.html`
+
+2026-09-08 经用户确认，这 9 例作为 protected full benchmark 的新增组，
+与原 quick 77 和 factorial 432 合并，当前正式 full 口径为 518 例。
+历史 sealed full 509 的 membership、结果和 approval 继续保留为历史证据，
+不回写或重解释。
+
+## 27. Vacancy-aware shared carrier 收尾
+
+2026-09-07 的收尾改动继续沿用唯一的 LaCAM-TAPF 生产路径：
+
+```text
+TAPFPlanner::attach_carrier_guidance
+  → carrier_detail::build_task_br_guidance
+  → 现有 PairCost / tau / Task-BR 编译
+  → 现有 rho matching、PIBT 与 timed transport
+```
+
+`carrier` 与 `carrier_brd` 共用上述 guidance/compiler helper；没有新增
+平行 planner、第二套 search pipeline、运行时策略开关或 testcase
+fallback。无 pick/place 的普通 LaCAM-TAPF 状态不会产生 carrier task，
+因此自然退化到原 successor、goal 和搜索行为。
+
+### 27.1 Vacancy potential 与候选排序
+
+vacancy potential 由当前 upper occupancy 和 storage topology 构建，只在
+现有合法候选集合内提供 clearance 次序。候选仍先比较原本的 exact
+clearance `Q`；只有 `Q` 完全相同时，才依次比较有限 continuity 与原
+reservation/canonical tie。它不改变 primitive successor、effect
+legality、PairCost 或 tau 的可行域。
+
+不依赖 tau 的 occupancy-only potential 可以进入
+`VacancyPotentialCache`；使用 settled target / assigned goal 的 tau-aware
+变体必须在当前编译内本地构建，不能复用 occupancy-only cache。
+
+### 27.2 Continuity 的范围与生命周期
+
+continuity 只解决 flexible shared-pool 中相邻 upper epoch 的 exact-Q
+首选翻转。一个实例只有在至少一个 target 的合法 goal set 含多个位置时，
+才允许从上一 epoch 提取 `RootTransferContinuity`。全部 singleton
+fixed-goal 的实例始终以空 continuity 编译，包括 forced-effect
+归一化；固定目标的当前几何不应被历史 transfer 改写。
+
+历史 transfer 必须仍满足当前 shelf/source 物理状态才可参与 tie；stale
+source 直接丢弃。continuity 只继承上一 epoch 实际选择，一次未被重新选择
+后即失效，不能由自身反复续期。它只影响 exact-Q tie，不新增候选、不覆盖
+reservation，也不构成任务所有权。
+
+### 27.3 在途 forced effect
+
+跨 epoch 恢复的 forced effect 必须对应可重放的相邻合法 shelf
+transition。在途货架若位于非 storage transit cell，需要把尚未完成的
+transfer 注入当前 Task-BR 图；若 source 已是 storage cell，现有 custody
+episode 足以表达搬运状态，不重复强制同一 effect。共享依赖、后继解锁或
+rotation 所必需的 effect 仍须保留。
+
+fixed-goal forced effect 以“无 forced effect 的当前 frontier”为规范化
+基准：如果相同 root 的 predecessorless transfer 已能从当前状态重现，
+则该 effect 是冗余的；否则保留。priority 顺序变化本身不构成新的物理
+effect。
+
+规范化结果只依赖：
+
+```text
+(UpperSignature, raw_forced_effects, target_priority)
+```
+
+因此 `UpperEpochCache` 的 normalization LRU 只能使用这三个生产输入作为
+key。continuity 在 fixed-goal normalization 中恒为空且不参与计算，不能
+出现在 API 或 cache key 中形成 test-only 维度。cache 生命周期仍受 upper
+epoch 容量和驱逐规则约束；命中只能复用完全相同输入的 canonical effects。
+
+### 27.4 Flexible root-goal commitment
+
+仅 flexible target 可以继承上一 epoch 的 root-goal commitment。target
+仍在搬运中或对应 active root 尚未完成时，上一 tau goal 若仍合法且与其他
+commitment 全局 injective，则作为 constrained exact PairCost 的既定
+目标；非法、冲突、到达 goal、drop 完成或 mission 结束时立即释放。
+singleton target 不建立历史 commitment，其 exact assignment 始终由当前
+状态自然确定。
+
+### 27.5 Telemetry 与验收边界
+
+vacancy potential build/time/unreachable、clearance first-choice
+fallback、epoch first-transfer flip、chain overlap、upper-cache eviction
+和 guidance version 必须沿 `TAPFStats → DDStats → dd_benchmark →
+run_benchmark.py` 同口径导出。telemetry 只能观测生产路径，不能改变搜索。
+
+开发期使用冻结 quick 77、14 jobs、每例 10 秒、seed 0 和 unit weights。
+当前 carrier quick 为 47/77，公共 47 例 makespan/SOC
+`15133/38673 → 14454/37216`；仍保留两例 SOC 超过 5% 的负面结果。
+carrier_brd quick 为 51/77，公共结果与 Phase A 逐例相同。full 509
+只能在全部测试、quick、diff 和独立 GPT-5.6 Sol/high 审查通过后运行；
+approval 必须同时绑定 suite/corpus/binary，并携带可验证的 reviewer、
+UTC 时间、high reasoning、摘要和空 blocking findings。
+
+### 27.6 Sealed full 评价
+
+上述 gate 在 GPT-5.6 Sol/high 独立终审 `APPROVE` 后才放行。正式 carrier
+full 使用 14 jobs、每例 10 秒和同一 release binary，结果为
+`475/509`，相对 rho V2 的 `479/509` 没有新增求解，并新增 4 个 timeout。
+公共 475 例的词典序比较为 `141/201/133`（更好/相同/更差），makespan
+几何平均变化为 `-0.72%`，总 makespan/SOC 为
+`32471/137491 → 28717/128793`。因此共同成功例总体略快，只能作为局部
+收益，不能抵消 solved-set 回退。
+
+4 个丢解均来自 g6 shared-pool factorial，其中 3 个是 scarce agent、1 个
+是 surplus agent。sealed full 只承担最终评价，不能再据此选择 seed、删除
+case 或反向调参。最终结论是：vacancy-aware shared-carrier 的机制与主路径
+集成已经完成，quick 上达到预设局部目标，但当前版本不是对 rho V2 的整体
+支配改进，仍留下明确的大图可解性回退。
+
+同一二进制的 carrier_brd full 为 `336/509`，与 Phase A solved 集一致；
+336 个成功例的 cost、动作计数和 plan SHA 均零差异，仅一个共同失败例的
+exit label 从 `SEGMENT_TIMEOUT` 变为 `SEARCH_TIMEOUT`。这说明共享
+guidance 层没有改变 BRD 成功计划语义。
+
+### 27.7 最终验证与报告
+
+当前工作树验证为 C++ `412/412`、Python `198/198`、warehouse proposal
+`5/5`。历史 sealed full 的 release binary SHA-256 为
+`e986ba3740aa259e8d485f2bbe96e32e887cf09494df470873b6b667eee8e1ae`；
+full suite 与 corpus SHA-256 分别为
+`fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed`
+和
+`7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae`。
+
+封存后新增一项窄修复：当 carrier 已携带目标货架且与目标相邻，只有在另一台
+空闲 dispatch 的下一单正是在同一终点取货时，才把这次交付提前；如果终点
+只是去往其他取货点的最短路中间格，则保留原任务优先级。该规则消除了
+`g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0` 中 `b11` 被带离目标附近
+再返回的终局绕行。随后补充同样窄的载货会车规则：只有另一台载货机器人
+下一拍将进入当前通道格，且本车的时序提示会增大剩余距离时，才优先驶入
+相邻的空 storage；storage block 不加入 timed transport 的常规路径。结果由
+`(T,W)=(198,857)` 改为 `(106,770)`，载货移动为 371；受保护的 warehouse
+mixed plan SHA 仍为 `64693a…`。当前二进制 SHA-256 为
+`d1ea40f67d281da6a82eea649d7de8e2d8a5e7d13d22407523608c3b44881fe2`。
+新增 scope regression 先复现“路过终点也抢占”的 RED，再以
+`task.from == endpoint` 的最小条件修复。固定 quick 位于
+`benchmark/results_quick_terminal_scope_20260907`：47/77，公共成功例
+sum makespan/SOC 为 `14454/37216`，与 shared-fix r5 的成功集合和逐例
+cost 完全相同；此前退化的 `brap_h10w10_a12_e8_R1_seed0` 恢复为
+`(1099,2360)`。历史 sealed full 的汇总不回写。当前候选随后取得绑定
+suite/corpus/binary 的 GPT-5.6 Sol/high `APPROVE`，approval 位于
+`benchmark/full_review_approval_terminal_scope_20260907.json`。
+
+当前 sealed full 位于
+`benchmark/results_full_terminal_scope_20260907`，仍为 475/509，
+factorial 为 428/432，和旧 `e986ba…` 版本 solved set 完全相同。对旧版
+475 个共同成功例，词典序比较为 30/393/52（更好/相同/更差），总
+makespan/SOC 为 `28717/128793 → 28875/129669`。因此该窄修复解决了目标
+终局绕行，但不是整体质量提升。除 `(198,857)→(106,770)` 外，最大回退
+包括 `g6_dlow_abaseline_plocal_gsingleton_seed0`
+`(73,663)→(187,986)` 和
+`g6_dmedium_abaseline_plocal_gsingleton_seed0`
+`(74,690)→(173,881)`。
+
+相对 rho V2，当前版本仍丢失同 4 个 g6 shared-pool case；公共 475 例为
+137/195/143，总 makespan/SOC 为
+`32471/137491 → 28875/129669`。rows/timing SHA-256 分别为
+`d938787b8951f19f384c4cb827af102afc267fa8734208abd65466056e96aad1`
+和
+`c72ed2fc70efa510e8a759954716d48f0d664126eae32bfcfc79bd54e567356e`。
+当前 dashboard、旧版对比和 rho V2 对比分别位于
+`benchmark/viz_web/full_benchmark_terminal_scope_20260907/`、
+`benchmark/viz_web/full_comparison_vacancy_shared_carrier_vs_terminal_scope_20260907/`
+和
+`benchmark/viz_web/full_comparison_rho_v2_vs_terminal_scope_20260907/`。
+comparison summary 的颜色必须由数据方向决定：严格词典序比较看
+better/worse 数量，ratio 小于 1 为改善、大于 1 为回退。新增页面语义
+回归先复现“实际回退却显示绿色”，修复后相关 6/6 与 Python 全套 198/198
+通过，独立网页 reviewer 明确 `APPROVE`。
+
+最终静态报告由正式 rows/timing、manifest 和 approval 数据生成，位于
+`benchmark/viz_web/vacancy_shared_carrier_final_report_20260907/`；它
+优先展示 4 个丢解，再展示 quick 与共同成功例的质量。报告、current full
+dashboard、rho V2 对比、CSV、approval 和逐例动画的本地链接均已校验。
+独立 GPT-5.6 Sol/high 网页 reviewer 已明确 `APPROVE`。
+
+最终报告的展示层遵循单一强调色与主指标优先层级，不使用等权统计卡、
+彩色状态盒、机制 tile 或 panel 套 table。根索引只展开当前版本，基线和
+历史版本按用途折叠归档。为保证窄目录静态服务可用，carrier full、
+carrier_brd full、quick rows 和 approval 会按原字节复制进报告的
+`evidence/` 目录；生成器回归测试要求证据链接不能越出报告目录。

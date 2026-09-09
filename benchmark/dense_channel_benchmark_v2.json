@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "name": "dense_channel_v2_8",
+  "protocol": {
+    "methods": [
+      "carrier"
+    ],
+    "timeout_sec": 10,
+    "jobs": 8,
+    "solver_seed": 0,
+    "objective_weights": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "following": "allowed"
+  },
+  "groups": [
+    {
+      "name": "dense_channel_v2",
+      "root": "viz_web/dense_channel_suite_v2_20260906",
+      "pattern": "instances/*.yaml",
+      "family": "dense_channel",
+      "expected_cases": 8
+    }
+  ]
+}

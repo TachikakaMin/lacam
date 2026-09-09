@@ -24,6 +24,7 @@ DEFAULT_MANIFEST = (
 )
 FULL_SUITE = BENCH / "full_benchmark.json"
 VIZ_GENERATOR = BENCH / "generate_web_viz.py"
+DENSE_FAMILY = "dense_channel_block_edge_40x40"
 
 
 def _success(row):
@@ -35,6 +36,13 @@ def _number(row, key):
     return float(value) if value not in ("", None) else None
 
 
+def _first_solution_runtime(row):
+    value_ms = _number(row, "first_solution_ms")
+    if value_ms is None or value_ms < 0:
+        return None
+    return value_ms / 1000.0
+
+
 def _percentile(values, fraction):
     values = sorted(values)
     if not values:
@@ -43,10 +51,27 @@ def _percentile(values, fraction):
     return values[index]
 
 
+def _single_method_timing(timing):
+    methods = timing.get("methods", {})
+    if len(methods) != 1:
+        raise ValueError(
+            "full benchmark timing must contain exactly one method"
+        )
+    return next(iter(methods.items()))
+
+
 def _summary(rows):
     solved = [row for row in rows if _success(row)]
     makespans = [_number(row, "executed_makespan") for row in solved]
-    runtimes = [_number(row, "runtime_sec") for row in rows]
+    first_solution_runtimes = []
+    runtimes = []
+    for row in rows:
+        first_solution_runtime = _first_solution_runtime(row)
+        if first_solution_runtime is not None:
+            first_solution_runtimes.append(first_solution_runtime)
+        runtime = _number(row, "runtime_sec")
+        if runtime is not None:
+            runtimes.append(runtime)
     return {
         "total": len(rows),
         "solved": len(solved),
@@ -54,6 +79,25 @@ def _summary(rows):
         "success_rate": len(solved) / len(rows) if rows else 0,
         "avg_makespan": statistics.mean(makespans) if makespans else None,
         "median_makespan": statistics.median(makespans) if makespans else None,
+        "first_solution_count": len(first_solution_runtimes),
+        "avg_first_solution_runtime": (
+            statistics.mean(first_solution_runtimes)
+            if first_solution_runtimes
+            else None
+        ),
+        "median_first_solution_runtime": (
+            statistics.median(first_solution_runtimes)
+            if first_solution_runtimes
+            else None
+        ),
+        "p95_first_solution_runtime": _percentile(
+            first_solution_runtimes, 0.95
+        ),
+        "max_first_solution_runtime": (
+            max(first_solution_runtimes)
+            if first_solution_runtimes
+            else None
+        ),
         "avg_runtime": statistics.mean(runtimes) if runtimes else None,
         "p95_runtime": _percentile(runtimes, 0.95),
         "max_runtime": max(runtimes) if runtimes else None,
@@ -67,6 +111,10 @@ def _group_summaries(records, key):
     output = []
     for value, items in sorted(grouped.items()):
         makespans = [item["makespan"] for item in items if item["success"]]
+        first_solution_runtimes = [
+            item["first_solution_runtime"] for item in items
+            if item["first_solution_runtime"] is not None
+        ]
         runtimes = [
             item["runtime"] for item in items
             if item["runtime"] is not None
@@ -82,6 +130,19 @@ def _group_summaries(records, key):
                 "median_makespan": (
                     statistics.median(makespans) if makespans else None
                 ),
+                "avg_first_solution_runtime": (
+                    statistics.mean(first_solution_runtimes)
+                    if first_solution_runtimes
+                    else None
+                ),
+                "p95_first_solution_runtime": _percentile(
+                    first_solution_runtimes, 0.95
+                ),
+                "max_first_solution_runtime": (
+                    max(first_solution_runtimes)
+                    if first_solution_runtimes
+                    else None
+                ),
                 "avg_runtime": (
                     statistics.mean(runtimes) if runtimes else None
                 ),
@@ -96,11 +157,21 @@ def build_dashboard_data(rows_path, timing_path, manifest_path):
     with Path(rows_path).open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     timing = json.loads(Path(timing_path).read_text(encoding="utf-8"))
+    timing_method, timing_values = _single_method_timing(timing)
     manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
     metadata = {record["id"]: record for record in manifest}
 
     factorial_rows = [row for row in rows if row["instance"] in metadata]
-    quick_rows = [row for row in rows if row["instance"] not in metadata]
+    dense_rows = [
+        row for row in rows
+        if row["instance"] not in metadata
+        and row["family"] == DENSE_FAMILY
+    ]
+    quick_rows = [
+        row for row in rows
+        if row["instance"] not in metadata
+        and row["family"] != DENSE_FAMILY
+    ]
     all_cases = []
     for row in rows:
         all_cases.append(
@@ -111,6 +182,7 @@ def build_dashboard_data(rows_path, timing_path, manifest_path):
                 "status": row["status"],
                 "makespan": _number(row, "executed_makespan"),
                 "soc": _number(row, "weighted_soc"),
+                "first_solution_runtime": _first_solution_runtime(row),
                 "runtime": _number(row, "runtime_sec"),
                 "plan_sha256": row["plan_sha256"],
                 "animation_url": (
@@ -129,6 +201,7 @@ def build_dashboard_data(rows_path, timing_path, manifest_path):
                 "success": _success(row),
                 "makespan": _number(row, "executed_makespan"),
                 "soc": _number(row, "weighted_soc"),
+                "first_solution_runtime": _first_solution_runtime(row),
                 "runtime": _number(row, "runtime_sec"),
                 "map_family": meta["map_family"],
                 "height": meta["height"],
@@ -154,7 +227,7 @@ def build_dashboard_data(rows_path, timing_path, manifest_path):
         )
 
     failure_groups = defaultdict(int)
-    for row in quick_rows:
+    for row in quick_rows + dense_rows:
         if not _success(row):
             failure_groups[(row["family"], row["status"])] += 1
 
@@ -172,11 +245,11 @@ def build_dashboard_data(rows_path, timing_path, manifest_path):
         "overview": _summary(rows),
         "quick": _summary(quick_rows),
         "factorial": _summary(factorial_rows),
+        "dense": _summary(dense_rows),
         "timing": {
             "wall_time_sec": timing["wall_time_sec"],
-            "solver_time_sum_sec": timing["methods"]["carrier"][
-                "solver_time_sum_sec"
-            ],
+            "method": timing_method,
+            "solver_time_sum_sec": timing_values["solver_time_sum_sec"],
             "jobs": timing["jobs"],
             "timeout_sec": timing["timeout_per_run_sec"],
             "suite_sha256": timing["suite"]["definition_sha256"],
@@ -192,17 +265,18 @@ def build_dashboard_data(rows_path, timing_path, manifest_path):
             }
             for (family, status), count in sorted(failure_groups.items())
         ],
-        "slowest": sorted(
+        "slowest_first_solution": sorted(
             (
-                record for record in records
-                if record["success"] and record["runtime"] is not None
+                case for case in all_cases
+                if case["success"]
+                and case["first_solution_runtime"] is not None
             ),
-            key=lambda item: item["runtime"], reverse=True
+            key=lambda item: item["first_solution_runtime"], reverse=True
         )[:12],
         "longest": sorted(
             (
-                record for record in records
-                if record["success"] and record["makespan"] is not None
+                case for case in all_cases
+                if case["success"] and case["makespan"] is not None
             ),
             key=lambda item: item["makespan"], reverse=True
         )[:12],
@@ -264,13 +338,14 @@ def generate_case_animations(data, rows_path, out_dir, jobs=14):
     work_dir = Path(rows_path).parent / "work"
     cases_dir = Path(out_dir) / "cases"
     solved = [case for case in data["all_cases"] if case["success"]]
+    method = data["timing"]["method"]
 
     def generate(case):
         name = case["instance"]
         return generate_case_animation(
             case,
             instances[name],
-            work_dir / (name + ".carrier.plan"),
+            work_dir / ("{}.{}.plan".format(name, method)),
             cases_dir / (name + ".html"),
         )
 
@@ -375,7 +450,8 @@ tbody tr:hover { background:#16304b; }
     <div>
       <div class="eyebrow">Carrier-LaCAM · Full __OVERVIEW_TOTAL__</div>
       <h1>全量 benchmark 可视化</h1>
-      <p>本次输入包含 quick __QUICK_TOTAL__ cases + factorial __FACTORIAL_TOTAL__ cases。__TIMEOUT__s/case，__JOBS__ jobs。</p>
+      <p>本次输入包含 quick __QUICK_TOTAL__ cases + factorial __FACTORIAL_TOTAL__ cases + dense __DENSE_TOTAL__ cases。__TIMEOUT__s/case，__JOBS__ jobs。</p>
+      <p>本报告优先展示首次找到可行解的 Runtime；进程继续优化直至结束的耗时统一标为“总 Runtime”。</p>
     </div>
     <a class="back" href="../index.html">← 返回可视化首页</a>
   </div>
@@ -384,12 +460,18 @@ tbody tr:hover { background:#16304b; }
     <div class="card"><div class="label">全量成功率</div>
       <div class="value">__OVERVIEW_SOLVED__/__OVERVIEW_TOTAL__</div>
       <div class="sub">__SUCCESS_PERCENT__% solved</div></div>
+    <div class="card"><div class="label">首解 Runtime 中位数</div>
+      <div class="value" style="color:var(--cyan)">__FIRST_SOLUTION_MEDIAN__s</div>
+      <div class="sub">P95 __FIRST_SOLUTION_P95__s · max __FIRST_SOLUTION_MAX__s · __FIRST_SOLUTION_COUNT__ cases</div></div>
     <div class="card"><div class="label">新增 factorial</div>
       <div class="value" style="color:var(--cyan)">__FACTORIAL_SOLVED__/__FACTORIAL_TOTAL__</div>
       <div class="sub">__FACTORIAL_FAILED__ failed</div></div>
     <div class="card"><div class="label">原 quick</div>
       <div class="value">__QUICK_SOLVED__/__QUICK_TOTAL__</div>
       <div class="sub">__QUICK_FAILED__ failed</div></div>
+    <div class="card"><div class="label">dense 40×40</div>
+      <div class="value">__DENSE_SOLVED__/__DENSE_TOTAL__</div>
+      <div class="sub">__DENSE_FAILED__ failed</div></div>
     <div class="card"><div class="label">全量 wall time</div>
       <div class="value">__WALL_TIME__s</div>
       <div class="sub">solver sum __SOLVER_SUM__s · jobs=__JOBS__</div></div>
@@ -410,31 +492,33 @@ tbody tr:hover { background:#16304b; }
           <option value="goal_mode">Goal 模式</option>
         </select>
         <select id="axisMetric">
+          <option value="avg_first_solution_runtime">平均首解 Runtime</option>
+          <option value="p95_first_solution_runtime">P95 首解 Runtime</option>
           <option value="avg_makespan">平均 makespan</option>
-          <option value="avg_runtime">平均运行时间</option>
-          <option value="p95_runtime">P95 运行时间</option>
+          <option value="avg_runtime">平均总 Runtime</option>
+          <option value="p95_runtime">P95 总 Runtime</option>
         </select>
       </div>
       <div id="axisBars" class="bars"></div>
       <div class="callout" id="axisInsight"></div>
     </div>
     <div class="panel">
-      <h2>原 quick 的 __QUICK_FAILED__ 个失败</h2>
+      <h2>quick 与 dense 的 __FIXED_FAILED__ 个失败</h2>
       <div id="timeoutBars"></div>
       <p>失败按 family 与原始 status 分组：__FAILURE_SUMMARY__</p>
     </div>
   </section>
 
   <section class="panel">
-    <h2>新增 __FACTORIAL_TOTAL__ cases：makespan × runtime</h2>
+    <h2>新增 __FACTORIAL_TOTAL__ cases：makespan × 首解 Runtime</h2>
     <div class="controls" id="scatterControls"></div>
     <svg id="caseScatter" viewBox="0 0 1000 470" role="img"
-      aria-label="factorial cases makespan runtime scatter plot"></svg>
+      aria-label="factorial cases makespan first solution runtime scatter plot"></svg>
     <div id="scatterLegend" class="legend"></div>
   </section>
 
   <section class="grid">
-    <div class="panel"><h2>运行时间最慢</h2><div id="slowest"></div></div>
+    <div class="panel"><h2>首解 Runtime 最慢</h2><div id="slowestFirstSolution"></div></div>
     <div class="panel"><h2>Makespan 最长</h2><div id="longest"></div></div>
   </section>
 
@@ -447,7 +531,8 @@ tbody tr:hover { background:#16304b; }
       <table><thead><tr>
         <th>Instance</th><th>地图</th><th>密度</th><th>Agent</th>
         <th>任务</th><th>Goal</th><th>Robots</th><th>Targets</th>
-        <th>Makespan</th><th>SOC</th><th>Runtime</th><th>YAML</th>
+        <th>首解 Runtime</th><th>总 Runtime</th>
+        <th>Makespan</th><th>SOC</th><th>YAML</th>
       </tr></thead><tbody id="caseRows"></tbody></table>
     </div>
   </section>
@@ -466,7 +551,8 @@ tbody tr:hover { background:#16304b; }
     </div>
     <div class="table-wrap">
       <table><thead><tr><th>Instance</th><th>Family</th><th>Status</th>
-        <th>Makespan</th><th>SOC</th><th>Runtime</th><th>实际动画</th>
+        <th>首解 Runtime</th><th>总 Runtime</th>
+        <th>Makespan</th><th>SOC</th><th>实际动画</th>
       </tr></thead><tbody id="allRows"></tbody></table>
     </div>
   </section>
@@ -482,27 +568,36 @@ const LABELS = {
   cross_heavy:"cross-heavy",singleton:"singleton",shared_pool:"shared pool"
 };
 const fmt = (v,d=1) => Number(v).toFixed(d);
+const fmtMaybe = (v,d=1) => v===null||v===undefined ? "—" : fmt(v,d);
+const fmtRuntime = v => v===null||v===undefined ? "—" : `${fmt(v,3)}s`;
 
 function renderAxis() {
   const dim=document.querySelector("#axisDimension").value;
   const metric=document.querySelector("#axisMetric").value;
   const rows=DATA.axes[dim];
-  const max=Math.max(...rows.map(r=>r[metric]));
+  const available=rows.filter(r=>Number.isFinite(r[metric]));
+  if (!available.length) {
+    document.querySelector("#axisBars").textContent="该分组没有首解 Runtime 数据";
+    document.querySelector("#axisInsight").textContent="—";
+    return;
+  }
+  const max=Math.max(...available.map(r=>r[metric]));
   const suffix=metric.includes("runtime")?"s":"";
-  document.querySelector("#axisBars").innerHTML=rows.map(r=>`
+  document.querySelector("#axisBars").innerHTML=available.map(r=>`
     <div class="bar-row"><span>${LABELS[r.key]||r.key}</span>
-      <div class="track"><div class="fill" style="width:${100*r[metric]/max}%"></div></div>
+      <div class="track"><div class="fill" style="width:${100*r[metric]/(max||1)}%"></div></div>
       <span class="value-right">${fmt(r[metric],metric.includes("runtime")?3:1)}${suffix}</span>
     </div>`).join("");
-  const lo=rows.reduce((a,b)=>a[metric]<b[metric]?a:b);
-  const hi=rows.reduce((a,b)=>a[metric]>b[metric]?a:b);
+  const lo=available.reduce((a,b)=>a[metric]<b[metric]?a:b);
+  const hi=available.reduce((a,b)=>a[metric]>b[metric]?a:b);
   document.querySelector("#axisInsight").textContent =
     `${LABELS[lo.key]||lo.key} 最低，${LABELS[hi.key]||hi.key} 最高；差值 ${fmt(hi[metric]-lo[metric],metric.includes("runtime")?3:1)}${suffix}。`;
 }
 
 function renderFailures() {
   if (!DATA.failure_groups.length) {
-    document.querySelector("#timeoutBars").textContent="本轮 quick 无失败";
+    document.querySelector("#timeoutBars").textContent=
+      "本轮 quick 与 dense 无失败";
     return;
   }
   const max=Math.max(...DATA.failure_groups.map(x=>x.count));
@@ -526,15 +621,22 @@ function buildScatterControls() {
 function selectedCases() {
   const filters={};
   document.querySelectorAll("[data-filter]").forEach(x=>filters[x.dataset.filter]=x.value);
-  return DATA.cases.filter(c=>c.success && dims.every(dim=>!filters[dim]||c[dim]===filters[dim]));
+  return DATA.cases.filter(c=>c.success && c.first_solution_runtime!==null &&
+    dims.every(dim=>!filters[dim]||c[dim]===filters[dim]));
 }
 
 function renderScatter() {
   const cases=selectedCases(), svg=document.querySelector("#caseScatter");
   const W=1000,H=470,L=72,R=28,T=24,B=52;
+  if (!cases.length) {
+    svg.innerHTML=`<text x="${W/2}" y="${H/2}" fill="#91a7bd"
+      text-anchor="middle">筛选范围内没有首解 Runtime 数据</text>`;
+    return;
+  }
   const maxX=Math.max(10,...cases.map(c=>c.makespan))*1.05;
-  const minY=Math.min(...cases.map(c=>c.runtime));
-  const maxY=Math.max(...cases.map(c=>c.runtime));
+  const runtimeForPlot=c=>Math.max(.0005,c.first_solution_runtime);
+  const minY=Math.min(...cases.map(runtimeForPlot));
+  const maxY=Math.max(...cases.map(runtimeForPlot));
   const logMin=Math.log10(Math.max(.005,minY*.8)), logMax=Math.log10(maxY*1.2);
   const x=v=>L+(W-L-R)*v/maxX;
   const y=v=>T+(H-T-B)*(1-(Math.log10(v)-logMin)/(logMax-logMin||1));
@@ -550,8 +652,8 @@ function renderScatter() {
     html+=`<text x="${L-10}" y="${yy+4}" fill="#91a7bd" text-anchor="end" font-size="12">${fmt(val,val<.1?2:1)}s</text>`;
   });
   html+=`<text x="${(L+W-R)/2}" y="${H-3}" fill="#bdd1e5" text-anchor="middle">executed makespan</text>`;
-  html+=`<text x="15" y="${H/2}" fill="#bdd1e5" transform="rotate(-90 15 ${H/2})" text-anchor="middle">runtime（log scale）</text>`;
-  html+=cases.map((c,i)=>`<circle cx="${x(c.makespan)}" cy="${y(c.runtime)}" r="5"
+  html+=`<text x="15" y="${H/2}" fill="#bdd1e5" transform="rotate(-90 15 ${H/2})" text-anchor="middle">first-solution runtime（log scale）</text>`;
+  html+=cases.map((c,i)=>`<circle cx="${x(c.makespan)}" cy="${y(runtimeForPlot(c))}" r="5"
     fill="${COLORS[c.map_family]}" fill-opacity=".75" stroke="#fff" stroke-opacity=".18"
     data-case="${DATA.cases.indexOf(c)}"></circle>`).join("");
   svg.innerHTML=html;
@@ -559,7 +661,7 @@ function renderScatter() {
   svg.querySelectorAll("circle").forEach(dot=>{
     dot.addEventListener("mousemove",e=>{
       const c=DATA.cases[Number(dot.dataset.case)];
-      tip.innerHTML=`<b>${c.instance}</b><br>makespan ${c.makespan} · runtime ${fmt(c.runtime,3)}s<br>${c.map_family} · ${c.density_level} · ${c.agent_level} · ${c.task_profile} · ${c.goal_mode}`;
+      tip.innerHTML=`<b>${c.instance}</b><br>首解 Runtime ${fmtRuntime(c.first_solution_runtime)} · 总 Runtime ${fmtRuntime(c.runtime)}<br>makespan ${c.makespan} · ${c.map_family} · ${c.density_level} · ${c.agent_level} · ${c.task_profile} · ${c.goal_mode}`;
       tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; tip.style.opacity=1;
     });
     dot.addEventListener("mouseleave",()=>tip.style.opacity=0);
@@ -569,7 +671,7 @@ function renderScatter() {
 function renderRanks(id,rows,metric,suffix) {
   document.querySelector("#"+id).innerHTML=rows.map(c=>`
     <div class="rank"><a href="${c.animation_url}" title="${c.instance}">${c.instance}</a>
-    <span class="value-right">${fmt(c[metric],metric==="runtime"?3:0)}${suffix}</span></div>`).join("");
+    <span class="value-right">${fmt(c[metric],metric.includes("runtime")?3:0)}${suffix}</span></div>`).join("");
 }
 
 function renderTable() {
@@ -579,7 +681,8 @@ function renderTable() {
     <td>${c.success?`<a href="${c.animation_url}">▶ ${c.instance}</a>`:c.instance}</td><td><span class="pill">${c.map_family}</span></td>
     <td>${c.density_level}</td><td>${c.agent_level}</td><td>${c.task_profile}</td>
     <td>${c.goal_mode}</td><td>${c.robots}</td><td>${c.targets}</td>
-    <td>${c.makespan===null?"—":c.makespan}</td><td>${c.soc===null?"—":fmt(c.soc,0)}</td><td>${fmt(c.runtime,3)}s</td>
+    <td>${fmtRuntime(c.first_solution_runtime)}</td><td>${fmtRuntime(c.runtime)}</td>
+    <td>${c.makespan===null?"—":c.makespan}</td><td>${c.soc===null?"—":fmt(c.soc,0)}</td>
     <td><a href="${c.yaml_url}">YAML</a></td></tr>`).join("");
 }
 
@@ -594,8 +697,9 @@ function renderAllCases() {
   document.querySelector("#allRows").innerHTML=rows.map(c=>`<tr>
     <td>${c.success?`<a href="${c.animation_url}">▶ ${c.instance}</a>`:c.instance}</td>
     <td>${c.family}</td><td>${c.success?`<span style="color:var(--cyan)">solved</span>`:`<span style="color:var(--red)">${c.status}</span>`}</td>
+    <td>${fmtRuntime(c.first_solution_runtime)}</td><td>${fmtRuntime(c.runtime)}</td>
     <td>${c.makespan===null?"—":c.makespan}</td><td>${c.soc===null?"—":fmt(c.soc,0)}</td>
-    <td>${fmt(c.runtime,3)}s</td><td>${c.success?`<a href="${c.animation_url}">播放真实计划</a>`:"—"}</td>
+    <td>${c.success?`<a href="${c.animation_url}">播放真实计划</a>`:"—"}</td>
   </tr>`).join("");
 }
 
@@ -615,7 +719,7 @@ document.querySelector("#allSearch").addEventListener("input",renderAllCases);
 document.querySelector("#suiteSha").textContent=DATA.timing.suite_sha256.slice(0,16)+"…";
 document.querySelector("#binarySha").textContent=DATA.timing.binary_sha256.slice(0,16)+"…";
 renderAxis(); renderFailures(); buildScatterControls(); renderScatter();
-renderRanks("slowest",DATA.slowest,"runtime","s");
+renderRanks("slowestFirstSolution",DATA.slowest_first_solution,"first_solution_runtime","s");
 renderRanks("longest",DATA.longest,"makespan","");
 renderTable(); renderAllCases();
 document.querySelector("#scatterLegend").innerHTML=Object.entries(COLORS).map(([k,v])=>
@@ -643,12 +747,42 @@ def generate_dashboard(rows_path, timing_path, manifest_path, out_dir):
         "__SUCCESS_PERCENT__": "{:.1f}".format(
             100 * data["overview"]["success_rate"]
         ),
+        "__FIRST_SOLUTION_MEDIAN__": (
+            "{:.3f}".format(
+                data["overview"]["median_first_solution_runtime"]
+            )
+            if data["overview"]["median_first_solution_runtime"] is not None
+            else "—"
+        ),
+        "__FIRST_SOLUTION_P95__": (
+            "{:.3f}".format(
+                data["overview"]["p95_first_solution_runtime"]
+            )
+            if data["overview"]["p95_first_solution_runtime"] is not None
+            else "—"
+        ),
+        "__FIRST_SOLUTION_MAX__": (
+            "{:.3f}".format(
+                data["overview"]["max_first_solution_runtime"]
+            )
+            if data["overview"]["max_first_solution_runtime"] is not None
+            else "—"
+        ),
+        "__FIRST_SOLUTION_COUNT__": str(
+            data["overview"]["first_solution_count"]
+        ),
         "__QUICK_TOTAL__": str(data["quick"]["total"]),
         "__QUICK_SOLVED__": str(data["quick"]["solved"]),
         "__QUICK_FAILED__": str(data["quick"]["failed"]),
         "__FACTORIAL_TOTAL__": str(data["factorial"]["total"]),
         "__FACTORIAL_SOLVED__": str(data["factorial"]["solved"]),
         "__FACTORIAL_FAILED__": str(data["factorial"]["failed"]),
+        "__DENSE_TOTAL__": str(data["dense"]["total"]),
+        "__DENSE_SOLVED__": str(data["dense"]["solved"]),
+        "__DENSE_FAILED__": str(data["dense"]["failed"]),
+        "__FIXED_FAILED__": str(
+            data["quick"]["failed"] + data["dense"]["failed"]
+        ),
         "__WALL_TIME__": "{:.1f}".format(
             data["timing"]["wall_time_sec"]
         ),
@@ -693,12 +827,15 @@ def main():
                 )
             )
     print(
-        "wrote {}: {}/{} solved; factorial {}/{}; animations={}".format(
+        "wrote {}: {}/{} solved; factorial {}/{}; dense {}/{}; "
+        "animations={}".format(
             args.out_dir,
             data["overview"]["solved"],
             data["overview"]["total"],
             data["factorial"]["solved"],
             data["factorial"]["total"],
+            data["dense"]["solved"],
+            data["dense"]["total"],
             data["overview"]["solved"] if not args.skip_cases else "skipped",
         )
     )

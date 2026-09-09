@@ -100,6 +100,35 @@ struct PhysConfig {
 
 PhysConfig initial_phys_config(const DDInstance& ins);
 
+enum class PhysRootInvalidReason : uint8_t {
+  NONE = 0,
+  VECTOR_SIZE = 1,
+  INVALID_ROBOT_CELL = 2,
+  ROBOT_COLLISION = 3,
+  INVALID_KAPPA = 4,
+  DUPLICATE_TARGET_CARRIER = 5,
+  INVALID_TARGET_CELL = 6,
+  TARGET_CARRIER_MISMATCH = 7,
+  INVALID_ANONYMOUS_CELL = 8,
+  ANONYMOUS_ORDER_OR_DUPLICATE = 9,
+  SHELF_COLLISION = 10,
+  SHELF_COUNT_MISMATCH = 11,
+};
+
+struct PhysRootValidation {
+  PhysRootInvalidReason reason = PhysRootInvalidReason::NONE;
+
+  bool valid() const
+  {
+    return reason == PhysRootInvalidReason::NONE;
+  }
+};
+
+// Validate an arbitrary physical search root without reading Graph::U.
+// Callers must do this before converting cell indices into Vertex*.
+PhysRootValidation validate_phys_config_root(
+    const DDInstance& ins, const PhysConfig& state);
+
 // goal condition (design 2.2): every target grounded at its goal
 bool is_dd_goal(const DDInstance& ins, const PhysConfig& s);
 

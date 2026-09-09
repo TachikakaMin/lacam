@@ -1,94 +1,230 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Carrier-LaCAM benchmark 与报告索引</title>
 <style>
-  body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 24px;
-         background: #1e1e24; color: #eee; max-width: 1400px; }
-  h1 { font-size: 20px; } h2 { font-size: 16px; margin-top: 28px; }
-  a { color: #60a5fa; }
-  img { max-width: 100%; border-radius: 8px; background: #fff; }
-  .note { color: #aaa; font-size: 13px; }
+:root{--bg:#111315;--line:#393d41;--text:#f1f3f4;--muted:#aab0b5;
+--accent:#79b7e8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,
+-apple-system,"Noto Sans SC",sans-serif;line-height:1.65}
+main{max-width:980px;margin:auto;padding:44px 24px 72px}
+header{border-bottom:1px solid var(--line);padding-bottom:24px}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.15;margin:0 0 12px}
+h2{font-size:24px;margin:42px 0 16px}
+h3{font-size:18px;margin:0}
+p{color:#d5d9dc}
+a{color:var(--accent)}
+.note{color:var(--muted);max-width:760px}
+.entry{display:grid;grid-template-columns:130px 1fr;gap:24px;padding:18px 0;
+border-top:1px solid var(--line)}
+.entry:last-child{border-bottom:1px solid var(--line)}
+.date{color:var(--muted);font-size:14px;padding-top:3px}
+ul{margin:8px 0 0;padding-left:20px}
+li{margin:6px 0}
+details{border-top:1px solid var(--line)}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-size:20px;font-weight:700;padding:18px 0}
+details .entry:first-of-type{border-top:0}
+@media(max-width:640px){main{padding:28px 15px 56px}.entry{grid-template-columns:
+1fr;gap:3px}}
 </style>
 </head>
-<body>
-<h1>Carrier-LaCAM benchmark、动画与报告索引</h1>
-<p class="note">最新正式结果排在最前；历史页面保留日期与用途标签，避免把旧二进制结果误当成当前完成证据。</p>
+<body><main>
+<header>
+ <h1>Carrier-LaCAM 结果索引</h1>
+ <p class="note">2026-09-08 的 Pair 三级按需下界使用当前二进制和固定
+ full 518。基线和旧版本保留作对照，默认收起，避免把历史结果误当成当前
+ 完成证据。</p>
+</header>
 
-<h2>最新：ρ 全局匹配 V2 最终报告（2026-09-06）</h2>
-<ul>
-  <li><a href="carrier_lacam_rho_v2_final_report_20260906/index.html">最终结论：取消 priority cutoff、严格 direct-target V2、G/H 回滚，以及 full 509 的正负结果</a></li>
-  <li><a href="full_benchmark_rho_v2_20260906/index.html">V2 full benchmark：479/509 solved、432/432 factorial 与 479 个真实计划动画</a></li>
-  <li><a href="full_comparison_two_pass_vs_rho_v2_20260906/index.html">审计基线 vs V2 逐 case 对照：60 更好、261 相同、158 更差</a></li>
-</ul>
+<h2>当前结果</h2>
+<section class="entry">
+ <div class="date">2026-09-08</div>
+ <div>
+  <h3>Pair 三级按需下界</h3>
+  <ul>
+   <li><a href="pair_staged_bounds_final_20260908/index.html">最终报告：full 485/518 → 487/518，40×40 从 6/9 → 8/9</a></li>
+   <li><a href="full_benchmark_pair_staged_bounds_20260908/index.html">当前 full：487/518 与 487 个计划动画</a></li>
+   <li><a href="full_comparison_pair_shared_vs_staged_bounds_20260908/index.html">共享增量 Hungarian 与三级按需下界逐例对比</a></li>
+  </ul>
+  <p class="note">Pair 继续复用同一份增量 Hungarian；失效边先退回 cheap
+  bound，只对选中或仍有竞争力的边做 prefix 和 exact 精算。</p>
+ </div>
+</section>
+<section class="entry">
+ <div class="date">2026-09-07</div>
+ <div>
+  <h3>终局交付与会车定点修复</h3>
+  <ul>
+   <li><a href="terminal_delivery_fix_20260907/index.html">g6 singleton：异常的 198 步尾段已修复为 106 步，载货会车改用侧向空位，并保留封存前后动画对照</a></li>
+   <li><a href="full_benchmark_terminal_scope_20260907/index.html">当前 full：475/509 solved 与全部成功计划动画</a></li>
+   <li><a href="full_comparison_vacancy_shared_carrier_vs_terminal_scope_20260907/index.html">封存版本与 terminal-scope 逐例对比</a></li>
+  </ul>
+  <p class="note">509 例已经用当前二进制重跑；下面的封存报告仍保留为修复前
+ 对照，不回写其历史数字。</p>
+ </div>
+</section>
+<section class="entry">
+ <div class="date">2026-09-07</div>
+ <div>
+  <h3>高密度通道：内部货箱到边缘目标</h3>
+  <ul>
+   <li><a href="dense_channel_i2e_benchmark_terminal_scope_20260907/index.html">当前实跑：8/8 solved，含 8 个计划动画</a></li>
+   <li><a href="dense_channel_i2e_suite_v1_20260907/index.html">8 个实例、YAML 与 validator 可解性见证</a></li>
+  </ul>
+  <p class="note">共 96 个目标货箱：起点全部位于 storage block 内部，
+ 目的地全部位于紧邻通道的 block 边缘。</p>
+ </div>
+</section>
+<section class="entry">
+ <div class="date">2026-09-07</div>
+ <div>
+  <h3>40×40 高密度通道：终点为起始 block 任一边缘</h3>
+  <ul>
+   <li><a href="dense_channel_block_edge_40x40_benchmark_terminal_scope_20260907/index.html">10 秒正式结果：0/9 solved，按 block 与负载档展示</a></li>
+   <li><a href="dense_channel_block_edge_40x40_suite_v1_20260907/index.html">9 个实例：8/12、16/24、32/48 机器人/目标</a></li>
+   <li><a href="dense_channel_block_edge_40x40_diagnostic_60s_20260907.html">60 秒诊断动画：最小档在 33.1 秒取得 57 拍解</a></li>
+  </ul>
+  <p class="note">每个目标货箱从 block 内部出发，最终 goal 可落在其起始
+ block 的任一 edge storage；这只约束终态，途中可经过其他 block，也可在
+ 其他合法 storage 临时落箱。所有生成 witness 均通过 validator。</p>
+ </div>
+</section>
+<section class="entry">
+ <div class="date">2026-09-07</div>
+ <div>
+  <h3>Vacancy-aware shared carrier（封存 full）</h3>
+  <ul>
+   <li><a href="vacancy_shared_carrier_final_report_20260907/index.html">最终报告：full 475/509，明确列出四个新 timeout、quick 成本变化和 BRD 兼容性</a></li>
+   <li><a href="full_benchmark_vacancy_shared_carrier_20260907/index.html">封存 carrier full：475 个验证计划动画与分组统计</a></li>
+   <li><a href="full_comparison_rho_v2_vs_vacancy_shared_carrier_20260907/index.html">rho V2 与当前版本逐例对比：479/509 → 475/509</a></li>
+  </ul>
+ </div>
+</section>
 
-<h2>最新：Carrier-LaCAM 两遍规划最终报告（2026-09-06）</h2>
-<ul>
-  <li><a href="carrier_lacam_two_pass_20260906/index.html">第一遍首解、第二遍固定目标严格改进、deadline、reference 后缀，以及 quick/full/pre-v5 完整对比</a></li>
-  <li><a href="full_benchmark_two_pass_20260906/index.html">当前 full benchmark 总览：509 个用例、分组统计与 479 个可播放计划动画</a></li>
-  <li><a href="full_comparison_v5_vs_two_pass_20260906/index.html">旧 v5 anytime 与当前两遍规划逐例对比：质量、运行时间、筛选与双版本动画入口</a></li>
-</ul>
+<h2>归档</h2>
+<details>
+ <summary>基线与专题结果</summary>
+ <section class="entry">
+  <div class="date">2026-09-06</div>
+  <div>
+   <h3>ρ 全局匹配 V2 基线</h3>
+   <ul>
+    <li><a href="carrier_lacam_rho_v2_final_report_20260906/index.html">最终报告：priority cutoff、direct-target V2、回滚项与 full 509 证据</a></li>
+    <li><a href="full_benchmark_rho_v2_20260906/index.html">基线 full：479/509 solved、432/432 factorial 与真实计划动画</a></li>
+    <li><a href="full_comparison_two_pass_vs_rho_v2_20260906/index.html">两遍规划审计基线与 rho V2 的逐例对照</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-06</div>
+  <div>
+   <h3>Carrier BR-LaCAM 分解基线</h3>
+   <ul>
+    <li><a href="carrier_brd_final_report_20260906/index.html">当时的最终报告：completion-event 重匹配、实现边界与 full 证据</a></li>
+    <li><a href="full_benchmark_carrier_brd_20260906/index.html">当时的 BRD full benchmark：326/509 solved</a></li>
+    <li><a href="full_comparison_rho_v2_vs_carrier_brd_20260906/index.html">rho V2 与 BRD 基线逐例对比</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-06</div>
+  <div>
+   <h3>高密度通道 benchmark V2</h3>
+   <ul>
+    <li><a href="dense_channel_benchmark_v2_20260906/index.html">实跑结果：8/8 solved，75.0%–93.8% 货架密度</a></li>
+    <li><a href="dense_channel_suite_v2_20260906/index.html">8 个实例、初始布局与 validator 可解性见证</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-05</div>
+  <div>
+   <h3>Warehouse 随机配对 testcase</h3>
+   <ul>
+    <li><a href="warehouse_case_proposal/index.html">432 个构造可解 testcase 与 4 个 Planner 实跑样例</a></li>
+   </ul>
+  </div>
+ </section>
+</details>
 
-<h2>最新：Carrier-LaCAM v5 正式 full 与最终汇报（2026-09-05）</h2>
-<ul>
-  <li><a href="carrier_lacam_v5_final_report_20260905/index.html">面向初学者的最终汇报：实现、Testcase C、quick/full 证据、消融与限制</a></li>
-  <li><a href="full_benchmark_v5_854df1_20260905/index.html">正式 v5 full dashboard：479/509 solved，新增 factorial 432/432，479 个验证方案动画</a></li>
-  <li><a href="full_comparison_pre_v5_vs_v5_20260905/index.html">完整 509-case 对比：pre-v5 historical full vs v5 production full，逐例 T/W、筛选和散点图</a></li>
-</ul>
-
-<h2>最新：正式 release benchmark（77 cases，2026-09-04）</h2>
-<ul>
-  <li><a href="release_benchmark_77_20260904/index.html">完整 dashboard：47/77 solved，47 个平滑动画，支持 family / 状态 / 实例名筛选</a></li>
-  <li><a href="release_benchmark_77_20260904/cases/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html">直接打开 warehouse b3 / 75% 用户案例动画</a></li>
-</ul>
-
-<h2>最新：Warehouse testcase Planner 实跑提案（2026-09-05）</h2>
-<ul>
-  <li><a href="warehouse_case_proposal/index.html">432 个已生成、构造可解的随机配对 testcase，以及 4 个带 YAML、Planner plan 和平滑动画的原有样例</a></li>
-</ul>
-
-<h2>历史 pre-v5：旧全量 benchmark（509 cases，2026-09-05）</h2>
-<ul>
-  <li><a href="historical_pre_v5_full_benchmark_509_20260905/index.html">历史 pre-v5 交互式 dashboard（旧二进制；不作为 v5 完成证据）：479/509 solved；新增 factorial 432/432</a></li>
-</ul>
-
-<h2>Warehouse-block testcase 样例（2026-09-03）</h2>
-<ul>
-  <li><a href="warehouse_block_suite/runs_lacam_10s_seed0/index.html">LaCAM 实跑结果：9/9 solved，逐例 plan 动画</a></li>
-  <li><a href="warehouse_block_suite.html">完整 3×3 testcase 矩阵：3 种 block size × 3 档货架密度</a></li>
-  <li><a href="warehouse_blocks_20x20_sample.html">20×20 Amazon 风格地图：4×4 block、1 格通道、75% 均匀货架密度</a></li>
-</ul>
-
-<h2>最新：Task-BR-PIBT 最终报告（2026-09-03）</h2>
-<ul>
-  <li><a href="task_br_final_report_20260903.html">最终报告：Task-BR-PIBT 实现、测试、同机配对 benchmark 与已知回退</a></li>
-  <li><a href="task_br_release_cases.html">实际 release testcase 动画：baseline 与 Task-BR 并排播放</a></li>
-</ul>
-
-<h2>v4.1 final7 小图覆盖率与质量（2026-09-02）</h2>
-<ul>
-  <li><a href="ita_lacam_project_explainer.pptx">下载 PPT：10 页讲清 ITA-LaCAM 如何在同一棵物理搜索树中动态调整 Goal、Dependency 与 Task</a></li>
-  <li><a href="ita_lacam_project_explainer.html">ITA-LaCAM × 当前项目：动态 Goal、Dependency、Task 如何在同一棵物理搜索树中融合</a></li>
-  <li><a href="root_cause_explainer.html">ρ 保留槽根因图解：一个机器人、三个任务，逐步看懂为什么最远任务会抢走唯一槽位</a></li>
-  <li><a href="small_quality_final7.html">交互式质量 dashboard：33→36 成功，mk/SOC、B/R1、逐例筛选</a></li>
-  <li><a href="small_quality_cases.html">具体 testcase 动画：strict v3 与 final7 双栏对比</a></li>
-</ul>
-
-<h2>交互式动画（旗舰实例 h4w10_a5_e1_R1_seed0，原始 162,215 步）</h2>
-<ul>
-  <li><a href="fix1_h4w10_mscd.html">mscd（milestone+cooldown）：6,967 步</a></li>
-  <li><a href="fix1_h4w10_base.html">base（仅循环消除，当前默认）：18,282 步</a></li>
-</ul>
-
-<h2>1. 逐实例 makespan（36 小图实例，对数轴，✕=超时）</h2>
-<img src="1_makespan_small.png">
-
-<h2>2. 解出率 + makespan 几何均值比（vs gateC 冻结基线）</h2>
-<img src="2_solved_and_ratio.png">
-
-<h2>3. 机器人到访热图（同板同预算，共享色标——"醉汉游走"被压掉两个数量级）</h2>
-<img src="3_heatmap_h4w10.png">
-</body>
+<details>
+ <summary>历史版本与实验</summary>
+ <section class="entry">
+  <div class="date">2026-09-06</div>
+  <div>
+   <h3>Carrier-LaCAM 两遍规划</h3>
+   <ul>
+    <li><a href="carrier_lacam_two_pass_20260906/index.html">两遍规划最终报告</a></li>
+    <li><a href="full_benchmark_two_pass_20260906/index.html">当时的 full benchmark 总览</a></li>
+    <li><a href="full_comparison_v5_vs_two_pass_20260906/index.html">v5 anytime 与两遍规划逐例对比</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-05</div>
+  <div>
+   <h3>Carrier-LaCAM v5</h3>
+   <ul>
+    <li><a href="carrier_lacam_v5_final_report_20260905/index.html">v5 最终报告</a></li>
+    <li><a href="full_benchmark_v5_854df1_20260905/index.html">v5 full dashboard：479/509 solved</a></li>
+    <li><a href="full_comparison_pre_v5_vs_v5_20260905/index.html">pre-v5 与 v5 逐例对比</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-05</div>
+  <div>
+   <h3>历史 pre-v5</h3>
+   <ul>
+    <li><a href="historical_pre_v5_full_benchmark_509_20260905/index.html">历史 pre-v5 dashboard（旧二进制；不作为 v5 完成证据）</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-04</div>
+  <div>
+   <h3>冻结 release benchmark</h3>
+   <ul>
+    <li><a href="release_benchmark_77_20260904/index.html">77-case dashboard：47/77 solved</a></li>
+    <li><a href="release_benchmark_77_20260904/cases/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html">warehouse b3 / 75% 案例动画</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-03</div>
+  <div>
+   <h3>Warehouse-block 与 Task-BR-PIBT</h3>
+   <ul>
+    <li><a href="warehouse_block_suite/runs_lacam_10s_seed0/index.html">Warehouse-block 9/9 实跑结果</a></li>
+    <li><a href="warehouse_block_suite.html">3×3 testcase 矩阵</a></li>
+    <li><a href="warehouse_blocks_20x20_sample.html">20×20 warehouse 样例</a></li>
+    <li><a href="task_br_final_report_20260903.html">Task-BR-PIBT 最终报告</a></li>
+    <li><a href="task_br_release_cases.html">Task-BR release testcase 动画</a></li>
+   </ul>
+  </div>
+ </section>
+ <section class="entry">
+  <div class="date">2026-09-02</div>
+  <div>
+   <h3>v4.1 final7 与早期诊断</h3>
+   <ul>
+    <li><a href="ita_lacam_project_explainer.pptx">ITA-LaCAM 项目说明 PPT</a></li>
+    <li><a href="ita_lacam_project_explainer.html">ITA-LaCAM 项目说明网页</a></li>
+    <li><a href="root_cause_explainer.html">ρ 保留槽根因图解</a></li>
+    <li><a href="small_quality_final7.html">final7 质量 dashboard</a></li>
+    <li><a href="small_quality_cases.html">strict v3 与 final7 动画对比</a></li>
+    <li><a href="fix1_h4w10_mscd.html">旗舰实例 mscd 动画</a></li>
+    <li><a href="fix1_h4w10_base.html">旗舰实例早期 base 动画</a></li>
+    <li><a href="1_makespan_small.png">逐实例 makespan 图</a></li>
+    <li><a href="2_solved_and_ratio.png">解出率与 makespan 几何均值比</a></li>
+    <li><a href="3_heatmap_h4w10.png">机器人到访热图</a></li>
+   </ul>
+  </div>
+ </section>
+</details>
+</main></body>
 </html>

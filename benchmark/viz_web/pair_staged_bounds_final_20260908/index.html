@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pair 三级按需下界：518 例最终报告</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2529;
+      --muted: #606970;
+      --line: #d5d9dc;
+      --soft: #f4f5f6;
+      --accent: #075b70;
+      --good: #17633a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #fff;
+      font: 16px/1.65 system-ui, -apple-system, BlinkMacSystemFont,
+            "Segoe UI", "Noto Sans SC", sans-serif;
+    }
+    main {
+      width: min(1020px, calc(100% - 32px));
+      margin: 44px auto 72px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin: 0 0 12px; font-size: clamp(30px, 5vw, 48px); }
+    h2 {
+      margin: 42px 0 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      font-size: 23px;
+    }
+    p { max-width: 78ch; }
+    a { color: var(--accent); }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .92em;
+    }
+    .lead { font-size: 19px; }
+    .muted { color: var(--muted); }
+    .verdict {
+      margin: 24px 0;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      background: var(--soft);
+    }
+    .verdict strong { color: var(--good); }
+    .flow {
+      overflow-x: auto;
+      margin: 18px 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--soft);
+      white-space: pre;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    th { background: var(--soft); }
+    td:last-child, th:last-child { white-space: normal; }
+    ul { padding-left: 22px; }
+    li { margin: 7px 0; }
+    .evidence li { margin: 5px 0; }
+    @media (max-width: 620px) {
+      main { width: min(100% - 22px, 1020px); margin-top: 28px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Pair 不再先算完所有候选，40×40 从 6/9 提到 8/9</h1>
+  <p class="lead">
+    之前虽然已经复用了增量 Hungarian，但每次货架状态变化后，很多候选边会先
+    重跑一遍 8 步 prefix 模拟。最贵的工作发生在 Hungarian 之前，所以匹配器
+    本身变成 incremental 以后，总时间仍然没有明显下降。
+  </p>
+  <p class="muted">
+    正式协议：full 518，14 workers，每例 10 秒，seed 0，unit weights。
+    对比基线二进制 <code>02a53b…</code> 与当前二进制
+    <code>855f1f…</code>。
+  </p>
+
+  <div class="verdict">
+    <strong>结果：</strong>full 从 485/518 提到 487/518，没有丢解。
+    40×40 dense-channel 从 6/9 提到 8/9。共同成功的 485 例中，
+    1 例更好、484 例相同、0 例变差。唯一仍未在 10 秒内完成的是
+    b9 / 32 robots / 48 targets。
+  </div>
+
+  <h2>这次改了什么</h2>
+  <p>
+    新代码给每条 target-goal 边分三档。第一档只算考虑墙体的最短距离，再加
+    必需的 Lift/Drop，成本很低；只有当前匹配选中的边，或仍可能达到或优于当前
+    最优代价的边，才继续做 prefix 模拟和完整 PairCost。
+  </p>
+  <div class="flow">旧路径
+状态变化 → 所有失效候选先做 8 步 prefix → 增量 Hungarian → exact certificate
+
+当前路径
+状态变化 → 失效候选退回 CHEAP_BOUND
+         → 选中或仍有竞争力：PREFIX_BOUND
+         → 还需证明：EXACT
+         → 同一份增量 Hungarian 只 repair 变化的行</div>
+  <p>
+    Hungarian 没有换算法。Pair 继续使用 LaCAM-TAPF 现有的增量
+    primal/dual 核心；forced-edge 检查复制当前状态，只限制一行后调用同一个
+    <code>repair_rows()</code>。最终被选中的边全部精算到
+    <code>EXACT</code>，没有精算的边则由 forced lower bound 证明不可能进入
+    最优匹配，因此 <code>tau_guide</code> 的结果仍与完整 PairCost 矩阵一致。
+  </p>
+
+  <h2>正式 benchmark</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>指标</th><th>共享增量 Hungarian</th><th>三级按需下界</th><th>变化</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>quick</td><td>47 / 77</td><td>47 / 77</td><td>成功状态和 cost 逐例一致</td></tr>
+        <tr><td>full</td><td>485 / 518</td><td>487 / 518</td><td>新增 2 解，丢失 0 解</td></tr>
+        <tr><td>40×40 dense</td><td>6 / 9</td><td>8 / 9</td><td>b4/r32、b9/r16 由 timeout 变为成功</td></tr>
+        <tr><td>共同成功例 (T,W)</td><td colspan="2">1 better / 484 equal / 0 worse</td><td>没有质量回退</td></tr>
+        <tr><td>累计 solver time</td><td>3563.1 s</td><td>3545.8 s</td><td>-17.3 s（-0.49%）</td></tr>
+        <tr><td>Pair rollout steps</td><td>7,257,391</td><td>4,474,931</td><td>-38.3%，含新增成功例</td></tr>
+        <tr><td>共同成功例 guidance</td><td>1480.2 s</td><td>1452.1 s</td><td>-28.0 s（-1.89%）</td></tr>
+        <tr><td>共同成功例 plan SHA</td><td colspan="2">4 / 485 不同</td><td>3 例同成本；1 例 makespan 28 → 27</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>四个具体例子</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>case</th><th>基线 → 当前</th><th>结果</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>b4 / 32 robots / 48 targets</td>
+          <td>10 秒 timeout → 7.306 秒首解</td>
+          <td><a href="../full_benchmark_pair_staged_bounds_20260908/cases/dense_channel_bedge_h40w40_b4_a1_s15of16_r32_t48_seed0.html">当前动画</a>；最终 (62, 1764)</td>
+        </tr>
+        <tr>
+          <td>b9 / 16 robots / 24 targets</td>
+          <td>10 秒 timeout → 8.104 秒首解</td>
+          <td><a href="../full_benchmark_pair_staged_bounds_20260908/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed0.html">当前动画</a>；最终 (115, 1725)</td>
+        </tr>
+        <tr>
+          <td>b9 / 8 robots / 12 targets</td>
+          <td>首解 6.797 s → 2.280 s；rollout 148,237 → 69,518</td>
+          <td><a href="../full_benchmark_pair_shared_hungarian_20260908/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t12_seed0.html">基线</a> /
+              <a href="../full_benchmark_pair_staged_bounds_20260908/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t12_seed0.html">当前</a>；最终都为 (99, 820)</td>
+        </tr>
+        <tr>
+          <td>b3 / 32 robots / 48 targets</td>
+          <td>首解 4.182 s → 2.149 s；rollout 29,763 → 8,783</td>
+          <td><a href="../full_benchmark_pair_shared_hungarian_20260908/cases/dense_channel_bedge_h40w40_b3_a1_s8of9_r32_t48_seed0.html">基线</a> /
+              <a href="../full_benchmark_pair_staged_bounds_20260908/cases/dense_channel_bedge_h40w40_b3_a1_s8of9_r32_t48_seed0.html">当前</a>；最终都为 (27, 646)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>为什么 b9/r32 还需要 24 秒</h2>
+  <p>
+    这例有 48 个 target，每个 target 有 32 个同 block 边缘 goal，一轮就是
+    1536 条候选边。b9 的边缘格很多，单靠 wall distance 得到的 cheap bound
+    彼此很接近，无法像 b3、b4 那样快速排除大部分候选。
+  </p>
+  <p>
+    30 秒诊断在 24.146 秒取得首解，26.979 秒结束，最终为 (134, 3441)。
+    期间只做了 2 次 full Hungarian，却做了 399,728 次 forced row repair；
+    246 个 upper epoch 平均约 1625 次，和每轮 1536 条候选边处在同一数量级。
+    这说明 incremental Hungarian 已经生效，剩下的问题是每轮仍要证明太多边
+    “不会赢”。
+  </p>
+  <p>
+    这次运行的 guidance 为 26.394 秒，占总时间 97.8%。其中 vacancy potential
+    2.957 秒、timed transport 0.219 秒，ρ 的几个计时项合计约 1.023 秒。
+    其余 guidance 目前没有细分到 Pair certificate 和 task compiler 的独立毫秒数，
+    所以不能只凭调用次数断言它们各占多少。下一步应先补这两个计时，再考虑复用
+    跨 epoch 的 forced certificate，或给 b9 这类大 goal set 增加更强但仍可采纳的
+    中间下界；继续改 Hungarian full solve 不会解决主要问题。
+  </p>
+  <p>
+    <a href="examples/b9_r32_30s_diagnostic.html">查看 30 秒诊断动画</a>；
+    <a href="evidence/b9_r32_30s_diagnostic.json">查看诊断指标</a>。
+  </p>
+
+  <h2>验证</h2>
+  <ul>
+    <li>C++：425 / 425 通过，包括原 TAPF compatibility。</li>
+    <li>Python benchmark 与网页测试全部通过；新增测试固定 quick 77、factorial 432、dense 9 的分组。</li>
+    <li>独立 GPT-5.6 Sol/high 代码审查为 APPROVE，批准 binary <code>855f1f…</code> 运行 full 518。</li>
+    <li>487 个成功计划均由本轮 plan SHA 重新生成动画。</li>
+    <li>没有新增 planner、fallback、40×40 特判或 testcase-specific 分支。</li>
+  </ul>
+
+  <h2>证据与代码</h2>
+  <ul class="evidence">
+    <li><a href="../full_comparison_pair_shared_vs_staged_bounds_20260908/index.html">518 例逐例对比</a></li>
+    <li><a href="../full_benchmark_pair_staged_bounds_20260908/index.html">当前 full dashboard</a></li>
+    <li><a href="../full_benchmark_pair_shared_hungarian_20260908/index.html">基线 full dashboard</a></li>
+    <li><a href="../../results_full_pair_staged_bounds_518_20260908/rows.csv">当前 rows.csv</a> /
+        <a href="../../results_full_pair_staged_bounds_518_20260908/timing.json">timing.json</a></li>
+    <li><a href="../../results_full_pair_shared_hungarian_518_20260908/rows.csv">基线 rows.csv</a> /
+        <a href="../../results_full_pair_shared_hungarian_518_20260908/timing.json">timing.json</a></li>
+    <li><a href="../../results_quick_pair_staged_bounds_20260908/rows.csv">当前 quick rows.csv</a></li>
+    <li><a href="../../full_review_approval_pair_staged_bounds_518_20260908.json">full review approval</a></li>
+    <li><a href="../../../lacam/src/carrier_tau.hpp">三级精化与 lazy certificate</a></li>
+    <li><a href="../../../lacam/src/carrier_pair_cost.hpp">PairCost stage 标记</a></li>
+    <li><a href="../../../lacam/include/tapf_assignment.hpp">共享增量 Hungarian 核心</a></li>
+    <li><a href="../../../tests/test_pair_staged_lower_bound.cpp">三级下界测试</a> /
+        <a href="../../../tests/test_dd_pair_incremental.cpp">跨 epoch 增量测试</a></li>
+  </ul>
+</main>
+</body>
+</html>

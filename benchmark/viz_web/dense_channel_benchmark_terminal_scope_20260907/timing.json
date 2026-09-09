@@ -1,0 +1,36 @@
+{
+  "wall_time_sec": 8.8,
+  "jobs": 8,
+  "n_tasks": 8,
+  "timeout_per_run_sec": 10,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "gamma": 1.0,
+    "delta": 1.0
+  },
+  "following": "allowed",
+  "provenance": {
+    "git_commit": "36622a9d42fe682eaca49dd05ff5e166f117bbb2",
+    "binary_path": "/local/home/yimint/research/dd-lacam/build/dd_benchmark",
+    "binary_sha256": "d1ea40f67d281da6a82eea649d7de8e2d8a5e7d13d22407523608c3b44881fe2",
+    "host": "dev-dsk-yimint-1d-d32fcf71.us-east-1.amazon.com"
+  },
+  "methods": {
+    "carrier": {
+      "solved": 7,
+      "total": 8,
+      "solver_time_sum_sec": 38.4
+    }
+  },
+  "suite": {
+    "name": "dense_channel_v2_8",
+    "definition_path": "/local/home/yimint/research/dd-lacam/benchmark/dense_channel_benchmark_v2.json",
+    "definition_sha256": "4e6df11d63a51a1100800f5150ed7516023a1a1867d8c426d90a0862422f7fa3",
+    "groups": {
+      "dense_channel_v2": 8
+    },
+    "full_only_case_count": 0
+  }
+}

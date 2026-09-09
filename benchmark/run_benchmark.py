@@ -19,6 +19,7 @@ raw outputs are kept under <out>/work/ for auditability.
 import argparse
 import csv
 import ctypes
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import fcntl
 import hashlib
@@ -55,17 +56,68 @@ BENCHMARK_TIERS = {
     },
     "full": {
         "suite": BENCH / "full_benchmark.json",
-        "expected_cases": 509,
+        "expected_cases": 518,
         "requires_review": True,
     },
 }
-FULL_ONLY_INSTANCES = (
-    BENCH
-    / "viz_web"
-    / "warehouse_case_proposal"
-    / "factorial_suite"
-    / "instances"
+FULL_ONLY_INSTANCE_ROOTS = (
+    (
+        BENCH
+        / "viz_web"
+        / "warehouse_case_proposal"
+        / "factorial_suite"
+        / "instances"
+    ),
+    (
+        BENCH
+        / "viz_web"
+        / "dense_channel_block_edge_40x40_suite_v1_20260907"
+        / "instances"
+    ),
 )
+
+CARRIER_GUIDANCE_METRIC_FIELDS = [
+    "vacancy_potential_builds",
+    "vacancy_potential_time_ms",
+    "vacancy_potential_unreachable_cells",
+    "clearance_first_choice_fallbacks",
+    "guidance_version",
+    "epoch_first_transfer_comparisons",
+    "epoch_first_transfer_flips",
+    "epoch_chain_overlap_samples",
+    "epoch_chain_overlap_intersection",
+    "epoch_chain_overlap_union",
+    "epoch_chain_overlap_pct",
+    "upper_epoch_cache_evictions",
+]
+
+BRD_METRIC_FIELDS = [
+    "brd_tau_ms", "brd_upper_ms", "brd_upper_nodes",
+    "brd_upper_constraints", "brd_upper_steps", "brd_upper_transfers",
+    "brd_vacancy_potential_builds",
+    "brd_vacancy_potential_time_ms",
+    "brd_vacancy_potential_unreachable_cells",
+    "brd_selected_clearance_pushes",
+    "brd_selected_clearance_loaded_steps",
+    "brd_clearance_first_choice_fallbacks",
+    "brd_guidance_version",
+    "brd_task_compile_ms", "brd_waves", "brd_tasks",
+    "brd_max_wave_width", "brd_target_tasks", "brd_anon_tasks",
+    "brd_match_calls", "brd_match_ms",
+    "brd_match_max_cardinality_ms",
+    "brd_match_max_cardinality_cutoffs", "brd_match_max_rows",
+    "brd_match_rows_without_finite_real_edge",
+    "brd_match_maximum_real_cardinality",
+    "brd_match_real_assignments", "brd_match_hall_deficient_calls",
+    "brd_dispatch_epochs", "brd_completion_events",
+    "brd_tasks_completed_per_event", "brd_locked_carriers_max",
+    "brd_provisional_reassignments", "brd_segments",
+    "brd_segment_ms", "brd_segment_nodes", "brd_segment_failures",
+    "brd_cleanup_ms", "brd_replay_ms", "brd_raw_ticks",
+    "brd_raw_work_scaled", "brd_goal_prefix_removed",
+    "brd_incidental_goal_prefix_ms", "brd_raw_plan_valid",
+    "brd_exit_reason",
+]
 
 FIELDS = [
     "instance", "family", "method", "success", "executed_makespan",
@@ -89,7 +141,8 @@ FIELDS = [
     "pair_rollout_stalls", "tau_guide_changes_on_upper_move",
     "joint_task_nodes", "joint_task_edges", "joint_shared_effects",
     "joint_effect_conflicts", "joint_candidate_backtracks",
-    "joint_paused_roots", "ready_task_count", "rho_repairs",
+    "joint_paused_roots", *CARRIER_GUIDANCE_METRIC_FIELDS,
+    "ready_task_count", "rho_repairs",
     "rho_match_calls_execute", "rho_match_calls_prepare",
     "rho_candidates_input", "rho_candidates_after_claims",
     "rho_candidates_after_key_dedupe",
@@ -113,6 +166,7 @@ FIELDS = [
     "timed_transport_expansions", "timed_transport_frames",
     "timed_transport_time_ms", "owner_handoffs",
     "causal_waiting", "traffic_waiting",
+    *BRD_METRIC_FIELDS,
     "deliverable_ms", "solver_runtime_ms",
     "plan_sha256",
     "runtime_sec", "status", "raw",
@@ -154,6 +208,203 @@ def _reported_nonnegative_int(metrics, field):
     return value
 
 
+def _reported_minus_one_or_nonnegative_int(metrics, field):
+    raw = metrics.get(field)
+    if raw is None or re.fullmatch(r"-1|(?:0|[1-9][0-9]*)", raw) is None:
+        raise ValueError(
+            f"solver omitted a valid -1/non-negative integer {field}"
+        )
+    value = int(raw)
+    if value > MAX_INT64:
+        raise ValueError(f"solver reported out-of-range {field}")
+    return value
+
+
+def _reported_finite_float(metrics, field, allow_minus_one=False):
+    raw = metrics.get(field)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"solver omitted a finite float {field}") from exc
+    if not math.isfinite(value):
+        raise ValueError(f"solver reported non-finite {field}")
+    if allow_minus_one:
+        if value < 0 and value != -1:
+            raise ValueError(f"solver reported invalid sentinel {field}")
+    elif value < 0:
+        raise ValueError(f"solver reported negative {field}")
+    return value
+
+
+def validate_carrier_guidance_metrics(metrics):
+    """Validate vacancy and adjacent-epoch telemetry for carrier search."""
+    nonnegative_int_fields = [
+        "vacancy_potential_builds",
+        "vacancy_potential_unreachable_cells",
+        "clearance_first_choice_fallbacks",
+        "epoch_first_transfer_comparisons",
+        "epoch_first_transfer_flips",
+        "epoch_chain_overlap_samples",
+        "epoch_chain_overlap_intersection",
+        "epoch_chain_overlap_union",
+        "upper_epoch_cache_evictions",
+    ]
+    parsed = {
+        field: _reported_nonnegative_int(metrics, field)
+        for field in nonnegative_int_fields
+    }
+    parsed["vacancy_potential_time_ms"] = _reported_finite_float(
+        metrics, "vacancy_potential_time_ms"
+    )
+    overlap_pct = _reported_finite_float(
+        metrics, "epoch_chain_overlap_pct"
+    )
+    if overlap_pct > 100:
+        raise ValueError("epoch_chain_overlap_pct exceeds 100")
+    parsed["epoch_chain_overlap_pct"] = overlap_pct
+
+    guidance_version = metrics.get("guidance_version")
+    if guidance_version != "TASKBR_VACANCY_V1":
+        raise ValueError("missing or unknown guidance_version")
+    parsed["guidance_version"] = guidance_version
+
+    if (parsed["epoch_first_transfer_flips"] >
+            parsed["epoch_first_transfer_comparisons"]):
+        raise ValueError("epoch flip count exceeds its comparisons")
+    if (parsed["epoch_chain_overlap_intersection"] >
+            parsed["epoch_chain_overlap_union"]):
+        raise ValueError("epoch chain intersection exceeds its union")
+    expected_pct = (
+        100.0 * parsed["epoch_chain_overlap_intersection"] /
+        parsed["epoch_chain_overlap_union"]
+        if parsed["epoch_chain_overlap_union"] > 0
+        else 0.0
+    )
+    if not math.isclose(
+            overlap_pct, expected_pct, rel_tol=1e-5, abs_tol=1e-5):
+        raise ValueError("epoch_chain_overlap_pct is inconsistent")
+    return parsed
+
+
+def validate_carrier_brd_metrics(metrics):
+    """Validate the complete completion-event baseline telemetry contract."""
+    nonnegative_int_fields = [
+        "brd_upper_nodes", "brd_upper_constraints", "brd_upper_steps",
+        "brd_upper_transfers", "brd_waves", "brd_tasks",
+        "brd_vacancy_potential_builds",
+        "brd_vacancy_potential_unreachable_cells",
+        "brd_selected_clearance_pushes",
+        "brd_selected_clearance_loaded_steps",
+        "brd_clearance_first_choice_fallbacks",
+        "brd_max_wave_width", "brd_target_tasks", "brd_anon_tasks",
+        "brd_match_calls", "brd_match_max_cardinality_cutoffs",
+        "brd_match_max_rows",
+        "brd_match_rows_without_finite_real_edge",
+        "brd_match_maximum_real_cardinality",
+        "brd_match_real_assignments", "brd_match_hall_deficient_calls",
+        "brd_dispatch_epochs", "brd_completion_events",
+        "brd_locked_carriers_max", "brd_provisional_reassignments",
+        "brd_segments", "brd_segment_nodes", "brd_segment_failures",
+        "brd_raw_ticks", "brd_goal_prefix_removed",
+    ]
+    parsed = {
+        field: _reported_nonnegative_int(metrics, field)
+        for field in nonnegative_int_fields
+    }
+    parsed["brd_raw_work_scaled"] = (
+        _reported_minus_one_or_nonnegative_int(
+            metrics, "brd_raw_work_scaled"
+        )
+    )
+    raw_valid = _reported_nonnegative_int(
+        metrics, "brd_raw_plan_valid"
+    )
+    if raw_valid not in (0, 1):
+        raise ValueError("brd_raw_plan_valid must be 0 or 1")
+    parsed["brd_raw_plan_valid"] = raw_valid
+
+    for field in (
+        "brd_tau_ms", "brd_upper_ms", "brd_task_compile_ms",
+        "brd_vacancy_potential_time_ms",
+        "brd_match_ms", "brd_match_max_cardinality_ms",
+        "brd_segment_ms", "brd_cleanup_ms", "brd_replay_ms",
+    ):
+        parsed[field] = _reported_finite_float(metrics, field)
+    parsed["brd_incidental_goal_prefix_ms"] = _reported_finite_float(
+        metrics, "brd_incidental_goal_prefix_ms", allow_minus_one=True
+    )
+    guidance_version = metrics.get("brd_guidance_version")
+    if guidance_version != "TASKBR_VACANCY_V1":
+        raise ValueError("missing or unknown brd_guidance_version")
+    parsed["brd_guidance_version"] = guidance_version
+
+    events_text = metrics.get("brd_tasks_completed_per_event")
+    if events_text is None:
+        raise ValueError("solver omitted brd_tasks_completed_per_event")
+    if events_text == "":
+        completed_per_event = []
+    elif re.fullmatch(r"(?:0|[1-9][0-9]*)(?:,(?:0|[1-9][0-9]*))*",
+                      events_text):
+        completed_per_event = [int(value) for value in events_text.split(",")]
+    else:
+        raise ValueError("malformed brd_tasks_completed_per_event")
+    if len(completed_per_event) != parsed["brd_completion_events"]:
+        raise ValueError(
+            "brd completion-event count does not match its event vector"
+        )
+    if any(value <= 0 for value in completed_per_event):
+        raise ValueError("every BRD completion event must finish a task")
+
+    exit_reasons = {
+        "SOLVED", "TAU_FAILED", "UPPER_TIMEOUT", "UPPER_EXHAUSTED",
+        "TASK_COMPILE_INVALID", "WAVE_START_MISMATCH",
+        "DISPATCH_TIMEOUT", "DISPATCH_STUCK", "SEGMENT_TIMEOUT",
+        "SEGMENT_EXHAUSTED", "SEGMENT_INVALID", "WAVE_END_MISMATCH",
+        "FINAL_GOAL_MISMATCH", "FINAL_REPLAY_INVALID",
+        "SEARCH_TIMEOUT", "FINALIZATION_DEADLINE",
+    }
+    exit_reason = metrics.get("brd_exit_reason")
+    if exit_reason not in exit_reasons:
+        raise ValueError("missing or unknown brd_exit_reason")
+    parsed["brd_exit_reason"] = exit_reason
+
+    if parsed["brd_dispatch_epochs"] != parsed["brd_match_calls"]:
+        raise ValueError("every BRD dispatch epoch must call the matcher")
+    if parsed["brd_upper_steps"] != parsed["brd_waves"]:
+        raise ValueError("BRD upper steps and frozen waves disagree")
+    if parsed["brd_upper_transfers"] != parsed["brd_tasks"]:
+        raise ValueError("BRD upper transfers and frozen tasks disagree")
+    if sum(completed_per_event) > parsed["brd_tasks"]:
+        raise ValueError("BRD completed more tasks than were frozen")
+
+    solved = metrics.get("solved")
+    if solved not in {"0", "1"}:
+        raise ValueError("solver omitted a valid solved flag")
+    if solved == "1":
+        if exit_reason != "SOLVED" or raw_valid != 1:
+            raise ValueError("successful BRD run lacks a verified raw plan")
+        if sum(completed_per_event) != parsed["brd_tasks"]:
+            raise ValueError("successful BRD run did not complete every task")
+        if parsed["brd_segments"] != parsed["brd_completion_events"]:
+            raise ValueError("successful BRD segment/event counts disagree")
+        if parsed["brd_raw_work_scaled"] < 0:
+            raise ValueError("successful BRD raw work is unavailable")
+        makespan = _reported_nonnegative_int(metrics, "makespan")
+        delivered_work = _reported_nonnegative_int(
+            metrics, "weighted_work_scaled"
+        )
+        if parsed["brd_raw_ticks"] < makespan:
+            raise ValueError("BRD raw plan is shorter than its goal prefix")
+        if (parsed["brd_goal_prefix_removed"] !=
+                parsed["brd_raw_ticks"] - makespan):
+            raise ValueError("BRD goal-prefix removal count is inconsistent")
+        if parsed["brd_raw_work_scaled"] < delivered_work:
+            raise ValueError("BRD raw work is below delivered-prefix work")
+    elif exit_reason == "SOLVED":
+        raise ValueError("failed BRD row reports SOLVED exit reason")
+    return parsed
+
+
 def validate_carrier_work_metrics(metrics, cost, weights, mode):
     """Cross-check delivered-plan work in exact integer micro-units."""
     scaled_weights = tuple(
@@ -179,7 +430,7 @@ def validate_carrier_work_metrics(metrics, cost, weights, mode):
 
     # B0/B1 predate v5 incumbent diagnostics, but their delivered-plan
     # accounting still crosses the same authoritative replay boundary.
-    if mode == "lacam":
+    if mode in {"lacam", "brd"}:
         best = _reported_nonnegative_int(metrics, "best_work_scaled")
         if best != expected:
             raise ValueError(
@@ -243,6 +494,46 @@ def validate_full_review_approval(review_approval, carrier_bin=None):
         raise ValueError(
             "independent review must use openai.gpt-5.6-sol"
         )
+    if approval.get("reasoning_effort") != "high":
+        raise ValueError(
+            "independent review reasoning_effort must be high"
+        )
+    reviewer_agent_id = approval.get("reviewer_agent_id")
+    if (not isinstance(reviewer_agent_id, str) or
+            not reviewer_agent_id.strip()):
+        raise ValueError(
+            "review approval reviewer_agent_id must be non-empty"
+        )
+    reviewed_at_utc = approval.get("reviewed_at_utc")
+    if (not isinstance(reviewed_at_utc, str) or
+            re.fullmatch(
+                r"[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+                r"[0-9]{2}:[0-9]{2}:[0-9]{2}Z",
+                reviewed_at_utc,
+            ) is None):
+        raise ValueError(
+            "review approval reviewed_at_utc must be UTC "
+            "YYYY-MM-DDTHH:MM:SSZ"
+        )
+    try:
+        datetime.strptime(
+            reviewed_at_utc, "%Y-%m-%dT%H:%M:%SZ"
+        )
+    except ValueError as exc:
+        raise ValueError(
+            "review approval reviewed_at_utc must be a valid UTC timestamp"
+        ) from exc
+    review_summary = approval.get("review_summary")
+    if (not isinstance(review_summary, str) or
+            not review_summary.strip()):
+        raise ValueError(
+            "review approval review_summary must be non-empty"
+        )
+    blocking_findings = approval.get("blocking_findings")
+    if not isinstance(blocking_findings, list) or blocking_findings:
+        raise ValueError(
+            "review approval blocking_findings must be an empty list"
+        )
     expected_hash = hashlib.sha256(
         BENCHMARK_TIERS["full"]["suite"].read_bytes()
     ).hexdigest()
@@ -287,6 +578,36 @@ def resolve_benchmark_tier(
         review_approval, carrier_bin=carrier_bin
     )
     return suite
+
+
+def resolve_suite_methods(
+    protocol_methods, requested_methods, tier_name
+):
+    """Resolve a suite's fixed method slot without changing its protocol.
+
+    The frozen quick/full manifests predate ``carrier_brd`` and name their
+    single Carrier slot ``carrier``.  Those two project tiers may explicitly
+    run the new baseline in that slot; direct suite configs and every other
+    method substitution remain fixed by the manifest.
+    """
+    protocol = list(protocol_methods)
+    requested = (
+        protocol
+        if requested_methods is None
+        else list(requested_methods)
+    )
+    if requested == protocol:
+        return requested
+    if requested == ["carrier_brd"]:
+        if tier_name not in BENCHMARK_TIERS:
+            raise ValueError(
+                "carrier_brd method substitution requires a benchmark tier"
+            )
+        if protocol == ["carrier"]:
+            return requested
+    raise ValueError(
+        f"suite protocol fixes methods to {protocol}"
+    )
 
 
 def guard_protected_suite(
@@ -401,7 +722,7 @@ def corpus_sha256_for_cases(cases):
 
 
 def full_corpus_sha256():
-    """Digest all 509 normalized cases while preserving multiplicity."""
+    """Digest all 518 normalized cases while preserving multiplicity."""
     _, cases, _ = discover_suite_cases(
         BENCHMARK_TIERS["full"]["suite"]
     )
@@ -523,7 +844,8 @@ def guard_full_only_cases(
     """Require review for any copied, renamed, or partial full-only corpus."""
     protected_hashes = {
         semantic_case_fingerprint(path)
-        for path in FULL_ONLY_INSTANCES.glob("*.yaml")
+        for root in FULL_ONLY_INSTANCE_ROOTS
+        for path in root.glob("*.yaml")
         if path.is_file()
     }
     matched = [
@@ -892,8 +1214,12 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
     two-deck validator; unified metrics via plan_cost (same as b4)."""
     from ddbench.validator import apply_joint_action, initial_state, is_goal
 
-    method = {"lacam": "carrier", "b0": "carrier_b0",
-              "b1": "carrier_b1"}[mode]
+    method = {
+        "lacam": "carrier",
+        "brd": "carrier_brd",
+        "b0": "carrier_b0",
+        "b1": "carrier_b1",
+    }[mode]
     plan_out = work / f"{name}.{method}.plan"
     if plan_out.exists():
         plan_out.unlink()
@@ -923,15 +1249,47 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
             if "=" in line:
                 k, v = line.split("=", 1)
                 metrics[k.strip()] = v.strip()
+    if p is not None and mode == "lacam":
+        try:
+            validate_carrier_guidance_metrics(metrics)
+        except ValueError as exc:
+            return dict(
+                instance=name, family=family, method=method, success=0,
+                executed_makespan="", weighted_soc="", loaded_moves="",
+                free_moves="", lift_drop="", **_blank_extra(),
+                runtime_sec=round(rt, 3), status="invalid_metrics",
+                raw=str(exc),
+            )
+    if p is not None and mode == "brd":
+        try:
+            validate_carrier_brd_metrics(metrics)
+        except ValueError as exc:
+            return dict(
+                instance=name, family=family, method=method, success=0,
+                executed_makespan="", weighted_soc="", loaded_moves="",
+                free_moves="", lift_drop="", **_blank_extra(),
+                runtime_sec=round(rt, 3), status="invalid_metrics",
+                raw=str(exc),
+            )
     if (status != "ok" or p.returncode != 0 or
             metrics.get("solved") != "1"):
-        return dict(instance=name, family=family, method=method, success=0,
-                    executed_makespan="", weighted_soc="", loaded_moves="",
-                    free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
-                    status="timeout" if status != "ok" or
-                    metrics.get("timed_out") == "1" else "failed",
-                    raw=(p.stdout + p.stderr)[-150:].replace("\n", " ")
-                    if p else "")
+        row = dict(
+            instance=name, family=family, method=method, success=0,
+            executed_makespan="", weighted_soc="", loaded_moves="",
+            free_moves="", lift_drop="", **_blank_extra(),
+            runtime_sec=round(rt, 3),
+            status="timeout" if status != "ok" or
+            metrics.get("timed_out") == "1" else "failed",
+            raw=(p.stdout + p.stderr)[-150:].replace("\n", " ")
+            if p else "",
+        )
+        if p is not None and mode == "brd":
+            for field in BRD_METRIC_FIELDS:
+                row[field] = metrics[field]
+        if p is not None and mode == "lacam":
+            for field in CARRIER_GUIDANCE_METRIC_FIELDS:
+                row[field] = metrics[field]
+        return row
     try:
         validate_deliverable_ms(metrics, timeout)
         validate_solver_runtime_ms(metrics, timeout)
@@ -967,225 +1325,232 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                     executed_makespan="", weighted_soc="", loaded_moves="",
                     free_moves="", lift_drop="", **_blank_extra(), runtime_sec=round(rt, 3),
                     status="invalid_plan", raw=str(e)[:200])
-    return dict(instance=name, family=family, method=method, success=1,
-                executed_makespan=c["executed_makespan"],
-                weighted_soc=c["weighted_soc"],
-                weighted_work_scaled=work_scaled,
-                loaded_moves=c["loaded_moves"],
-                free_moves=c["free_moves"], lift_drop=c["lift_drop"],
-                shelf_switches=c["shelf_switches"],
-                reversals=c["reversals"],
-                robot_utilization=round(c["robot_utilization"], 4),
-                first_solution_ms=metrics.get("first_solution_ms", ""),
-                first_solution_makespan=metrics.get(
-                    "first_solution_makespan", ""
-                ),
-                first_solution_soc=metrics.get("first_solution_soc", ""),
-                first_solution_work_scaled=metrics.get(
-                    "first_solution_work_scaled", ""
-                ),
-                best_makespan=metrics.get("best_makespan", ""),
-                best_soc=metrics.get("best_soc", ""),
-                best_work_scaled=metrics.get("best_work_scaled", ""),
-                improvement_attempts=metrics.get(
-                    "improvement_attempts", ""
-                ),
-                improvement_candidates=metrics.get(
-                    "improvement_candidates", ""
-                ),
-                improvement_improvements=metrics.get(
-                    "improvement_improvements", ""
-                ),
-                improvement_generator_failures=metrics.get(
-                    "improvement_generator_failures", ""
-                ),
-                reference_checkpoint_hits=metrics.get(
-                    "reference_checkpoint_hits", ""
-                ),
-                reference_action_hints=metrics.get(
-                    "reference_action_hints", ""
-                ),
-                reference_suffix_attempts=metrics.get(
-                    "reference_suffix_attempts", ""
-                ),
-                reference_suffix_accepted=metrics.get(
-                    "reference_suffix_accepted", ""
-                ),
-                improvement_exit_reason=metrics.get(
-                    "improvement_exit_reason", ""
-                ),
-                assignment_restarts=metrics.get("assignment_restarts", ""),
-                assignment_second_solved=metrics.get(
-                    "assignment_second_solved", ""
-                ),
-                assignment_improvements=metrics.get(
-                    "assignment_improvements", ""
-                ),
-                assignment_second_solution_ms=metrics.get(
-                    "assignment_second_solution_ms", ""
-                ),
-                assignment_first_soc=metrics.get(
-                    "assignment_first_soc", ""
-                ),
-                assignment_second_soc=metrics.get(
-                    "assignment_second_soc", ""
-                ),
-                assignment_first_makespan=metrics.get(
-                    "assignment_first_makespan", ""
-                ),
-                assignment_second_makespan=metrics.get(
-                    "assignment_second_makespan", ""
-                ),
-                upper_epoch_builds=metrics.get("upper_epoch_builds", ""),
-                pair_cache_hits=metrics.get("pair_cache_hits", ""),
-                pair_cache_misses=metrics.get("pair_cache_misses", ""),
-                pair_rollout_steps=metrics.get("pair_rollout_steps", ""),
-                pair_rollout_truncations=metrics.get(
-                    "pair_rollout_truncations", ""
-                ),
-                pair_rollout_stalls=metrics.get(
-                    "pair_rollout_stalls", ""
-                ),
-                tau_guide_changes_on_upper_move=metrics.get(
-                    "tau_guide_changes_on_upper_move", ""
-                ),
-                joint_task_nodes=metrics.get("joint_task_nodes", ""),
-                joint_task_edges=metrics.get("joint_task_edges", ""),
-                joint_shared_effects=metrics.get(
-                    "joint_shared_effects", ""
-                ),
-                joint_effect_conflicts=metrics.get(
-                    "joint_effect_conflicts", ""
-                ),
-                joint_candidate_backtracks=metrics.get(
-                    "joint_candidate_backtracks", ""
-                ),
-                joint_paused_roots=metrics.get(
-                    "joint_paused_roots", ""
-                ),
-                ready_task_count=metrics.get("ready_task_count", ""),
-                rho_repairs=metrics.get("rho_repairs", ""),
-                rho_match_calls_execute=metrics.get(
-                    "rho_match_calls_execute", ""
-                ),
-                rho_match_calls_prepare=metrics.get(
-                    "rho_match_calls_prepare", ""
-                ),
-                rho_candidates_input=metrics.get(
-                    "rho_candidates_input", ""
-                ),
-                rho_candidates_after_claims=metrics.get(
-                    "rho_candidates_after_claims", ""
-                ),
-                rho_candidates_after_key_dedupe=metrics.get(
-                    "rho_candidates_after_key_dedupe", ""
-                ),
-                rho_candidates_after_shelf_preselect=metrics.get(
-                    "rho_candidates_after_shelf_preselect", ""
-                ),
-                rho_candidates_after_priority=metrics.get(
-                    "rho_candidates_after_priority", ""
-                ),
-                rho_invalid_filtered=metrics.get(
-                    "rho_invalid_filtered", ""
-                ),
-                rho_duplicate_key_filtered=metrics.get(
-                    "rho_duplicate_key_filtered", ""
-                ),
-                rho_same_shelf_filtered=metrics.get(
-                    "rho_same_shelf_filtered", ""
-                ),
-                rho_upstream_claim_filtered=metrics.get(
-                    "rho_upstream_claim_filtered", ""
-                ),
-                rho_mode_ineligible_filtered=metrics.get(
-                    "rho_mode_ineligible_filtered", ""
-                ),
-                rho_no_reachable_robot_filtered=metrics.get(
-                    "rho_no_reachable_robot_filtered", ""
-                ),
-                rho_priority_filtered=metrics.get(
-                    "rho_priority_filtered", ""
-                ),
-                rho_matrix_rows_total=metrics.get(
-                    "rho_matrix_rows_total", ""
-                ),
-                rho_matrix_cols_total=metrics.get(
-                    "rho_matrix_cols_total", ""
-                ),
-                rho_matrix_max_rows=metrics.get(
-                    "rho_matrix_max_rows", ""
-                ),
-                rho_objective_version=metrics.get(
-                    "rho_objective_version", ""
-                ),
-                rho_candidate_time_ms=metrics.get(
-                    "rho_candidate_time_ms", ""
-                ),
-                rho_matrix_time_ms=metrics.get(
-                    "rho_matrix_time_ms", ""
-                ),
-                rho_bottleneck_time_ms=metrics.get(
-                    "rho_bottleneck_time_ms", ""
-                ),
-                rho_secondary_full_time_ms=metrics.get(
-                    "rho_secondary_full_time_ms", ""
-                ),
-                rho_canonical_time_ms=metrics.get(
-                    "rho_canonical_time_ms", ""
-                ),
-                rho_column_identity_same=metrics.get(
-                    "rho_column_identity_same", ""
-                ),
-                rho_column_value_same=metrics.get(
-                    "rho_column_value_same", ""
-                ),
-                rho_mode_or_conflict_same=metrics.get(
-                    "rho_mode_or_conflict_same", ""
-                ),
-                rho_changed_rows_0=metrics.get(
-                    "rho_changed_rows_0", ""
-                ),
-                rho_changed_rows_1=metrics.get(
-                    "rho_changed_rows_1", ""
-                ),
-                rho_changed_rows_2=metrics.get(
-                    "rho_changed_rows_2", ""
-                ),
-                rho_changed_rows_gt2=metrics.get(
-                    "rho_changed_rows_gt2", ""
-                ),
-                rho_assignment_changes=metrics.get(
-                    "rho_assignment_changes", ""
-                ),
-                custody_continuations=metrics.get(
-                    "custody_continuations", ""
-                ),
-                zero_empty_no_ready=metrics.get(
-                    "zero_empty_no_ready", ""
-                ),
-                rewire_guidance_rebuilds=metrics.get(
-                    "rewire_guidance_rebuilds", ""
-                ),
-                tau_time_ms=metrics.get("tau_time_ms", ""),
-                guidance_time_ms=metrics.get("guidance_time_ms", ""),
-                timed_transport_expansions=metrics.get(
-                    "timed_transport_expansions", ""
-                ),
-                timed_transport_frames=metrics.get(
-                    "timed_transport_frames", ""
-                ),
-                timed_transport_time_ms=metrics.get(
-                    "timed_transport_time_ms", ""
-                ),
-                owner_handoffs=metrics.get("owner_handoffs", ""),
-                causal_waiting=metrics.get("causal_waiting", ""),
-                traffic_waiting=metrics.get("traffic_waiting", ""),
-                deliverable_ms=metrics.get("deliverable_ms", ""),
-                solver_runtime_ms=metrics.get("runtime_ms", ""),
-                plan_sha256=hashlib.sha256(
-                    plan_out.read_bytes()).hexdigest(),
-                runtime_sec=round(rt, 3), status="ok", raw="")
+    row = dict(instance=name, family=family, method=method, success=1,
+               executed_makespan=c["executed_makespan"],
+               weighted_soc=c["weighted_soc"],
+               weighted_work_scaled=work_scaled,
+               loaded_moves=c["loaded_moves"],
+               free_moves=c["free_moves"], lift_drop=c["lift_drop"],
+               shelf_switches=c["shelf_switches"],
+               reversals=c["reversals"],
+               robot_utilization=round(c["robot_utilization"], 4),
+               first_solution_ms=metrics.get("first_solution_ms", ""),
+               first_solution_makespan=metrics.get(
+                   "first_solution_makespan", ""
+               ),
+               first_solution_soc=metrics.get("first_solution_soc", ""),
+               first_solution_work_scaled=metrics.get(
+                   "first_solution_work_scaled", ""
+               ),
+               best_makespan=metrics.get("best_makespan", ""),
+               best_soc=metrics.get("best_soc", ""),
+               best_work_scaled=metrics.get("best_work_scaled", ""),
+               improvement_attempts=metrics.get(
+                   "improvement_attempts", ""
+               ),
+               improvement_candidates=metrics.get(
+                   "improvement_candidates", ""
+               ),
+               improvement_improvements=metrics.get(
+                   "improvement_improvements", ""
+               ),
+               improvement_generator_failures=metrics.get(
+                   "improvement_generator_failures", ""
+               ),
+               reference_checkpoint_hits=metrics.get(
+                   "reference_checkpoint_hits", ""
+               ),
+               reference_action_hints=metrics.get(
+                   "reference_action_hints", ""
+               ),
+               reference_suffix_attempts=metrics.get(
+                   "reference_suffix_attempts", ""
+               ),
+               reference_suffix_accepted=metrics.get(
+                   "reference_suffix_accepted", ""
+               ),
+               improvement_exit_reason=metrics.get(
+                   "improvement_exit_reason", ""
+               ),
+               assignment_restarts=metrics.get("assignment_restarts", ""),
+               assignment_second_solved=metrics.get(
+                   "assignment_second_solved", ""
+               ),
+               assignment_improvements=metrics.get(
+                   "assignment_improvements", ""
+               ),
+               assignment_second_solution_ms=metrics.get(
+                   "assignment_second_solution_ms", ""
+               ),
+               assignment_first_soc=metrics.get(
+                   "assignment_first_soc", ""
+               ),
+               assignment_second_soc=metrics.get(
+                   "assignment_second_soc", ""
+               ),
+               assignment_first_makespan=metrics.get(
+                   "assignment_first_makespan", ""
+               ),
+               assignment_second_makespan=metrics.get(
+                   "assignment_second_makespan", ""
+               ),
+               upper_epoch_builds=metrics.get("upper_epoch_builds", ""),
+               pair_cache_hits=metrics.get("pair_cache_hits", ""),
+               pair_cache_misses=metrics.get("pair_cache_misses", ""),
+               pair_rollout_steps=metrics.get("pair_rollout_steps", ""),
+               pair_rollout_truncations=metrics.get(
+                   "pair_rollout_truncations", ""
+               ),
+               pair_rollout_stalls=metrics.get(
+                   "pair_rollout_stalls", ""
+               ),
+               tau_guide_changes_on_upper_move=metrics.get(
+                   "tau_guide_changes_on_upper_move", ""
+               ),
+               joint_task_nodes=metrics.get("joint_task_nodes", ""),
+               joint_task_edges=metrics.get("joint_task_edges", ""),
+               joint_shared_effects=metrics.get(
+                   "joint_shared_effects", ""
+               ),
+               joint_effect_conflicts=metrics.get(
+                   "joint_effect_conflicts", ""
+               ),
+               joint_candidate_backtracks=metrics.get(
+                   "joint_candidate_backtracks", ""
+               ),
+               joint_paused_roots=metrics.get(
+                   "joint_paused_roots", ""
+               ),
+               ready_task_count=metrics.get("ready_task_count", ""),
+               rho_repairs=metrics.get("rho_repairs", ""),
+               rho_match_calls_execute=metrics.get(
+                   "rho_match_calls_execute", ""
+               ),
+               rho_match_calls_prepare=metrics.get(
+                   "rho_match_calls_prepare", ""
+               ),
+               rho_candidates_input=metrics.get(
+                   "rho_candidates_input", ""
+               ),
+               rho_candidates_after_claims=metrics.get(
+                   "rho_candidates_after_claims", ""
+               ),
+               rho_candidates_after_key_dedupe=metrics.get(
+                   "rho_candidates_after_key_dedupe", ""
+               ),
+               rho_candidates_after_shelf_preselect=metrics.get(
+                   "rho_candidates_after_shelf_preselect", ""
+               ),
+               rho_candidates_after_priority=metrics.get(
+                   "rho_candidates_after_priority", ""
+               ),
+               rho_invalid_filtered=metrics.get(
+                   "rho_invalid_filtered", ""
+               ),
+               rho_duplicate_key_filtered=metrics.get(
+                   "rho_duplicate_key_filtered", ""
+               ),
+               rho_same_shelf_filtered=metrics.get(
+                   "rho_same_shelf_filtered", ""
+               ),
+               rho_upstream_claim_filtered=metrics.get(
+                   "rho_upstream_claim_filtered", ""
+               ),
+               rho_mode_ineligible_filtered=metrics.get(
+                   "rho_mode_ineligible_filtered", ""
+               ),
+               rho_no_reachable_robot_filtered=metrics.get(
+                   "rho_no_reachable_robot_filtered", ""
+               ),
+               rho_priority_filtered=metrics.get(
+                   "rho_priority_filtered", ""
+               ),
+               rho_matrix_rows_total=metrics.get(
+                   "rho_matrix_rows_total", ""
+               ),
+               rho_matrix_cols_total=metrics.get(
+                   "rho_matrix_cols_total", ""
+               ),
+               rho_matrix_max_rows=metrics.get(
+                   "rho_matrix_max_rows", ""
+               ),
+               rho_objective_version=metrics.get(
+                   "rho_objective_version", ""
+               ),
+               rho_candidate_time_ms=metrics.get(
+                   "rho_candidate_time_ms", ""
+               ),
+               rho_matrix_time_ms=metrics.get(
+                   "rho_matrix_time_ms", ""
+               ),
+               rho_bottleneck_time_ms=metrics.get(
+                   "rho_bottleneck_time_ms", ""
+               ),
+               rho_secondary_full_time_ms=metrics.get(
+                   "rho_secondary_full_time_ms", ""
+               ),
+               rho_canonical_time_ms=metrics.get(
+                   "rho_canonical_time_ms", ""
+               ),
+               rho_column_identity_same=metrics.get(
+                   "rho_column_identity_same", ""
+               ),
+               rho_column_value_same=metrics.get(
+                   "rho_column_value_same", ""
+               ),
+               rho_mode_or_conflict_same=metrics.get(
+                   "rho_mode_or_conflict_same", ""
+               ),
+               rho_changed_rows_0=metrics.get(
+                   "rho_changed_rows_0", ""
+               ),
+               rho_changed_rows_1=metrics.get(
+                   "rho_changed_rows_1", ""
+               ),
+               rho_changed_rows_2=metrics.get(
+                   "rho_changed_rows_2", ""
+               ),
+               rho_changed_rows_gt2=metrics.get(
+                   "rho_changed_rows_gt2", ""
+               ),
+               rho_assignment_changes=metrics.get(
+                   "rho_assignment_changes", ""
+               ),
+               custody_continuations=metrics.get(
+                   "custody_continuations", ""
+               ),
+               zero_empty_no_ready=metrics.get(
+                   "zero_empty_no_ready", ""
+               ),
+               rewire_guidance_rebuilds=metrics.get(
+                   "rewire_guidance_rebuilds", ""
+               ),
+               tau_time_ms=metrics.get("tau_time_ms", ""),
+               guidance_time_ms=metrics.get("guidance_time_ms", ""),
+               timed_transport_expansions=metrics.get(
+                   "timed_transport_expansions", ""
+               ),
+               timed_transport_frames=metrics.get(
+                   "timed_transport_frames", ""
+               ),
+               timed_transport_time_ms=metrics.get(
+                   "timed_transport_time_ms", ""
+               ),
+               owner_handoffs=metrics.get("owner_handoffs", ""),
+               causal_waiting=metrics.get("causal_waiting", ""),
+               traffic_waiting=metrics.get("traffic_waiting", ""),
+               deliverable_ms=metrics.get("deliverable_ms", ""),
+               solver_runtime_ms=metrics.get("runtime_ms", ""),
+               plan_sha256=hashlib.sha256(
+                   plan_out.read_bytes()).hexdigest(),
+               runtime_sec=round(rt, 3), status="ok", raw="")
+    if mode == "brd":
+        for field in BRD_METRIC_FIELDS:
+            row[field] = metrics[field]
+    if mode == "lacam":
+        for field in CARRIER_GUIDANCE_METRIC_FIELDS:
+            row[field] = metrics[field]
+    return row
 
 
 def run_one(task):
@@ -1199,6 +1564,11 @@ def run_one(task):
     if method == "carrier":
         return row_carrier(
             ins, path, name, family, work, timeout, "lacam",
+            weights=weights, carrier_bin=carrier_bin,
+        )
+    if method == "carrier_brd":
+        return row_carrier(
+            ins, path, name, family, work, timeout, "brd",
             weights=weights, carrier_bin=carrier_bin,
         )
     if method == "carrier_b0":
@@ -1242,7 +1612,7 @@ def main():
         "--benchmark-tier",
         choices=sorted(BENCHMARK_TIERS),
         help="fixed project tier: quick=77 development cases; "
-        "full=509 post-review cases",
+        "full=518 post-review cases",
     )
     ap.add_argument(
         "--review-approval",
@@ -1336,14 +1706,14 @@ def main():
                 "suite protocol keys must be exactly "
                 f"{sorted(required_protocol)}"
             )
-        methods = list(args.methods or protocol["methods"])
+        try:
+            methods = resolve_suite_methods(
+                protocol["methods"], args.methods, tier_name
+            )
+        except ValueError as exc:
+            ap.error(str(exc))
         jobs = args.jobs if args.jobs is not None else int(protocol["jobs"])
         weights = tuple(args.weights)
-        if methods != list(protocol["methods"]):
-            ap.error(
-                f"suite {definition['name']} fixes methods to "
-                f"{protocol['methods']}"
-            )
         if float(args.timeout) != float(protocol["timeout_sec"]):
             ap.error(
                 f"suite {definition['name']} fixes --timeout to "
@@ -1417,7 +1787,7 @@ def main():
     if suite_timing is not None:
         suite_timing["full_only_case_count"] = len(full_only_cases)
 
-    if any(m in {"carrier", "carrier_b0", "carrier_b1"}
+    if any(m in {"carrier", "carrier_brd", "carrier_b0", "carrier_b1"}
            for m in methods):
         if not CARRIER_BIN.is_file() or not os.access(CARRIER_BIN, os.X_OK):
             ap.error(f"--carrier-bin is not executable: {CARRIER_BIN}")

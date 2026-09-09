@@ -1,6 +1,7 @@
 // Carrier-LaCAM benchmark driver.
 // usage: dd_benchmark INSTANCE.yaml TIME_LIMIT_SEC PLAN_OUT [SEED] [MODE]
-//   MODE: lacam (default) | b0 (rollout-only baseline) | b1 (2-stage)
+//   MODE: lacam (default) | brd (BR-LaCAM decomposition baseline)
+//         | b0 (rollout-only baseline) | b1 (2-stage)
 //
 // stdout metrics: solved, makespan, loaded_moves, free_moves, lift_drop,
 //                 weighted_soc (alpha=beta=gamma=delta=1), runtime_ms,
@@ -555,9 +556,10 @@ int main(int argc, char** argv)
     std::cerr << "invalid SEED: " << seed_text << "\n";
     return 2;
   }
-  if (mode != "lacam" && mode != "b0" && mode != "b1") {
+  if (mode != "lacam" && mode != "brd" &&
+      mode != "b0" && mode != "b1") {
     std::cerr << "unknown MODE '" << mode
-              << "' (expected lacam | b0 | b1)" << std::endl;
+              << "' (expected lacam | brd | b0 | b1)" << std::endl;
     return 2;  // fail loudly: silent fallback masks typos (debug.md P0-4)
   }
   if (std::signal(SIGXFSZ, SIG_IGN) == SIG_ERR) {
@@ -585,10 +587,16 @@ int main(int argc, char** argv)
 
   const auto t0 = std::chrono::steady_clock::now();
   DDStats stats;
+  CarrierBRDStats brd_stats;
   DDPlan best_effort;
   DDPlan plan;
   DDSolveStatus solve_status = DDSolveStatus::EXHAUSTED;
-  if (mode == "b0") {
+  if (mode == "brd") {
+    DDSolveResult result = solve_carrier_brd_result(
+        ins, time_limit_sec, seed, &stats, &brd_stats);
+    solve_status = result.status;
+    plan = std::move(result.plan);
+  } else if (mode == "b0") {
     plan = solve_carrier_rollout(ins, time_limit_sec, seed, &stats);
     solve_status =
         (!plan.empty() || is_dd_goal(ins, initial_phys_config(ins)))
@@ -722,6 +730,14 @@ int main(int argc, char** argv)
   std::cout << "upper_epoch_builds=" << stats.upper_epoch_builds << "\n";
   std::cout << "pair_cache_hits=" << stats.pair_cache_hits << "\n";
   std::cout << "pair_cache_misses=" << stats.pair_cache_misses << "\n";
+  std::cout << "pair_incremental_reuses="
+            << stats.pair_incremental_reuses << "\n";
+  std::cout << "pair_hungarian_full_solves="
+            << stats.pair_hungarian_full_solves << "\n";
+  std::cout << "pair_hungarian_row_repairs="
+            << stats.pair_hungarian_row_repairs << "\n";
+  std::cout << "pair_hungarian_forced_repairs="
+            << stats.pair_hungarian_forced_repairs << "\n";
   std::cout << "pair_rollout_steps=" << stats.pair_rollout_steps << "\n";
   std::cout << "pair_rollout_truncations="
             << stats.pair_rollout_truncations << "\n";
@@ -737,6 +753,35 @@ int main(int argc, char** argv)
   std::cout << "joint_candidate_backtracks="
             << stats.joint_candidate_backtracks << "\n";
   std::cout << "joint_paused_roots=" << stats.joint_paused_roots << "\n";
+  std::cout << "vacancy_potential_builds="
+            << stats.vacancy_potential_builds << "\n";
+  std::cout << "vacancy_potential_time_ms="
+            << stats.vacancy_potential_time_ms << "\n";
+  std::cout << "vacancy_potential_unreachable_cells="
+            << stats.vacancy_potential_unreachable_cells << "\n";
+  std::cout << "clearance_first_choice_fallbacks="
+            << stats.clearance_first_choice_fallbacks << "\n";
+  std::cout << "guidance_version="
+            << stats.guidance_version << "\n";
+  std::cout << "epoch_first_transfer_comparisons="
+            << stats.epoch_first_transfer_comparisons << "\n";
+  std::cout << "epoch_first_transfer_flips="
+            << stats.epoch_first_transfer_flips << "\n";
+  std::cout << "epoch_chain_overlap_samples="
+            << stats.epoch_chain_overlap_samples << "\n";
+  std::cout << "epoch_chain_overlap_intersection="
+            << stats.epoch_chain_overlap_intersection << "\n";
+  std::cout << "epoch_chain_overlap_union="
+            << stats.epoch_chain_overlap_union << "\n";
+  std::cout << "epoch_chain_overlap_pct="
+            << (stats.epoch_chain_overlap_union > 0
+                    ? 100.0 *
+                          stats.epoch_chain_overlap_intersection /
+                          stats.epoch_chain_overlap_union
+                    : 0.0)
+            << "\n";
+  std::cout << "upper_epoch_cache_evictions="
+            << stats.upper_epoch_cache_evictions << "\n";
   std::cout << "ready_task_count=" << stats.ready_task_count << "\n";
   std::cout << "rho_repairs=" << stats.rho_repairs << "\n";
   std::cout << "rho_match_calls_execute="
@@ -878,6 +923,96 @@ int main(int argc, char** argv)
             << stats.assignment_first_makespan << "\n";
   std::cout << "assignment_second_makespan="
             << stats.assignment_second_makespan << "\n";
+  if (mode == "brd") {
+    std::ostringstream completed_per_event;
+    for (size_t event = 0;
+         event < brd_stats.tasks_completed_per_event.size();
+         ++event) {
+      if (event) completed_per_event << ",";
+      completed_per_event
+          << brd_stats.tasks_completed_per_event[event];
+    }
+    std::cout << "brd_tau_ms=" << brd_stats.tau_ms << "\n";
+    std::cout << "brd_upper_ms=" << brd_stats.upper_ms << "\n";
+    std::cout << "brd_upper_nodes=" << brd_stats.upper_nodes << "\n";
+    std::cout << "brd_upper_constraints="
+              << brd_stats.upper_constraints << "\n";
+    std::cout << "brd_upper_steps=" << brd_stats.upper_steps << "\n";
+    std::cout << "brd_upper_transfers="
+              << brd_stats.upper_transfers << "\n";
+    std::cout << "brd_vacancy_potential_builds="
+              << brd_stats.vacancy_potential_builds << "\n";
+    std::cout << "brd_vacancy_potential_time_ms="
+              << brd_stats.vacancy_potential_time_ms << "\n";
+    std::cout << "brd_vacancy_potential_unreachable_cells="
+              << brd_stats.vacancy_potential_unreachable_cells << "\n";
+    std::cout << "brd_selected_clearance_pushes="
+              << brd_stats.selected_clearance_pushes << "\n";
+    std::cout << "brd_selected_clearance_loaded_steps="
+              << brd_stats.selected_clearance_loaded_steps << "\n";
+    std::cout << "brd_clearance_first_choice_fallbacks="
+              << brd_stats.clearance_first_choice_fallbacks << "\n";
+    std::cout << "brd_guidance_version="
+              << brd_stats.guidance_version << "\n";
+    std::cout << "brd_task_compile_ms="
+              << brd_stats.task_compile_ms << "\n";
+    std::cout << "brd_waves=" << brd_stats.frozen_waves << "\n";
+    std::cout << "brd_tasks=" << brd_stats.frozen_tasks << "\n";
+    std::cout << "brd_max_wave_width="
+              << brd_stats.max_wave_width << "\n";
+    std::cout << "brd_target_tasks="
+              << brd_stats.target_tasks << "\n";
+    std::cout << "brd_anon_tasks="
+              << brd_stats.anonymous_tasks << "\n";
+    std::cout << "brd_match_calls=" << brd_stats.match_calls << "\n";
+    std::cout << "brd_match_ms=" << brd_stats.match_ms << "\n";
+    std::cout << "brd_match_max_cardinality_ms="
+              << brd_stats.match_max_cardinality_ms << "\n";
+    std::cout << "brd_match_max_cardinality_cutoffs="
+              << brd_stats.match_max_cardinality_cutoffs << "\n";
+    std::cout << "brd_match_max_rows="
+              << brd_stats.match_max_rows << "\n";
+    std::cout << "brd_match_rows_without_finite_real_edge="
+              << brd_stats.match_rows_without_finite_real_edge << "\n";
+    std::cout << "brd_match_maximum_real_cardinality="
+              << brd_stats.match_maximum_real_cardinality << "\n";
+    std::cout << "brd_match_real_assignments="
+              << brd_stats.match_real_assignments << "\n";
+    std::cout << "brd_match_hall_deficient_calls="
+              << brd_stats.match_hall_deficient_calls << "\n";
+    std::cout << "brd_dispatch_epochs="
+              << brd_stats.dispatch_epochs << "\n";
+    std::cout << "brd_completion_events="
+              << brd_stats.completion_events << "\n";
+    std::cout << "brd_tasks_completed_per_event="
+              << completed_per_event.str() << "\n";
+    std::cout << "brd_locked_carriers_max="
+              << brd_stats.locked_carriers_max << "\n";
+    std::cout << "brd_provisional_reassignments="
+              << brd_stats.provisional_reassignments << "\n";
+    std::cout << "brd_segments=" << brd_stats.segments << "\n";
+    std::cout << "brd_segment_ms=" << brd_stats.segment_ms << "\n";
+    std::cout << "brd_segment_nodes="
+              << brd_stats.segment_nodes << "\n";
+    std::cout << "brd_segment_failures="
+              << brd_stats.segment_failures << "\n";
+    std::cout << "brd_cleanup_ms=" << brd_stats.cleanup_ms << "\n";
+    std::cout << "brd_replay_ms=" << brd_stats.replay_ms << "\n";
+    std::cout << "brd_raw_ticks="
+              << brd_stats.raw_plan_steps << "\n";
+    std::cout << "brd_raw_work_scaled="
+              << brd_stats.raw_work_scaled << "\n";
+    std::cout << "brd_goal_prefix_removed="
+              << brd_stats.goal_prefix_removed << "\n";
+    std::cout << "brd_incidental_goal_prefix_ms="
+              << brd_stats.incidental_goal_prefix_ms << "\n";
+    std::cout << "brd_raw_plan_valid="
+              << (brd_stats.raw_plan_valid ? 1 : 0) << "\n";
+    std::cout << "brd_exit_reason="
+              << carrier_brd_exit_reason_name(
+                     brd_stats.exit_reason)
+              << "\n";
+  }
   if (!valid && std::getenv("DD_DEBUG_DUMP") &&
       !stats.deepest_config.robots.empty()) {
     const auto& X = stats.deepest_config;

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "dd_carrier.hpp"
@@ -39,6 +40,93 @@ struct DDSolveResult {
   DDPlan plan;
 
   bool solved() const { return status == DDSolveStatus::SOLVED; }
+};
+
+struct FrozenTaskPlan;
+struct Deadline;
+
+enum class CarrierBRDExitReason {
+  SOLVED = 0,
+  TAU_FAILED = 1,
+  UPPER_TIMEOUT = 2,
+  UPPER_EXHAUSTED = 3,
+  TASK_COMPILE_INVALID = 4,
+  WAVE_START_MISMATCH = 5,
+  DISPATCH_TIMEOUT = 6,
+  DISPATCH_STUCK = 7,
+  SEGMENT_TIMEOUT = 8,
+  SEGMENT_EXHAUSTED = 9,
+  SEGMENT_INVALID = 10,
+  WAVE_END_MISMATCH = 11,
+  FINAL_GOAL_MISMATCH = 12,
+  FINAL_REPLAY_INVALID = 13,
+  SEARCH_TIMEOUT = 14,
+  FINALIZATION_DEADLINE = 15,
+};
+
+const char* carrier_brd_exit_reason_name(
+    CarrierBRDExitReason reason);
+
+struct CarrierBRDDispatchSnapshot {
+  long wave = -1;
+  long epoch = -1;
+  long free_robots = 0;
+  long pending_tasks = 0;
+  long locked_pairs = 0;
+  long matcher_rows = 0;
+  long real_assignments = 0;
+};
+
+struct CarrierBRDStats {
+  CarrierBRDExitReason exit_reason =
+      CarrierBRDExitReason::TAU_FAILED;
+  std::vector<int> tau0;
+  long frozen_waves = 0;
+  long frozen_tasks = 0;
+  long max_wave_width = 0;
+  long target_tasks = 0;
+  long anonymous_tasks = 0;
+  long upper_nodes = 0;
+  long upper_constraints = 0;
+  long upper_steps = 0;
+  long upper_transfers = 0;
+  long dispatch_epochs = 0;
+  long completion_events = 0;
+  long locked_pair_continuations = 0;
+  long locked_carriers_max = 0;
+  long provisional_reassignments = 0;
+  long match_calls = 0;
+  long match_max_rows = 0;
+  long match_rows_without_finite_real_edge = 0;
+  long match_maximum_real_cardinality = 0;
+  long match_real_assignments = 0;
+  long match_hall_deficient_calls = 0;
+  long match_max_cardinality_cutoffs = 0;
+  long segments = 0;
+  long segment_nodes = 0;
+  long segment_failures = 0;
+  long raw_plan_steps = 0;
+  int64_t raw_work_scaled = -1;
+  long goal_prefix_removed = 0;
+  long vacancy_potential_builds = 0;
+  long vacancy_potential_unreachable_cells = 0;
+  long selected_clearance_pushes = 0;
+  long selected_clearance_loaded_steps = 0;
+  long clearance_first_choice_fallbacks = 0;
+  bool raw_plan_valid = false;
+  std::string guidance_version = "TASKBR_VACANCY_V1";
+  double tau_ms = 0;
+  double upper_ms = 0;
+  double vacancy_potential_time_ms = 0;
+  double task_compile_ms = 0;
+  double match_ms = 0;
+  double match_max_cardinality_ms = 0;
+  double segment_ms = 0;
+  double cleanup_ms = 0;
+  double replay_ms = 0;
+  double incidental_goal_prefix_ms = -1;
+  std::vector<long> tasks_completed_per_event;
+  std::vector<CarrierBRDDispatchSnapshot> dispatches;
 };
 
 struct DDPlanRepairStats {
@@ -76,6 +164,10 @@ struct DDStats {
   long upper_epoch_builds = 0;
   long pair_cache_hits = 0;
   long pair_cache_misses = 0;
+  long pair_incremental_reuses = 0;
+  long pair_hungarian_full_solves = 0;
+  long pair_hungarian_row_repairs = 0;
+  long pair_hungarian_forced_repairs = 0;
   long pair_rollout_steps = 0;
   long pair_rollout_truncations = 0;
   long pair_rollout_stalls = 0;
@@ -86,6 +178,17 @@ struct DDStats {
   long joint_effect_conflicts = 0;
   long joint_candidate_backtracks = 0;
   long joint_paused_roots = 0;
+  long vacancy_potential_builds = 0;
+  long vacancy_potential_unreachable_cells = 0;
+  long clearance_first_choice_fallbacks = 0;
+  double vacancy_potential_time_ms = 0;
+  std::string guidance_version = "TASKBR_VACANCY_V1";
+  long epoch_first_transfer_comparisons = 0;
+  long epoch_first_transfer_flips = 0;
+  long epoch_chain_overlap_samples = 0;
+  long epoch_chain_overlap_intersection = 0;
+  long epoch_chain_overlap_union = 0;
+  long upper_epoch_cache_evictions = 0;
   long ready_task_count = 0;
   long rho_repairs = 0;
   long rho_match_calls_execute = 0;
@@ -184,10 +287,19 @@ struct DDStats {
 using DDSocWeights = SolverWeights;
 DDSocWeights dd_load_soc_weights();
 PlanCost dd_plan_cost_probe(const DDInstance& ins, const DDPlan& plan);
+std::optional<PlanCost> dd_plan_cost_deadline_probe(
+    const DDInstance& ins, const DDPlan& plan,
+    const Deadline* deadline, bool* cutoff);
 bool dd_plan_cost_better_probe(const PlanCost& candidate,
                                const PlanCost& incumbent);
 std::optional<DDPlan> dd_normalize_goal_prefix_probe(
     const DDInstance& ins, const DDPlan& plan);
+std::optional<DDPlan> dd_normalize_goal_prefix_deadline_probe(
+    const DDInstance& ins, const DDPlan& plan,
+    const Deadline* deadline, bool* cutoff);
+bool dd_replay_raw_prefix_deadline_probe(
+    const DDInstance& ins, const DDPlan& plan,
+    const Deadline* deadline, bool* cutoff);
 std::optional<TAPFReferencePlan> dd_build_reference_plan_probe(
     const DDInstance& ins, const DDPlan& plan,
     size_t max_checkpoints = 256);
@@ -248,7 +360,11 @@ DDReadyMatchProbe dd_match_ready_tasks_probe(
     const std::vector<std::optional<TaskId>>* previous_rho_task_id,
     DispatchMode mode = DispatchMode::EXECUTE,
     const std::vector<std::optional<TransferKey>>*
-        previous_rho_transfer_key = nullptr);
+        previous_rho_transfer_key = nullptr,
+    CandidateAdmission admission =
+        CandidateAdmission::DROP_GLOBALLY_UNREACHABLE,
+    const Deadline* deadline = nullptr,
+    const std::vector<uint8_t>* eligible_robot = nullptr);
 
 // Compatibility wrapper: authoritative callers that must distinguish a
 // zero-tick success from failure use solve_carrier_lacam_result().
@@ -260,6 +376,30 @@ DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
 DDSolveResult solve_carrier_lacam_result(
     const DDInstance& ins, double time_limit_sec, int seed,
     DDStats* stats = nullptr, DDPlan* best_effort = nullptr);
+
+// Diagnostic-only fixed-assignment seam.  It narrows each target's
+// eligible set to the supplied tau, then calls the unchanged production
+// carrier controller and TAPFPlanner search.
+DDSolveResult dd_solve_carrier_lacam_fixed_tau_probe(
+    const DDInstance& ins, const std::vector<int>& tau,
+    double time_limit_sec, int seed, DDStats* stats = nullptr);
+
+// Carrier BR-LaCAM decomposition baseline.  One upper shelf plan is
+// compiled into immutable task waves.  Every lower solve stops at the
+// first task-completion Drop; all still-free robots and all remaining
+// PENDING tasks are then matched again, while already-Lifted pairs stay
+// hard-locked.
+DDSolveResult solve_carrier_brd_result(
+    const DDInstance& ins, double time_limit_sec, int seed,
+    DDStats* stats = nullptr, CarrierBRDStats* brd_stats = nullptr);
+
+// Protected-test seam over the production completion-event controller.
+// It skips only tau/upper compilation and executes the supplied verified
+// frozen plan through the same matcher and TAPFPlanner::solve() path.
+DDSolveResult dd_execute_frozen_task_plan_probe(
+    const DDInstance& ins, const FrozenTaskPlan& frozen,
+    const std::vector<int>& tau, double time_limit_sec, int seed,
+    DDStats* stats = nullptr, CarrierBRDStats* brd_stats = nullptr);
 
 // Test-visible finalization classifier shared by the production return
 // path.  Invalid output is a correctness failure even when discovered
@@ -276,7 +416,6 @@ DDFinalizationStatus dd_classify_finalization_probe(
 // R1 (debug.md §10): repair runs INSIDE the owning pass's deadline; when
 // `deadline` is given and expires, the repair aborts and returns the raw
 // plan unchanged.
-struct Deadline;
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            DDPlanRepairStats* stats = nullptr,
                            const Deadline* deadline = nullptr);

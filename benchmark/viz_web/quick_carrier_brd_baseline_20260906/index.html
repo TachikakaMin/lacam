@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrier-BRD baseline · Quick 77 benchmark</title>
+<style>
+:root {
+  --bg:#07111f; --panel:#0d1b2d; --panel2:#11243a; --line:#25415f;
+  --text:#eef6ff; --muted:#91a7bd; --cyan:#2dd4bf; --blue:#60a5fa;
+  --amber:#fbbf24; --red:#fb7185; --violet:#a78bfa;
+}
+* { box-sizing:border-box; }
+body { margin:0; color:var(--text); background:
+  radial-gradient(circle at 10% 0%, #173154 0, transparent 32rem),
+  radial-gradient(circle at 95% 18%, #153c42 0, transparent 28rem), var(--bg);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:1480px; margin:auto; padding:28px; }
+a { color:#8ec5ff; }
+.eyebrow { color:var(--cyan); letter-spacing:.14em; font-size:12px;
+  text-transform:uppercase; font-weight:800; }
+h1 { margin:8px 0 8px; font-size:clamp(28px,4vw,52px); line-height:1.05; }
+h2 { margin:0 0 14px; font-size:20px; }
+p { color:var(--muted); }
+.topline { display:flex; gap:18px; align-items:flex-start;
+  justify-content:space-between; flex-wrap:wrap; }
+.back { padding:9px 13px; border:1px solid var(--line); border-radius:10px;
+  text-decoration:none; background:#0b1828cc; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:14px; margin:24px 0; }
+.card,.panel { background:linear-gradient(145deg,#10233aee,#0a1728ee);
+  border:1px solid var(--line); border-radius:16px; box-shadow:0 16px 40px #0004; }
+.card { padding:18px; }
+.card .label { color:var(--muted); font-size:12px; text-transform:uppercase;
+  letter-spacing:.08em; }
+.card .value { font-size:32px; font-weight:850; margin-top:7px; }
+.card .sub { color:var(--muted); font-size:12px; margin-top:4px; }
+.grid { display:grid; grid-template-columns:1.15fr .85fr; gap:16px; margin:16px 0; }
+.panel { padding:18px; min-width:0; }
+.controls { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+select,input { color:var(--text); background:#071523; border:1px solid var(--line);
+  border-radius:9px; padding:8px 10px; }
+.bars { display:grid; gap:10px; }
+.bar-row { display:grid; grid-template-columns:110px 1fr 76px; gap:10px;
+  align-items:center; font-size:13px; }
+.track { height:16px; background:#07121f; border-radius:999px; overflow:hidden; }
+.fill { height:100%; border-radius:999px;
+  background:linear-gradient(90deg,var(--cyan),var(--blue)); }
+.value-right { text-align:right; font-variant-numeric:tabular-nums; }
+.legend { display:flex; gap:14px; flex-wrap:wrap; color:var(--muted);
+  font-size:12px; margin-top:10px; }
+.dot { display:inline-block; width:9px; height:9px; border-radius:50%;
+  margin-right:5px; }
+svg { width:100%; height:auto; background:#071523; border-radius:12px; }
+.tooltip { position:fixed; pointer-events:none; opacity:0; z-index:5;
+  background:#020914ee; border:1px solid var(--line); border-radius:9px;
+  padding:9px 11px; font-size:12px; max-width:360px; }
+.timeout-row { display:grid; grid-template-columns:90px 1fr 40px; gap:8px;
+  align-items:center; margin:12px 0; }
+.timeout-fill { height:13px; border-radius:99px;
+  background:linear-gradient(90deg,var(--amber),var(--red)); }
+.callout { border-left:3px solid var(--cyan); padding:8px 12px;
+  background:#0b1b2d; color:#c8d8e8; border-radius:0 10px 10px 0; }
+.rank { display:grid; grid-template-columns:1fr 70px; gap:7px; margin:8px 0;
+  font-size:12px; }
+.rank a { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.table-wrap { overflow:auto; max-height:620px; border-radius:12px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th { position:sticky; top:0; background:#10233a; text-align:left; color:#bdd1e5; }
+th,td { padding:9px 10px; border-bottom:1px solid #1a324b; white-space:nowrap; }
+tbody tr:hover { background:#16304b; }
+.pill { padding:3px 7px; border-radius:99px; background:#18314b; }
+.footer { margin:20px 0 0; color:var(--muted); font-size:12px; }
+@media(max-width:900px) {
+  main { padding:18px; } .cards { grid-template-columns:repeat(2,1fr); }
+  .grid { grid-template-columns:1fr; }
+}
+@media(max-width:520px) { .cards { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="topline">
+    <div>
+      <div class="eyebrow">Carrier-LaCAM · Quick 77</div>
+      <h1>Carrier-BRD baseline</h1>
+      <p>固定 quick 77 cases，10s/case，14 jobs。</p>
+    </div>
+    <a class="back" href="../index.html">← 返回可视化首页</a>
+  </div>
+
+  <section class="cards">
+    <div class="card"><div class="label">Quick 成功率</div>
+      <div class="value">43/77</div>
+      <div class="sub">55.8% solved</div></div>
+    <div class="card"><div class="label">Quick wall time</div>
+      <div class="value">27.6s</div>
+      <div class="sub">solver sum 305.1s · jobs=14</div></div>
+    <div class="card"><div class="label">实际轨迹动画</div>
+      <div class="value" style="color:var(--blue)">43</div>
+      <div class="sub">仅由本轮成功 plan 生成</div></div>
+  </section>
+
+  <section class="grid" style="grid-template-columns:1fr">
+    <div class="panel" style="display:none">
+      <h2>因素趋势</h2>
+      <div class="controls">
+        <select id="axisDimension">
+          <option value="map_family">地图族</option>
+          <option value="density_level">货架密度</option>
+          <option value="agent_level">Agent 数量</option>
+          <option value="task_profile">任务分布</option>
+          <option value="goal_mode">Goal 模式</option>
+        </select>
+        <select id="axisMetric">
+          <option value="avg_makespan">平均 makespan</option>
+          <option value="avg_runtime">平均运行时间</option>
+          <option value="p95_runtime">P95 运行时间</option>
+        </select>
+      </div>
+      <div id="axisBars" class="bars"></div>
+      <div class="callout" id="axisInsight"></div>
+    </div>
+    <div class="panel">
+      <h2>原 quick 的 34 个失败</h2>
+      <div id="timeoutBars"></div>
+      <p>失败按 family 与原始 status 分组：g10x10 · timeout×1；g20x20 · timeout×5；g40x40 · timeout×8；g4x10 · timeout×1；g6x10 · timeout×3；g80x80 · timeout×16</p>
+    </div>
+  </section>
+
+  <section class="panel" style="display:none">
+    <h2>新增 0 cases：makespan × runtime</h2>
+    <div class="controls" id="scatterControls"></div>
+    <svg id="caseScatter" viewBox="0 0 1000 470" role="img"
+      aria-label="factorial cases makespan runtime scatter plot"></svg>
+    <div id="scatterLegend" class="legend"></div>
+  </section>
+
+  <section class="grid" style="display:none">
+    <div class="panel"><h2>运行时间最慢</h2><div id="slowest"></div></div>
+    <div class="panel"><h2>Makespan 最长</h2><div id="longest"></div></div>
+  </section>
+
+  <section class="panel" style="display:none">
+    <div class="topline">
+      <h2>Factorial case 明细</h2>
+      <input id="caseSearch" placeholder="搜索 instance…" size="28">
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr>
+        <th>Instance</th><th>地图</th><th>密度</th><th>Agent</th>
+        <th>任务</th><th>Goal</th><th>Robots</th><th>Targets</th>
+        <th>Makespan</th><th>SOC</th><th>Runtime</th><th>YAML</th>
+      </tr></thead><tbody id="caseRows"></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="topline">
+      <div>
+        <h2>全部 77 个实际 benchmark 结果</h2>
+        <p>成功案例可播放本轮 rows.csv 对应、SHA 校验后的真实计划；失败案例保留 runner 的原始 status。</p>
+      </div>
+      <div class="controls">
+        <select id="allFamily"><option value="">全部 family</option></select>
+        <select id="allStatus"><option value="">全部状态</option></select>
+        <input id="allSearch" placeholder="搜索全部 instance…" size="25">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Instance</th><th>Family</th><th>Status</th>
+        <th>Makespan</th><th>SOC</th><th>Runtime</th><th>实际动画</th>
+      </tr></thead><tbody id="allRows"></tbody></table>
+    </div>
+  </section>
+  <div class="footer">Suite SHA: <span id="suiteSha"></span> · Binary SHA: <span id="binarySha"></span></div>
+</main>
+<div class="tooltip" id="tooltip"></div>
+<script>
+const DATA = {"overview":{"total":77,"solved":43,"failed":34,"success_rate":0.5584415584415584,"avg_makespan":447.16279069767444,"median_makespan":194.0,"avg_runtime":3.961987012987013,"p95_runtime":8.832,"max_runtime":9.225},"quick":{"total":77,"solved":43,"failed":34,"success_rate":0.5584415584415584,"avg_makespan":447.16279069767444,"median_makespan":194.0,"avg_runtime":3.961987012987013,"p95_runtime":8.832,"max_runtime":9.225},"factorial":{"total":0,"solved":0,"failed":0,"success_rate":0,"avg_makespan":null,"median_makespan":null,"avg_runtime":null,"p95_runtime":null,"max_runtime":null},"timing":{"wall_time_sec":27.6,"method":"carrier_brd","solver_time_sum_sec":305.1,"jobs":14,"timeout_sec":10,"suite_sha256":"a881292163ff2fcd2797cc83fddd8f9ebd12def79619586b940976bce07111c6","binary_sha256":"e1261800dd6454b2f02e745aef7e648df3610301d61999e758ec06bb15b556de"},"axes":{"map_family":[],"density_level":[],"agent_level":[],"task_profile":[],"goal_mode":[]},"failure_groups":[{"key":"g10x10 · timeout","family":"g10x10","status":"timeout","count":1},{"key":"g20x20 · timeout","family":"g20x20","status":"timeout","count":5},{"key":"g40x40 · timeout","family":"g40x40","status":"timeout","count":8},{"key":"g4x10 · timeout","family":"g4x10","status":"timeout","count":1},{"key":"g6x10 · timeout","family":"g6x10","status":"timeout","count":3},{"key":"g80x80 · timeout","family":"g80x80","status":"timeout","count":16}],"slowest":[],"longest":[],"all_cases":[{"instance":"brap_h10w10_a12_e3_B_seed0_pool","family":"g10x10","success":true,"status":"ok","makespan":207.0,"soc":345.0,"runtime":0.092,"plan_sha256":"cdf1324eefbdcceed12bf9677a2bd4c00fb6842b031a3c8287c5c6846a381a0c","animation_url":"cases/brap_h10w10_a12_e3_B_seed0_pool.html"},{"instance":"brap_h10w10_a12_e3_B_seed1_pool","family":"g10x10","success":true,"status":"ok","makespan":711.0,"soc":1240.0,"runtime":0.226,"plan_sha256":"103b251ba8b7406b40813007f498b508d7075ed21681f64fcc49a5c54dcf214d","animation_url":"cases/brap_h10w10_a12_e3_B_seed1_pool.html"},{"instance":"brap_h10w10_a12_e3_R1_seed0","family":"g10x10","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.928,"plan_sha256":"","animation_url":null},{"instance":"brap_h10w10_a12_e3_R1_seed1","family":"g10x10","success":true,"status":"ok","makespan":1741.0,"soc":3189.0,"runtime":0.528,"plan_sha256":"5b7a0c03973e42ef301dd9b188414aa768cbc6420121f21ea339c4b55cb35c8e","animation_url":"cases/brap_h10w10_a12_e3_R1_seed1.html"},{"instance":"brap_h10w10_a12_e8_B_seed0_pool","family":"g10x10","success":true,"status":"ok","makespan":534.0,"soc":919.0,"runtime":0.104,"plan_sha256":"66a2b880591b4e61912ebf168095b7ecbd22f75a4e809bc9bf82dc1f2fb29071","animation_url":"cases/brap_h10w10_a12_e8_B_seed0_pool.html"},{"instance":"brap_h10w10_a12_e8_B_seed1_pool","family":"g10x10","success":true,"status":"ok","makespan":643.0,"soc":1208.0,"runtime":0.135,"plan_sha256":"380fd8744c6ba2d01d66e5cf37176ebc2b80e3d94d9313bf9a4b19d10456c3fb","animation_url":"cases/brap_h10w10_a12_e8_B_seed1_pool.html"},{"instance":"brap_h10w10_a12_e8_R1_seed0","family":"g10x10","success":true,"status":"ok","makespan":1718.0,"soc":3172.0,"runtime":0.289,"plan_sha256":"0982398431de23049d7760ff4ebef8d3cf1768ad14f299947fd43bbc54e6eb60","animation_url":"cases/brap_h10w10_a12_e8_R1_seed0.html"},{"instance":"brap_h10w10_a12_e8_R1_seed1","family":"g10x10","success":true,"status":"ok","makespan":1437.0,"soc":2527.0,"runtime":0.312,"plan_sha256":"9eb71c2a86584839de6321180d3a832fbf51f44220df6fc395d7ddbec7983acd","animation_url":"cases/brap_h10w10_a12_e8_R1_seed1.html"},{"instance":"brap_h10w10_a1_e1_B_seed0_pool","family":"g10x10","success":true,"status":"ok","makespan":142.0,"soc":166.0,"runtime":0.029,"plan_sha256":"14556ad5e7d4ae1661bd6431264e7285d7cc64649a1bb2a3f69c08d83dc809f5","animation_url":"cases/brap_h10w10_a1_e1_B_seed0_pool.html"},{"instance":"brap_h10w10_a1_e1_B_seed1_pool","family":"g10x10","success":true,"status":"ok","makespan":0.0,"soc":0.0,"runtime":0.008,"plan_sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","animation_url":"cases/brap_h10w10_a1_e1_B_seed1_pool.html"},{"instance":"brap_h10w10_a1_e1_R1_seed0","family":"g10x10","success":true,"status":"ok","makespan":62.0,"soc":71.0,"runtime":0.015,"plan_sha256":"eac3edf24383d4f299a4cb1b870322a4aff8a1dd0430f076f60b70d323559e71","animation_url":"cases/brap_h10w10_a1_e1_R1_seed0.html"},{"instance":"brap_h10w10_a1_e1_R1_seed1","family":"g10x10","success":true,"status":"ok","makespan":329.0,"soc":384.0,"runtime":0.049,"plan_sha256":"97174c16cba03e7333888155d82b429f6709d0cd8c9d29e07a82280debefb9b3","animation_url":"cases/brap_h10w10_a1_e1_R1_seed1.html"},{"instance":"brap_h20w20_a40_e100_B_seed0_pool","family":"g20x20","success":true,"status":"ok","makespan":1568.0,"soc":6678.0,"runtime":2.903,"plan_sha256":"171570300a2c8c5a03bbedaa1cc8daab18807e51538a80e4ea30fb9c31040924","animation_url":"cases/brap_h20w20_a40_e100_B_seed0_pool.html"},{"instance":"brap_h20w20_a40_e100_B_seed1_pool","family":"g20x20","success":true,"status":"ok","makespan":1820.0,"soc":8012.0,"runtime":2.361,"plan_sha256":"d69f7ed72fced1d1b6c2a354da8544be698da5bc1902a9edc731ab1da3ef72f9","animation_url":"cases/brap_h20w20_a40_e100_B_seed1_pool.html"},{"instance":"brap_h20w20_a40_e100_R1_seed0","family":"g20x20","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.756,"plan_sha256":"","animation_url":null},{"instance":"brap_h20w20_a40_e100_R1_seed1","family":"g20x20","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.832,"plan_sha256":"","animation_url":null},{"instance":"brap_h20w20_a40_e10_B_seed0_pool","family":"g20x20","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.683,"plan_sha256":"","animation_url":null},{"instance":"brap_h20w20_a40_e10_B_seed1_pool","family":"g20x20","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.655,"plan_sha256":"","animation_url":null},{"instance":"brap_h20w20_a40_e10_R1_seed0","family":"g20x20","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.785,"plan_sha256":"","animation_url":null},{"instance":"brap_h20w20_a40_e10_R1_seed1","family":"g20x20","success":true,"status":"ok","makespan":3108.0,"soc":10743.0,"runtime":3.118,"plan_sha256":"e0fecf3d332c08e05137313895ebcc8ab6a328bdd324178059dc07f41c6bb2f6","animation_url":"cases/brap_h20w20_a40_e10_R1_seed1.html"},{"instance":"brap_h40w40_a160_e400_R1_seed0","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.574,"plan_sha256":"","animation_url":null},{"instance":"brap_h40w40_a160_e400_R1_seed1","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.578,"plan_sha256":"","animation_url":null},{"instance":"brap_h40w40_a160_e40_R1_seed0","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.515,"plan_sha256":"","animation_url":null},{"instance":"brap_h40w40_a160_e40_R1_seed1","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.515,"plan_sha256":"","animation_url":null},{"instance":"brap_h40w40_a80_e400_B_seed0_pool","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.513,"plan_sha256":"","animation_url":null},{"instance":"brap_h40w40_a80_e400_B_seed1_pool","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.512,"plan_sha256":"","animation_url":null},{"instance":"brap_h40w40_a80_e40_B_seed0_pool","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.514,"plan_sha256":"","animation_url":null},{"instance":"brap_h40w40_a80_e40_B_seed1_pool","family":"g40x40","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.513,"plan_sha256":"","animation_url":null},{"instance":"brap_h4w10_a5_e10_B_seed0_pool","family":"g4x10","success":true,"status":"ok","makespan":27.0,"soc":38.0,"runtime":0.011,"plan_sha256":"e38cf9712a3f9cc854a17c9ac85ae519dbf25040ab12920e65064c956ed9e35a","animation_url":"cases/brap_h4w10_a5_e10_B_seed0_pool.html"},{"instance":"brap_h4w10_a5_e10_B_seed1_pool","family":"g4x10","success":true,"status":"ok","makespan":25.0,"soc":32.0,"runtime":0.01,"plan_sha256":"bf72aeec56469fb2cf737d6ecd870e47139cc7cdd27d84571432e69d56e636b1","animation_url":"cases/brap_h4w10_a5_e10_B_seed1_pool.html"},{"instance":"brap_h4w10_a5_e10_R1_seed0","family":"g4x10","success":true,"status":"ok","makespan":270.0,"soc":424.0,"runtime":0.023,"plan_sha256":"c0110964142988efa284fd6afec2a0118914bb44f23d4fcaffa1f0fbf543f95c","animation_url":"cases/brap_h4w10_a5_e10_R1_seed0.html"},{"instance":"brap_h4w10_a5_e10_R1_seed1","family":"g4x10","success":true,"status":"ok","makespan":59.0,"soc":102.0,"runtime":0.01,"plan_sha256":"59b0f259a670bdbe551082237e05478bbbd0f98ebc88ce387ac63019ab11ed01","animation_url":"cases/brap_h4w10_a5_e10_R1_seed1.html"},{"instance":"brap_h4w10_a5_e1_B_seed0_pool","family":"g4x10","success":true,"status":"ok","makespan":38.0,"soc":43.0,"runtime":0.011,"plan_sha256":"6da11df9e439cbeb37cbe7d911a34b4466f702c200e2113e7b3341528784c607","animation_url":"cases/brap_h4w10_a5_e1_B_seed0_pool.html"},{"instance":"brap_h4w10_a5_e1_B_seed1_pool","family":"g4x10","success":true,"status":"ok","makespan":31.0,"soc":36.0,"runtime":0.012,"plan_sha256":"ff6e6dbb8660719d7aacb1a22b853bfe6296702334501778c73325f111b82d1f","animation_url":"cases/brap_h4w10_a5_e1_B_seed1_pool.html"},{"instance":"brap_h4w10_a5_e1_R1_seed0","family":"g4x10","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":9.225,"plan_sha256":"","animation_url":null},{"instance":"brap_h4w10_a5_e1_R1_seed1","family":"g4x10","success":true,"status":"ok","makespan":194.0,"soc":225.0,"runtime":0.055,"plan_sha256":"70f27c60afdfb53b3ca279fb77f2125724835c0fccc67f5ee21db74bbedd9d7a","animation_url":"cases/brap_h4w10_a5_e1_R1_seed1.html"},{"instance":"brap_h6w10_a6_e15_B_seed0_pool","family":"g6x10","success":true,"status":"ok","makespan":160.0,"soc":283.0,"runtime":0.021,"plan_sha256":"1d0353b150420695469488157af6c985513f8f0b9cbea4ae0784012738ac813c","animation_url":"cases/brap_h6w10_a6_e15_B_seed0_pool.html"},{"instance":"brap_h6w10_a6_e15_B_seed1_pool","family":"g6x10","success":true,"status":"ok","makespan":61.0,"soc":87.0,"runtime":0.013,"plan_sha256":"3894e284cbfcbc67992054999a22ec2966120ea58efa505e406e310389f61764","animation_url":"cases/brap_h6w10_a6_e15_B_seed1_pool.html"},{"instance":"brap_h6w10_a6_e15_R1_seed0","family":"g6x10","success":true,"status":"ok","makespan":137.0,"soc":233.0,"runtime":0.016,"plan_sha256":"8b870eb957e4df6f1e89952b1e1f1a316e01ddec45a6523b77d008eadbed60f8","animation_url":"cases/brap_h6w10_a6_e15_R1_seed0.html"},{"instance":"brap_h6w10_a6_e15_R1_seed1","family":"g6x10","success":true,"status":"ok","makespan":251.0,"soc":408.0,"runtime":0.024,"plan_sha256":"43f7305eb33e00953d50c9b543cfa9e3d48370868f77a3442bd6e4b18958e653","animation_url":"cases/brap_h6w10_a6_e15_R1_seed1.html"},{"instance":"brap_h6w10_a6_e1_B_seed0_pool","family":"g6x10","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.947,"plan_sha256":"","animation_url":null},{"instance":"brap_h6w10_a6_e1_B_seed1_pool","family":"g6x10","success":true,"status":"ok","makespan":342.0,"soc":390.0,"runtime":0.202,"plan_sha256":"16b9cabb96908f3cfdf78e303c07323306c788b183f3baff6108e885fb536feb","animation_url":"cases/brap_h6w10_a6_e1_B_seed1_pool.html"},{"instance":"brap_h6w10_a6_e1_R1_seed0","family":"g6x10","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.508,"plan_sha256":"","animation_url":null},{"instance":"brap_h6w10_a6_e1_R1_seed1","family":"g6x10","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.799,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e1600_B_seed0_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.529,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e1600_B_seed1_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.53,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e1600_R1_seed0","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.53,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e1600_R1_seed1","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.531,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e160_B_seed0_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.535,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e160_B_seed1_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.536,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e160_R1_seed0","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.534,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a128_e160_R1_seed1","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.535,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a160_e1600_B_seed0_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.53,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a160_e1600_B_seed1_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.53,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a160_e160_B_seed0_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.538,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a160_e160_B_seed1_pool","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.536,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a800_e1600_R1_seed0","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.54,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a800_e1600_R1_seed1","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.541,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a800_e160_R1_seed0","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.548,"plan_sha256":"","animation_url":null},{"instance":"brap_h80w80_a800_e160_R1_seed1","family":"g80x80","success":false,"status":"timeout","makespan":null,"soc":null,"runtime":8.548,"plan_sha256":"","animation_url":null},{"instance":"brap_h8w10_a10_e20_B_seed0_pool","family":"g8x10","success":true,"status":"ok","makespan":74.0,"soc":129.0,"runtime":0.021,"plan_sha256":"937441d460d0b5e58cc30a5df240c3afd86be5a971a8c7a27b8766661dd4e9ca","animation_url":"cases/brap_h8w10_a10_e20_B_seed0_pool.html"},{"instance":"brap_h8w10_a10_e20_B_seed1_pool","family":"g8x10","success":true,"status":"ok","makespan":295.0,"soc":560.0,"runtime":0.04,"plan_sha256":"78bbaac470e08dc68fe9111cd18766f50d35c696ec89a93b242e19ec657fc5b8","animation_url":"cases/brap_h8w10_a10_e20_B_seed1_pool.html"},{"instance":"brap_h8w10_a10_e20_R1_seed0","family":"g8x10","success":true,"status":"ok","makespan":255.0,"soc":445.0,"runtime":0.028,"plan_sha256":"eb8b71017265aea4864778bf0ab1e801154a6cc966619231fe6ce5958a8cf6c2","animation_url":"cases/brap_h8w10_a10_e20_R1_seed0.html"},{"instance":"brap_h8w10_a10_e20_R1_seed1","family":"g8x10","success":true,"status":"ok","makespan":273.0,"soc":433.0,"runtime":0.028,"plan_sha256":"c3d6c97a84fd69ca819ab7c6bb86070e09502689ba2f3cc9b5a065ab5014c528","animation_url":"cases/brap_h8w10_a10_e20_R1_seed1.html"},{"instance":"brap_h8w10_a10_e2_B_seed0_pool","family":"g8x10","success":true,"status":"ok","makespan":335.0,"soc":609.0,"runtime":0.095,"plan_sha256":"75651d604d6a7db0bc4d17fe74bdfe0112fd9d5a8e11561b5ab2ea560a424b17","animation_url":"cases/brap_h8w10_a10_e2_B_seed0_pool.html"},{"instance":"brap_h8w10_a10_e2_B_seed1_pool","family":"g8x10","success":true,"status":"ok","makespan":253.0,"soc":533.0,"runtime":0.136,"plan_sha256":"1683cca2bbba93367e7fcd803dead287e29b5e6933d5a91ef3c25877e04aa73b","animation_url":"cases/brap_h8w10_a10_e2_B_seed1_pool.html"},{"instance":"brap_h8w10_a10_e2_R1_seed0","family":"g8x10","success":true,"status":"ok","makespan":921.0,"soc":1774.0,"runtime":0.512,"plan_sha256":"e275f919b6facfe68ada6ae485873f721ced6d9b055c8025eb2c2ac8dcb01a1c","animation_url":"cases/brap_h8w10_a10_e2_R1_seed0.html"},{"instance":"brap_h8w10_a10_e2_R1_seed1","family":"g8x10","success":true,"status":"ok","makespan":958.0,"soc":1457.0,"runtime":0.476,"plan_sha256":"03412c42518ae9e3049c594a84f7032b59b59f34684a68dd97c419b28d519dc5","animation_url":"cases/brap_h8w10_a10_e2_R1_seed1.html"},{"instance":"warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":28.0,"soc":156.0,"runtime":0.023,"plan_sha256":"4a94f7f91dddab23a62407d376a569e6051f219632f7fc1797fad8f486354f77","animation_url":"cases/warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":26.0,"soc":157.0,"runtime":0.028,"plan_sha256":"93aac27a71958ac7d38d4ca3efdce62cb0014f76de3a3894206a37ad413f06ad","animation_url":"cases/warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":21.0,"soc":130.0,"runtime":0.032,"plan_sha256":"0b1d5bb5534d9c2486a2b3bb373fd51cf6a6950130093219142b6a521c71ea0a","animation_url":"cases/warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":27.0,"soc":126.0,"runtime":0.02,"plan_sha256":"f11514b40bb4dc0a87eac305281415187794daa0438c4769e00a1ce2a593adf7","animation_url":"cases/warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":28.0,"soc":148.0,"runtime":0.027,"plan_sha256":"a32ece450f3dcd758bf3efbe8fa686f9801a17541c6091e125181300cdc4a3cd","animation_url":"cases/warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":34.0,"soc":160.0,"runtime":0.036,"plan_sha256":"19b92d552f5495a270b10135cc580144401473be2507d728e3bc9d0e64132402","animation_url":"cases/warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":27.0,"soc":144.0,"runtime":0.021,"plan_sha256":"67fcd64302d9b6c3a72119bcb18f805ae1351595229afd50273ff817f41fc725","animation_url":"cases/warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":33.0,"soc":158.0,"runtime":0.026,"plan_sha256":"1a86cea9518d41b31963d6233b9a88344d802d09b3129005520344203d3cc66d","animation_url":"cases/warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0.html"},{"instance":"warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0","family":"warehouse_blocks","success":true,"status":"ok","makespan":25.0,"soc":140.0,"runtime":0.024,"plan_sha256":"cf7375f937a84f588e34f302a41fc34afec24a029597c6ce26fe2b758e21fa61","animation_url":"cases/warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0.html"}],"cases":[]};
+const COLORS = {g1:"#2dd4bf",g2:"#38bdf8",g3:"#60a5fa",g4:"#818cf8",g5:"#a78bfa",g6:"#f472b6"};
+const LABELS = {
+  low:"低",medium:"中",high:"高",scarce:"scarce",baseline:"baseline",
+  equal:"equal",surplus:"surplus",local:"local",mixed:"mixed",
+  cross_heavy:"cross-heavy",singleton:"singleton",shared_pool:"shared pool"
+};
+const fmt = (v,d=1) => Number(v).toFixed(d);
+
+function renderAxis() {
+  const dim=document.querySelector("#axisDimension").value;
+  const metric=document.querySelector("#axisMetric").value;
+  const rows=DATA.axes[dim];
+  const max=Math.max(...rows.map(r=>r[metric]));
+  const suffix=metric.includes("runtime")?"s":"";
+  document.querySelector("#axisBars").innerHTML=rows.map(r=>`
+    <div class="bar-row"><span>${LABELS[r.key]||r.key}</span>
+      <div class="track"><div class="fill" style="width:${100*r[metric]/max}%"></div></div>
+      <span class="value-right">${fmt(r[metric],metric.includes("runtime")?3:1)}${suffix}</span>
+    </div>`).join("");
+  const lo=rows.reduce((a,b)=>a[metric]<b[metric]?a:b);
+  const hi=rows.reduce((a,b)=>a[metric]>b[metric]?a:b);
+  document.querySelector("#axisInsight").textContent =
+    `${LABELS[lo.key]||lo.key} 最低，${LABELS[hi.key]||hi.key} 最高；差值 ${fmt(hi[metric]-lo[metric],metric.includes("runtime")?3:1)}${suffix}。`;
+}
+
+function renderFailures() {
+  if (!DATA.failure_groups.length) {
+    document.querySelector("#timeoutBars").textContent="本轮 quick 无失败";
+    return;
+  }
+  const max=Math.max(...DATA.failure_groups.map(x=>x.count));
+  document.querySelector("#timeoutBars").innerHTML=DATA.failure_groups.map(x=>`
+    <div class="timeout-row"><span>${x.key}</span><div class="track">
+      <div class="timeout-fill" style="width:${100*x.count/max}%"></div></div>
+      <b>${x.count}</b></div>`).join("");
+}
+
+const dims=["density_level","agent_level","task_profile","goal_mode"];
+function buildScatterControls() {
+  const root=document.querySelector("#scatterControls");
+  root.innerHTML=dims.map(dim=>{
+    const values=[...new Set(DATA.cases.map(x=>x[dim]))].sort();
+    return `<select data-filter="${dim}"><option value="">${dim}: 全部</option>`+
+      values.map(v=>`<option value="${v}">${LABELS[v]||v}</option>`).join("")+`</select>`;
+  }).join("");
+  root.querySelectorAll("select").forEach(x=>x.addEventListener("change",renderScatter));
+}
+
+function selectedCases() {
+  const filters={};
+  document.querySelectorAll("[data-filter]").forEach(x=>filters[x.dataset.filter]=x.value);
+  return DATA.cases.filter(c=>c.success && dims.every(dim=>!filters[dim]||c[dim]===filters[dim]));
+}
+
+function renderScatter() {
+  const cases=selectedCases(), svg=document.querySelector("#caseScatter");
+  const W=1000,H=470,L=72,R=28,T=24,B=52;
+  const maxX=Math.max(10,...cases.map(c=>c.makespan))*1.05;
+  const minY=Math.min(...cases.map(c=>c.runtime));
+  const maxY=Math.max(...cases.map(c=>c.runtime));
+  const logMin=Math.log10(Math.max(.005,minY*.8)), logMax=Math.log10(maxY*1.2);
+  const x=v=>L+(W-L-R)*v/maxX;
+  const y=v=>T+(H-T-B)*(1-(Math.log10(v)-logMin)/(logMax-logMin||1));
+  let html=`<rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="#071523"/>`;
+  [0,.25,.5,.75,1].forEach(f=>{
+    const xx=L+(W-L-R)*f;
+    html+=`<line x1="${xx}" y1="${T}" x2="${xx}" y2="${H-B}" stroke="#203b56"/>`;
+    html+=`<text x="${xx}" y="${H-20}" fill="#91a7bd" text-anchor="middle" font-size="12">${Math.round(maxX*f)}</text>`;
+  });
+  [0,.25,.5,.75,1].forEach(f=>{
+    const yy=T+(H-T-B)*f, val=Math.pow(10,logMax-(logMax-logMin)*f);
+    html+=`<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="#203b56"/>`;
+    html+=`<text x="${L-10}" y="${yy+4}" fill="#91a7bd" text-anchor="end" font-size="12">${fmt(val,val<.1?2:1)}s</text>`;
+  });
+  html+=`<text x="${(L+W-R)/2}" y="${H-3}" fill="#bdd1e5" text-anchor="middle">executed makespan</text>`;
+  html+=`<text x="15" y="${H/2}" fill="#bdd1e5" transform="rotate(-90 15 ${H/2})" text-anchor="middle">runtime（log scale）</text>`;
+  html+=cases.map((c,i)=>`<circle cx="${x(c.makespan)}" cy="${y(c.runtime)}" r="5"
+    fill="${COLORS[c.map_family]}" fill-opacity=".75" stroke="#fff" stroke-opacity=".18"
+    data-case="${DATA.cases.indexOf(c)}"></circle>`).join("");
+  svg.innerHTML=html;
+  const tip=document.querySelector("#tooltip");
+  svg.querySelectorAll("circle").forEach(dot=>{
+    dot.addEventListener("mousemove",e=>{
+      const c=DATA.cases[Number(dot.dataset.case)];
+      tip.innerHTML=`<b>${c.instance}</b><br>makespan ${c.makespan} · runtime ${fmt(c.runtime,3)}s<br>${c.map_family} · ${c.density_level} · ${c.agent_level} · ${c.task_profile} · ${c.goal_mode}`;
+      tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; tip.style.opacity=1;
+    });
+    dot.addEventListener("mouseleave",()=>tip.style.opacity=0);
+  });
+}
+
+function renderRanks(id,rows,metric,suffix) {
+  document.querySelector("#"+id).innerHTML=rows.map(c=>`
+    <div class="rank"><a href="${c.animation_url}" title="${c.instance}">${c.instance}</a>
+    <span class="value-right">${fmt(c[metric],metric==="runtime"?3:0)}${suffix}</span></div>`).join("");
+}
+
+function renderTable() {
+  const q=document.querySelector("#caseSearch").value.toLowerCase();
+  const rows=DATA.cases.filter(c=>c.instance.toLowerCase().includes(q));
+  document.querySelector("#caseRows").innerHTML=rows.map(c=>`<tr>
+    <td>${c.success?`<a href="${c.animation_url}">▶ ${c.instance}</a>`:c.instance}</td><td><span class="pill">${c.map_family}</span></td>
+    <td>${c.density_level}</td><td>${c.agent_level}</td><td>${c.task_profile}</td>
+    <td>${c.goal_mode}</td><td>${c.robots}</td><td>${c.targets}</td>
+    <td>${c.makespan===null?"—":c.makespan}</td><td>${c.soc===null?"—":fmt(c.soc,0)}</td><td>${fmt(c.runtime,3)}s</td>
+    <td><a href="${c.yaml_url}">YAML</a></td></tr>`).join("");
+}
+
+function renderAllCases() {
+  const family=document.querySelector("#allFamily").value;
+  const status=document.querySelector("#allStatus").value;
+  const q=document.querySelector("#allSearch").value.toLowerCase();
+  const rows=DATA.all_cases.filter(c=>
+    (!family||c.family===family) &&
+    (!status||(status==="solved" ? c.success : (!c.success && c.status===status))) &&
+    c.instance.toLowerCase().includes(q));
+  document.querySelector("#allRows").innerHTML=rows.map(c=>`<tr>
+    <td>${c.success?`<a href="${c.animation_url}">▶ ${c.instance}</a>`:c.instance}</td>
+    <td>${c.family}</td><td>${c.success?`<span style="color:var(--cyan)">solved</span>`:`<span style="color:var(--red)">${c.status}</span>`}</td>
+    <td>${c.makespan===null?"—":c.makespan}</td><td>${c.soc===null?"—":fmt(c.soc,0)}</td>
+    <td>${fmt(c.runtime,3)}s</td><td>${c.success?`<a href="${c.animation_url}">播放真实计划</a>`:"—"}</td>
+  </tr>`).join("");
+}
+
+document.querySelector("#axisDimension").addEventListener("change",renderAxis);
+document.querySelector("#axisMetric").addEventListener("change",renderAxis);
+document.querySelector("#caseSearch").addEventListener("input",renderTable);
+const allFamilies=[...new Set(DATA.all_cases.map(c=>c.family))].sort();
+document.querySelector("#allFamily").innerHTML += allFamilies.map(
+  family=>`<option value="${family}">${family}</option>`).join("");
+const allStatuses=[...new Set(DATA.all_cases.filter(c=>!c.success).map(c=>c.status))].sort();
+document.querySelector("#allStatus").innerHTML +=
+  `<option value="solved">solved</option>`+
+  allStatuses.map(status=>`<option value="${status}">${status}</option>`).join("");
+document.querySelector("#allFamily").addEventListener("change",renderAllCases);
+document.querySelector("#allStatus").addEventListener("change",renderAllCases);
+document.querySelector("#allSearch").addEventListener("input",renderAllCases);
+document.querySelector("#suiteSha").textContent=DATA.timing.suite_sha256.slice(0,16)+"…";
+document.querySelector("#binarySha").textContent=DATA.timing.binary_sha256.slice(0,16)+"…";
+renderAxis(); renderFailures(); buildScatterControls(); renderScatter();
+renderRanks("slowest",DATA.slowest,"runtime","s");
+renderRanks("longest",DATA.longest,"makespan","");
+renderTable(); renderAllCases();
+document.querySelector("#scatterLegend").innerHTML=Object.entries(COLORS).map(([k,v])=>
+  `<span><i class="dot" style="background:${v}"></i>${k}</span>`).join("");
+</script>
+</body>
+</html>

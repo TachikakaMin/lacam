@@ -1,0 +1,5913 @@
+{
+  "comparison": {
+    "total": 509,
+    "baseline_solved": 479,
+    "current_solved": 326,
+    "common_solved": 323,
+    "gained": [
+      "brap_h20w20_a40_e100_B_seed0_pool",
+      "brap_h20w20_a40_e100_B_seed1_pool",
+      "brap_h20w20_a40_e10_R1_seed1"
+    ],
+    "lost": [
+      "brap_h10w10_a12_e3_R1_seed0",
+      "brap_h20w20_a40_e100_R1_seed0",
+      "brap_h20w20_a40_e100_R1_seed1",
+      "brap_h4w10_a5_e1_R1_seed0",
+      "brap_h6w10_a6_e1_B_seed0_pool",
+      "brap_h6w10_a6_e1_R1_seed0",
+      "brap_h6w10_a6_e1_R1_seed1",
+      "g2_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+      "g2_dhigh_abaseline_plocal_gsingleton_seed0",
+      "g2_dhigh_abaseline_pmixed_gsingleton_seed0",
+      "g2_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+      "g2_dhigh_aequal_plocal_gsingleton_seed0",
+      "g2_dhigh_aequal_pmixed_gsingleton_seed0",
+      "g2_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+      "g2_dhigh_ascarce_pmixed_gsingleton_seed0",
+      "g2_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+      "g2_dhigh_asurplus_plocal_gsingleton_seed0",
+      "g2_dhigh_asurplus_pmixed_gsingleton_seed0",
+      "g2_dlow_abaseline_plocal_gsingleton_seed0",
+      "g2_dlow_abaseline_pmixed_gsingleton_seed0",
+      "g2_dlow_aequal_pcross_heavy_gsingleton_seed0",
+      "g2_dlow_aequal_plocal_gsingleton_seed0",
+      "g2_dlow_aequal_pmixed_gsingleton_seed0",
+      "g2_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+      "g2_dlow_ascarce_plocal_gsingleton_seed0",
+      "g2_dlow_ascarce_pmixed_gsingleton_seed0",
+      "g2_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+      "g2_dlow_asurplus_plocal_gsingleton_seed0",
+      "g2_dlow_asurplus_pmixed_gsingleton_seed0",
+      "g2_dmedium_abaseline_plocal_gsingleton_seed0",
+      "g2_dmedium_abaseline_pmixed_gsingleton_seed0",
+      "g2_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+      "g2_dmedium_aequal_plocal_gsingleton_seed0",
+      "g2_dmedium_aequal_pmixed_gsingleton_seed0",
+      "g2_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+      "g2_dmedium_ascarce_pmixed_gsingleton_seed0",
+      "g2_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+      "g2_dmedium_asurplus_plocal_gsingleton_seed0",
+      "g2_dmedium_asurplus_pmixed_gsingleton_seed0",
+      "g3_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+      "g3_dhigh_abaseline_plocal_gsingleton_seed0",
+      "g3_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+      "g3_dhigh_aequal_plocal_gsingleton_seed0",
+      "g3_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+      "g3_dhigh_ascarce_plocal_gsingleton_seed0",
+      "g3_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+      "g3_dhigh_asurplus_plocal_gsingleton_seed0",
+      "g3_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+      "g3_dlow_abaseline_plocal_gsingleton_seed0",
+      "g3_dlow_aequal_pcross_heavy_gsingleton_seed0",
+      "g3_dlow_aequal_plocal_gsingleton_seed0",
+      "g3_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+      "g3_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+      "g3_dlow_asurplus_plocal_gsingleton_seed0",
+      "g3_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+      "g3_dmedium_abaseline_plocal_gsingleton_seed0",
+      "g3_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+      "g3_dmedium_aequal_plocal_gsingleton_seed0",
+      "g3_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+      "g3_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+      "g3_dmedium_asurplus_plocal_gsingleton_seed0",
+      "g4_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+      "g4_dhigh_abaseline_pmixed_gsingleton_seed0",
+      "g4_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+      "g4_dhigh_aequal_pmixed_gsingleton_seed0",
+      "g4_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+      "g4_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+      "g4_dhigh_asurplus_pmixed_gsingleton_seed0",
+      "g4_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+      "g4_dlow_abaseline_pmixed_gsingleton_seed0",
+      "g4_dlow_aequal_pcross_heavy_gsingleton_seed0",
+      "g4_dlow_aequal_pmixed_gsingleton_seed0",
+      "g4_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+      "g4_dlow_ascarce_pmixed_gsingleton_seed0",
+      "g4_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+      "g4_dlow_asurplus_pmixed_gsingleton_seed0",
+      "g4_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+      "g4_dmedium_abaseline_pmixed_gsingleton_seed0",
+      "g4_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+      "g4_dmedium_aequal_pmixed_gsingleton_seed0",
+      "g4_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+      "g4_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+      "g4_dmedium_asurplus_pmixed_gsingleton_seed0",
+      "g5_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+      "g5_dhigh_abaseline_plocal_gsingleton_seed0",
+      "g5_dhigh_abaseline_pmixed_gsingleton_seed0",
+      "g5_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+      "g5_dhigh_aequal_plocal_gsingleton_seed0",
+      "g5_dhigh_aequal_pmixed_gsingleton_seed0",
+      "g5_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+      "g5_dhigh_ascarce_plocal_gsingleton_seed0",
+      "g5_dhigh_ascarce_pmixed_gsingleton_seed0",
+      "g5_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+      "g5_dhigh_asurplus_plocal_gsingleton_seed0",
+      "g5_dhigh_asurplus_pmixed_gsingleton_seed0",
+      "g5_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+      "g5_dlow_abaseline_plocal_gsingleton_seed0",
+      "g5_dlow_abaseline_pmixed_gsingleton_seed0",
+      "g5_dlow_aequal_pcross_heavy_gsingleton_seed0",
+      "g5_dlow_aequal_plocal_gsingleton_seed0",
+      "g5_dlow_aequal_pmixed_gsingleton_seed0",
+      "g5_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+      "g5_dlow_ascarce_plocal_gsingleton_seed0",
+      "g5_dlow_ascarce_pmixed_gsingleton_seed0",
+      "g5_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+      "g5_dlow_asurplus_plocal_gsingleton_seed0",
+      "g5_dlow_asurplus_pmixed_gsingleton_seed0",
+      "g5_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+      "g5_dmedium_abaseline_plocal_gsingleton_seed0",
+      "g5_dmedium_abaseline_pmixed_gsingleton_seed0",
+      "g5_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+      "g5_dmedium_aequal_plocal_gsingleton_seed0",
+      "g5_dmedium_aequal_pmixed_gsingleton_seed0",
+      "g5_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+      "g5_dmedium_ascarce_plocal_gsingleton_seed0",
+      "g5_dmedium_ascarce_pmixed_gsingleton_seed0",
+      "g5_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+      "g5_dmedium_asurplus_plocal_gsingleton_seed0",
+      "g5_dmedium_asurplus_pmixed_gsingleton_seed0",
+      "g6_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+      "g6_dhigh_abaseline_plocal_gsingleton_seed0",
+      "g6_dhigh_abaseline_pmixed_gsingleton_seed0",
+      "g6_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+      "g6_dhigh_aequal_plocal_gsingleton_seed0",
+      "g6_dhigh_aequal_pmixed_gsingleton_seed0",
+      "g6_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+      "g6_dhigh_ascarce_plocal_gsingleton_seed0",
+      "g6_dhigh_ascarce_pmixed_gsingleton_seed0",
+      "g6_dhigh_asurplus_pcross_heavy_gshared_pool_seed0",
+      "g6_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+      "g6_dhigh_asurplus_plocal_gsingleton_seed0",
+      "g6_dhigh_asurplus_pmixed_gsingleton_seed0",
+      "g6_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+      "g6_dlow_abaseline_plocal_gsingleton_seed0",
+      "g6_dlow_abaseline_pmixed_gsingleton_seed0",
+      "g6_dlow_aequal_pcross_heavy_gsingleton_seed0",
+      "g6_dlow_aequal_plocal_gsingleton_seed0",
+      "g6_dlow_aequal_pmixed_gsingleton_seed0",
+      "g6_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+      "g6_dlow_ascarce_plocal_gsingleton_seed0",
+      "g6_dlow_ascarce_pmixed_gsingleton_seed0",
+      "g6_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+      "g6_dlow_asurplus_plocal_gsingleton_seed0",
+      "g6_dlow_asurplus_pmixed_gsingleton_seed0",
+      "g6_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+      "g6_dmedium_abaseline_plocal_gsingleton_seed0",
+      "g6_dmedium_abaseline_pmixed_gsingleton_seed0",
+      "g6_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+      "g6_dmedium_aequal_plocal_gsingleton_seed0",
+      "g6_dmedium_aequal_pmixed_gsingleton_seed0",
+      "g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+      "g6_dmedium_ascarce_plocal_gsingleton_seed0",
+      "g6_dmedium_ascarce_pmixed_gsingleton_seed0",
+      "g6_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+      "g6_dmedium_asurplus_plocal_gsingleton_seed0",
+      "g6_dmedium_asurplus_pmixed_gsingleton_seed0"
+    ],
+    "both_failed": 27,
+    "lexicographic": {
+      "better": 41,
+      "equal": 17,
+      "worse": 265
+    },
+    "makespan": {
+      "better": 38,
+      "equal": 30,
+      "worse": 255
+    },
+    "work": {
+      "better": 77,
+      "equal": 24,
+      "worse": 222
+    },
+    "cases": [
+      {
+        "instance": "brap_h10w10_a12_e3_B_seed0_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          155.0,
+          337.0
+        ],
+        "current_cost": [
+          207.0,
+          345.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a12_e3_B_seed1_pool",
+        "relation": "better",
+        "baseline_cost": [
+          780.0,
+          1738.0
+        ],
+        "current_cost": [
+          711.0,
+          1240.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a12_e3_R1_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          893.0,
+          1980.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h10w10_a12_e3_R1_seed1",
+        "relation": "worse",
+        "baseline_cost": [
+          1129.0,
+          2558.0
+        ],
+        "current_cost": [
+          1741.0,
+          3189.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a12_e8_B_seed0_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          425.0,
+          861.0
+        ],
+        "current_cost": [
+          534.0,
+          919.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a12_e8_B_seed1_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          581.0,
+          1254.0
+        ],
+        "current_cost": [
+          643.0,
+          1208.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a12_e8_R1_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          1734.0,
+          3744.0
+        ],
+        "current_cost": [
+          1718.0,
+          3172.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a12_e8_R1_seed1",
+        "relation": "worse",
+        "baseline_cost": [
+          1359.0,
+          2958.0
+        ],
+        "current_cost": [
+          1437.0,
+          2527.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a1_e1_B_seed0_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          102.0,
+          214.0
+        ],
+        "current_cost": [
+          142.0,
+          166.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a1_e1_B_seed1_pool",
+        "relation": "equal",
+        "baseline_cost": [
+          0.0,
+          0.0
+        ],
+        "current_cost": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a1_e1_R1_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          45.0,
+          90.0
+        ],
+        "current_cost": [
+          62.0,
+          71.0
+        ]
+      },
+      {
+        "instance": "brap_h10w10_a1_e1_R1_seed1",
+        "relation": "worse",
+        "baseline_cost": [
+          235.0,
+          494.0
+        ],
+        "current_cost": [
+          329.0,
+          384.0
+        ]
+      },
+      {
+        "instance": "brap_h20w20_a40_e100_B_seed0_pool",
+        "relation": "gained",
+        "baseline_cost": null,
+        "current_cost": [
+          1568.0,
+          6678.0
+        ]
+      },
+      {
+        "instance": "brap_h20w20_a40_e100_B_seed1_pool",
+        "relation": "gained",
+        "baseline_cost": null,
+        "current_cost": [
+          1820.0,
+          8012.0
+        ]
+      },
+      {
+        "instance": "brap_h20w20_a40_e100_R1_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          1273.0,
+          5796.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h20w20_a40_e100_R1_seed1",
+        "relation": "lost",
+        "baseline_cost": [
+          1243.0,
+          6384.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h20w20_a40_e10_B_seed0_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h20w20_a40_e10_B_seed1_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h20w20_a40_e10_R1_seed0",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h20w20_a40_e10_R1_seed1",
+        "relation": "gained",
+        "baseline_cost": null,
+        "current_cost": [
+          3108.0,
+          10743.0
+        ]
+      },
+      {
+        "instance": "brap_h40w40_a160_e400_R1_seed0",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h40w40_a160_e400_R1_seed1",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h40w40_a160_e40_R1_seed0",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h40w40_a160_e40_R1_seed1",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h40w40_a80_e400_B_seed0_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h40w40_a80_e400_B_seed1_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h40w40_a80_e40_B_seed0_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h40w40_a80_e40_B_seed1_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h4w10_a5_e10_B_seed0_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          36.0
+        ],
+        "current_cost": [
+          27.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "brap_h4w10_a5_e10_B_seed1_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          31.0
+        ],
+        "current_cost": [
+          25.0,
+          32.0
+        ]
+      },
+      {
+        "instance": "brap_h4w10_a5_e10_R1_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          322.0,
+          673.0
+        ],
+        "current_cost": [
+          270.0,
+          424.0
+        ]
+      },
+      {
+        "instance": "brap_h4w10_a5_e10_R1_seed1",
+        "relation": "worse",
+        "baseline_cost": [
+          58.0,
+          118.0
+        ],
+        "current_cost": [
+          59.0,
+          102.0
+        ]
+      },
+      {
+        "instance": "brap_h4w10_a5_e1_B_seed0_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          52.0
+        ],
+        "current_cost": [
+          38.0,
+          43.0
+        ]
+      },
+      {
+        "instance": "brap_h4w10_a5_e1_B_seed1_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          47.0
+        ],
+        "current_cost": [
+          31.0,
+          36.0
+        ]
+      },
+      {
+        "instance": "brap_h4w10_a5_e1_R1_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          448.0,
+          879.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h4w10_a5_e1_R1_seed1",
+        "relation": "better",
+        "baseline_cost": [
+          367.0,
+          724.0
+        ],
+        "current_cost": [
+          194.0,
+          225.0
+        ]
+      },
+      {
+        "instance": "brap_h6w10_a6_e15_B_seed0_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          104.0,
+          215.0
+        ],
+        "current_cost": [
+          160.0,
+          283.0
+        ]
+      },
+      {
+        "instance": "brap_h6w10_a6_e15_B_seed1_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          45.0,
+          89.0
+        ],
+        "current_cost": [
+          61.0,
+          87.0
+        ]
+      },
+      {
+        "instance": "brap_h6w10_a6_e15_R1_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          146.0,
+          302.0
+        ],
+        "current_cost": [
+          137.0,
+          233.0
+        ]
+      },
+      {
+        "instance": "brap_h6w10_a6_e15_R1_seed1",
+        "relation": "better",
+        "baseline_cost": [
+          302.0,
+          635.0
+        ],
+        "current_cost": [
+          251.0,
+          408.0
+        ]
+      },
+      {
+        "instance": "brap_h6w10_a6_e1_B_seed0_pool",
+        "relation": "lost",
+        "baseline_cost": [
+          263.0,
+          570.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h6w10_a6_e1_B_seed1_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          191.0,
+          369.0
+        ],
+        "current_cost": [
+          342.0,
+          390.0
+        ]
+      },
+      {
+        "instance": "brap_h6w10_a6_e1_R1_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          845.0,
+          1753.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h6w10_a6_e1_R1_seed1",
+        "relation": "lost",
+        "baseline_cost": [
+          953.0,
+          2046.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e1600_B_seed0_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e1600_B_seed1_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e1600_R1_seed0",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e1600_R1_seed1",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e160_B_seed0_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e160_B_seed1_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e160_R1_seed0",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a128_e160_R1_seed1",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a160_e1600_B_seed0_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a160_e1600_B_seed1_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a160_e160_B_seed0_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a160_e160_B_seed1_pool",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a800_e1600_R1_seed0",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a800_e1600_R1_seed1",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a800_e160_R1_seed0",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h80w80_a800_e160_R1_seed1",
+        "relation": "both_failed",
+        "baseline_cost": null,
+        "current_cost": null
+      },
+      {
+        "instance": "brap_h8w10_a10_e20_B_seed0_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          60.0,
+          117.0
+        ],
+        "current_cost": [
+          74.0,
+          129.0
+        ]
+      },
+      {
+        "instance": "brap_h8w10_a10_e20_B_seed1_pool",
+        "relation": "worse",
+        "baseline_cost": [
+          215.0,
+          440.0
+        ],
+        "current_cost": [
+          295.0,
+          560.0
+        ]
+      },
+      {
+        "instance": "brap_h8w10_a10_e20_R1_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          393.0,
+          818.0
+        ],
+        "current_cost": [
+          255.0,
+          445.0
+        ]
+      },
+      {
+        "instance": "brap_h8w10_a10_e20_R1_seed1",
+        "relation": "better",
+        "baseline_cost": [
+          362.0,
+          714.0
+        ],
+        "current_cost": [
+          273.0,
+          433.0
+        ]
+      },
+      {
+        "instance": "brap_h8w10_a10_e2_B_seed0_pool",
+        "relation": "better",
+        "baseline_cost": [
+          372.0,
+          807.0
+        ],
+        "current_cost": [
+          335.0,
+          609.0
+        ]
+      },
+      {
+        "instance": "brap_h8w10_a10_e2_B_seed1_pool",
+        "relation": "better",
+        "baseline_cost": [
+          279.0,
+          653.0
+        ],
+        "current_cost": [
+          253.0,
+          533.0
+        ]
+      },
+      {
+        "instance": "brap_h8w10_a10_e2_R1_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          1368.0,
+          3136.0
+        ],
+        "current_cost": [
+          921.0,
+          1774.0
+        ]
+      },
+      {
+        "instance": "brap_h8w10_a10_e2_R1_seed1",
+        "relation": "worse",
+        "baseline_cost": [
+          932.0,
+          2118.0
+        ],
+        "current_cost": [
+          958.0,
+          1457.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          15.0,
+          35.0
+        ],
+        "current_cost": [
+          12.0,
+          30.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          50.0
+        ],
+        "current_cost": [
+          27.0,
+          61.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          44.0
+        ],
+        "current_cost": [
+          20.0,
+          46.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_abaseline_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          46.0
+        ],
+        "current_cost": [
+          20.0,
+          41.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          14.0,
+          38.0
+        ],
+        "current_cost": [
+          14.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_abaseline_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          75.0
+        ],
+        "current_cost": [
+          32.0,
+          68.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          10.0,
+          33.0
+        ],
+        "current_cost": [
+          10.0,
+          33.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          49.0
+        ],
+        "current_cost": [
+          19.0,
+          53.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          40.0
+        ],
+        "current_cost": [
+          20.0,
+          42.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_aequal_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          38.0
+        ],
+        "current_cost": [
+          19.0,
+          42.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_aequal_pmixed_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          13.0,
+          42.0
+        ],
+        "current_cost": [
+          13.0,
+          42.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_aequal_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          52.0
+        ],
+        "current_cost": [
+          17.0,
+          56.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          18.0,
+          33.0
+        ],
+        "current_cost": [
+          18.0,
+          33.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          30.0,
+          58.0
+        ],
+        "current_cost": [
+          32.0,
+          61.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          48.0
+        ],
+        "current_cost": [
+          29.0,
+          48.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_ascarce_plocal_gsingleton_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          24.0,
+          42.0
+        ],
+        "current_cost": [
+          23.0,
+          44.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          36.0
+        ],
+        "current_cost": [
+          20.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_ascarce_pmixed_gsingleton_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          39.0,
+          73.0
+        ],
+        "current_cost": [
+          38.0,
+          70.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          10.0,
+          30.0
+        ],
+        "current_cost": [
+          10.0,
+          30.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          43.0
+        ],
+        "current_cost": [
+          17.0,
+          47.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          37.0
+        ],
+        "current_cost": [
+          18.0,
+          39.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_asurplus_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          37.0
+        ],
+        "current_cost": [
+          19.0,
+          41.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          13.0,
+          38.0
+        ],
+        "current_cost": [
+          13.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dhigh_asurplus_pmixed_gsingleton_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          18.0,
+          47.0
+        ],
+        "current_cost": [
+          17.0,
+          51.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          15.0,
+          35.0
+        ],
+        "current_cost": [
+          12.0,
+          30.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          48.0
+        ],
+        "current_cost": [
+          24.0,
+          55.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          51.0
+        ],
+        "current_cost": [
+          24.0,
+          48.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_abaseline_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          33.0
+        ],
+        "current_cost": [
+          16.0,
+          37.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          20.0,
+          47.0
+        ],
+        "current_cost": [
+          18.0,
+          39.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_abaseline_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          46.0
+        ],
+        "current_cost": [
+          28.0,
+          60.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          10.0,
+          33.0
+        ],
+        "current_cost": [
+          10.0,
+          33.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          47.0
+        ],
+        "current_cost": [
+          19.0,
+          51.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          9.0,
+          30.0
+        ],
+        "current_cost": [
+          12.0,
+          36.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_aequal_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          37.0
+        ],
+        "current_cost": [
+          15.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          42.0
+        ],
+        "current_cost": [
+          14.0,
+          44.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_aequal_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          44.0
+        ],
+        "current_cost": [
+          16.0,
+          50.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          31.0
+        ],
+        "current_cost": [
+          18.0,
+          33.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          54.0
+        ],
+        "current_cost": [
+          32.0,
+          59.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_ascarce_plocal_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          28.0,
+          51.0
+        ],
+        "current_cost": [
+          26.0,
+          49.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          40.0
+        ],
+        "current_cost": [
+          27.0,
+          46.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          36.0
+        ],
+        "current_cost": [
+          22.0,
+          40.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_ascarce_pmixed_gsingleton_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          36.0,
+          70.0
+        ],
+        "current_cost": [
+          33.0,
+          62.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          10.0,
+          30.0
+        ],
+        "current_cost": [
+          10.0,
+          30.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          41.0
+        ],
+        "current_cost": [
+          17.0,
+          45.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          7.0,
+          27.0
+        ],
+        "current_cost": [
+          12.0,
+          33.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_asurplus_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          33.0
+        ],
+        "current_cost": [
+          15.0,
+          37.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          40.0
+        ],
+        "current_cost": [
+          14.0,
+          42.0
+        ]
+      },
+      {
+        "instance": "g1_dlow_asurplus_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          39.0
+        ],
+        "current_cost": [
+          14.0,
+          45.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          15.0,
+          35.0
+        ],
+        "current_cost": [
+          12.0,
+          30.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          50.0
+        ],
+        "current_cost": [
+          27.0,
+          61.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          50.0
+        ],
+        "current_cost": [
+          20.0,
+          46.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_abaseline_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          14.0,
+          33.0
+        ],
+        "current_cost": [
+          16.0,
+          37.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          14.0,
+          38.0
+        ],
+        "current_cost": [
+          14.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_abaseline_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          46.0
+        ],
+        "current_cost": [
+          29.0,
+          62.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          10.0,
+          33.0
+        ],
+        "current_cost": [
+          10.0,
+          33.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          49.0
+        ],
+        "current_cost": [
+          19.0,
+          53.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          40.0
+        ],
+        "current_cost": [
+          20.0,
+          42.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_aequal_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          34.0
+        ],
+        "current_cost": [
+          15.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_aequal_pmixed_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          13.0,
+          42.0
+        ],
+        "current_cost": [
+          13.0,
+          42.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_aequal_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          46.0
+        ],
+        "current_cost": [
+          16.0,
+          50.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          18.0,
+          33.0
+        ],
+        "current_cost": [
+          18.0,
+          33.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          30.0,
+          58.0
+        ],
+        "current_cost": [
+          32.0,
+          61.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          48.0
+        ],
+        "current_cost": [
+          29.0,
+          48.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          40.0
+        ],
+        "current_cost": [
+          27.0,
+          46.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          36.0
+        ],
+        "current_cost": [
+          20.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_ascarce_pmixed_gsingleton_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          37.0,
+          65.0
+        ],
+        "current_cost": [
+          33.0,
+          64.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          10.0,
+          30.0
+        ],
+        "current_cost": [
+          10.0,
+          30.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          43.0
+        ],
+        "current_cost": [
+          17.0,
+          47.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          37.0
+        ],
+        "current_cost": [
+          18.0,
+          39.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_asurplus_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          33.0
+        ],
+        "current_cost": [
+          15.0,
+          37.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          13.0,
+          38.0
+        ],
+        "current_cost": [
+          13.0,
+          38.0
+        ]
+      },
+      {
+        "instance": "g1_dmedium_asurplus_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          41.0
+        ],
+        "current_cost": [
+          14.0,
+          45.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          69.0
+        ],
+        "current_cost": [
+          27.0,
+          71.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          32.0,
+          112.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          79.0
+        ],
+        "current_cost": [
+          30.0,
+          79.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          21.0,
+          76.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          34.0,
+          122.0
+        ],
+        "current_cost": [
+          34.0,
+          101.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          27.0,
+          90.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          65.0
+        ],
+        "current_cost": [
+          18.0,
+          67.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          23.0,
+          97.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          61.0
+        ],
+        "current_cost": [
+          15.0,
+          65.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          67.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          87.0
+        ],
+        "current_cost": [
+          23.0,
+          88.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          21.0,
+          91.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          25.0,
+          68.0
+        ],
+        "current_cost": [
+          29.0,
+          72.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          38.0,
+          102.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          74.0
+        ],
+        "current_cost": [
+          31.0,
+          78.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          33.0,
+          88.0
+        ],
+        "current_cost": [
+          38.0,
+          98.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          51.0,
+          146.0
+        ],
+        "current_cost": [
+          35.0,
+          90.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          33.0,
+          95.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          56.0
+        ],
+        "current_cost": [
+          16.0,
+          58.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          23.0,
+          97.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          56.0
+        ],
+        "current_cost": [
+          15.0,
+          60.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          61.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dhigh_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          77.0
+        ],
+        "current_cost": [
+          19.0,
+          79.0
+        ]
+      },
+      {
+        "instance": "g2_dhigh_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          19.0,
+          85.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          58.0
+        ],
+        "current_cost": [
+          23.0,
+          68.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          99.0
+        ],
+        "current_cost": [
+          30.0,
+          98.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          78.0
+        ],
+        "current_cost": [
+          29.0,
+          78.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          24.0,
+          75.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          30.0,
+          104.0
+        ],
+        "current_cost": [
+          31.0,
+          98.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          25.0,
+          86.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          58.0
+        ],
+        "current_cost": [
+          17.0,
+          64.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          20.0,
+          85.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          56.0
+        ],
+        "current_cost": [
+          15.0,
+          62.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          59.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          78.0
+        ],
+        "current_cost": [
+          22.0,
+          82.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          20.0,
+          80.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          76.0
+        ],
+        "current_cost": [
+          32.0,
+          76.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          130.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          78.0
+        ],
+        "current_cost": [
+          32.0,
+          76.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          33.0,
+          86.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          37.0,
+          98.0
+        ],
+        "current_cost": [
+          33.0,
+          93.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          37.0,
+          94.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          11.0,
+          51.0
+        ],
+        "current_cost": [
+          15.0,
+          55.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          20.0,
+          85.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          51.0
+        ],
+        "current_cost": [
+          14.0,
+          57.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          53.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dlow_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          14.0,
+          67.0
+        ],
+        "current_cost": [
+          17.0,
+          73.0
+        ]
+      },
+      {
+        "instance": "g2_dlow_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          19.0,
+          82.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          58.0
+        ],
+        "current_cost": [
+          26.0,
+          72.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          99.0
+        ],
+        "current_cost": [
+          32.0,
+          100.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          78.0
+        ],
+        "current_cost": [
+          29.0,
+          78.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          21.0,
+          75.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          35.0,
+          110.0
+        ],
+        "current_cost": [
+          34.0,
+          101.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          27.0,
+          90.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          60.0
+        ],
+        "current_cost": [
+          17.0,
+          64.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          20.0,
+          85.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          56.0
+        ],
+        "current_cost": [
+          15.0,
+          62.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          65.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          87.0
+        ],
+        "current_cost": [
+          23.0,
+          88.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          21.0,
+          91.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          28.0,
+          73.0
+        ],
+        "current_cost": [
+          30.0,
+          76.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          130.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          78.0
+        ],
+        "current_cost": [
+          32.0,
+          76.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          78.0
+        ],
+        "current_cost": [
+          38.0,
+          100.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          51.0,
+          144.0
+        ],
+        "current_cost": [
+          35.0,
+          90.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          33.0,
+          93.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          51.0
+        ],
+        "current_cost": [
+          15.0,
+          55.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          20.0,
+          85.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          51.0
+        ],
+        "current_cost": [
+          14.0,
+          57.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          59.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g2_dmedium_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          77.0
+        ],
+        "current_cost": [
+          19.0,
+          79.0
+        ]
+      },
+      {
+        "instance": "g2_dmedium_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          19.0,
+          85.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          132.0
+        ],
+        "current_cost": [
+          33.0,
+          139.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          43.0,
+          188.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          92.0
+        ],
+        "current_cost": [
+          25.0,
+          104.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          25.0,
+          114.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          22.0,
+          102.0
+        ],
+        "current_cost": [
+          30.0,
+          112.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_abaseline_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          102.0
+        ],
+        "current_cost": [
+          31.0,
+          110.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          125.0
+        ],
+        "current_cost": [
+          24.0,
+          131.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          31.0,
+          189.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          80.0
+        ],
+        "current_cost": [
+          20.0,
+          92.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          17.0,
+          108.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          88.0
+        ],
+        "current_cost": [
+          17.0,
+          94.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_aequal_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          88.0
+        ],
+        "current_cost": [
+          19.0,
+          96.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          36.0,
+          135.0
+        ],
+        "current_cost": [
+          41.0,
+          133.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          53.0,
+          196.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          31.0,
+          108.0
+        ],
+        "current_cost": [
+          36.0,
+          100.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          158.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          41.0,
+          141.0
+        ],
+        "current_cost": [
+          39.0,
+          133.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_ascarce_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          31.0,
+          108.0
+        ],
+        "current_cost": [
+          38.0,
+          122.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          108.0
+        ],
+        "current_cost": [
+          22.0,
+          112.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          41.0,
+          173.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          72.0
+        ],
+        "current_cost": [
+          14.0,
+          78.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          16.0,
+          99.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dhigh_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          82.0
+        ],
+        "current_cost": [
+          16.0,
+          88.0
+        ]
+      },
+      {
+        "instance": "g3_dhigh_asurplus_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          14.0,
+          75.0
+        ],
+        "current_cost": [
+          17.0,
+          83.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          132.0
+        ],
+        "current_cost": [
+          33.0,
+          139.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          177.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dlow_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          94.0
+        ],
+        "current_cost": [
+          25.0,
+          106.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          23.0,
+          104.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dlow_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          22.0,
+          102.0
+        ],
+        "current_cost": [
+          30.0,
+          110.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_abaseline_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          102.0
+        ],
+        "current_cost": [
+          31.0,
+          110.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          123.0
+        ],
+        "current_cost": [
+          24.0,
+          131.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          31.0,
+          183.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dlow_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          78.0
+        ],
+        "current_cost": [
+          20.0,
+          94.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          17.0,
+          97.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dlow_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          88.0
+        ],
+        "current_cost": [
+          17.0,
+          94.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_aequal_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          14.0,
+          86.0
+        ],
+        "current_cost": [
+          19.0,
+          96.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          36.0,
+          135.0
+        ],
+        "current_cost": [
+          41.0,
+          133.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          47.0,
+          151.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dlow_ascarce_plocal_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          39.0,
+          140.0
+        ],
+        "current_cost": [
+          30.0,
+          106.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          35.0,
+          126.0
+        ],
+        "current_cost": [
+          36.0,
+          122.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          41.0,
+          141.0
+        ],
+        "current_cost": [
+          37.0,
+          129.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_ascarce_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          31.0,
+          108.0
+        ],
+        "current_cost": [
+          38.0,
+          122.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          108.0
+        ],
+        "current_cost": [
+          22.0,
+          112.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          40.0,
+          177.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dlow_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          72.0
+        ],
+        "current_cost": [
+          14.0,
+          80.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          89.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dlow_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          82.0
+        ],
+        "current_cost": [
+          16.0,
+          88.0
+        ]
+      },
+      {
+        "instance": "g3_dlow_asurplus_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          73.0
+        ],
+        "current_cost": [
+          17.0,
+          83.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          132.0
+        ],
+        "current_cost": [
+          33.0,
+          139.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          177.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dmedium_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          92.0
+        ],
+        "current_cost": [
+          25.0,
+          104.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          23.0,
+          104.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dmedium_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          22.0,
+          102.0
+        ],
+        "current_cost": [
+          30.0,
+          112.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_abaseline_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          102.0
+        ],
+        "current_cost": [
+          31.0,
+          110.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          123.0
+        ],
+        "current_cost": [
+          24.0,
+          131.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          31.0,
+          187.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dmedium_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          80.0
+        ],
+        "current_cost": [
+          20.0,
+          92.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          17.0,
+          97.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dmedium_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          15.0,
+          88.0
+        ],
+        "current_cost": [
+          17.0,
+          94.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_aequal_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          88.0
+        ],
+        "current_cost": [
+          19.0,
+          96.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          36.0,
+          135.0
+        ],
+        "current_cost": [
+          41.0,
+          133.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          47.0,
+          151.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dmedium_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          31.0,
+          108.0
+        ],
+        "current_cost": [
+          36.0,
+          100.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          35.0,
+          126.0
+        ],
+        "current_cost": [
+          36.0,
+          122.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          41.0,
+          141.0
+        ],
+        "current_cost": [
+          39.0,
+          133.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_ascarce_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          31.0,
+          108.0
+        ],
+        "current_cost": [
+          38.0,
+          122.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          108.0
+        ],
+        "current_cost": [
+          22.0,
+          112.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          41.0,
+          169.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dmedium_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          12.0,
+          72.0
+        ],
+        "current_cost": [
+          14.0,
+          78.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          15.0,
+          89.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g3_dmedium_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          13.0,
+          82.0
+        ],
+        "current_cost": [
+          16.0,
+          88.0
+        ]
+      },
+      {
+        "instance": "g3_dmedium_asurplus_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          14.0,
+          75.0
+        ],
+        "current_cost": [
+          17.0,
+          83.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          34.0,
+          220.0
+        ],
+        "current_cost": [
+          47.0,
+          222.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          40.0,
+          248.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dhigh_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          25.0,
+          169.0
+        ],
+        "current_cost": [
+          37.0,
+          188.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_abaseline_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          30.0,
+          183.0
+        ],
+        "current_cost": [
+          37.0,
+          192.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          174.0
+        ],
+        "current_cost": [
+          30.0,
+          182.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          35.0,
+          240.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dhigh_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          190.0
+        ],
+        "current_cost": [
+          37.0,
+          192.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          40.0,
+          249.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dhigh_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          174.0
+        ],
+        "current_cost": [
+          22.0,
+          183.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_aequal_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          167.0
+        ],
+        "current_cost": [
+          20.0,
+          179.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          198.0
+        ],
+        "current_cost": [
+          26.0,
+          210.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          32.0,
+          250.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dhigh_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          49.0,
+          256.0
+        ],
+        "current_cost": [
+          49.0,
+          213.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          50.0,
+          273.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dhigh_ascarce_plocal_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          44.0,
+          230.0
+        ],
+        "current_cost": [
+          42.0,
+          204.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          42.0,
+          226.0
+        ],
+        "current_cost": [
+          46.0,
+          223.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          39.0,
+          209.0
+        ],
+        "current_cost": [
+          44.0,
+          229.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_ascarce_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          43.0,
+          232.0
+        ],
+        "current_cost": [
+          57.0,
+          282.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          164.0
+        ],
+        "current_cost": [
+          35.0,
+          174.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          36.0,
+          211.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dhigh_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          143.0
+        ],
+        "current_cost": [
+          22.0,
+          151.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_asurplus_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          147.0
+        ],
+        "current_cost": [
+          19.0,
+          159.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          141.0
+        ],
+        "current_cost": [
+          22.0,
+          153.0
+        ]
+      },
+      {
+        "instance": "g4_dhigh_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          29.0,
+          208.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          34.0,
+          201.0
+        ],
+        "current_cost": [
+          37.0,
+          208.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          40.0,
+          248.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          178.0
+        ],
+        "current_cost": [
+          34.0,
+          188.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_abaseline_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          28.0,
+          185.0
+        ],
+        "current_cost": [
+          33.0,
+          182.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          174.0
+        ],
+        "current_cost": [
+          36.0,
+          198.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          38.0,
+          233.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          25.0,
+          179.0
+        ],
+        "current_cost": [
+          24.0,
+          183.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          38.0,
+          262.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          171.0
+        ],
+        "current_cost": [
+          26.0,
+          181.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_aequal_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          157.0
+        ],
+        "current_cost": [
+          20.0,
+          169.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          22.0,
+          188.0
+        ],
+        "current_cost": [
+          28.0,
+          204.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          33.0,
+          231.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          41.0,
+          217.0
+        ],
+        "current_cost": [
+          51.0,
+          216.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          47.0,
+          259.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          41.0,
+          204.0
+        ],
+        "current_cost": [
+          45.0,
+          222.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          39.0,
+          212.0
+        ],
+        "current_cost": [
+          45.0,
+          221.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          39.0,
+          209.0
+        ],
+        "current_cost": [
+          47.0,
+          223.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          48.0,
+          249.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          152.0
+        ],
+        "current_cost": [
+          22.0,
+          164.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          36.0,
+          206.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dlow_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          139.0
+        ],
+        "current_cost": [
+          24.0,
+          149.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_asurplus_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          135.0
+        ],
+        "current_cost": [
+          19.0,
+          149.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          133.0
+        ],
+        "current_cost": [
+          24.0,
+          149.0
+        ]
+      },
+      {
+        "instance": "g4_dlow_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          28.0,
+          199.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dmedium_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          34.0,
+          213.0
+        ],
+        "current_cost": [
+          40.0,
+          220.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          40.0,
+          248.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dmedium_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          164.0
+        ],
+        "current_cost": [
+          34.0,
+          189.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_abaseline_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          28.0,
+          175.0
+        ],
+        "current_cost": [
+          33.0,
+          188.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          174.0
+        ],
+        "current_cost": [
+          36.0,
+          198.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          35.0,
+          234.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dmedium_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          175.0
+        ],
+        "current_cost": [
+          26.0,
+          185.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          38.0,
+          262.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dmedium_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          173.0
+        ],
+        "current_cost": [
+          22.0,
+          183.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_aequal_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          17.0,
+          163.0
+        ],
+        "current_cost": [
+          20.0,
+          175.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          22.0,
+          188.0
+        ],
+        "current_cost": [
+          28.0,
+          204.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          32.0,
+          240.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dmedium_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          47.0,
+          256.0
+        ],
+        "current_cost": [
+          55.0,
+          234.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          47.0,
+          261.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dmedium_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          40.0,
+          194.0
+        ],
+        "current_cost": [
+          41.0,
+          202.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_ascarce_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          42.0,
+          234.0
+        ],
+        "current_cost": [
+          46.0,
+          225.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          39.0,
+          209.0
+        ],
+        "current_cost": [
+          47.0,
+          223.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_ascarce_pmixed_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          48.0,
+          249.0
+        ],
+        "current_cost": [
+          57.0,
+          282.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          156.0
+        ],
+        "current_cost": [
+          26.0,
+          166.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          36.0,
+          206.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g4_dmedium_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          141.0
+        ],
+        "current_cost": [
+          22.0,
+          151.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_asurplus_plocal_gsingleton_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          16.0,
+          141.0
+        ],
+        "current_cost": [
+          19.0,
+          155.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          18.0,
+          133.0
+        ],
+        "current_cost": [
+          24.0,
+          149.0
+        ]
+      },
+      {
+        "instance": "g4_dmedium_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          27.0,
+          204.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          33.0,
+          306.0
+        ],
+        "current_cost": [
+          44.0,
+          318.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          64.0,
+          440.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          32.0,
+          289.0
+        ],
+        "current_cost": [
+          38.0,
+          306.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          35.0,
+          280.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          29.0,
+          264.0
+        ],
+        "current_cost": [
+          38.0,
+          278.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          154.0,
+          543.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          292.0
+        ],
+        "current_cost": [
+          30.0,
+          309.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          56.0,
+          432.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_aequal_plocal_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          29.0,
+          282.0
+        ],
+        "current_cost": [
+          28.0,
+          290.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          35.0,
+          266.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_aequal_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          24.0,
+          271.0
+        ],
+        "current_cost": [
+          21.0,
+          275.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          44.0,
+          367.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          55.0,
+          378.0
+        ],
+        "current_cost": [
+          59.0,
+          385.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          78.0,
+          474.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          44.0,
+          291.0
+        ],
+        "current_cost": [
+          53.0,
+          321.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          51.0,
+          354.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          45.0,
+          309.0
+        ],
+        "current_cost": [
+          55.0,
+          318.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          80.0,
+          442.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          234.0
+        ],
+        "current_cost": [
+          24.0,
+          250.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          41.0,
+          381.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          22.0,
+          235.0
+        ],
+        "current_cost": [
+          25.0,
+          242.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          25.0,
+          242.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dhigh_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          228.0
+        ],
+        "current_cost": [
+          21.0,
+          240.0
+        ]
+      },
+      {
+        "instance": "g5_dhigh_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          41.0,
+          330.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          31.0,
+          299.0
+        ],
+        "current_cost": [
+          38.0,
+          304.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          65.0,
+          446.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          28.0,
+          275.0
+        ],
+        "current_cost": [
+          34.0,
+          291.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          35.0,
+          278.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          30.0,
+          268.0
+        ],
+        "current_cost": [
+          31.0,
+          262.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          42.0,
+          377.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          281.0
+        ],
+        "current_cost": [
+          30.0,
+          297.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          56.0,
+          427.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          272.0
+        ],
+        "current_cost": [
+          25.0,
+          274.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          33.0,
+          264.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          266.0
+        ],
+        "current_cost": [
+          21.0,
+          271.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          47.0,
+          349.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          52.0,
+          379.0
+        ],
+        "current_cost": [
+          55.0,
+          341.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          78.0,
+          474.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          37.0,
+          256.0
+        ],
+        "current_cost": [
+          50.0,
+          290.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          53.0,
+          356.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          40.0,
+          289.0
+        ],
+        "current_cost": [
+          56.0,
+          315.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          57.0,
+          385.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          25.0,
+          237.0
+        ],
+        "current_cost": [
+          23.0,
+          248.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          40.0,
+          384.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          19.0,
+          222.0
+        ],
+        "current_cost": [
+          22.0,
+          234.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          24.0,
+          244.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dlow_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          224.0
+        ],
+        "current_cost": [
+          21.0,
+          236.0
+        ]
+      },
+      {
+        "instance": "g5_dlow_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          306.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          32.0,
+          304.0
+        ],
+        "current_cost": [
+          44.0,
+          318.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          65.0,
+          446.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          28.0,
+          277.0
+        ],
+        "current_cost": [
+          34.0,
+          291.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          35.0,
+          278.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          31.0,
+          262.0
+        ],
+        "current_cost": [
+          31.0,
+          262.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          386.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          25.0,
+          290.0
+        ],
+        "current_cost": [
+          30.0,
+          309.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          56.0,
+          427.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          270.0
+        ],
+        "current_cost": [
+          25.0,
+          274.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          35.0,
+          266.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          266.0
+        ],
+        "current_cost": [
+          21.0,
+          271.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          45.0,
+          340.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          50.0,
+          342.0
+        ],
+        "current_cost": [
+          59.0,
+          385.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          78.0,
+          474.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          37.0,
+          256.0
+        ],
+        "current_cost": [
+          50.0,
+          290.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          52.0,
+          362.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          40.0,
+          289.0
+        ],
+        "current_cost": [
+          56.0,
+          314.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          57.0,
+          416.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          232.0
+        ],
+        "current_cost": [
+          24.0,
+          250.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          43.0,
+          382.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          20.0,
+          222.0
+        ],
+        "current_cost": [
+          22.0,
+          234.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          25.0,
+          242.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g5_dmedium_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          21.0,
+          224.0
+        ],
+        "current_cost": [
+          21.0,
+          236.0
+        ]
+      },
+      {
+        "instance": "g5_dmedium_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          41.0,
+          314.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          55.0,
+          554.0
+        ],
+        "current_cost": [
+          119.0,
+          569.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          88.0,
+          738.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          39.0,
+          379.0
+        ],
+        "current_cost": [
+          52.0,
+          404.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          83.0,
+          670.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          47.0,
+          439.0
+        ],
+        "current_cost": [
+          51.0,
+          391.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          75.0,
+          645.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          54.0,
+          550.0
+        ],
+        "current_cost": [
+          104.0,
+          567.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          70.0,
+          703.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          348.0
+        ],
+        "current_cost": [
+          35.0,
+          359.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          72.0,
+          680.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          32.0,
+          350.0
+        ],
+        "current_cost": [
+          33.0,
+          350.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          64.0,
+          612.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          69.0,
+          530.0
+        ],
+        "current_cost": [
+          131.0,
+          616.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          112.0,
+          742.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          56.0,
+          431.0
+        ],
+        "current_cost": [
+          63.0,
+          418.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          96.0,
+          693.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          56.0,
+          402.0
+        ],
+        "current_cost": [
+          67.0,
+          470.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          81.0,
+          605.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          54.0,
+          505.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          95.0,
+          686.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          294.0
+        ],
+        "current_cost": [
+          34.0,
+          304.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          68.0,
+          572.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dhigh_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          40.0,
+          288.0
+        ],
+        "current_cost": [
+          33.0,
+          297.0
+        ]
+      },
+      {
+        "instance": "g6_dhigh_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          59.0,
+          514.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          38.0,
+          384.0
+        ],
+        "current_cost": [
+          65.0,
+          468.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          92.0,
+          738.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          40.0,
+          394.0
+        ],
+        "current_cost": [
+          57.0,
+          409.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          76.0,
+          649.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          39.0,
+          387.0
+        ],
+        "current_cost": [
+          57.0,
+          437.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          74.0,
+          641.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          34.0,
+          418.0
+        ],
+        "current_cost": [
+          49.0,
+          437.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          79.0,
+          672.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          28.0,
+          321.0
+        ],
+        "current_cost": [
+          32.0,
+          343.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          68.0,
+          662.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_aequal_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          82.0,
+          472.0
+        ],
+        "current_cost": [
+          36.0,
+          362.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          64.0,
+          610.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          57.0,
+          422.0
+        ],
+        "current_cost": [
+          66.0,
+          411.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          103.0,
+          746.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          54.0,
+          405.0
+        ],
+        "current_cost": [
+          64.0,
+          408.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          83.0,
+          640.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          51.0,
+          373.0
+        ],
+        "current_cost": [
+          67.0,
+          439.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          81.0,
+          605.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          353.0
+        ],
+        "current_cost": [
+          40.0,
+          359.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          98.0,
+          631.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          275.0
+        ],
+        "current_cost": [
+          30.0,
+          297.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          67.0,
+          555.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dlow_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          34.0,
+          284.0
+        ],
+        "current_cost": [
+          36.0,
+          295.0
+        ]
+      },
+      {
+        "instance": "g6_dlow_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          59.0,
+          534.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_abaseline_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          56.0,
+          498.0
+        ],
+        "current_cost": [
+          90.0,
+          524.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_abaseline_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          92.0,
+          696.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_abaseline_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          40.0,
+          376.0
+        ],
+        "current_cost": [
+          59.0,
+          424.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_abaseline_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          75.0,
+          665.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_abaseline_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          48.0,
+          371.0
+        ],
+        "current_cost": [
+          56.0,
+          406.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_abaseline_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          75.0,
+          642.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_aequal_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          46.0,
+          511.0
+        ],
+        "current_cost": [
+          80.0,
+          505.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_aequal_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          79.0,
+          674.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_aequal_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          346.0
+        ],
+        "current_cost": [
+          38.0,
+          363.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_aequal_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          68.0,
+          662.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_aequal_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          30.0,
+          335.0
+        ],
+        "current_cost": [
+          33.0,
+          348.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_aequal_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          64.0,
+          612.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_ascarce_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          66.0,
+          496.0
+        ],
+        "current_cost": [
+          97.0,
+          494.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          116.0,
+          741.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_ascarce_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          55.0,
+          435.0
+        ],
+        "current_cost": [
+          66.0,
+          418.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_ascarce_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          85.0,
+          641.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_ascarce_pmixed_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          52.0,
+          386.0
+        ],
+        "current_cost": [
+          63.0,
+          421.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_ascarce_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          81.0,
+          605.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_asurplus_pcross_heavy_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          37.0,
+          459.0
+        ],
+        "current_cost": [
+          68.0,
+          425.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_asurplus_pcross_heavy_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          89.0,
+          621.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_asurplus_plocal_gshared_pool_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          26.0,
+          292.0
+        ],
+        "current_cost": [
+          37.0,
+          308.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_asurplus_plocal_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          73.0,
+          571.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "g6_dmedium_asurplus_pmixed_gshared_pool_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          40.0,
+          287.0
+        ],
+        "current_cost": [
+          33.0,
+          295.0
+        ]
+      },
+      {
+        "instance": "g6_dmedium_asurplus_pmixed_gsingleton_seed0",
+        "relation": "lost",
+        "baseline_cost": [
+          59.0,
+          516.0
+        ],
+        "current_cost": null
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          28.0,
+          158.0
+        ],
+        "current_cost": [
+          28.0,
+          156.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0",
+        "relation": "equal",
+        "baseline_cost": [
+          26.0,
+          157.0
+        ],
+        "current_cost": [
+          26.0,
+          157.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0",
+        "relation": "better",
+        "baseline_cost": [
+          23.0,
+          145.0
+        ],
+        "current_cost": [
+          21.0,
+          130.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          130.0
+        ],
+        "current_cost": [
+          27.0,
+          126.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          24.0,
+          141.0
+        ],
+        "current_cost": [
+          28.0,
+          148.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          189.0
+        ],
+        "current_cost": [
+          34.0,
+          160.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          148.0
+        ],
+        "current_cost": [
+          27.0,
+          144.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          27.0,
+          182.0
+        ],
+        "current_cost": [
+          33.0,
+          158.0
+        ]
+      },
+      {
+        "instance": "warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0",
+        "relation": "worse",
+        "baseline_cost": [
+          23.0,
+          157.0
+        ],
+        "current_cost": [
+          25.0,
+          140.0
+        ]
+      }
+    ]
+  },
+  "timing": {
+    "baseline": {
+      "method": "carrier",
+      "wall_time_sec": 266.3,
+      "jobs": 14,
+      "tasks": 509,
+      "timeout_sec": 10.0,
+      "solver_time_sum_sec": 3630.5,
+      "binary_sha256": "d90a0efa2ee2436778ceda107bbc785d2d371e51fd13eba9b00d90ec1758af7d",
+      "suite_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed",
+      "tier": "full"
+    },
+    "current": {
+      "method": "carrier_brd",
+      "wall_time_sec": 115.8,
+      "jobs": 14,
+      "tasks": 509,
+      "timeout_sec": 10.0,
+      "solver_time_sum_sec": 1525.8,
+      "binary_sha256": "e1261800dd6454b2f02e745aef7e648df3610301d61999e758ec06bb15b556de",
+      "suite_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed",
+      "tier": "full"
+    }
+  },
+  "phases": {
+    "tau": {
+      "all": {
+        "count": 509,
+        "sum": 152545.4179520001,
+        "median": 3.12827,
+        "mean": 299.69630245972496
+      },
+      "solved": {
+        "count": 326,
+        "sum": 12573.070147999999,
+        "median": 3.105115,
+        "mean": 38.567699840490796
+      },
+      "failed": {
+        "count": 183,
+        "sum": 139972.34780399996,
+        "median": 3.1316,
+        "mean": 764.8762175081968
+      }
+    },
+    "upper BR-LaCAM": {
+      "all": {
+        "count": 509,
+        "sum": 145568.25552099984,
+        "median": 9.63321,
+        "mean": 285.9887141866405
+      },
+      "solved": {
+        "count": 326,
+        "sum": 6519.342561000001,
+        "median": 7.471575,
+        "mean": 19.997983315950922
+      },
+      "failed": {
+        "count": 183,
+        "sum": 139048.91296,
+        "median": 14.5898,
+        "mean": 759.8301254644808
+      }
+    },
+    "task compile": {
+      "all": {
+        "count": 509,
+        "sum": 2582.108509999998,
+        "median": 1.27687,
+        "mean": 5.072904734774067
+      },
+      "solved": {
+        "count": 326,
+        "sum": 787.4451370000004,
+        "median": 1.2146599999999999,
+        "mean": 2.4154758803680982
+      },
+      "failed": {
+        "count": 183,
+        "sum": 1794.6633729999985,
+        "median": 3.01853,
+        "mean": 9.80690367759563
+      }
+    },
+    "matching": {
+      "all": {
+        "count": 509,
+        "sum": 15043.665955999997,
+        "median": 0.46994,
+        "mean": 29.555335866404715
+      },
+      "solved": {
+        "count": 326,
+        "sum": 1216.0840769999998,
+        "median": 0.429174,
+        "mean": 3.730319254601227
+      },
+      "failed": {
+        "count": 183,
+        "sum": 13827.581879,
+        "median": 0.650017,
+        "mean": 75.560556715847
+      }
+    },
+    "lower segments": {
+      "all": {
+        "count": 509,
+        "sum": 1190483.1745559997,
+        "median": 3.43355,
+        "mean": 2338.866747654224
+      },
+      "solved": {
+        "count": 326,
+        "sum": 2528.4729560000014,
+        "median": 1.5370050000000002,
+        "mean": 7.756052012269939
+      },
+      "failed": {
+        "count": 183,
+        "sum": 1187954.7015999998,
+        "median": 8510.45,
+        "mean": 6491.555746448087
+      }
+    },
+    "cleanup": {
+      "all": {
+        "count": 509,
+        "sum": 222.53123599999998,
+        "median": 0.015857,
+        "mean": 0.43719299803536343
+      },
+      "solved": {
+        "count": 326,
+        "sum": 10.737813999999997,
+        "median": 0.0115995,
+        "mean": 0.032938079754601224
+      },
+      "failed": {
+        "count": 183,
+        "sum": 211.79342200000005,
+        "median": 0.031378,
+        "mean": 1.1573411038251367
+      }
+    },
+    "replay": {
+      "all": {
+        "count": 509,
+        "sum": 390.7196860000001,
+        "median": 0.058779,
+        "mean": 0.7676221728880157
+      },
+      "solved": {
+        "count": 326,
+        "sum": 390.7196860000001,
+        "median": 0.170141,
+        "mean": 1.1985266441717792
+      },
+      "failed": {
+        "count": 183,
+        "sum": 0.0,
+        "median": 0.0,
+        "mean": 0.0
+      }
+    },
+    "goal-prefix": {
+      "all": {
+        "count": 325,
+        "sum": 25376.0,
+        "median": 17.0,
+        "mean": 78.08
+      },
+      "solved": {
+        "count": 325,
+        "sum": 25376.0,
+        "median": 17.0,
+        "mean": 78.08
+      },
+      "failed": {
+        "count": 0,
+        "sum": 0.0,
+        "median": null,
+        "mean": null
+      }
+    }
+  },
+  "failures": {
+    "DISPATCH_TIMEOUT": 2,
+    "SEARCH_TIMEOUT": 16,
+    "SEGMENT_EXHAUSTED": 11,
+    "SEGMENT_TIMEOUT": 138,
+    "UPPER_TIMEOUT": 16
+  },
+  "events": {
+    "match_calls": 8632,
+    "dispatch_epochs": 8632,
+    "completion_events": 8481,
+    "segments": 8630,
+    "provisional_reassignments": 1630,
+    "max_locked_carriers": 16
+  },
+  "raw_vs_deliverable": {
+    "solved_cases": 326,
+    "trimmed_cases": 2,
+    "ticks_removed": 50,
+    "max_ticks_removed": 35,
+    "raw_ticks_sum": 27972,
+    "deliverable_ticks_sum": 27922
+  },
+  "goal_modes": {
+    "shared_pool": {
+      "solved": 215,
+      "total": 216
+    },
+    "singleton": {
+      "solved": 68,
+      "total": 216
+    }
+  },
+  "historical": {
+    "carrier": {
+      "solved": 162,
+      "total": 164,
+      "runtime_sum_sec": 1417.9510000000016,
+      "makespan_sum": 84252,
+      "work_sum": 2390775
+    },
+    "carrier_b0": {
+      "solved": 147,
+      "total": 164,
+      "runtime_sum_sec": 311.3429999999994,
+      "makespan_sum": 320625,
+      "work_sum": 9240231
+    },
+    "carrier_b1": {
+      "solved": 77,
+      "total": 164,
+      "runtime_sum_sec": 9.423000000000005,
+      "makespan_sum": 1113,
+      "work_sum": 4034
+    }
+  },
+  "approval": {
+    "schema_version": 2,
+    "decision": "APPROVE",
+    "reviewer_model": "openai.gpt-5.6-sol",
+    "suite_definition_sha256": "fae83e9ba41dc8b933c79f7769992b29006bb1fc67004e770e621b0830c890ed",
+    "full_corpus_sha256": "7840959653b2056c6441ede0cbcd93031f9ec3c4796b8270af2c7d1447a72bae",
+    "binary_sha256": "e1261800dd6454b2f02e745aef7e648df3610301d61999e758ec06bb15b556de"
+  },
+  "tests": {
+    "cpp": 361,
+    "python": 187,
+    "compatibility": 45
+  }
+}

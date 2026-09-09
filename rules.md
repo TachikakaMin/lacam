@@ -27,7 +27,7 @@
 
 * 本节的 quick/full 只指 **benchmark 运行层级**，不限制 unit test、integration/regression test、生成器测试、静态检查或 authoritative validator 验证；这些代码测试在开发期间仍应按 TDD 正常运行。
 * 当前冻结的 `benchmark/release_benchmark.json`（68 个原始 BRaP-pool case + 9 个 warehouse-block case，共 **77 cases**）是唯一的开发期 **quick benchmark**。用户口中的“原本 60 多个测试”以仓库当前固定的 77-case manifest 为准。
-* **full benchmark** 固定为 quick benchmark 的全部 77 cases，加上本任务新生成的 432 个随机配对 warehouse cases，共 **509 cases**。full 必须是 quick 的严格超集，不得删除、替换或重命名 quick 中的任何 testcase。
+* **full benchmark** 固定为 quick benchmark 的全部 77 cases，加上 432 个随机配对 warehouse cases 和 9 个 40×40 dense-channel block-edge cases，共 **518 cases**。full 必须是 quick 的严格超集，不得删除、替换或重命名 quick 中的任何 testcase。
 * 代码开发、debug、局部修复和 review 前验证期间，benchmark 最多只能运行 quick benchmark；禁止提前运行 full benchmark，也禁止用 full benchmark 的结果反向挑选 seed、修改 testcase 或调参。
 * 只有在实现和全部相关代码测试完成、quick benchmark 通过、最终 diff 已清理，并获得独立 **GPT-5.6 Sol / high** reviewer 明确 `APPROVE` 后，才允许运行 full benchmark。
 * `benchmark/run_benchmark.py --benchmark-tier quick` 是开发期固定入口。`--benchmark-tier full` 必须提供与 `benchmark/full_benchmark.json` SHA-256 绑定的独立 review approval JSON，否则 runner 必须拒绝启动。
