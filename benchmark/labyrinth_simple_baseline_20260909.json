@@ -1,0 +1,69 @@
+{
+  "suite_id": "code_labyrinth_simple_v1",
+  "variant": "br_lacam_baseline",
+  "source_commit": "1b4ca13",
+  "run_date": "2026-09-09",
+  "build": {
+    "compiler": "GCC 7.3.1",
+    "build_type": "Release",
+    "note": "The unmodified third-party algorithm was built with temporary GCC 7 compatibility headers for charconv and filesystem."
+  },
+  "common_parameters": {
+    "seed": 1,
+    "objective": 4,
+    "time_limit_ms": 10000,
+    "eventually_optimal": true,
+    "parallelism": 1
+  },
+  "planner_cases": [
+    {
+      "id": "goal0_x4_y10_t1_b1_g0_rand4",
+      "success": true,
+      "first_solution_ms": 0.167861,
+      "first_solution_cost": 26,
+      "first_solution_makespan": 9,
+      "final_solution_discovery_ms": 0.167861,
+      "final_cost": 26,
+      "final_makespan_composite": 10,
+      "final_makespan_unit": 9,
+      "planner_reported_comp_time_ms": 152.74,
+      "proof_status": "optimal"
+    },
+    {
+      "id": "goal0_x4_y10_t4_b4_g0_rand0",
+      "success": true,
+      "first_solution_ms": 0.160578,
+      "first_solution_cost": 41,
+      "first_solution_makespan": 6,
+      "final_solution_discovery_ms": 47.9964,
+      "final_cost": 38,
+      "final_makespan_composite": 9,
+      "final_makespan_unit": 8,
+      "planner_reported_comp_time_ms": 10845.9,
+      "proof_status": "suboptimal_at_deadline"
+    },
+    {
+      "id": "goal2_x6_y10_t1_b14_g2_rand3",
+      "success": true,
+      "first_solution_ms": 0.16827,
+      "first_solution_cost": 10,
+      "first_solution_makespan": 4,
+      "final_solution_discovery_ms": 0.16827,
+      "final_cost": 10,
+      "final_makespan_composite": 6,
+      "final_makespan_unit": 4,
+      "planner_reported_comp_time_ms": 10046.0,
+      "proof_status": "suboptimal_at_deadline"
+    }
+  ],
+  "validation": {
+    "all_result_files_nonempty": true,
+    "all_solved_flags_true": true,
+    "all_passed_internal_feasibility_check": true,
+    "invalid_diagnostics_found": false
+  },
+  "fc_smoke": {
+    "status": "pending_brazil_workspace",
+    "reason": "The Code-Labyrinth Java package is not currently inside a Brazil workspace; the frozen SAZ1 smoke configuration remains unchanged."
+  }
+}

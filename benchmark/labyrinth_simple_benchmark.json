@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "suite_id": "code_labyrinth_simple_v1",
+  "frozen_on": "2026-09-09",
+  "protected": true,
+  "source": {
+    "repository": "Skkiesel_LightweightMovementSimulator",
+    "branch": "share/bofu/DSRS-mppf-classic-dig",
+    "commit": "1b4ca13",
+    "checkout": "third_party/code-labyrinth-mppf"
+  },
+  "policy": {
+    "selection": "The four existing Code-Labyrinth cases were fixed before Carrier implementation and must not be replaced based on Carrier performance.",
+    "planner_timeout_ms": 10000,
+    "resource_parallelism": 1,
+    "primary_runtime_metric": "first_solution_ms",
+    "reported_metrics": [
+      "first_solution_ms",
+      "first_solution_cost",
+      "final_solution_ms",
+      "final_cost_at_10000ms"
+    ],
+    "planner_success_oracle": [
+      "the result file is non-empty",
+      "the result file contains solved=1",
+      "the emitted plan starts at the input configuration",
+      "the emitted plan ends in a configuration satisfying every assigned goal",
+      "the emitted plan passes the planner's is_feasible_solution validation",
+      "the console log contains no invalid solution diagnostic"
+    ],
+    "comparison_rule": "Baseline and Carrier use the same input, seed, timeout, objective and one native planning worker. The FC smoke changes only DsrPlanningStrategy."
+  },
+  "planner_command": {
+    "working_directory": "third_party/code-labyrinth-mppf/external/mapf-planner",
+    "argv": [
+      "build/main",
+      "-p",
+      "{problem}",
+      "-v",
+      "2",
+      "-t",
+      "10000",
+      "-s",
+      "{seed}",
+      "-O",
+      "4",
+      "--eve",
+      "-o",
+      "{output}"
+    ]
+  },
+  "planner_cases": [
+    {
+      "id": "goal0_x4_y10_t1_b1_g0_rand4",
+      "problem": "labyrinth_testcase/paper_testcases/goal0/x4_y10_t1_b1_g0_rand4.yaml",
+      "seed": 1,
+      "objective": 4,
+      "eventually_optimal": true,
+      "coverage": "single target, one blank and a small deterministic dig"
+    },
+    {
+      "id": "goal0_x4_y10_t4_b4_g0_rand0",
+      "problem": "labyrinth_testcase/paper_testcases/goal0/x4_y10_t4_b4_g0_rand0.yaml",
+      "seed": 1,
+      "objective": 4,
+      "eventually_optimal": true,
+      "coverage": "four targets and four blanks, exercising concurrent target and blocker movement"
+    },
+    {
+      "id": "goal2_x6_y10_t1_b14_g2_rand3",
+      "problem": "labyrinth_testcase/paper_testcases/goal2/x6_y10_t1_b14_g2_rand3.yaml",
+      "seed": 1,
+      "objective": 4,
+      "eventually_optimal": true,
+      "coverage": "one target with two acceptable goals, exercising goal-set handling in a dense layout"
+    }
+  ],
+  "fc_smoke": {
+    "id": "saz1_test_fc_smoke",
+    "kmap": "third_party/code-labyrinth-mppf/res/SAZ1/SAZ1_test.kmap",
+    "input_directory": "third_party/code-labyrinth-mppf/res/SAZ1",
+    "entrypoint": "com.amazonrobotics.skkiesel.entrypoints.flexcci.FlexCCILegacyExecutor",
+    "seed": 0,
+    "simulation_seconds": 60,
+    "strategy_variants": {
+      "baseline": "mppf",
+      "carrier": "carrier"
+    },
+    "success_oracle": [
+      "the executor reaches Finished running model",
+      "the console log contains no Logger.error exception",
+      "the configured DsrPlanningStrategy is recorded in the run metadata",
+      "the resolved native planner timeout is exactly 10000 milliseconds"
+    ],
+    "parameters": {
+      "Experiment": "Testing",
+      "BuildingType": "fc",
+      "KMAP": "SAZ1_test.kmap",
+      "Algorithm": "Baseline",
+      "DriveModel": "HSC",
+      "DriveCount": "8",
+      "SimSeconds": "60",
+      "MaxGrantSize": "8",
+      "RunAllocatorFrequency": "3",
+      "PercentLatentFreeCells": "5",
+      "PickPodDistribution": "UniformRandom",
+      "PickMean": "10",
+      "PickStdDev": "0.1",
+      "PickPileOnMin": "1",
+      "PickPileOnMax": "1",
+      "PickMaxWork": "1",
+      "PickMinDrives": "0",
+      "PickMaxDrives": "1",
+      "MaximumPickDepth": "10",
+      "PickStations": "1316_",
+      "StowMean": "13",
+      "StowStdDev": "2",
+      "StowPileOnMin": "1",
+      "StowPileOnMax": "1",
+      "StowMaxWork": "0",
+      "StowMinDrives": "0",
+      "StowMaxDrives": "0",
+      "StowStations": "",
+      "DisabledStations": "",
+      "DsrsEnabled": "True",
+      "DsrPlanningStrategy": "{strategy}",
+      "DsrStoragePolicy": "default",
+      "DigCost": "1000000",
+      "MaxActivitiesToCommitPerPlan": "3",
+      "MaxConnectedDestinations": "3",
+      "InterleaveDigouts": "True",
+      "EnableDsrDigins": "True",
+      "MppfParallelWorkers": "1",
+      "MppfChainLengthLimit": "2",
+      "MppfMaxCommits": "10",
+      "MppfTargetGoalBehavior": "1",
+      "MppfPlanTimeLimitMs": "10000",
+      "MppfPlanObjective": "4",
+      "MppfReadyRule": "1",
+      "MppfDeepMerge": "true",
+      "MppfMaxActionDensity": "9999",
+      "MppfReservedStoragePolicy": "RESERVED_AS_FAKE_POD",
+      "MppfDigCost": "5",
+      "EnableSafeRestAllocation": "False",
+      "EnableVisualizationWriter": "False",
+      "EnableEventBasedLogger": "False"
+    }
+  }
+}

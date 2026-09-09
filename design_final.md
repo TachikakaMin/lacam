@@ -2768,3 +2768,137 @@ dashboard、rho V2 对比、CSV、approval 和逐例动画的本地链接均已�
 历史版本按用途折叠归档。为保证窄目录静态服务可用，carrier full、
 carrier_brd full、quick rows 和 approval 会按原字节复制进报告的
 `evidence/` 目录；生成器回归测试要求证据链接不能越出报告目录。
+
+## 28. Code-Labyrinth DSR 接入合同
+
+本节是 `carrier_code_labyrinth_dsr_integration_plan_20260909.md` 的规范性
+落点。接入必须继续沿用 §0 的唯一生产路径，不得因为 simulator 边界另建
+planner、search loop、tau/rho 实现或 Java 侧避障器。
+
+### 28.1 系统职责边界
+
+Code-Labyrinth 保留 Pick、`DsrDigout` pending dependency、storage block、
+真实 Drive/Pod/Storage 状态和 DIG 完成后的送站生命周期。Carrier-LaCAM
+接管一个 DSR session 内的全部 pod 目标选择、清障、robot assignment 和
+联合执行时序：
+
+```text
+DsrDigout + block + border goal sets + 当前真实状态
+  -> 现有 solve_carrier_lacam controller
+  -> TAPFPlanner::solve()
+  -> tau + Task-BR + rho + timed transport
+  -> Carrier-PIBT / apply_ops
+  -> WAIT / MOVE / LIFT / DROP joint plan
+```
+
+Carrier 模式不得把结果转换成 `DigoutActivity`，不得再经过
+`DigoutDriveBindingLogic` 的最近机器人分配，也不得把 joint plan 交给
+`MultiAgentSystem` 重新规划。session 开始前可以由现有交通系统把一组尚未
+绑定 pod 的 idle drives 预定位到 handoff portals；这只是控制权交接，
+不能决定 drive-to-pod、target-to-goal 或搬运路线。
+
+一次 session 的任务域是一个 storage block，运动域是该 block 的全部
+`STORAGE` vertices 加上 border 紧邻的第一层双向 `TRAVEL` portals。
+`shelf_storage` 只允许 block 内 storage cells，portal 可以行驶但不能
+DROP。局部图只有在能无损映射为 Carrier 当前四邻接 `DDGrid` 时才可启动；
+不兼容布局必须明确失败，不能近似 edge 或 fallback 到旧 DSR planner。
+
+### 28.2 Normal arbitrary-root 是现有主路径的入口扩展
+
+新增公开入口：
+
+```cpp
+DDSolveResult solve_carrier_lacam_from_state_result(
+    const DDInstance& ins,
+    const PhysConfig& current,
+    double time_limit_sec,
+    int seed,
+    DDStats* stats = nullptr,
+    DDPlan* best_effort = nullptr);
+```
+
+它必须与 `solve_carrier_lacam_result()` 共用同一个 controller、
+`run_search_attempt()` 和 `TAPFPlanner::solve()`。旧入口等价于把
+`initial_phys_config(ins)` 传给共用实现；不得复制两遍求解控制流。
+
+`TAPFSearchConfig.initial_physical` 表示 normal Carrier search 的物理 root，
+不再以 `event_contract` 是否存在作为启用条件。构造 `TAPFPlanner` 时：
+
+1. shelf-free instance 仍不得携带 Carrier physical root；
+2. 有 shelf layer 的 root 必须通过 `validate_phys_config_root()`；
+3. 若同时存在 `CarrierEventContract`，仍要求 contract start 与 root 完全
+   相同，并执行原 contract validation；
+4. normal arbitrary-root 不创建 fixed transfer，继续调用现有
+   `attach_carrier_guidance()`，因此仍经过 tau、Task-BR、rho、timed
+   transport 和 Carrier-PIBT；
+5. root config 与 shelf state 只由 `initial_physical` 是否存在决定，不由
+   `event_contract` 决定。
+
+BRD `CarrierEventContract` 继续只表达 frozen segment，不得被 normal
+Code-Labyrinth session 借用来固定 robot、endpoint 或 route。
+
+### 28.3 Root-aware 交付链
+
+搜索 root 与交付重放必须是同一个 `PhysConfig`。以下生产 helper 都要接受
+显式 root，并保留以 `initial_phys_config(ins)` 调用的兼容 wrapper：
+
+- `normalize_goal_prefix`
+- `plan_work_scaled`
+- `plan_cost_checked` / `plan_cost`
+- `replay_raw_prefix`
+- `build_reference_plan`
+- `fixed_goal_instance_from_plan`
+- `repair_carrier_plan`
+- `repair_carrier_plan_from_replay`
+
+`run_search_attempt()` 必须把同一个 root 同时传给
+`TAPFSearchConfig.initial_physical`、搜索结果 normalization、repair、
+最终 replay、cost 和 reference-plan 构造。第二遍 fixed-goal improvement
+仍从原 arbitrary root 重放第一遍 plan；不得从实例初态重新解释该 plan。
+
+`TAPFPlanner` 对 `reference_plan` 的构造期验证也必须从当前 search root
+开始，否则合法的第二遍 suffix 会被误判。repair 的 `states.front()`、
+incumbent/candidate cost 和 goal validation 同样必须相对显式 root。
+
+### 28.4 Java/native 执行合同
+
+native 边界返回完整的 `plan[timestep][robot]`，动作只允许
+`WAIT/MOVE/LIFT/DROP`。WAIT 不能删除，LIFT/DROP 不能压成顶点轨迹，
+robot 数组顺序就是固定身份。Java executor 必须按 joint timestep barrier
+执行，并在每一步后把真实 Drive/Pod/Storage 状态重建为 `PhysConfig`，
+与 C++ `apply_ops` 预测逐项比较；偏差发生后不得继续执行旧 tail。
+
+目标 pod 只有在合法 border storage cell 上完成 DROP、已经从 drive 脱离，
+并由 `StorageManager` 在该 cell 绑定后，才允许解除 `DsrDigout` dependency。
+pod 被 drive 携带到 border 时不能提前完成。
+
+### 28.5 增量 session 边界
+
+第一阶段只保证从任意合法 `PhysConfig` 冷启动，并复用一次
+`TAPFPlanner::solve()` 内部现有的 PairCost、incremental Hungarian、
+custody、root-goal commitment 和 rho continuity。跨调用复用只有在
+持久化 native session 能验证：
+
+```text
+apply_ops(previous_root, committed_prefix) == observed_root
+```
+
+后才可启用。成功验证后，下一 root attach 继续使用现有
+`previous_X + previous_guidance + executed_ops` 通道；不得实现
+simulator 专用增量 tau/rho。rho changed-row repair 必须保持当前
+bottleneck、secondary 和 canonical assignment 的 bit-for-bit 结果，
+不满足完整 fingerprint 时必须执行同一个 full rho solver。
+
+### 28.6 验证约束
+
+实现遵守根目录 `rules.md` 的 TDD 和 benchmark gate。新增测试一经创建即为
+protected。Code-Labyrinth 开发 benchmark 必须从其现有 experiment/KMAP
+中预先固定一小组 simple subset，记录 experiment、KMAP、seed、业务参数和
+运行命令；后续不得按 Carrier 表现替换。baseline 与 Carrier 必须使用同一
+dataset、simulator 配置、seed、指标和 10 秒 native planner timeout。
+
+本节的实现顺序固定为：normal arbitrary-root 与 root-aware finalization，
+再做 C ABI、Java session-grid adapter、joint executor、DSR lifecycle，
+最后才做跨 prefix cache continuation。每一阶段都必须修改上述现有生产
+路径并保持 shelf-free LaCAM-TAPF 自然退化；不允许 feature-flag fallback
+来伪造兼容性。
