@@ -41,9 +41,9 @@
 | Phase 2：C ABI/shared library | GREEN | portable、YAML-free `libcarrier_lacam.so` 已完成；C ABI 5/5、异常边界 1/1、portable build 回归、432/432 主测试与 quick 77 均通过 |
 | Phase 3：Java adapter/JNA | GREEN | graph/JNA/state adapter、严格 sidecar loader、cold planning session、真实 adapter→native round-trip 和 Brazil sidecar packaging 均通过 |
 | Phase 4：joint executor | GREEN | joint timestep、WAIT barrier、MOVE/LIFT/DROP、真实 dynamics、custody 原子提交、偏差截断和 MAS reset 均通过完整 Brazil release 与独立复审 |
-| Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；独立 Sol/high 已 APPROVE |
-| Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
-| Phase 7：rho incremental repair | 未开始 | 等 session telemetry |
+| Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
+| Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
+| Phase 7：rho incremental repair | 设计完成，RED 未开始 | 已取得真实多拍 session telemetry；当前 V2 必须保留 bottleneck → secondary → canonical 三层语义，只能增量修复冻结 threshold 后的 secondary matching |
 | Phase 8：一般并发 | 未开始 | 首版独占 epoch 完成后再做 |
 
 ## 4. 固定开发 benchmark
@@ -168,17 +168,25 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-09 | Phase 6 Java review RED/GREEN | persistent backend 构造失败的 native handle 生命周期 | 独立 GPT-5.6 Sol/low 首轮 REJECT：`setGrid`/`setEntities` 失败会泄漏已创建 handle；新增独立 protected regression 先 RED（`create=1,destroy=0`），再用局部 candidate 初始化并在失败时 close，GREEN 后复审 APPROVE；日志 `.build-logs/brazil-build-20260909-180915-8338.log`、`180945-12504.log` |
 | 2026-09-09 | Phase 6 final Brazil regression | 修复 handle leak 后 `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-181014-18084.log`，10 秒 |
 | 2026-09-09 | Phase 5/6 Code-Labyrinth checkpoint | production wiring、persistent session、全部新增 tests 与 Carrier gitlink | 提交 `0cf86ce lms: route DSR through persistent Carrier sessions`，已推送到 `share/yimint/carrier-lacam-phase3-ws` |
-| 2026-09-09 | Phase 6 SAZ1 assembly smoke | 固定 SAZ1、seed 0、8 drives、60 simulated seconds、Carrier strategy | GREEN：最新 Phase 6 Java/native package 完成 `Building model` → `Running model` → `Finished running model`，无 ERROR/Exception；结果 `/tmp/carrier-saz1-phase6.4tPZ7G`。该随机窗口没有产生 DIG，因此只证明真实 FC 装配与运行，不作为 incremental DSR 性能证据 |
+| 2026-09-09 | Phase 6 SAZ1 assembly smoke | 固定 SAZ1、seed 0、8 drives、60 simulated seconds、Carrier strategy | GREEN：最新 Phase 6 Java/native package 完成 `Building model` → `Running model` → `Finished running model`，无 ERROR/Exception；结果 `/tmp/carrier-saz1-phase6.4tPZ7G`。后续诊断纠正了“没有产生 DIG”的判断：DIG 已触发，但会话卡在 resident-drive staging，因此当时没有写出 native telemetry |
 | 2026-09-09 | Phase 6 Labyrinth simple subset | 固定 3-case、10 秒、seed 1、objective 4 | GREEN：3/3；首次解 0.152116/0.161280/0.156828 ms，最终 cost 26/38/10，结果非空、`solved=1` 且无 `invalid solution`；结果 `/tmp/carrier-labyrinth-phase6.NOP0YC` |
 | 2026-09-09 | Phase 6 C++ full regression | `cmake --build build -j14 && ./build/test_all --gtest_brief=1` | GREEN：440/440，245.695 秒 |
 | 2026-09-09 | Phase 6 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | GREEN：47/77，solver runtime 总和 590.1 秒，墙钟 47.1 秒；与 Phase 2 的成功集合、plan hash、makespan、SOC、work 和首解质量逐 case 零差异；结果 `benchmark/results_quick_carrier_dsr_phase6_20260909` |
+| 2026-09-09 | Phase 5 regression diagnosis | 真实 SAZ1 resident-drive staging | RED 前确认 32-drive 会话只 lease 最低 ID 的 8 台车；其余已位于 session grid 的 idle drives 被视为 `EXTERNAL_OCCUPIES_LEASE`，而普通 allocator 已暂停，所以会话永久停在 `WAITING_FOR_QUIESCENCE` |
+| 2026-09-09 | Phase 5 resident-drive RED | `CarrierResidentDriveLeaseTest` | 2/2 按预期失败：旧实现错误选择 lease 外低 ID drive，并在 resident 数超过上限时仍错误建立 reservation；日志 `.build-logs/brazil-build-20260909-183706-29151.log` |
+| 2026-09-09 | Phase 5 resident-drive GREEN | resident drives 强制参与、原地 staging、精确 drive claim | GREEN：2/2；lease 内所有 idle/unladen drive 必须进入候选池，剩余名额才按 ID 从 lease 外补齐；resident 超过上限时保持 pending，不暂停 allocator；日志 `.build-logs/brazil-build-20260909-184001-13098.log` |
+| 2026-09-09 | Phase 5 related regression | lease/stager/epoch 相关 tests + Brazil release | GREEN：`CarrierDriveStagerTest`、三个 execution-lease tests、`MultiAgentSystemCarrierEpochTest` 全部通过；完整 release 日志 `.build-logs/brazil-build-20260909-184149-29449.log`，10 秒 |
+| 2026-09-09 | Phase 6 real SAZ1 multi-prefix | seed 0、8 drives、2 targets、180 simulated seconds、10 秒 native limit | GREEN：首次可行解 4 ms，首次可交付前缀约 8.63 秒；共执行 19 拍、18 次续算后完成并释放 lease。首次 solve `changed_pair_edges=36`，之后均为 0；前五轮继续 anytime 搜索约 8.64 秒，后续多数续算降到 0.7–5 ms，结果 `/tmp/carrier-saz1-eight-drive-fixed-long-20260909` |
+| 2026-09-09 | Phase 5 resident-drive review/commit | protected test 与 production diff | 独立 GPT-5.6 Sol/high：APPROVE，blocking finding 为 none；提交 `3f2a267 fix: include resident drives in Carrier leases`，已推送到 `share/yimint/carrier-lacam-phase3-ws` |
+| 2026-09-09 | Phase 7 design audit | 当前 V2 exact incremental rho | 完成：旧 `339fe7e` 依赖已回滚的 additive objective，不能复用；首版保留 full bottleneck threshold，转置冻结后的 secondary matrix 后复用 shared `IncrementalHungarianState::repair_rows()`，最终 canonical assignment 仍逐位对照 full oracle |
 
 ## 6. 当前下一步
 
-1. 将 `external/carrier-lacam` 从 GitHub URL 改为 Brazil/Amazon 内部可获取
-   的固定来源；当前本地 build 已通过，但还不满足正式离线发布合同。
-2. 用确实触发多拍 Carrier DIG 的 Labyrinth 场景读取 session telemetry，
-   再按 TDD 实现 Phase 7 exact incremental rho repair；没有 profile 证据前
-   不做算法语义改动。
+1. 将已经创建的独立 `Skkiesel_CarrierLacam` Brazil package 上传并固定为
+   LMS 的内部依赖；上传仍需要用户提供 Bindle ID，导出设置使用
+   `none / No encryption`。
+2. 按 TDD 开始 Phase 7：先冻结当前 V2 的 bottleneck、secondary objective
+   和 canonical assignment，确认 RED 后再接 shared incremental Hungarian；
+   不恢复已回滚的 additive rho。
 3. Phase 7 后处理 Phase 8 一般并发，随后运行全部代码测试、quick、最终
    Sol/high review、获批 full 518，并生成最终汇报网页。
