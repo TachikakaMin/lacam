@@ -37,7 +37,7 @@
 | 阶段 | 状态 | 当前证据 |
 |---|---|---|
 | Phase 0：设计和基线 | 完成（FC smoke 待 Brazil workspace） | §28、两个分支、固定 benchmark、425-test 与 3-case BR-LaCAM baseline 已完成 |
-| Phase 1：normal arbitrary-root | 未开始实现 | 正在固定 RED tests |
+| Phase 1：normal arbitrary-root | RED | protected tests 已固定；缺少 public API 与 root-aware finalization helpers |
 | Phase 2：C ABI/shared library | 未开始 | 等 Phase 1 GREEN |
 | Phase 3：Java adapter/JNA | 未开始 | 等 Phase 2 GREEN |
 | Phase 4：joint executor | 未开始 | 等 Phase 3 GREEN |
@@ -107,10 +107,10 @@ validator 的 invalid diagnostic。第二例说明原版在 10 秒 search deadli
 | 2026-09-09 | baseline | 构建 Code-Labyrinth 原版 `external/mapf-planner` | 首次发现 GCC 7 缺少标准 `<charconv>`/`<filesystem>`；仅用临时兼容头处理，不修改算法源码 |
 | 2026-09-09 | baseline | 固定 3-case BR-LaCAM planner subset，10 秒/seed 1/objective 4 | GREEN：3/3；首次解均约 0.16ms，详见 baseline JSON |
 | 2026-09-09 | review | protected EventContract test 语义变更 | 独立 GPT-5.6 Sol/high：APPROVE；contract validation 必须原样保留 |
+| 2026-09-09 | Phase 1 RED | `test_dd_arbitrary_root` + EventContract root 语义测试 | 预期编译失败：缺少 from-state API，以及 root-aware normalize/cost/replay/reference/fixed-goal/repair |
 
 ## 6. 当前下一步
 
-1. 新建 Phase 1 protected tests，先运行得到预期 RED。
-2. 只修改现有 root/search/finalization execution path，使 Phase 1 GREEN。
-3. 运行相关 tests、全量 C++ tests 和固定 simple benchmark，记录结果。
-4. Code-Labyrinth Java package 放入 Brazil workspace 后再跑固定 SAZ1 smoke。
+1. 只修改现有 root/search/finalization execution path，使 Phase 1 GREEN。
+2. 运行相关 tests、全量 C++ tests 和固定 simple benchmark，记录结果。
+3. Code-Labyrinth Java package 放入 Brazil workspace 后再跑固定 SAZ1 smoke。

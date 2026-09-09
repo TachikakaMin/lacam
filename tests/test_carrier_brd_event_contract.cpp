@@ -326,7 +326,7 @@ TEST(carrier_brd_event_contract,
 }
 
 TEST(carrier_brd_event_contract,
-     search_config_requires_exact_contract_root_pairing)
+     search_config_allows_normal_root_and_requires_exact_contract_pairing)
 {
   const auto ins = make_instance(
       {"..."}, {"S.S"}, {{0, 0}}, {{0, 0}},
@@ -343,11 +343,10 @@ TEST(carrier_brd_event_contract,
 
   TAPFSearchConfig root_without_contract;
   root_without_contract.initial_physical = x0;
-  EXPECT_THROW(
+  EXPECT_NO_THROW(
       TAPFPlanner(
           &view, nullptr, &mt, 0, 0, 0.001f, true, nullptr,
-          root_without_contract),
-      std::invalid_argument);
+          root_without_contract));
 
   TAPFSearchConfig contract_without_root;
   contract_without_root.event_contract = &contract;
@@ -365,6 +364,19 @@ TEST(carrier_brd_event_contract,
       TAPFPlanner(
           &view, nullptr, &mt, 0, 0, 0.001f, true, nullptr,
           mismatched),
+      std::invalid_argument);
+
+  auto invalid_contract = contract;
+  invalid_contract.wave_ledger_snapshot.push_back(
+      invalid_contract.wave_ledger_snapshot.front());
+  TAPFSearchConfig invalid_contract_content;
+  invalid_contract_content.event_contract =
+      &invalid_contract;
+  invalid_contract_content.initial_physical = x0;
+  EXPECT_THROW(
+      TAPFPlanner(
+          &view, nullptr, &mt, 0, 0, 0.001f, true, nullptr,
+          invalid_contract_content),
       std::invalid_argument);
 
   TAPFSearchConfig valid;
