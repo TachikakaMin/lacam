@@ -43,7 +43,7 @@
 | Phase 4：joint executor | GREEN | joint timestep、WAIT barrier、MOVE/LIFT/DROP、真实 dynamics、custody 原子提交、偏差截断和 MAS reset 均通过完整 Brazil release 与独立复审 |
 | Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
 | Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
-| Phase 7：rho incremental repair | 核心实现完成，Labyrinth 集成验证中 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7 和 quick 77 均通过，Phase 6 与 Phase 7 的成功集合、plan hash 和全部解质量逐 case 零差异 |
+| Phase 7：rho incremental repair | 完成，已提交并推送 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7、quick 77、Brazil release 和真实 SAZ1 均通过。SAZ1 标准入口完成 19 拍/18 次续算，CSV 累计记录 13,963 次 repair，且 Phase 6/7 的成功集合、plan hash 和全部解质量逐 case 零差异；算法提交 `76d54bf`，LMS 提交 `2587828` |
 | Phase 8：一般并发 | 未开始 | 首版独占 epoch 完成后再做 |
 
 ## 4. 固定开发 benchmark
@@ -176,21 +176,23 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-09 | Phase 5 resident-drive RED | `CarrierResidentDriveLeaseTest` | 2/2 按预期失败：旧实现错误选择 lease 外低 ID drive，并在 resident 数超过上限时仍错误建立 reservation；日志 `.build-logs/brazil-build-20260909-183706-29151.log` |
 | 2026-09-09 | Phase 5 resident-drive GREEN | resident drives 强制参与、原地 staging、精确 drive claim | GREEN：2/2；lease 内所有 idle/unladen drive 必须进入候选池，剩余名额才按 ID 从 lease 外补齐；resident 超过上限时保持 pending，不暂停 allocator；日志 `.build-logs/brazil-build-20260909-184001-13098.log` |
 | 2026-09-09 | Phase 5 related regression | lease/stager/epoch 相关 tests + Brazil release | GREEN：`CarrierDriveStagerTest`、三个 execution-lease tests、`MultiAgentSystemCarrierEpochTest` 全部通过；完整 release 日志 `.build-logs/brazil-build-20260909-184149-29449.log`，10 秒 |
-| 2026-09-09 | Phase 6 real SAZ1 multi-prefix | seed 0、8 drives、2 targets、180 simulated seconds、10 秒 native limit | GREEN：首次可行解 4 ms，首次可交付前缀约 8.63 秒；共执行 19 拍、18 次续算后完成并释放 lease。首次 solve `changed_pair_edges=36`，之后均为 0；前五轮继续 anytime 搜索约 8.64 秒，后续多数续算降到 0.7–5 ms，结果 `/tmp/carrier-saz1-eight-drive-fixed-long-20260909` |
+| 2026-09-09 | Phase 6 real SAZ1 multi-prefix | seed 0、8 drives、2 targets、180 simulated seconds、10 秒 native limit | 运行时状态确认共执行 19 拍、18 次续算并释放 lease；首次 solve `changed_pair_edges=36`，之后均为 0。后续 Phase 7 审计发现该旧结果目录的 terminal CSV 未最终 flush，不能单独作为完成证据；已由下面的标准入口验证结果取代 |
 | 2026-09-09 | Phase 5 resident-drive review/commit | protected test 与 production diff | 独立 GPT-5.6 Sol/high：APPROVE，blocking finding 为 none；提交 `3f2a267 fix: include resident drives in Carrier leases`，已推送到 `share/yimint/carrier-lacam-phase3-ws` |
 | 2026-09-09 | Phase 7 design audit | 当前 V2 exact incremental rho | 完成：旧 `339fe7e` 依赖已回滚的 additive objective，不能复用；首版保留 full bottleneck threshold，转置冻结后的 secondary matrix 后复用 shared `IncrementalHungarianState::repair_rows()`，最终 canonical assignment 仍逐位对照 full oracle |
 | 2026-09-09 | Phase 7 rho RED/GREEN | exact full-vs-incremental、parent invalidation、tie canonicalization、200 次随机 changed-row、deadline 和 C ABI telemetry | GREEN：rho incremental 6/6、deadline 1/1、C ABI metrics 1/1；实现直接复用 shared `IncrementalHungarianState::repair_rows()`，未增加第二套 assignment solver |
 | 2026-09-09 | Phase 7 C++ full regression | `cmake --build build -j14 && ./build/test_all --gtest_brief=1`，另跑全部 Carrier C ABI 和无货架兼容 | GREEN：447/447，246.753 秒；5 组 C ABI 共 11/11；`test_tapf_compat` 7/7，120.470 秒 |
 | 2026-09-09 | Phase 7 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | GREEN：47/77，solver runtime 总和 587.9 秒，墙钟 47.4 秒；与 Phase 6 的成功集合、status、plan hash、makespan、SOC、work、首次解和最终解质量逐 case 零差异；累计 769,541 次 changed-row repair、32,479 次 zero-row reuse；相同成功集上的 rho pipeline 计时由 23.50 秒降至 16.02 秒（-31.8%），其中 assignment 由 16.48 秒降至 8.46 秒（-48.7%）；结果 `benchmark/results_quick_carrier_dsr_phase7_20260909` |
 | 2026-09-09 | Phase 7 Java telemetry RED/GREEN | native rho metrics → `CarrierSolveResult` → `CarrierPlanTelemetry` CSV | GREEN：新 protected mapping test 1/1；Phase 6 persistent session 2/2、native wrapper 4/4、failure metrics 1/1、DSR telemetry 2/2 和 loader 4/4 回归通过；rho API 使用 additive 子接口，旧 Phase 6 实现自然返回 unsupported，未修改 protected tests |
+| 2026-09-09 | Phase 7 real SAZ1 RED | Carrier MOVE 后交还普通控制，随后普通 `SpaceRelease` | 真实标准入口稳定复现 `SpaceAllocatorAggregator.released()` NPE：Carrier MOVE 更新了物理位置，却没有登记目的格子的空间生命周期；结果 `/tmp/carrier-saz1-phase7.84OXys` |
+| 2026-09-09 | Phase 7 handoff GREEN | `CarrierSpaceAllocatorAggregationHandoffTest` + 生产事件链 | 新 protected test 先以同一 NPE RED；`DataAggregator` 处理 `CarrierStepCompleted(MOVE)`，关闭来源格并登记目的格后 GREEN，普通 `MorePath` 与 joint executor 回归均通过 |
+| 2026-09-09 | Phase 7 terminal telemetry RED/GREEN | FC 最终 flush + 跨 prefix session 指标累计 | `FCFinalEventLoggerFlushTest` 先读到空文件；`CarrierDsrSessionTelemetryAggregationTest` 先错误读到最后一拍 0.5 ms。修复后 FC 返回前 flush，终态记录保留第一次成功计划的 timing/quality，并累计每次 solve 的 native/cache/rho 指标；两个新 protected tests 均 GREEN |
+| 2026-09-09 | Phase 7 final Brazil regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-phase7-saz1-final-release.log`，10 秒；新增 handoff、final flush、session aggregation 和 rho mapping tests 均进入 release |
+| 2026-09-09 | Phase 7 verified SAZ1 multi-prefix | seed 0、8 drives、2 targets、183 simulated seconds、10 秒 native limit，标准 `FlexCCILegacyExecutor` | GREEN：无 ERROR/Exception；2 个 DIG 在模拟时间 180 完成；首次解 4.0000 ms、首次可交付 8668.8135 ms、初始计划 19 拍、执行 19 拍/18 次续算。累计 `cache_hits=95298`、`changed_pair_edges=36`、`rho_full=73474`、`rho_repairs=13963`、`rho_zero_row_reuses=4261`、`rho_changed_rows=19797`；正式 CSV 无需手动 flush，结果 `/tmp/carrier-saz1-phase7-verified.RVr1Pp` |
+| 2026-09-09 | Phase 7 pre-commit regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-phase7-precommit-final.log`，10 秒 |
+| 2026-09-09 | Phase 7 final review/commit | JNA rho ABI、跨 prefix telemetry、Carrier MOVE 空间生命周期、terminal logger flush | 独立 GPT-5.6 Sol/low：APPROVE，无 blocking finding；算法提交并推送 `76d54bf carrier: repair rho assignment incrementally`，LMS 提交并推送 `2587828 lms: report incremental Carrier rho telemetry` |
 
 ## 6. 当前下一步
 
-1. 提交并推送 Phase 7 Carrier-LaCAM 改动，随后将 LMS 的
-   `external/carrier-lacam` gitlink 固定到该提交，确保真实 JNA sidecar
-   包含新增 rho symbols。
-2. 串行运行 Code-Labyrinth `brazil-build release`、真实 native coexistence
-   test 和固定 SAZ1 multi-prefix smoke，确认 CSV 中实际出现 rho repair
-   指标；完成后提交并推送 LMS 分支。
-3. Phase 7 完成独立 review 后处理 Phase 8 一般并发；全部阶段结束后再按
+1. 处理 Phase 8 一般并发，并继续遵循 protected-test 与 quick gate。
+2. 全部阶段结束后再按
    gate 运行最终 quick、Sol/high review、获批 full 518，并生成最终汇报网页。
