@@ -2902,3 +2902,144 @@ dataset、simulator 配置、seed、指标和 10 秒 native planner timeout。
 最后才做跨 prefix cache continuation。每一阶段都必须修改上述现有生产
 路径并保持 shelf-free LaCAM-TAPF 自然退化；不允许 feature-flag fallback
 来伪造兼容性。
+
+### 28.7 一般并发的权威状态
+
+Phase 8 不能通过删除 Java 的全局 pause、让两个互不知情的 planner 同时
+运行来实现。一般并发仍只有一个 Carrier-LaCAM 搜索器；Code-Labyrinth
+负责冻结和导出普通交通已经承诺的状态，Carrier 把这些状态作为同一个
+`TAPFPlanner::solve()` 的输入。
+
+一次 block session 的权威输入扩展为：
+
+```text
+当前 PhysConfig
++ fixed upper cells
++ session graph 的 explicit outgoing/incoming adjacency
++ external lower/upper spacetime commitments
+```
+
+其中：
+
+- Carrier participant 仍是 rho 可以分配、计划中必须输出动作的机器人；
+- external drive 不进入 `PhysConfig::robots`，也不参与 rho；
+- movable target/anonymous pod 仍进入现有 shelf state 和 Task-BR；
+- 被普通任务持有且本 session 不得移动的 pod 进入静态
+  `fixed_upper_cells`，不伪装成 anonymous shelf；
+- Java 不能在执行时临时插 WAIT、删 MOVE 或重排 joint plan。所有冲突必须
+  在 C++ successor/oracle 内裁决。
+
+#### 28.7.1 固定上层障碍
+
+`DDInstance` 增加排序、去重后的 `fixed_upper_cells`。它是实例/schema
+的一部分，不进入 `PhysConfig`，也不计入 target/anonymous shelf 数量。
+固定 pod 的语义是：
+
+- 空载机器人可以在它下层经过；
+- 任何机器人都不能 LIFT 它；
+- 携带货架的机器人不能进入其上层占用格；
+- 该格不能接收 DROP；
+- 它不产生 tau、rho 或 Task-BR transfer；
+- upper occupancy、route、storage transfer 和最终 `apply_ops()` 必须始终
+  看见它。
+
+该机制修改现有路径：
+
+```text
+DDInstance::finalize / validate_phys_config_root
+  -> TAPFInstance Carrier fields
+  -> TAPFPlanner::dd_view
+  -> refresh_carrier_scratch / upper occupancy compiler
+  -> Carrier-PIBT candidate legality
+  -> apply_ops authoritative transition
+```
+
+固定格必须进入 persistent schema fingerprint；变化时 session continuation
+失效。无固定格时现有 hash、state 和搜索语义保持不变。
+
+#### 28.7.2 显式有向 adjacency
+
+`DDGrid` 的权威拓扑扩展为每个 cell 的 `out_neighbors` 和
+`in_neighbors`。旧规则矩形输入在 finalize 时物化为原四邻接双向边，因此
+旧 testcase 不改变。显式输入不得再由坐标或字符地图重新推导边。
+
+operator MOVE、route validation 和 swap 检查使用 outgoing adjacency；
+以 destination 为源反向扩张的距离场使用 incoming adjacency，从而继续
+表示 `source -> destination` 的有向距离。目标可行性使用
+`target_start -> goal` 的有向可达性，不能再用无向 wall component 代替。
+
+`TAPFInstance(const DDInstance&)` 必须把同一份显式边交给 `Graph`；不能先
+转回字符地图再丢失边。PIBT candidates、lazy distance、PairCost、tau、
+rho、vacancy、custody、joint transport、event contract、repair 和
+`apply_ops()` 都必须消费同一个 topology API。实现使用动态邻接容器，不能
+把一般 KMAP 静默截断为最大四个邻居。
+
+C ABI 使用独立 adjacency setter，CSR offsets 和 destination cells 都进入
+schema validation。没有调用该 setter 时，保持现有矩形四邻接行为。
+
+#### 28.7.3 外部时空 commitment
+
+外部普通交通以不可变的 `CarrierSpacetimeCommitment` 进入
+`TAPFSearchConfig`：
+
+```text
+frame[0..H].lower_vertices
+frame[0..H].upper_vertices
+edge[0..H-1].lower_directed_edges
+tail_policy = RELEASE | HOLD_LAST
+```
+
+一步 Carrier action 从内部时刻 `t` 到 `t+1` 时：
+
+- 内部机器人终点不能占用 `frame[t+1].lower_vertices`；
+- 内部边 `u -> v` 不能与外部边 `v -> u` 形成 swap；
+- 内部携带货架的终点不能占用
+  `frame[t+1].upper_vertices`；
+- 外部 upper occupancy 不阻止空载机器人从下层经过。
+
+PIBT 使用 commitment 提前剪枝，但最终权威仍是扩展后的
+`apply_ops()`。ordinary successor、macro rollout、reference-plan
+validation、repair、prefix commit 和最终 replay 必须调用同一个带
+`absolute_tick` 的 transition contract。
+
+存在 commitment 时，`CLOSED` key 除 `(Config, ShelfState)` 外还必须包含
+可区分约束变化的 commitment phase；否则“等待外部机器人离开后再通过”
+会被旧 duplicate pruning 错误删除。没有 commitment 时 phase 恒为零，
+保持原 LaCAM-TAPF duplicate 语义。
+
+`DDPlanningSession` 保存 commitment time origin。成功提交 `k` 个 prefix
+steps 后 origin 增加 `k`；rebase 必须显式接收新的 commitment snapshot 或
+确认旧 commitment 在新 origin 仍有效。C ABI 通过独立 setter 输入
+commitment，不改变 `set_state()` 的身份数组含义。
+
+#### 28.7.4 Code-Labyrinth block lease
+
+Java 在 native 能表达上述语义后，把全局 allocator pause 缩小为 block
+lease：
+
+- `MissionLifecycleWorker.carrierLeasedDrives` 继续排除 participant；
+- `PodManager` 在普通 Pick/Stow 选择前排除 leased block 内的 pod；
+- `StorageManager` 和所有 storage policy 排除 leased storage destination；
+- lease 外 Pick/Stow/DIG binding、Honk 和普通 MAS planning 继续运行；
+- `DeterministicExecution.freezeForCarrier()` 继续阻止新普通计划进入 lease；
+- 已经承诺、尚未执行完且穿过 lease 的外部路径不再被简单丢弃，而是先冻结
+  其普通执行语义，再导出为 external commitment；
+- 与 lease 无关的 pending replan 不得再全局阻止 epoch；触及 lease 或使已
+  导出 commitment 失效的 replan 必须阻止或中止 Carrier。
+
+普通 Pick/Stow 对 Carrier 的 eligibility 是状态合同，不是 Java 侧
+task assignment：Java 只声明哪些 pod/drive/cell 已被外部业务持有；tau、
+rho、清障和完整路线仍由现有 Carrier 主路径决定。
+
+Phase 8 的实现顺序固定为：
+
+1. fixed upper obstacle；
+2. explicit undirected adjacency；
+3. directed adjacency 与反向距离；
+4. external spacetime commitment 和 time-aware CLOSED；
+5. persistent session/C ABI commitment origin；
+6. Java adapter、block lease 和 normal Pick/Stow 并发；
+7. 真实 Labyrinth 并发回归、固定 simple subset 和 quick 77。
+
+每一步都先固定 RED tests，并验证空 fixed set、默认矩形 adjacency 和空
+commitment 时，现有 Carrier 以及 shelf-free LaCAM-TAPF 自然保持原行为。

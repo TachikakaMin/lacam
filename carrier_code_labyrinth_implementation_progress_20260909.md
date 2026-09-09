@@ -44,7 +44,7 @@
 | Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
 | Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
 | Phase 7：rho incremental repair | 完成，已提交并推送 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7、quick 77、Brazil release 和真实 SAZ1 均通过。SAZ1 标准入口完成 19 拍/18 次续算，CSV 累计记录 13,963 次 repair，且 Phase 6/7 的成功集合、plan hash 和全部解质量逐 case 零差异；算法提交 `76d54bf`，LMS 提交 `2587828` |
-| Phase 8：一般并发 | 未开始 | 首版独占 epoch 完成后再做 |
+| Phase 8：一般并发 | 进行中 | 已完成 C++/Java 并发边界审计并写入 `design_final.md` §28.7；按 fixed upper obstacle、explicit adjacency、external spacetime commitment、persistent C ABI、Java block lease 的顺序实施 |
 
 ## 4. 固定开发 benchmark
 
@@ -190,6 +190,7 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-09 | Phase 7 verified SAZ1 multi-prefix | seed 0、8 drives、2 targets、183 simulated seconds、10 秒 native limit，标准 `FlexCCILegacyExecutor` | GREEN：无 ERROR/Exception；2 个 DIG 在模拟时间 180 完成；首次解 4.0000 ms、首次可交付 8668.8135 ms、初始计划 19 拍、执行 19 拍/18 次续算。累计 `cache_hits=95298`、`changed_pair_edges=36`、`rho_full=73474`、`rho_repairs=13963`、`rho_zero_row_reuses=4261`、`rho_changed_rows=19797`；正式 CSV 无需手动 flush，结果 `/tmp/carrier-saz1-phase7-verified.RVr1Pp` |
 | 2026-09-09 | Phase 7 pre-commit regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-phase7-precommit-final.log`，10 秒 |
 | 2026-09-09 | Phase 7 final review/commit | JNA rho ABI、跨 prefix telemetry、Carrier MOVE 空间生命周期、terminal logger flush | 独立 GPT-5.6 Sol/low：APPROVE，无 blocking finding；算法提交并推送 `76d54bf carrier: repair rho assignment incrementally`，LMS 提交并推送 `2587828 lms: report incremental Carrier rho telemetry` |
+| 2026-09-09 | Phase 8 design audit | fixed upper pod、显式有向图、外部时空 commitment、block lease 与 normal Pick/Stow eligibility | 完成：所有机制继续进入现有 `TAPFPlanner::solve()`、PIBT 和 `apply_ops()`；确认不能直接删除全局 pause，必须先让 native 表达固定上层占用和外部交通，再缩小 Java lease；规范写入 `design_final.md` §28.7 |
 
 ## 6. 当前下一步
 
