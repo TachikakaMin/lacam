@@ -172,21 +172,32 @@ namespace tapf_detail
 using namespace carrier_detail;
 
 struct TAPFPlanner::CarrierEngine {
+  std::shared_ptr<TAPFCarrierPersistentState> persistent;
   // upper-deck wall distance (design_final 6.2/D21): ONE shared
   // dest-keyed cache — the field depends only on (walls, dest), so
   // per-target copies were redundant and would duplicate massively
   // under shared goal pools.
-  DDDistCache upper_wall;
-  StorageTransferTopology storage_topology;
-  LowerDist lower;
-  UpperEpochCache task_br_cache;
+  DDDistCache& upper_wall;
+  StorageTransferTopology& storage_topology;
+  LowerDist& lower;
+  UpperEpochCache& task_br_cache;
   PhysConfig phys;  // scratch physical view of the node in processing
 
-  explicit CarrierEngine(const DDInstance& dd)
-      : upper_wall(dd.grid),
-        storage_topology(build_storage_transfer_topology(dd)),
-        lower(dd.grid)
+  explicit CarrierEngine(
+      const DDInstance& dd,
+      std::shared_ptr<TAPFCarrierPersistentState> shared = nullptr)
+      : persistent(
+            shared != nullptr
+                ? std::move(shared)
+                : std::make_shared<TAPFCarrierPersistentState>(dd)),
+        upper_wall(persistent->upper_wall),
+        storage_topology(persistent->storage_topology),
+        lower(persistent->lower),
+        task_br_cache(persistent->task_br_cache)
   {
+    if (!persistent->compatible_with(dd))
+      throw std::invalid_argument(
+          "Carrier persistent state schema mismatch");
   }
 
   // physical view of a node (oracle coordinates)

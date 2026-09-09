@@ -6,6 +6,7 @@
 #pragma once
 
 #include <optional>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -165,6 +166,14 @@ struct DDStats {
   long upper_epoch_builds = 0;
   long pair_cache_hits = 0;
   long pair_cache_misses = 0;
+  long root_pair_cache_hits = 0;
+  long root_pair_cache_misses = 0;
+  long pair_edges_evaluated = 0;
+  long pair_edges_total = 0;
+  long pair_edges_reused = 0;
+  long root_pair_edges_evaluated = 0;
+  long root_pair_edges_total = 0;
+  long root_pair_edges_reused = 0;
   long pair_incremental_reuses = 0;
   long pair_hungarian_full_solves = 0;
   long pair_hungarian_row_repairs = 0;
@@ -399,6 +408,45 @@ DDSolveResult solve_carrier_lacam_from_state_result(
     const DDInstance& ins, const PhysConfig& current,
     double time_limit_sec, int seed, DDStats* stats = nullptr,
     DDPlan* best_effort = nullptr);
+
+enum class DDCommitStatus {
+  OK = 0,
+  NO_SOLVED_PLAN = 1,
+  INVALID_PREFIX = 2,
+  STATE_MISMATCH = 3,
+};
+
+enum class DDRebaseStatus {
+  OK = 0,
+  INVALID_STATE = 1,
+};
+
+// Persistent Carrier planning session. It retains only dependency-safe
+// guidance/cache state and copied root continuation values; every solve still
+// constructs a normal TAPFPlanner and calls the one TAPFPlanner::solve() loop.
+class DDPlanningSession {
+ public:
+  DDPlanningSession(
+      const DDInstance& ins, const PhysConfig& initial,
+      int seed);
+  ~DDPlanningSession();
+  DDPlanningSession(DDPlanningSession&&) noexcept;
+  DDPlanningSession& operator=(DDPlanningSession&&) noexcept;
+  DDPlanningSession(const DDPlanningSession&) = delete;
+  DDPlanningSession& operator=(const DDPlanningSession&) = delete;
+
+  DDSolveResult solve(
+      double time_limit_sec, DDStats* stats = nullptr,
+      DDPlan* best_effort = nullptr);
+  DDCommitStatus commit_prefix(
+      size_t executed_steps, const PhysConfig& observed);
+  DDRebaseStatus rebase(const PhysConfig& observed);
+  const RootGoalCommitment& root_goal_commitment() const;
+
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+};
 
 // Diagnostic-only fixed-assignment seam.  It narrows each target's
 // eligible set to the supplied tau, then calls the unchanged production

@@ -111,7 +111,8 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     const size_t n_cells = ins->G.U.size();
     carrier_grounded.assign(n_cells, 0);
     carrier_upper_delta.assign(n_cells, 0);
-    carrier = std::make_unique<CarrierEngine>(*dd_view);
+    carrier = std::make_unique<CarrierEngine>(
+        *dd_view, search_config.carrier_persistent_state);
   }
   if (search_config.initial_physical.has_value()) {
     if (dd_view == nullptr)
@@ -272,7 +273,7 @@ Solution TAPFPlanner::solve()
                    initial_assignment.agent_to_task, initial_assignment_state);
   S_init->h = make_node_h(root_config, initial_assignment.cost);
   S_init->f = S_init->g + S_init->h;
-  attach_carrier_guidance(S_init);
+  attach_carrier_root_guidance(S_init);
   deepest_node = S_init;
   deepest_depth = 0;
   push_open(S_init);

@@ -36,6 +36,7 @@ struct CarrierLacamContext {
   std::vector<uint8_t> storage_mask;
   std::optional<DDInstance> instance;
   std::optional<PhysConfig> state;
+  std::unique_ptr<DDPlanningSession> session;
 
   bool has_result = false;
   int result_status = CARRIER_LACAM_INVALID_STATE;
@@ -58,6 +59,7 @@ struct CarrierLacamContext {
     storage_mask.clear();
     instance.reset();
     state.reset();
+    session.reset();
     clear_result();
   }
 
@@ -308,6 +310,7 @@ int carrier_lacam_set_grid(
         context.storage_mask = std::move(storage);
         context.instance.reset();
         context.state.reset();
+        context.session.reset();
         context.clear_result();
         context.clear_error();
         return CARRIER_LACAM_OK;
@@ -399,6 +402,7 @@ int carrier_lacam_set_entities(
 
         context.instance = std::move(instance);
         context.state.reset();
+        context.session.reset();
         context.clear_result();
         context.clear_error();
         return CARRIER_LACAM_OK;
@@ -449,6 +453,8 @@ int carrier_lacam_set_state(
               "invalid Carrier physical state");
 
         context.state = std::move(state);
+        context.session = std::make_unique<DDPlanningSession>(
+            *context.instance, *context.state, context.seed);
         context.clear_result();
         context.clear_error();
         return CARRIER_LACAM_OK;
@@ -460,7 +466,8 @@ int carrier_lacam_solve(void* handle, int timeout_ms)
   return guarded_status(
       handle, [&](CarrierLacamContext& context) -> int {
         if (!context.instance.has_value() ||
-            !context.state.has_value())
+            !context.state.has_value() ||
+            context.session == nullptr)
           return fail(
               context, CARRIER_LACAM_INVALID_STATE,
               "set_grid, set_entities, and set_state are required");
@@ -470,11 +477,9 @@ int carrier_lacam_solve(void* handle, int timeout_ms)
               "timeout must be non-negative");
 
         context.clear_result();
-        const auto result =
-            solve_carrier_lacam_from_state_result(
-                *context.instance, *context.state,
-                static_cast<double>(timeout_ms) / 1000.0,
-                context.seed, &context.stats);
+        const auto result = context.session->solve(
+            static_cast<double>(timeout_ms) / 1000.0,
+            &context.stats);
         context.plan = result.plan;
         context.result_status = map_solve_status(result.status);
         context.has_result = true;
@@ -486,6 +491,159 @@ int carrier_lacam_solve(void* handle, int timeout_ms)
           return CARRIER_LACAM_INTERNAL_ERROR;
         }
         return context.result_status;
+      });
+}
+
+int carrier_lacam_commit_prefix(
+    void* handle, int executed_steps,
+    const int* observed_robot_cells,
+    int observed_robot_cell_count,
+    const int* observed_target_cells,
+    int observed_target_cell_count,
+    const int* observed_anonymous_cells,
+    int observed_anonymous_cell_count,
+    const int* observed_kappa,
+    int observed_kappa_count)
+{
+  return guarded_status(
+      handle, [&](CarrierLacamContext& context) -> int {
+        if (context.session == nullptr ||
+            !context.instance.has_value() ||
+            !context.state.has_value() ||
+            !context.has_result ||
+            context.result_status != CARRIER_LACAM_OK)
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "a solved Carrier-LaCAM plan is required before commit");
+        if (executed_steps <= 0 ||
+            executed_steps >
+                static_cast<int>(context.plan.size()))
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "executed prefix length is outside the solved plan");
+        if (observed_robot_cell_count !=
+                static_cast<int>(
+                    context.instance->n_robots()) ||
+            observed_target_cell_count !=
+                static_cast<int>(
+                    context.instance->n_targets()) ||
+            observed_kappa_count !=
+                observed_robot_cell_count)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "observed state vector sizes do not match the entities");
+
+        PhysConfig observed;
+        observed.robots = copy_array(
+            observed_robot_cells,
+            observed_robot_cell_count,
+            "observed robot cells");
+        observed.target_pos = copy_array(
+            observed_target_cells,
+            observed_target_cell_count,
+            "observed target cells");
+        observed.anon_occ = copy_array(
+            observed_anonymous_cells,
+            observed_anonymous_cell_count,
+            "observed anonymous cells");
+        observed.kappa = copy_array(
+            observed_kappa,
+            observed_kappa_count,
+            "observed kappa");
+        if (!validate_phys_config_root(
+                 *context.instance, observed)
+                 .valid())
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "invalid observed Carrier physical state");
+
+        const auto status = context.session->commit_prefix(
+            static_cast<size_t>(executed_steps), observed);
+        if (status == DDCommitStatus::INVALID_PREFIX)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "executed prefix is invalid");
+        if (status == DDCommitStatus::NO_SOLVED_PLAN)
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "no solved Carrier-LaCAM plan is available");
+        if (status == DDCommitStatus::STATE_MISMATCH)
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "observed state does not match the solved plan prefix");
+
+        context.state = std::move(observed);
+        context.clear_result();
+        context.clear_error();
+        return CARRIER_LACAM_OK;
+      });
+}
+
+int carrier_lacam_rebase_state(
+    void* handle,
+    const int* observed_robot_cells,
+    int observed_robot_cell_count,
+    const int* observed_target_cells,
+    int observed_target_cell_count,
+    const int* observed_anonymous_cells,
+    int observed_anonymous_cell_count,
+    const int* observed_kappa,
+    int observed_kappa_count)
+{
+  return guarded_status(
+      handle, [&](CarrierLacamContext& context) -> int {
+        if (context.session == nullptr ||
+            !context.instance.has_value() ||
+            !context.state.has_value())
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "set_grid, set_entities, and set_state are required");
+        if (observed_robot_cell_count !=
+                static_cast<int>(
+                    context.instance->n_robots()) ||
+            observed_target_cell_count !=
+                static_cast<int>(
+                    context.instance->n_targets()) ||
+            observed_kappa_count !=
+                observed_robot_cell_count)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "observed state vector sizes do not match the entities");
+
+        PhysConfig observed;
+        observed.robots = copy_array(
+            observed_robot_cells,
+            observed_robot_cell_count,
+            "observed robot cells");
+        observed.target_pos = copy_array(
+            observed_target_cells,
+            observed_target_cell_count,
+            "observed target cells");
+        observed.anon_occ = copy_array(
+            observed_anonymous_cells,
+            observed_anonymous_cell_count,
+            "observed anonymous cells");
+        observed.kappa = copy_array(
+            observed_kappa,
+            observed_kappa_count,
+            "observed kappa");
+        if (!validate_phys_config_root(
+                 *context.instance, observed)
+                 .valid())
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "invalid observed Carrier physical state");
+
+        if (context.session->rebase(observed) !=
+            DDRebaseStatus::OK)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "invalid observed Carrier physical state");
+
+        context.state = std::move(observed);
+        context.clear_result();
+        context.clear_error();
+        return CARRIER_LACAM_OK;
       });
 }
 
@@ -601,6 +759,71 @@ int64_t carrier_lacam_get_work_scaled(void* handle)
     return -1;
   }
   return context.stats.best_work_scaled;
+}
+
+int64_t carrier_lacam_get_pair_cache_hits(void* handle)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (!has_completed_result(context)) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM solve result is available");
+    return -1;
+  }
+  return context.stats.pair_cache_hits;
+}
+
+int64_t carrier_lacam_get_root_pair_cache_misses(void* handle)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (!has_completed_result(context)) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM solve result is available");
+    return -1;
+  }
+  return context.stats.root_pair_cache_misses;
+}
+
+int64_t carrier_lacam_get_changed_pair_edges(void* handle)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (!has_completed_result(context)) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM solve result is available");
+    return -1;
+  }
+  return context.stats.root_pair_edges_evaluated;
+}
+
+int64_t carrier_lacam_get_total_pair_edges(void* handle)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (!has_completed_result(context)) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM solve result is available");
+    return -1;
+  }
+  return context.stats.root_pair_edges_total;
+}
+
+int64_t carrier_lacam_get_reused_pair_edges(void* handle)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (!has_completed_result(context)) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM solve result is available");
+    return -1;
+  }
+  return context.stats.root_pair_edges_reused;
 }
 
 const char* carrier_lacam_last_error(void* handle)

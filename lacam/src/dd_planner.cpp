@@ -79,10 +79,16 @@ const char* carrier_brd_exit_reason_name(
   return "UNKNOWN";
 }
 
-DDSolveResult solve_carrier_lacam_from_state_result(
+static DDSolveResult solve_carrier_lacam_from_state_result_impl(
     const DDInstance& ins, const PhysConfig& current,
     double time_limit_sec, int seed, DDStats* stats,
-    DDPlan* best_effort)
+    DDPlan* best_effort,
+    std::shared_ptr<TAPFCarrierPersistentState>
+        carrier_persistent_state,
+    const TAPFCarrierRootContinuation*
+        carrier_root_continuation,
+    std::shared_ptr<CarrierGuidance>*
+        carrier_root_guidance_output)
 {
   if (stats != nullptr) *stats = DDStats();
   if (best_effort != nullptr) best_effort->clear();
@@ -132,7 +138,10 @@ DDSolveResult solve_carrier_lacam_from_state_result(
       &first_makespan, &first_work_scaled, &first_soc,
       &max_depth, &targets_done,
       nullptr,
-      &deferred_cleanup);
+      &deferred_cleanup,
+      std::move(carrier_persistent_state),
+      carrier_root_continuation,
+      carrier_root_guidance_output);
   // Do not accumulate two large search trees until finalization.  Pass 1's
   // tree no longer owns anything needed by the materialized incumbent.
   deferred_cleanup.clear();
@@ -285,6 +294,154 @@ DDSolveResult solve_carrier_lacam_from_state_result(
     return DDSolveResult{status, std::move(final_plan)};
   };
   return finish(phase1_solved, std::move(plan), cost);
+}
+
+DDSolveResult solve_carrier_lacam_from_state_result(
+    const DDInstance& ins, const PhysConfig& current,
+    double time_limit_sec, int seed, DDStats* stats,
+    DDPlan* best_effort)
+{
+  return solve_carrier_lacam_from_state_result_impl(
+      ins, current, time_limit_sec, seed, stats, best_effort,
+      nullptr, nullptr, nullptr);
+}
+
+struct DDPlanningSession::Impl {
+  DDInstance instance;
+  PhysConfig current;
+  int seed = 0;
+  std::shared_ptr<TAPFCarrierPersistentState> persistent;
+  std::optional<TAPFCarrierRootContinuation> continuation;
+  std::shared_ptr<CarrierGuidance> root_guidance;
+  DDPlan last_plan;
+  bool has_solved_plan = false;
+
+  Impl(
+      const DDInstance& ins, const PhysConfig& initial,
+      int session_seed)
+      : instance(ins),
+        current(initial),
+        seed(session_seed),
+        persistent(
+            std::make_shared<TAPFCarrierPersistentState>(instance))
+  {
+    if (instance.shelves.empty() ||
+        !validate_phys_config_root(instance, current).valid())
+      throw std::invalid_argument(
+          "DDPlanningSession requires a valid Carrier root");
+  }
+};
+
+DDPlanningSession::DDPlanningSession(
+    const DDInstance& ins, const PhysConfig& initial, int seed)
+    : impl_(std::make_unique<Impl>(ins, initial, seed))
+{
+}
+
+DDPlanningSession::~DDPlanningSession() = default;
+DDPlanningSession::DDPlanningSession(
+    DDPlanningSession&&) noexcept = default;
+DDPlanningSession& DDPlanningSession::operator=(
+    DDPlanningSession&&) noexcept = default;
+
+DDSolveResult DDPlanningSession::solve(
+    double time_limit_sec, DDStats* stats,
+    DDPlan* best_effort)
+{
+  if (impl_ == nullptr)
+    throw std::logic_error(
+        "DDPlanningSession is moved from");
+
+  std::shared_ptr<CarrierGuidance> attached_root;
+  const auto result =
+      solve_carrier_lacam_from_state_result_impl(
+          impl_->instance, impl_->current, time_limit_sec,
+          impl_->seed, stats, best_effort, impl_->persistent,
+          impl_->continuation.has_value()
+              ? &*impl_->continuation
+              : nullptr,
+          &attached_root);
+  if (attached_root != nullptr) {
+    impl_->root_guidance = std::move(attached_root);
+    impl_->continuation.reset();
+  }
+  impl_->has_solved_plan = result.solved();
+  impl_->last_plan =
+      result.solved() ? result.plan : DDPlan{};
+  return result;
+}
+
+DDCommitStatus DDPlanningSession::commit_prefix(
+    size_t executed_steps, const PhysConfig& observed)
+{
+  if (impl_ == nullptr)
+    throw std::logic_error(
+        "DDPlanningSession is moved from");
+  if (!impl_->has_solved_plan ||
+      impl_->root_guidance == nullptr)
+    return DDCommitStatus::NO_SOLVED_PLAN;
+  if (executed_steps == 0 ||
+      executed_steps > impl_->last_plan.size())
+    return DDCommitStatus::INVALID_PREFIX;
+
+  PhysConfig replayed = impl_->current;
+  for (size_t step = 0; step < executed_steps; ++step) {
+    const auto next = apply_ops(
+        impl_->instance, replayed,
+        impl_->last_plan[step]);
+    if (!next.has_value())
+      return DDCommitStatus::INVALID_PREFIX;
+    replayed = *next;
+  }
+  if (!(replayed == observed) ||
+      !validate_phys_config_root(
+           impl_->instance, observed)
+           .valid())
+    return DDCommitStatus::STATE_MISMATCH;
+
+  TAPFCarrierRootContinuation next_continuation;
+  next_continuation.previous_physical = impl_->current;
+  next_continuation.previous_guidance =
+      *impl_->root_guidance;
+  next_continuation.executed_prefix.assign(
+      impl_->last_plan.begin(),
+      impl_->last_plan.begin() + executed_steps);
+
+  impl_->current = observed;
+  impl_->continuation = std::move(next_continuation);
+  impl_->last_plan.clear();
+  impl_->has_solved_plan = false;
+  return DDCommitStatus::OK;
+}
+
+DDRebaseStatus DDPlanningSession::rebase(
+    const PhysConfig& observed)
+{
+  if (impl_ == nullptr)
+    throw std::logic_error(
+        "DDPlanningSession is moved from");
+  if (!validate_phys_config_root(
+           impl_->instance, observed)
+           .valid())
+    return DDRebaseStatus::INVALID_STATE;
+
+  impl_->current = observed;
+  impl_->continuation.reset();
+  impl_->root_guidance.reset();
+  impl_->last_plan.clear();
+  impl_->has_solved_plan = false;
+  return DDRebaseStatus::OK;
+}
+
+const RootGoalCommitment&
+DDPlanningSession::root_goal_commitment() const
+{
+  static const RootGoalCommitment empty;
+  if (impl_ == nullptr || impl_->root_guidance == nullptr ||
+      impl_->root_guidance->upper_epoch == nullptr)
+    return empty;
+  return impl_->root_guidance->upper_epoch
+      ->root_goal_commitment;
 }
 
 DDSolveResult solve_carrier_lacam_result(

@@ -425,6 +425,22 @@ inline void map_stats(const TAPFStats& t, DDStats* out,
   out->upper_epoch_builds += t.upper_epoch_builds;
   out->pair_cache_hits += t.pair_cache_hits;
   out->pair_cache_misses += t.pair_cache_misses;
+  if (!improvement_attempt) {
+    out->root_pair_cache_hits +=
+        t.root_pair_cache_hits;
+    out->root_pair_cache_misses +=
+        t.root_pair_cache_misses;
+    out->root_pair_edges_evaluated +=
+        t.root_pair_edges_evaluated;
+    out->root_pair_edges_total +=
+        t.root_pair_edges_total;
+    out->root_pair_edges_reused +=
+        t.root_pair_edges_reused;
+  }
+  out->pair_edges_evaluated +=
+      t.pair_edges_evaluated;
+  out->pair_edges_total += t.pair_edges_total;
+  out->pair_edges_reused += t.pair_edges_reused;
   out->pair_incremental_reuses +=
       t.pair_incremental_reuses;
   out->pair_hungarian_full_solves +=
@@ -557,7 +573,13 @@ inline DDPlan run_search_attempt(
     int64_t* first_work_scaled, double* first_soc,
     long* max_depth, long* targets_done,
     bool* search_cutoff_out,
-    std::vector<std::unique_ptr<TAPFPlanner>>* deferred_cleanup)
+    std::vector<std::unique_ptr<TAPFPlanner>>* deferred_cleanup,
+    std::shared_ptr<TAPFCarrierPersistentState>
+        carrier_persistent_state = nullptr,
+    const TAPFCarrierRootContinuation*
+        carrier_root_continuation = nullptr,
+    std::shared_ptr<CarrierGuidance>*
+        carrier_root_guidance_output = nullptr)
 {
   if (solved_out == nullptr)
     throw std::invalid_argument(
@@ -574,6 +596,12 @@ inline DDPlan run_search_attempt(
   cfg.incumbent_init = incumbent_init;
   cfg.reference_plan = reference_plan;
   cfg.initial_physical = root;
+  cfg.carrier_persistent_state =
+      std::move(carrier_persistent_state);
+  cfg.carrier_root_continuation =
+      carrier_root_continuation;
+  cfg.carrier_root_guidance_output =
+      carrier_root_guidance_output;
   const bool continue_after_incumbent =
       stop_policy == TAPFStopPolicy::ANYTIME;
   auto planner = std::make_unique<TAPFPlanner>(

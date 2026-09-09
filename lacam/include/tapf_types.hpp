@@ -223,6 +223,9 @@ struct SolverWeights {
 };
 
 struct CarrierEventContract;
+struct CarrierGuidance;
+struct TAPFCarrierPersistentState;
+struct TAPFCarrierRootContinuation;
 
 struct TAPFSearchConfig {
   TAPFSearchMode mode = TAPFSearchMode::DFS;
@@ -246,6 +249,19 @@ struct TAPFSearchConfig {
   // Completion-event segments restart the same TAPF planner from the
   // controller's current full physical state.
   std::optional<PhysConfig> initial_physical;
+  // Optional session-owned Carrier caches. Search nodes and search trees are
+  // never retained across solves; only immutable distance/topology data and
+  // dependency-safe upper-epoch state live here.
+  std::shared_ptr<TAPFCarrierPersistentState>
+      carrier_persistent_state;
+  // Optional replayable continuation from the previous solved root to this
+  // root. The planner validates and replays it through the ordinary
+  // attach_carrier_guidance() path before opening the new search.
+  const TAPFCarrierRootContinuation*
+      carrier_root_continuation = nullptr;
+  // Optional owning copy of the guidance attached to this search root.
+  std::shared_ptr<CarrierGuidance>*
+      carrier_root_guidance_output = nullptr;
   // Non-owning immutable hard contract for one segment.  Null preserves
   // production guidance and the instance root.
   const CarrierEventContract* event_contract = nullptr;
@@ -880,4 +896,10 @@ struct CarrierGuidance {
   std::vector<std::optional<Custody>> custody_by_robot;
   ExecutionView execution_view;
   JointTransportGuidance timed_transport;
+};
+
+struct TAPFCarrierRootContinuation {
+  PhysConfig previous_physical;
+  CarrierGuidance previous_guidance;
+  std::vector<std::vector<Op>> executed_prefix;
 };

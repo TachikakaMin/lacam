@@ -55,6 +55,27 @@ int carrier_lacam_set_state(
     const int* kappa, int kappa_count);
 
 int carrier_lacam_solve(void* handle, int timeout_ms);
+int carrier_lacam_commit_prefix(
+    void* handle, int executed_steps,
+    const int* observed_robot_cells,
+    int observed_robot_cell_count,
+    const int* observed_target_cells,
+    int observed_target_cell_count,
+    const int* observed_anonymous_cells,
+    int observed_anonymous_cell_count,
+    const int* observed_kappa,
+    int observed_kappa_count);
+
+int carrier_lacam_rebase_state(
+    void* handle,
+    const int* observed_robot_cells,
+    int observed_robot_cell_count,
+    const int* observed_target_cells,
+    int observed_target_cell_count,
+    const int* observed_anonymous_cells,
+    int observed_anonymous_cell_count,
+    const int* observed_kappa,
+    int observed_kappa_count);
 
 // Before the first completed solve, status is INVALID_STATE. A solved
 // zero-timestep plan is OK with timestep_count == 0; failed solves also have
@@ -71,6 +92,11 @@ double carrier_lacam_get_first_solution_ms(void* handle);
 double carrier_lacam_get_deliverable_ms(void* handle);
 int64_t carrier_lacam_get_makespan(void* handle);
 int64_t carrier_lacam_get_work_scaled(void* handle);
+int64_t carrier_lacam_get_pair_cache_hits(void* handle);
+int64_t carrier_lacam_get_root_pair_cache_misses(void* handle);
+int64_t carrier_lacam_get_changed_pair_edges(void* handle);
+int64_t carrier_lacam_get_total_pair_edges(void* handle);
+int64_t carrier_lacam_get_reused_pair_edges(void* handle);
 
 // The returned pointer remains valid until the next call on this handle.
 // Callers crossing JNA should copy it immediately.

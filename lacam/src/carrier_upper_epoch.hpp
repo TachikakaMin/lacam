@@ -159,6 +159,19 @@ struct UpperEpochCache {
     return it->second.epoch;
   }
 
+  std::shared_ptr<const UpperEpochGuidance> peek_most_recent()
+  {
+    if (entries.empty()) return nullptr;
+    const auto it = std::max_element(
+        entries.begin(), entries.end(),
+        [](const auto& a, const auto& b) {
+          return a.second.last_used <
+                 b.second.last_used;
+        });
+    it->second.last_used = ++clock;
+    return it->second.epoch;
+  }
+
   void insert(
       const UpperSignature& signature,
       std::shared_ptr<const UpperEpochGuidance> epoch)
@@ -608,6 +621,8 @@ inline CarrierGuidance build_task_br_guidance(
         insert_epoch = true;
       }
     } else {
+      const auto nearby_pair_source =
+          upper_epoch_cache->peek_most_recent();
       std::vector<int> requested_targets;
       for (const auto& group : priority_commitment_groups)
         for (const auto& root : group.roots)
@@ -645,7 +660,9 @@ inline CarrierGuidance build_task_br_guidance(
               : &previous_transfer_continuity,
           forced_effects_key,
           root_goal_commitment_key,
-          previous_epoch_for_commitment,
+          previous_epoch_for_commitment != nullptr
+              ? previous_epoch_for_commitment
+              : nearby_pair_source.get(),
           &upper_epoch_cache->pair_dependency_context);
       insert_epoch = true;
     }

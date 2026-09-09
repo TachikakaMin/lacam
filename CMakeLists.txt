@@ -57,12 +57,32 @@ add_test(test_post_processing ./tests/test_post_processing.cpp)
 add_test(test_dd_carrier ./tests/test_dd_carrier.cpp)
 add_test(test_dd_planner ./tests/test_dd_planner.cpp)
 add_test(test_dd_arbitrary_root ./tests/test_dd_arbitrary_root.cpp)
+add_test(test_dd_incremental_session
+         ./tests/test_dd_incremental_session.cpp)
+add_test(test_dd_incremental_rebase
+         ./tests/test_dd_incremental_rebase.cpp)
+add_test(test_dd_incremental_schema
+         ./tests/test_dd_incremental_schema.cpp)
 add_executable(
   test_carrier_lacam_c_api
   ./tests/test_carrier_lacam_c_api.cpp
   ${TEST_MAIN_FUNC})
 target_link_libraries(
   test_carrier_lacam_c_api
+  carrier_lacam gtest)
+add_executable(
+  test_carrier_lacam_incremental_c_api
+  ./tests/test_carrier_lacam_incremental_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_incremental_c_api
+  carrier_lacam gtest)
+add_executable(
+  test_carrier_lacam_rebase_c_api
+  ./tests/test_carrier_lacam_rebase_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_rebase_c_api
   carrier_lacam gtest)
 add_executable(
   test_carrier_lacam_exception_boundary

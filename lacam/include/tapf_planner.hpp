@@ -106,6 +106,14 @@ struct TAPFStats {
   long upper_epoch_builds = 0;
   long pair_cache_hits = 0;
   long pair_cache_misses = 0;
+  long root_pair_cache_hits = 0;
+  long root_pair_cache_misses = 0;
+  long pair_edges_evaluated = 0;
+  long pair_edges_total = 0;
+  long pair_edges_reused = 0;
+  long root_pair_edges_evaluated = 0;
+  long root_pair_edges_total = 0;
+  long root_pair_edges_reused = 0;
   long pair_incremental_reuses = 0;
   long pair_hungarian_full_solves = 0;
   long pair_hungarian_row_repairs = 0;
@@ -295,6 +303,7 @@ struct TAPFPlanner {
       const PhysConfig* transition_previous_X = nullptr,
       const CarrierGuidance* transition_previous_guidance = nullptr,
       const std::vector<Op>* transition_executed_ops = nullptr);
+  void attach_carrier_root_guidance(TAPFNode* nd);
   void ensure_guidance_fresh(TAPFNode* nd);
   const TAPFReferenceCheckpoint* find_reference_checkpoint(
       const PhysConfig& state) const;

@@ -32,6 +32,94 @@ static void add_vacancy_guidance_telemetry(
       telemetry.upper_epoch_cache_evictions;
 }
 
+void TAPFPlanner::attach_carrier_root_guidance(TAPFNode* nd)
+{
+  if (search_config.carrier_root_guidance_output != nullptr)
+    search_config.carrier_root_guidance_output->reset();
+
+  const long cache_hits_before =
+      stats != nullptr ? stats->pair_cache_hits : 0;
+  const long cache_misses_before =
+      stats != nullptr ? stats->pair_cache_misses : 0;
+  const long edges_evaluated_before =
+      stats != nullptr ? stats->pair_edges_evaluated : 0;
+  const long edges_total_before =
+      stats != nullptr ? stats->pair_edges_total : 0;
+  const long edges_reused_before =
+      stats != nullptr ? stats->pair_edges_reused : 0;
+
+  const auto* continuation =
+      search_config.carrier_root_continuation;
+  if (continuation == nullptr) {
+    attach_carrier_guidance(nd);
+  } else {
+    if (carrier == nullptr || dd_view == nullptr)
+      throw std::invalid_argument(
+          "carrier continuation requires a shelf layer");
+    if (continuation->executed_prefix.empty())
+      throw std::invalid_argument(
+          "carrier continuation prefix must not be empty");
+
+    std::vector<PhysConfig> states;
+    states.reserve(continuation->executed_prefix.size() + 1);
+    states.push_back(continuation->previous_physical);
+    for (const auto& ops : continuation->executed_prefix) {
+      const auto next = apply_ops(*dd_view, states.back(), ops);
+      if (!next.has_value())
+        throw std::invalid_argument(
+            "carrier continuation contains an invalid joint action");
+      states.push_back(*next);
+    }
+    const PhysConfig root_physical = carrier->phys_view(nd);
+    if (!(states.back() == root_physical))
+      throw std::invalid_argument(
+          "carrier continuation does not reach the search root");
+
+    CarrierGuidance previous_guidance =
+        continuation->previous_guidance;
+    for (size_t step = 0;
+         step < continuation->executed_prefix.size(); ++step) {
+      const auto& ops = continuation->executed_prefix[step];
+      if (step + 1 == continuation->executed_prefix.size()) {
+        attach_carrier_guidance(
+            nd, &states[step], &previous_guidance, &ops);
+        break;
+      }
+
+      auto intermediate = std::make_unique<TAPFNode>(
+          config_of_physical(*ins, states[step + 1]),
+          shelf_of_physical(states[step + 1]), D, ins,
+          std::vector<int>(N, -1), TAPFAssignmentState());
+      attach_carrier_guidance(
+          intermediate.get(), &states[step],
+          &previous_guidance, &ops);
+      if (intermediate->guide == nullptr)
+        throw std::logic_error(
+            "carrier continuation lost root guidance");
+      previous_guidance = *intermediate->guide;
+    }
+  }
+
+  if (search_config.carrier_root_guidance_output != nullptr &&
+      nd->guide != nullptr)
+    *search_config.carrier_root_guidance_output =
+        std::make_shared<CarrierGuidance>(*nd->guide);
+
+  if (stats != nullptr) {
+    stats->root_pair_cache_hits +=
+        stats->pair_cache_hits - cache_hits_before;
+    stats->root_pair_cache_misses +=
+        stats->pair_cache_misses - cache_misses_before;
+    stats->root_pair_edges_evaluated +=
+        stats->pair_edges_evaluated -
+        edges_evaluated_before;
+    stats->root_pair_edges_total +=
+        stats->pair_edges_total - edges_total_before;
+    stats->root_pair_edges_reused +=
+        stats->pair_edges_reused - edges_reused_before;
+  }
+}
+
 void TAPFPlanner::attach_carrier_guidance(
     TAPFNode* nd, const PhysConfig* transition_previous_X,
     const CarrierGuidance* transition_previous_guidance,
@@ -174,16 +262,37 @@ void TAPFPlanner::attach_carrier_guidance(
 
   if (stats != nullptr) {
     ++stats->guidance_builds;
-    const long cache_hits =
+    long cache_hits =
         task_br_engine.task_br_cache.hits - cache_hits_before;
     const long cache_misses =
         task_br_engine.task_br_cache.misses - cache_misses_before;
+    // Adjacent robot-only transitions retain the exact immutable epoch
+    // directly from the previous guidance and therefore do not perform a
+    // map lookup. Report that production fast path as a cache hit as well;
+    // otherwise a successful warm continuation misleadingly appears cold.
+    if (cache_hits == 0 && cache_misses == 0 &&
+        previous_guidance != nullptr &&
+        previous_guidance->upper_epoch != nullptr &&
+        nd->guide->upper_epoch ==
+            previous_guidance->upper_epoch)
+      cache_hits = 1;
     stats->pair_cache_hits += cache_hits;
     stats->pair_cache_misses += cache_misses;
     stats->upper_epoch_builds += cache_misses;
 
     if (cache_misses > 0 && nd->guide->upper_epoch != nullptr) {
       const auto& epoch = *nd->guide->upper_epoch;
+      // Session telemetry reports unique PairCost edges that had to be
+      // rebuilt for this epoch. The epoch's historical
+      // pair_edges_evaluated counter also counts reused exact entries, so it
+      // is not the changed-edge quantity needed by incremental callers.
+      stats->pair_edges_evaluated +=
+          epoch.pair_edges_total -
+          epoch.pair_edges_reused;
+      stats->pair_edges_total +=
+          epoch.pair_edges_total;
+      stats->pair_edges_reused +=
+          epoch.pair_edges_reused;
       stats->pair_incremental_reuses +=
           epoch.pair_edges_reused;
       stats->pair_hungarian_full_solves +=
