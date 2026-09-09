@@ -38,7 +38,7 @@
 |---|---|---|
 | Phase 0：设计和基线 | 完成（FC smoke 待 Brazil workspace） | §28、两个分支、固定 benchmark、425-test 与 3-case BR-LaCAM baseline 已完成 |
 | Phase 1：normal arbitrary-root | GREEN | public from-state API 与 root-aware search/finalization 已接入同一条 `TAPFPlanner::solve()` 路径；432/432 C++ tests 与 quick 77 无回归 |
-| Phase 2：C ABI/shared library | RED | protected C ABI contract 已固定；target 在链接阶段因 `carrier_lacam_*` 尚未实现而按预期失败 |
+| Phase 2：C ABI/shared library | GREEN | portable、YAML-free `libcarrier_lacam.so` 已完成；C ABI 5/5、异常边界 1/1、portable build 回归、432/432 主测试与 quick 77 均通过 |
 | Phase 3：Java adapter/JNA | 未开始 | 等 Phase 2 GREEN |
 | Phase 4：joint executor | 未开始 | 等 Phase 3 GREEN |
 | Phase 5：DSR lifecycle | 未开始 | 等 Phase 4 GREEN |
@@ -116,14 +116,24 @@ validator 的 invalid diagnostic。第二例说明原版在 10 秒 search deadli
 | 2026-09-09 | Phase 1 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | 47/77，首次可交付 solver runtime 总和 588.4 秒，墙钟 47.1 秒；与上一权威 quick 的成功集合和全部 solution metrics 逐 case 完全相同 |
 | 2026-09-09 | Phase 1 code review | 当前实现 diff | 独立 GPT-5.6 Sol/low：APPROVE；未发现 root 丢失、兼容 wrapper 误用、EventContract 弱化、parallel planner、fallback 或 dead production code |
 | 2026-09-09 | Phase 2 RED | `test_carrier_lacam_c_api` | configure 与测试编译成功，链接按预期失败：缺少全部 `carrier_lacam_*` C ABI symbols |
+| 2026-09-09 | Phase 2 GREEN | `carrier_lacam_jna.cpp` + shared target | opaque handle、bulk-copy input、完整 joint action matrix、status、首次解/可交付时间与 cost 已接入；native 内部只调用 `solve_carrier_lacam_from_state_result()` |
+| 2026-09-09 | Phase 2 regression RED | C ABI 错误报告分配失败 | 注入连续两次 `std::bad_alloc` 后，旧实现因 catch 路径再次分配而 `terminate`；新增 protected exception-boundary test 固化 |
+| 2026-09-09 | Phase 2 exception GREEN | `test_carrier_lacam_exception_boundary` | GREEN：1/1；错误字符串分配失败时退回静态消息，异常不穿过 `extern "C"` |
+| 2026-09-09 | Phase 2 build review | C API 测试链接边界 | 独立 GPT-5.6 Sol/high：APPROVE；C API 测试改为独立 executable，必须真实 `NEEDED libcarrier_lacam.so`，且继续单独运行 `test_all` |
+| 2026-09-09 | Phase 2 regression RED | portable build 无 YAML 环境 | 显式禁用 PkgConfig/yaml-cpp 后，旧配置按预期失败于 unconditional `find_package(PkgConfig REQUIRED)` |
+| 2026-09-09 | Phase 2 portable GREEN | `test_carrier_lacam_portable_build.cmake` | GREEN：`CARRIER_LACAM_PORTABLE_ONLY=ON` 可在无 PkgConfig/yaml-cpp 的全新目录配置并构建共享库 |
+| 2026-09-09 | Phase 2 ABI validation | shared-library 边界 | C API 5/5；真实 ctypes round-trip 返回预期 4×2 MOVE/WAIT/LIFT/DROP 矩阵；纯 C11 header 通过；`.so` 无 yaml 依赖和 native CPU flags；`liblacam.a` 无重复 C ABI symbols |
+| 2026-09-09 | Phase 2 regression | 默认 native build + 全量 C++ tests | GREEN：432/432，245.687 秒；独立 C API 5/5，异常边界 1/1 |
+| 2026-09-09 | Phase 2 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | 47/77，solver runtime 总和 588.8 秒，墙钟 47.1 秒；与 Phase 1 的成功集合、plan hash 和全部 solution metrics 逐 case 完全一致 |
+| 2026-09-09 | Phase 2 code review | 最终 C ABI/build diff | 独立 GPT-5.6 Sol/low：APPROVE；异常边界、符号隔离、YAML-free 配置、默认 native 路径和 CPU 可移植性均通过 |
 
 ## 6. 当前下一步
 
-1. 提交并推送 Phase 1 arbitrary-root 实现和验证证据。
-2. 按 TDD 开始 Phase 2：在现有 Carrier 入口外增加独立 C ABI 数据边界和
-   shared-library build target，但 native 内部仍只调用同一条
-   `solve_carrier_lacam_from_state_result()` 路径。
-3. C ABI 能表达完整 `DDInstance`、当前 `PhysConfig`、逐 timestep 联合动作、
-   status、首次解 runtime 和最终 cost 后，再把固定三个 Labyrinth planner
-   case 转入 Carrier adapter 的 simple benchmark。
+1. 提交并推送 Phase 2 C ABI、portable shared-library target、protected
+   regressions 和 quick-77 证据。
+2. 按 TDD 开始 Phase 3：在 Code-Labyrinth 增加 Carrier JNA wrapper、
+   session-grid/state adapter，以及对完整 joint action matrix 的 Java 表达。
+3. adapter 能表达固定三个 paper YAML 后，先运行
+   `benchmark/labyrinth_simple_benchmark.json` 中的 planner subset，再进入
+   joint executor。
 4. Code-Labyrinth Java package 放入 Brazil workspace 后再跑固定 SAZ1 smoke。

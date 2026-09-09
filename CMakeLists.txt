@@ -1,7 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(lacam-project CXX)
 
+option(
+  CARRIER_LACAM_PORTABLE_ONLY
+  "Build only the YAML-free Carrier-LaCAM shared library"
+  OFF)
+if(CARRIER_LACAM_PORTABLE_ONLY)
+  set(CARRIER_LACAM_BUILD_NATIVE OFF)
+endif()
 add_subdirectory(./lacam)
+if(CARRIER_LACAM_PORTABLE_ONLY)
+  return()
+endif()
 
 add_subdirectory(./third_party/argparse)
 add_subdirectory(./third_party/googletest)
@@ -47,8 +57,20 @@ add_test(test_post_processing ./tests/test_post_processing.cpp)
 add_test(test_dd_carrier ./tests/test_dd_carrier.cpp)
 add_test(test_dd_planner ./tests/test_dd_planner.cpp)
 add_test(test_dd_arbitrary_root ./tests/test_dd_arbitrary_root.cpp)
-add_test(test_carrier_lacam_c_api
-         ./tests/test_carrier_lacam_c_api.cpp)
+add_executable(
+  test_carrier_lacam_c_api
+  ./tests/test_carrier_lacam_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_c_api
+  carrier_lacam gtest)
+add_executable(
+  test_carrier_lacam_exception_boundary
+  ./tests/test_carrier_lacam_exception_boundary.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_exception_boundary
+  carrier_lacam gtest)
 add_test(test_dd_regression ./tests/test_dd_regression.cpp)
 add_test(test_dd_g1 ./tests/test_dd_g1.cpp)
 add_test(test_dd_rollout ./tests/test_dd_rollout.cpp)
