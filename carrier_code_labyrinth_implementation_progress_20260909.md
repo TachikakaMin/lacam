@@ -36,10 +36,10 @@
 
 | 阶段 | 状态 | 当前证据 |
 |---|---|---|
-| Phase 0：设计和基线 | 完成（FC smoke 待 Brazil workspace） | §28、两个分支、固定 benchmark、425-test 与 3-case BR-LaCAM baseline 已完成 |
+| Phase 0：设计和基线 | 完成（FC smoke 待 Carrier lifecycle） | §28、两个分支、固定 benchmark、Brazil workspace、425-test 与 3-case BR-LaCAM baseline 已完成 |
 | Phase 1：normal arbitrary-root | GREEN | public from-state API 与 root-aware search/finalization 已接入同一条 `TAPFPlanner::solve()` 路径；432/432 C++ tests 与 quick 77 无回归 |
 | Phase 2：C ABI/shared library | GREEN | portable、YAML-free `libcarrier_lacam.so` 已完成；C ABI 5/5、异常边界 1/1、portable build 回归、432/432 主测试与 quick 77 均通过 |
-| Phase 3：Java adapter/JNA | 未开始 | 等 Phase 2 GREEN |
+| Phase 3：Java adapter/JNA | 进行中 | graph/JNA/state adapter 与真实 Java→native round-trip 已 GREEN；稳定 native 装载、planning session 和 DSR wiring 待完成 |
 | Phase 4：joint executor | 未开始 | 等 Phase 3 GREEN |
 | Phase 5：DSR lifecycle | 未开始 | 等 Phase 4 GREEN |
 | Phase 6：跨 prefix session | 未开始 | 等端到端 cold session 正确 |
@@ -90,9 +90,9 @@ seed、drive count、请求、模拟时长、线程数和统计口径完全相�
 三例结果文件均非空、`solved=1`，且 console 没有 internal feasibility
 validator 的 invalid diagnostic。第二例说明原版在 10 秒 search deadline
 之后还有约 0.85 秒收尾，因此后续报告必须分开记录首次解、10 秒最终解和
-总返回时间，不能把三者混成一个 runtime。SAZ1 FC smoke 需要 Java package
-位于 Brazil workspace；当前 clone 不是 workspace，因此状态保留为
-`pending_brazil_workspace`，不得换成别的 KMAP。
+总返回时间，不能把三者混成一个 runtime。SAZ1 已进入固定 Brazil
+workspace；当前缺口是 Carrier planning session、joint executor 和 DSR
+lifecycle 尚未接通，因此 smoke 保留为 pending，不得换成别的 KMAP。
 
 ## 5. RED/GREEN 与验证日志
 
@@ -126,14 +126,22 @@ validator 的 invalid diagnostic。第二例说明原版在 10 秒 search deadli
 | 2026-09-09 | Phase 2 regression | 默认 native build + 全量 C++ tests | GREEN：432/432，245.687 秒；独立 C API 5/5，异常边界 1/1 |
 | 2026-09-09 | Phase 2 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | 47/77，solver runtime 总和 588.8 秒，墙钟 47.1 秒；与 Phase 1 的成功集合、plan hash 和全部 solution metrics 逐 case 完全一致 |
 | 2026-09-09 | Phase 2 code review | 最终 C ABI/build diff | 独立 GPT-5.6 Sol/low：APPROVE；异常边界、符号隔离、YAML-free 配置、默认 native 路径和 CPU 可移植性均通过 |
+| 2026-09-09 | Phase 3 workspace | Code-Labyrinth Brazil workspace 与基线 release build | GREEN：`share/bofu/DSRS-mppf-classic-dig@1b4ca13` 在固定 workspace 完整构建通过 |
+| 2026-09-09 | Phase 3 RED | `CarrierLacamNativeTest` + `CarrierSessionGridTest` | 预期编译失败：缺少 Carrier C ABI 的 Java 表达、严格 native lifecycle、joint action matrix 与 storage-block grid |
+| 2026-09-09 | Phase 3 GREEN | JNA wrapper、action/result 类型与 session grid | GREEN：native contract 4/4、grid contract 4/4；保留 WAIT/MOVE/LIFT/DROP 的完整 robot×timestep 动作矩阵，并拒绝对角边、长边、单向边和非法 portal |
+| 2026-09-09 | Phase 3 RED/GREEN | `CarrierProblemAdapterTest` | 先因缺少确定性快照适配器而 RED；实现固定 entity identity、robot/shelf/target/goal 数组和 source block 后 3/3 GREEN |
+| 2026-09-09 | Phase 3 identity regression | 同 ID、不同 Pod 对象的 aliasing | 旧实现按 `Pod.equals()` 误接受而 RED；改用 identity semantics 并校验 drive/pod/storage 双向 custody 后 GREEN |
+| 2026-09-09 | Phase 3 native round-trip | Java/JNA 直接装载 Phase 2 `libcarrier_lacam.so` | GREEN：1×4、2 robots、1 target；首次解 `<1 ms`，可交付解 0.687796 ms，返回 4 步 MOVE/WAIT、LIFT/WAIT、MOVE/WAIT、DROP/WAIT |
+| 2026-09-09 | Phase 3 failure telemetry RED/GREEN | `CarrierLacamFailureMetricsRegressionTest` | timeout 路径原先把 native 的 12.5 ms 首次解覆盖成 0 而 RED；wrapper 保留 failure-side first/deliverable timing 后 GREEN |
+| 2026-09-09 | Phase 3 regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 构建通过，最新日志 `.build-logs/brazil-build-20260909-084256-15296.log`，9 秒 |
 
 ## 6. 当前下一步
 
-1. 提交并推送 Phase 2 C ABI、portable shared-library target、protected
-   regressions 和 quick-77 证据。
-2. 按 TDD 开始 Phase 3：在 Code-Labyrinth 增加 Carrier JNA wrapper、
-   session-grid/state adapter，以及对完整 joint action matrix 的 Java 表达。
-3. adapter 能表达固定三个 paper YAML 后，先运行
-   `benchmark/labyrinth_simple_benchmark.json` 中的 planner subset，再进入
-   joint executor。
-4. Code-Labyrinth Java package 放入 Brazil workspace 后再跑固定 SAZ1 smoke。
+1. 为 `libcarrier_lacam.so` 增加严格、可部署的装载入口；在 native Brazil
+   package 落地前，只允许显式绝对路径，不从 cwd 或系统库路径猜测。
+2. 按 TDD 增加 `CarrierPlanningSession`，把固定 grid/entity 和每轮动态
+   state/goal 快照送入现有 JNA wrapper，并覆盖真实 adapter→native solve。
+3. 按 TDD 实现 Phase 4 joint executor，逐 timestep 原子执行完整动作矩阵，
+   同时保存 Java 侧 Pod identity/custody。
+4. 接入 DSR lifecycle 后运行固定 SAZ1 smoke；开发期继续只用固定
+   Labyrinth simple subset 和 quick 77，不运行 full 518。
