@@ -47,6 +47,8 @@ add_test(test_post_processing ./tests/test_post_processing.cpp)
 add_test(test_dd_carrier ./tests/test_dd_carrier.cpp)
 add_test(test_dd_planner ./tests/test_dd_planner.cpp)
 add_test(test_dd_arbitrary_root ./tests/test_dd_arbitrary_root.cpp)
+add_test(test_carrier_lacam_c_api
+         ./tests/test_carrier_lacam_c_api.cpp)
 add_test(test_dd_regression ./tests/test_dd_regression.cpp)
 add_test(test_dd_g1 ./tests/test_dd_g1.cpp)
 add_test(test_dd_rollout ./tests/test_dd_rollout.cpp)

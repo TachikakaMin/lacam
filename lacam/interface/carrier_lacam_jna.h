@@ -1,0 +1,83 @@
+#ifndef CARRIER_LACAM_JNA_H
+#define CARRIER_LACAM_JNA_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum CarrierLacamStatus {
+  CARRIER_LACAM_OK = 0,
+  CARRIER_LACAM_INVALID_ARGUMENT = 1,
+  CARRIER_LACAM_INVALID_STATE = 2,
+  CARRIER_LACAM_EXHAUSTED = 3,
+  CARRIER_LACAM_TIMEOUT = 4,
+  CARRIER_LACAM_CANCELLED = 5,
+  CARRIER_LACAM_INTERNAL_ERROR = 6,
+};
+
+enum CarrierLacamActionKind {
+  CARRIER_LACAM_ACTION_WAIT = 0,
+  CARRIER_LACAM_ACTION_MOVE = 1,
+  CARRIER_LACAM_ACTION_LIFT = 2,
+  CARRIER_LACAM_ACTION_DROP = 3,
+};
+
+int carrier_lacam_abi_version(void);
+
+void* carrier_lacam_create(int seed);
+void carrier_lacam_destroy(void* handle);
+int carrier_lacam_reset(void* handle);
+
+int carrier_lacam_set_grid(
+    void* handle, int height, int width,
+    const uint8_t* wall_mask, int wall_mask_count,
+    const uint8_t* storage_mask, int storage_mask_count);
+
+// target_shelf_indices maps each target identity to one entry in shelf_cells.
+// goal_offsets has target_count + 1 entries and indexes goal_cells.
+int carrier_lacam_set_entities(
+    void* handle,
+    int robot_count, const int* robot_cells,
+    int shelf_count, const int* shelf_cells,
+    int target_count, const int* target_shelf_indices,
+    const int* goal_offsets, int goal_offset_count,
+    const int* goal_cells, int goal_cell_count);
+
+// kappa uses the Carrier encoding: -1 free, -2 anonymous shelf,
+// and non-negative target identity.
+int carrier_lacam_set_state(
+    void* handle,
+    const int* robot_cells, int robot_cell_count,
+    const int* target_cells, int target_cell_count,
+    const int* anonymous_cells, int anonymous_cell_count,
+    const int* kappa, int kappa_count);
+
+int carrier_lacam_solve(void* handle, int timeout_ms);
+
+// Before the first completed solve, status is INVALID_STATE. A solved
+// zero-timestep plan is OK with timestep_count == 0; failed solves also have
+// no actions and are distinguished by this status.
+int carrier_lacam_get_status(void* handle);
+int carrier_lacam_get_timestep_count(void* handle);
+int carrier_lacam_get_robot_count(void* handle);
+int carrier_lacam_get_action_kind(
+    void* handle, int timestep, int robot);
+int carrier_lacam_get_action_destination(
+    void* handle, int timestep, int robot);
+
+double carrier_lacam_get_first_solution_ms(void* handle);
+double carrier_lacam_get_deliverable_ms(void* handle);
+int64_t carrier_lacam_get_makespan(void* handle);
+int64_t carrier_lacam_get_work_scaled(void* handle);
+
+// The returned pointer remains valid until the next call on this handle.
+// Callers crossing JNA should copy it immediately.
+const char* carrier_lacam_last_error(void* handle);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

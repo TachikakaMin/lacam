@@ -38,7 +38,7 @@
 |---|---|---|
 | Phase 0：设计和基线 | 完成（FC smoke 待 Brazil workspace） | §28、两个分支、固定 benchmark、425-test 与 3-case BR-LaCAM baseline 已完成 |
 | Phase 1：normal arbitrary-root | GREEN | public from-state API 与 root-aware search/finalization 已接入同一条 `TAPFPlanner::solve()` 路径；432/432 C++ tests 与 quick 77 无回归 |
-| Phase 2：C ABI/shared library | 未开始 | 等 Phase 1 GREEN |
+| Phase 2：C ABI/shared library | RED | protected C ABI contract 已固定；target 在链接阶段因 `carrier_lacam_*` 尚未实现而按预期失败 |
 | Phase 3：Java adapter/JNA | 未开始 | 等 Phase 2 GREEN |
 | Phase 4：joint executor | 未开始 | 等 Phase 3 GREEN |
 | Phase 5：DSR lifecycle | 未开始 | 等 Phase 4 GREEN |
@@ -115,6 +115,7 @@ validator 的 invalid diagnostic。第二例说明原版在 10 秒 search deadli
 | 2026-09-09 | benchmark tooling | Python benchmark tests | 200 项直接通过；4 项因初次启动缺少 `PYTHONPATH=benchmark`，按正确入口补跑 12/12 通过；另 1 项正确识别旧网页仍绑定旧 binary SHA，留待最终发布时重生成 |
 | 2026-09-09 | Phase 1 quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | 47/77，首次可交付 solver runtime 总和 588.4 秒，墙钟 47.1 秒；与上一权威 quick 的成功集合和全部 solution metrics 逐 case 完全相同 |
 | 2026-09-09 | Phase 1 code review | 当前实现 diff | 独立 GPT-5.6 Sol/low：APPROVE；未发现 root 丢失、兼容 wrapper 误用、EventContract 弱化、parallel planner、fallback 或 dead production code |
+| 2026-09-09 | Phase 2 RED | `test_carrier_lacam_c_api` | configure 与测试编译成功，链接按预期失败：缺少全部 `carrier_lacam_*` C ABI symbols |
 
 ## 6. 当前下一步
 
