@@ -380,7 +380,8 @@ inline PhysConfig phys_of(const Config& C, const ShelfState& S)
 inline std::vector<int> tau_of(const DDInstance& ins, const PhysConfig& X)
 {
   const SocWeights w = soc_weights_from_env();
-  DDDistCache uw(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache uw(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   const auto upper = carrier_detail::make_upper_signature(X);

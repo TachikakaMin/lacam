@@ -1,6 +1,6 @@
 # Carrier-LaCAM × Code-Labyrinth 实现进度
 
-日期：2026-09-09
+日期：2026-09-09（最后更新：2026-09-10）
 
 ## 1. 固定基线
 
@@ -44,7 +44,7 @@
 | Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
 | Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
 | Phase 7：rho incremental repair | 完成，已提交并推送 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7、quick 77、Brazil release 和真实 SAZ1 均通过。SAZ1 标准入口完成 19 拍/18 次续算，CSV 累计记录 13,963 次 repair，且 Phase 6/7 的成功集合、plan hash 和全部解质量逐 case 零差异；算法提交 `76d54bf`，LMS 提交 `2587828` |
-| Phase 8：一般并发 | 进行中 | 已完成 C++/Java 并发边界审计并写入 `design_final.md` §28.7；按 fixed upper obstacle、explicit adjacency、external spacetime commitment、persistent C ABI、Java block lease 的顺序实施 |
+| Phase 8：一般并发 | 进行中；8.1 fixed upper obstacle GREEN | 固定、不可搬动 pod 已作为静态 upper-deck obstacle 接入现有实例校验、upper occupancy、Task-BR、PairCost、PIBT、repair 和 `apply_ops()` 路径；C++ 453/453、C ABI 11/11、新增 protected tests 6/6、BR upper 16/16、clean quick 47/77 且与 Phase 7 逐 case 语义零差异；下一步是 8.2 explicit undirected adjacency |
 
 ## 4. 固定开发 benchmark
 
@@ -191,9 +191,13 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-09 | Phase 7 pre-commit regression | Code-Labyrinth `brazil-build release` | GREEN：完整 package 日志 `.build-logs/brazil-build-20260909-phase7-precommit-final.log`，10 秒 |
 | 2026-09-09 | Phase 7 final review/commit | JNA rho ABI、跨 prefix telemetry、Carrier MOVE 空间生命周期、terminal logger flush | 独立 GPT-5.6 Sol/low：APPROVE，无 blocking finding；算法提交并推送 `76d54bf carrier: repair rho assignment incrementally`，LMS 提交并推送 `2587828 lms: report incremental Carrier rho telemetry` |
 | 2026-09-09 | Phase 8 design audit | fixed upper pod、显式有向图、外部时空 commitment、block lease 与 normal Pick/Stow eligibility | 完成：所有机制继续进入现有 `TAPFPlanner::solve()`、PIBT 和 `apply_ops()`；确认不能直接删除全局 pause，必须先让 native 表达固定上层占用和外部交通，再缩小 Java lease；规范写入 `design_final.md` §28.7 |
+| 2026-09-10 | Phase 8.1 fixed upper RED | 固定 pod 的 schema、root legality、MOVE/LIFT/DROP、规划绕行和 BR upper compiler | 新增 protected tests 首先暴露 BR upper distance cache 仍使用原 lower grid：错误实现会探索 9 个节点，而正确的固定障碍拓扑只需探索 8 个节点 |
+| 2026-09-10 | Phase 8.1 fixed upper GREEN | `fixed_upper_cells` 接入现有 Carrier execution path | GREEN：固定格不进入 movable shelf、tau、rho 或 Task-BR；空载机器人可从下层经过，携架机器人不得进入，且不能 LIFT/DROP；BR upper cache 改用同一份 upper-deck grid，错误的 phantom shortcut 不再生成 |
+| 2026-09-10 | Phase 8.1 targeted regression | fixed upper、BR upper 和全部 Carrier C ABI tests | GREEN：新增 fixed-upper tests 6/6，BR upper 16/16，C ABI 11/11；此前完整 C++ regression 453/453 |
+| 2026-09-10 | Phase 8.1 clean quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | GREEN：47/77，solver runtime 总和 587.7 秒，墙钟 47.4 秒；与 Phase 7 的成功集合、status、plan hash、makespan、SOC、work、首次解质量和最终解质量逐 case 零差异；结果 `benchmark/results_quick_carrier_dsr_phase8a_clean2_20260910`。一轮与其他 full benchmark 并发的 46/77 结果因 CPU contention 作废，不用于验收 |
 
 ## 6. 当前下一步
 
-1. 处理 Phase 8 一般并发，并继续遵循 protected-test 与 quick gate。
+1. 实现 Phase 8.2 explicit undirected adjacency：先把默认矩形图迁移到统一的动态 topology API，再加入显式无向边，并保持旧四邻接顺序和 shelf-free 行为不变。
 2. 全部阶段结束后再按
    gate 运行最终 quick、Sol/high review、获批 full 518，并生成最终汇报网页。

@@ -551,7 +551,8 @@ DDPlan solve_carrier_2stage(
   TAPFStats tapf_stats;
   TAPFPlanner planner(
       &view, &deadline, &mt, 0, 0, 0.001f, true, &tapf_stats);
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   LowerDist lower_distance(ins.grid);
@@ -561,9 +562,9 @@ DDPlan solve_carrier_2stage(
   const std::vector<int> fixed_tau = tau_of(ins, physical);
   const auto initial_upper =
       carrier_detail::make_upper_signature(physical);
-  std::vector<uint8_t> occupied(ins.grid.size(), 0);
-  for (const int cell : initial_upper.target_pos) occupied[cell] = 1;
-  for (const int cell : initial_upper.anon_pos) occupied[cell] = 1;
+  const auto occupied =
+      carrier_detail::upper_occupancy_bitmap(
+          ins, initial_upper);
 
   auto shortest_least_blocking_path =
       [&](int src, int dst) -> std::vector<int> {

@@ -51,7 +51,9 @@ inline bool valid_grounded_state(const DDInstance& ins,
     return false;
   std::vector<uint8_t> occupied(ins.grid.size(), 0);
   auto add = [&](int cell) {
-    if (!ins.can_store_shelf(cell) || occupied[cell]) return false;
+    if (!ins.can_place_movable_shelf(cell) ||
+        occupied[cell])
+      return false;
     occupied[cell] = 1;
     return true;
   };

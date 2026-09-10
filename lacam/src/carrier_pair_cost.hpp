@@ -95,7 +95,8 @@ struct PairCostDependencyContext {
         return;
       if (read.source_cell >= 0) {
         if (read.source_cell >= ins.grid.size() ||
-            !ins.can_store_shelf(read.source_cell))
+            !ins.can_place_movable_shelf(
+                read.source_cell))
           return;
         dependency.vacancy_removal_cells[
             read.source_cell / 64] |=
@@ -226,9 +227,8 @@ inline std::vector<int> ready_tasks(const DDInstance& ins,
                                     const ShelfTaskGraph& graph)
 {
   const auto upper = make_upper_signature(physical);
-  std::vector<uint8_t> occupied(ins.grid.size(), 0);
-  for (const int cell : upper.target_pos) occupied[cell] = 1;
-  for (const int cell : upper.anon_pos) occupied[cell] = 1;
+  const auto occupied =
+      upper_occupancy_bitmap(ins, upper);
   std::vector<uint8_t> carried_target(ins.n_targets(), 0);
   bool any_carried_anon = false;
   for (const int k : physical.kappa) {
@@ -911,7 +911,8 @@ canonical_fixed_goal_forced_effects(
               static_cast<int>(target), tau[target]});
   auto abstract =
       make_abstract_upper_state(ins, upper);
-  DDDistCache scratch_distance(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache scratch_distance(upper_grid);
   TaskBRCompilerLimits compiler_limits{256, 512};
   if (upper_vacancy_count(ins, upper) > 2)
     compiler_limits.total_recursion_cap =

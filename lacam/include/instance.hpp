@@ -57,6 +57,9 @@ struct TAPFInstance {
   // shelf-free/TAPF inputs; carrier planning must preserve this mask so
   // aisle cells remain traversable but cannot receive DROP.
   std::vector<uint8_t> shelf_storage;
+  // Static upper-deck cells occupied by pods that this Carrier session
+  // cannot move. Empty on ordinary TAPF and legacy Carrier instances.
+  std::vector<int> fixed_upper_cells;
   std::vector<int> target_starts;  // by target index
   std::vector<int> target_goals;   // representative view (sorted-first)
   // eligible goal set per target (design_final 2.1, T1/T2): sorted

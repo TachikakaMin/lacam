@@ -102,21 +102,8 @@ inline ExecutionView reconcile_execution_view(
             ? ExecutionTaskState::PENDING
             : ExecutionTaskState::FULFILLED;
   }
-  std::vector<uint8_t> upper_occupied(ins.grid.size(), 0);
-  for (const int cell : physical.target_pos)
-    if (cell >= 0 && cell < ins.grid.size())
-      upper_occupied[cell] = 1;
-  for (const int cell : physical.anon_occ)
-    if (cell >= 0 && cell < ins.grid.size())
-      upper_occupied[cell] = 1;
-  for (size_t robot = 0; robot < physical.kappa.size() &&
-                         robot < physical.robots.size();
-       ++robot)
-    if (physical.kappa[robot] == KAPPA_ANON) {
-      const int cell = physical.robots[robot];
-      if (cell >= 0 && cell < ins.grid.size())
-        upper_occupied[cell] = 1;
-    }
+  const auto upper_occupied = upper_occupancy_bitmap(
+      ins, make_upper_signature(physical));
 
   out.causal_conditions.resize(graph.causal_edges.size());
   for (size_t edge_index = 0;
@@ -195,11 +182,8 @@ inline std::vector<int> ready_tasks_with_custody(
     long* claims_filtered = nullptr)
 {
   const auto upper = make_upper_signature(physical);
-  std::vector<uint8_t> occupied(ins.grid.size(), 0);
-  for (const int cell : upper.target_pos)
-    if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
-  for (const int cell : upper.anon_pos)
-    if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
+  const auto occupied =
+      upper_occupancy_bitmap(ins, upper);
 
   std::unordered_map<TaskId, int, TaskIdHash> custody_owner;
   for (size_t robot = 0; robot < custody_by_robot.size(); ++robot)
@@ -215,7 +199,7 @@ inline std::vector<int> ready_tasks_with_custody(
     const bool occupied_placement =
         task.id.to >= 0 &&
         task.id.to < (int)occupied.size() &&
-        ins.can_store_shelf(task.id.to) &&
+        ins.can_place_movable_shelf(task.id.to) &&
         occupied[task.id.to];
     if (task.id.to < 0 || task.id.to >= (int)occupied.size() ||
         occupied_placement || custody_owner.count(task.id))
@@ -434,7 +418,8 @@ inline std::optional<Custody> make_storage_recovery_custody(
   if (robot < 0 || robot >= (int)physical.robots.size() ||
       robot >= (int)physical.kappa.size() ||
       physical.kappa[robot] == KAPPA_FREE ||
-      ins.can_store_shelf(physical.robots[robot]))
+      ins.can_place_movable_shelf(
+          physical.robots[robot]))
     return std::nullopt;
 
   if (previous_custody.has_value()) {
@@ -748,7 +733,8 @@ inline CustodyRecovery recover_task_br_custody(
   for (size_t robot = 0; robot < robot_count; ++robot) {
     if (physical.kappa[robot] == KAPPA_FREE ||
         out.custody_by_robot[robot].has_value() ||
-        ins.can_store_shelf(physical.robots[robot]))
+        ins.can_place_movable_shelf(
+            physical.robots[robot]))
       continue;
     const std::optional<Custody> previous_custody =
         previous_guidance != nullptr &&

@@ -132,7 +132,8 @@ CarrierEventContractValidation validate_carrier_event_contract(
         fixed.transfer.route.front() >= ins.grid.size() ||
         fixed.transfer.route.back() !=
             fixed.transfer.endpoint ||
-        !ins.can_store_shelf(fixed.transfer.endpoint))
+        !ins.can_place_movable_shelf(
+            fixed.transfer.endpoint))
       return {
           CarrierEventContractInvalidReason::
               INVALID_ACTIVE_TRANSFER};
@@ -142,6 +143,7 @@ CarrierEventContractValidation validate_carrier_event_contract(
       const int cell = fixed.transfer.route[index];
       if (cell < 0 || cell >= ins.grid.size() ||
           ins.grid.is_wall(cell) ||
+          ins.is_fixed_upper_cell(cell) ||
           !route_cells.insert(cell).second)
         return {
             CarrierEventContractInvalidReason::

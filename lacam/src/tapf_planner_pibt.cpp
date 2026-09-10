@@ -101,7 +101,8 @@ void TAPFPlanner::build_op_candidates(TAPFNode* S, int i,
     refresh_carrier_scratch(S);
     const int cell = S->C[i]->index;
     if (S->shelf.kappa[i] == KAPPA_FREE) {
-      if (carrier_grounded[cell] != 0)
+      if (carrier_grounded[cell] != 0 &&
+          carrier_grounded[cell] != CARRIER_GROUNDED_FIXED)
         out.push_back(OpCand{S->C[i], (uint8_t)Op::LIFT});
     } else {
       out.push_back(OpCand{S->C[i], (uint8_t)Op::DROP});
@@ -349,7 +350,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
         const bool at_endpoint =
             q == custody_endpoint(*custody) &&
             custody->route_status == RouteStatus::ARRIVED;
-        if (at_endpoint && dd_view->can_store_shelf(q))
+        if (at_endpoint &&
+            dd_view->can_place_movable_shelf(q))
           append_candidate(ai->v_now, (uint8_t)Op::DROP);
         // The timed router normally keeps carried shelves in aisles.  When
         // another loaded route claims this aisle cell and our own hint would
@@ -442,7 +444,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
             custody->preferred_leg->from == q)
           append_exact_move(custody->preferred_leg->to);
         append_candidate(ai->v_now, (uint8_t)Op::WAIT);
-        if (!at_endpoint && dd_view->can_store_shelf(q))
+        if (!at_endpoint &&
+            dd_view->can_place_movable_shelf(q))
           append_candidate(ai->v_now, (uint8_t)Op::DROP);
         append_all_moves([&](int cell) {
           return custody->preferred_leg.has_value() &&
@@ -457,7 +460,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
         // endpoint, prefer WAIT instead of greedily retargeting the shelf from
         // one aisle cell at a time.  Other legal moves remain in the operator
         // candidate set for completeness.
-        const bool can_drop_here = dd_view->can_store_shelf(q);
+        const bool can_drop_here =
+            dd_view->can_place_movable_shelf(q);
         if (can_drop_here)
           append_candidate(ai->v_now, (uint8_t)Op::DROP);
         const bool recursively_displaced =
@@ -467,7 +471,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
           append_candidate(ai->v_now, (uint8_t)Op::WAIT);
           append_all_moves([&](int cell) {
             return std::make_pair(
-                dd_view->can_store_shelf(cell) ? 0 : 1, cell);
+                dd_view->can_place_movable_shelf(cell) ? 0 : 1,
+                cell);
           });
         } else {
           append_candidate(ai->v_now, (uint8_t)Op::WAIT);
@@ -493,7 +498,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
              (assigned->shelf.kind ==
                   ShelfSelector::Kind::ANON_AT_EPOCH_CELL &&
               assigned->shelf.value == q &&
-              carrier_grounded[q] == -1));
+              carrier_grounded[q] ==
+                  CARRIER_GROUNDED_ANON));
         if (exact_shelf_here && !preparing)
           append_candidate(ai->v_now, (uint8_t)Op::LIFT);
         if (exact_shelf_here && preparing)
@@ -584,8 +590,12 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     // carrier feasibility (M4); none of these fire for task agents
     if (kind == Op::MOVE && loaded && carrier_upper_taken(u->index))
       continue;  // S1
-    if (kind == Op::LIFT && carrier_grounded[u->index] == 0) continue;
-    if (kind == Op::DROP && kappa_i == KAPPA_ANON &&
+    if (kind == Op::LIFT &&
+        (carrier_grounded[u->index] == 0 ||
+         carrier_grounded[u->index] ==
+             CARRIER_GROUNDED_FIXED))
+      continue;
+    if (kind == Op::DROP &&
         carrier_upper_taken(u->index))
       continue;
 
@@ -741,13 +751,17 @@ bool TAPFPlanner::forced_op_feasible(const TAPFNode* S, int i, Vertex* v,
         return false;  // S1
       return true;
     case Op::LIFT:
-      return kappa_i == KAPPA_FREE && carrier_grounded[S->C[i]->index] != 0;
+      return kappa_i == KAPPA_FREE &&
+             carrier_grounded[S->C[i]->index] != 0 &&
+             carrier_grounded[S->C[i]->index] !=
+                 CARRIER_GROUNDED_FIXED;
     case Op::DROP:
       if (kappa_i == KAPPA_FREE) return false;
       if (dd_view != nullptr &&
-          !dd_view->can_store_shelf(S->C[i]->index))
+          !dd_view->can_place_movable_shelf(
+              S->C[i]->index))
         return false;
-      if (kappa_i == KAPPA_ANON && carrier_upper_taken(v->index))
+      if (carrier_upper_taken(v->index))
         return false;  // another shelf occupies the cell at t+1
       return true;
     case Op::WAIT:

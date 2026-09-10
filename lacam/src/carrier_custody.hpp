@@ -271,7 +271,7 @@ inline RouteHintSearchResult reroute_to_endpoint(
       robot >= (int)physical.kappa.size() ||
       physical.kappa[robot] == KAPPA_FREE || endpoint < 0 ||
       endpoint >= ins.grid.size() || ins.grid.is_wall(endpoint) ||
-      !ins.can_store_shelf(endpoint))
+      !ins.can_place_movable_shelf(endpoint))
     return out;
 
   const int source = physical.robots[robot];
@@ -286,6 +286,8 @@ inline RouteHintSearchResult reroute_to_endpoint(
   }
 
   std::vector<uint8_t> occupied(ins.grid.size(), 0);
+  for (const int cell : ins.fixed_upper_cells)
+    occupied[cell] = 1;
   for (size_t target = 0; target < physical.target_pos.size(); ++target) {
     if ((int)target == physical.kappa[robot]) continue;
     const int cell = physical.target_pos[target];
@@ -398,7 +400,7 @@ inline bool custody_physically_valid(const DDInstance& ins,
   }
   const int endpoint = custody_endpoint(custody);
   if (endpoint < 0 || endpoint >= ins.grid.size() ||
-      !ins.can_store_shelf(endpoint) ||
+      !ins.can_place_movable_shelf(endpoint) ||
       custody.transfer.endpoint != endpoint)
     return false;
   if (custody.transfer_id.valid() &&
@@ -453,6 +455,8 @@ inline bool route_hint_usable(const DDInstance& ins,
     if ((int)target != physical.kappa[robot] &&
         physical.target_pos[target] == custody.to)
       return false;
+  if (ins.is_fixed_upper_cell(custody.to))
+    return false;
   return !std::binary_search(
       physical.anon_occ.begin(), physical.anon_occ.end(), custody.to);
 }
@@ -465,7 +469,7 @@ inline std::vector<int> transport_topology_distance(
   if (source < 0 || source >= ins.grid.size() ||
       endpoint < 0 || endpoint >= ins.grid.size() ||
       ins.grid.is_wall(source) || ins.grid.is_wall(endpoint) ||
-      !ins.can_store_shelf(endpoint))
+      !ins.can_place_movable_shelf(endpoint))
     return distance;
   std::deque<int> queue;
   distance[endpoint] = 0;

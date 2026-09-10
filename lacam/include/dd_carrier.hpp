@@ -5,6 +5,7 @@
  */
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -43,6 +44,11 @@ struct DDInstance {
   // Per-cell immutable local transfer property computed by finalize():
   // every traversable neighbor is already a legal storage endpoint.
   std::vector<uint8_t> adjacent_storage_frontier;
+  // Static upper-deck occupancy owned outside this Carrier session.
+  // These cells are not movable shelves: unloaded robots may travel below
+  // them, but carried shelves cannot enter and no shelf may be dropped there.
+  // finalize() validates and sorts this vector.
+  std::vector<int> fixed_upper_cells;
   std::vector<int> target_starts;  // by target index
   std::vector<int> target_goals;   // representative view: sorted-first of
                                    // the goal set (== the goal for
@@ -60,6 +66,15 @@ struct DDInstance {
   {
     return v >= 0 && v < grid.size() && !grid.is_wall(v) &&
            (shelf_storage.empty() || shelf_storage[v] != 0);
+  }
+  bool is_fixed_upper_cell(int v) const
+  {
+    return std::binary_search(
+        fixed_upper_cells.begin(), fixed_upper_cells.end(), v);
+  }
+  bool can_place_movable_shelf(int v) const
+  {
+    return can_store_shelf(v) && !is_fixed_upper_cell(v);
   }
   bool has_adjacent_storage_frontier(int v) const
   {
@@ -113,6 +128,7 @@ enum class PhysRootInvalidReason : uint8_t {
   ANONYMOUS_ORDER_OR_DUPLICATE = 9,
   SHELF_COLLISION = 10,
   SHELF_COUNT_MISMATCH = 11,
+  FIXED_UPPER_COLLISION = 12,
 };
 
 struct PhysRootValidation {

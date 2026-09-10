@@ -55,6 +55,10 @@ add_test(test_tapf_compat ./tests/test_tapf_compat.cpp)
 add_test(test_dd_integration ./tests/test_dd_integration.cpp)
 add_test(test_post_processing ./tests/test_post_processing.cpp)
 add_test(test_dd_carrier ./tests/test_dd_carrier.cpp)
+add_test(test_dd_fixed_upper_obstacles
+         ./tests/test_dd_fixed_upper_obstacles.cpp)
+add_test(test_dd_fixed_upper_schema
+         ./tests/test_dd_fixed_upper_schema.cpp)
 add_test(test_dd_planner ./tests/test_dd_planner.cpp)
 add_test(test_dd_arbitrary_root ./tests/test_dd_arbitrary_root.cpp)
 add_test(test_dd_incremental_session

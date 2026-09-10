@@ -25,6 +25,7 @@ struct TAPFCarrierPersistentState {
     int grid_width = 0;
     std::vector<uint8_t> grid_wall;
     std::vector<uint8_t> shelf_storage;
+    std::vector<int> fixed_upper_cells;
     size_t robot_count = 0;
     size_t shelf_count = 0;
     std::vector<int> target_starts;
@@ -35,6 +36,7 @@ struct TAPFCarrierPersistentState {
           grid_width(dd.grid.width),
           grid_wall(dd.grid.wall),
           shelf_storage(dd.shelf_storage),
+          fixed_upper_cells(dd.fixed_upper_cells),
           robot_count(dd.n_robots()),
           shelf_count(dd.shelves.size()),
           target_starts(dd.target_starts),
@@ -48,6 +50,7 @@ struct TAPFCarrierPersistentState {
              grid_width == dd.grid.width &&
              grid_wall == dd.grid.wall &&
              shelf_storage == dd.shelf_storage &&
+             fixed_upper_cells == dd.fixed_upper_cells &&
              robot_count == dd.n_robots() &&
              shelf_count == dd.shelves.size() &&
              target_starts == dd.target_starts &&
@@ -56,6 +59,7 @@ struct TAPFCarrierPersistentState {
   };
 
   Schema schema;
+  DDGrid upper_grid;
   DDDistCache upper_wall;
   carrier_detail::StorageTransferTopology storage_topology;
   carrier_detail::LowerDist lower;
@@ -63,7 +67,8 @@ struct TAPFCarrierPersistentState {
 
   explicit TAPFCarrierPersistentState(const DDInstance& dd)
       : schema(dd),
-        upper_wall(dd.grid),
+        upper_grid(make_upper_deck_grid(dd)),
+        upper_wall(upper_grid),
         storage_topology(
             carrier_detail::build_storage_transfer_topology(dd)),
         lower(dd.grid)

@@ -52,6 +52,26 @@ void DDInstance::finalize()
     if (shelf_storage[v] && grid.is_wall(v))
       throw std::invalid_argument(
           "finalize: storage cell overlaps a wall");
+  auto check_cell = [&](int v, const char* what) {
+    if (v < 0 || v >= grid.size() || grid.is_wall(v)) {
+      std::ostringstream ss;
+      ss << "finalize: invalid " << what << " cell " << v;
+      throw std::invalid_argument(ss.str());
+    }
+  };
+  for (const int cell : fixed_upper_cells) {
+    check_cell(cell, "fixed upper");
+    if (!can_store_shelf(cell))
+      throw std::invalid_argument(
+          "finalize: fixed upper cell is outside storage");
+  }
+  std::sort(fixed_upper_cells.begin(), fixed_upper_cells.end());
+  if (std::adjacent_find(
+          fixed_upper_cells.begin(), fixed_upper_cells.end()) !=
+      fixed_upper_cells.end())
+    throw std::invalid_argument(
+        "finalize: duplicate fixed upper cell");
+
   adjacent_storage_frontier.assign(grid.size(), 0);
   for (int v = 0; v < grid.size(); ++v) {
     if (grid.is_wall(v)) continue;
@@ -60,17 +80,10 @@ void DDInstance::finalize()
     bool direct_frontier = true;
     for (int index = 0; index < count; ++index)
       direct_frontier &=
-          shelf_storage[neighbors[index]] != 0;
+          can_place_movable_shelf(neighbors[index]);
     adjacent_storage_frontier[v] =
         direct_frontier ? 1 : 0;
   }
-  auto check_cell = [&](int v, const char* what) {
-    if (v < 0 || v >= grid.size() || grid.is_wall(v)) {
-      std::ostringstream ss;
-      ss << "finalize: invalid " << what << " cell " << v;
-      throw std::invalid_argument(ss.str());
-    }
-  };
   std::unordered_set<int> seen_r, seen_s;
   for (int q : robots) {
     check_cell(q, "robot");
@@ -79,9 +92,11 @@ void DDInstance::finalize()
   }
   for (int p : shelves) {
     check_cell(p, "shelf");
-    if (!can_store_shelf(p))
+    if (!can_place_movable_shelf(p))
       throw std::invalid_argument(
-          "finalize: shelf is outside storage");
+          is_fixed_upper_cell(p)
+              ? "finalize: movable shelf overlaps fixed upper cell"
+              : "finalize: shelf is outside storage");
     if (!seen_s.insert(p).second)
       throw std::invalid_argument("finalize: shelves overlap");
   }
@@ -108,9 +123,11 @@ void DDInstance::finalize()
       throw std::invalid_argument("finalize: empty target goal set");
     for (const int g : target_goal_sets[b]) {
       check_cell(g, "goal");
-      if (!can_store_shelf(g))
+      if (!can_place_movable_shelf(g))
         throw std::invalid_argument(
-            "finalize: target goal is outside storage");
+            is_fixed_upper_cell(g)
+                ? "finalize: target goal overlaps fixed upper cell"
+                : "finalize: target goal is outside storage");
     }
   }
 
@@ -251,12 +268,14 @@ PhysRootValidation validate_phys_config_root(
     if (cell < 0 || cell >= ins.grid.size() ||
         ins.grid.is_wall(cell))
       return {PhysRootInvalidReason::INVALID_TARGET_CELL};
+    if (ins.is_fixed_upper_cell(cell))
+      return {PhysRootInvalidReason::FIXED_UPPER_COLLISION};
     const int carrier = target_carrier[target];
     if (carrier >= 0) {
       if (cell != state.robots[carrier])
         return {
             PhysRootInvalidReason::TARGET_CARRIER_MISMATCH};
-    } else if (!ins.can_store_shelf(cell)) {
+    } else if (!ins.can_place_movable_shelf(cell)) {
       return {PhysRootInvalidReason::INVALID_TARGET_CELL};
     }
     if (!upper_cells.insert(cell).second)
@@ -271,17 +290,22 @@ PhysRootValidation validate_phys_config_root(
     return {
         PhysRootInvalidReason::ANONYMOUS_ORDER_OR_DUPLICATE};
   for (const int cell : state.anon_occ) {
+    if (ins.is_fixed_upper_cell(cell))
+      return {PhysRootInvalidReason::FIXED_UPPER_COLLISION};
     if (cell < 0 || cell >= ins.grid.size() ||
-        !ins.can_store_shelf(cell))
+        !ins.can_place_movable_shelf(cell))
       return {
           PhysRootInvalidReason::INVALID_ANONYMOUS_CELL};
     if (!upper_cells.insert(cell).second)
       return {PhysRootInvalidReason::SHELF_COLLISION};
   }
-  for (size_t robot = 0; robot < robot_count; ++robot)
-    if (state.kappa[robot] == KAPPA_ANON &&
-        !upper_cells.insert(state.robots[robot]).second)
+  for (size_t robot = 0; robot < robot_count; ++robot) {
+    if (state.kappa[robot] != KAPPA_ANON) continue;
+    if (ins.is_fixed_upper_cell(state.robots[robot]))
+      return {PhysRootInvalidReason::FIXED_UPPER_COLLISION};
+    if (!upper_cells.insert(state.robots[robot]).second)
       return {PhysRootInvalidReason::SHELF_COLLISION};
+  }
 
   if (ins.shelves.size() < target_count ||
       state.anon_occ.size() + carried_anonymous !=
@@ -366,7 +390,7 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
       }
       case Op::DROP: {
         if (s.kappa[i] == KAPPA_FREE) return std::nullopt;
-        if (!ins.can_store_shelf(q)) return std::nullopt;
+        if (!ins.can_place_movable_shelf(q)) return std::nullopt;
         if (s.kappa[i] == KAPPA_ANON) anon_next.push_back(q);
         nxt.kappa[i] = KAPPA_FREE;
         nxt.robots[i] = q;
@@ -413,6 +437,7 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
     }
     // upper deck: shelf cell entered while being vacated this step
     std::unordered_set<int> shelf_was;  // occupied upper cells at t
+    for (const int p : ins.fixed_upper_cells) shelf_was.insert(p);
     for (int p : s.anon_occ) shelf_was.insert(p);
     for (size_t b = 0; b < ins.n_targets(); ++b)
       shelf_was.insert(s.target_pos[b]);
@@ -436,7 +461,8 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
 
   // --- S1: shelf vertex conflict at t+1 ---
   {
-    std::unordered_set<int> upper;
+    std::unordered_set<int> upper(
+        ins.fixed_upper_cells.begin(), ins.fixed_upper_cells.end());
     for (int p : anon_next)
       if (!upper.insert(p).second) return std::nullopt;
     std::vector<bool> carried_next(ins.n_targets(), false);

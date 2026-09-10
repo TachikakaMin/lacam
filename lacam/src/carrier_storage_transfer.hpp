@@ -61,6 +61,9 @@ struct TaskBRCompilerLimits {
 };
 
 struct AbstractUpperState {
+  static constexpr int EMPTY = -1;
+  static constexpr int FIXED = -2;
+
   std::vector<ShelfSelector> shelves;
   std::vector<int> positions;
   int target_count = 0;
@@ -99,7 +102,7 @@ struct AbstractUpperState {
     if (dependency_recorder != nullptr)
       dependency_recorder->record_cell(cell);
     return cell >= 0 && cell < (int)occupant.size() &&
-           occupant[cell] < 0;
+           occupant[cell] == EMPTY;
   }
 
   const ShelfSelector* shelf_at(int cell) const
@@ -120,7 +123,16 @@ struct AbstractUpperState {
       dependency_recorder->record_cell(from);
       dependency_recorder->record_cell(to);
     }
-    if (from >= 0) occupant[from] = -1;
+    if (to < 0 || to >= (int)occupant.size() ||
+        occupant[to] != EMPTY)
+      throw std::logic_error(
+          "abstract shelf destination is occupied");
+    if (from >= 0) {
+      if (occupant[from] != index)
+        throw std::logic_error(
+            "abstract shelf source occupancy mismatch");
+      occupant[from] = EMPTY;
+    }
     positions[index] = to;
     occupant[to] = index;
   }
@@ -134,11 +146,14 @@ inline AbstractUpperState make_abstract_upper_state(
   out.dependency_recorder = dependency_recorder;
   out.target_count = (int)upper.target_pos.size();
   out.anon_index_by_epoch_cell.assign(ins.grid.size(), -1);
-  out.occupant.assign(ins.grid.size(), -1);
+  out.occupant.assign(
+      ins.grid.size(), AbstractUpperState::EMPTY);
+  for (const int cell : ins.fixed_upper_cells)
+    out.occupant[cell] = AbstractUpperState::FIXED;
   auto add = [&](const ShelfSelector& shelf, int cell) {
     if (cell < 0 || cell >= ins.grid.size() || ins.grid.is_wall(cell))
       throw std::logic_error("abstract shelf on invalid cell");
-    if (out.occupant[cell] >= 0)
+    if (out.occupant[cell] != AbstractUpperState::EMPTY)
       throw std::logic_error("duplicate shelf cell in upper projection");
     const int index = (int)out.shelves.size();
     out.shelves.push_back(shelf);
@@ -326,7 +341,7 @@ inline bool seed_task_br_forced_effects(
     if (!state.reserved_shelf_effect.emplace(
             forced.shelf, effect).second)
       return false;
-    if (ins.can_store_shelf(first_step) &&
+    if (ins.can_place_movable_shelf(first_step) &&
         !state.reserved_destination.emplace(
             first_step, effect).second)
       return false;
@@ -696,6 +711,7 @@ inline std::vector<StorageTransfer> reachable_storage_transfers(
       const int next = neighbors[index];
       if (next == from) continue;
       if (ins.can_store_shelf(next)) {
+        if (!ins.can_place_movable_shelf(next)) continue;
         if (route_by_endpoint.count(next) != 0) continue;
         std::vector<int> route;
         for (int cursor = cell; cursor >= 0; cursor = parent[cursor])
@@ -743,7 +759,7 @@ nearest_channel_storage_arcs(
   std::vector<StorageTransferArc> arcs;
   if (expired()) return arcs;
   if (source < 0 || source >= ins.grid.size() ||
-      !ins.can_store_shelf(source))
+      !ins.can_place_movable_shelf(source))
     return arcs;
 
   int raw_neighbors[4];
@@ -766,7 +782,8 @@ nearest_channel_storage_arcs(
     if (expired()) return {};
     const int entrance = neighbors[index];
     if (ins.can_store_shelf(entrance)) {
-      loaded_steps_by_endpoint[entrance] = 1;
+      if (ins.can_place_movable_shelf(entrance))
+        loaded_steps_by_endpoint[entrance] = 1;
       continue;
     }
 
@@ -799,6 +816,7 @@ nearest_channel_storage_arcs(
         const int next = next_cells[next_index];
         if (next == source) continue;
         if (ins.can_store_shelf(next)) {
+          if (!ins.can_place_movable_shelf(next)) continue;
           const int loaded_steps = distance[cell] + 1;
           if (loaded_steps < nearest_loaded_steps) {
             nearest_loaded_steps = loaded_steps;
@@ -857,7 +875,7 @@ inline StorageTransferTopology build_storage_transfer_topology(
   topology.reverse.resize(ins.grid.size());
   for (int source = 0; source < ins.grid.size(); ++source) {
     if (expired()) return topology;
-    if (!ins.can_store_shelf(source)) continue;
+    if (!ins.can_place_movable_shelf(source)) continue;
     bool transfer_cutoff = false;
     auto transfers = reachable_storage_transfers(
         ins, source, deadline, &transfer_cutoff);
@@ -961,8 +979,8 @@ inline void build_vacancy_potential_layer(
     // clearance-influence dependency.  Reading the raw occupancy here
     // avoids turning this implementation-wide scan into a false direct
     // dependency on every storage cell.
-    if (!ins.can_store_shelf(cell) ||
-        upper.occupant[cell] >= 0)
+    if (!ins.can_place_movable_shelf(cell) ||
+        upper.occupant[cell] != AbstractUpperState::EMPTY)
       continue;
     if (excluded_sources != nullptr &&
         (*excluded_sources)[cell])
@@ -1180,7 +1198,7 @@ inline bool update_vacancy_potential_sources(
   std::vector<int> removed_sources;
   for (int cell = 0; cell < ins.grid.size(); ++cell) {
     if (periodic_expired()) return false;
-    if (!ins.can_store_shelf(cell)) continue;
+    if (!ins.can_place_movable_shelf(cell)) continue;
     const bool was_occupied =
         occupied(previous_occupancy, cell);
     const bool is_occupied = occupied(occupancy, cell);
@@ -1256,7 +1274,7 @@ inline bool update_vacancy_potential_sources(
   for (int source = 0; source < ins.grid.size(); ++source) {
     if (periodic_expired()) return false;
     if (out.vacancy_source_cell[source] >= 0 ||
-        !ins.can_store_shelf(source))
+        !ins.can_place_movable_shelf(source))
       continue;
     for (const auto& arc : topology.outgoing[source]) {
       if (periodic_expired()) return false;

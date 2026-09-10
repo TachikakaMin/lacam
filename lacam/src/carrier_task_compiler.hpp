@@ -543,7 +543,7 @@ inline ShelfTaskGraph compile_task_br_pibt(
   JointCompileCandidate best;
   size_t storage_cells = 0;
   for (int cell = 0; cell < ins.grid.size(); ++cell)
-    storage_cells += ins.can_store_shelf(cell);
+    storage_cells += ins.can_place_movable_shelf(cell);
   if (upper.shelves.size() > storage_cells)
     throw std::logic_error(
         "compile_task_br_pibt: shelves exceed storage cells");

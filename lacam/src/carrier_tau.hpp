@@ -396,7 +396,7 @@ inline PairUpperSignatureDelta pair_upper_signature_delta(
   const auto current_occupied =
       upper_occupancy_bitmap(ins, current);
   for (int cell = 0; cell < ins.grid.size(); ++cell) {
-    if (!ins.can_store_shelf(cell) ||
+    if (!ins.can_place_movable_shelf(cell) ||
         previous_occupied[cell] ==
             current_occupied[cell])
       continue;

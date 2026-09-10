@@ -717,7 +717,8 @@ DDSolveResult solve_carrier_brd_result(
   const auto tau_started = Clock::now();
   try {
     const auto weights = soc_weights_from_env();
-    DDDistCache upper_wall(ins.grid);
+    const DDGrid upper_grid = make_upper_deck_grid(ins);
+    DDDistCache upper_wall(upper_grid);
     const auto storage_topology =
         carrier_detail::build_storage_transfer_topology(
             ins, &budget.search);

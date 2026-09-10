@@ -7,6 +7,9 @@
 
 struct TAPFNode;
 
+constexpr int CARRIER_GROUNDED_ANON = -1;
+constexpr int CARRIER_GROUNDED_FIXED = -2;
+
 struct TransitionStep {
   PhysConfig previous_X;
   std::vector<Op> ops;
@@ -246,7 +249,8 @@ struct TAPFPlanner {
   struct CarrierEngine;
   std::unique_ptr<CarrierEngine> carrier;
   // per-node occupancy scratch: carrier_grounded doubles as the grounded
-  // upper-deck occupancy at t+1 (0 none / -1 anon / b+1 target b);
+  // upper-deck occupancy at t+1 (0 none / -1 anon / -2 fixed /
+  // b+1 target b);
   // delta counters hold tentative carried-shelf reservations
   const TAPFNode* carrier_scratch_node = nullptr;
   std::vector<int> carrier_grounded;

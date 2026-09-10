@@ -311,6 +311,8 @@ build_bounded_joint_transport_guidance(
   }
 
   std::vector<uint8_t> static_occupied(ins.grid.size(), 0);
+  for (const int cell : ins.fixed_upper_cells)
+    static_occupied[cell] = 1;
   std::vector<uint8_t> carried_target(ins.n_targets(), 0);
   for (const int shelf : physical.kappa)
     if (shelf >= 0 && shelf < (int)ins.n_targets())

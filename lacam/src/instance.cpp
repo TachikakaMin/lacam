@@ -139,6 +139,7 @@ TAPFInstance::TAPFInstance(const DDInstance& dd)
       N(dd.robots.size()),
       shelf_cells(dd.shelves),
       shelf_storage(dd.shelf_storage),
+      fixed_upper_cells(dd.fixed_upper_cells),
       target_starts(dd.target_starts),
       target_goals(dd.target_goals),
       target_goal_sets(dd.target_goal_sets)
@@ -155,7 +156,9 @@ bool TAPFInstance::is_valid(const int verbose) const
   // carrier form (design.md v3, M1): agents may have NO instance tasks
   // when the instance declares rearrangement targets — the goal condition
   // then quantifies over targets, not agent tasks.
-  const auto carrier_form = tasks.empty() && !target_starts.empty();
+  const auto carrier_form =
+      tasks.empty() &&
+      (!target_starts.empty() || !fixed_upper_cells.empty());
   if (!carrier_form && tasks.size() < N) {
     info(1, verbose, "TAPF expects at least one unique task per agent");
     return false;

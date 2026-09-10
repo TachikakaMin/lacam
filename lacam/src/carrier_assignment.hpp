@@ -93,7 +93,7 @@ inline size_t upper_vacancy_count(
 {
   size_t storage_cells = 0;
   for (int cell = 0; cell < ins.grid.size(); ++cell)
-    storage_cells += ins.can_store_shelf(cell);
+    storage_cells += ins.can_place_movable_shelf(cell);
   const size_t shelf_count =
       upper.target_pos.size() + upper.anon_pos.size();
   if (shelf_count > storage_cells)
@@ -106,6 +106,8 @@ inline std::vector<uint8_t> upper_occupancy_bitmap(
     const DDInstance& ins, const UpperSignature& upper)
 {
   std::vector<uint8_t> occupied(ins.grid.size(), 0);
+  for (const int cell : ins.fixed_upper_cells)
+    occupied[cell] = 1;
   for (const int cell : upper.target_pos)
     if (cell >= 0 && cell < ins.grid.size())
       occupied[cell] = 1;
@@ -122,7 +124,7 @@ inline std::vector<int> empty_storage_cells(
       upper_occupancy_bitmap(ins, upper);
   std::vector<int> empty;
   for (int cell = 0; cell < ins.grid.size(); ++cell)
-    if (ins.can_store_shelf(cell) && !occupied[cell])
+    if (ins.can_place_movable_shelf(cell) && !occupied[cell])
       empty.push_back(cell);
   return empty;
 }

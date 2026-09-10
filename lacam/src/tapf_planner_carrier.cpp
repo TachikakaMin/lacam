@@ -594,7 +594,9 @@ void TAPFPlanner::ensure_guidance_fresh(TAPFNode* nd)
 ShelfState initial_shelf_state(const TAPFInstance& ins)
 {
   ShelfState S;
-  if (ins.shelf_cells.empty()) return S;  // shelf-free: empty layer
+  if (ins.shelf_cells.empty() &&
+      ins.fixed_upper_cells.empty())
+    return S;  // shelf-free: empty layer
   S.target_pos = ins.target_starts;
   std::unordered_set<int> tset(ins.target_starts.begin(),
                                ins.target_starts.end());
@@ -684,7 +686,10 @@ void TAPFPlanner::refresh_carrier_scratch(const TAPFNode* S)
   carrier_scratch_node = S;
   if (S->shelf.kappa.empty()) return;  // no shelf layer: nothing to fill
   std::fill(carrier_grounded.begin(), carrier_grounded.end(), 0);
-  for (const int p : S->shelf.anon_occ) carrier_grounded[p] = -1;
+  for (const int p : dd_view->fixed_upper_cells)
+    carrier_grounded[p] = CARRIER_GROUNDED_FIXED;
+  for (const int p : S->shelf.anon_occ)
+    carrier_grounded[p] = CARRIER_GROUNDED_ANON;
   std::vector<char> carried(ins->target_starts.size(), 0);
   for (const int k : S->shelf.kappa)
     if (k >= 0) carried[k] = 1;

@@ -11,6 +11,15 @@
 #include "dd_carrier.hpp"
 #include "lazy_dist.hpp"
 
+inline DDGrid make_upper_deck_grid(const DDInstance& ins)
+{
+  DDGrid upper = ins.grid;
+  for (const int cell : ins.fixed_upper_cells)
+    if (cell >= 0 && cell < upper.size())
+      upper.wall[cell] = 1;
+  return upper;
+}
+
 struct DDLazyDist : LazyBfsField<DDGrid> {
   DDLazyDist(const DDGrid& g, int src)
       : LazyBfsField<DDGrid>(g, src, INT_MAX / 2)

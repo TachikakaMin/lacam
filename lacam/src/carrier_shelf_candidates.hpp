@@ -47,8 +47,9 @@ inline std::vector<uint64_t> vacancy_potential_key(
   std::vector<uint64_t> key(
       (upper.occupant.size() + 63) / 64, 0);
   for (size_t cell = 0; cell < upper.occupant.size(); ++cell)
-    if (ins.can_store_shelf(static_cast<int>(cell)) &&
-        upper.occupant[cell] >= 0)
+    if (ins.can_place_movable_shelf(
+            static_cast<int>(cell)) &&
+        upper.occupant[cell] != AbstractUpperState::EMPTY)
       key[cell / 64] |= uint64_t{1} << (cell % 64);
   return key;
 }
@@ -736,13 +737,15 @@ inline int resolve_shelf_task_br_pibt(
       assert(
           transfer.route_size == 2 &&
           transfer.first_step == transfer.endpoint &&
-          ins.can_store_shelf(transfer.endpoint));
+          ins.can_place_movable_shelf(
+              transfer.endpoint));
     } else {
       const auto& route = *transfer.explicit_route;
       bool route_valid =
           transfer.route_size >= 2 &&
           transfer.first_step >= 0 &&
-          ins.can_store_shelf(transfer.endpoint) &&
+          ins.can_place_movable_shelf(
+              transfer.endpoint) &&
           transfer.route_size ==
               (int)route.size() &&
           route.front() == from &&
@@ -788,7 +791,8 @@ inline int resolve_shelf_task_br_pibt(
       record_first_choice_fallback(candidate_index);
       continue;
     }
-    const bool placement_destination = ins.can_store_shelf(to);
+    const bool placement_destination =
+        ins.can_place_movable_shelf(to);
     if (placement_destination &&
         context.destination_effect_conflicts(to, effect)) {
       ++budget.effect_conflicts;
@@ -837,8 +841,15 @@ inline int resolve_shelf_task_br_pibt(
     }
     int predecessor = -1;
     if (must_be_vacated >= 0) {
-      const ShelfSelector blocker =
-          *upper.shelf_at(must_be_vacated);
+      const ShelfSelector* blocker_at =
+          upper.shelf_at(must_be_vacated);
+      if (blocker_at == nullptr) {
+        ++budget.candidate_backtracks;
+        record_first_choice_fallback(candidate_index);
+        context.rollback(checkpoint);
+        continue;
+      }
+      const ShelfSelector blocker = *blocker_at;
       if (context.recursion_cycle(blocker, recursion_stack)) {
         if constexpr (CompilerContext::records_rotations) {
           const auto cycle_begin = std::find(

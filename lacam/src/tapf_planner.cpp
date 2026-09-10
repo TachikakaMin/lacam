@@ -94,7 +94,8 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
   carrier_detail::load_solver_weights(weights);
   // carrier layer (M4): the conformance-oracle view and the occupancy
   // scratch exist only when the instance HAS a shelf layer
-  if (!ins->shelf_cells.empty()) {
+  if (!ins->shelf_cells.empty() ||
+      !ins->fixed_upper_cells.empty()) {
     dd_view = std::make_unique<DDInstance>();
     dd_view->grid.height = ins->G.height;
     dd_view->grid.width = ins->G.width;
@@ -104,6 +105,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     for (const auto* v : ins->starts) dd_view->robots.push_back(v->index);
     dd_view->shelves = ins->shelf_cells;
     dd_view->shelf_storage = ins->shelf_storage;
+    dd_view->fixed_upper_cells = ins->fixed_upper_cells;
     dd_view->target_starts = ins->target_starts;
     dd_view->target_goals = ins->target_goals;
     dd_view->target_goal_sets = ins->target_goal_sets;  // T1: eligibility
@@ -727,7 +729,8 @@ Solution TAPFPlanner::solve()
   best_effort_shelves.clear();
   best_effort_tau.clear();
   if (S_goal == nullptr && deepest_node != nullptr &&
-      !ins->shelf_cells.empty()) {
+      (!ins->shelf_cells.empty() ||
+       !ins->fixed_upper_cells.empty())) {
     if (deepest_node->guide != nullptr &&
         deepest_node->guide->upper_epoch != nullptr)
       best_effort_tau =

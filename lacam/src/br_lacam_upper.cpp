@@ -294,6 +294,7 @@ struct CarrierBRDomain {
   const std::vector<int>& tau;
   const Deadline* deadline;
   BRUpperSearchStats& stats;
+  DDGrid upper_grid;
   DDDistCache upper_wall;
   carrier_detail::StorageTransferTopology storage_topology;
   carrier_detail::VacancyGuidanceTelemetry vacancy_telemetry;
@@ -307,7 +308,8 @@ struct CarrierBRDomain {
         tau(tau_),
         deadline(deadline_),
         stats(stats_),
-        upper_wall(ins_.grid),
+        upper_grid(make_upper_deck_grid(ins_)),
+        upper_wall(upper_grid),
         storage_topology(
             carrier_detail::build_storage_transfer_topology(
                 ins_, deadline_))
@@ -571,11 +573,13 @@ std::optional<BRUpperSuccessor> validate_complete_upper_action(
     return std::nullopt;
 
   std::vector<int> occupant(ins.grid.size(), -1);
+  for (const int cell : ins.fixed_upper_cells)
+    occupant[cell] = -2;
   for (size_t index = 0; index < shelf_count; ++index) {
     if (expired()) return std::nullopt;
     const int cell = state.position(handle_at(state, (int)index));
     if (cell < 0 || cell >= ins.grid.size() ||
-        occupant[cell] >= 0)
+        occupant[cell] != -1)
       return std::nullopt;
     occupant[cell] = (int)index;
   }
@@ -600,7 +604,8 @@ std::optional<BRUpperSuccessor> validate_complete_upper_action(
         transfer.endpoint >= ins.grid.size() ||
         transfer.route.front() != from ||
         transfer.route.back() != transfer.endpoint ||
-        !ins.can_store_shelf(transfer.endpoint))
+        !ins.can_place_movable_shelf(
+            transfer.endpoint))
       return std::nullopt;
 
     std::set<int> route_cells;
@@ -616,7 +621,7 @@ std::optional<BRUpperSuccessor> validate_complete_upper_action(
           !adjacent(
               ins.grid, transfer.route[route_index - 1], cell))
         return std::nullopt;
-      if (route_index > 0 && occupant[cell] >= 0)
+      if (route_index > 0 && occupant[cell] != -1)
         return std::nullopt;
     }
     if (!route_is_enumerated(
@@ -650,7 +655,8 @@ std::optional<BRUpperSuccessor> complete_partial_upper_action(
     BRUpperSearchStats* stats, const Deadline* deadline,
     bool* cutoff)
 {
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(
           ins, deadline, cutoff);

@@ -140,7 +140,8 @@ PairPlan dd_pair_cost_probe(const DDInstance& ins, const PhysConfig& X,
                             int target, int goal)
 {
   const auto w = dd_load_soc_weights();
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   return carrier_detail::pair_cost(
@@ -152,7 +153,8 @@ DDLazyTauProbe dd_lazy_tau_guide_probe(const DDInstance& ins,
                                        const PhysConfig& X)
 {
   const auto w = dd_load_soc_weights();
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   const auto result = carrier_detail::build_lazy_pair_cost_assignment(
@@ -173,7 +175,8 @@ std::optional<TaskId> dd_pair_next_ready_effect_probe(
   const auto upper = carrier_detail::make_upper_signature(X);
   const auto abstract =
       carrier_detail::make_abstract_upper_state(ins, upper);
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   return carrier_detail::compile_single_root_next_ready_effect(
@@ -196,7 +199,8 @@ std::vector<int> dd_tau_guide_probe(const DDInstance& ins,
                                     const PhysConfig& X)
 {
   const auto w = dd_load_soc_weights();
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   const auto upper = carrier_detail::make_upper_signature(X);
@@ -209,14 +213,16 @@ std::vector<int> dd_tau_guide_probe(const DDInstance& ins,
 double dd_tau_lb_probe(const DDInstance& ins, const PhysConfig& X)
 {
   const auto w = dd_load_soc_weights();
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   return carrier_detail::solve_tau_lb(
       ins, X, upper_wall, w.alpha, w.gamma);
 }
 
 int64_t dd_makespan_lb_probe(const DDInstance& ins, const PhysConfig& X)
 {
-  DDDistCache wall_distance(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache wall_distance(upper_grid);
   return carrier_detail::solve_tau_time_lb(
       ins, X, wall_distance);
 }
@@ -228,7 +234,8 @@ ShelfTaskGraph dd_compile_single_root_graph_probe(
   const auto upper = carrier_detail::make_upper_signature(X);
   auto abstract =
       carrier_detail::make_abstract_upper_state(ins, upper);
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   std::vector<int> tau(ins.n_targets(), -1);
@@ -251,7 +258,8 @@ ShelfTaskGraph dd_compile_joint_graph_probe(
     int recursion_cap, int backtrack_cap)
 {
   const auto w = dd_load_soc_weights();
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   const auto upper = carrier_detail::make_upper_signature(X);
@@ -305,7 +313,8 @@ CarrierGuidance dd_task_br_guidance_probe(
     const std::vector<Op>* executed_ops)
 {
   const auto weights = dd_load_soc_weights();
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   return carrier_detail::build_task_br_guidance(
@@ -319,7 +328,8 @@ CarrierGuidance dd_task_br_cached_guidance_probe(
     const std::vector<PhysConfig>& warmups, long* cache_hits)
 {
   const auto weights = dd_load_soc_weights();
-  DDDistCache upper_wall(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache upper_wall(upper_grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   carrier_detail::UpperEpochCache cache;
@@ -358,7 +368,8 @@ double dd_root_admissible_h(const DDInstance& ins)
 {
   // Keep the admissible lower bound independent from tau_guide.
   const SocWeights w = soc_weights_from_env();
-  DDDistCache uw(ins.grid);
+  const DDGrid upper_grid = make_upper_deck_grid(ins);
+  DDDistCache uw(upper_grid);
   const auto X = initial_phys_config(ins);
   return carrier_detail::solve_tau_lb(
       ins, X, uw, w.alpha, w.gamma);
