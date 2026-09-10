@@ -13,7 +13,8 @@ Graph::Graph()
     : V(Vertices()),
       width(0),
       height(0),
-      explicit_adjacency(false)
+      explicit_adjacency(false),
+      directed_adjacency(false)
 {
 }
 Graph::~Graph()
@@ -32,7 +33,8 @@ Graph::Graph(const std::string& filename)
     : V(Vertices()),
       width(0),
       height(0),
-      explicit_adjacency(false)
+      explicit_adjacency(false),
+      directed_adjacency(false)
 {
   std::ifstream file(filename);
   if (!file) {
@@ -71,7 +73,8 @@ Graph::Graph(const std::vector<std::string>& rows)
     : V(Vertices()),
       width(0),
       height(0),
-      explicit_adjacency(false)
+      explicit_adjacency(false),
+      directed_adjacency(false)
 {
   height = rows.size();
   for (const auto& row : rows) width = std::max(width, (int)row.size());
@@ -82,7 +85,8 @@ Graph::Graph(const DDGrid& grid)
     : V(Vertices()),
       width(grid.width),
       height(grid.height),
-      explicit_adjacency(grid.uses_explicit_adjacency())
+      explicit_adjacency(grid.uses_explicit_adjacency()),
+      directed_adjacency(grid.uses_directed_adjacency())
 {
   U = Vertices(width * height, nullptr);
   for (int cell = 0; cell < grid.size(); ++cell) {

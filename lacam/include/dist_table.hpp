@@ -17,8 +17,8 @@ struct GraphIdTopology {
   template <typename Visitor>
   void for_each_neighbor(int id, Visitor&& visit) const
   {
-    for (const auto* neighbor : G.V[id]->neighbor)
-      visit(neighbor->id);
+    for (const auto* predecessor : G.V[id]->predecessor)
+      visit(predecessor->id);
   }
 };
 

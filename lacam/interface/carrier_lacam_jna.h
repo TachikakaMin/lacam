@@ -43,6 +43,11 @@ int carrier_lacam_set_undirected_adjacency(
     const int* offsets, int offset_count,
     const int* destinations, int destination_count);
 
+int carrier_lacam_set_directed_adjacency(
+    void* handle,
+    const int* offsets, int offset_count,
+    const int* destinations, int destination_count);
+
 // target_shelf_indices maps each target identity to one entry in shelf_cells.
 // goal_offsets has target_count + 1 entries and indexes goal_cells.
 int carrier_lacam_set_entities(

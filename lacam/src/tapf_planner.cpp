@@ -108,7 +108,10 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       for (const auto* vertex : ins->G.V)
         for (const auto* neighbor : vertex->neighbor)
           adjacency[vertex->index].push_back(neighbor->index);
-      dd_view->grid.set_undirected_adjacency(adjacency);
+      if (ins->G.directed_adjacency)
+        dd_view->grid.set_directed_adjacency(adjacency);
+      else
+        dd_view->grid.set_undirected_adjacency(adjacency);
     }
     for (const auto* v : ins->starts) dd_view->robots.push_back(v->index);
     dd_view->shelves = ins->shelf_cells;

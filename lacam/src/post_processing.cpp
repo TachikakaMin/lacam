@@ -25,8 +25,8 @@ bool is_feasible_solution(const Instance& ins, const Solution& solution,
       auto v_i_to = solution[t][i];
       // check connectivity
       if (v_i_from != v_i_to &&
-          std::find(v_i_to->neighbor.begin(), v_i_to->neighbor.end(),
-                    v_i_from) == v_i_to->neighbor.end()) {
+          std::find(v_i_from->neighbor.begin(), v_i_from->neighbor.end(),
+                    v_i_to) == v_i_from->neighbor.end()) {
         info(1, verbose, "invalid move");
         return false;
       }

@@ -103,7 +103,7 @@ std::vector<int> distances_to(const DDGrid& grid, int goal)
   while (!open.empty()) {
     const int u = open.front();
     open.pop();
-    for (const int v : grid.outgoing(u)) {
+    for (const int v : grid.incoming(u)) {
       if (dist[v] <= dist[u] + 1) continue;
       dist[v] = dist[u] + 1;
       open.push(v);

@@ -29,8 +29,9 @@
 5. shelf-free LaCAM-TAPF 必须自然保持原行为，不能用 fallback 或
    feature flag 规避。
 6. 新增 tests 和 benchmark cases 创建后即为 protected。
-7. 开发期只运行固定 simple Labyrinth subset 和仓库 quick 77；full 518
-   必须等最终 tests、quick、diff 和独立 GPT-5.6 Sol/high 审查通过。
+7. 开发期固定使用 simple Labyrinth subset；只有改动影响原算法时才运行
+   quick 77。full 518 必须等最终 tests、quick、diff 和独立
+   GPT-5.6 Sol/high 审查通过。
 
 ## 3. 阶段状态
 
@@ -44,7 +45,7 @@
 | Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
 | Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
 | Phase 7：rho incremental repair | 完成，已提交并推送 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7、quick 77、Brazil release 和真实 SAZ1 均通过。SAZ1 标准入口完成 19 拍/18 次续算，CSV 累计记录 13,963 次 repair，且 Phase 6/7 的成功集合、plan hash 和全部解质量逐 case 零差异；算法提交 `76d54bf`，LMS 提交 `2587828` |
-| Phase 8：一般并发 | 进行中；8.1、8.2 GREEN | 8.1 fixed upper obstacle 已提交；8.2 已把动态无向 adjacency 接入 DDGrid、Lazy BFS、Graph、PIBT、repair、storage transfer、persistent schema 和 C ABI CSR setter。新增 adjacency tests 7/7、原 C ABI 11/11、相关拓扑/规划回归 42/42；默认矩形 DD 与 Graph 分别保持原邻居顺序，未运行与本次非算法扩展无关的原始 benchmark；下一步是 8.3 directed adjacency 与反向距离 |
+| Phase 8：一般并发 | 进行中；8.1～8.3 GREEN | 8.3 已加入独立 outgoing/incoming、directed Graph predecessor、反向距离、start→goal 有向可达、directed schema 和 C ABI CSR；review 发现并由新回归固化 directed forced-swap 缺失反向 arc 检查，修复后新增 directed tests 6/6、相关回归 49/49，独立 Sol/low 复审 APPROVE。默认无向算法语义不变，未重复运行原始 benchmark；下一步是 8.4 external spacetime commitment |
 
 ## 4. 固定开发 benchmark
 
@@ -199,9 +200,14 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-10 | Phase 8.2 core GREEN | DDGrid → Lazy BFS → Graph → TAPFPlanner/dd_view → apply_ops | GREEN：显式边完全替换坐标推导；6 邻居不截断，非坐标长边可执行，Graph 与 DD transition 消费同一边集，默认矩形保持 DD 的 down/up/right/left 和 Graph 的 legacy 顺序；core tests 4/4，高出度 task-agent PIBT 1/1 |
 | 2026-09-10 | Phase 8.2 C ABI RED/GREEN | 对称 CSR adjacency setter | RED：header 缺少 `carrier_lacam_set_undirected_adjacency`；GREEN：setter 在 grid 副本上校验 offsets、destination、墙、重复边和对称性后原子替换 topology，未调用时保持默认矩形；新增 C ABI 2/2，原有 C ABI 11/11，符号已从 `libcarrier_lacam.so` 导出 |
 | 2026-09-10 | Phase 8.2 related regression | topology、lazy distance、repair、storage transfer、fixed upper、DD/TAPF/LaCAM planner | GREEN：相关定向回归 42/42；生产代码已无固定 `[4]`、`Candidates[5]` 或 `MAX_DEG=4` 调用，旧 fixed-buffer adapter 只为现有矩形单测兼容保留。按 `rules.md` 的原始 benchmark 触发条件，本阶段不改变默认算法决策，因此没有重复运行原始 quick benchmark |
+| 2026-09-10 | Phase 8.3 directed RED | asymmetric MOVE、reverse distance、Graph predecessor、target feasibility 和 directed C ABI | 预期编译失败：缺少 `set_directed_edges` 与 directed CSR setter；旧距离场也没有独立 incoming 语义 |
+| 2026-09-10 | Phase 8.3 directed GREEN | outgoing operator contract + incoming reverse-distance contract | GREEN：MOVE、route、storage transfer、repair successor 和 PIBT 只沿 outgoing；DD/TAPF distance 从目标沿 incoming/predecessor 扩张；`finalize()` 按每个 target 的 start→goal 有向可达过滤 goal set；post-processing 按 from→to 校验边。核心 3/3、directed C ABI 1/1、directed schema 1/1 |
+| 2026-09-10 | Phase 8.3 review RED | directed task-agent PIBT forced swap | 独立 Sol/low 发现旧 swap shortcut 会在只有 `0→1` 时强制 occupied agent 执行不存在的 `1→0`；新增 `test_dd_directed_swap` 先稳定 RED，并报告具体非法 arc `1→0` |
+| 2026-09-10 | Phase 8.3 swap GREEN | swap candidate outgoing-arc legality | `swap_possible_and_required()` 只有在 swap agent 的当前位置确实存在通往 pusher 原位置的 outgoing arc 时才返回候选；默认无向图中该条件恒成立。新增 directed tests 6/6，directed/undirected adjacency、C ABI、repair、post-processing、TAPF compatibility、fixed upper 和 lazy distance 相关回归 49/49；按 `rules.md` 未运行与本次输入扩展无关的原始 benchmark |
+| 2026-09-10 | Phase 8.3 re-review | 完整 directed topology diff 与 forced-swap 修复 | 独立 GPT-5.6 Sol/low：APPROVE；blocking finding 为 none，确认 MOVE/swap 使用 outgoing、距离使用 incoming/predecessor、新回归真实覆盖旧 bug，且无 parallel planner、fallback 或 testcase-specific hack |
 
 ## 6. 当前下一步
 
-1. 实现 Phase 8.3 directed adjacency 与反向距离：MOVE/route/swap 使用 outgoing，目标距离场使用 incoming，并把目标可行性改为 start-to-goal 有向可达。
+1. 实现 Phase 8.4 external spacetime commitment 和 time-aware CLOSED：普通交通的 lower/upper vertex 与 directed edge 承诺进入同一个 successor/apply_ops contract，并让等待后可通行的状态不被旧 CLOSED key 错误删除。
 2. 全部阶段结束后再按
    gate 运行最终 quick、Sol/high review、获批 full 518，并生成最终汇报网页。

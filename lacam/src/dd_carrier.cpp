@@ -47,6 +47,50 @@ void DDGrid::reset_rectangular_adjacency()
   }
   in_neighbors = out_neighbors;
   explicit_adjacency = false;
+  directed_adjacency = false;
+}
+
+void DDGrid::set_directed_adjacency(
+    const std::vector<std::vector<int>>& adjacency)
+{
+  if ((int)adjacency.size() != size())
+    throw std::invalid_argument(
+        "DDGrid: adjacency size mismatch");
+  for (int from = 0; from < size(); ++from) {
+    if (is_wall(from) && !adjacency[from].empty())
+      throw std::invalid_argument(
+          "DDGrid: wall has adjacency");
+    std::unordered_set<int> seen;
+    for (const int to : adjacency[from]) {
+      if (to < 0 || to >= size() || is_wall(to) || from == to)
+        throw std::invalid_argument(
+            "DDGrid: invalid adjacency edge");
+      if (!seen.insert(to).second)
+        throw std::invalid_argument(
+            "DDGrid: duplicate adjacency edge");
+    }
+  }
+  out_neighbors = adjacency;
+  in_neighbors.assign(size(), {});
+  for (int from = 0; from < size(); ++from)
+    for (const int to : out_neighbors[from])
+      in_neighbors[to].push_back(from);
+  explicit_adjacency = true;
+  directed_adjacency = true;
+}
+
+void DDGrid::set_directed_edges(
+    const std::vector<std::pair<int, int>>& edges)
+{
+  std::vector<std::vector<int>> adjacency(size());
+  for (const auto& edge : edges) {
+    if (edge.first < 0 || edge.first >= size() ||
+        edge.second < 0 || edge.second >= size())
+      throw std::invalid_argument(
+          "DDGrid: invalid adjacency edge");
+    adjacency[edge.first].push_back(edge.second);
+  }
+  set_directed_adjacency(adjacency);
 }
 
 void DDGrid::set_undirected_adjacency(
@@ -79,6 +123,7 @@ void DDGrid::set_undirected_adjacency(
   out_neighbors = adjacency;
   in_neighbors = adjacency;
   explicit_adjacency = true;
+  directed_adjacency = false;
 }
 
 void DDGrid::set_undirected_edges(
@@ -223,41 +268,31 @@ void DDInstance::finalize()
     }
   }
 
-  // dead-cell / feasibility analysis (design 5.6, v1 form): both decks share
-  // the wall set, so a goal outside its target's wall-component can never be
-  // reached — reject at load instead of pruning at search time.
+  // Dead-cell / feasibility analysis: a target must be able to reach each
+  // retained goal by following outgoing arcs.
   {
-    std::vector<int> comp(grid.size(), -1);
-    int nc = 0;
-    for (int v = 0; v < grid.size(); ++v) {
-      if (grid.is_wall(v) || comp[v] >= 0) continue;
-      std::vector<int> stack{v};
-      comp[v] = nc;
+    for (size_t b = 0; b < target_starts.size(); ++b) {
+      std::vector<uint8_t> reachable(grid.size(), 0);
+      std::vector<int> stack{target_starts[b]};
+      reachable[target_starts[b]] = 1;
       while (!stack.empty()) {
-        int u = stack.back();
+        const int u = stack.back();
         stack.pop_back();
         for (const int neighbor : grid.outgoing(u))
-          if (comp[neighbor] < 0) {
-            comp[neighbor] = nc;
+          if (!reachable[neighbor]) {
+            reachable[neighbor] = 1;
             stack.push_back(neighbor);
           }
       }
-      ++nc;
-    }
-    for (size_t b = 0; b < target_starts.size(); ++b) {
-      // filter each goal set to the start's wall component (unreachable
-      // eligible cells can never be used); loud failure when none remain
-      // (same condition/message as the old singleton rule)
       auto& set = target_goal_sets[b];
       set.erase(std::remove_if(set.begin(), set.end(),
                                [&](int g) {
-                                 return comp[g] != comp[target_starts[b]];
+                                 return !reachable[g];
                                }),
                 set.end());
       if (set.empty())
         throw std::invalid_argument(
-            "finalize: target goal unreachable from its start "
-            "(different wall components)");
+            "finalize: target goal unreachable from its start");
       std::sort(set.begin(), set.end());
       set.erase(std::unique(set.begin(), set.end()), set.end());
     }

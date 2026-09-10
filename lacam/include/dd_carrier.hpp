@@ -26,6 +26,7 @@ struct DDGrid {
   std::vector<std::vector<int>> out_neighbors;
   std::vector<std::vector<int>> in_neighbors;
   bool explicit_adjacency = false;
+  bool directed_adjacency = false;
 
   DDGrid() = default;
   explicit DDGrid(const std::vector<std::string>& rows);
@@ -47,11 +48,21 @@ struct DDGrid {
   {
     return explicit_adjacency;
   }
+  bool uses_directed_adjacency() const
+  {
+    return directed_adjacency;
+  }
   template <typename Visitor>
   void for_each_neighbor(int v, Visitor&& visit) const
   {
-    for (const int neighbor : outgoing(v)) visit(neighbor);
+    // Distance fields are rooted at destinations, so expansion follows
+    // predecessor arcs.
+    for (const int neighbor : incoming(v)) visit(neighbor);
   }
+  void set_directed_edges(
+      const std::vector<std::pair<int, int>>& edges);
+  void set_directed_adjacency(
+      const std::vector<std::vector<int>>& adjacency);
   void set_undirected_edges(
       const std::vector<std::pair<int, int>>& edges);
   void set_undirected_adjacency(

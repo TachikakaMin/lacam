@@ -23,6 +23,7 @@ struct Graph {
   int width;   // grid width
   int height;  // grid height
   bool explicit_adjacency;
+  bool directed_adjacency;
   Graph();
   Graph(const std::string& filename);  // taking map filename
   // inline map rows (carrier integration M1): same wall rule and the same

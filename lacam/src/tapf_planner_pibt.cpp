@@ -658,8 +658,16 @@ Agent* TAPFPlanner::swap_possible_and_required(
   if (assignment[i] < 0) return nullptr;
   if (C_next[i][0] == ai->v_now) return nullptr;
 
+  const auto can_move_into_pusher_origin = [&](const Agent* candidate) {
+    return std::find(
+               candidate->v_now->neighbor.begin(),
+               candidate->v_now->neighbor.end(),
+               ai->v_now) != candidate->v_now->neighbor.end();
+  };
+
   auto aj = occupied_now[C_next[i][0]->id];
   if (aj != nullptr && aj->v_next == nullptr && assignment[aj->id] >= 0 &&
+      can_move_into_pusher_origin(aj) &&
       is_swap_required(ai->id, aj->id, ai->v_now, aj->v_now, assignment) &&
       is_swap_possible(aj->v_now, ai->v_now, assignment)) {
     return aj;
@@ -669,7 +677,8 @@ Agent* TAPFPlanner::swap_possible_and_required(
     auto ak = occupied_now[u->id];
     if (ak == nullptr || C_next[i][0] == ak->v_now) continue;
     if (assignment[ak->id] < 0) continue;
-    if (is_swap_required(ak->id, ai->id, ai->v_now, C_next[i][0], assignment) &&
+    if (can_move_into_pusher_origin(ak) &&
+        is_swap_required(ak->id, ai->id, ai->v_now, C_next[i][0], assignment) &&
         is_swap_possible(C_next[i][0], ai->v_now, assignment)) {
       return ak;
     }
