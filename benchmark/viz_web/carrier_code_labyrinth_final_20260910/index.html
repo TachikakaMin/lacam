@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrier-LaCAM 接入 Code-Labyrinth：最终汇报</title>
+<style>
+:root {
+  color-scheme: light;
+  --ink: #20211f;
+  --muted: #66665f;
+  --paper: #f6f3ec;
+  --surface: #fffdfa;
+  --line: #d8d2c5;
+  --accent: #8c3f2b;
+  --good: #2f6847;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font: 16px/1.72 -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+main { width: min(1040px, calc(100% - 36px)); margin: 42px auto 72px; }
+h1, h2 { line-height: 1.25; letter-spacing: -.02em; }
+h1 { max-width: 780px; margin: 0 0 14px; font-size: clamp(30px, 5vw, 52px); }
+h2 { margin: 44px 0 14px; font-size: 25px; }
+p { max-width: 820px; }
+.lead { color: #383934; font-size: 19px; }
+.meta { color: var(--muted); font-size: 14px; }
+.result {
+  margin: 26px 0;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.result strong { color: var(--good); }
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 22px 0;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+.metric { min-height: 112px; padding: 18px; background: var(--surface); }
+.metric b { display: block; font-size: 25px; font-variant-numeric: tabular-nums; }
+.metric span { color: var(--muted); font-size: 14px; }
+.flow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 24px;
+  margin: 24px 0;
+}
+.flow div {
+  position: relative;
+  padding: 16px;
+  border-top: 3px solid var(--accent);
+  background: var(--surface);
+}
+.flow div:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  top: 34%;
+  right: -19px;
+  color: var(--muted);
+}
+.flow b { display: block; margin-bottom: 5px; }
+.flow span { color: var(--muted); font-size: 14px; }
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+th, td {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+th { background: #ece7dc; }
+code { padding: 1px 5px; background: #ebe6dc; font-size: .92em; }
+.note { color: var(--muted); }
+.links a { color: var(--accent); }
+@media (max-width: 760px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .flow { grid-template-columns: 1fr; gap: 10px; }
+  .flow div:not(:last-child)::after { content: "↓"; top: auto; right: 50%; bottom: -20px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p class="meta">2026-09-10 · 最终实现汇报</p>
+  <h1>Carrier-LaCAM 已完整接入 Code-Labyrinth 的 DSR 主链</h1>
+  <p class="lead">Carrier 模式现在直接接管一个 storage block 内的 DIG：它自己选择机器人、目标货架和边界落点，输出完整的 WAIT / MOVE / LIFT / DROP 联合计划，并在真实 simulator 中逐拍执行。原 Pick 依赖只在货架落到合法边界后解除，之后仍由 Code-Labyrinth 送往工作站。</p>
+
+  <div class="result"><strong>结论：</strong>主链、增量续算、一般并发和执行期失效保护均已跑通。最终独立代码复审：APPROVE。Carrier 算法提交 <code>f9bfac3</code>，LMS 提交 <code>6603aa0</code>。</div>
+
+  <div class="metrics">
+    <div class="metric"><b>4 ms</b><span>SAZ1 首次找到可行解</span></div>
+    <div class="metric"><b>8.688 s</b><span>首次可执行完整方案</span></div>
+    <div class="metric"><b>2 / 2</b><span>DIG 在模拟时间 180 完成</span></div>
+    <div class="metric"><b>19 + 18</b><span>执行步数 + 中途续算次数</span></div>
+  </div>
+
+  <h2>接入后的实际执行路径</h2>
+  <p class="note">这里的 DIG 是“把被挡住的目标货架挖到 storage block 边缘”；lease 是 Carrier 暂时接管的一小块资源；commitment 是普通机器人已经获批、不能随意改变的未来路线；epoch 是一次从接管到交还的 Carrier 执行周期。</p>
+  <div class="flow">
+    <div><b>DSR 请求</b><span>按 storage block 收集未完成目标</span></div>
+    <div><b>Execution lease</b><span>只接管参与机器人和本 block 资源</span></div>
+    <div><b>Carrier-LaCAM</b><span>在同一个 TAPFPlanner 主流程中规划</span></div>
+    <div><b>Joint executor</b><span>按 barrier 执行联合动作并核对真实状态</span></div>
+    <div><b>业务交还</b><span>边界 DROP 后恢复原 Pick 送站</span></div>
+  </div>
+  <p>Java 负责把 KMAP、机器人、货架、固定上层障碍和普通交通承诺转换为 native 输入；C++ 仍沿用原来的 tau、Task-BR、rho、Carrier-PIBT 和 <code>apply_ops()</code>，没有新增第二套 planner。执行器不会把计划转换成旧的 <code>DigoutActivity</code> 或再次运行 MAPF。</p>
+
+  <h2>输入和输出现在包含什么</h2>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>部分</th><th>主要输入</th><th>主要输出或责任</th></tr></thead>
+    <tbody>
+      <tr><td>Code-Labyrinth adapter</td><td>block、border goals、directed KMAP、drives、target/anonymous pods、fixed upper pods</td><td>稳定 cell 编号、显式 CSR 邻接、Carrier 初始物理状态</td></tr>
+      <tr><td>普通交通 commitment</td><td>非参与机器人的已批准位置帧、有向边、尾部 RELEASE/HOLD_LAST</td><td>native 规划时避让；执行前按累计 tick 重验</td></tr>
+      <tr><td>Carrier-LaCAM session</td><td>arbitrary physical root、task、goal set、commitment、10 秒 deadline</td><td>完整联合计划、首次解/可交付时间、cache 与 rho repair 指标</td></tr>
+      <tr><td>Joint executor</td><td>WAIT/MOVE/LIFT/DROP action matrix</td><td>同步 barrier、真实动力学、pod custody 原子更新、偏差截断与续算</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>一般并发是怎样保证安全的</h2>
+  <p>Carrier 不再暂停整个仓库，只持有当前 block 的 lease。普通 Pick/Stow 已占用的落地货架会成为 fixed-upper obstacle；非参与机器人的已批准路线会成为带时间的 commitment。每个 Carrier timestep 发动作之前，系统都会重新捕获普通交通的剩余路线并与原承诺后缀比较。如果普通路线发生变化，当前 epoch 会在动作发出前中止并回到待重规划状态。</p>
+  <p>专门的并发回归使用两条相邻通道：ordinary drive 通过真实 MorePath → VertexUpdate → SpaceRelease 事件链穿过同一个 lease；Carrier drive 同时在另一条通道完成 MOVE → LIFT → MOVE → DROP。两条链最终都完成，且每拍 commitment suffix 校验没有误报。</p>
+
+  <h2>验证结果</h2>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>验证</th><th>结果</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>最终 Brazil release</td><td>GREEN，11 秒</td><td>完整 Java tests、coverage、native sidecar build 和 packaging 通过</td></tr>
+      <tr><td>SAZ1 Carrier E2E</td><td>GREEN</td><td>2 个 DIG、19 步、18 次 persistent continuation；首次解 4 ms</td></tr>
+      <tr><td>并发 external traffic</td><td>GREEN</td><td>普通机器人与 Carrier 在同一 lease 内真实并行执行</td></tr>
+      <tr><td>commitment 失效</td><td>GREEN</td><td>按 elapsed tick 比较剩余帧、边和 tail policy</td></tr>
+      <tr><td>无 rack / 旧模式兼容</td><td>GREEN</td><td>空新增输入自然退化；legacy DSR 路径保持原分支</td></tr>
+      <tr><td>Phase 8 原 quick/full benchmark</td><td>未触发</td><td>最终改动只增加 Carrier 输入语义和 LMS 接入，不改变默认 LaCAM-TAPF 搜索行为；按 rules.md 禁止补跑</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">历史阶段已经跑过固定 quick 77，并验证成功集合、plan hash 和解质量逐 case 一致。这里的“未触发”特指 Phase 8 最终接入 diff，不代表整个项目从未运行过 quick benchmark。</p>
+
+  <h2>边界与解释</h2>
+  <p>固定的 60 simulated seconds SAZ1 simple smoke 只验证装配和启动，因为该短 workload 没有触发 DIG；完整 DIG 证据来自同一 SAZ1 的 183 秒诊断。<code>first_solution_ms</code> 表示 native 首次找到可行解，不等于整个可执行方案返回时间，因此报告始终把 4 ms 和约 8.69 秒分开列出。</p>
+
+  <h2>详细材料</h2>
+  <p class="links">
+    <a href="../../../carrier_code_labyrinth_implementation_progress_20260909.md">逐阶段实现记录</a> ·
+    <a href="../../../carrier_code_labyrinth_dsr_integration_plan_20260909.md">原始实施计划</a> ·
+    <a href="../../../design_final.md">算法设计边界</a> ·
+    <a href="../../labyrinth_simple_benchmark.json">固定 Labyrinth simple benchmark</a>
+  </p>
+</main>
+</body>
+</html>

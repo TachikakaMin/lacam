@@ -45,7 +45,7 @@
 | Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
 | Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
 | Phase 7：rho incremental repair | 完成，已提交并推送 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7、quick 77、Brazil release 和真实 SAZ1 均通过。SAZ1 标准入口完成 19 拍/18 次续算，CSV 累计记录 13,963 次 repair，且 Phase 6/7 的成功集合、plan hash 和全部解质量逐 case 零差异；算法提交 `76d54bf`，LMS 提交 `2587828` |
-| Phase 8：一般并发 | 进行中；8.1～8.5 GREEN 并通过独立复审 | 8.4 已把 external lower/upper vertex、directed edge、tail policy、absolute tick 和 time-aware CLOSED 接入同一 `TAPFPlanner::solve()`/`apply_ops()` 路径；8.5 已让 persistent session 与 C ABI 保存 immutable snapshot/origin，commit 成功后推进 origin，rebase 必须显式确认或替换 commitment。新增 Phase 8.4/8.5 tests 16/16、相关 topology/repair/reference/rewire/session/C ABI 回归全部通过，portable shared-library build 和全 target 编译通过；独立 GPT-5.6 Sol/low 复审 53/53 并明确 `APPROVE`。默认空 commitment 不改变原算法，按 `rules.md` 未运行原始 benchmark；下一步是 8.6 Java adapter/block lease |
+| Phase 8：一般并发 | 完成，独立复审 APPROVE | 8.4/8.5 已把 external lower/upper vertex、directed edge、tail policy、absolute tick 和 persistent origin 接入同一 `TAPFPlanner::solve()`/`apply_ops()` 路径；8.6 已接通 Java directed CSR、fixed upper、block lease、ordinary granted traffic 导出、graph→cell commitment、persistent JNA 和 coordinator 生产调用。执行器现在每拍重验 frozen commitment，变化时在发出 Carrier 动作前中止；`PENDING_REPLAN` 只阻塞 participant/lease 相关 drive，解除 lease 后会重新推进边界等待的普通路径。完整 Brazil release、SAZ1 2-DIG E2E 和 external-traffic concurrent E2E 均 GREEN；独立 GPT-5.6 Sol/low 最终复审 `APPROVE`，blocking finding 为 0。默认空输入不改变原算法，按 `rules.md` 未运行原始 benchmark |
 
 ## 4. 固定开发 benchmark
 
@@ -214,11 +214,26 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-10 | Phase 8.4/8.5 related regression | topology、commitment、repair、reference、rewire、session 与全部 Carrier C ABI | 相关定向测试全部 GREEN，`git diff --check` 通过；YAML-free portable `carrier_lacam` 独立构建通过，目录 `/tmp/dd-lacam-portable-phase85.CwpRTm`；按 `rules.md` 未运行与新增输入/接口无关的原始 benchmark |
 | 2026-09-10 | Phase 8.4/8.5 final review | external commitment、absolute tick、session origin、C ABI 与空 commitment 兼容性 | 独立 GPT-5.6 Sol/low：`APPROVE`，无 blocking finding；reviewer 定向运行 53/53 GREEN，确认没有 parallel planner、fallback、testcase/seed hard-code 或原算法语义变化；按规则未运行原始 benchmark |
 | 2026-09-10 | Phase 8.6 fixed-upper bridge RED/GREEN | Code-Labyrinth Java adapter 所需的 fixed upper C ABI setter | 新增 protected C API tests 2/2 GREEN；setter 只冻结 schema 输入并复用现有 `DDInstance::finalize()` 校验，movable shelf 与 fixed upper 重叠仍由同一权威路径拒绝；相关 grid/adjacency/commitment C ABI 回归 12/12 GREEN，未修改搜索算法，按规则未运行原始 benchmark |
+| 2026-09-10 | Phase 8.6 Java RED/GREEN | directed KMAP、spacetime JNA、persistent origin、fixed upper adapter、block lease 和 ordinary traffic capture | 新增 protected Java tests 覆盖 directed CSR、commitment flattening、persistent rebase、fixed pod 排除、block-scoped Pick/Stow eligibility、event-time traffic frame/edge 和 graph→cell 映射；所有新增测试进入最终 Brazil release 并 GREEN |
+| 2026-09-10 | Phase 8.6 production wiring | MAS → lease → coordinator → adapter → persistent native session | 已批准的 external grant 不再直接拒绝 epoch，而是从 `DeterministicExecution` 导出 immutable commitment；lease 保存 snapshot，coordinator 将其映射为 Carrier cell/tick，并把普通 Pick/Stow 持有的 grounded pod 作为 fixed upper 传入。managed DSR target 不会被误判为 fixed upper，fixed upper 占据的 border 会从可用 goals 中删除 |
+| 2026-09-10 | Phase 8.6 block lease lifecycle | 全局 assignment pause 缩小为 storage-block lease | Carrier 只冻结本 block 的 pod/storage 分配和 participant drives；lease 外 Pick/Stow 保持运行。`RESERVED_FOR_CARRIER` 可作为 Carrier DROP 目的状态，旧 lifecycle tests 中过时的 global-pause 断言均经独立 GPT-5.6 Sol/high 审批后更新 |
+| 2026-09-10 | Phase 8.6 fixed SAZ1 simple smoke | manifest 固定 seed 0、8 drives、60 simulated seconds、Carrier strategy | GREEN：Java 17 完成 `Building model` → `Running model` → `Finished running model`，无 ERROR/Exception；该固定 60 秒 workload 本次未触发 DIG，因此只作为装配 smoke，结果 `/tmp/carrier-saz1-phase86-json.1Hojv9` |
+| 2026-09-10 | Phase 8.6 real SAZ1 Carrier E2E | 同一 SAZ1 的 183 秒开发诊断，2 targets、8 drives、10 秒 native limit | GREEN：2 个 DIG 均在模拟时间 180 完成；首次解 4.0000 ms、首次可交付 8677.3563 ms、初始计划 19 拍、执行 19 拍/18 次续算，`cache_hits=95198`、`changed_pair_edges=34`；结果 `/tmp/carrier-saz1-phase86-e2e.x85dyq`。该诊断不替代 frozen benchmark |
+| 2026-09-10 | Phase 8.6 final Brazil regression | `brazil-build release` | GREEN：完整 package 构建与全部 Java tests 通过，日志 `.build-logs/brazil-build-20260910-phase86-final-release.log`，11 秒。此次只增加新输入/场景语义和接入路径，原始 quick/full benchmark 按 `rules.md` 未触发 |
+| 2026-09-10 | Phase 8.6 concurrency review RED | 一般并发 diff 独立审查 | 独立 GPT-5.6 Sol/low 首轮 REJECT：发现解除 lease 后普通路径不会自动续推、任何 `PENDING_REPLAN` 都会全局阻塞、执行期间没有重验 external traffic commitment；三项均作为 blocking correctness finding 处理 |
+| 2026-09-10 | Phase 8.6 unfreeze/scoped pending RED/GREEN | `CarrierEpochUnfreezeContinuationTest`、`CarrierScopedPendingReplanTest` | 两个 protected regression 先稳定 RED；修复后解除 Carrier freeze 会重试 ordering queue head，无关 stranded/replan drive 不再阻止 lease，2/2 GREEN |
+| 2026-09-10 | Phase 8.6 commitment invalidation RED/GREEN | `CarrierExternalTrafficValidationTest` 与生产 executor/coordinator 接线 | immutable commitment 可按累计执行 tick 与当前剩余普通轨迹比较；每个 Carrier timestep 在构造命令前重验，变化或 tick overflow 时中止本 epoch 并回到 pending，而不是继续执行过期计划；定向测试 1/1 GREEN，日志 `.build-logs/brazil-build-20260910-phase86-external-validation-green.log` |
+| 2026-09-10 | Phase 8.6 hardening Brazil regression | `brazil-build release` | GREEN：完整 package 构建与全部 Java tests 通过，日志 `.build-logs/brazil-build-20260910-phase86-hardening-final-release.log`，11 秒 |
+| 2026-09-10 | Phase 8.6 post-hardening SAZ1 E2E | 同一 SAZ1、183 秒、2 targets、8 drives、10 秒 native limit | GREEN：2 个 DIG 均在模拟时间 180 完成；首次解 4.0000 ms、首次可交付 8688.0642 ms、初始计划 19 拍、执行 19 拍/18 次续算，`cache_hits=95342`、`changed_pair_edges=34`；结果 `/tmp/carrier-saz1-phase86-final.WSgzDa` |
+| 2026-09-10 | Phase 8.6 concurrent external E2E | `CarrierConcurrentExternalTrafficTest` | GREEN：一台 ordinary drive 沿真实 MorePath/VertexUpdate/SpaceRelease 链穿过同一 lease，Carrier drive 同时在不相交通道完成 MOVE/LIFT/MOVE/DROP；每拍 commitment suffix 重验通过，最终 ordinary drive 到达外侧 goal、target 在合法 border grounded；日志 `.build-logs/brazil-build-20260910-phase86-concurrent-red3.log`。protected fixture 修正均经独立 GPT-5.6 Sol/high `APPROVE` |
+| 2026-09-10 | Phase 8.6 concurrent final Brazil regression | `brazil-build release` | GREEN：完整 package 构建与全部 Java tests 通过，日志 `.build-logs/brazil-build-20260910-phase86-concurrent-final-release.log`，11 秒 |
+| 2026-09-10 | Phase 8.6 final re-review | 完整一般并发 diff 与三项 blocking fix | 独立 GPT-5.6 Sol/low：`APPROVE`，blocking finding 为 0；reviewer 重新运行 unfreeze、scoped pending、commitment validation 和 concurrent external 四个关键测试，4/4 GREEN，确认生产链真实接通且无 parallel planner、MPPF fallback、dead production API 或 testcase-specific hack |
+| 2026-09-10 | Phase 8.6 commit/push | Code-Labyrinth production、tests 与 Carrier gitlink | 提交 `6603aa0 lms: support concurrent Carrier DSR execution`，已推送到 `share/yimint/carrier-lacam-phase3-ws`；gitlink 固定 Carrier `f9bfac3` |
+| 2026-09-10 | final report | 静态中文汇报网页与独立可读性审查 | 生成 `benchmark/viz_web/carrier_code_labyrinth_final_20260910/index.html`；首次审查两次发现移动端表格滚动容器问题，修复后独立 GPT-5.6 Sol/low `APPROVE`，blocking finding 为 0；网页无需 HTTP server，可直接打开 |
 
-## 6. 当前下一步
+## 6. 完成状态
 
-1. 在最新 Code-Labyrinth workspace
-   `/local/home/yimint/brazil-workspaces/carrier-labyrinth-20260909/src/Skkiesel_LightweightMovementSimulator`
-   实现 Phase 8.6 Java adapter、external commitment 导出、block lease 和 normal Pick/Stow 并发。
-2. 全部阶段结束后再按
-   gate 运行最终 quick、Sol/high review、获批 full 518，并生成最终汇报网页。
+实施计划 Phase 0～8、Code-Labyrinth production 接线、定向/并发 E2E、Brazil
+release、独立代码复审、提交推送和最终静态汇报网页均已完成。Phase 8 最终
+diff 没有改变默认 LaCAM-TAPF 搜索行为，原始 quick/full benchmark 按
+`rules.md` 未触发，也没有为了补齐报告而补跑。
