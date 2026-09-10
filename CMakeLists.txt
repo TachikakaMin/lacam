@@ -181,6 +181,24 @@ add_test(test_carrier_brd_lower_segment
          ./tests/test_carrier_brd_lower_segment.cpp)
 add_test(test_carrier_brd_controller
          ./tests/test_carrier_brd_controller.cpp)
+add_test(test_carrier_brd_complete_replan
+         ./tests/test_carrier_brd_complete_replan.cpp)
+add_test(test_carrier_brd_complete_replan_controller
+         ./tests/test_carrier_brd_complete_replan_controller.cpp)
+add_test(test_carrier_brd_cross_wave_replan
+         ./tests/test_carrier_brd_cross_wave_replan.cpp)
+add_test(test_carrier_brd_continuation_matcher
+         ./tests/test_carrier_brd_continuation_matcher.cpp)
+add_test(test_carrier_brd_endpoint_cycle
+         ./tests/test_carrier_brd_endpoint_cycle.cpp)
+add_test(test_carrier_brd_next_wave_admission
+         ./tests/test_carrier_brd_next_wave_admission.cpp)
+add_test(test_carrier_brd_endpoint_source_overlap
+         ./tests/test_carrier_brd_endpoint_source_overlap.cpp)
+add_test(test_carrier_brd_dispatch_timeout_telemetry
+         ./tests/test_carrier_brd_dispatch_timeout_telemetry.cpp)
+add_test(test_carrier_brd_completion_event_performance
+         ./tests/test_carrier_brd_completion_event_performance.cpp)
 add_test(test_carrier_brd_deadline
          ./tests/test_carrier_brd_deadline.cpp)
 add_test(test_carrier_brd_budget_probes

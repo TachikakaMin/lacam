@@ -53,8 +53,7 @@ CarrierTaskPhase carrier_event_phase_of(
         state.kappa.begin(), state.kappa.end(),
         [&](int value) { return value == target; });
     if (kappa == target &&
-        state.target_pos[target] == robot_cell &&
-        route_index >= 0)
+        state.target_pos[target] == robot_cell)
       return {
           CarrierTaskPhaseKind::CARRYING, route_index};
     if (kappa != KAPPA_FREE) return {};
@@ -78,8 +77,7 @@ CarrierTaskPhase carrier_event_phase_of(
       state.anon_occ.begin(), state.anon_occ.end(), source);
   const bool endpoint_grounded = std::binary_search(
       state.anon_occ.begin(), state.anon_occ.end(), endpoint);
-  if (kappa == KAPPA_ANON && !source_grounded &&
-      route_index >= 0)
+  if (kappa == KAPPA_ANON && !source_grounded)
     return {CarrierTaskPhaseKind::CARRYING, route_index};
   if (kappa != KAPPA_FREE) return {};
   if (endpoint_grounded && !source_grounded &&
@@ -99,11 +97,8 @@ CarrierEventContractValidation validate_carrier_event_contract(
             INVALID_PHYSICAL_ROOT};
 
   std::map<FrozenTaskId, const TaskLedgerEntry*> ledger;
-  std::optional<size_t> wave;
   for (const auto& entry : contract.wave_ledger_snapshot) {
-    if (!wave.has_value()) wave = entry.task_id.wave;
-    if (entry.task_id.wave != *wave ||
-        !ledger.emplace(entry.task_id, &entry).second)
+    if (!ledger.emplace(entry.task_id, &entry).second)
       return {
           CarrierEventContractInvalidReason::INVALID_LEDGER};
     if (entry.status == ExecutionStatus::CARRYING) {
@@ -211,12 +206,6 @@ CarrierEventContractValidation validate_carrier_event_contract(
                 LEDGER_ACTIVE_MISMATCH};
     }
   }
-  for (const int endpoint : endpoints)
-    if (sources.count(endpoint) != 0)
-      return {
-          CarrierEventContractInvalidReason::
-              INVALID_ACTIVE_TRANSFER};
-
   for (const auto& [task_id, entry] : ledger) {
     const auto active_it = active.find(task_id);
     if (entry->status == ExecutionStatus::CARRYING) {
@@ -263,13 +252,34 @@ bool validate_carrier_event_transition(
     const PhysConfig& from, const std::vector<Op>& ops,
     const PhysConfig& to)
 {
-  if (!validate_carrier_event_contract(ins, contract).valid() ||
-      !validate_phys_config_root(ins, from).valid() ||
+  if (!validate_carrier_event_contract(ins, contract).valid())
+    return false;
+  return validate_carrier_event_transition_verified_contract(
+      ins, contract, from, ops, to);
+}
+
+bool validate_carrier_event_transition_verified_contract(
+    const DDInstance& ins, const CarrierEventContract& contract,
+    const PhysConfig& from, const std::vector<Op>& ops,
+    const PhysConfig& to)
+{
+  if (!validate_phys_config_root(ins, from).valid() ||
       !validate_phys_config_root(ins, to).valid())
     return false;
   const auto replayed = apply_ops(ins, from, ops);
   if (!replayed.has_value() || !(*replayed == to) ||
       ops.size() != ins.n_robots())
+    return false;
+  return validate_carrier_event_transition_replayed_contract(
+      ins, contract, from, ops, to);
+}
+
+bool validate_carrier_event_transition_replayed_contract(
+    const DDInstance& ins, const CarrierEventContract& contract,
+    const PhysConfig& from, const std::vector<Op>& ops,
+    const PhysConfig& to)
+{
+  if (ops.size() != ins.n_robots())
     return false;
 
   std::vector<const FixedRobotTransfer*> by_robot(
@@ -291,9 +301,17 @@ bool validate_carrier_event_transition(
     const auto after =
         carrier_event_phase_of(to, *fixed);
     if (before.kind == CarrierTaskPhaseKind::INVALID ||
-        after.kind == CarrierTaskPhaseKind::INVALID ||
-        before.kind == CarrierTaskPhaseKind::COMPLETED)
+        after.kind == CarrierTaskPhaseKind::INVALID)
       return false;
+
+    if (before.kind == CarrierTaskPhaseKind::COMPLETED) {
+      if (ops[robot].kind != Op::WAIT &&
+          ops[robot].kind != Op::MOVE)
+        return false;
+      if (after.kind != CarrierTaskPhaseKind::COMPLETED)
+        return false;
+      continue;
+    }
 
     if (before.kind == CarrierTaskPhaseKind::APPROACH) {
       if (ops[robot].kind == Op::LIFT) {
@@ -312,16 +330,13 @@ bool validate_carrier_event_transition(
     }
 
     if (ops[robot].kind == Op::WAIT) {
-      if (after.kind != CarrierTaskPhaseKind::CARRYING ||
-          after.route_index != before.route_index)
+      if (after.kind != CarrierTaskPhaseKind::CARRYING)
         return false;
     } else if (ops[robot].kind == Op::MOVE) {
-      if (after.kind != CarrierTaskPhaseKind::CARRYING ||
-          after.route_index != before.route_index + 1)
+      if (after.kind != CarrierTaskPhaseKind::CARRYING)
         return false;
     } else if (ops[robot].kind == Op::DROP) {
-      if (before.route_index !=
-              (int)fixed->transfer.route.size() - 1 ||
+      if (from.robots[robot] != fixed->transfer.endpoint ||
           after.kind != CarrierTaskPhaseKind::COMPLETED)
         return false;
     } else {

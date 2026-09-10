@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier vs baseline (carrier_brd) — full-518 first-solution time and solution quality</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "PingFang SC",
+         "Microsoft YaHei", sans-serif; margin: 16px; background: #14141a;
+         color: #e8e8ee; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  #prov { font-size: 12px; color: #9aa3b2; margin-bottom: 10px; }
+  #summaryCards { display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+                  gap: 9px; margin: 8px 0 14px; }
+  .summaryCard { background: #1d1f27; border: 1px solid #303544;
+                 border-radius: 9px; padding: 10px 12px; }
+  .summaryCard.primaryC { border-color: #2563eb; }
+  .summaryCard.primaryB { border-color: #d97706; }
+  .summaryCard small { display: block; color: #9aa3b2; font-size: 12px;
+                       margin-bottom: 4px; }
+  .summaryCard b { display: block; font-size: 23px; line-height: 1.1; }
+  .summaryCard span { color: #aeb7c7; font-size: 11px; }
+  .charts { display: flex; gap: 14px; flex-wrap: wrap; }
+  .chartbox { background: #1d1f27; border-radius: 10px; padding: 10px; }
+  .chartbox h3 { margin: 2px 0 6px; font-size: 14px; font-weight: 600;
+                 color: #cfd6e4; }
+  .chartbox small { color: #8a93a5; }
+  canvas.chart { display: block; background: #10131b; border-radius: 6px;
+                 cursor: crosshair; touch-action: none; }
+  #legend { font-size: 12px; color: #aab; margin: 8px 0 4px; }
+  .dot { display: inline-block; width: 10px; height: 10px;
+         border-radius: 50%; margin: 0 4px 0 12px; vertical-align: -1px; }
+  #tooltip { position: fixed; display: none; background: #0c0e13ee;
+             border: 1px solid #3b4252; border-radius: 6px; padding: 8px;
+             font-size: 12px; pointer-events: none; z-index: 10;
+             max-width: 380px; line-height: 1.5; }
+  #selbar { margin: 14px 0 8px; display: flex; gap: 10px;
+            align-items: center; flex-wrap: wrap; }
+  #selbar input { background: #10131b; color: #e8e8ee; padding: 6px 10px;
+                  border: 1px solid #3b4252; border-radius: 6px;
+                  width: min(480px, 90vw); font-size: 13px; }
+  #syncControls { display: flex; gap: 8px; align-items: center;
+                  flex-wrap: wrap; }
+  #syncControls button { background: #16a34a; color: #fff; border: 0;
+                         padding: 6px 12px; border-radius: 6px;
+                         cursor: pointer; }
+  #syncControls button:hover { background: #15803d; }
+  #syncControls input { width: 110px; padding: 0; }
+  #selinfo { font-size: 13px; color: #c7cede; }
+  .players { display: flex; gap: 14px; flex-wrap: wrap; align-items:
+             flex-start; }
+  .pane { background: #1d1f27; border-radius: 10px; padding: 10px;
+          flex: 1 1 480px; min-width: 380px; }
+  .pane h3 { margin: 2px 0 6px; font-size: 14px; }
+  .pane .stats { font-size: 12px; color: #9aa3b2; margin-bottom: 6px;
+                 min-height: 16px; }
+  .pane canvas { background: #2a2a32; border-radius: 8px; display: block;
+                 max-width: 100%; height: auto; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+         margin: 8px 0; font-size: 12px; }
+  .bar button { background: #3b82f6; color: #fff; border: 0;
+                padding: 4px 12px; border-radius: 6px; cursor: pointer; }
+  .bar button:hover { background: #2563eb; }
+  .bar input[type=range] { width: 130px; }
+  .bar .seek { flex: 1 1 120px; }
+  .nosol { color: #f87171; font-size: 13px; margin: 6px 0; }
+  #plegend { font-size: 12px; color: #aaa; margin-top: 10px; }
+  .sw { display: inline-block; width: 10px; height: 10px;
+        border-radius: 2px; margin: 0 4px 0 10px; vertical-align: middle; }
+  a { color: #7ab3ff; }
+</style>
+</head>
+<body>
+<h1>Carrier (dd-lacam) vs baseline (carrier_brd, decomposed BR-LaCAM baseline)</h1>
+<div style="margin:4px 0 8px;font-size:13px"><a href="index.html">中文版</a></div>
+<div id="prov"></div>
+<div id="summaryCards"></div>
+
+<div class="charts">
+  <div class="chartbox">
+    <h3>First-solution time (ms, log-log)</h3>
+    <small>An unsolved run is plotted at 10 s (red dashed top/right lines); 0 ms is plotted at 0.5 ms</small>
+    <canvas id="chartT" class="chart"></canvas>
+  </div>
+  <div class="chartbox">
+    <h3>makespan（log-log）</h3>
+    <small>Only test cases solved by both methods are plotted</small>
+    <canvas id="chartM" class="chart"></canvas>
+  </div>
+  <div class="chartbox">
+    <h3>weighted SOC（log-log）</h3>
+    <small>Only test cases solved by both methods are plotted</small>
+    <canvas id="chartS" class="chart"></canvas>
+  </div>
+</div>
+<div id="legend">
+  <span class="dot" style="background:#2dd4bf"></span>Solved by both
+  <span class="dot" style="background:#3b82f6"></span>Solved only by Carrier
+  <span class="dot" style="background:#f59e0b"></span>Solved only by the baseline
+  <span class="dot" style="background:#6b7280"></span>Unsolved by both
+  ｜ Below the diagonal = a lower Carrier value. Scroll to zoom, drag to pan, and double-click to reset;
+  hover to highlight the same test case across all plots; click to select it and load both replays below.
+</div>
+<div id="tooltip"></div>
+
+<div id="selbar">
+  <label>testcase：
+    <input id="casePick" list="caseList" placeholder="Type a test case name or click a point in a plot">
+  </label>
+  <datalist id="caseList"></datalist>
+  <div id="syncControls">
+    <button id="syncPlay">▶ Play both</button>
+    <button id="syncReset">↺ Reset both</button>
+    <label>Shared speed <input id="syncSpeed" type="range" min="1" max="30"
+      value="8"> <span id="syncSpeedText">8 steps/s</span></label>
+  </div>
+  <span id="selinfo">No selection. Click a point or type a test case name.</span>
+</div>
+
+<div class="players">
+  <div class="pane" id="paneC">
+    <h3 style="color:#7ab3ff">Carrier (our method)</h3>
+    <div class="stats" id="statsC"></div>
+    <div id="bodyC"></div>
+  </div>
+  <div class="pane" id="paneB">
+    <h3 style="color:#fbbf24">baseline（carrier_brd）</h3>
+    <div class="stats" id="statsB"></div>
+    <div id="bodyB"></div>
+  </div>
+</div>
+<div id="plegend">
+  <span id="wlg" style="display:none"><span class="sw"
+    style="background:#26384a"></span>Aisle
+  <span class="sw" style="background:#d9c7a2"></span>Storage slot</span>
+  <span class="sw" style="background:#555"></span>Wall
+  <span class="sw" style="background:#8b5a2b"></span>Anonymous shelf
+  <span class="sw" style="background:#f59e0b"></span>Target shelf
+  <span class="sw" style="border:2px solid #22c55e"></span>Eligible goal
+  <span class="sw" style="background:#3b82f6;border-radius:50%"></span>Unladen robot
+  <span class="sw" style="background:#ef4444;border-radius:50%"></span>Loaded robot
+  <span class="sw" style="border:2px solid #fff;background:#8b5a2b"></span>Lifted shelf
+  <span class="sw" style="background:#16a34a"></span>Completed target
+</div>
+
+<script>
+"use strict";
+const RECORDS = [{"name":"brap_h10w10_a12_e3_B_seed0_pool","fam":"g10x10","c":{"solved":true,"first":133.0,"mk":161.0,"soc":351.0},"b":{"solved":true,"first":49.0,"mk":191.0,"soc":301.0}},{"name":"brap_h10w10_a12_e3_B_seed1_pool","fam":"g10x10","c":{"solved":true,"first":628.0,"mk":691.0,"soc":1562.0},"b":{"solved":true,"first":168.0,"mk":500.0,"soc":921.0}},{"name":"brap_h10w10_a12_e3_R1_seed0","fam":"g10x10","c":{"solved":true,"first":317.0,"mk":541.0,"soc":1208.0},"b":{"solved":true,"first":123.0,"mk":649.0,"soc":1081.0}},{"name":"brap_h10w10_a12_e3_R1_seed1","fam":"g10x10","c":{"solved":true,"first":745.0,"mk":875.0,"soc":1944.0},"b":{"solved":true,"first":136.0,"mk":588.0,"soc":1074.0}},{"name":"brap_h10w10_a12_e8_B_seed0_pool","fam":"g10x10","c":{"solved":true,"first":1248.0,"mk":400.0,"soc":856.0},"b":{"solved":true,"first":64.0,"mk":358.0,"soc":702.0}},{"name":"brap_h10w10_a12_e8_B_seed1_pool","fam":"g10x10","c":{"solved":true,"first":986.0,"mk":407.0,"soc":810.0},"b":{"solved":true,"first":65.0,"mk":379.0,"soc":683.0}},{"name":"brap_h10w10_a12_e8_R1_seed0","fam":"g10x10","c":{"solved":true,"first":762.0,"mk":1099.0,"soc":2360.0},"b":{"solved":true,"first":195.0,"mk":1253.0,"soc":2344.0}},{"name":"brap_h10w10_a12_e8_R1_seed1","fam":"g10x10","c":{"solved":true,"first":854.0,"mk":1080.0,"soc":2258.0},"b":{"solved":true,"first":131.0,"mk":905.0,"soc":1696.0}},{"name":"brap_h10w10_a1_e1_B_seed0_pool","fam":"g10x10","c":{"solved":true,"first":21.0,"mk":49.0,"soc":101.0},"b":{"solved":true,"first":13.0,"mk":77.0,"soc":89.0}},{"name":"brap_h10w10_a1_e1_B_seed1_pool","fam":"g10x10","c":{"solved":true,"first":0.0,"mk":0.0,"soc":0.0},"b":{"solved":true,"first":0.0,"mk":0.0,"soc":0.0}},{"name":"brap_h10w10_a1_e1_R1_seed0","fam":"g10x10","c":{"solved":true,"first":5.0,"mk":40.0,"soc":80.0},"b":{"solved":true,"first":6.0,"mk":63.0,"soc":72.0}},{"name":"brap_h10w10_a1_e1_R1_seed1","fam":"g10x10","c":{"solved":true,"first":31.0,"mk":163.0,"soc":332.0},"b":{"solved":true,"first":24.0,"mk":246.0,"soc":285.0}},{"name":"brap_h20w20_a40_e100_B_seed0_pool","fam":"g20x20","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":2413.0,"mk":1252.0,"soc":5324.0}},{"name":"brap_h20w20_a40_e100_B_seed1_pool","fam":"g20x20","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":2430.0,"mk":1201.0,"soc":5426.0}},{"name":"brap_h20w20_a40_e100_R1_seed0","fam":"g20x20","c":{"solved":true,"first":5139.0,"mk":947.0,"soc":4934.0},"b":{"solved":true,"first":990.0,"mk":1123.0,"soc":4558.0}},{"name":"brap_h20w20_a40_e100_R1_seed1","fam":"g20x20","c":{"solved":true,"first":2560.0,"mk":876.0,"soc":4413.0},"b":{"solved":true,"first":724.0,"mk":797.0,"soc":3173.0}},{"name":"brap_h20w20_a40_e10_B_seed0_pool","fam":"g20x20","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":4020.0,"mk":2231.0,"soc":8967.0}},{"name":"brap_h20w20_a40_e10_B_seed1_pool","fam":"g20x20","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":6463.0,"mk":4033.0,"soc":14396.0}},{"name":"brap_h20w20_a40_e10_R1_seed0","fam":"g20x20","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":1635.0,"mk":2097.0,"soc":7584.0}},{"name":"brap_h20w20_a40_e10_R1_seed1","fam":"g20x20","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":1868.0,"mk":2139.0,"soc":8395.0}},{"name":"brap_h40w40_a160_e400_R1_seed0","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h40w40_a160_e400_R1_seed1","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h40w40_a160_e40_R1_seed0","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h40w40_a160_e40_R1_seed1","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h40w40_a80_e400_B_seed0_pool","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h40w40_a80_e400_B_seed1_pool","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h40w40_a80_e40_B_seed0_pool","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h40w40_a80_e40_B_seed1_pool","fam":"g40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h4w10_a5_e10_B_seed0_pool","fam":"g4x10","c":{"solved":true,"first":4.0,"mk":18.0,"soc":36.0},"b":{"solved":true,"first":2.0,"mk":27.0,"soc":38.0}},{"name":"brap_h4w10_a5_e10_B_seed1_pool","fam":"g4x10","c":{"solved":true,"first":6.0,"mk":34.0,"soc":65.0},"b":{"solved":true,"first":3.0,"mk":42.0,"soc":56.0}},{"name":"brap_h4w10_a5_e10_R1_seed0","fam":"g4x10","c":{"solved":true,"first":72.0,"mk":231.0,"soc":488.0},"b":{"solved":true,"first":14.0,"mk":207.0,"soc":362.0}},{"name":"brap_h4w10_a5_e10_R1_seed1","fam":"g4x10","c":{"solved":true,"first":6.0,"mk":62.0,"soc":130.0},"b":{"solved":true,"first":3.0,"mk":59.0,"soc":102.0}},{"name":"brap_h4w10_a5_e1_B_seed0_pool","fam":"g4x10","c":{"solved":true,"first":4.0,"mk":24.0,"soc":49.0},"b":{"solved":true,"first":3.0,"mk":38.0,"soc":43.0}},{"name":"brap_h4w10_a5_e1_B_seed1_pool","fam":"g4x10","c":{"solved":true,"first":4.0,"mk":25.0,"soc":49.0},"b":{"solved":true,"first":2.0,"mk":31.0,"soc":36.0}},{"name":"brap_h4w10_a5_e1_R1_seed0","fam":"g4x10","c":{"solved":true,"first":2670.0,"mk":511.0,"soc":965.0},"b":{"solved":true,"first":128.0,"mk":383.0,"soc":436.0}},{"name":"brap_h4w10_a5_e1_R1_seed1","fam":"g4x10","c":{"solved":true,"first":1844.0,"mk":389.0,"soc":769.0},"b":{"solved":true,"first":72.0,"mk":194.0,"soc":225.0}},{"name":"brap_h6w10_a6_e15_B_seed0_pool","fam":"g6x10","c":{"solved":true,"first":47.0,"mk":88.0,"soc":181.0},"b":{"solved":true,"first":10.0,"mk":106.0,"soc":169.0}},{"name":"brap_h6w10_a6_e15_B_seed1_pool","fam":"g6x10","c":{"solved":true,"first":11.0,"mk":35.0,"soc":70.0},"b":{"solved":true,"first":6.0,"mk":61.0,"soc":87.0}},{"name":"brap_h6w10_a6_e15_R1_seed0","fam":"g6x10","c":{"solved":true,"first":48.0,"mk":158.0,"soc":315.0},"b":{"solved":true,"first":8.0,"mk":105.0,"soc":181.0}},{"name":"brap_h6w10_a6_e15_R1_seed1","fam":"g6x10","c":{"solved":true,"first":58.0,"mk":251.0,"soc":537.0},"b":{"solved":true,"first":18.0,"mk":257.0,"soc":377.0}},{"name":"brap_h6w10_a6_e1_B_seed0_pool","fam":"g6x10","c":{"solved":true,"first":6061.0,"mk":147.0,"soc":321.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h6w10_a6_e1_B_seed1_pool","fam":"g6x10","c":{"solved":true,"first":395.0,"mk":120.0,"soc":249.0},"b":{"solved":true,"first":507.0,"mk":289.0,"soc":327.0}},{"name":"brap_h6w10_a6_e1_R1_seed0","fam":"g6x10","c":{"solved":true,"first":3989.0,"mk":628.0,"soc":1339.0},"b":{"solved":true,"first":699.0,"mk":616.0,"soc":711.0}},{"name":"brap_h6w10_a6_e1_R1_seed1","fam":"g6x10","c":{"solved":true,"first":1287.0,"mk":938.0,"soc":2026.0},"b":{"solved":true,"first":8874.0,"mk":1687.0,"soc":1959.0}},{"name":"brap_h80w80_a128_e1600_B_seed0_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a128_e1600_B_seed1_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a128_e1600_R1_seed0","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a128_e1600_R1_seed1","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a128_e160_B_seed0_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a128_e160_B_seed1_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a128_e160_R1_seed0","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a128_e160_R1_seed1","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a160_e1600_B_seed0_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a160_e1600_B_seed1_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a160_e160_B_seed0_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a160_e160_B_seed1_pool","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a800_e1600_R1_seed0","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a800_e1600_R1_seed1","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a800_e160_R1_seed0","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h80w80_a800_e160_R1_seed1","fam":"g80x80","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"brap_h8w10_a10_e20_B_seed0_pool","fam":"g8x10","c":{"solved":true,"first":41.0,"mk":60.0,"soc":117.0},"b":{"solved":true,"first":13.0,"mk":74.0,"soc":129.0}},{"name":"brap_h8w10_a10_e20_B_seed1_pool","fam":"g8x10","c":{"solved":true,"first":133.0,"mk":177.0,"soc":358.0},"b":{"solved":true,"first":22.0,"mk":180.0,"soc":346.0}},{"name":"brap_h8w10_a10_e20_R1_seed0","fam":"g8x10","c":{"solved":true,"first":155.0,"mk":354.0,"soc":726.0},"b":{"solved":true,"first":21.0,"mk":248.0,"soc":445.0}},{"name":"brap_h8w10_a10_e20_R1_seed1","fam":"g8x10","c":{"solved":true,"first":398.0,"mk":366.0,"soc":709.0},"b":{"solved":true,"first":23.0,"mk":256.0,"soc":442.0}},{"name":"brap_h8w10_a10_e2_B_seed0_pool","fam":"g8x10","c":{"solved":true,"first":246.0,"mk":245.0,"soc":566.0},"b":{"solved":true,"first":59.0,"mk":234.0,"soc":432.0}},{"name":"brap_h8w10_a10_e2_B_seed1_pool","fam":"g8x10","c":{"solved":true,"first":1468.0,"mk":359.0,"soc":831.0},"b":{"solved":true,"first":94.0,"mk":183.0,"soc":392.0}},{"name":"brap_h8w10_a10_e2_R1_seed0","fam":"g8x10","c":{"solved":true,"first":1711.0,"mk":889.0,"soc":2014.0},"b":{"solved":true,"first":173.0,"mk":536.0,"soc":1108.0}},{"name":"brap_h8w10_a10_e2_R1_seed1","fam":"g8x10","c":{"solved":true,"first":1243.0,"mk":795.0,"soc":1697.0},"b":{"solved":true,"first":144.0,"mk":507.0,"soc":867.0}},{"name":"dense_channel_bedge_h40w40_b3_a1_s8of9_r16_t24_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":1234.0,"mk":35.0,"soc":466.0},"b":{"solved":true,"first":7345.0,"mk":42.0,"soc":444.0}},{"name":"dense_channel_bedge_h40w40_b3_a1_s8of9_r32_t48_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":2190.0,"mk":27.0,"soc":646.0},"b":{"solved":true,"first":6351.0,"mk":35.0,"soc":669.0}},{"name":"dense_channel_bedge_h40w40_b3_a1_s8of9_r8_t12_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":632.0,"mk":39.0,"soc":249.0},"b":{"solved":true,"first":3926.0,"mk":43.0,"soc":241.0}},{"name":"dense_channel_bedge_h40w40_b4_a1_s15of16_r16_t24_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":2468.0,"mk":48.0,"soc":751.0},"b":{"solved":true,"first":8575.0,"mk":76.0,"soc":733.0}},{"name":"dense_channel_bedge_h40w40_b4_a1_s15of16_r32_t48_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":7282.0,"mk":62.0,"soc":1764.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b4_a1_s15of16_r8_t12_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":1157.0,"mk":57.0,"soc":461.0},"b":{"solved":true,"first":6430.0,"mk":80.0,"soc":469.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":7998.0,"mk":115.0,"soc":1725.0},"b":{"solved":true,"first":7513.0,"mk":181.0,"soc":1511.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":9007.0,"mk":155.0,"soc":2244.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t12_seed0","fam":"dense_channel_block_edge_40x40","c":{"solved":true,"first":2240.0,"mk":99.0,"soc":820.0},"b":{"solved":true,"first":4485.0,"mk":153.0,"soc":728.0}},{"name":"g1_dhigh_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":15.0,"soc":35.0},"b":{"solved":true,"first":3.0,"mk":12.0,"soc":30.0}},{"name":"g1_dhigh_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":6.0,"mk":18.0,"soc":50.0},"b":{"solved":true,"first":4.0,"mk":26.0,"soc":61.0}},{"name":"g1_dhigh_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":17.0,"soc":50.0},"b":{"solved":true,"first":3.0,"mk":20.0,"soc":46.0}},{"name":"g1_dhigh_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":18.0,"soc":44.0},"b":{"solved":true,"first":4.0,"mk":20.0,"soc":41.0}},{"name":"g1_dhigh_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":14.0,"soc":38.0},"b":{"solved":true,"first":3.0,"mk":14.0,"soc":38.0}},{"name":"g1_dhigh_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":9.0,"mk":24.0,"soc":59.0},"b":{"solved":true,"first":5.0,"mk":32.0,"soc":68.0}},{"name":"g1_dhigh_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":10.0,"soc":33.0},"b":{"solved":true,"first":3.0,"mk":10.0,"soc":33.0}},{"name":"g1_dhigh_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":5.0,"mk":16.0,"soc":49.0},"b":{"solved":true,"first":4.0,"mk":17.0,"soc":53.0}},{"name":"g1_dhigh_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":17.0,"soc":40.0},"b":{"solved":true,"first":3.0,"mk":17.0,"soc":42.0}},{"name":"g1_dhigh_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":17.0,"soc":44.0},"b":{"solved":true,"first":4.0,"mk":19.0,"soc":42.0}},{"name":"g1_dhigh_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":13.0,"soc":42.0},"b":{"solved":true,"first":3.0,"mk":13.0,"soc":42.0}},{"name":"g1_dhigh_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":9.0,"mk":21.0,"soc":56.0},"b":{"solved":true,"first":4.0,"mk":17.0,"soc":56.0}},{"name":"g1_dhigh_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":18.0,"soc":33.0},"b":{"solved":true,"first":3.0,"mk":18.0,"soc":33.0}},{"name":"g1_dhigh_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":30.0,"soc":58.0},"b":{"solved":true,"first":5.0,"mk":32.0,"soc":63.0}},{"name":"g1_dhigh_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":5.0,"mk":26.0,"soc":48.0},"b":{"solved":true,"first":4.0,"mk":29.0,"soc":48.0}},{"name":"g1_dhigh_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":24.0,"soc":45.0},"b":{"solved":true,"first":4.0,"mk":23.0,"soc":44.0}},{"name":"g1_dhigh_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":20.0,"soc":36.0},"b":{"solved":true,"first":3.0,"mk":20.0,"soc":38.0}},{"name":"g1_dhigh_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":18.0,"mk":40.0,"soc":82.0},"b":{"solved":true,"first":5.0,"mk":37.0,"soc":70.0}},{"name":"g1_dhigh_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":10.0,"soc":30.0},"b":{"solved":true,"first":3.0,"mk":10.0,"soc":30.0}},{"name":"g1_dhigh_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":15.0,"soc":43.0},"b":{"solved":true,"first":4.0,"mk":17.0,"soc":47.0}},{"name":"g1_dhigh_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":15.0,"soc":37.0},"b":{"solved":true,"first":4.0,"mk":15.0,"soc":39.0}},{"name":"g1_dhigh_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":15.0,"soc":41.0},"b":{"solved":true,"first":4.0,"mk":19.0,"soc":41.0}},{"name":"g1_dhigh_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":13.0,"soc":38.0},"b":{"solved":true,"first":4.0,"mk":13.0,"soc":38.0}},{"name":"g1_dhigh_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":6.0,"mk":17.0,"soc":61.0},"b":{"solved":true,"first":4.0,"mk":17.0,"soc":51.0}},{"name":"g1_dlow_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":15.0,"soc":35.0},"b":{"solved":true,"first":2.0,"mk":12.0,"soc":30.0}},{"name":"g1_dlow_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":17.0,"soc":48.0},"b":{"solved":true,"first":3.0,"mk":21.0,"soc":55.0}},{"name":"g1_dlow_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":18.0,"soc":51.0},"b":{"solved":true,"first":3.0,"mk":24.0,"soc":48.0}},{"name":"g1_dlow_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":13.0,"soc":33.0},"b":{"solved":true,"first":3.0,"mk":16.0,"soc":37.0}},{"name":"g1_dlow_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":20.0,"soc":47.0},"b":{"solved":true,"first":3.0,"mk":18.0,"soc":39.0}},{"name":"g1_dlow_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":21.0,"soc":46.0},"b":{"solved":true,"first":3.0,"mk":28.0,"soc":60.0}},{"name":"g1_dlow_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":1.0,"mk":10.0,"soc":33.0},"b":{"solved":true,"first":2.0,"mk":10.0,"soc":33.0}},{"name":"g1_dlow_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":16.0,"soc":47.0},"b":{"solved":true,"first":3.0,"mk":17.0,"soc":51.0}},{"name":"g1_dlow_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":1.0,"mk":9.0,"soc":30.0},"b":{"solved":true,"first":3.0,"mk":11.0,"soc":36.0}},{"name":"g1_dlow_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":12.0,"soc":37.0},"b":{"solved":true,"first":3.0,"mk":15.0,"soc":38.0}},{"name":"g1_dlow_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":12.0,"soc":42.0},"b":{"solved":true,"first":2.0,"mk":14.0,"soc":44.0}},{"name":"g1_dlow_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":13.0,"soc":44.0},"b":{"solved":true,"first":3.0,"mk":14.0,"soc":50.0}},{"name":"g1_dlow_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":18.0,"soc":31.0},"b":{"solved":true,"first":2.0,"mk":18.0,"soc":33.0}},{"name":"g1_dlow_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":27.0,"soc":54.0},"b":{"solved":true,"first":3.0,"mk":32.0,"soc":59.0}},{"name":"g1_dlow_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":28.0,"soc":51.0},"b":{"solved":true,"first":3.0,"mk":26.0,"soc":49.0}},{"name":"g1_dlow_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":24.0,"soc":40.0},"b":{"solved":true,"first":3.0,"mk":27.0,"soc":46.0}},{"name":"g1_dlow_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":20.0,"soc":36.0},"b":{"solved":true,"first":3.0,"mk":22.0,"soc":40.0}},{"name":"g1_dlow_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":7.0,"mk":36.0,"soc":70.0},"b":{"solved":true,"first":3.0,"mk":33.0,"soc":62.0}},{"name":"g1_dlow_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":10.0,"soc":30.0},"b":{"solved":true,"first":2.0,"mk":10.0,"soc":30.0}},{"name":"g1_dlow_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":15.0,"soc":41.0},"b":{"solved":true,"first":3.0,"mk":17.0,"soc":45.0}},{"name":"g1_dlow_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":7.0,"soc":27.0},"b":{"solved":true,"first":3.0,"mk":9.0,"soc":33.0}},{"name":"g1_dlow_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":13.0,"soc":33.0},"b":{"solved":true,"first":2.0,"mk":15.0,"soc":37.0}},{"name":"g1_dlow_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":12.0,"soc":40.0},"b":{"solved":true,"first":2.0,"mk":14.0,"soc":42.0}},{"name":"g1_dlow_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":12.0,"soc":39.0},"b":{"solved":true,"first":4.0,"mk":14.0,"soc":45.0}},{"name":"g1_dmedium_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":15.0,"soc":35.0},"b":{"solved":true,"first":3.0,"mk":12.0,"soc":30.0}},{"name":"g1_dmedium_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":5.0,"mk":18.0,"soc":50.0},"b":{"solved":true,"first":4.0,"mk":26.0,"soc":61.0}},{"name":"g1_dmedium_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":17.0,"soc":46.0},"b":{"solved":true,"first":4.0,"mk":21.0,"soc":50.0}},{"name":"g1_dmedium_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":14.0,"soc":33.0},"b":{"solved":true,"first":3.0,"mk":16.0,"soc":37.0}},{"name":"g1_dmedium_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":14.0,"soc":38.0},"b":{"solved":true,"first":4.0,"mk":14.0,"soc":38.0}},{"name":"g1_dmedium_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":5.0,"mk":21.0,"soc":46.0},"b":{"solved":true,"first":3.0,"mk":29.0,"soc":62.0}},{"name":"g1_dmedium_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":10.0,"soc":33.0},"b":{"solved":true,"first":2.0,"mk":10.0,"soc":33.0}},{"name":"g1_dmedium_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":16.0,"soc":49.0},"b":{"solved":true,"first":4.0,"mk":17.0,"soc":53.0}},{"name":"g1_dmedium_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":2.0,"mk":13.0,"soc":37.0},"b":{"solved":true,"first":4.0,"mk":21.0,"soc":46.0}},{"name":"g1_dmedium_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":13.0,"soc":34.0},"b":{"solved":true,"first":3.0,"mk":15.0,"soc":38.0}},{"name":"g1_dmedium_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":13.0,"soc":42.0},"b":{"solved":true,"first":3.0,"mk":13.0,"soc":42.0}},{"name":"g1_dmedium_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":6.0,"mk":13.0,"soc":46.0},"b":{"solved":true,"first":3.0,"mk":14.0,"soc":50.0}},{"name":"g1_dmedium_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":18.0,"soc":33.0},"b":{"solved":true,"first":3.0,"mk":18.0,"soc":33.0}},{"name":"g1_dmedium_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":30.0,"soc":58.0},"b":{"solved":true,"first":4.0,"mk":32.0,"soc":63.0}},{"name":"g1_dmedium_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":9.0,"mk":33.0,"soc":60.0},"b":{"solved":true,"first":4.0,"mk":38.0,"soc":61.0}},{"name":"g1_dmedium_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":7.0,"mk":24.0,"soc":40.0},"b":{"solved":true,"first":5.0,"mk":27.0,"soc":46.0}},{"name":"g1_dmedium_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":6.0,"mk":20.0,"soc":36.0},"b":{"solved":true,"first":3.0,"mk":20.0,"soc":38.0}},{"name":"g1_dmedium_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":21.0,"mk":37.0,"soc":65.0},"b":{"solved":true,"first":4.0,"mk":33.0,"soc":64.0}},{"name":"g1_dmedium_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":10.0,"soc":30.0},"b":{"solved":true,"first":3.0,"mk":10.0,"soc":30.0}},{"name":"g1_dmedium_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":6.0,"mk":15.0,"soc":43.0},"b":{"solved":true,"first":3.0,"mk":17.0,"soc":47.0}},{"name":"g1_dmedium_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":6.0,"mk":19.0,"soc":47.0},"b":{"solved":true,"first":4.0,"mk":19.0,"soc":43.0}},{"name":"g1_dmedium_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":13.0,"soc":33.0},"b":{"solved":true,"first":3.0,"mk":15.0,"soc":37.0}},{"name":"g1_dmedium_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":4.0,"mk":13.0,"soc":38.0},"b":{"solved":true,"first":3.0,"mk":13.0,"soc":38.0}},{"name":"g1_dmedium_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":3.0,"mk":12.0,"soc":41.0},"b":{"solved":true,"first":3.0,"mk":14.0,"soc":45.0}},{"name":"g2_dhigh_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":23.0,"mk":20.0,"soc":69.0},"b":{"solved":true,"first":17.0,"mk":26.0,"soc":71.0}},{"name":"g2_dhigh_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":77.0,"mk":36.0,"soc":140.0},"b":{"solved":true,"first":29.0,"mk":57.0,"soc":157.0}},{"name":"g2_dhigh_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":27.0,"soc":80.0},"b":{"solved":true,"first":17.0,"mk":26.0,"soc":74.0}},{"name":"g2_dhigh_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":90.0,"mk":24.0,"soc":88.0},"b":{"solved":true,"first":22.0,"mk":30.0,"soc":88.0}},{"name":"g2_dhigh_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":35.0,"mk":30.0,"soc":110.0},"b":{"solved":true,"first":16.0,"mk":34.0,"soc":101.0}},{"name":"g2_dhigh_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":80.0,"mk":35.0,"soc":118.0},"b":{"solved":true,"first":21.0,"mk":45.0,"soc":112.0}},{"name":"g2_dhigh_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":15.0,"mk":15.0,"soc":65.0},"b":{"solved":true,"first":15.0,"mk":15.0,"soc":67.0}},{"name":"g2_dhigh_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":40.0,"mk":33.0,"soc":128.0},"b":{"solved":true,"first":28.0,"mk":47.0,"soc":129.0}},{"name":"g2_dhigh_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":15.0,"mk":12.0,"soc":61.0},"b":{"solved":true,"first":15.0,"mk":13.0,"soc":63.0}},{"name":"g2_dhigh_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":47.0,"mk":15.0,"soc":79.0},"b":{"solved":true,"first":19.0,"mk":17.0,"soc":79.0}},{"name":"g2_dhigh_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":21.0,"soc":87.0},"b":{"solved":true,"first":14.0,"mk":20.0,"soc":88.0}},{"name":"g2_dhigh_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":33.0,"mk":24.0,"soc":102.0},"b":{"solved":true,"first":22.0,"mk":36.0,"soc":98.0}},{"name":"g2_dhigh_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":21.0,"mk":25.0,"soc":68.0},"b":{"solved":true,"first":17.0,"mk":29.0,"soc":72.0}},{"name":"g2_dhigh_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":100.0,"mk":63.0,"soc":147.0},"b":{"solved":true,"first":28.0,"mk":57.0,"soc":154.0}},{"name":"g2_dhigh_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":27.0,"mk":26.0,"soc":68.0},"b":{"solved":true,"first":15.0,"mk":34.0,"soc":72.0}},{"name":"g2_dhigh_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":85.0,"mk":29.0,"soc":85.0},"b":{"solved":true,"first":21.0,"mk":35.0,"soc":98.0}},{"name":"g2_dhigh_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":51.0,"mk":51.0,"soc":146.0},"b":{"solved":true,"first":16.0,"mk":35.0,"soc":90.0}},{"name":"g2_dhigh_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":141.0,"mk":41.0,"soc":117.0},"b":{"solved":true,"first":21.0,"mk":51.0,"soc":113.0}},{"name":"g2_dhigh_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":16.0,"mk":13.0,"soc":56.0},"b":{"solved":true,"first":15.0,"mk":13.0,"soc":58.0}},{"name":"g2_dhigh_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":57.0,"mk":31.0,"soc":153.0},"b":{"solved":true,"first":28.0,"mk":47.0,"soc":129.0}},{"name":"g2_dhigh_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":14.0,"mk":11.0,"soc":58.0},"b":{"solved":true,"first":13.0,"mk":13.0,"soc":60.0}},{"name":"g2_dhigh_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":37.0,"mk":15.0,"soc":71.0},"b":{"solved":true,"first":19.0,"mk":17.0,"soc":75.0}},{"name":"g2_dhigh_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":21.0,"mk":16.0,"soc":79.0},"b":{"solved":true,"first":15.0,"mk":18.0,"soc":81.0}},{"name":"g2_dhigh_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":31.0,"mk":20.0,"soc":99.0},"b":{"solved":true,"first":24.0,"mk":45.0,"soc":105.0}},{"name":"g2_dlow_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":12.0,"mk":18.0,"soc":58.0},"b":{"solved":true,"first":17.0,"mk":23.0,"soc":69.0}},{"name":"g2_dlow_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":53.0,"mk":29.0,"soc":99.0},"b":{"solved":true,"first":16.0,"mk":27.0,"soc":98.0}},{"name":"g2_dlow_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":13.0,"mk":24.0,"soc":78.0},"b":{"solved":true,"first":16.0,"mk":29.0,"soc":78.0}},{"name":"g2_dlow_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":32.0,"mk":24.0,"soc":75.0},"b":{"solved":true,"first":16.0,"mk":27.0,"soc":78.0}},{"name":"g2_dlow_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":24.0,"mk":29.0,"soc":106.0},"b":{"solved":true,"first":17.0,"mk":31.0,"soc":98.0}},{"name":"g2_dlow_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":39.0,"mk":25.0,"soc":86.0},"b":{"solved":true,"first":17.0,"mk":33.0,"soc":104.0}},{"name":"g2_dlow_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":12.0,"soc":58.0},"b":{"solved":true,"first":15.0,"mk":14.0,"soc":64.0}},{"name":"g2_dlow_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":21.0,"mk":20.0,"soc":83.0},"b":{"solved":true,"first":16.0,"mk":21.0,"soc":91.0}},{"name":"g2_dlow_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":13.0,"soc":56.0},"b":{"solved":true,"first":15.0,"mk":15.0,"soc":62.0}},{"name":"g2_dlow_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":11.0,"mk":15.0,"soc":59.0},"b":{"solved":true,"first":17.0,"mk":17.0,"soc":67.0}},{"name":"g2_dlow_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":19.0,"soc":78.0},"b":{"solved":true,"first":13.0,"mk":19.0,"soc":82.0}},{"name":"g2_dlow_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":23.0,"mk":20.0,"soc":80.0},"b":{"solved":true,"first":16.0,"mk":23.0,"soc":90.0}},{"name":"g2_dlow_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":12.0,"mk":27.0,"soc":76.0},"b":{"solved":true,"first":17.0,"mk":29.0,"soc":76.0}},{"name":"g2_dlow_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":91.0,"mk":45.0,"soc":130.0},"b":{"solved":true,"first":20.0,"mk":47.0,"soc":131.0}},{"name":"g2_dlow_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":15.0,"mk":29.0,"soc":78.0},"b":{"solved":true,"first":17.0,"mk":32.0,"soc":76.0}},{"name":"g2_dlow_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":41.0,"mk":33.0,"soc":86.0},"b":{"solved":true,"first":15.0,"mk":30.0,"soc":76.0}},{"name":"g2_dlow_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":24.0,"mk":37.0,"soc":98.0},"b":{"solved":true,"first":17.0,"mk":32.0,"soc":93.0}},{"name":"g2_dlow_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":76.0,"mk":39.0,"soc":99.0},"b":{"solved":true,"first":15.0,"mk":35.0,"soc":93.0}},{"name":"g2_dlow_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":11.0,"mk":11.0,"soc":51.0},"b":{"solved":true,"first":17.0,"mk":12.0,"soc":55.0}},{"name":"g2_dlow_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":20.0,"soc":83.0},"b":{"solved":true,"first":16.0,"mk":21.0,"soc":91.0}},{"name":"g2_dlow_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":12.0,"soc":51.0},"b":{"solved":true,"first":17.0,"mk":14.0,"soc":57.0}},{"name":"g2_dlow_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":12.0,"mk":15.0,"soc":53.0},"b":{"solved":true,"first":14.0,"mk":17.0,"soc":61.0}},{"name":"g2_dlow_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":14.0,"soc":67.0},"b":{"solved":true,"first":11.0,"mk":14.0,"soc":73.0}},{"name":"g2_dlow_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":20.0,"soc":84.0},"b":{"solved":true,"first":16.0,"mk":21.0,"soc":84.0}},{"name":"g2_dmedium_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":10.0,"mk":18.0,"soc":58.0},"b":{"solved":true,"first":18.0,"mk":25.0,"soc":72.0}},{"name":"g2_dmedium_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":58.0,"mk":29.0,"soc":99.0},"b":{"solved":true,"first":16.0,"mk":27.0,"soc":100.0}},{"name":"g2_dmedium_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":16.0,"mk":24.0,"soc":78.0},"b":{"solved":true,"first":17.0,"mk":29.0,"soc":78.0}},{"name":"g2_dmedium_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":44.0,"mk":24.0,"soc":77.0},"b":{"solved":true,"first":18.0,"mk":25.0,"soc":78.0}},{"name":"g2_dmedium_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":32.0,"mk":36.0,"soc":114.0},"b":{"solved":true,"first":13.0,"mk":32.0,"soc":102.0}},{"name":"g2_dmedium_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":59.0,"mk":35.0,"soc":108.0},"b":{"solved":true,"first":18.0,"mk":39.0,"soc":105.0}},{"name":"g2_dmedium_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":9.0,"mk":12.0,"soc":58.0},"b":{"solved":true,"first":16.0,"mk":14.0,"soc":64.0}},{"name":"g2_dmedium_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":20.0,"soc":83.0},"b":{"solved":true,"first":16.0,"mk":21.0,"soc":91.0}},{"name":"g2_dmedium_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":12.0,"mk":13.0,"soc":56.0},"b":{"solved":true,"first":16.0,"mk":15.0,"soc":62.0}},{"name":"g2_dmedium_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":20.0,"soc":76.0},"b":{"solved":true,"first":15.0,"mk":17.0,"soc":73.0}},{"name":"g2_dmedium_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":14.0,"mk":21.0,"soc":90.0},"b":{"solved":true,"first":17.0,"mk":19.0,"soc":88.0}},{"name":"g2_dmedium_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":31.0,"mk":19.0,"soc":90.0},"b":{"solved":true,"first":20.0,"mk":31.0,"soc":91.0}},{"name":"g2_dmedium_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":16.0,"mk":27.0,"soc":76.0},"b":{"solved":true,"first":18.0,"mk":28.0,"soc":76.0}},{"name":"g2_dmedium_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":103.0,"mk":45.0,"soc":130.0},"b":{"solved":true,"first":21.0,"mk":47.0,"soc":131.0}},{"name":"g2_dmedium_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":18.0,"mk":29.0,"soc":78.0},"b":{"solved":true,"first":19.0,"mk":32.0,"soc":76.0}},{"name":"g2_dmedium_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":44.0,"mk":33.0,"soc":90.0},"b":{"solved":true,"first":20.0,"mk":35.0,"soc":100.0}},{"name":"g2_dmedium_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":30.0,"mk":43.0,"soc":112.0},"b":{"solved":true,"first":17.0,"mk":37.0,"soc":96.0}},{"name":"g2_dmedium_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":84.0,"mk":41.0,"soc":109.0},"b":{"solved":true,"first":18.0,"mk":41.0,"soc":102.0}},{"name":"g2_dmedium_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":12.0,"mk":12.0,"soc":51.0},"b":{"solved":true,"first":17.0,"mk":12.0,"soc":55.0}},{"name":"g2_dmedium_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":20.0,"soc":83.0},"b":{"solved":true,"first":17.0,"mk":21.0,"soc":91.0}},{"name":"g2_dmedium_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":11.0,"mk":12.0,"soc":51.0},"b":{"solved":true,"first":16.0,"mk":14.0,"soc":57.0}},{"name":"g2_dmedium_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":20.0,"soc":73.0},"b":{"solved":true,"first":15.0,"mk":17.0,"soc":67.0}},{"name":"g2_dmedium_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":16.0,"soc":77.0},"b":{"solved":true,"first":15.0,"mk":19.0,"soc":81.0}},{"name":"g2_dmedium_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":20.0,"soc":90.0},"b":{"solved":true,"first":20.0,"mk":40.0,"soc":98.0}},{"name":"g3_dhigh_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":26.0,"mk":29.0,"soc":132.0},"b":{"solved":true,"first":61.0,"mk":33.0,"soc":140.0}},{"name":"g3_dhigh_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":106.0,"mk":43.0,"soc":182.0},"b":{"solved":true,"first":110.0,"mk":130.0,"soc":406.0}},{"name":"g3_dhigh_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":38.0,"mk":19.0,"soc":92.0},"b":{"solved":true,"first":64.0,"mk":23.0,"soc":104.0}},{"name":"g3_dhigh_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":128.0,"mk":23.0,"soc":114.0},"b":{"solved":true,"first":69.0,"mk":41.0,"soc":133.0}},{"name":"g3_dhigh_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":39.0,"mk":22.0,"soc":102.0},"b":{"solved":true,"first":51.0,"mk":27.0,"soc":112.0}},{"name":"g3_dhigh_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":128.0,"mk":21.0,"soc":102.0},"b":{"solved":true,"first":59.0,"mk":31.0,"soc":110.0}},{"name":"g3_dhigh_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":39.0,"mk":21.0,"soc":125.0},"b":{"solved":true,"first":47.0,"mk":23.0,"soc":131.0}},{"name":"g3_dhigh_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":51.0,"mk":32.0,"soc":196.0},"b":{"solved":true,"first":262.0,"mk":396.0,"soc":774.0}},{"name":"g3_dhigh_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":29.0,"mk":13.0,"soc":80.0},"b":{"solved":true,"first":51.0,"mk":20.0,"soc":94.0}},{"name":"g3_dhigh_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":68.0,"mk":19.0,"soc":121.0},"b":{"solved":true,"first":64.0,"mk":34.0,"soc":125.0}},{"name":"g3_dhigh_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":21.0,"mk":15.0,"soc":88.0},"b":{"solved":true,"first":50.0,"mk":17.0,"soc":94.0}},{"name":"g3_dhigh_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":56.0,"mk":16.0,"soc":88.0},"b":{"solved":true,"first":46.0,"mk":16.0,"soc":96.0}},{"name":"g3_dhigh_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":58.0,"mk":36.0,"soc":135.0},"b":{"solved":true,"first":62.0,"mk":39.0,"soc":133.0}},{"name":"g3_dhigh_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":287.0,"mk":53.0,"soc":188.0},"b":{"solved":true,"first":145.0,"mk":249.0,"soc":498.0}},{"name":"g3_dhigh_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":49.0,"mk":31.0,"soc":108.0},"b":{"solved":true,"first":54.0,"mk":36.0,"soc":100.0}},{"name":"g3_dhigh_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":205.0,"mk":39.0,"soc":132.0},"b":{"solved":true,"first":55.0,"mk":39.0,"soc":130.0}},{"name":"g3_dhigh_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":36.0,"mk":41.0,"soc":141.0},"b":{"solved":true,"first":61.0,"mk":37.0,"soc":133.0}},{"name":"g3_dhigh_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":122.0,"mk":31.0,"soc":108.0},"b":{"solved":true,"first":65.0,"mk":37.0,"soc":122.0}},{"name":"g3_dhigh_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":34.0,"mk":19.0,"soc":108.0},"b":{"solved":true,"first":51.0,"mk":20.0,"soc":112.0}},{"name":"g3_dhigh_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":98.0,"mk":37.0,"soc":202.0},"b":{"solved":true,"first":183.0,"mk":233.0,"soc":512.0}},{"name":"g3_dhigh_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":18.0,"mk":12.0,"soc":72.0},"b":{"solved":true,"first":43.0,"mk":14.0,"soc":78.0}},{"name":"g3_dhigh_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":37.0,"mk":16.0,"soc":111.0},"b":{"solved":true,"first":76.0,"mk":34.0,"soc":117.0}},{"name":"g3_dhigh_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":17.0,"mk":13.0,"soc":82.0},"b":{"solved":true,"first":47.0,"mk":14.0,"soc":88.0}},{"name":"g3_dhigh_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":21.0,"mk":14.0,"soc":75.0},"b":{"solved":true,"first":51.0,"mk":14.0,"soc":83.0}},{"name":"g3_dlow_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":19.0,"mk":29.0,"soc":132.0},"b":{"solved":true,"first":56.0,"mk":33.0,"soc":140.0}},{"name":"g3_dlow_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":48.0,"mk":45.0,"soc":177.0},"b":{"solved":true,"first":58.0,"mk":68.0,"soc":229.0}},{"name":"g3_dlow_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":16.0,"mk":19.0,"soc":94.0},"b":{"solved":true,"first":60.0,"mk":23.0,"soc":106.0}},{"name":"g3_dlow_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":23.0,"soc":104.0},"b":{"solved":true,"first":64.0,"mk":29.0,"soc":121.0}},{"name":"g3_dlow_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":18.0,"mk":22.0,"soc":102.0},"b":{"solved":true,"first":48.0,"mk":27.0,"soc":110.0}},{"name":"g3_dlow_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":34.0,"mk":21.0,"soc":102.0},"b":{"solved":true,"first":55.0,"mk":31.0,"soc":110.0}},{"name":"g3_dlow_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":21.0,"soc":123.0},"b":{"solved":true,"first":43.0,"mk":23.0,"soc":131.0}},{"name":"g3_dlow_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":35.0,"mk":31.0,"soc":181.0},"b":{"solved":true,"first":66.0,"mk":48.0,"soc":211.0}},{"name":"g3_dlow_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":13.0,"mk":13.0,"soc":78.0},"b":{"solved":true,"first":47.0,"mk":20.0,"soc":96.0}},{"name":"g3_dlow_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":17.0,"soc":97.0},"b":{"solved":true,"first":46.0,"mk":19.0,"soc":105.0}},{"name":"g3_dlow_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":14.0,"mk":15.0,"soc":88.0},"b":{"solved":true,"first":47.0,"mk":17.0,"soc":94.0}},{"name":"g3_dlow_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":14.0,"soc":86.0},"b":{"solved":true,"first":42.0,"mk":16.0,"soc":96.0}},{"name":"g3_dlow_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":25.0,"mk":36.0,"soc":135.0},"b":{"solved":true,"first":55.0,"mk":39.0,"soc":133.0}},{"name":"g3_dlow_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":58.0,"mk":47.0,"soc":155.0},"b":{"solved":true,"first":68.0,"mk":58.0,"soc":183.0}},{"name":"g3_dlow_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":39.0,"soc":140.0},"b":{"solved":true,"first":55.0,"mk":31.0,"soc":100.0}},{"name":"g3_dlow_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":52.0,"mk":35.0,"soc":126.0},"b":{"solved":true,"first":51.0,"mk":35.0,"soc":126.0}},{"name":"g3_dlow_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":21.0,"mk":41.0,"soc":141.0},"b":{"solved":true,"first":60.0,"mk":35.0,"soc":129.0}},{"name":"g3_dlow_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":46.0,"mk":31.0,"soc":108.0},"b":{"solved":true,"first":70.0,"mk":37.0,"soc":122.0}},{"name":"g3_dlow_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":18.0,"mk":19.0,"soc":108.0},"b":{"solved":true,"first":48.0,"mk":20.0,"soc":112.0}},{"name":"g3_dlow_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":47.0,"mk":40.0,"soc":177.0},"b":{"solved":true,"first":52.0,"mk":33.0,"soc":181.0}},{"name":"g3_dlow_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":13.0,"mk":12.0,"soc":72.0},"b":{"solved":true,"first":36.0,"mk":14.0,"soc":80.0}},{"name":"g3_dlow_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":15.0,"soc":87.0},"b":{"solved":true,"first":50.0,"mk":16.0,"soc":97.0}},{"name":"g3_dlow_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":12.0,"mk":13.0,"soc":82.0},"b":{"solved":true,"first":43.0,"mk":14.0,"soc":88.0}},{"name":"g3_dlow_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":15.0,"mk":14.0,"soc":73.0},"b":{"solved":true,"first":46.0,"mk":14.0,"soc":83.0}},{"name":"g3_dmedium_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":25.0,"mk":29.0,"soc":132.0},"b":{"solved":true,"first":57.0,"mk":33.0,"soc":140.0}},{"name":"g3_dmedium_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":68.0,"mk":45.0,"soc":177.0},"b":{"solved":true,"first":88.0,"mk":149.0,"soc":411.0}},{"name":"g3_dmedium_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":19.0,"soc":92.0},"b":{"solved":true,"first":74.0,"mk":23.0,"soc":104.0}},{"name":"g3_dmedium_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":37.0,"mk":23.0,"soc":104.0},"b":{"solved":true,"first":66.0,"mk":29.0,"soc":121.0}},{"name":"g3_dmedium_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":18.0,"mk":22.0,"soc":102.0},"b":{"solved":true,"first":52.0,"mk":27.0,"soc":112.0}},{"name":"g3_dmedium_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":43.0,"mk":21.0,"soc":102.0},"b":{"solved":true,"first":57.0,"mk":31.0,"soc":110.0}},{"name":"g3_dmedium_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":22.0,"mk":21.0,"soc":123.0},"b":{"solved":true,"first":45.0,"mk":23.0,"soc":131.0}},{"name":"g3_dmedium_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":43.0,"mk":31.0,"soc":181.0},"b":{"solved":true,"first":86.0,"mk":111.0,"soc":300.0}},{"name":"g3_dmedium_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":16.0,"mk":13.0,"soc":80.0},"b":{"solved":true,"first":49.0,"mk":20.0,"soc":94.0}},{"name":"g3_dmedium_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":29.0,"mk":17.0,"soc":97.0},"b":{"solved":true,"first":48.0,"mk":19.0,"soc":105.0}},{"name":"g3_dmedium_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":16.0,"mk":15.0,"soc":88.0},"b":{"solved":true,"first":49.0,"mk":17.0,"soc":94.0}},{"name":"g3_dmedium_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":25.0,"mk":16.0,"soc":88.0},"b":{"solved":true,"first":44.0,"mk":16.0,"soc":96.0}},{"name":"g3_dmedium_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":30.0,"mk":36.0,"soc":135.0},"b":{"solved":true,"first":57.0,"mk":39.0,"soc":133.0}},{"name":"g3_dmedium_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":98.0,"mk":47.0,"soc":155.0},"b":{"solved":true,"first":89.0,"mk":129.0,"soc":418.0}},{"name":"g3_dmedium_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":24.0,"mk":31.0,"soc":108.0},"b":{"solved":true,"first":54.0,"mk":36.0,"soc":100.0}},{"name":"g3_dmedium_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":101.0,"mk":35.0,"soc":126.0},"b":{"solved":true,"first":59.0,"mk":35.0,"soc":126.0}},{"name":"g3_dmedium_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":23.0,"mk":41.0,"soc":141.0},"b":{"solved":true,"first":58.0,"mk":37.0,"soc":133.0}},{"name":"g3_dmedium_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":67.0,"mk":31.0,"soc":108.0},"b":{"solved":true,"first":61.0,"mk":37.0,"soc":122.0}},{"name":"g3_dmedium_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":20.0,"mk":19.0,"soc":108.0},"b":{"solved":true,"first":49.0,"mk":20.0,"soc":112.0}},{"name":"g3_dmedium_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":79.0,"mk":41.0,"soc":169.0},"b":{"solved":true,"first":64.0,"mk":39.0,"soc":189.0}},{"name":"g3_dmedium_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":15.0,"mk":12.0,"soc":72.0},"b":{"solved":true,"first":42.0,"mk":14.0,"soc":78.0}},{"name":"g3_dmedium_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":28.0,"mk":15.0,"soc":89.0},"b":{"solved":true,"first":53.0,"mk":16.0,"soc":97.0}},{"name":"g3_dmedium_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":14.0,"mk":13.0,"soc":82.0},"b":{"solved":true,"first":44.0,"mk":14.0,"soc":88.0}},{"name":"g3_dmedium_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":16.0,"mk":14.0,"soc":75.0},"b":{"solved":true,"first":48.0,"mk":14.0,"soc":83.0}},{"name":"g4_dhigh_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":100.0,"mk":34.0,"soc":222.0},"b":{"solved":true,"first":198.0,"mk":47.0,"soc":222.0}},{"name":"g4_dhigh_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":353.0,"mk":118.0,"soc":340.0},"b":{"solved":true,"first":171.0,"mk":41.0,"soc":240.0}},{"name":"g4_dhigh_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":68.0,"mk":25.0,"soc":169.0},"b":{"solved":true,"first":162.0,"mk":37.0,"soc":188.0}},{"name":"g4_dhigh_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":201.0,"mk":31.0,"soc":190.0},"b":{"solved":true,"first":221.0,"mk":43.0,"soc":208.0}},{"name":"g4_dhigh_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":77.0,"mk":27.0,"soc":174.0},"b":{"solved":true,"first":142.0,"mk":30.0,"soc":182.0}},{"name":"g4_dhigh_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":231.0,"mk":35.0,"soc":223.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g4_dhigh_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":89.0,"mk":31.0,"soc":201.0},"b":{"solved":true,"first":156.0,"mk":37.0,"soc":192.0}},{"name":"g4_dhigh_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":153.0,"mk":36.0,"soc":262.0},"b":{"solved":true,"first":165.0,"mk":35.0,"soc":261.0}},{"name":"g4_dhigh_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":54.0,"mk":20.0,"soc":175.0},"b":{"solved":true,"first":158.0,"mk":22.0,"soc":183.0}},{"name":"g4_dhigh_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":126.0,"mk":22.0,"soc":200.0},"b":{"solved":true,"first":207.0,"mk":33.0,"soc":195.0}},{"name":"g4_dhigh_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":67.0,"mk":24.0,"soc":196.0},"b":{"solved":true,"first":200.0,"mk":26.0,"soc":208.0}},{"name":"g4_dhigh_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":157.0,"mk":31.0,"soc":236.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g4_dhigh_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":113.0,"mk":44.0,"soc":236.0},"b":{"solved":true,"first":229.0,"mk":49.0,"soc":213.0}},{"name":"g4_dhigh_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":384.0,"mk":49.0,"soc":277.0},"b":{"solved":true,"first":230.0,"mk":80.0,"soc":373.0}},{"name":"g4_dhigh_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":94.0,"mk":44.0,"soc":230.0},"b":{"solved":true,"first":195.0,"mk":40.0,"soc":204.0}},{"name":"g4_dhigh_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":323.0,"mk":54.0,"soc":262.0},"b":{"solved":true,"first":248.0,"mk":54.0,"soc":240.0}},{"name":"g4_dhigh_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":109.0,"mk":39.0,"soc":213.0},"b":{"solved":true,"first":191.0,"mk":43.0,"soc":217.0}},{"name":"g4_dhigh_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":334.0,"mk":46.0,"soc":239.0},"b":{"solved":true,"first":207.0,"mk":55.0,"soc":288.0}},{"name":"g4_dhigh_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":66.0,"mk":22.0,"soc":166.0},"b":{"solved":true,"first":175.0,"mk":35.0,"soc":174.0}},{"name":"g4_dhigh_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":107.0,"mk":30.0,"soc":209.0},"b":{"solved":true,"first":178.0,"mk":29.0,"soc":226.0}},{"name":"g4_dhigh_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":54.0,"mk":20.0,"soc":143.0},"b":{"solved":true,"first":187.0,"mk":22.0,"soc":151.0}},{"name":"g4_dhigh_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":67.0,"mk":25.0,"soc":184.0},"b":{"solved":true,"first":199.0,"mk":32.0,"soc":175.0}},{"name":"g4_dhigh_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":51.0,"mk":21.0,"soc":139.0},"b":{"solved":true,"first":142.0,"mk":22.0,"soc":151.0}},{"name":"g4_dhigh_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":125.0,"mk":57.0,"soc":268.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g4_dlow_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":68.0,"mk":33.0,"soc":199.0},"b":{"solved":true,"first":192.0,"mk":36.0,"soc":208.0}},{"name":"g4_dlow_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":170.0,"mk":40.0,"soc":256.0},"b":{"solved":true,"first":173.0,"mk":41.0,"soc":242.0}},{"name":"g4_dlow_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":52.0,"mk":28.0,"soc":172.0},"b":{"solved":true,"first":164.0,"mk":34.0,"soc":188.0}},{"name":"g4_dlow_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":105.0,"mk":28.0,"soc":185.0},"b":{"solved":true,"first":150.0,"mk":30.0,"soc":182.0}},{"name":"g4_dlow_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":52.0,"mk":27.0,"soc":175.0},"b":{"solved":true,"first":176.0,"mk":35.0,"soc":199.0}},{"name":"g4_dlow_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":156.0,"mk":40.0,"soc":227.0},"b":{"solved":true,"first":173.0,"mk":36.0,"soc":240.0}},{"name":"g4_dlow_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":55.0,"mk":25.0,"soc":179.0},"b":{"solved":true,"first":157.0,"mk":22.0,"soc":183.0}},{"name":"g4_dlow_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":90.0,"mk":36.0,"soc":248.0},"b":{"solved":true,"first":169.0,"mk":39.0,"soc":265.0}},{"name":"g4_dlow_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":44.0,"mk":21.0,"soc":171.0},"b":{"solved":true,"first":136.0,"mk":21.0,"soc":181.0}},{"name":"g4_dlow_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":47.0,"mk":17.0,"soc":157.0},"b":{"solved":true,"first":159.0,"mk":19.0,"soc":169.0}},{"name":"g4_dlow_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":44.0,"mk":22.0,"soc":189.0},"b":{"solved":true,"first":172.0,"mk":26.0,"soc":205.0}},{"name":"g4_dlow_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":130.0,"mk":33.0,"soc":232.0},"b":{"solved":true,"first":162.0,"mk":28.0,"soc":239.0}},{"name":"g4_dlow_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":74.0,"mk":38.0,"soc":209.0},"b":{"solved":true,"first":145.0,"mk":51.0,"soc":216.0}},{"name":"g4_dlow_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":221.0,"mk":55.0,"soc":284.0},"b":{"solved":true,"first":192.0,"mk":79.0,"soc":370.0}},{"name":"g4_dlow_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":74.0,"mk":41.0,"soc":204.0},"b":{"solved":true,"first":195.0,"mk":45.0,"soc":219.0}},{"name":"g4_dlow_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":141.0,"mk":39.0,"soc":212.0},"b":{"solved":true,"first":196.0,"mk":43.0,"soc":221.0}},{"name":"g4_dlow_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":67.0,"mk":39.0,"soc":209.0},"b":{"solved":true,"first":225.0,"mk":42.0,"soc":208.0}},{"name":"g4_dlow_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":237.0,"mk":44.0,"soc":239.0},"b":{"solved":true,"first":202.0,"mk":53.0,"soc":281.0}},{"name":"g4_dlow_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":46.0,"mk":19.0,"soc":154.0},"b":{"solved":true,"first":124.0,"mk":21.0,"soc":164.0}},{"name":"g4_dlow_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":79.0,"mk":30.0,"soc":209.0},"b":{"solved":true,"first":160.0,"mk":25.0,"soc":216.0}},{"name":"g4_dlow_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":45.0,"mk":21.0,"soc":139.0},"b":{"solved":true,"first":153.0,"mk":21.0,"soc":149.0}},{"name":"g4_dlow_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":38.0,"mk":16.0,"soc":135.0},"b":{"solved":true,"first":130.0,"mk":17.0,"soc":149.0}},{"name":"g4_dlow_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":39.0,"mk":19.0,"soc":148.0},"b":{"solved":true,"first":164.0,"mk":25.0,"soc":150.0}},{"name":"g4_dlow_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":92.0,"mk":53.0,"soc":252.0},"b":{"solved":true,"first":168.0,"mk":23.0,"soc":202.0}},{"name":"g4_dmedium_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":84.0,"mk":34.0,"soc":216.0},"b":{"solved":true,"first":168.0,"mk":40.0,"soc":220.0}},{"name":"g4_dmedium_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":256.0,"mk":40.0,"soc":256.0},"b":{"solved":true,"first":166.0,"mk":41.0,"soc":240.0}},{"name":"g4_dmedium_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":58.0,"mk":24.0,"soc":164.0},"b":{"solved":true,"first":156.0,"mk":31.0,"soc":193.0}},{"name":"g4_dmedium_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":135.0,"mk":34.0,"soc":216.0},"b":{"solved":true,"first":175.0,"mk":38.0,"soc":194.0}},{"name":"g4_dmedium_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":79.0,"mk":27.0,"soc":175.0},"b":{"solved":true,"first":178.0,"mk":35.0,"soc":199.0}},{"name":"g4_dmedium_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":169.0,"mk":35.0,"soc":223.0},"b":{"solved":true,"first":168.0,"mk":35.0,"soc":238.0}},{"name":"g4_dmedium_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":56.0,"mk":23.0,"soc":175.0},"b":{"solved":true,"first":144.0,"mk":23.0,"soc":185.0}},{"name":"g4_dmedium_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":137.0,"mk":36.0,"soc":248.0},"b":{"solved":true,"first":161.0,"mk":35.0,"soc":261.0}},{"name":"g4_dmedium_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":51.0,"mk":20.0,"soc":173.0},"b":{"solved":true,"first":136.0,"mk":22.0,"soc":183.0}},{"name":"g4_dmedium_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":63.0,"mk":19.0,"soc":170.0},"b":{"solved":true,"first":181.0,"mk":30.0,"soc":181.0}},{"name":"g4_dmedium_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":52.0,"mk":22.0,"soc":189.0},"b":{"solved":true,"first":175.0,"mk":26.0,"soc":205.0}},{"name":"g4_dmedium_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":150.0,"mk":31.0,"soc":236.0},"b":{"solved":true,"first":144.0,"mk":28.0,"soc":238.0}},{"name":"g4_dmedium_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":97.0,"mk":47.0,"soc":256.0},"b":{"solved":true,"first":159.0,"mk":55.0,"soc":234.0}},{"name":"g4_dmedium_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":338.0,"mk":55.0,"soc":284.0},"b":{"solved":true,"first":227.0,"mk":80.0,"soc":373.0}},{"name":"g4_dmedium_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":80.0,"mk":40.0,"soc":194.0},"b":{"solved":true,"first":187.0,"mk":39.0,"soc":205.0}},{"name":"g4_dmedium_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":156.0,"mk":41.0,"soc":226.0},"b":{"solved":true,"first":259.0,"mk":52.0,"soc":233.0}},{"name":"g4_dmedium_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":80.0,"mk":39.0,"soc":209.0},"b":{"solved":true,"first":231.0,"mk":42.0,"soc":208.0}},{"name":"g4_dmedium_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":242.0,"mk":44.0,"soc":239.0},"b":{"solved":true,"first":200.0,"mk":55.0,"soc":288.0}},{"name":"g4_dmedium_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":58.0,"mk":23.0,"soc":156.0},"b":{"solved":true,"first":129.0,"mk":23.0,"soc":166.0}},{"name":"g4_dmedium_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":101.0,"mk":30.0,"soc":209.0},"b":{"solved":true,"first":176.0,"mk":39.0,"soc":236.0}},{"name":"g4_dmedium_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":46.0,"mk":20.0,"soc":141.0},"b":{"solved":true,"first":146.0,"mk":22.0,"soc":151.0}},{"name":"g4_dmedium_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":46.0,"mk":19.0,"soc":156.0},"b":{"solved":true,"first":212.0,"mk":29.0,"soc":161.0}},{"name":"g4_dmedium_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":43.0,"mk":19.0,"soc":152.0},"b":{"solved":true,"first":167.0,"mk":25.0,"soc":150.0}},{"name":"g4_dmedium_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":105.0,"mk":52.0,"soc":253.0},"b":{"solved":true,"first":165.0,"mk":25.0,"soc":210.0}},{"name":"g5_dhigh_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":172.0,"mk":33.0,"soc":304.0},"b":{"solved":true,"first":392.0,"mk":38.0,"soc":324.0}},{"name":"g5_dhigh_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":678.0,"mk":56.0,"soc":525.0},"b":{"solved":true,"first":496.0,"mk":78.0,"soc":473.0}},{"name":"g5_dhigh_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":177.0,"mk":32.0,"soc":310.0},"b":{"solved":true,"first":504.0,"mk":59.0,"soc":339.0}},{"name":"g5_dhigh_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":274.0,"mk":35.0,"soc":294.0},"b":{"solved":true,"first":398.0,"mk":50.0,"soc":332.0}},{"name":"g5_dhigh_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":175.0,"mk":31.0,"soc":282.0},"b":{"solved":true,"first":361.0,"mk":35.0,"soc":274.0}},{"name":"g5_dhigh_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":333.0,"mk":58.0,"soc":406.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g5_dhigh_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":157.0,"mk":27.0,"soc":298.0},"b":{"solved":true,"first":378.0,"mk":27.0,"soc":311.0}},{"name":"g5_dhigh_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":527.0,"mk":60.0,"soc":570.0},"b":{"solved":true,"first":527.0,"mk":85.0,"soc":485.0}},{"name":"g5_dhigh_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":187.0,"mk":32.0,"soc":291.0},"b":{"solved":true,"first":374.0,"mk":28.0,"soc":290.0}},{"name":"g5_dhigh_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":220.0,"mk":35.0,"soc":293.0},"b":{"solved":true,"first":419.0,"mk":47.0,"soc":292.0}},{"name":"g5_dhigh_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":130.0,"mk":27.0,"soc":281.0},"b":{"solved":true,"first":273.0,"mk":22.0,"soc":269.0}},{"name":"g5_dhigh_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":259.0,"mk":53.0,"soc":379.0},"b":{"solved":true,"first":497.0,"mk":56.0,"soc":367.0}},{"name":"g5_dhigh_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":256.0,"mk":53.0,"soc":360.0},"b":{"solved":true,"first":506.0,"mk":57.0,"soc":384.0}},{"name":"g5_dhigh_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":997.0,"mk":74.0,"soc":484.0},"b":{"solved":true,"first":619.0,"mk":114.0,"soc":574.0}},{"name":"g5_dhigh_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":247.0,"mk":44.0,"soc":293.0},"b":{"solved":true,"first":420.0,"mk":50.0,"soc":323.0}},{"name":"g5_dhigh_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":440.0,"mk":49.0,"soc":341.0},"b":{"solved":true,"first":509.0,"mk":62.0,"soc":334.0}},{"name":"g5_dhigh_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":236.0,"mk":43.0,"soc":308.0},"b":{"solved":true,"first":394.0,"mk":54.0,"soc":306.0}},{"name":"g5_dhigh_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":604.0,"mk":72.0,"soc":437.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g5_dhigh_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":118.0,"mk":22.0,"soc":238.0},"b":{"solved":true,"first":290.0,"mk":24.0,"soc":250.0}},{"name":"g5_dhigh_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":378.0,"mk":50.0,"soc":458.0},"b":{"solved":true,"first":495.0,"mk":73.0,"soc":426.0}},{"name":"g5_dhigh_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":136.0,"mk":22.0,"soc":235.0},"b":{"solved":true,"first":335.0,"mk":24.0,"soc":242.0}},{"name":"g5_dhigh_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":192.0,"mk":27.0,"soc":262.0},"b":{"solved":true,"first":358.0,"mk":41.0,"soc":266.0}},{"name":"g5_dhigh_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":125.0,"mk":25.0,"soc":274.0},"b":{"solved":true,"first":278.0,"mk":19.0,"soc":244.0}},{"name":"g5_dhigh_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":223.0,"mk":41.0,"soc":335.0},"b":{"solved":true,"first":1189.0,"mk":557.0,"soc":1096.0}},{"name":"g5_dlow_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":130.0,"mk":32.0,"soc":295.0},"b":{"solved":true,"first":331.0,"mk":35.0,"soc":304.0}},{"name":"g5_dlow_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":313.0,"mk":57.0,"soc":452.0},"b":{"solved":true,"first":399.0,"mk":65.0,"soc":452.0}},{"name":"g5_dlow_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":115.0,"mk":28.0,"soc":277.0},"b":{"solved":true,"first":348.0,"mk":32.0,"soc":291.0}},{"name":"g5_dlow_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":164.0,"mk":35.0,"soc":290.0},"b":{"solved":true,"first":381.0,"mk":48.0,"soc":327.0}},{"name":"g5_dlow_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":119.0,"mk":25.0,"soc":248.0},"b":{"solved":true,"first":331.0,"mk":28.0,"soc":262.0}},{"name":"g5_dlow_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":238.0,"mk":42.0,"soc":381.0},"b":{"solved":true,"first":396.0,"mk":53.0,"soc":420.0}},{"name":"g5_dlow_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":126.0,"mk":27.0,"soc":286.0},"b":{"solved":true,"first":405.0,"mk":43.0,"soc":317.0}},{"name":"g5_dlow_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":287.0,"mk":61.0,"soc":506.0},"b":{"solved":true,"first":510.0,"mk":69.0,"soc":474.0}},{"name":"g5_dlow_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":96.0,"mk":23.0,"soc":272.0},"b":{"solved":true,"first":275.0,"mk":24.0,"soc":274.0}},{"name":"g5_dlow_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":147.0,"mk":35.0,"soc":281.0},"b":{"solved":true,"first":359.0,"mk":44.0,"soc":289.0}},{"name":"g5_dlow_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":99.0,"mk":24.0,"soc":280.0},"b":{"solved":true,"first":219.0,"mk":19.0,"soc":271.0}},{"name":"g5_dlow_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":197.0,"mk":43.0,"soc":358.0},"b":{"solved":true,"first":372.0,"mk":54.0,"soc":375.0}},{"name":"g5_dlow_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":204.0,"mk":53.0,"soc":362.0},"b":{"solved":true,"first":442.0,"mk":52.0,"soc":343.0}},{"name":"g5_dlow_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":487.0,"mk":73.0,"soc":488.0},"b":{"solved":true,"first":454.0,"mk":77.0,"soc":497.0}},{"name":"g5_dlow_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":142.0,"mk":37.0,"soc":256.0},"b":{"solved":true,"first":408.0,"mk":48.0,"soc":290.0}},{"name":"g5_dlow_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":259.0,"mk":49.0,"soc":335.0},"b":{"solved":true,"first":416.0,"mk":54.0,"soc":325.0}},{"name":"g5_dlow_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":171.0,"mk":41.0,"soc":287.0},"b":{"solved":true,"first":440.0,"mk":52.0,"soc":316.0}},{"name":"g5_dlow_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":340.0,"mk":57.0,"soc":399.0},"b":{"solved":true,"first":434.0,"mk":67.0,"soc":434.0}},{"name":"g5_dlow_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":95.0,"mk":24.0,"soc":244.0},"b":{"solved":true,"first":296.0,"mk":22.0,"soc":248.0}},{"name":"g5_dlow_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":174.0,"mk":45.0,"soc":365.0},"b":{"solved":true,"first":419.0,"mk":50.0,"soc":398.0}},{"name":"g5_dlow_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":78.0,"mk":19.0,"soc":222.0},"b":{"solved":true,"first":294.0,"mk":22.0,"soc":234.0}},{"name":"g5_dlow_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":120.0,"mk":26.0,"soc":252.0},"b":{"solved":true,"first":288.0,"mk":34.0,"soc":259.0}},{"name":"g5_dlow_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":91.0,"mk":26.0,"soc":232.0},"b":{"solved":true,"first":239.0,"mk":18.0,"soc":236.0}},{"name":"g5_dlow_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":165.0,"mk":43.0,"soc":320.0},"b":{"solved":true,"first":436.0,"mk":43.0,"soc":328.0}},{"name":"g5_dmedium_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":153.0,"mk":32.0,"soc":302.0},"b":{"solved":true,"first":420.0,"mk":38.0,"soc":324.0}},{"name":"g5_dmedium_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":469.0,"mk":54.0,"soc":502.0},"b":{"solved":true,"first":489.0,"mk":76.0,"soc":516.0}},{"name":"g5_dmedium_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":136.0,"mk":28.0,"soc":275.0},"b":{"solved":true,"first":368.0,"mk":32.0,"soc":291.0}},{"name":"g5_dmedium_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":225.0,"mk":35.0,"soc":290.0},"b":{"solved":true,"first":390.0,"mk":48.0,"soc":327.0}},{"name":"g5_dmedium_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":126.0,"mk":26.0,"soc":252.0},"b":{"solved":true,"first":319.0,"mk":28.0,"soc":262.0}},{"name":"g5_dmedium_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":279.0,"mk":48.0,"soc":366.0},"b":{"solved":true,"first":402.0,"mk":56.0,"soc":399.0}},{"name":"g5_dmedium_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":130.0,"mk":25.0,"soc":292.0},"b":{"solved":true,"first":358.0,"mk":39.0,"soc":325.0}},{"name":"g5_dmedium_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":385.0,"mk":62.0,"soc":532.0},"b":{"solved":true,"first":533.0,"mk":104.0,"soc":543.0}},{"name":"g5_dmedium_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":107.0,"mk":24.0,"soc":273.0},"b":{"solved":true,"first":287.0,"mk":24.0,"soc":274.0}},{"name":"g5_dmedium_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":183.0,"mk":35.0,"soc":281.0},"b":{"solved":true,"first":397.0,"mk":44.0,"soc":289.0}},{"name":"g5_dmedium_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":118.0,"mk":27.0,"soc":288.0},"b":{"solved":true,"first":225.0,"mk":19.0,"soc":271.0}},{"name":"g5_dmedium_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":210.0,"mk":45.0,"soc":361.0},"b":{"solved":true,"first":462.0,"mk":65.0,"soc":386.0}},{"name":"g5_dmedium_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":221.0,"mk":47.0,"soc":342.0},"b":{"solved":true,"first":492.0,"mk":57.0,"soc":384.0}},{"name":"g5_dmedium_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":752.0,"mk":76.0,"soc":551.0},"b":{"solved":true,"first":525.0,"mk":101.0,"soc":568.0}},{"name":"g5_dmedium_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":172.0,"mk":37.0,"soc":271.0},"b":{"solved":true,"first":415.0,"mk":48.0,"soc":290.0}},{"name":"g5_dmedium_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":346.0,"mk":49.0,"soc":335.0},"b":{"solved":true,"first":429.0,"mk":54.0,"soc":325.0}},{"name":"g5_dmedium_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":186.0,"mk":41.0,"soc":285.0},"b":{"solved":true,"first":454.0,"mk":52.0,"soc":315.0}},{"name":"g5_dmedium_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":430.0,"mk":61.0,"soc":421.0},"b":{"solved":true,"first":535.0,"mk":69.0,"soc":430.0}},{"name":"g5_dmedium_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":105.0,"mk":22.0,"soc":232.0},"b":{"solved":true,"first":285.0,"mk":24.0,"soc":250.0}},{"name":"g5_dmedium_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":250.0,"mk":44.0,"soc":383.0},"b":{"solved":true,"first":499.0,"mk":67.0,"soc":453.0}},{"name":"g5_dmedium_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":93.0,"mk":22.0,"soc":232.0},"b":{"solved":true,"first":301.0,"mk":22.0,"soc":234.0}},{"name":"g5_dmedium_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":158.0,"mk":27.0,"soc":252.0},"b":{"solved":true,"first":317.0,"mk":38.0,"soc":263.0}},{"name":"g5_dmedium_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":98.0,"mk":26.0,"soc":232.0},"b":{"solved":true,"first":243.0,"mk":18.0,"soc":236.0}},{"name":"g5_dmedium_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":206.0,"mk":63.0,"soc":372.0},"b":{"solved":true,"first":509.0,"mk":56.0,"soc":332.0}},{"name":"g6_dhigh_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":460.0,"mk":53.0,"soc":550.0},"b":{"solved":true,"first":782.0,"mk":92.0,"soc":518.0}},{"name":"g6_dhigh_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":739.0,"mk":91.0,"soc":731.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":299.0,"mk":39.0,"soc":379.0},"b":{"solved":true,"first":552.0,"mk":52.0,"soc":404.0}},{"name":"g6_dhigh_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":795.0,"mk":66.0,"soc":672.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":346.0,"mk":44.0,"soc":400.0},"b":{"solved":true,"first":483.0,"mk":46.0,"soc":391.0}},{"name":"g6_dhigh_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":740.0,"mk":108.0,"soc":707.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":439.0,"mk":61.0,"soc":591.0},"b":{"solved":true,"first":805.0,"mk":74.0,"soc":515.0}},{"name":"g6_dhigh_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":464.0,"mk":79.0,"soc":682.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":270.0,"mk":27.0,"soc":348.0},"b":{"solved":true,"first":440.0,"mk":35.0,"soc":359.0}},{"name":"g6_dhigh_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":565.0,"mk":69.0,"soc":681.0},"b":{"solved":true,"first":730.0,"mk":99.0,"soc":741.0}},{"name":"g6_dhigh_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":270.0,"mk":30.0,"soc":339.0},"b":{"solved":true,"first":453.0,"mk":30.0,"soc":350.0}},{"name":"g6_dhigh_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":486.0,"mk":72.0,"soc":639.0},"b":{"solved":true,"first":520.0,"mk":60.0,"soc":675.0}},{"name":"g6_dhigh_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":543.0,"mk":69.0,"soc":534.0},"b":{"solved":true,"first":788.0,"mk":115.0,"soc":551.0}},{"name":"g6_dhigh_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":789.0,"mk":93.0,"soc":765.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":370.0,"mk":56.0,"soc":431.0},"b":{"solved":true,"first":667.0,"mk":59.0,"soc":420.0}},{"name":"g6_dhigh_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":837.0,"mk":77.0,"soc":585.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":384.0,"mk":59.0,"soc":392.0},"b":{"solved":true,"first":557.0,"mk":62.0,"soc":478.0}},{"name":"g6_dhigh_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":843.0,"mk":81.0,"soc":605.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":495.0,"mk":67.0,"soc":495.0},"b":{"solved":true,"first":755.0,"mk":74.0,"soc":441.0}},{"name":"g6_dhigh_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":498.0,"mk":93.0,"soc":634.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":181.0,"mk":26.0,"soc":294.0},"b":{"solved":true,"first":499.0,"mk":34.0,"soc":304.0}},{"name":"g6_dhigh_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":458.0,"mk":61.0,"soc":547.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dhigh_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":235.0,"mk":33.0,"soc":295.0},"b":{"solved":true,"first":460.0,"mk":30.0,"soc":297.0}},{"name":"g6_dhigh_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":366.0,"mk":56.0,"soc":523.0},"b":{"solved":true,"first":501.0,"mk":46.0,"soc":542.0}},{"name":"g6_dlow_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":222.0,"mk":37.0,"soc":380.0},"b":{"solved":true,"first":607.0,"mk":64.0,"soc":446.0}},{"name":"g6_dlow_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":501.0,"mk":82.0,"soc":706.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dlow_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":207.0,"mk":40.0,"soc":394.0},"b":{"solved":true,"first":540.0,"mk":53.0,"soc":409.0}},{"name":"g6_dlow_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":804.0,"mk":187.0,"soc":986.0},"b":{"solved":true,"first":471.0,"mk":60.0,"soc":635.0}},{"name":"g6_dlow_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":265.0,"mk":39.0,"soc":377.0},"b":{"solved":true,"first":590.0,"mk":53.0,"soc":446.0}},{"name":"g6_dlow_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":414.0,"mk":72.0,"soc":629.0},"b":{"solved":true,"first":531.0,"mk":73.0,"soc":684.0}},{"name":"g6_dlow_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":184.0,"mk":31.0,"soc":410.0},"b":{"solved":true,"first":545.0,"mk":53.0,"soc":409.0}},{"name":"g6_dlow_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":329.0,"mk":69.0,"soc":645.0},"b":{"solved":true,"first":646.0,"mk":107.0,"soc":900.0}},{"name":"g6_dlow_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":158.0,"mk":28.0,"soc":321.0},"b":{"solved":true,"first":401.0,"mk":32.0,"soc":343.0}},{"name":"g6_dlow_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":501.0,"mk":62.0,"soc":661.0},"b":{"solved":true,"first":472.0,"mk":66.0,"soc":703.0}},{"name":"g6_dlow_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":222.0,"mk":30.0,"soc":344.0},"b":{"solved":true,"first":421.0,"mk":33.0,"soc":362.0}},{"name":"g6_dlow_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":326.0,"mk":61.0,"soc":613.0},"b":{"solved":true,"first":459.0,"mk":79.0,"soc":672.0}},{"name":"g6_dlow_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":269.0,"mk":54.0,"soc":408.0},"b":{"solved":true,"first":608.0,"mk":73.0,"soc":415.0}},{"name":"g6_dlow_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":667.0,"mk":99.0,"soc":767.0},"b":{"solved":true,"first":655.0,"mk":134.0,"soc":865.0}},{"name":"g6_dlow_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":305.0,"mk":79.0,"soc":426.0},"b":{"solved":true,"first":559.0,"mk":63.0,"soc":409.0}},{"name":"g6_dlow_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":826.0,"mk":96.0,"soc":701.0},"b":{"solved":true,"first":657.0,"mk":97.0,"soc":728.0}},{"name":"g6_dlow_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":325.0,"mk":51.0,"soc":363.0},"b":{"solved":true,"first":625.0,"mk":61.0,"soc":432.0}},{"name":"g6_dlow_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":475.0,"mk":81.0,"soc":608.0},"b":{"solved":true,"first":561.0,"mk":86.0,"soc":658.0}},{"name":"g6_dlow_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":161.0,"mk":25.0,"soc":349.0},"b":{"solved":true,"first":485.0,"mk":45.0,"soc":353.0}},{"name":"g6_dlow_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":363.0,"mk":76.0,"soc":645.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dlow_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":140.0,"mk":26.0,"soc":275.0},"b":{"solved":true,"first":466.0,"mk":30.0,"soc":297.0}},{"name":"g6_dlow_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":330.0,"mk":71.0,"soc":572.0},"b":{"solved":true,"first":686.0,"mk":100.0,"soc":701.0}},{"name":"g6_dlow_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":192.0,"mk":33.0,"soc":280.0},"b":{"solved":true,"first":450.0,"mk":33.0,"soc":295.0}},{"name":"g6_dlow_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":261.0,"mk":45.0,"soc":513.0},"b":{"solved":true,"first":613.0,"mk":77.0,"soc":592.0}},{"name":"g6_dmedium_abaseline_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":394.0,"mk":56.0,"soc":509.0},"b":{"solved":true,"first":804.0,"mk":84.0,"soc":501.0}},{"name":"g6_dmedium_abaseline_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":618.0,"mk":94.0,"soc":773.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dmedium_abaseline_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":244.0,"mk":40.0,"soc":376.0},"b":{"solved":true,"first":549.0,"mk":57.0,"soc":430.0}},{"name":"g6_dmedium_abaseline_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":918.0,"mk":173.0,"soc":881.0},"b":{"solved":true,"first":548.0,"mk":65.0,"soc":650.0}},{"name":"g6_dmedium_abaseline_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":315.0,"mk":45.0,"soc":389.0},"b":{"solved":true,"first":522.0,"mk":49.0,"soc":406.0}},{"name":"g6_dmedium_abaseline_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":595.0,"mk":72.0,"soc":629.0},"b":{"solved":true,"first":587.0,"mk":90.0,"soc":743.0}},{"name":"g6_dmedium_aequal_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":298.0,"mk":43.0,"soc":511.0},"b":{"solved":true,"first":897.0,"mk":76.0,"soc":494.0}},{"name":"g6_dmedium_aequal_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":389.0,"mk":75.0,"soc":672.0},"b":{"solved":true,"first":1109.0,"mk":237.0,"soc":1346.0}},{"name":"g6_dmedium_aequal_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":183.0,"mk":27.0,"soc":346.0},"b":{"solved":true,"first":473.0,"mk":38.0,"soc":363.0}},{"name":"g6_dmedium_aequal_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":522.0,"mk":61.0,"soc":662.0},"b":{"solved":true,"first":618.0,"mk":96.0,"soc":789.0}},{"name":"g6_dmedium_aequal_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":261.0,"mk":30.0,"soc":334.0},"b":{"solved":true,"first":487.0,"mk":30.0,"soc":348.0}},{"name":"g6_dmedium_aequal_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":392.0,"mk":63.0,"soc":619.0},"b":{"solved":true,"first":650.0,"mk":97.0,"soc":746.0}},{"name":"g6_dmedium_ascarce_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":473.0,"mk":71.0,"soc":544.0},"b":{"solved":true,"first":915.0,"mk":89.0,"soc":471.0}},{"name":"g6_dmedium_ascarce_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":778.0,"mk":106.0,"soc":770.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dmedium_ascarce_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":324.0,"mk":55.0,"soc":441.0},"b":{"solved":true,"first":666.0,"mk":62.0,"soc":432.0}},{"name":"g6_dmedium_ascarce_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":951.0,"mk":88.0,"soc":666.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dmedium_ascarce_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":366.0,"mk":53.0,"soc":377.0},"b":{"solved":true,"first":594.0,"mk":57.0,"soc":421.0}},{"name":"g6_dmedium_ascarce_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":710.0,"mk":81.0,"soc":608.0},"b":{"solved":true,"first":706.0,"mk":105.0,"soc":726.0}},{"name":"g6_dmedium_asurplus_pcross_heavy_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":278.0,"mk":39.0,"soc":480.0},"b":{"solved":true,"first":729.0,"mk":65.0,"soc":415.0}},{"name":"g6_dmedium_asurplus_pcross_heavy_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":468.0,"mk":93.0,"soc":634.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dmedium_asurplus_plocal_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":155.0,"mk":26.0,"soc":292.0},"b":{"solved":true,"first":494.0,"mk":37.0,"soc":308.0}},{"name":"g6_dmedium_asurplus_plocal_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":378.0,"mk":63.0,"soc":564.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"g6_dmedium_asurplus_pmixed_gshared_pool_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":247.0,"mk":37.0,"soc":319.0},"b":{"solved":true,"first":458.0,"mk":30.0,"soc":295.0}},{"name":"g6_dmedium_asurplus_pmixed_gsingleton_seed0","fam":"warehouse_random_factorial","c":{"solved":true,"first":337.0,"mk":56.0,"soc":525.0},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"warehouse_blocks_h20w20_b3_a1_d25_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":65.0,"mk":28.0,"soc":158.0},"b":{"solved":true,"first":164.0,"mk":28.0,"soc":156.0}},{"name":"warehouse_blocks_h20w20_b3_a1_d50_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":133.0,"mk":26.0,"soc":157.0},"b":{"solved":true,"first":165.0,"mk":26.0,"soc":153.0}},{"name":"warehouse_blocks_h20w20_b3_a1_d75_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":151.0,"mk":23.0,"soc":145.0},"b":{"solved":true,"first":142.0,"mk":21.0,"soc":130.0}},{"name":"warehouse_blocks_h20w20_b4_a1_d25_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":61.0,"mk":23.0,"soc":130.0},"b":{"solved":true,"first":138.0,"mk":26.0,"soc":126.0}},{"name":"warehouse_blocks_h20w20_b4_a1_d50_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":91.0,"mk":24.0,"soc":141.0},"b":{"solved":true,"first":138.0,"mk":25.0,"soc":148.0}},{"name":"warehouse_blocks_h20w20_b4_a1_d75_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":204.0,"mk":27.0,"soc":189.0},"b":{"solved":true,"first":143.0,"mk":34.0,"soc":160.0}},{"name":"warehouse_blocks_h20w20_b9_a1_d25_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":47.0,"mk":23.0,"soc":160.0},"b":{"solved":true,"first":59.0,"mk":26.0,"soc":159.0}},{"name":"warehouse_blocks_h20w20_b9_a1_d50_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":37.0,"mk":24.0,"soc":163.0},"b":{"solved":true,"first":63.0,"mk":38.0,"soc":160.0}},{"name":"warehouse_blocks_h20w20_b9_a1_d75_r8_t12_seed0","fam":"warehouse_blocks","c":{"solved":true,"first":46.0,"mk":23.0,"soc":157.0},"b":{"solved":true,"first":50.0,"mk":25.0,"soc":140.0}}];
+const META = {"carrier_run":"results_full_carrier_baseline_complete_replan_r2_20260910","brd_run":"results_full_carrier_brd_complete_replan_r2_20260910","commit":"2d4563c54","brd_commit":"2d4563c54","timeout_ms":10000.0,"solved_carrier":487,"solved_brd":470,"solved_both":463,"carrier_only":24,"brd_only":7,"neither":24,"total":518};
+const TIMEOUT = META.timeout_ms;
+const byName = new Map(RECORDS.map(r => [r.name, r]));
+
+document.getElementById("prov").textContent =
+  `Data: ${META.carrier_run} (Carrier solved ${META.solved_carrier}/${META.total}` +
+  `, commit ${META.commit}) vs ${META.brd_run} (carrier_brd solved ` +
+  `${META.solved_brd}/${META.total}，commit ${META.brd_commit}）；` +
+  `Solved by both: ${META.solved_both}; 10 s limit per test case.`;
+
+
+const successPct = n => (100 * n / META.total).toFixed(1) + "%";
+document.getElementById("summaryCards").innerHTML = `
+  <div class="summaryCard primaryC"><small>Carrier solved</small>
+    <b>${META.solved_carrier}/${META.total}</b>
+    <span>Success rate ${successPct(META.solved_carrier)}</span></div>
+  <div class="summaryCard primaryB"><small>Baseline solved</small>
+    <b>${META.solved_brd}/${META.total}</b>
+    <span>Success rate ${successPct(META.solved_brd)}</span></div>
+  <div class="summaryCard"><small>Solved by both</small>
+    <b>${META.solved_both}</b><span>Share of all cases ${successPct(META.solved_both)}</span></div>
+  <div class="summaryCard"><small>Solved only by Carrier</small>
+    <b>${META.carrier_only}</b><span>Baseline unsolved</span></div>
+  <div class="summaryCard"><small>Solved only by the baseline</small>
+    <b>${META.brd_only}</b><span>Carrier unsolved</span></div>
+  <div class="summaryCard"><small>Unsolved by both</small>
+    <b>${META.neither}</b><span>10 s timeout</span></div>`;
+function cls(r) {
+  if (r.c.solved && r.b.solved) return "both";
+  if (r.c.solved) return "conly";
+  if (r.b.solved) return "bonly";
+  return "none";
+}
+const CLS_COLOR = { both: "#2dd4bf", conly: "#3b82f6",
+                    bonly: "#f59e0b", none: "#6b7280" };
+
+// ---- chart data ------------------------------------------------------
+function tval(side) {  // first-solution time with the 10 s clamp
+  return side.solved ? Math.max(side.first, 0.5) : TIMEOUT;
+}
+const timePts = RECORDS.map(r => ({
+  name: r.name, x: tval(r.c), y: tval(r.b), cls: cls(r) }));
+const mkPts = RECORDS.filter(r => r.c.solved && r.b.solved).map(r => ({
+  name: r.name, x: Math.max(r.c.mk, 0.5), y: Math.max(r.b.mk, 0.5),
+  cls: "both" }));
+const socPts = RECORDS.filter(r => r.c.solved && r.b.solved).map(r => ({
+  name: r.name, x: Math.max(r.c.soc, 0.5), y: Math.max(r.b.soc, 0.5),
+  cls: "both" }));
+
+// ---- linked state ----------------------------------------------------
+let hoverName = null, selectedName = null;
+const charts = [];
+
+function setHover(name) {
+  if (hoverName === name) return;
+  hoverName = name;
+  charts.forEach(c => c.draw());
+}
+function setSelected(name) {
+  if (!byName.has(name)) return;
+  selectedName = name;
+  document.getElementById("casePick").value = name;
+  charts.forEach(c => c.draw());
+  loadCase(name);
+}
+
+// ---- scatter ---------------------------------------------------------
+function makeChart(canvasId, pts, xLabel, yLabel, opts) {
+  const cvs = document.getElementById(canvasId);
+  const CSS = 430, dpr = window.devicePixelRatio || 1;
+  cvs.style.width = CSS + "px"; cvs.style.height = CSS + "px";
+  cvs.width = CSS * dpr; cvs.height = CSS * dpr;
+  const ctx = cvs.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const pad = { l: 46, r: 12, t: 10, b: 40 };
+  const W = CSS - pad.l - pad.r, H = CSS - pad.t - pad.b;
+
+  const xs = pts.map(p => Math.log10(p.x)), ys = pts.map(p => Math.log10(p.y));
+  let lo = Math.min(Math.min(...xs), Math.min(...ys)) - 0.15;
+  let hi = Math.max(Math.max(...xs), Math.max(...ys)) + 0.15;
+  if (opts && opts.forceHi !== undefined)
+    hi = Math.max(hi, Math.log10(opts.forceHi) + 0.06);
+  const base = { x0: lo, x1: hi, y0: lo, y1: hi };
+  let view = { ...base };
+
+  const sx = v => pad.l + (Math.log10(v) - view.x0) /
+                  (view.x1 - view.x0) * W;
+  const sy = v => pad.t + H - (Math.log10(v) - view.y0) /
+                  (view.y1 - view.y0) * H;
+
+  function ticks(v0, v1) {
+    const out = [];
+    for (let e = Math.floor(v0) - 1; e <= Math.ceil(v1) + 1; e++)
+      for (const m of [1, 2, 5]) {
+        const lv = e + Math.log10(m);
+        if (lv >= v0 && lv <= v1)
+          out.push({ lv, label: m === 1, value: Math.pow(10, e) * m });
+      }
+    return out;
+  }
+  function fmt(v) {
+    if (v >= 1000) return (v / 1000) + "k";
+    if (v >= 1) return String(v);
+    return v.toFixed(1);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, CSS, CSS);
+    ctx.save();
+    // axes/frame
+    ctx.strokeStyle = "#3b4252"; ctx.lineWidth = 1;
+    ctx.strokeRect(pad.l, pad.t, W, H);
+    ctx.font = "10px sans-serif";
+    for (const t of ticks(view.x0, view.x1)) {
+      const x = pad.l + (t.lv - view.x0) / (view.x1 - view.x0) * W;
+      ctx.strokeStyle = t.label ? "#2a3140" : "#1e2430";
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + H);
+      ctx.stroke();
+      if (t.label) {
+        ctx.fillStyle = "#8a93a5"; ctx.textAlign = "center";
+        ctx.fillText(fmt(t.value), x, pad.t + H + 14);
+      }
+    }
+    for (const t of ticks(view.y0, view.y1)) {
+      const y = pad.t + H - (t.lv - view.y0) / (view.y1 - view.y0) * H;
+      ctx.strokeStyle = t.label ? "#2a3140" : "#1e2430";
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + W, y);
+      ctx.stroke();
+      if (t.label) {
+        ctx.fillStyle = "#8a93a5"; ctx.textAlign = "right";
+        ctx.fillText(fmt(t.value), pad.l - 5, y + 3);
+      }
+    }
+    ctx.fillStyle = "#aab3c5"; ctx.textAlign = "center";
+    ctx.font = "12px sans-serif";
+    ctx.fillText(xLabel, pad.l + W / 2, CSS - 6);
+    ctx.save();
+    ctx.translate(12, pad.t + H / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+
+    ctx.beginPath(); ctx.rect(pad.l, pad.t, W, H); ctx.clip();
+    // y = x diagonal
+    ctx.strokeStyle = "#4b5563"; ctx.setLineDash([5, 4]);
+    const dlo = Math.pow(10, Math.min(view.x0, view.y0) - 1);
+    const dhi = Math.pow(10, Math.max(view.x1, view.y1) + 1);
+    ctx.beginPath(); ctx.moveTo(sx(dlo), sy(dlo)); ctx.lineTo(sx(dhi), sy(dhi));
+    ctx.stroke();
+    // 10 s clamp guides
+    if (opts && opts.clampGuides) {
+      ctx.strokeStyle = "#7f1d1d";
+      ctx.beginPath(); ctx.moveTo(sx(TIMEOUT), pad.t);
+      ctx.lineTo(sx(TIMEOUT), pad.t + H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad.l, sy(TIMEOUT));
+      ctx.lineTo(pad.l + W, sy(TIMEOUT)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#b91c1c";
+      ctx.textAlign = "right";
+      ctx.fillText("unsolved=10s", pad.l + W - 4, sy(TIMEOUT) - 4);
+    }
+    ctx.setLineDash([]);
+    // points
+    for (const p of pts) {
+      ctx.fillStyle = CLS_COLOR[p.cls];
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // linked highlight rings
+    for (const p of pts) {
+      if (p.name === selectedName) {
+        ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 7.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (p.name === hoverName) {
+        ctx.strokeStyle = "#f9fafb"; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 5.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function pick(mx, my) {
+    let best = null, bd = 121;  // 11 px radius
+    for (const p of pts) {
+      const dx = sx(p.x) - mx, dy = sy(p.y) - my, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best;
+  }
+  function evPos(e) {
+    const r = cvs.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  }
+
+  const tooltip = document.getElementById("tooltip");
+  let dragging = false, moved = false, last = null;
+  cvs.addEventListener("mousedown", e => {
+    dragging = true; moved = false; last = evPos(e);
+  });
+  window.addEventListener("mouseup", () => { dragging = false; });
+  cvs.addEventListener("mousemove", e => {
+    const [mx, my] = evPos(e);
+    if (dragging) {
+      const dx = (mx - last[0]) / W * (view.x1 - view.x0);
+      const dy = (my - last[1]) / H * (view.y1 - view.y0);
+      if (Math.abs(mx - last[0]) + Math.abs(my - last[1]) > 2) moved = true;
+      view.x0 -= dx; view.x1 -= dx; view.y0 += dy; view.y1 += dy;
+      last = [mx, my];
+      draw();
+      return;
+    }
+    const p = pick(mx, my);
+    setHover(p ? p.name : null);
+    if (p) {
+      const r = byName.get(p.name);
+      tooltip.style.display = "block";
+      tooltip.style.left = (e.clientX + 14) + "px";
+      tooltip.style.top = (e.clientY + 12) + "px";
+      const f = s => s.solved
+        ? `first ${s.first} ms, mk ${s.mk}, soc ${s.soc}`
+        : "unsolved within 10 s";
+      tooltip.innerHTML = `<b>${p.name}</b><br>family: ${r.fam}<br>` +
+        `carrier：${f(r.c)}<br>baseline：${f(r.b)}<br>` +
+        `<i>Click to select and load both replays below</i>`;
+    } else {
+      tooltip.style.display = "none";
+    }
+  });
+  cvs.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+    setHover(null);
+  });
+  cvs.addEventListener("click", e => {
+    if (moved) return;
+    const p = pick(...evPos(e));
+    if (p) setSelected(p.name);
+  });
+  cvs.addEventListener("dblclick", () => { view = { ...base }; draw(); });
+  cvs.addEventListener("wheel", e => {
+    e.preventDefault();
+    const [mx, my] = evPos(e);
+    const f = Math.pow(1.0015, e.deltaY);  // >1 zoom out
+    const cx = view.x0 + (mx - pad.l) / W * (view.x1 - view.x0);
+    const cy = view.y0 + (pad.t + H - my) / H * (view.y1 - view.y0);
+    view.x0 = cx + (view.x0 - cx) * f; view.x1 = cx + (view.x1 - cx) * f;
+    view.y0 = cy + (view.y0 - cy) * f; view.y1 = cy + (view.y1 - cy) * f;
+    draw();
+  }, { passive: false });
+
+  const chart = { draw };
+  charts.push(chart);
+  draw();
+  return chart;
+}
+
+makeChart("chartT", timePts, "Carrier first-solution time (ms)",
+          "Baseline first-solution time (ms)", { clampGuides: true, forceHi: TIMEOUT });
+makeChart("chartM", mkPts, "carrier makespan", "baseline makespan", {});
+makeChart("chartS", socPts, "carrier weighted SOC", "baseline weighted SOC",
+          {});
+
+// ---- case picker -----------------------------------------------------
+const dl = document.getElementById("caseList");
+for (const r of RECORDS) {
+  const o = document.createElement("option");
+  o.value = r.name;
+  dl.appendChild(o);
+}
+document.getElementById("casePick").addEventListener("change", e => {
+  if (byName.has(e.target.value)) setSelected(e.target.value);
+});
+
+// ---- per-case data loading (file:// friendly script injection) --------
+const caseCache = new Map();
+const pendingCbs = new Map();
+window.CBVIZ = { receive(name, data) {
+  caseCache.set(name, data);
+  const cb = pendingCbs.get(name);
+  pendingCbs.delete(name);
+  if (cb) cb(data);
+} };
+function fetchCase(name, cb) {
+  if (caseCache.has(name)) { cb(caseCache.get(name)); return; }
+  pendingCbs.set(name, cb);
+  const s = document.createElement("script");
+  s.src = "cases/" + name + ".js";
+  s.onerror = () => {
+    pendingCbs.delete(name);
+    document.getElementById("selinfo").textContent =
+      `Failed to load cases/${name}.js`;
+  };
+  document.head.appendChild(s);
+}
+
+// ---- plan player (semantics ported from generate_web_viz.py) ----------
+let playerC = null, playerB = null;
+let syncPoll = null;
+function players() { return [playerC, playerB].filter(Boolean); }
+function refreshSyncButton() {
+  const anyPlaying = players().some(p => p.isPlaying());
+  document.getElementById("syncPlay").textContent = anyPlaying
+    ? "⏸ Pause both" : "▶ Play both";
+}
+function stopSyncPoll() {
+  if (syncPoll !== null) clearInterval(syncPoll);
+  syncPoll = null;
+}
+function startSyncPoll() {
+  stopSyncPoll();
+  syncPoll = setInterval(() => {
+    refreshSyncButton();
+    if (!players().some(p => p.isPlaying())) stopSyncPoll();
+  }, 100);
+}
+
+function makePlayer(bodyEl, statsEl, ins, planOps, sideLabel, sideInfo) {
+  bodyEl.innerHTML = "";
+  statsEl.textContent = sideInfo;
+  const plan = planOps || [];
+  const H = ins.h, W = ins.w;
+  const walls = ins.walls;
+  const storage = new Set();
+  if (ins.layout)
+    for (const o of ins.layout.origins)
+      for (let r = o[0]; r < o[0] + ins.layout.bs; r++)
+        for (let c = o[1]; c < o[1] + ins.layout.bs; c++)
+          storage.add(r * W + c);
+  if (ins.layout) document.getElementById("wlg").style.display = "inline";
+  const gsets = ins.targets.map(t => new Set(t.gs.map(p => p[0] * W + p[1])));
+
+  if (!planOps) {
+    const note = document.createElement("div");
+    note.className = "nosol";
+    note.textContent = `${sideLabel} was not solved within 10 s — showing the initial state.`;
+    bodyEl.appendChild(note);
+  }
+
+  const paneW = Math.max(320, bodyEl.clientWidth || 460);
+  const cell = Math.max(4, Math.min(24, Math.floor(paneW / W)));
+  const cv = document.createElement("canvas");
+  cv.width = W * cell; cv.height = H * cell;
+  bodyEl.appendChild(cv);
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  bar.innerHTML =
+    `<button class="play">▶</button>` +
+    `<button class="stepb">−1</button>` +
+    `<button class="stepf">+1</button>` +
+    `<label>Speed <input class="speed" type="range" min="1" max="30"` +
+    ` value="8"></label>` +
+    `<input class="seek" type="range" min="0" value="0">` +
+    `<span class="st"></span>`;
+  bodyEl.appendChild(bar);
+  const ctx = cv.getContext("2d");
+
+  let robots, kappa, tpos, anon;
+  function resetMutable() {
+    robots = ins.robots.map(p => [...p]);
+    kappa = ins.robots.map(() => -1);
+    tpos = ins.targets.map(t => [...t.s]);
+    anon = new Set(ins.anon.map(p => p[0] * W + p[1]));
+  }
+  const key = p => p[0] * W + p[1];
+  function snapshot() {
+    return { robots: robots.map(p => [...p]), kappa: [...kappa],
+             tpos: tpos.map(p => [...p]), anon: new Set(anon) };
+  }
+  function applyStep(ops) {
+    const tgtAt = new Map();
+    const carried = new Set(kappa.filter(k => k >= 0));
+    ins.targets.forEach((t, b) => {
+      if (!carried.has(b)) tgtAt.set(key(tpos[b]), b);
+    });
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (op[0] === "m") {
+        robots[i] = [op[1], op[2]];
+        if (kappa[i] >= 0) tpos[kappa[i]] = [op[1], op[2]];
+      } else if (op[0] === "l") {
+        const k = key(robots[i]);
+        if (tgtAt.has(k)) kappa[i] = tgtAt.get(k);
+        else { kappa[i] = -2; anon.delete(k); }
+      } else if (op[0] === "d") {
+        if (kappa[i] === -2) anon.add(key(robots[i]));
+        kappa[i] = -1;
+      }
+    }
+  }
+  resetMutable();
+  const states = [snapshot()];
+  for (const ops of plan) { applyStep(ops); states.push(snapshot()); }
+  let t = 0;
+
+  const cellRect = (r, c, color, padk) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(c * cell + padk, r * cell + padk,
+                 cell - 2 * padk, cell - 2 * padk);
+  };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const lerpPos = (a, b, p) => [lerp(a[0], b[0], p), lerp(a[1], b[1], p)];
+
+  function drawTween(from, to, p) {
+    const phase = p >= 1 ? to : from;
+    const rr = from.robots.map((q, i) => lerpPos(q, to.robots[i], p));
+    const rt = from.tpos.map((q, b) => lerpPos(q, to.tpos[b], p));
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if (ins.layout)
+      for (let r = 0; r < H; r++) for (let c = 0; c < W; c++)
+        cellRect(r, c, storage.has(r * W + c) ? "#d9c7a2" : "#26384a", 0);
+    ctx.strokeStyle = "#3a3a44"; ctx.lineWidth = 1;
+    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+      if (cell >= 6) ctx.strokeRect(c * cell, r * cell, cell, cell);
+      if (walls[r].charCodeAt(c) === 49) cellRect(r, c, "#555", 0);
+    }
+    ctx.lineWidth = Math.max(1.5, cell * 0.09);
+    ctx.strokeStyle = "#22c55e";
+    for (const gs of gsets) for (const k of gs)
+      ctx.strokeRect((k % W) * cell + 1.5, Math.floor(k / W) * cell + 1.5,
+                     cell - 3, cell - 3);
+    for (const k of phase.anon)
+      cellRect(Math.floor(k / W), k % W, "#8b5a2b", cell * 0.18);
+    const carried = new Set(phase.kappa.filter(k => k >= 0));
+    ins.targets.forEach((g, b) => {
+      const done = !carried.has(b) && gsets[b].has(key(phase.tpos[b]));
+      cellRect(rt[b][0], rt[b][1], done ? "#16a34a" : "#f59e0b",
+               cell * 0.18);
+    });
+    for (let i = 0; i < rr.length; i++) {
+      if (phase.kappa[i] === -2)
+        cellRect(rr[i][0], rr[i][1], "#8b5a2b", cell * 0.18);
+      if (phase.kappa[i] !== -1) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = Math.max(1, cell * 0.06);
+        ctx.strokeRect(rr[i][1] * cell + cell * 0.18,
+                       rr[i][0] * cell + cell * 0.18,
+                       cell * 0.64, cell * 0.64);
+      }
+    }
+    for (let i = 0; i < rr.length; i++) {
+      ctx.fillStyle = phase.kappa[i] === -1 ? "#3b82f6" : "#ef4444";
+      ctx.beginPath();
+      ctx.arc(rr[i][1] * cell + cell / 2, rr[i][0] * cell + cell * 0.68,
+              Math.max(2.2, cell * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    let done = 0;
+    ins.targets.forEach((g, b) => {
+      if (!carried.has(b) && gsets[b].has(key(phase.tpos[b]))) done++;
+    });
+    const moving = p > 0 && p < 1 && t < plan.length;
+    bar.querySelector(".st").textContent =
+      `Step ${t}${moving ? "→" + (t + 1) : ""}/${plan.length} ` +
+      `Complete ${done}/${ins.targets.length}`;
+    bar.querySelector(".seek").value = t;
+  }
+  const drawCurrent = () => drawTween(states[t], states[t], 1);
+  function goto_(v) {
+    t = Math.max(0, Math.min(plan.length, Math.round(v)));
+    tweenP = 0;
+    drawCurrent();
+  }
+
+  let playing = false, raf = null, segStart = null, tweenP = 0;
+  const playBtn = bar.querySelector(".play");
+  const speedIn = bar.querySelector(".speed");
+  const stepDur = () => 1000 / Number(speedIn.value);
+  const ease = p => p * p * (3 - 2 * p);
+  function stop() {
+    playing = false;
+    if (raf !== null) cancelAnimationFrame(raf);
+    raf = null; segStart = null; playBtn.textContent = "▶";
+  }
+  function animate(now) {
+    if (!playing) return;
+    if (t >= plan.length) { stop(); tweenP = 0; drawCurrent(); return; }
+    if (segStart === null) segStart = now;
+    const d = stepDur();
+    let raw = (now - segStart) / d;
+    while (raw >= 1 && t < plan.length) {
+      t++; segStart += d; raw = (now - segStart) / d;
+    }
+    if (t >= plan.length) { stop(); tweenP = 0; drawCurrent(); return; }
+    tweenP = Math.max(0, Math.min(1, raw));
+    drawTween(states[t], states[t + 1], ease(tweenP));
+    raf = requestAnimationFrame(animate);
+  }
+  playBtn.onclick = () => {
+    if (playing) { stop(); drawCurrent(); return; }
+    if (!plan.length) return;
+    if (t >= plan.length) goto_(0);
+    playing = true;
+    segStart = performance.now() - tweenP * stepDur();
+    playBtn.textContent = "⏸";
+    raf = requestAnimationFrame(animate);
+  };
+  bar.querySelector(".stepf").onclick = () => { stop(); goto_(t + 1); };
+  bar.querySelector(".stepb").onclick = () => { stop(); goto_(t - 1); };
+  const seek = bar.querySelector(".seek");
+  seek.max = plan.length;
+  seek.oninput = e => { stop(); goto_(Number(e.target.value)); };
+  goto_(0);
+  return {
+    play() {
+      if (!playing && plan.length) playBtn.click();
+    },
+    pause() {
+      if (playing) { stop(); drawCurrent(); }
+    },
+    reset() {
+      stop(); goto_(0);
+    },
+    setSpeed(value) {
+      speedIn.value = value;
+      if (playing && segStart !== null)
+        segStart = performance.now() - tweenP * stepDur();
+    },
+    isPlaying() { return playing; },
+    hasPlan() { return plan.length > 0; },
+  };
+}
+
+function sideInfoText(s) {
+  return s.solved
+    ? `Solved: first solution ${s.first} ms ｜ makespan ${s.mk} ｜ SOC ${s.soc}`
+    : `Unsolved within 10 s`;
+}
+function loadCase(name) {
+  players().forEach(p => p.pause());
+  stopSyncPoll();
+  playerC = null; playerB = null;
+  refreshSyncButton();
+  const r = byName.get(name);
+  document.getElementById("selinfo").textContent =
+    `Selected ${name} (${r.fam})`;
+  fetchCase(name, data => {
+    if (selectedName !== name) return;
+    playerC = makePlayer(document.getElementById("bodyC"),
+                         document.getElementById("statsC"),
+                         data.ins, data.carrier.plan, "carrier",
+                         sideInfoText(r.c));
+    playerB = makePlayer(document.getElementById("bodyB"),
+                         document.getElementById("statsB"),
+                         data.ins, data.brd.plan, "baseline",
+                         sideInfoText(r.b));
+    const speed = document.getElementById("syncSpeed").value;
+    players().forEach(p => p.setSpeed(speed));
+    refreshSyncButton();
+  });
+}
+
+document.getElementById("syncPlay").onclick = () => {
+  const ps = players();
+  if (!ps.length) return;
+  if (ps.some(p => p.isPlaying())) {
+    ps.forEach(p => p.pause());
+    stopSyncPoll();
+  } else {
+    ps.forEach(p => p.play());
+    startSyncPoll();
+  }
+  refreshSyncButton();
+};
+document.getElementById("syncReset").onclick = () => {
+  players().forEach(p => p.reset());
+  stopSyncPoll();
+  refreshSyncButton();
+};
+document.getElementById("syncSpeed").oninput = e => {
+  const value = e.target.value;
+  document.getElementById("syncSpeedText").textContent = `${value} steps/s`;
+  players().forEach(p => p.setSpeed(value));
+};
+
+// preselect the first case solved by both, so the page is never empty
+const first = RECORDS.find(r => r.c.solved && r.b.solved);
+if (first) setSelected(first.name);
+</script>
+</body>
+</html>

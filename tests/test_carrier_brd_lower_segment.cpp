@@ -141,7 +141,7 @@ TEST(carrier_brd_lower_segment,
 }
 
 TEST(carrier_brd_lower_segment,
-     solve_stops_at_first_drop_without_waiting_for_wave_completion)
+     solve_certifies_all_active_transfers)
 {
   const auto ins = make_instance(
       {".....", "....."}, {"SS...", "S...S"},
@@ -177,14 +177,11 @@ TEST(carrier_brd_lower_segment,
       CarrierTaskPhaseKind::COMPLETED);
   EXPECT_EQ(
       carrier_event_phase_of(run.final, long_task).kind,
-      CarrierTaskPhaseKind::CARRYING)
-      << "the lower solve must return on the first completed task";
-  EXPECT_EQ(run.plan.back()[0].kind, Op::DROP);
-  EXPECT_NE(run.plan.back()[1].kind, Op::DROP);
+      CarrierTaskPhaseKind::COMPLETED);
 }
 
 TEST(carrier_brd_lower_segment,
-     locked_carrying_root_continues_the_same_route)
+     locked_carrying_root_keeps_ownership_until_endpoint_drop)
 {
   const auto ins = make_instance(
       {"...."}, {"S..S"}, {{0, 0}}, {{0, 0}},
@@ -215,8 +212,8 @@ TEST(carrier_brd_lower_segment,
 
   ASSERT_FALSE(run.solution.empty());
   ASSERT_FALSE(run.plan.empty());
-  EXPECT_EQ(run.plan.front()[0].kind, Op::MOVE);
-  EXPECT_EQ(run.plan.front()[0].to, ins.grid.idx(0, 2));
+  EXPECT_EQ(run.final.kappa[0], KAPPA_FREE);
+  EXPECT_EQ(run.final.target_pos[0], ins.grid.idx(0, 3));
   EXPECT_EQ(
       carrier_event_phase_of(run.final, fixed).kind,
       CarrierTaskPhaseKind::COMPLETED);

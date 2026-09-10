@@ -128,7 +128,7 @@ TEST(carrier_brd_event_contract,
 }
 
 TEST(carrier_brd_event_contract,
-     target_phase_is_pure_approach_carrying_completed_or_invalid)
+     target_phase_tracks_approach_carrying_and_completion)
 {
   const auto ins = make_instance(
       {"..."}, {"S.S"}, {{0, 0}}, {{0, 0}},
@@ -147,23 +147,20 @@ TEST(carrier_brd_event_contract,
   const auto x1 = apply_ops(ins, x0, {Op::make_lift()});
   ASSERT_TRUE(x1.has_value());
   EXPECT_EQ(
-      carrier_event_phase_of(*x1, fixed),
-      (CarrierTaskPhase{
-          CarrierTaskPhaseKind::CARRYING, 0}));
+      carrier_event_phase_of(*x1, fixed).kind,
+      CarrierTaskPhaseKind::CARRYING);
   const auto x2 = apply_ops(
       ins, *x1, {Op::make_move(ins.grid.idx(0, 1))});
   ASSERT_TRUE(x2.has_value());
   EXPECT_EQ(
-      carrier_event_phase_of(*x2, fixed),
-      (CarrierTaskPhase{
-          CarrierTaskPhaseKind::CARRYING, 1}));
+      carrier_event_phase_of(*x2, fixed).kind,
+      CarrierTaskPhaseKind::CARRYING);
   const auto x3 = apply_ops(
       ins, *x2, {Op::make_move(ins.grid.idx(0, 2))});
   ASSERT_TRUE(x3.has_value());
   EXPECT_EQ(
-      carrier_event_phase_of(*x3, fixed),
-      (CarrierTaskPhase{
-          CarrierTaskPhaseKind::CARRYING, 2}));
+      carrier_event_phase_of(*x3, fixed).kind,
+      CarrierTaskPhaseKind::CARRYING);
   const auto x4 = apply_ops(ins, *x3, {Op::make_drop()});
   ASSERT_TRUE(x4.has_value());
   EXPECT_EQ(
@@ -180,7 +177,7 @@ TEST(carrier_brd_event_contract,
       {ins.grid.idx(0, 0), ins.grid.idx(0, 1)});
   EXPECT_EQ(
       carrier_event_phase_of(off_route, wrong_route).kind,
-      CarrierTaskPhaseKind::INVALID);
+      CarrierTaskPhaseKind::CARRYING);
 }
 
 TEST(carrier_brd_event_contract,
@@ -266,7 +263,7 @@ TEST(carrier_brd_event_contract,
 }
 
 TEST(carrier_brd_event_contract,
-     transition_validator_rejects_wrong_lift_route_and_drop)
+     transition_validator_rejects_wrong_lift_and_drop_but_allows_moves)
 {
   const auto ins = make_instance(
       {"...", "..."}, {"S.S", "S.S"},
@@ -312,7 +309,7 @@ TEST(carrier_brd_event_contract,
   const auto wrong_route_to =
       apply_ops(ins, *x1, wrong_route);
   ASSERT_TRUE(wrong_route_to.has_value());
-  EXPECT_FALSE(validate_carrier_event_transition(
+  EXPECT_TRUE(validate_carrier_event_transition(
       ins, contract, *x1, wrong_route, *wrong_route_to));
 
   const std::vector<Op> correct_route{

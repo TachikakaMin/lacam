@@ -68,6 +68,9 @@ const char* carrier_brd_exit_reason_name(
     CarrierBRDExitReason reason);
 
 struct CarrierBRDDispatchSnapshot {
+  // Smallest frozen upper-wave index represented in this event's active
+  // frontier.  The next wave may contribute a physically clear continuation
+  // of a shelf completed in this wave; waves are not full runtime barriers.
   long wave = -1;
   long epoch = -1;
   long free_robots = 0;
@@ -384,11 +387,13 @@ DDSolveResult dd_solve_carrier_lacam_fixed_tau_probe(
     const DDInstance& ins, const std::vector<int>& tau,
     double time_limit_sec, int seed, DDStats* stats = nullptr);
 
-// Carrier BR-LaCAM decomposition baseline.  One upper shelf plan is
-// compiled into immutable task waves.  Every lower solve stops at the
-// first task-completion Drop; all still-free robots and all remaining
-// PENDING tasks are then matched again, while already-Lifted pairs stay
-// hard-locked.
+// Carrier BR-LaCAM decomposition baseline.  One upper shelf plan provides
+// immutable transfers and their per-shelf order, but its waves are not lower
+// execution barriers.  Every lower solve certifies a complete plan for the
+// active frontier, then commits only through the earliest task-completion
+// Drop.  Free robots are rematched against the earliest unfinished wave and
+// its physically clear next-wave continuations, while already-Lifted pairs
+// stay hard-locked.
 DDSolveResult solve_carrier_brd_result(
     const DDInstance& ins, double time_limit_sec, int seed,
     DDStats* stats = nullptr, CarrierBRDStats* brd_stats = nullptr);

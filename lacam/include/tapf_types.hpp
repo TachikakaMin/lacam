@@ -650,6 +650,24 @@ bool validate_carrier_event_transition(
     const PhysConfig& from, const std::vector<Op>& ops,
     const PhysConfig& to);
 
+// Internal execution-path variant for a contract that was already accepted
+// by validate_carrier_event_contract() and remains immutable.  It preserves
+// all physical and Lift/Drop transition checks while avoiding repeated
+// static-contract scans for every candidate/replay state in one event.
+bool validate_carrier_event_transition_verified_contract(
+    const DDInstance& ins, const CarrierEventContract& contract,
+    const PhysConfig& from, const std::vector<Op>& ops,
+    const PhysConfig& to);
+
+// Internal execution-path variant for a verified immutable contract where
+// `to` was just returned by apply_ops(ins, from, ops), and both endpoint
+// states are already known physical roots.  It still checks all event-phase
+// and operation restrictions.
+bool validate_carrier_event_transition_replayed_contract(
+    const DDInstance& ins, const CarrierEventContract& contract,
+    const PhysConfig& from, const std::vector<Op>& ops,
+    const PhysConfig& to);
+
 struct ShelfTask {
   TaskId id;
   std::vector<RootDemand> roots;

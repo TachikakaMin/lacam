@@ -47,6 +47,7 @@ void TAPFPlanner::attach_carrier_guidance(
     const PhysConfig physical = carrier->phys_view(nd);
     std::vector<int> carrying;
     std::vector<int> provisional;
+    std::vector<int> completed;
     std::vector<uint8_t> active(ins->N, 0);
     for (const auto& fixed :
          search_config.event_contract->active_transfers) {
@@ -55,17 +56,23 @@ void TAPFPlanner::attach_carrier_guidance(
           carrier_event_phase_of(physical, fixed);
       if (phase.kind == CarrierTaskPhaseKind::CARRYING)
         carrying.push_back(fixed.robot);
-      else
+      else if (phase.kind == CarrierTaskPhaseKind::APPROACH)
         provisional.push_back(fixed.robot);
+      else
+        completed.push_back(fixed.robot);
     }
     std::sort(carrying.begin(), carrying.end());
     std::sort(provisional.begin(), provisional.end());
+    std::sort(completed.begin(), completed.end());
     nd->order.clear();
     nd->order.insert(
         nd->order.end(), carrying.begin(), carrying.end());
     nd->order.insert(
         nd->order.end(), provisional.begin(),
         provisional.end());
+    nd->order.insert(
+        nd->order.end(), completed.begin(),
+        completed.end());
     for (size_t robot = 0; robot < ins->N; ++robot)
       if (!active[robot])
         nd->order.push_back(static_cast<int>(robot));

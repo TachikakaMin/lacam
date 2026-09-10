@@ -40,21 +40,16 @@ bool TAPFPlanner::is_goal_config(const Config& C, const ShelfState& S) const
 {
   if (search_config.event_contract != nullptr) {
     const PhysConfig physical = physical_state_of(C, S);
-    bool newly_completed = false;
+    bool has_active_transfer = false;
     for (const auto& fixed :
          search_config.event_contract->active_transfers) {
-      const auto start_phase = carrier_event_phase_of(
-          search_config.event_contract->start, fixed);
+      has_active_transfer = true;
       const auto phase =
           carrier_event_phase_of(physical, fixed);
-      if (phase.kind == CarrierTaskPhaseKind::INVALID)
+      if (phase.kind != CarrierTaskPhaseKind::COMPLETED)
         return false;
-      if (start_phase.kind !=
-              CarrierTaskPhaseKind::COMPLETED &&
-          phase.kind == CarrierTaskPhaseKind::COMPLETED)
-        newly_completed = true;
     }
-    return newly_completed;
+    return has_active_transfer;
   }
   // agent-task part: identical to the original for every agent that HAS
   // an allowed task (is_valid guarantees that on shelf-free instances);
@@ -322,19 +317,30 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
           append_candidate(ai->v_now, (uint8_t)Op::WAIT);
         } else if (
             phase.kind == CarrierTaskPhaseKind::CARRYING) {
-          const int last =
-              (int)fixed->transfer.route.size() - 1;
-          if (phase.route_index == last) {
+          if (q == fixed->transfer.endpoint &&
+              dd_view->can_store_shelf(q)) {
             append_candidate(
                 ai->v_now, (uint8_t)Op::DROP);
-          } else if (
-              phase.route_index >= 0 &&
-              phase.route_index < last) {
+          }
+          if (phase.route_index >= 0 &&
+              phase.route_index + 1 <
+                  (int)fixed->transfer.route.size()) {
             append_exact_move(
                 fixed->transfer.route[
                     phase.route_index + 1]);
           }
+          append_all_moves([&](int cell) {
+            return std::make_pair(
+                eng.lower.dist(
+                    fixed->transfer.endpoint, cell),
+                cell);
+          });
           append_candidate(ai->v_now, (uint8_t)Op::WAIT);
+        } else if (
+            phase.kind == CarrierTaskPhaseKind::COMPLETED) {
+          append_candidate(ai->v_now, (uint8_t)Op::WAIT);
+          append_all_moves(
+              [](int cell) { return std::make_pair(0, cell); });
         } else {
           append_candidate(ai->v_now, (uint8_t)Op::WAIT);
         }
@@ -788,7 +794,7 @@ bool TAPFPlanner::apply_carrier_effects(const TAPFNode* S)
   const auto nxt = apply_ops(*dd_view, phys, ops_scratch);
   if (!nxt.has_value()) return false;
   if (search_config.event_contract != nullptr &&
-      !validate_carrier_event_transition(
+      !validate_carrier_event_transition_replayed_contract(
           *dd_view, *search_config.event_contract,
           phys, ops_scratch, *nxt))
     return false;

@@ -2768,3 +2768,62 @@ dashboard、rho V2 对比、CSV、approval 和逐例动画的本地链接均已�
 历史版本按用途折叠归档。为保证窄目录静态服务可用，carrier full、
 carrier_brd full、quick rows 和 approval 会按原字节复制进报告的
 `evidence/` 目录；生成器回归测试要求证据链接不能越出报告目录。
+
+## 28. Carrier-BRD completion-event 全局 frontier 修复
+
+2026-09-09 发现 `carrier_brd` 的 lower controller 虽然已经满足“每次
+LaCAM 求完整 active-set 解、只执行到最早 Drop”的证书语义，但仍把
+`FrozenTaskPlan::waves` 当成执行屏障：每个 completion event 只将当前 wave
+的 `PENDING` task 交给 matcher。于是某个机器人即使已经 Drop，也不能开始
+下一 wave 中其货架已经准备好的 transfer；它只能 Move/Wait 到当前 wave 的
+最后一个 carrying robot Drop，随后产生人为的集体 Lift/Drop。
+
+这不是 LaCAM 的路径规划限制。LaCAM 只看到 controller 构造的
+`CarrierEventContract::active_transfers`；若 future task 没进入 contract，
+它不可能为该 task 规划 Lift 或运输。
+
+修复仍在原有 BRD controller → `TAPFPlanner::solve()` 路径内完成，不新增
+planner 或 search loop。冻结 upper plan 继续提供已由 exact upper oracle
+验证的 transfer 与同一 shelf 的顺序。wave 不再是“必须等整波清空”的硬
+barrier，但也不能把任意未来 wave 的任务一次性塞进一个 lower solve。
+controller 建立覆盖全部 `FrozenTaskId` 的 ledger；在每个 Drop event 后：
+
+```text
+保留 CARRYING 的 robot/task/endpoint lock
+  → 令 w 为最早仍有未完成 task 的 wave
+  → 将 w 中同 shelf 前序已完成、source 已 grounded 的 PENDING task 加入
+  → 额外只放开 w+1 中的 continuation：
+      该 shelf 在 w 已完成前序 transfer，且 source 已 grounded
+      若其 Drop endpoint 正是仍 carrying transfer 的 source，则延后到
+      下一次 Drop event；这是 admission 的 handoff 切分，不是 MOVE/Drop
+      合法性限制
+  → source 与 endpoint 各自保持唯一；但允许某 task 的 endpoint 正是
+    另一 task 的 source（先 Lift 清空，再由 LaCAM 安排合法 Drop）
+  → 当前 wave 保持正常任务宽度；只有当前 wave 没有 source-grounded 的
+    PENDING task 时，才 admission w+1 continuation，避免 future task
+    与未取货的当前任务耦合进同一个完整 certificate
+  → 对所有 free robot 与该 frontier 重新匹配
+  → LaCAM 对 locked + newly assigned active transfers 求全部 Drop 的完整解
+  → 权威重放完整解，仅提交最早 Drop 前缀
+  → 更新 ledger，丢弃旧路径，再进入下一 event
+```
+
+因此“重新规划所有”指每个 event 都重新计算所有机器人路径；未取货机器人
+重新匹配当前滚动 frontier，已经 Lift 的 pair 保留 task/endpoint 绑定但不保留
+旧路径。Move 不受 frozen route、route-tail occupancy 或静态 endpoint/source
+交叉限制；合法性由 LaCAM 的 joint transition 和实际 Drop 时的 shelf occupancy
+决定。`w+1` continuation 不受容量上界限制，但只有在当前最早 wave 没有
+source-grounded 的 PENDING task 时才可加入同一次全局 LaCAM 重规划；当前 wave
+的未 Lift 任务始终优先重新匹配。这样允许“当前 wave 仍有 carrying task”时提前
+启动下一 wave，又不会让 future task 与未取货的当前任务争抢同一张完整证书。
+未绑定机器人在 LaCAM 中的 MOVE/WAIT 路径也不受额外限制。
+`CarrierEventContract` 允许当前 wave 与满足条件的下一 wave 同时存在，但仍
+要求 task id、robot、stable shelf、source 和 endpoint 各自一致。
+
+新增 `test_carrier_brd_cross_wave_replan` 先 RED 再 GREEN：两 wave 场景中，
+target 0 的第一段完成后，其第二段 Lift 必须发生在无关 target 1 的长运输
+Drop 之前。真实 `g6_dhigh_aequal_pmixed_gsingleton_seed0` 也从原来的
+makespan 67、末尾 8 台同步 Lift，变为 makespan 60；第二 wave 的 Lift
+分散在前一 wave 尚未清空的多个 completion event 中。另新增 storage-cycle、
+next-wave admission、locked-only matcher 和 matcher-cutoff telemetry 回归，
+分别保护 Drop-only contract、滚动前沿边界和指标契约。
