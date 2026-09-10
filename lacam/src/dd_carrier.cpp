@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_map>
@@ -453,19 +454,142 @@ bool is_dd_goal(const DDInstance& ins, const PhysConfig& s)
   return true;
 }
 
+void CarrierSpacetimeCommitment::validate(
+    const DDGrid& grid) const
+{
+  if (frames.empty()) {
+    if (!lower_directed_edges.empty())
+      throw std::invalid_argument(
+          "spacetime commitment edges require frames");
+    return;
+  }
+  if (lower_directed_edges.size() + 1 != frames.size())
+    throw std::invalid_argument(
+        "spacetime commitment edge/frame horizon mismatch");
+
+  const auto validate_vertices =
+      [&](const std::vector<int>& vertices) {
+        if (!std::is_sorted(vertices.begin(), vertices.end()) ||
+            std::adjacent_find(
+                vertices.begin(), vertices.end()) != vertices.end())
+          throw std::invalid_argument(
+              "spacetime commitment vertices must be sorted and unique");
+        for (const int cell : vertices)
+          if (cell < 0 || cell >= grid.size() ||
+              grid.is_wall(cell))
+            throw std::invalid_argument(
+                "spacetime commitment contains an invalid vertex");
+      };
+  for (const auto& frame : frames) {
+    validate_vertices(frame.lower_vertices);
+    validate_vertices(frame.upper_vertices);
+  }
+  for (const auto& edges : lower_directed_edges) {
+    if (!std::is_sorted(edges.begin(), edges.end()) ||
+        std::adjacent_find(edges.begin(), edges.end()) != edges.end())
+      throw std::invalid_argument(
+          "spacetime commitment edges must be sorted and unique");
+    for (const auto& edge : edges)
+      if (!grid.has_edge(edge.first, edge.second))
+        throw std::invalid_argument(
+            "spacetime commitment contains an invalid directed edge");
+  }
+}
+
+int64_t CarrierSpacetimeCommitment::phase_at(
+    int64_t absolute_tick) const
+{
+  if (absolute_tick < 0)
+    throw std::invalid_argument(
+        "spacetime commitment tick must be non-negative");
+  if (frames.empty()) return 0;
+  return std::min<int64_t>(
+      absolute_tick,
+      static_cast<int64_t>(frames.size() - 1));
+}
+
+const CarrierSpacetimeFrame*
+CarrierSpacetimeCommitment::frame_at(
+    int64_t absolute_tick) const
+{
+  if (absolute_tick < 0 || frames.empty()) return nullptr;
+  if (absolute_tick < static_cast<int64_t>(frames.size()))
+    return &frames[static_cast<size_t>(absolute_tick)];
+  return tail_policy == CarrierSpacetimeTailPolicy::HOLD_LAST
+             ? &frames.back()
+             : nullptr;
+}
+
+const std::vector<std::pair<int, int>>*
+CarrierSpacetimeCommitment::edges_at(
+    int64_t absolute_tick) const
+{
+  if (absolute_tick < 0 ||
+      absolute_tick >=
+          static_cast<int64_t>(lower_directed_edges.size()))
+    return nullptr;
+  return &lower_directed_edges[
+      static_cast<size_t>(absolute_tick)];
+}
+
+bool CarrierSpacetimeCommitment::blocks_lower(
+    int cell, int64_t absolute_tick) const
+{
+  const auto* frame = frame_at(absolute_tick);
+  return frame != nullptr &&
+         std::binary_search(
+             frame->lower_vertices.begin(),
+             frame->lower_vertices.end(), cell);
+}
+
+bool CarrierSpacetimeCommitment::blocks_upper(
+    int cell, int64_t absolute_tick) const
+{
+  const auto* frame = frame_at(absolute_tick);
+  return frame != nullptr &&
+         std::binary_search(
+             frame->upper_vertices.begin(),
+             frame->upper_vertices.end(), cell);
+}
+
+bool CarrierSpacetimeCommitment::has_lower_edge(
+    int from, int to, int64_t absolute_tick) const
+{
+  const auto* edges = edges_at(absolute_tick);
+  return edges != nullptr &&
+         std::binary_search(
+             edges->begin(), edges->end(),
+             std::make_pair(from, to));
+}
+
 std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
                                     const std::vector<Op>& ops,
-                                    bool allow_following)
+                                    bool allow_following,
+                                    const CarrierSpacetimeCommitment*
+                                        spacetime_commitment,
+                                    int64_t absolute_tick)
 {
   const size_t R = ins.n_robots();
-  if (ops.size() != R || s.robots.size() != R) return std::nullopt;
+  const auto next_tick_checked =
+      checked_absolute_tick_add(absolute_tick, 1);
+  if (ops.size() != R || s.robots.size() != R ||
+      s.target_pos.size() != ins.n_targets() ||
+      (s.kappa.size() != R &&
+       !(s.kappa.empty() && ins.shelves.empty())) ||
+      !next_tick_checked.has_value())
+    return std::nullopt;
+  const int64_t next_tick = *next_tick_checked;
+  const std::vector<int> free_kappa(
+      s.kappa.empty() ? R : 0, KAPPA_FREE);
+  const auto& kappa =
+      s.kappa.empty() ? free_kappa : s.kappa;
 
   // grounded shelf lookup at step start
   // cell -> target idx (grounded targets only)
   std::unordered_map<int, int> grounded_target;
   std::vector<bool> target_carried(ins.n_targets(), false);
   for (size_t i = 0; i < R; ++i)
-    if (s.kappa[i] >= 0) target_carried[s.kappa[i]] = true;
+    if (kappa[i] >= 0) target_carried[kappa[i]] = true;
   for (size_t b = 0; b < ins.n_targets(); ++b)
     if (!target_carried[b]) grounded_target[s.target_pos[b]] = (int)b;
   std::unordered_set<int> grounded_anon(s.anon_occ.begin(), s.anon_occ.end());
@@ -473,7 +597,7 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
   PhysConfig nxt;
   nxt.robots.resize(R);
   nxt.target_pos = s.target_pos;
-  nxt.kappa = s.kappa;
+  nxt.kappa = kappa;
   std::vector<int> anon_next(s.anon_occ.begin(), s.anon_occ.end());
 
   // --- per-robot preconditions & effects ---
@@ -490,11 +614,11 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
         if (op.to < 0 || op.to >= ins.grid.size()) return std::nullopt;
         if (!ins.grid.has_edge(q, op.to)) return std::nullopt;
         nxt.robots[i] = op.to;
-        if (s.kappa[i] >= 0) nxt.target_pos[s.kappa[i]] = op.to;
+        if (kappa[i] >= 0) nxt.target_pos[kappa[i]] = op.to;
         break;
       }
       case Op::LIFT: {
-        if (s.kappa[i] != KAPPA_FREE) return std::nullopt;
+        if (kappa[i] != KAPPA_FREE) return std::nullopt;
         auto it = grounded_target.find(q);
         if (it != grounded_target.end()) {
           nxt.kappa[i] = it->second;
@@ -510,9 +634,9 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
         break;
       }
       case Op::DROP: {
-        if (s.kappa[i] == KAPPA_FREE) return std::nullopt;
+        if (kappa[i] == KAPPA_FREE) return std::nullopt;
         if (!ins.can_place_movable_shelf(q)) return std::nullopt;
-        if (s.kappa[i] == KAPPA_ANON) anon_next.push_back(q);
+        if (kappa[i] == KAPPA_ANON) anon_next.push_back(q);
         nxt.kappa[i] = KAPPA_FREE;
         nxt.robots[i] = q;
         break;
@@ -533,6 +657,18 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
     std::unordered_set<int> occ;
     for (int v : nxt.robots)
       if (!occ.insert(v).second) return std::nullopt;
+  }
+  // --- external lower-deck vertex and directed-edge conflicts ---
+  if (spacetime_commitment != nullptr) {
+    for (size_t i = 0; i < R; ++i) {
+      if (spacetime_commitment->blocks_lower(
+              nxt.robots[i], next_tick))
+        return std::nullopt;
+      if (nxt.robots[i] != s.robots[i] &&
+          spacetime_commitment->has_lower_edge(
+              nxt.robots[i], s.robots[i], absolute_tick))
+        return std::nullopt;
+    }
   }
   // --- R2: swap conflict (following allowed) ---
   {
@@ -563,7 +699,7 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
     for (size_t b = 0; b < ins.n_targets(); ++b)
       shelf_was.insert(s.target_pos[b]);
     for (size_t i = 0; i < R; ++i)
-      if (s.kappa[i] == KAPPA_ANON) shelf_was.insert(s.robots[i]);
+      if (kappa[i] == KAPPA_ANON) shelf_was.insert(s.robots[i]);
     // next shelf cells that MOVED into a previously-occupied cell
     auto entered_occupied = [&](int now, int before) {
       return now != before && shelf_was.count(now) > 0;
@@ -574,7 +710,7 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
       if (entered_occupied(nxt.target_pos[b], before)) return std::nullopt;
     }
     for (size_t i = 0; i < R; ++i) {
-      if (nxt.kappa[i] == KAPPA_ANON && s.kappa[i] == KAPPA_ANON &&
+      if (nxt.kappa[i] == KAPPA_ANON && kappa[i] == KAPPA_ANON &&
           entered_occupied(nxt.robots[i], s.robots[i]))
         return std::nullopt;
     }
@@ -594,11 +730,17 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
     }
     for (size_t b = 0; b < ins.n_targets(); ++b)
       if (!upper.insert(nxt.target_pos[b]).second) return std::nullopt;
+    if (spacetime_commitment != nullptr)
+      for (const int cell : upper)
+        if (spacetime_commitment->blocks_upper(
+                cell, next_tick))
+          return std::nullopt;
     (void)carried_next;
   }
 
   std::sort(anon_next.begin(), anon_next.end());
   nxt.anon_occ = std::move(anon_next);
+  if (s.kappa.empty()) nxt.kappa.clear();
   return nxt;
 }
 

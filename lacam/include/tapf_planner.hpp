@@ -52,6 +52,7 @@ struct TAPFNode : LacamNodeCore<TAPFConstraint, TAPFNode> {
   PlanCost h;
   PlanCost f;
   unsigned depth;
+  int64_t absolute_tick = 0;
   unsigned non_goal_waits;
   unsigned reversals;
   unsigned distance_increases;
@@ -315,7 +316,8 @@ struct TAPFPlanner {
   void attach_carrier_root_guidance(TAPFNode* nd);
   void ensure_guidance_fresh(TAPFNode* nd);
   const TAPFReferenceCheckpoint* find_reference_checkpoint(
-      const PhysConfig& state) const;
+      const PhysConfig& state,
+      int64_t absolute_tick = -1) const;
   // operator-candidate construction for the lazy constraint tree (M3):
   // the ONE production implementation, shared by solve() and the G1
   // conformance enumeration adapters.  rng consumption identical to the
@@ -339,6 +341,9 @@ struct TAPFPlanner {
   bool carrier_upper_taken(int cell) const;
   void carrier_upper_add(int cell);
   void carrier_upper_sub(int cell);
+  bool spacetime_candidate_feasible(
+      const Agent* agent, const Vertex* destination,
+      uint8_t kind) const;
   bool forced_op_feasible(const TAPFNode* S, int i, Vertex* v, uint8_t kind);
   bool apply_carrier_effects(const TAPFNode* S);
   Agent* swap_possible_and_required(Agent* ai,

@@ -14,7 +14,7 @@
 
 开发流程严格遵循：
 
-**test → RED → implementation → GREEN → benchmark → regression test → debug**
+**test → RED → implementation → GREEN → 按触发条件运行 benchmark → regression test → debug**
 
 * 使用 baseline 原始 benchmark 流程，新算法与 baseline 必须使用相同 dataset、metric、seed、success/failure semantics 和运行配置；每个 testcase 严格限时 **10s**。
 * 实现开始前固定一小组 representative benchmark cases 用于开发阶段快速测试，不得根据算法表现随意更换 testcase。
@@ -25,10 +25,10 @@
 
 ### 原始 benchmark 的触发条件
 
-* **如果本次修改没有改变原有算法，就不需要运行原始 benchmark。** 这里包括只增加新输入表达、新场景语义、接口、adapter、schema validation、telemetry、构建或文档，并且在不使用新增输入时，原 LaCAM-TAPF 的搜索、状态转移、cost、heuristic、assignment 和 tie-breaking 都保持不变。
+* **如果本次修改没有改变原有算法，就禁止运行原始 benchmark。** 不得仅仅为了“流程完整”“确认一下”或生成新报告而运行。这类修改包括只增加新输入表达、新场景语义、接口、adapter、schema validation、telemetry、构建或文档，并且在不使用新增输入时，原 LaCAM-TAPF 的搜索、状态转移、cost、heuristic、assignment 和 tie-breaking 都保持不变。
 * 这类修改只运行新增功能的定向 unit/integration/regression tests，以及确实覆盖本次接入行为的 Labyrinth simple benchmark；不得为了流程完整而重复运行与修改无关的原始 quick/full benchmark。
 * 只有修改会影响原 testcase 使用的搜索/control flow、状态转移、cost、heuristic、assignment、邻接语义、tie-breaking，或者相关 regression test 表明旧行为可能改变时，才运行原始 quick benchmark。
-* full benchmark 仍只在全部实现完成并满足下述最终 gate 后运行一次，不能因为阶段性非算法改动而提前或重复运行。
+* 如果本次工作始终没有改变原算法或默认行为，则原始 quick benchmark 和 full benchmark 都不运行。只有确实触发原始 benchmark 的修改，full benchmark 才在全部实现完成并满足下述最终 gate 后运行一次；不能因为阶段性非算法改动而提前或重复运行。
 
 ### Quick / full benchmark 层级
 
@@ -102,10 +102,10 @@ Reviewer 重点检查：
 
 完成后必须：
 
-* 运行原 LaCAM-TAPF tests，重点验证无 pick/place 时的 backward compatibility；
-* 运行所有新增和相关 existing tests；
-* 运行完整 benchmark，每个 testcase 严格限时 **10s**；
-* 使用相同配置、seed、资源分配和并行策略比较 baseline 与新算法；
+* 运行所有新增和与本次修改直接相关的 existing tests；
+* 只有本次修改影响原算法或默认行为时，才运行原 LaCAM-TAPF regression tests，重点验证无 pick/place 时的 backward compatibility；
+* 只有满足“原始 benchmark 的触发条件”及 full benchmark gate 时，才运行完整 benchmark，每个 testcase 严格限时 **10s**；
+* 只有实际运行 baseline 与新算法 benchmark 时，才要求使用相同配置、seed、资源分配和并行策略进行比较；
 * review 最终 `git diff`，逐项确认主要新增代码的必要性；
 * 检查不存在 parallel implementation、fallback、benchmark-specific hack 或无效代码, 并且清理.
 
@@ -114,7 +114,7 @@ Reviewer 重点检查：
 * 主要算法修改；
 * 修改了哪些原 LaCAM-TAPF execution paths；
 * 新增了哪些 tests / regression tests；
-* baseline vs 新算法 benchmark 结果；
+* 实际运行过的 benchmark 结果；如果因未修改原算法而没有运行原始 benchmark，应明确写“未触发”，不得为了补齐报告而补跑；
 * backward compatibility 结果；
 * 最终 git diff 中主要新增代码的作用；
 * 尚存在的 regression、semantic difference 或未解决问题。

@@ -63,8 +63,36 @@ void TAPFPlanner::attach_carrier_root_guidance(TAPFNode* nd)
     std::vector<PhysConfig> states;
     states.reserve(continuation->executed_prefix.size() + 1);
     states.push_back(continuation->previous_physical);
-    for (const auto& ops : continuation->executed_prefix) {
-      const auto next = apply_ops(*dd_view, states.back(), ops);
+    const bool has_spacetime_commitment =
+        search_config.spacetime_commitment != nullptr &&
+        !search_config.spacetime_commitment->empty();
+    int64_t prefix_start_tick = 0;
+    if (has_spacetime_commitment) {
+      if (continuation->executed_prefix.size() >
+          static_cast<uint64_t>(nd->absolute_tick))
+        throw std::invalid_argument(
+            "carrier continuation predates commitment origin");
+      prefix_start_tick =
+          nd->absolute_tick -
+          static_cast<int64_t>(
+              continuation->executed_prefix.size());
+    }
+    for (size_t step = 0;
+         step < continuation->executed_prefix.size(); ++step) {
+      const auto& ops =
+          continuation->executed_prefix[step];
+      const auto absolute_tick =
+          checked_absolute_tick_add(
+              prefix_start_tick, step);
+      if (!absolute_tick.has_value())
+        throw std::invalid_argument(
+            "carrier continuation tick overflow");
+      const auto next = apply_ops(
+          *dd_view, states.back(), ops, true,
+          has_spacetime_commitment
+              ? search_config.spacetime_commitment
+              : nullptr,
+          *absolute_tick);
       if (!next.has_value())
         throw std::invalid_argument(
             "carrier continuation contains an invalid joint action");
@@ -90,6 +118,14 @@ void TAPFPlanner::attach_carrier_root_guidance(TAPFNode* nd)
           config_of_physical(*ins, states[step + 1]),
           shelf_of_physical(states[step + 1]), D, ins,
           std::vector<int>(N, -1), TAPFAssignmentState());
+      const auto intermediate_tick =
+          checked_absolute_tick_add(
+              prefix_start_tick, step + 1);
+      if (!intermediate_tick.has_value())
+        throw std::invalid_argument(
+            "carrier continuation tick overflow");
+      intermediate->absolute_tick =
+          *intermediate_tick;
       attach_carrier_guidance(
           intermediate.get(), &states[step],
           &previous_guidance, &ops);
@@ -183,9 +219,22 @@ void TAPFPlanner::attach_carrier_guidance(
   if (transition_previous_X != nullptr &&
       transition_previous_guidance != nullptr &&
       transition_executed_ops != nullptr) {
+    const bool has_spacetime_commitment =
+        search_config.spacetime_commitment != nullptr &&
+        !search_config.spacetime_commitment->empty();
+    const int64_t transition_tick =
+        has_spacetime_commitment &&
+                nd->absolute_tick > 0
+            ? nd->absolute_tick - 1
+            : 0;
     const auto replayed =
-        apply_ops(dd_instance, *transition_previous_X,
-                  *transition_executed_ops);
+        apply_ops(
+            dd_instance, *transition_previous_X,
+            *transition_executed_ops, true,
+            has_spacetime_commitment
+                ? search_config.spacetime_commitment
+                : nullptr,
+            transition_tick);
     if (replayed.has_value() && *replayed == physical) {
       previous_physical = transition_previous_X;
       transition_ops = transition_executed_ops;
@@ -557,8 +606,16 @@ void TAPFPlanner::ensure_guidance_fresh(TAPFNode* nd)
       if (!(trace[step].previous_X == anchor_X))
         throw std::logic_error(
             "ensure_guidance_fresh: stale parent/trace anchor");
-      const auto replayed =
-          apply_ops(*dd_view, anchor_X, trace[step].ops);
+      const auto absolute_tick =
+          checked_absolute_tick_add(
+              nd->parent->absolute_tick, step);
+      if (!absolute_tick.has_value())
+        throw std::logic_error(
+            "ensure_guidance_fresh: tick overflow");
+      const auto replayed = apply_ops(
+          *dd_view, anchor_X, trace[step].ops, true,
+          search_config.spacetime_commitment,
+          *absolute_tick);
       if (!replayed.has_value() ||
           !(*replayed == trace[step].next_X))
         throw std::logic_error(
@@ -715,6 +772,44 @@ void TAPFPlanner::carrier_upper_sub(int cell)
   --carrier_upper_delta[cell];  // touched entry stays; reset zeroes it
 }
 
+bool TAPFPlanner::spacetime_candidate_feasible(
+    const Agent* agent, const Vertex* destination,
+    uint8_t kind) const
+{
+  const auto* commitment =
+      search_config.spacetime_commitment;
+  if (commitment == nullptr || commitment->empty())
+    return true;
+  if (agent == nullptr || agent->v_now == nullptr ||
+      destination == nullptr || carrier_scratch_node == nullptr)
+    return false;
+
+  const int64_t tick =
+      carrier_scratch_node->absolute_tick;
+  if (tick == std::numeric_limits<int64_t>::max())
+    return false;
+  if (commitment->blocks_lower(
+          destination->index, tick + 1))
+    return false;
+  if (kind == Op::MOVE &&
+      destination != agent->v_now &&
+      commitment->has_lower_edge(
+          destination->index, agent->v_now->index, tick))
+    return false;
+
+  bool upper_at_destination = false;
+  if (!carrier_scratch_node->shelf.kappa.empty()) {
+    const int kappa =
+        carrier_scratch_node->shelf.kappa[agent->id];
+    upper_at_destination =
+        kind == Op::LIFT || kind == Op::DROP ||
+        (kappa != KAPPA_FREE && kind != Op::LIFT);
+  }
+  return !upper_at_destination ||
+         !commitment->blocks_upper(
+             destination->index, tick + 1);
+}
+
 // per-kind preconditions of a FORCED op under a partial constraint
 // (final arbitration is the oracle's; a wrong veto here only delays the
 // combination to a deeper constraint — G1 keeps completeness)
@@ -781,16 +876,33 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
   out.configs.push_back(C0);
   out.shelves.push_back(S0);
   std::unordered_set<uint64_t> local_seen;
-  auto state_hash = [&](const Config& C, const ShelfState& S) {
-    return (uint64_t)ConfigHasher()(C) ^ shelf_layer_hash(S);
+  auto state_hash = [&](const Config& C, const ShelfState& S,
+                        int64_t absolute_tick) {
+    uint64_t hash =
+        (uint64_t)ConfigHasher()(C) ^ shelf_layer_hash(S);
+    if (search_config.spacetime_commitment != nullptr) {
+      const int64_t phase =
+          search_config.spacetime_commitment->phase_at(
+              absolute_tick);
+      if (phase != 0)
+        hash ^= splitmix64(static_cast<uint64_t>(phase));
+    }
+    return hash;
   };
-  local_seen.insert(state_hash(C0, S0));
-  auto make_rollout_node = [&](const Config& C, const ShelfState& S) {
-    return std::make_unique<TAPFNode>(
+  const int64_t initial_tick =
+      initial_anchor != nullptr
+          ? initial_anchor->absolute_tick
+          : search_config.commitment_time_origin;
+  local_seen.insert(state_hash(C0, S0, initial_tick));
+  auto make_rollout_node = [&](const Config& C, const ShelfState& S,
+                               int64_t absolute_tick) {
+    auto node = std::make_unique<TAPFNode>(
         C, S, D, ins, std::vector<int>(N, -1),
         TAPFAssignmentState(), nullptr);
+    node->absolute_tick = absolute_tick;
+    return node;
   };
-  auto current = make_rollout_node(C0, S0);
+  auto current = make_rollout_node(C0, S0, initial_tick);
   invalidate_carrier_scratch();
   if (initial_anchor != nullptr) {
     if (!is_same_config(initial_anchor->C, C0) ||
@@ -830,7 +942,15 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
     if (!apply_carrier_effects(current.get())) return out;
     for (auto a : A) C_step[a->id] = a->v_next;
     const auto ops = ops_scratch;
-    if (!local_seen.insert(state_hash(C_step, shelf_next_scratch)).second) {
+    const auto next_tick_checked =
+        checked_absolute_tick_add(
+            current->absolute_tick, 1);
+    if (!next_tick_checked.has_value()) return out;
+    const int64_t next_tick = *next_tick_checked;
+    if (!local_seen.insert(
+             state_hash(
+                 C_step, shelf_next_scratch, next_tick))
+             .second) {
       if (stats != nullptr) ++stats->rollout_cycles;
       return out;
     }
@@ -854,7 +974,8 @@ TAPFPlanner::CarrierRollout TAPFPlanner::carrier_rollout(const Config& C0,
     out.shelves.push_back(shelf_next_scratch);
     if (stats != nullptr) ++stats->macro_steps;
 
-    auto next = make_rollout_node(C_step, shelf_next_scratch);
+    auto next = make_rollout_node(
+        C_step, shelf_next_scratch, next_tick);
     invalidate_carrier_scratch();
     attach_carrier_guidance(
         next.get(), &previous_X, current->guide.get(), &ops);

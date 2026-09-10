@@ -36,7 +36,10 @@ inline SocWeights soc_weights_from_env()
 inline std::optional<DDPlan> normalize_goal_prefix(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan, const Deadline* deadline = nullptr,
-    bool* cutoff = nullptr)
+    bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   if (cutoff != nullptr) *cutoff = false;
   const auto expired = [&]() {
@@ -52,9 +55,17 @@ inline std::optional<DDPlan> normalize_goal_prefix(
   }
   DDPlan prefix;
   prefix.reserve(plan.size());
-  for (const auto& ops : plan) {
+  for (size_t tick = 0; tick < plan.size(); ++tick) {
+    const auto& ops = plan[tick];
     if (expired()) return std::nullopt;
-    const auto next = apply_ops(ins, state, ops);
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            commitment_time_origin, tick);
+    if (!absolute_tick.has_value())
+      return std::nullopt;
+    const auto next = apply_ops(
+        ins, state, ops, true, spacetime_commitment,
+        *absolute_tick);
     if (!next.has_value()) return std::nullopt;
     prefix.push_back(ops);
     state = *next;
@@ -66,10 +77,14 @@ inline std::optional<DDPlan> normalize_goal_prefix(
 
 inline std::optional<DDPlan> normalize_goal_prefix(
     const DDInstance& ins, const DDPlan& plan,
-    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   return normalize_goal_prefix(
-      ins, initial_phys_config(ins), plan, deadline, cutoff);
+      ins, initial_phys_config(ins), plan, deadline, cutoff,
+      spacetime_commitment, commitment_time_origin);
 }
 
 inline void add_scaled_work(int64_t& total, int64_t amount)
@@ -118,7 +133,10 @@ inline std::optional<int64_t> joint_ops_work_scaled(
 inline std::optional<int64_t> plan_work_scaled(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan,
-    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   if (cutoff != nullptr) *cutoff = false;
   const auto expired = [&]() {
@@ -130,7 +148,8 @@ inline std::optional<int64_t> plan_work_scaled(
   const SocWeights w = soc_weights_from_env();
   auto s = root;
   int64_t work = 0;
-  for (const auto& ops : plan) {
+  for (size_t tick = 0; tick < plan.size(); ++tick) {
+    const auto& ops = plan[tick];
     if (expired()) return std::nullopt;
     bool step_cutoff = false;
     const auto step_work = joint_ops_work_scaled(
@@ -141,7 +160,14 @@ inline std::optional<int64_t> plan_work_scaled(
     }
     if (!step_work.has_value()) return std::nullopt;
     add_scaled_work(work, *step_work);
-    auto nxt = apply_ops(ins, s, ops);
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            commitment_time_origin, tick);
+    if (!absolute_tick.has_value())
+      return std::nullopt;
+    auto nxt = apply_ops(
+        ins, s, ops, true, spacetime_commitment,
+        *absolute_tick);
     if (!nxt.has_value()) return std::nullopt;
     s = *nxt;
     if (expired()) return std::nullopt;
@@ -152,21 +178,29 @@ inline std::optional<int64_t> plan_work_scaled(
 
 inline std::optional<int64_t> plan_work_scaled(
     const DDInstance& ins, const DDPlan& plan,
-    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   return plan_work_scaled(
-      ins, initial_phys_config(ins), plan, deadline, cutoff);
+      ins, initial_phys_config(ins), plan, deadline, cutoff,
+      spacetime_commitment, commitment_time_origin);
 }
 
 inline std::optional<PlanCost> plan_cost_checked(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan,
-    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   if (cutoff != nullptr) *cutoff = false;
   bool prefix_cutoff = false;
   const auto prefix = normalize_goal_prefix(
-      ins, root, plan, deadline, &prefix_cutoff);
+      ins, root, plan, deadline, &prefix_cutoff,
+      spacetime_commitment, commitment_time_origin);
   if (prefix_cutoff) {
     if (cutoff != nullptr) *cutoff = true;
     return std::nullopt;
@@ -175,7 +209,8 @@ inline std::optional<PlanCost> plan_cost_checked(
 
   bool work_cutoff = false;
   const auto work = plan_work_scaled(
-      ins, root, *prefix, deadline, &work_cutoff);
+      ins, root, *prefix, deadline, &work_cutoff,
+      spacetime_commitment, commitment_time_origin);
   if (work_cutoff) {
     if (cutoff != nullptr) *cutoff = true;
     return std::nullopt;
@@ -190,29 +225,47 @@ inline std::optional<PlanCost> plan_cost_checked(
 
 inline std::optional<PlanCost> plan_cost_checked(
     const DDInstance& ins, const DDPlan& plan,
-    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   return plan_cost_checked(
-      ins, initial_phys_config(ins), plan, deadline, cutoff);
+      ins, initial_phys_config(ins), plan, deadline, cutoff,
+      spacetime_commitment, commitment_time_origin);
 }
 
 inline PlanCost plan_cost(
     const DDInstance& ins, const PhysConfig& root,
-    const DDPlan& plan)
+    const DDPlan& plan,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
-  const auto cost = plan_cost_checked(ins, root, plan);
+  const auto cost = plan_cost_checked(
+      ins, root, plan, nullptr, nullptr,
+      spacetime_commitment, commitment_time_origin);
   return cost.has_value() ? *cost : PlanCost::unbounded();
 }
 
-inline PlanCost plan_cost(const DDInstance& ins, const DDPlan& plan)
+inline PlanCost plan_cost(
+    const DDInstance& ins, const DDPlan& plan,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
-  return plan_cost(ins, initial_phys_config(ins), plan);
+  return plan_cost(
+      ins, initial_phys_config(ins), plan,
+      spacetime_commitment, commitment_time_origin);
 }
 
 inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan,
-    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   if (cutoff != nullptr) *cutoff = false;
   const auto expired = [&]() {
@@ -224,7 +277,8 @@ inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
   const SocWeights weights = soc_weights_from_env();
   PhysConfig state = root;
   PlanCost cost;
-  for (const auto& ops : plan) {
+  for (size_t tick = 0; tick < plan.size(); ++tick) {
+    const auto& ops = plan[tick];
     if (expired()) return std::nullopt;
     if (ops.size() != state.robots.size()) return std::nullopt;
     bool step_cutoff = false;
@@ -237,7 +291,14 @@ inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
     if (!step_work.has_value()) return std::nullopt;
     const PlanCost step = PlanCost::from_scaled(
         1, *step_work);
-    const auto next = apply_ops(ins, state, ops);
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            commitment_time_origin, tick);
+    if (!absolute_tick.has_value())
+      return std::nullopt;
+    const auto next = apply_ops(
+        ins, state, ops, true, spacetime_commitment,
+        *absolute_tick);
     if (!next.has_value()) return std::nullopt;
     cost += step;
     state = *next;
@@ -249,10 +310,14 @@ inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
 
 inline std::optional<std::pair<PhysConfig, PlanCost>> replay_raw_prefix(
     const DDInstance& ins, const DDPlan& plan,
-    const Deadline* deadline = nullptr, bool* cutoff = nullptr)
+    const Deadline* deadline = nullptr, bool* cutoff = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   return replay_raw_prefix(
-      ins, initial_phys_config(ins), plan, deadline, cutoff);
+      ins, initial_phys_config(ins), plan, deadline, cutoff,
+      spacetime_commitment, commitment_time_origin);
 }
 
 inline const TAPFReferenceCheckpoint* find_reference_checkpoint(
@@ -276,7 +341,10 @@ inline const TAPFReferenceCheckpoint* find_reference_checkpoint(
 inline std::optional<TAPFReferencePlan> build_reference_plan(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan,
-    size_t max_checkpoints)
+    size_t max_checkpoints,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   if (max_checkpoints == 0) return std::nullopt;
   const SocWeights weights = soc_weights_from_env();
@@ -285,7 +353,8 @@ inline std::optional<TAPFReferencePlan> build_reference_plan(
   states.reserve(plan.size() + 1);
   step_costs.reserve(plan.size());
   states.push_back(root);
-  for (const auto& ops : plan) {
+  for (size_t tick = 0; tick < plan.size(); ++tick) {
+    const auto& ops = plan[tick];
     if (ops.size() != states.back().robots.size())
       return std::nullopt;
     const auto step_work =
@@ -293,7 +362,14 @@ inline std::optional<TAPFReferencePlan> build_reference_plan(
     if (!step_work.has_value()) return std::nullopt;
     step_costs.push_back(PlanCost::from_scaled(
         1, *step_work));
-    const auto next = apply_ops(ins, states.back(), ops);
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            commitment_time_origin, tick);
+    if (!absolute_tick.has_value())
+      return std::nullopt;
+    const auto next = apply_ops(
+        ins, states.back(), ops, true,
+        spacetime_commitment, *absolute_tick);
     if (!next.has_value()) return std::nullopt;
     states.push_back(*next);
   }
@@ -342,10 +418,14 @@ inline std::optional<TAPFReferencePlan> build_reference_plan(
 
 inline std::optional<TAPFReferencePlan> build_reference_plan(
     const DDInstance& ins, const DDPlan& plan,
-    size_t max_checkpoints)
+    size_t max_checkpoints,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   return build_reference_plan(
-      ins, initial_phys_config(ins), plan, max_checkpoints);
+      ins, initial_phys_config(ins), plan, max_checkpoints,
+      spacetime_commitment, commitment_time_origin);
 }
 
 // (Config, ShelfState) of an arbitrary physical configuration
@@ -590,7 +670,10 @@ inline DDPlan run_search_attempt(
     const TAPFCarrierRootContinuation*
         carrier_root_continuation = nullptr,
     std::shared_ptr<CarrierGuidance>*
-        carrier_root_guidance_output = nullptr)
+        carrier_root_guidance_output = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   if (solved_out == nullptr)
     throw std::invalid_argument(
@@ -613,6 +696,9 @@ inline DDPlan run_search_attempt(
       carrier_root_continuation;
   cfg.carrier_root_guidance_output =
       carrier_root_guidance_output;
+  cfg.spacetime_commitment = spacetime_commitment;
+  cfg.commitment_time_origin =
+      commitment_time_origin;
   const bool continue_after_incumbent =
       stop_policy == TAPFStopPolicy::ANYTIME;
   auto planner = std::make_unique<TAPFPlanner>(
@@ -662,7 +748,9 @@ inline DDPlan run_search_attempt(
     return {};
   }
   const auto normalized = normalize_goal_prefix(
-      ins, root, plan_of(view, sol, planner->solution_shelves));
+      ins, root, plan_of(view, sol, planner->solution_shelves),
+      nullptr, nullptr, spacetime_commitment,
+      commitment_time_origin);
   if (!normalized.has_value()) {
     defer_planner_cleanup();
     return {};
@@ -683,10 +771,13 @@ inline DDPlan run_search_attempt(
   if (!plan.empty())
     plan = replayed_states.empty()
                ? repair_carrier_plan(
-                     ins, root, plan, &repair, deadline)
+                     ins, root, plan, &repair, deadline,
+                     spacetime_commitment,
+                     commitment_time_origin)
                : repair_carrier_plan_from_replay(
                      ins, root, plan, replayed_states, &repair,
-                     deadline);
+                     deadline, spacetime_commitment,
+                     commitment_time_origin);
   if (stats != nullptr) {
     stats->exact_loops += repair.exact_loops;
     stats->projected_loops += repair.projected_loops;
@@ -694,14 +785,19 @@ inline DDPlan run_search_attempt(
     stats->plan_steps_removed += repair.steps_removed;
   }
   const auto repaired_prefix =
-      normalize_goal_prefix(ins, root, plan);
+      normalize_goal_prefix(
+          ins, root, plan, nullptr, nullptr,
+          spacetime_commitment,
+          commitment_time_origin);
   if (!repaired_prefix.has_value()) {
     defer_planner_cleanup();
     return {};
   }
   plan = *repaired_prefix;
   if (cost_out != nullptr)
-    *cost_out = plan_cost(ins, root, plan);
+    *cost_out = plan_cost(
+        ins, root, plan, spacetime_commitment,
+        commitment_time_origin);
   *solved_out = true;
   defer_planner_cleanup();
   return plan;
@@ -716,11 +812,22 @@ inline bool has_dynamic_goal_sets(const DDInstance& ins)
 
 inline std::optional<DDInstance> fixed_goal_instance_from_plan(
     const DDInstance& ins, const PhysConfig& root,
-    const DDPlan& plan)
+    const DDPlan& plan,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   PhysConfig state = root;
-  for (const auto& ops : plan) {
-    auto next = apply_ops(ins, state, ops);
+  for (size_t tick = 0; tick < plan.size(); ++tick) {
+    const auto& ops = plan[tick];
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            commitment_time_origin, tick);
+    if (!absolute_tick.has_value())
+      return std::nullopt;
+    auto next = apply_ops(
+        ins, state, ops, true, spacetime_commitment,
+        *absolute_tick);
     if (!next.has_value()) return std::nullopt;
     state = std::move(*next);
   }
@@ -736,10 +843,14 @@ inline std::optional<DDInstance> fixed_goal_instance_from_plan(
 }
 
 inline std::optional<DDInstance> fixed_goal_instance_from_plan(
-    const DDInstance& ins, const DDPlan& plan)
+    const DDInstance& ins, const DDPlan& plan,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0)
 {
   return fixed_goal_instance_from_plan(
-      ins, initial_phys_config(ins), plan);
+      ins, initial_phys_config(ins), plan,
+      spacetime_commitment, commitment_time_origin);
 }
 
 inline uint64_t state_hash(const Config& C, const ShelfState& S)

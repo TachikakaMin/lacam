@@ -69,6 +69,14 @@ add_test(test_dd_directed_swap
          ./tests/test_dd_directed_swap.cpp)
 add_test(test_dd_directed_schema
          ./tests/test_dd_directed_schema.cpp)
+add_test(test_dd_spacetime_commitment
+         ./tests/test_dd_spacetime_commitment.cpp)
+add_test(test_dd_spacetime_delivery
+         ./tests/test_dd_spacetime_delivery.cpp)
+add_test(test_dd_spacetime_session
+         ./tests/test_dd_spacetime_session.cpp)
+add_test(test_dd_spacetime_tick_overflow
+         ./tests/test_dd_spacetime_tick_overflow.cpp)
 add_test(test_dd_planner ./tests/test_dd_planner.cpp)
 add_test(test_dd_arbitrary_root ./tests/test_dd_arbitrary_root.cpp)
 add_test(test_dd_incremental_session
@@ -97,6 +105,27 @@ add_executable(
   ${TEST_MAIN_FUNC})
 target_link_libraries(
   test_carrier_lacam_directed_adjacency_c_api
+  carrier_lacam gtest)
+add_executable(
+  test_carrier_lacam_spacetime_c_api
+  ./tests/test_carrier_lacam_spacetime_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_spacetime_c_api
+  carrier_lacam gtest)
+add_executable(
+  test_carrier_lacam_spacetime_validation_c_api
+  ./tests/test_carrier_lacam_spacetime_validation_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_spacetime_validation_c_api
+  carrier_lacam gtest)
+add_executable(
+  test_carrier_lacam_spacetime_origin_c_api
+  ./tests/test_carrier_lacam_spacetime_origin_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_spacetime_origin_c_api
   carrier_lacam gtest)
 add_executable(
   test_carrier_lacam_incremental_c_api

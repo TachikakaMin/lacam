@@ -88,13 +88,27 @@ static DDSolveResult solve_carrier_lacam_from_state_result_impl(
     const TAPFCarrierRootContinuation*
         carrier_root_continuation,
     std::shared_ptr<CarrierGuidance>*
-        carrier_root_guidance_output)
+        carrier_root_guidance_output,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   if (stats != nullptr) *stats = DDStats();
   if (best_effort != nullptr) best_effort->clear();
   if (ins.shelves.empty() ||
       !validate_phys_config_root(ins, current).valid())
     return DDSolveResult{DDSolveStatus::INVALID, {}};
+  if (!checked_absolute_tick_add(
+           commitment_time_origin, 1)
+           .has_value())
+    return DDSolveResult{DDSolveStatus::INVALID, {}};
+  if (spacetime_commitment != nullptr) {
+    try {
+      spacetime_commitment->validate(ins.grid);
+    } catch (const std::invalid_argument&) {
+      return DDSolveResult{DDSolveStatus::INVALID, {}};
+    }
+  }
 
   const TAPFInstance view(ins);
   const auto started = Clock::now();
@@ -141,7 +155,9 @@ static DDSolveResult solve_carrier_lacam_from_state_result_impl(
       &deferred_cleanup,
       std::move(carrier_persistent_state),
       carrier_root_continuation,
-      carrier_root_guidance_output);
+      carrier_root_guidance_output,
+      spacetime_commitment,
+      commitment_time_origin);
   // Do not accumulate two large search trees until finalization.  Pass 1's
   // tree no longer owns anything needed by the materialized incumbent.
   deferred_cleanup.clear();
@@ -153,7 +169,9 @@ static DDSolveResult solve_carrier_lacam_from_state_result_impl(
 
   if (phase1_solved && !is_expired(&search_deadline)) {
     auto fixed =
-        fixed_goal_instance_from_plan(ins, current, plan);
+        fixed_goal_instance_from_plan(
+            ins, current, plan, spacetime_commitment,
+            commitment_time_origin);
     if (!fixed.has_value()) {
       if (stats != nullptr)
         stats->improvement_exit_reason =
@@ -163,7 +181,9 @@ static DDSolveResult solve_carrier_lacam_from_state_result_impl(
       fixed_view_storage =
           std::make_unique<TAPFInstance>(*fixed);
       first_reference = build_reference_plan(
-          *fixed, current, plan, 256);
+          *fixed, current, plan, 256,
+          spacetime_commitment,
+          commitment_time_origin);
       const TAPFInstance* improvement_view =
           fixed_view_storage.get();
       const DDInstance* improvement_ins = &*fixed;
@@ -190,7 +210,9 @@ static DDSolveResult solve_carrier_lacam_from_state_result_impl(
           stats, nullptr,
           &phase2_solved, &cost2, &second_ms,
           &second_makespan, nullptr, &second_soc, &max_depth,
-          &targets_done, &phase2_cutoff, &deferred_cleanup);
+          &targets_done, &phase2_cutoff, &deferred_cleanup,
+          nullptr, nullptr, nullptr, spacetime_commitment,
+          commitment_time_origin);
       if (fixed_restart && phase2_solved && stats != nullptr) {
         // This diagnostic now means what its name says: the second search
         // itself produced a new, strictly-better candidate.  The retained
@@ -250,11 +272,17 @@ static DDSolveResult solve_carrier_lacam_from_state_result_impl(
                                          : DDSolveStatus::EXHAUSTED);
     if (solved) {
       const auto prefix =
-          normalize_goal_prefix(ins, current, final_plan);
+          normalize_goal_prefix(
+              ins, current, final_plan, nullptr, nullptr,
+              spacetime_commitment,
+              commitment_time_origin);
       const bool valid = prefix.has_value();
       if (valid) {
         final_plan = *prefix;
-        final_cost = plan_cost(ins, current, final_plan);
+        final_cost = plan_cost(
+            ins, current, final_plan,
+            spacetime_commitment,
+            commitment_time_origin);
       }
       const double deliverable_ms =
           std::chrono::duration<double, std::milli>(
@@ -299,11 +327,15 @@ static DDSolveResult solve_carrier_lacam_from_state_result_impl(
 DDSolveResult solve_carrier_lacam_from_state_result(
     const DDInstance& ins, const PhysConfig& current,
     double time_limit_sec, int seed, DDStats* stats,
-    DDPlan* best_effort)
+    DDPlan* best_effort,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   return solve_carrier_lacam_from_state_result_impl(
       ins, current, time_limit_sec, seed, stats, best_effort,
-      nullptr, nullptr, nullptr);
+      nullptr, nullptr, nullptr, spacetime_commitment,
+      commitment_time_origin);
 }
 
 struct DDPlanningSession::Impl {
@@ -313,28 +345,66 @@ struct DDPlanningSession::Impl {
   std::shared_ptr<TAPFCarrierPersistentState> persistent;
   std::optional<TAPFCarrierRootContinuation> continuation;
   std::shared_ptr<CarrierGuidance> root_guidance;
+  CarrierSpacetimeCommitment spacetime_commitment;
+  int64_t commitment_time_origin = 0;
   DDPlan last_plan;
   bool has_solved_plan = false;
 
   Impl(
       const DDInstance& ins, const PhysConfig& initial,
-      int session_seed)
+      int session_seed,
+      CarrierSpacetimeCommitment commitment,
+      int64_t origin)
       : instance(ins),
         current(initial),
         seed(session_seed),
         persistent(
-            std::make_shared<TAPFCarrierPersistentState>(instance))
+            std::make_shared<TAPFCarrierPersistentState>(instance)),
+        spacetime_commitment(std::move(commitment)),
+        commitment_time_origin(origin)
   {
     if (instance.shelves.empty() ||
         !validate_phys_config_root(instance, current).valid())
       throw std::invalid_argument(
           "DDPlanningSession requires a valid Carrier root");
+    if (!checked_absolute_tick_add(
+             commitment_time_origin, 1)
+             .has_value())
+      throw std::invalid_argument(
+          "commitment time origin cannot advance");
+    spacetime_commitment.validate(instance.grid);
+  }
+
+  const CarrierSpacetimeCommitment* commitment() const
+  {
+    return spacetime_commitment.empty()
+               ? nullptr
+               : &spacetime_commitment;
+  }
+
+  void invalidate_plan_and_continuation()
+  {
+    continuation.reset();
+    root_guidance.reset();
+    last_plan.clear();
+    has_solved_plan = false;
+  }
+
+  void install_root(const PhysConfig& observed)
+  {
+    current = observed;
+    invalidate_plan_and_continuation();
   }
 };
 
 DDPlanningSession::DDPlanningSession(
-    const DDInstance& ins, const PhysConfig& initial, int seed)
-    : impl_(std::make_unique<Impl>(ins, initial, seed))
+    const DDInstance& ins, const PhysConfig& initial, int seed,
+    CarrierSpacetimeCommitment spacetime_commitment,
+    int64_t commitment_time_origin)
+    : impl_(std::make_unique<Impl>(
+          ins, initial, seed,
+          std::move(spacetime_commitment),
+          commitment_time_origin))
 {
 }
 
@@ -360,7 +430,8 @@ DDSolveResult DDPlanningSession::solve(
           impl_->continuation.has_value()
               ? &*impl_->continuation
               : nullptr,
-          &attached_root);
+          &attached_root, impl_->commitment(),
+          impl_->commitment_time_origin);
   if (attached_root != nullptr) {
     impl_->root_guidance = std::move(attached_root);
     impl_->continuation.reset();
@@ -383,12 +454,23 @@ DDCommitStatus DDPlanningSession::commit_prefix(
   if (executed_steps == 0 ||
       executed_steps > impl_->last_plan.size())
     return DDCommitStatus::INVALID_PREFIX;
+  if (executed_steps >
+      static_cast<size_t>(
+          std::numeric_limits<int64_t>::max() -
+          impl_->commitment_time_origin))
+    return DDCommitStatus::INVALID_PREFIX;
 
   PhysConfig replayed = impl_->current;
   for (size_t step = 0; step < executed_steps; ++step) {
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            impl_->commitment_time_origin, step);
+    if (!absolute_tick.has_value())
+      return DDCommitStatus::INVALID_PREFIX;
     const auto next = apply_ops(
         impl_->instance, replayed,
-        impl_->last_plan[step]);
+        impl_->last_plan[step], true,
+        impl_->commitment(), *absolute_tick);
     if (!next.has_value())
       return DDCommitStatus::INVALID_PREFIX;
     replayed = *next;
@@ -408,6 +490,10 @@ DDCommitStatus DDPlanningSession::commit_prefix(
       impl_->last_plan.begin() + executed_steps);
 
   impl_->current = observed;
+  impl_->commitment_time_origin =
+      *checked_absolute_tick_add(
+          impl_->commitment_time_origin,
+          executed_steps);
   impl_->continuation = std::move(next_continuation);
   impl_->last_plan.clear();
   impl_->has_solved_plan = false;
@@ -424,13 +510,100 @@ DDRebaseStatus DDPlanningSession::rebase(
            impl_->instance, observed)
            .valid())
     return DDRebaseStatus::INVALID_STATE;
+  if (impl_->commitment() != nullptr)
+    return DDRebaseStatus::
+        COMMITMENT_CONFIRMATION_REQUIRED;
 
-  impl_->current = observed;
-  impl_->continuation.reset();
-  impl_->root_guidance.reset();
-  impl_->last_plan.clear();
-  impl_->has_solved_plan = false;
+  impl_->install_root(observed);
   return DDRebaseStatus::OK;
+}
+
+DDRebaseStatus
+DDPlanningSession::rebase_with_current_spacetime_commitment(
+    const PhysConfig& observed,
+    int64_t commitment_time_origin)
+{
+  if (impl_ == nullptr)
+    throw std::logic_error(
+        "DDPlanningSession is moved from");
+  if (!checked_absolute_tick_add(
+           commitment_time_origin, 1)
+           .has_value())
+    return DDRebaseStatus::INVALID_COMMITMENT;
+  if (!validate_phys_config_root(
+           impl_->instance, observed)
+           .valid())
+    return DDRebaseStatus::INVALID_STATE;
+
+  impl_->commitment_time_origin =
+      commitment_time_origin;
+  impl_->install_root(observed);
+  return DDRebaseStatus::OK;
+}
+
+DDRebaseStatus
+DDPlanningSession::rebase_with_spacetime_commitment(
+    const PhysConfig& observed,
+    CarrierSpacetimeCommitment spacetime_commitment,
+    int64_t commitment_time_origin)
+{
+  if (impl_ == nullptr)
+    throw std::logic_error(
+        "DDPlanningSession is moved from");
+  if (!checked_absolute_tick_add(
+           commitment_time_origin, 1)
+           .has_value())
+    return DDRebaseStatus::INVALID_COMMITMENT;
+  if (!validate_phys_config_root(
+           impl_->instance, observed)
+           .valid())
+    return DDRebaseStatus::INVALID_STATE;
+  try {
+    spacetime_commitment.validate(impl_->instance.grid);
+  } catch (const std::invalid_argument&) {
+    return DDRebaseStatus::INVALID_COMMITMENT;
+  }
+
+  impl_->spacetime_commitment =
+      std::move(spacetime_commitment);
+  impl_->commitment_time_origin =
+      commitment_time_origin;
+  impl_->install_root(observed);
+  return DDRebaseStatus::OK;
+}
+
+void DDPlanningSession::set_spacetime_commitment(
+    CarrierSpacetimeCommitment spacetime_commitment,
+    int64_t commitment_time_origin)
+{
+  if (impl_ == nullptr)
+    throw std::logic_error(
+        "DDPlanningSession is moved from");
+  if (!checked_absolute_tick_add(
+           commitment_time_origin, 1)
+           .has_value())
+    throw std::invalid_argument(
+        "commitment time origin cannot advance");
+  spacetime_commitment.validate(impl_->instance.grid);
+  impl_->spacetime_commitment =
+      std::move(spacetime_commitment);
+  impl_->commitment_time_origin =
+      commitment_time_origin;
+  impl_->invalidate_plan_and_continuation();
+}
+
+bool DDPlanningSession::has_spacetime_commitment() const
+{
+  return impl_ != nullptr &&
+         impl_->commitment() != nullptr;
+}
+
+int64_t DDPlanningSession::commitment_time_origin() const
+{
+  if (impl_ == nullptr)
+    throw std::logic_error(
+        "DDPlanningSession is moved from");
+  return impl_->commitment_time_origin;
 }
 
 const RootGoalCommitment&
@@ -446,11 +619,15 @@ DDPlanningSession::root_goal_commitment() const
 
 DDSolveResult solve_carrier_lacam_result(
     const DDInstance& ins, double time_limit_sec, int seed,
-    DDStats* stats, DDPlan* best_effort)
+    DDStats* stats, DDPlan* best_effort,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   return solve_carrier_lacam_from_state_result(
       ins, initial_phys_config(ins), time_limit_sec, seed,
-      stats, best_effort);
+      stats, best_effort, spacetime_commitment,
+      commitment_time_origin);
 }
 
 DDSolveResult dd_solve_carrier_lacam_fixed_tau_probe(
@@ -481,10 +658,15 @@ DDSolveResult dd_solve_carrier_lacam_fixed_tau_probe(
 }
 
 DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
-                           int seed, DDStats* stats, DDPlan* best_effort)
+                           int seed, DDStats* stats, DDPlan* best_effort,
+                           const CarrierSpacetimeCommitment*
+                               spacetime_commitment,
+                           int64_t commitment_time_origin)
 {
   return solve_carrier_lacam_result(
-             ins, time_limit_sec, seed, stats, best_effort)
+             ins, time_limit_sec, seed, stats, best_effort,
+             spacetime_commitment,
+             commitment_time_origin)
       .plan;
 }
 

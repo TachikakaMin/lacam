@@ -6,7 +6,9 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 #include <utility>
@@ -16,6 +18,21 @@
 // >=0 carrying target with that index.
 constexpr int KAPPA_FREE = -1;
 constexpr int KAPPA_ANON = -2;
+
+inline std::optional<int64_t> checked_absolute_tick_add(
+    int64_t absolute_tick, size_t steps)
+{
+  if (absolute_tick < 0)
+    return std::nullopt;
+  const uint64_t remaining =
+      static_cast<uint64_t>(
+          std::numeric_limits<int64_t>::max() -
+          absolute_tick);
+  if (static_cast<uint64_t>(steps) > remaining)
+    return std::nullopt;
+  return absolute_tick +
+         static_cast<int64_t>(steps);
+}
 
 struct DDGrid {
   int height = 0;
@@ -155,6 +172,42 @@ struct PhysConfig {
   }
 };
 
+enum class CarrierSpacetimeTailPolicy : uint8_t {
+  RELEASE = 0,
+  HOLD_LAST = 1,
+};
+
+struct CarrierSpacetimeFrame {
+  std::vector<int> lower_vertices;
+  std::vector<int> upper_vertices;
+};
+
+// Immutable external traffic snapshot. frames[t] describes occupancy at
+// absolute tick t; lower_directed_edges[t] describes external lower-deck
+// moves from t to t+1.
+struct CarrierSpacetimeCommitment {
+  std::vector<CarrierSpacetimeFrame> frames;
+  std::vector<std::vector<std::pair<int, int>>>
+      lower_directed_edges;
+  CarrierSpacetimeTailPolicy tail_policy =
+      CarrierSpacetimeTailPolicy::RELEASE;
+
+  bool empty() const
+  {
+    return frames.empty() && lower_directed_edges.empty();
+  }
+  void validate(const DDGrid& grid) const;
+  int64_t phase_at(int64_t absolute_tick) const;
+  const CarrierSpacetimeFrame* frame_at(
+      int64_t absolute_tick) const;
+  const std::vector<std::pair<int, int>>* edges_at(
+      int64_t absolute_tick) const;
+  bool blocks_lower(int cell, int64_t absolute_tick) const;
+  bool blocks_upper(int cell, int64_t absolute_tick) const;
+  bool has_lower_edge(
+      int from, int to, int64_t absolute_tick) const;
+};
+
 PhysConfig initial_phys_config(const DDInstance& ins);
 
 enum class PhysRootInvalidReason : uint8_t {
@@ -194,7 +247,10 @@ bool is_dd_goal(const DDInstance& ins, const PhysConfig& s);
 // successor configuration, or nullopt if any rule/precondition is violated.
 std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
                                     const std::vector<Op>& ops,
-                                    bool allow_following = true);
+                                    bool allow_following = true,
+                                    const CarrierSpacetimeCommitment*
+                                        spacetime_commitment = nullptr,
+                                    int64_t absolute_tick = 0);
 
 uint64_t phys_config_hash(const PhysConfig& s);
 

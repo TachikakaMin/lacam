@@ -105,16 +105,24 @@ namespace tapf_detail
   struct SearchKey {
     Config C;
     ShelfState S;
+    int64_t commitment_phase = 0;
     bool operator==(const SearchKey& o) const
     {
-      return C == o.C && S == o.S;
+      return C == o.C && S == o.S &&
+             commitment_phase == o.commitment_phase;
     }
   };
 
   struct SearchKeyHasher {
     size_t operator()(const SearchKey& k) const
     {
-      return (size_t)ConfigHasher()(k.C) ^ (size_t)shelf_layer_hash(k.S);
+      size_t h =
+          (size_t)ConfigHasher()(k.C) ^
+          (size_t)shelf_layer_hash(k.S);
+      if (k.commitment_phase != 0)
+        h ^= (size_t)splitmix64(
+            static_cast<uint64_t>(k.commitment_phase));
+      return h;
     }
   };
 

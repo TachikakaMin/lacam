@@ -45,7 +45,7 @@
 | Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
 | Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
 | Phase 7：rho incremental repair | 完成，已提交并推送 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7、quick 77、Brazil release 和真实 SAZ1 均通过。SAZ1 标准入口完成 19 拍/18 次续算，CSV 累计记录 13,963 次 repair，且 Phase 6/7 的成功集合、plan hash 和全部解质量逐 case 零差异；算法提交 `76d54bf`，LMS 提交 `2587828` |
-| Phase 8：一般并发 | 进行中；8.1～8.3 GREEN | 8.3 已加入独立 outgoing/incoming、directed Graph predecessor、反向距离、start→goal 有向可达、directed schema 和 C ABI CSR；review 发现并由新回归固化 directed forced-swap 缺失反向 arc 检查，修复后新增 directed tests 6/6、相关回归 49/49，独立 Sol/low 复审 APPROVE。默认无向算法语义不变，未重复运行原始 benchmark；下一步是 8.4 external spacetime commitment |
+| Phase 8：一般并发 | 进行中；8.1～8.5 GREEN 并通过独立复审 | 8.4 已把 external lower/upper vertex、directed edge、tail policy、absolute tick 和 time-aware CLOSED 接入同一 `TAPFPlanner::solve()`/`apply_ops()` 路径；8.5 已让 persistent session 与 C ABI 保存 immutable snapshot/origin，commit 成功后推进 origin，rebase 必须显式确认或替换 commitment。新增 Phase 8.4/8.5 tests 16/16、相关 topology/repair/reference/rewire/session/C ABI 回归全部通过，portable shared-library build 和全 target 编译通过；独立 GPT-5.6 Sol/low 复审 53/53 并明确 `APPROVE`。默认空 commitment 不改变原算法，按 `rules.md` 未运行原始 benchmark；下一步是 8.6 Java adapter/block lease |
 
 ## 4. 固定开发 benchmark
 
@@ -205,9 +205,19 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-10 | Phase 8.3 review RED | directed task-agent PIBT forced swap | 独立 Sol/low 发现旧 swap shortcut 会在只有 `0→1` 时强制 occupied agent 执行不存在的 `1→0`；新增 `test_dd_directed_swap` 先稳定 RED，并报告具体非法 arc `1→0` |
 | 2026-09-10 | Phase 8.3 swap GREEN | swap candidate outgoing-arc legality | `swap_possible_and_required()` 只有在 swap agent 的当前位置确实存在通往 pusher 原位置的 outgoing arc 时才返回候选；默认无向图中该条件恒成立。新增 directed tests 6/6，directed/undirected adjacency、C ABI、repair、post-processing、TAPF compatibility、fixed upper 和 lazy distance 相关回归 49/49；按 `rules.md` 未运行与本次输入扩展无关的原始 benchmark |
 | 2026-09-10 | Phase 8.3 re-review | 完整 directed topology diff 与 forced-swap 修复 | 独立 GPT-5.6 Sol/low：APPROVE；blocking finding 为 none，确认 MOVE/swap 使用 outgoing、距离使用 incoming/predecessor、新回归真实覆盖旧 bug，且无 parallel planner、fallback 或 testcase-specific hack |
+| 2026-09-10 | Phase 8.4 commitment RED | external lower/upper occupancy、reverse-edge swap、RELEASE/HOLD_LAST、等待后通行和 empty commitment | 首轮按预期缺少 commitment 类型、API、absolute tick 和 time-aware CLOSED；实现后新增核心 5/5 GREEN |
+| 2026-09-10 | Phase 8.4 delivery GREEN | ordinary/macro/reference/repair/final replay 共享 absolute-tick transition contract | 新增 delivery 2/2 GREEN：repair 不会删除外部交通要求的 WAIT，cold solver 返回计划可由同一 commitment 权威重放；shelf-free commitment 路径发现空 `kappa` 崩溃后由已有测试复现并修复 |
+| 2026-09-10 | Phase 8.4 compatibility regression | 空 commitment 与旧 incremental continuation 自然退化 | `test_dd_incremental_session` 首轮暴露 continuation 在无 commitment 时错误使用 tick=-1，修复后 4/4；`test_tapf_compat` 7/7、120.463 秒；未运行原始 benchmark |
+| 2026-09-10 | Phase 8.5 session RED/GREEN | persistent snapshot、origin advance 和 explicit rebase | 新增 session 2/2 GREEN：commit 一拍后 origin 从 0 到 1，续算不再重复等待；普通 rebase 在 active commitment 下拒绝，显式 keep/replace 后成功 |
+| 2026-09-10 | Phase 8.5 C ABI RED/GREEN | 独立 spacetime setter、origin getter、explicit rebase | 新增 C ABI 2/2 GREEN；setter 使用 frame offsets 与 `(tick,from,to)` edge triples，不改变 `set_state()` 身份数组；导出三个新符号，旧 C ABI/session/rebase tests 保持 GREEN |
+| 2026-09-10 | Phase 8.5 C boundary regression | hostile edge tick 与 absolute origin overflow | `INT_MAX` edge tick 首先稳定触发 native SIGSEGV，改为索引前无加法范围检查后 GREEN；review 又发现 `int64_t` origin/step 加法可能 UB，新增 C++ 3/3 + C ABI origin 1/1 RED/GREEN，并用统一 checked tick addition 覆盖 search、rollout、reference、rewire、repair、final replay 和 session |
+| 2026-09-10 | Phase 8.4/8.5 related regression | topology、commitment、repair、reference、rewire、session 与全部 Carrier C ABI | 相关定向测试全部 GREEN，`git diff --check` 通过；YAML-free portable `carrier_lacam` 独立构建通过，目录 `/tmp/dd-lacam-portable-phase85.CwpRTm`；按 `rules.md` 未运行与新增输入/接口无关的原始 benchmark |
+| 2026-09-10 | Phase 8.4/8.5 final review | external commitment、absolute tick、session origin、C ABI 与空 commitment 兼容性 | 独立 GPT-5.6 Sol/low：`APPROVE`，无 blocking finding；reviewer 定向运行 53/53 GREEN，确认没有 parallel planner、fallback、testcase/seed hard-code 或原算法语义变化；按规则未运行原始 benchmark |
 
 ## 6. 当前下一步
 
-1. 实现 Phase 8.4 external spacetime commitment 和 time-aware CLOSED：普通交通的 lower/upper vertex 与 directed edge 承诺进入同一个 successor/apply_ops contract，并让等待后可通行的状态不被旧 CLOSED key 错误删除。
+1. 在最新 Code-Labyrinth workspace
+   `/local/home/yimint/brazil-workspaces/carrier-labyrinth-20260909/src/Skkiesel_LightweightMovementSimulator`
+   实现 Phase 8.6 Java adapter、external commitment 导出、block lease 和 normal Pick/Stow 并发。
 2. 全部阶段结束后再按
    gate 运行最终 quick、Sol/high review、获批 full 518，并生成最终汇报网页。

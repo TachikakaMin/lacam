@@ -17,7 +17,8 @@ TAPFPlanner::~TAPFPlanner()
 
 const TAPFReferenceCheckpoint*
 TAPFPlanner::find_reference_checkpoint(
-    const PhysConfig& state) const
+    const PhysConfig& state,
+    int64_t absolute_tick) const
 {
   if (search_config.reference_plan == nullptr ||
       !reference_plan_valid)
@@ -29,6 +30,18 @@ TAPFPlanner::find_reference_checkpoint(
     const auto& checkpoint =
         search_config.reference_plan->checkpoints[it->second];
     if (!(checkpoint.state == state)) continue;
+    const auto checkpoint_tick =
+        checked_absolute_tick_add(
+            search_config.commitment_time_origin,
+            checkpoint.action_index);
+    if (!checkpoint_tick.has_value()) continue;
+    if (absolute_tick >= 0 &&
+        search_config.spacetime_commitment != nullptr &&
+        search_config.spacetime_commitment->phase_at(
+            *checkpoint_tick) !=
+            search_config.spacetime_commitment->phase_at(
+                absolute_tick))
+      continue;
     if (best == nullptr ||
         checkpoint.suffix_cost < best->suffix_cost ||
         (checkpoint.suffix_cost == best->suffix_cost &&
@@ -64,6 +77,11 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       occupied_next(Agents(V_size, nullptr)),
       pibt_cand(N)
 {
+  if (!checked_absolute_tick_add(
+           search_config.commitment_time_origin, 1)
+           .has_value())
+    throw std::invalid_argument(
+        "commitment time origin cannot advance");
   if (search_config.stop_policy ==
           TAPFStopPolicy::FIRST_FEASIBLE &&
       search_config.incumbent_init.is_bounded())
@@ -94,8 +112,11 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
   carrier_detail::load_solver_weights(weights);
   // carrier layer (M4): the conformance-oracle view and the occupancy
   // scratch exist only when the instance HAS a shelf layer
-  if (!ins->shelf_cells.empty() ||
-      !ins->fixed_upper_cells.empty()) {
+  const bool has_carrier_layer =
+      !ins->shelf_cells.empty() ||
+      !ins->fixed_upper_cells.empty();
+  if (has_carrier_layer ||
+      search_config.spacetime_commitment != nullptr) {
     dd_view = std::make_unique<DDInstance>();
     std::vector<std::string> rows(
         ins->G.height, std::string(ins->G.width, '.'));
@@ -121,11 +142,41 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     dd_view->target_goals = ins->target_goals;
     dd_view->target_goal_sets = ins->target_goal_sets;  // T1: eligibility
     dd_view->finalize();
-    const size_t n_cells = ins->G.U.size();
-    carrier_grounded.assign(n_cells, 0);
-    carrier_upper_delta.assign(n_cells, 0);
-    carrier = std::make_unique<CarrierEngine>(
-        *dd_view, search_config.carrier_persistent_state);
+    if (has_carrier_layer) {
+      const size_t n_cells = ins->G.U.size();
+      carrier_grounded.assign(n_cells, 0);
+      carrier_upper_delta.assign(n_cells, 0);
+      carrier = std::make_unique<CarrierEngine>(
+          *dd_view, search_config.carrier_persistent_state);
+    }
+  }
+  if (search_config.spacetime_commitment != nullptr) {
+    if (dd_view != nullptr) {
+      search_config.spacetime_commitment->validate(
+          dd_view->grid);
+    } else {
+      std::vector<std::string> rows(
+          ins->G.height, std::string(ins->G.width, '.'));
+      for (int cell = 0;
+           cell < static_cast<int>(ins->G.U.size()); ++cell)
+        if (ins->G.U[cell] == nullptr)
+          rows[cell / ins->G.width][cell % ins->G.width] = '@';
+      DDGrid validation_grid(rows);
+      if (ins->G.explicit_adjacency) {
+        std::vector<std::vector<int>> adjacency(
+            ins->G.U.size());
+        for (const auto* vertex : ins->G.V)
+          for (const auto* neighbor : vertex->neighbor)
+            adjacency[vertex->index].push_back(
+                neighbor->index);
+        if (ins->G.directed_adjacency)
+          validation_grid.set_directed_adjacency(adjacency);
+        else
+          validation_grid.set_undirected_adjacency(adjacency);
+      }
+      search_config.spacetime_commitment->validate(
+          validation_grid);
+    }
   }
   if (search_config.initial_physical.has_value()) {
     if (dd_view == nullptr)
@@ -162,10 +213,23 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
             ? *search_config.initial_physical
             : initial_phys_config(*dd_view));
     bool valid = true;
-    for (const auto& ops : reference.actions) {
+    for (size_t action = 0;
+         action < reference.actions.size(); ++action) {
+      const auto& ops = reference.actions[action];
       const auto step = reference_joint_cost(
           weights, states.back(), ops, search_config.objective);
-      const auto next = apply_ops(*dd_view, states.back(), ops);
+      const auto absolute_tick =
+          checked_absolute_tick_add(
+              search_config.commitment_time_origin,
+              action);
+      if (!absolute_tick.has_value()) {
+        valid = false;
+        break;
+      }
+      const auto next = apply_ops(
+          *dd_view, states.back(), ops, true,
+          search_config.spacetime_commitment,
+          *absolute_tick);
       if (!step.has_value() || !next.has_value()) {
         valid = false;
         break;
@@ -215,6 +279,13 @@ Solution TAPFPlanner::solve()
   // scratch lookup key reused across iterations (no per-iteration alloc
   // after warm-up; shelf part is empty for shelf-free instances)
   SearchKey lookup_key;
+  const auto commitment_phase =
+      [&](int64_t absolute_tick) {
+        return search_config.spacetime_commitment != nullptr
+                   ? search_config.spacetime_commitment->phase_at(
+                         absolute_tick)
+                   : int64_t{0};
+      };
 
   auto push_open = [&](TAPFNode* node) {
     if (!node->queued && !node->search_tree.empty()) {
@@ -284,13 +355,17 @@ Solution TAPFPlanner::solve()
   auto S_init =
       new TAPFNode(root_config, root_shelf, D, ins,
                    initial_assignment.agent_to_task, initial_assignment_state);
+  S_init->absolute_tick =
+      search_config.commitment_time_origin;
   S_init->h = make_node_h(root_config, initial_assignment.cost);
   S_init->f = S_init->g + S_init->h;
   attach_carrier_root_guidance(S_init);
   deepest_node = S_init;
   deepest_depth = 0;
   push_open(S_init);
-  CLOSED[SearchKey{S_init->C, S_init->shelf}] = S_init;
+  CLOSED[SearchKey{
+      S_init->C, S_init->shelf,
+      commitment_phase(S_init->absolute_tick)}] = S_init;
   if (stats != nullptr) {
     stats->hl_nodes_created = 1;
     stats->open_max_size = 1;
@@ -331,7 +406,8 @@ Solution TAPFPlanner::solve()
     const PhysConfig start_state =
         physical_state_of(start->C, start->shelf);
     const auto* checkpoint =
-        find_reference_checkpoint(start_state);
+        find_reference_checkpoint(
+            start_state, start->absolute_tick);
     if (checkpoint == nullptr) return false;
     if (stats != nullptr) ++stats->reference_checkpoint_hits;
     const auto& reference = *search_config.reference_plan;
@@ -355,8 +431,16 @@ Solution TAPFPlanner::solve()
           weights, state, reference.actions[action],
           search_config.objective);
       if (!step_cost.has_value()) return false;
+      const auto absolute_tick =
+          checked_absolute_tick_add(
+              start->absolute_tick,
+              action - checkpoint->action_index);
+      if (!absolute_tick.has_value()) return false;
       const auto next =
-          apply_ops(*dd_view, state, reference.actions[action]);
+          apply_ops(
+              *dd_view, state, reference.actions[action], true,
+              search_config.spacetime_commitment,
+              *absolute_tick);
       if (!next.has_value()) return false;
       suffix_cost += *step_cost;
       trace.push_back(TransitionStep{
@@ -373,7 +457,15 @@ Solution TAPFPlanner::solve()
     ShelfState terminal_shelf = shelf_of_physical(state);
     if (!is_goal_config(terminal_config, terminal_shelf))
       return false;
-    SearchKey terminal_key{terminal_config, terminal_shelf};
+    const auto terminal_tick_checked =
+        checked_absolute_tick_add(
+            start->absolute_tick, trace.size());
+    if (!terminal_tick_checked.has_value()) return false;
+    const int64_t terminal_tick =
+        *terminal_tick_checked;
+    SearchKey terminal_key{
+        terminal_config, terminal_shelf,
+        commitment_phase(terminal_tick)};
     TAPFNode* terminal = nullptr;
     const auto existing = CLOSED.find(terminal_key);
     if (existing == CLOSED.end()) {
@@ -381,6 +473,7 @@ Solution TAPFPlanner::solve()
           terminal_config, terminal_shelf, D, ins,
           start->assignment, start->assignment_state, start);
       terminal->g = start->g + suffix_cost;
+      terminal->absolute_tick = terminal_tick;
       terminal->h = PlanCost();
       terminal->f = terminal->g;
       terminal->incoming_edge = register_outgoing_edge(
@@ -466,6 +559,15 @@ Solution TAPFPlanner::solve()
       if (r.ops.size() >= 2) {
         lookup_key.C = r.configs.back();
         lookup_key.S = r.shelves.back();
+        const auto macro_tick_checked =
+            checked_absolute_tick_add(
+                S->absolute_tick, r.ops.size());
+        if (!macro_tick_checked.has_value())
+          continue;
+        const int64_t macro_tick =
+            *macro_tick_checked;
+        lookup_key.commitment_phase =
+            commitment_phase(macro_tick);
         std::vector<TransitionStep> trace;
         trace.reserve(r.ops.size());
         for (size_t step = 0; step < r.ops.size(); ++step)
@@ -481,6 +583,7 @@ Solution TAPFPlanner::solve()
               r.configs.back(), r.shelves.back(), D, ins,
               std::vector<int>(N, -1), S->assignment_state, S);
           S_macro->g = S->g + r.cost;
+          S_macro->absolute_tick = macro_tick;
           S_macro->h = r.terminal_h;
           S_macro->f = S_macro->g + S_macro->h;
           S_macro->h_guidance = r.terminal_h_guidance;
@@ -491,7 +594,10 @@ Solution TAPFPlanner::solve()
           S_macro->constraint_order = S_macro->order;
           S_macro->incoming_edge =
               register_outgoing_edge(S, S_macro, r.cost, trace);
-          CLOSED[SearchKey{S_macro->C, S_macro->shelf}] = S_macro;
+          CLOSED[SearchKey{
+              S_macro->C, S_macro->shelf,
+              commitment_phase(S_macro->absolute_tick)}] =
+              S_macro;
           push_open(S_macro);
           if (stats != nullptr) {
             ++stats->hl_nodes_created;
@@ -567,6 +673,15 @@ Solution TAPFPlanner::solve()
 
     lookup_key.C = C_new;
     lookup_key.S = shelf_next_scratch;
+    const auto successor_tick_checked =
+        checked_absolute_tick_add(
+            S->absolute_tick, 1);
+    if (!successor_tick_checked.has_value())
+      continue;
+    const int64_t successor_tick =
+        *successor_tick_checked;
+    lookup_key.commitment_phase =
+        commitment_phase(successor_tick);
     auto iter = CLOSED.find(lookup_key);
     if (iter != CLOSED.end()) {
       auto S_known = iter->second;
@@ -630,6 +745,7 @@ Solution TAPFPlanner::solve()
 
     auto S_new = new TAPFNode(C_new, shelf_next_scratch, D, ins,
                               assignment.agent_to_task, assignment_state, S);
+    S_new->absolute_tick = successor_tick;
     const PlanCost edge_cost = get_edge_cost(S, S_new);
     S_new->g = S->g + edge_cost;
     S_new->h = make_node_h(C_new, assignment.cost);
@@ -639,7 +755,9 @@ Solution TAPFPlanner::solve()
     attach_carrier_guidance(
         S_new, &one_step_trace.front().previous_X, S->guide.get(),
         &edge_ops);
-    CLOSED[SearchKey{S_new->C, S_new->shelf}] = S_new;
+    CLOSED[SearchKey{
+        S_new->C, S_new->shelf,
+        commitment_phase(S_new->absolute_tick)}] = S_new;
     if (deepest_node == nullptr || S_new->depth > deepest_depth) {
       deepest_node = S_new;
       deepest_depth = S_new->depth;
@@ -788,8 +906,15 @@ void TAPFPlanner::rewrite(TAPFNode* from, TAPFNode* goal,
       auto node_to = edge->to;
       const auto g = node_from->g + edge->physical_cost;
       if (g < node_to->g) {
+        const auto rewritten_tick =
+            checked_absolute_tick_add(
+                node_from->absolute_tick,
+                edge->transition_trace.size());
+        if (!rewritten_tick.has_value())
+          continue;
         node_to->parent = node_from;
         node_to->incoming_edge = edge;
+        node_to->absolute_tick = *rewritten_tick;
         node_to->g = g;
         node_to->f = node_to->g + node_to->h;
         node_to->guidance_stale = true;
@@ -833,9 +958,17 @@ SearchEdgeHandle TAPFPlanner::register_outgoing_edge(
         throw std::logic_error(
             "register_outgoing_edge: discontinuous trace");
       if (dd_view != nullptr) {
+        const auto absolute_tick =
+            checked_absolute_tick_add(
+                from->absolute_tick, step);
+        if (!absolute_tick.has_value())
+          throw std::logic_error(
+              "register_outgoing_edge: tick overflow");
         const auto replayed = apply_ops(
             *dd_view, transition_trace[step].previous_X,
-            transition_trace[step].ops);
+            transition_trace[step].ops, true,
+            search_config.spacetime_commitment,
+            *absolute_tick);
         if (!replayed.has_value() ||
             !(*replayed == transition_trace[step].next_X))
           throw std::logic_error(

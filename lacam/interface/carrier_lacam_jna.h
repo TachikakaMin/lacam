@@ -24,6 +24,11 @@ enum CarrierLacamActionKind {
   CARRIER_LACAM_ACTION_DROP = 3,
 };
 
+enum CarrierLacamSpacetimeTailPolicy {
+  CARRIER_LACAM_SPACETIME_RELEASE = 0,
+  CARRIER_LACAM_SPACETIME_HOLD_LAST = 1,
+};
+
 int carrier_lacam_abi_version(void);
 
 void* carrier_lacam_create(int seed);
@@ -47,6 +52,23 @@ int carrier_lacam_set_directed_adjacency(
     void* handle,
     const int* offsets, int offset_count,
     const int* destinations, int destination_count);
+
+// External traffic contract. lower/upper offsets each contain
+// frame_count + 1 entries. Every external lower edge is supplied as a
+// (tick, from, to) triple, where tick is in [0, frame_count - 2].
+// The snapshot is independent from set_state() and is copied by native code.
+int carrier_lacam_set_spacetime_commitment(
+    void* handle, int frame_count,
+    const int* lower_frame_offsets,
+    int lower_frame_offset_count,
+    const int* lower_cells, int lower_cell_count,
+    const int* upper_frame_offsets,
+    int upper_frame_offset_count,
+    const int* upper_cells, int upper_cell_count,
+    const int* edge_ticks,
+    const int* edge_from_cells,
+    const int* edge_to_cells, int edge_count,
+    int tail_policy, int64_t time_origin);
 
 // target_shelf_indices maps each target identity to one entry in shelf_cells.
 // goal_offsets has target_count + 1 entries and indexes goal_cells.
@@ -90,6 +112,17 @@ int carrier_lacam_rebase_state(
     const int* observed_kappa,
     int observed_kappa_count);
 
+int carrier_lacam_rebase_state_with_current_spacetime_commitment(
+    void* handle, int64_t time_origin,
+    const int* observed_robot_cells,
+    int observed_robot_cell_count,
+    const int* observed_target_cells,
+    int observed_target_cell_count,
+    const int* observed_anonymous_cells,
+    int observed_anonymous_cell_count,
+    const int* observed_kappa,
+    int observed_kappa_count);
+
 // Before the first completed solve, status is INVALID_STATE. A solved
 // zero-timestep plan is OK with timestep_count == 0; failed solves also have
 // no actions and are distinguished by this status.
@@ -105,6 +138,7 @@ double carrier_lacam_get_first_solution_ms(void* handle);
 double carrier_lacam_get_deliverable_ms(void* handle);
 int64_t carrier_lacam_get_makespan(void* handle);
 int64_t carrier_lacam_get_work_scaled(void* handle);
+int64_t carrier_lacam_get_commitment_time_origin(void* handle);
 int64_t carrier_lacam_get_pair_cache_hits(void* handle);
 int64_t carrier_lacam_get_root_pair_cache_misses(void* handle);
 int64_t carrier_lacam_get_changed_pair_edges(void* handle);

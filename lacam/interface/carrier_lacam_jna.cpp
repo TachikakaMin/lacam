@@ -36,6 +36,8 @@ struct CarrierLacamContext {
   std::vector<uint8_t> storage_mask;
   std::optional<DDInstance> instance;
   std::optional<PhysConfig> state;
+  CarrierSpacetimeCommitment spacetime_commitment;
+  int64_t commitment_time_origin = 0;
   std::unique_ptr<DDPlanningSession> session;
 
   bool has_result = false;
@@ -59,6 +61,8 @@ struct CarrierLacamContext {
     storage_mask.clear();
     instance.reset();
     state.reset();
+    spacetime_commitment = CarrierSpacetimeCommitment();
+    commitment_time_origin = 0;
     session.reset();
     clear_result();
   }
@@ -256,6 +260,65 @@ double duration_metric(
   return context.stats.*member;
 }
 
+int copy_observed_state(
+    CarrierLacamContext& context,
+    const int* observed_robot_cells,
+    int observed_robot_cell_count,
+    const int* observed_target_cells,
+    int observed_target_cell_count,
+    const int* observed_anonymous_cells,
+    int observed_anonymous_cell_count,
+    const int* observed_kappa,
+    int observed_kappa_count,
+    PhysConfig* observed)
+{
+  if (context.session == nullptr ||
+      !context.instance.has_value() ||
+      !context.state.has_value())
+    return fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "set_grid, set_entities, and set_state are required");
+  if (observed == nullptr)
+    return fail(
+        context, CARRIER_LACAM_INTERNAL_ERROR,
+        "native observed-state output is null");
+  if (observed_robot_cell_count !=
+          static_cast<int>(
+              context.instance->n_robots()) ||
+      observed_target_cell_count !=
+          static_cast<int>(
+              context.instance->n_targets()) ||
+      observed_kappa_count !=
+          observed_robot_cell_count)
+    return fail(
+        context, CARRIER_LACAM_INVALID_ARGUMENT,
+        "observed state vector sizes do not match the entities");
+
+  observed->robots = copy_array(
+      observed_robot_cells,
+      observed_robot_cell_count,
+      "observed robot cells");
+  observed->target_pos = copy_array(
+      observed_target_cells,
+      observed_target_cell_count,
+      "observed target cells");
+  observed->anon_occ = copy_array(
+      observed_anonymous_cells,
+      observed_anonymous_cell_count,
+      "observed anonymous cells");
+  observed->kappa = copy_array(
+      observed_kappa,
+      observed_kappa_count,
+      "observed kappa");
+  if (!validate_phys_config_root(
+           *context.instance, *observed)
+           .valid())
+    return fail(
+        context, CARRIER_LACAM_INVALID_ARGUMENT,
+        "invalid observed Carrier physical state");
+  return CARRIER_LACAM_OK;
+}
+
 int set_csr_adjacency(
     CarrierLacamContext& context,
     const int* offsets, int offset_count,
@@ -304,6 +367,9 @@ int set_csr_adjacency(
   context.grid = std::move(candidate);
   context.instance.reset();
   context.state.reset();
+  context.spacetime_commitment =
+      CarrierSpacetimeCommitment();
+  context.commitment_time_origin = 0;
   context.session.reset();
   context.clear_result();
   context.clear_error();
@@ -394,6 +460,9 @@ int carrier_lacam_set_grid(
         context.storage_mask = std::move(storage);
         context.instance.reset();
         context.state.reset();
+        context.spacetime_commitment =
+            CarrierSpacetimeCommitment();
+        context.commitment_time_origin = 0;
         context.session.reset();
         context.clear_result();
         context.clear_error();
@@ -424,6 +493,140 @@ int carrier_lacam_set_directed_adjacency(
         return set_csr_adjacency(
             context, offsets, offset_count, destinations,
             destination_count, true);
+      });
+}
+
+int carrier_lacam_set_spacetime_commitment(
+    void* handle, int frame_count,
+    const int* lower_frame_offsets,
+    int lower_frame_offset_count,
+    const int* lower_cells, int lower_cell_count,
+    const int* upper_frame_offsets,
+    int upper_frame_offset_count,
+    const int* upper_cells, int upper_cell_count,
+    const int* edge_ticks,
+    const int* edge_from_cells,
+    const int* edge_to_cells, int edge_count,
+    int tail_policy, int64_t time_origin)
+{
+  return guarded_status(
+      handle, [&](CarrierLacamContext& context) -> int {
+        if (!context.grid.has_value())
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "set_grid must succeed before spacetime commitment");
+        if (frame_count < 0 ||
+            frame_count == std::numeric_limits<int>::max() ||
+            lower_frame_offset_count != frame_count + 1 ||
+            upper_frame_offset_count != frame_count + 1)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "spacetime frame offsets must have frame_count + 1 entries");
+        if (!checked_absolute_tick_add(
+                 time_origin, 1)
+                 .has_value())
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "spacetime commitment origin cannot advance");
+        if (tail_policy !=
+                CARRIER_LACAM_SPACETIME_RELEASE &&
+            tail_policy !=
+                CARRIER_LACAM_SPACETIME_HOLD_LAST)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "invalid spacetime tail policy");
+
+        const auto lower_offsets = copy_array(
+            lower_frame_offsets,
+            lower_frame_offset_count,
+            "lower frame offsets");
+        const auto copied_lower = copy_array(
+            lower_cells, lower_cell_count,
+            "lower frame cells");
+        const auto upper_offsets = copy_array(
+            upper_frame_offsets,
+            upper_frame_offset_count,
+            "upper frame offsets");
+        const auto copied_upper = copy_array(
+            upper_cells, upper_cell_count,
+            "upper frame cells");
+        const auto copied_ticks = copy_array(
+            edge_ticks, edge_count, "edge ticks");
+        const auto copied_from = copy_array(
+            edge_from_cells, edge_count,
+            "edge from cells");
+        const auto copied_to = copy_array(
+            edge_to_cells, edge_count,
+            "edge to cells");
+
+        const auto valid_offsets =
+            [](const std::vector<int>& offsets,
+               int value_count) {
+              if (offsets.empty() ||
+                  offsets.front() != 0 ||
+                  offsets.back() != value_count)
+                return false;
+              for (size_t i = 0;
+                   i + 1 < offsets.size(); ++i)
+                if (offsets[i] < 0 ||
+                    offsets[i] > offsets[i + 1] ||
+                    offsets[i + 1] > value_count)
+                  return false;
+              return true;
+            };
+        if (!valid_offsets(
+                lower_offsets, lower_cell_count) ||
+            !valid_offsets(
+                upper_offsets, upper_cell_count))
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "spacetime frame offsets are invalid");
+
+        CarrierSpacetimeCommitment commitment;
+        commitment.frames.resize(
+            static_cast<size_t>(frame_count));
+        if (frame_count > 0)
+          commitment.lower_directed_edges.resize(
+              static_cast<size_t>(frame_count - 1));
+        commitment.tail_policy =
+            tail_policy ==
+                    CARRIER_LACAM_SPACETIME_HOLD_LAST
+                ? CarrierSpacetimeTailPolicy::HOLD_LAST
+                : CarrierSpacetimeTailPolicy::RELEASE;
+        for (int frame = 0; frame < frame_count; ++frame) {
+          commitment.frames[frame].lower_vertices.assign(
+              copied_lower.begin() + lower_offsets[frame],
+              copied_lower.begin() +
+                  lower_offsets[frame + 1]);
+          commitment.frames[frame].upper_vertices.assign(
+              copied_upper.begin() + upper_offsets[frame],
+              copied_upper.begin() +
+                  upper_offsets[frame + 1]);
+        }
+        for (int edge = 0; edge < edge_count; ++edge) {
+          const int tick = copied_ticks[edge];
+          if (tick < 0 ||
+              tick >= frame_count - 1)
+            return fail(
+                context, CARRIER_LACAM_INVALID_ARGUMENT,
+                "spacetime edge tick is outside the frame horizon");
+          commitment.lower_directed_edges[tick].emplace_back(
+              copied_from[edge], copied_to[edge]);
+        }
+        for (auto& edges :
+             commitment.lower_directed_edges)
+          std::sort(edges.begin(), edges.end());
+        commitment.validate(*context.grid);
+
+        if (context.session != nullptr)
+          context.session->set_spacetime_commitment(
+              commitment, time_origin);
+        context.spacetime_commitment =
+            std::move(commitment);
+        context.commitment_time_origin = time_origin;
+        context.clear_result();
+        context.clear_error();
+        return CARRIER_LACAM_OK;
       });
 }
 
@@ -564,7 +767,9 @@ int carrier_lacam_set_state(
 
         context.state = std::move(state);
         context.session = std::make_unique<DDPlanningSession>(
-            *context.instance, *context.state, context.seed);
+            *context.instance, *context.state, context.seed,
+            context.spacetime_commitment,
+            context.commitment_time_origin);
         context.clear_result();
         context.clear_error();
         return CARRIER_LACAM_OK;
@@ -683,6 +888,8 @@ int carrier_lacam_commit_prefix(
               "observed state does not match the solved plan prefix");
 
         context.state = std::move(observed);
+        context.commitment_time_origin =
+            context.session->commitment_time_origin();
         context.clear_result();
         context.clear_error();
         return CARRIER_LACAM_OK;
@@ -702,55 +909,78 @@ int carrier_lacam_rebase_state(
 {
   return guarded_status(
       handle, [&](CarrierLacamContext& context) -> int {
-        if (context.session == nullptr ||
-            !context.instance.has_value() ||
-            !context.state.has_value())
-          return fail(
-              context, CARRIER_LACAM_INVALID_STATE,
-              "set_grid, set_entities, and set_state are required");
-        if (observed_robot_cell_count !=
-                static_cast<int>(
-                    context.instance->n_robots()) ||
-            observed_target_cell_count !=
-                static_cast<int>(
-                    context.instance->n_targets()) ||
-            observed_kappa_count !=
-                observed_robot_cell_count)
-          return fail(
-              context, CARRIER_LACAM_INVALID_ARGUMENT,
-              "observed state vector sizes do not match the entities");
-
         PhysConfig observed;
-        observed.robots = copy_array(
-            observed_robot_cells,
+        const int copied = copy_observed_state(
+            context, observed_robot_cells,
             observed_robot_cell_count,
-            "observed robot cells");
-        observed.target_pos = copy_array(
             observed_target_cells,
             observed_target_cell_count,
-            "observed target cells");
-        observed.anon_occ = copy_array(
             observed_anonymous_cells,
             observed_anonymous_cell_count,
-            "observed anonymous cells");
-        observed.kappa = copy_array(
-            observed_kappa,
-            observed_kappa_count,
-            "observed kappa");
-        if (!validate_phys_config_root(
-                 *context.instance, observed)
-                 .valid())
-          return fail(
-              context, CARRIER_LACAM_INVALID_ARGUMENT,
-              "invalid observed Carrier physical state");
+            observed_kappa, observed_kappa_count,
+            &observed);
+        if (copied != CARRIER_LACAM_OK) return copied;
 
-        if (context.session->rebase(observed) !=
-            DDRebaseStatus::OK)
+        const auto status =
+            context.session->rebase(observed);
+        if (status ==
+            DDRebaseStatus::
+                COMMITMENT_CONFIRMATION_REQUIRED)
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "rebase must explicitly confirm or replace the spacetime commitment");
+        if (status != DDRebaseStatus::OK)
           return fail(
               context, CARRIER_LACAM_INVALID_ARGUMENT,
               "invalid observed Carrier physical state");
 
         context.state = std::move(observed);
+        context.clear_result();
+        context.clear_error();
+        return CARRIER_LACAM_OK;
+      });
+}
+
+int carrier_lacam_rebase_state_with_current_spacetime_commitment(
+    void* handle, int64_t time_origin,
+    const int* observed_robot_cells,
+    int observed_robot_cell_count,
+    const int* observed_target_cells,
+    int observed_target_cell_count,
+    const int* observed_anonymous_cells,
+    int observed_anonymous_cell_count,
+    const int* observed_kappa,
+    int observed_kappa_count)
+{
+  return guarded_status(
+      handle, [&](CarrierLacamContext& context) -> int {
+        PhysConfig observed;
+        const int copied = copy_observed_state(
+            context, observed_robot_cells,
+            observed_robot_cell_count,
+            observed_target_cells,
+            observed_target_cell_count,
+            observed_anonymous_cells,
+            observed_anonymous_cell_count,
+            observed_kappa, observed_kappa_count,
+            &observed);
+        if (copied != CARRIER_LACAM_OK) return copied;
+
+        const auto status =
+            context.session
+                ->rebase_with_current_spacetime_commitment(
+                    observed, time_origin);
+        if (status == DDRebaseStatus::INVALID_COMMITMENT)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "spacetime commitment origin cannot advance");
+        if (status != DDRebaseStatus::OK)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "invalid observed Carrier physical state");
+
+        context.state = std::move(observed);
+        context.commitment_time_origin = time_origin;
         context.clear_result();
         context.clear_error();
         return CARRIER_LACAM_OK;
@@ -869,6 +1099,20 @@ int64_t carrier_lacam_get_work_scaled(void* handle)
     return -1;
   }
   return context.stats.best_work_scaled;
+}
+
+int64_t carrier_lacam_get_commitment_time_origin(
+    void* handle)
+{
+  if (handle == nullptr) return -1;
+  auto& context = *context_of(handle);
+  if (context.session == nullptr) {
+    fail(
+        context, CARRIER_LACAM_INVALID_STATE,
+        "no Carrier-LaCAM session is available");
+    return -1;
+  }
+  return context.commitment_time_origin;
 }
 
 int64_t carrier_lacam_get_pair_cache_hits(void* handle)

@@ -406,14 +406,23 @@ DDReadyMatchProbe dd_match_ready_tasks_probe(
 // the deepest explored node (debug/rollout aid).
 DDPlan solve_carrier_lacam(const DDInstance& ins, double time_limit_sec,
                            int seed, DDStats* stats = nullptr,
-                           DDPlan* best_effort = nullptr);
+                           DDPlan* best_effort = nullptr,
+                           const CarrierSpacetimeCommitment*
+                               spacetime_commitment = nullptr,
+                           int64_t commitment_time_origin = 0);
 DDSolveResult solve_carrier_lacam_result(
     const DDInstance& ins, double time_limit_sec, int seed,
-    DDStats* stats = nullptr, DDPlan* best_effort = nullptr);
+    DDStats* stats = nullptr, DDPlan* best_effort = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0);
 DDSolveResult solve_carrier_lacam_from_state_result(
     const DDInstance& ins, const PhysConfig& current,
     double time_limit_sec, int seed, DDStats* stats = nullptr,
-    DDPlan* best_effort = nullptr);
+    DDPlan* best_effort = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0);
 
 enum class DDCommitStatus {
   OK = 0,
@@ -425,6 +434,8 @@ enum class DDCommitStatus {
 enum class DDRebaseStatus {
   OK = 0,
   INVALID_STATE = 1,
+  COMMITMENT_CONFIRMATION_REQUIRED = 2,
+  INVALID_COMMITMENT = 3,
 };
 
 // Persistent Carrier planning session. It retains only dependency-safe
@@ -434,7 +445,9 @@ class DDPlanningSession {
  public:
   DDPlanningSession(
       const DDInstance& ins, const PhysConfig& initial,
-      int seed);
+      int seed,
+      CarrierSpacetimeCommitment spacetime_commitment = {},
+      int64_t commitment_time_origin = 0);
   ~DDPlanningSession();
   DDPlanningSession(DDPlanningSession&&) noexcept;
   DDPlanningSession& operator=(DDPlanningSession&&) noexcept;
@@ -447,6 +460,18 @@ class DDPlanningSession {
   DDCommitStatus commit_prefix(
       size_t executed_steps, const PhysConfig& observed);
   DDRebaseStatus rebase(const PhysConfig& observed);
+  DDRebaseStatus rebase_with_current_spacetime_commitment(
+      const PhysConfig& observed,
+      int64_t commitment_time_origin);
+  DDRebaseStatus rebase_with_spacetime_commitment(
+      const PhysConfig& observed,
+      CarrierSpacetimeCommitment spacetime_commitment,
+      int64_t commitment_time_origin);
+  void set_spacetime_commitment(
+      CarrierSpacetimeCommitment spacetime_commitment,
+      int64_t commitment_time_origin);
+  bool has_spacetime_commitment() const;
+  int64_t commitment_time_origin() const;
   const RootGoalCommitment& root_goal_commitment() const;
 
  private:
@@ -495,11 +520,17 @@ DDFinalizationStatus dd_classify_finalization_probe(
 // plan unchanged.
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            DDPlanRepairStats* stats = nullptr,
-                           const Deadline* deadline = nullptr);
+                           const Deadline* deadline = nullptr,
+                           const CarrierSpacetimeCommitment*
+                               spacetime_commitment = nullptr,
+                           int64_t commitment_time_origin = 0);
 DDPlan repair_carrier_plan(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan, DDPlanRepairStats* stats = nullptr,
-    const Deadline* deadline = nullptr);
+    const Deadline* deadline = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0);
 // Test-visible view of the exact production repair acceptance boundary.
 // Both plans are replayed with the shared fixed-point weights; only a valid
 // goal candidate with strictly smaller (ticks, work) is accepted.
@@ -514,12 +545,18 @@ DDPlan repair_carrier_plan_from_replay(
     const DDInstance& ins, const DDPlan& plan,
     const std::vector<PhysConfig>& states,
     DDPlanRepairStats* stats = nullptr,
-    const Deadline* deadline = nullptr);
+    const Deadline* deadline = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0);
 DDPlan repair_carrier_plan_from_replay(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan, const std::vector<PhysConfig>& states,
     DDPlanRepairStats* stats = nullptr,
-    const Deadline* deadline = nullptr);
+    const Deadline* deadline = nullptr,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment = nullptr,
+    int64_t commitment_time_origin = 0);
 
 // B0 baseline (design 8.1) = Carrier-PIBT standalone: repeatedly apply the
 // unconstrained generator from the current configuration until goal, dead

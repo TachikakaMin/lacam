@@ -265,6 +265,11 @@ struct TAPFSearchConfig {
   // Non-owning immutable hard contract for one segment.  Null preserves
   // production guidance and the instance root.
   const CarrierEventContract* event_contract = nullptr;
+  // Non-owning immutable external traffic contract. absolute tick zero is
+  // the first frame for a cold solve; persistent sessions advance the origin
+  // when prefixes are committed.
+  const CarrierSpacetimeCommitment* spacetime_commitment = nullptr;
+  int64_t commitment_time_origin = 0;
 };
 
 // skeleton dedup (node-skeleton audit 2026-08-30): TAPFConstraint was a

@@ -290,11 +290,21 @@ std::optional<DDPlan> shortest_available_bridge(
 
 bool valid_goal_plan(
     const DDInstance& ins, const PhysConfig& root,
-    const DDPlan& plan)
+    const DDPlan& plan,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   PhysConfig state = root;
-  for (const auto& ops : plan) {
-    auto next = apply_ops(ins, state, ops);
+  for (size_t tick = 0; tick < plan.size(); ++tick) {
+    const auto& ops = plan[tick];
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            commitment_time_origin, tick);
+    if (!absolute_tick.has_value()) return false;
+    auto next = apply_ops(
+        ins, state, ops, true, spacetime_commitment,
+        *absolute_tick);
     if (!next.has_value()) return false;
     state = std::move(*next);
   }
@@ -304,14 +314,25 @@ bool valid_goal_plan(
 PlanCost replay_plan_cost(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan,
-    const RepairWeights& weights)
+    const RepairWeights& weights,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   auto state = root;
   int64_t work = 0;
-  for (const auto& ops : plan) {
+  for (size_t tick = 0; tick < plan.size(); ++tick) {
+    const auto& ops = plan[tick];
     add_scaled_work(
         work, joint_op_work_scaled(weights, state, ops));
-    const auto next = apply_ops(ins, state, ops);
+    const auto absolute_tick =
+        checked_absolute_tick_add(
+            commitment_time_origin, tick);
+    if (!absolute_tick.has_value())
+      return PlanCost::unbounded();
+    const auto next = apply_ops(
+        ins, state, ops, true, spacetime_commitment,
+        *absolute_tick);
     if (!next.has_value()) return PlanCost::unbounded();
     state = *next;
   }
@@ -321,12 +342,19 @@ PlanCost replay_plan_cost(
 bool repair_candidate_is_accepted(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& candidate,
-    const PlanCost& incumbent_cost, const RepairWeights& weights)
+    const PlanCost& incumbent_cost, const RepairWeights& weights,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   const PlanCost candidate_cost =
-      replay_plan_cost(ins, root, candidate, weights);
+      replay_plan_cost(
+          ins, root, candidate, weights,
+          spacetime_commitment, commitment_time_origin);
   return candidate_cost < incumbent_cost &&
-         valid_goal_plan(ins, root, candidate);
+         valid_goal_plan(
+             ins, root, candidate, spacetime_commitment,
+             commitment_time_origin);
 }
 
 }  // namespace
@@ -335,7 +363,10 @@ DDPlan repair_carrier_plan_impl(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan,
     const std::vector<PhysConfig>* replayed_states,
-    DDPlanRepairStats* stats, const Deadline* deadline)
+    DDPlanRepairStats* stats, const Deadline* deadline,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   if (stats != nullptr) *stats = DDPlanRepairStats();
   if (plan.size() < 2 || ins.n_robots() == 0) return plan;
@@ -351,8 +382,15 @@ DDPlan repair_carrier_plan_impl(
   if (replayed_states == nullptr) {
     owned_states.reserve(plan.size() + 1);
     owned_states.push_back(root);
-    for (const auto& ops : plan) {
-      auto next = apply_ops(ins, owned_states.back(), ops);
+    for (size_t tick = 0; tick < plan.size(); ++tick) {
+      const auto& ops = plan[tick];
+      const auto absolute_tick =
+          checked_absolute_tick_add(
+              commitment_time_origin, tick);
+      if (!absolute_tick.has_value()) return plan;
+      auto next = apply_ops(
+          ins, owned_states.back(), ops, true,
+          spacetime_commitment, *absolute_tick);
       if (!next.has_value()) return plan;
       owned_states.push_back(std::move(*next));
       if (owned_states.size() % EXPIRY_STRIDE == 0 && expired())
@@ -390,7 +428,9 @@ DDPlan repair_carrier_plan_impl(
   RepairWeights weights;
   carrier_detail::load_solver_weights(weights);
   const PlanCost original_cost =
-      replay_plan_cost(ins, root, plan, weights);
+      replay_plan_cost(
+          ins, root, plan, weights,
+          spacetime_commitment, commitment_time_origin);
 
   DDPlan repaired;
   repaired.reserve(plan.size());
@@ -435,7 +475,8 @@ DDPlan repair_carrier_plan_impl(
   if (repaired.empty()) repaired = plan;
   if (expired()) return plan;  // R1: no budget for the final replay
   if (!repair_candidate_is_accepted(
-          ins, root, repaired, original_cost, weights))
+          ins, root, repaired, original_cost, weights,
+          spacetime_commitment, commitment_time_origin))
     return plan;
   if (stats != nullptr) *stats = local;
   return repaired;
@@ -443,19 +484,27 @@ DDPlan repair_carrier_plan_impl(
 
 DDPlan repair_carrier_plan(const DDInstance& ins, const DDPlan& plan,
                            DDPlanRepairStats* stats,
-                           const Deadline* deadline)
+                           const Deadline* deadline,
+                           const CarrierSpacetimeCommitment*
+                               spacetime_commitment,
+                           int64_t commitment_time_origin)
 {
   return repair_carrier_plan(
-      ins, initial_phys_config(ins), plan, stats, deadline);
+      ins, initial_phys_config(ins), plan, stats, deadline,
+      spacetime_commitment, commitment_time_origin);
 }
 
 DDPlan repair_carrier_plan(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan, DDPlanRepairStats* stats,
-    const Deadline* deadline)
+    const Deadline* deadline,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   return repair_carrier_plan_impl(
-      ins, root, plan, nullptr, stats, deadline);
+      ins, root, plan, nullptr, stats, deadline,
+      spacetime_commitment, commitment_time_origin);
 }
 
 bool dd_repair_accepts_candidate_probe(
@@ -463,28 +512,40 @@ bool dd_repair_accepts_candidate_probe(
     const DDPlan& candidate)
 {
   const PhysConfig root = initial_phys_config(ins);
-  if (!valid_goal_plan(ins, root, incumbent)) return false;
+  if (!valid_goal_plan(
+          ins, root, incumbent, nullptr, 0))
+    return false;
   RepairWeights weights;
   carrier_detail::load_solver_weights(weights);
   return repair_candidate_is_accepted(
       ins, root, candidate,
-      replay_plan_cost(ins, root, incumbent, weights), weights);
+      replay_plan_cost(
+          ins, root, incumbent, weights, nullptr, 0),
+      weights, nullptr, 0);
 }
 
 DDPlan repair_carrier_plan_from_replay(
     const DDInstance& ins, const DDPlan& plan,
     const std::vector<PhysConfig>& states, DDPlanRepairStats* stats,
-    const Deadline* deadline)
+    const Deadline* deadline,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   return repair_carrier_plan_from_replay(
-      ins, initial_phys_config(ins), plan, states, stats, deadline);
+      ins, initial_phys_config(ins), plan, states, stats, deadline,
+      spacetime_commitment, commitment_time_origin);
 }
 
 DDPlan repair_carrier_plan_from_replay(
     const DDInstance& ins, const PhysConfig& root,
     const DDPlan& plan, const std::vector<PhysConfig>& states,
-    DDPlanRepairStats* stats, const Deadline* deadline)
+    DDPlanRepairStats* stats, const Deadline* deadline,
+    const CarrierSpacetimeCommitment*
+        spacetime_commitment,
+    int64_t commitment_time_origin)
 {
   return repair_carrier_plan_impl(
-      ins, root, plan, &states, stats, deadline);
+      ins, root, plan, &states, stats, deadline,
+      spacetime_commitment, commitment_time_origin);
 }

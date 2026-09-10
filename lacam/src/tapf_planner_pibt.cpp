@@ -110,7 +110,9 @@ void TAPFPlanner::build_op_candidates(TAPFNode* S, int i,
   }
 
   const auto* checkpoint =
-      find_reference_checkpoint(physical_state_of(S->C, S->shelf));
+      find_reference_checkpoint(
+          physical_state_of(S->C, S->shelf),
+          S->absolute_tick);
   if (checkpoint != nullptr &&
       checkpoint->next_ops.size() == S->C.size()) {
     const Op& wanted = checkpoint->next_ops[i];
@@ -159,6 +161,10 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
     const auto l = M->where[k]->id;
     const auto kind =
         k < (int)M->ops.size() ? M->ops[k] : (uint8_t)Op::MOVE;
+
+    if (!spacetime_candidate_feasible(
+            A[i], M->where[k], kind))
+      return false;
 
     if (!oracle_decides) {
       if (occupied_next[l] != nullptr) return false;
@@ -547,7 +553,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     const auto* checkpoint = find_reference_checkpoint(
         physical_state_of(
             carrier_scratch_node->C,
-            carrier_scratch_node->shelf));
+            carrier_scratch_node->shelf),
+        carrier_scratch_node->absolute_tick);
     if (checkpoint != nullptr &&
         checkpoint->next_ops.size() ==
             carrier_scratch_node->C.size()) {
@@ -582,6 +589,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
   for (size_t k = 0; k < cand.size(); ++k) {
     auto u = cand[k].first;
     const uint8_t kind = cand[k].second;
+    if (!spacetime_candidate_feasible(ai, u, kind))
+      continue;
     if (occupied_next[u->id] != nullptr) continue;
 
     auto& ak = occupied_now[u->id];
@@ -618,7 +627,9 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     }
 
     if (k == 0 && swap_agent != nullptr && swap_agent->v_next == nullptr &&
-        occupied_next[ai->v_now->id] == nullptr) {
+        occupied_next[ai->v_now->id] == nullptr &&
+        spacetime_candidate_feasible(
+            swap_agent, ai->v_now, (uint8_t)Op::MOVE)) {
       swap_agent->v_next = ai->v_now;
       swap_agent->op_kind = Op::MOVE;
       occupied_next[swap_agent->v_next->id] = swap_agent;
@@ -781,10 +792,6 @@ bool TAPFPlanner::forced_op_feasible(const TAPFNode* S, int i, Vertex* v,
 
 bool TAPFPlanner::apply_carrier_effects(const TAPFNode* S)
 {
-  if (S->shelf.kappa.empty()) {
-    shelf_next_scratch = S->shelf;  // empty layer: carried over as-is
-    return true;
-  }
   // assemble the joint op from the agents' reservations
   ops_scratch.resize(N);
   for (const auto a : A) {
@@ -806,9 +813,27 @@ bool TAPFPlanner::apply_carrier_effects(const TAPFNode* S)
         break;
     }
   }
+  if (S->shelf.kappa.empty()) {
+    shelf_next_scratch = S->shelf;  // empty layer: carried over as-is
+    if (search_config.spacetime_commitment == nullptr)
+      return true;
+    PhysConfig phys;
+    phys.robots.reserve(S->C.size());
+    for (const auto* vertex : S->C)
+      phys.robots.push_back(vertex->index);
+    phys.kappa.assign(S->C.size(), KAPPA_FREE);
+    return apply_ops(
+               *dd_view, phys, ops_scratch, true,
+               search_config.spacetime_commitment,
+               S->absolute_tick)
+        .has_value();
+  }
   // conformance oracle = final arbiter (design 6.4, M4)
   const auto& phys = carrier->phys_view(S);
-  const auto nxt = apply_ops(*dd_view, phys, ops_scratch);
+  const auto nxt = apply_ops(
+      *dd_view, phys, ops_scratch, true,
+      search_config.spacetime_commitment,
+      S->absolute_tick);
   if (!nxt.has_value()) return false;
   if (search_config.event_contract != nullptr &&
       !validate_carrier_event_transition(
