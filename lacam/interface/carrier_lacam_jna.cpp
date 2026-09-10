@@ -34,6 +34,7 @@ struct CarrierLacamContext {
   int seed = 0;
   std::optional<DDGrid> grid;
   std::vector<uint8_t> storage_mask;
+  std::vector<int> fixed_upper_cells;
   std::optional<DDInstance> instance;
   std::optional<PhysConfig> state;
   CarrierSpacetimeCommitment spacetime_commitment;
@@ -59,6 +60,7 @@ struct CarrierLacamContext {
   {
     grid.reset();
     storage_mask.clear();
+    fixed_upper_cells.clear();
     instance.reset();
     state.reset();
     spacetime_commitment = CarrierSpacetimeCommitment();
@@ -458,6 +460,7 @@ int carrier_lacam_set_grid(
         grid.reset_rectangular_adjacency();
         context.grid = std::move(grid);
         context.storage_mask = std::move(storage);
+        context.fixed_upper_cells.clear();
         context.instance.reset();
         context.state.reset();
         context.spacetime_commitment =
@@ -493,6 +496,26 @@ int carrier_lacam_set_directed_adjacency(
         return set_csr_adjacency(
             context, offsets, offset_count, destinations,
             destination_count, true);
+      });
+}
+
+int carrier_lacam_set_fixed_upper_cells(
+    void* handle, const int* cells, int cell_count)
+{
+  return guarded_status(
+      handle, [&](CarrierLacamContext& context) -> int {
+        if (!context.grid.has_value())
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "set_grid must succeed before fixed upper cells");
+        context.fixed_upper_cells = copy_array(
+            cells, cell_count, "fixed upper cells");
+        context.instance.reset();
+        context.state.reset();
+        context.session.reset();
+        context.clear_result();
+        context.clear_error();
+        return CARRIER_LACAM_OK;
       });
 }
 
@@ -690,6 +713,8 @@ int carrier_lacam_set_entities(
         DDInstance instance;
         instance.grid = *context.grid;
         instance.shelf_storage = context.storage_mask;
+        instance.fixed_upper_cells =
+            context.fixed_upper_cells;
         instance.robots = std::move(robots);
         instance.shelves = std::move(shelves);
         instance.target_starts.reserve(target_count);

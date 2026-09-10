@@ -53,6 +53,12 @@ int carrier_lacam_set_directed_adjacency(
     const int* offsets, int offset_count,
     const int* destinations, int destination_count);
 
+// Upper-deck cells occupied by pods that are not movable by this Carrier
+// session. Call after set_grid and before set_entities.
+int carrier_lacam_set_fixed_upper_cells(
+    void* handle,
+    const int* cells, int cell_count);
+
 // External traffic contract. lower/upper offsets each contain
 // frame_count + 1 entries. Every external lower edge is supplied as a
 // (tick, from, to) triple, where tick is in [0, frame_count - 2].

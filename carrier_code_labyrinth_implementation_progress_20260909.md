@@ -213,6 +213,7 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-10 | Phase 8.5 C boundary regression | hostile edge tick 与 absolute origin overflow | `INT_MAX` edge tick 首先稳定触发 native SIGSEGV，改为索引前无加法范围检查后 GREEN；review 又发现 `int64_t` origin/step 加法可能 UB，新增 C++ 3/3 + C ABI origin 1/1 RED/GREEN，并用统一 checked tick addition 覆盖 search、rollout、reference、rewire、repair、final replay 和 session |
 | 2026-09-10 | Phase 8.4/8.5 related regression | topology、commitment、repair、reference、rewire、session 与全部 Carrier C ABI | 相关定向测试全部 GREEN，`git diff --check` 通过；YAML-free portable `carrier_lacam` 独立构建通过，目录 `/tmp/dd-lacam-portable-phase85.CwpRTm`；按 `rules.md` 未运行与新增输入/接口无关的原始 benchmark |
 | 2026-09-10 | Phase 8.4/8.5 final review | external commitment、absolute tick、session origin、C ABI 与空 commitment 兼容性 | 独立 GPT-5.6 Sol/low：`APPROVE`，无 blocking finding；reviewer 定向运行 53/53 GREEN，确认没有 parallel planner、fallback、testcase/seed hard-code 或原算法语义变化；按规则未运行原始 benchmark |
+| 2026-09-10 | Phase 8.6 fixed-upper bridge RED/GREEN | Code-Labyrinth Java adapter 所需的 fixed upper C ABI setter | 新增 protected C API tests 2/2 GREEN；setter 只冻结 schema 输入并复用现有 `DDInstance::finalize()` 校验，movable shelf 与 fixed upper 重叠仍由同一权威路径拒绝；相关 grid/adjacency/commitment C ABI 回归 12/12 GREEN，未修改搜索算法，按规则未运行原始 benchmark |
 
 ## 6. 当前下一步
 

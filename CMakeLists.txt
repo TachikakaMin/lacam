@@ -114,6 +114,13 @@ target_link_libraries(
   test_carrier_lacam_spacetime_c_api
   carrier_lacam gtest)
 add_executable(
+  test_carrier_lacam_fixed_upper_c_api
+  ./tests/test_carrier_lacam_fixed_upper_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_fixed_upper_c_api
+  carrier_lacam gtest)
+add_executable(
   test_carrier_lacam_spacetime_validation_c_api
   ./tests/test_carrier_lacam_spacetime_validation_c_api.cpp
   ${TEST_MAIN_FUNC})
