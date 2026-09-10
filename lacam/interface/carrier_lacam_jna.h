@@ -35,6 +35,14 @@ int carrier_lacam_set_grid(
     const uint8_t* wall_mask, int wall_mask_count,
     const uint8_t* storage_mask, int storage_mask_count);
 
+// Optional explicit undirected topology in CSR form. Call after set_grid
+// and before set_entities. offsets has grid_cell_count + 1 entries;
+// destinations preserves per-cell neighbor order and must be symmetric.
+int carrier_lacam_set_undirected_adjacency(
+    void* handle,
+    const int* offsets, int offset_count,
+    const int* destinations, int destination_count);
+
 // target_shelf_indices maps each target identity to one entry in shelf_cells.
 // goal_offsets has target_count + 1 entries and indexes goal_cells.
 int carrier_lacam_set_entities(

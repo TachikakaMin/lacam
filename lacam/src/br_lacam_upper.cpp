@@ -12,10 +12,7 @@ bool adjacent(const DDGrid& grid, int from, int to)
   if (from < 0 || from >= grid.size() ||
       to < 0 || to >= grid.size())
     return false;
-  int neighbors[4];
-  const int count = grid.neighbors(from, neighbors);
-  return std::find(neighbors, neighbors + count, to) !=
-         neighbors + count;
+  return grid.has_edge(from, to);
 }
 
 carrier_detail::AbstractUpperState abstract_upper(

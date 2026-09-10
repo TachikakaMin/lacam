@@ -121,7 +121,7 @@ Planner::Planner(const Instance* _ins, const Deadline* _deadline,
       N(ins->N),
       V_size(ins->G.size()),
       D(DistTable(ins)),
-      C_next(Candidates(N, std::array<Vertex*, 5>())),
+      C_next(Candidates(N)),
       tie_breakers(std::vector<float>(V_size, 0)),
       A(Agents(N, nullptr)),
       occupied_now(Agents(V_size, nullptr)),
@@ -196,6 +196,7 @@ bool Planner::funcPIBT(Agent* ai)
 {
   const auto i = ai->id;
   const auto K = ai->v_now->neighbor.size();
+  C_next[i].resize(K + 1);
 
   // get candidates for next locations
   for (size_t k = 0; k < K; ++k) {

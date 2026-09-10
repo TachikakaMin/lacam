@@ -16,7 +16,7 @@ inline DDGrid make_upper_deck_grid(const DDInstance& ins)
   DDGrid upper = ins.grid;
   for (const int cell : ins.fixed_upper_cells)
     if (cell >= 0 && cell < upper.size())
-      upper.wall[cell] = 1;
+      upper.block_cell(cell);
   return upper;
 }
 

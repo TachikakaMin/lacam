@@ -59,6 +59,10 @@ add_test(test_dd_fixed_upper_obstacles
          ./tests/test_dd_fixed_upper_obstacles.cpp)
 add_test(test_dd_fixed_upper_schema
          ./tests/test_dd_fixed_upper_schema.cpp)
+add_test(test_dd_explicit_undirected_adjacency
+         ./tests/test_dd_explicit_undirected_adjacency.cpp)
+add_test(test_dd_explicit_high_degree_planner
+         ./tests/test_dd_explicit_high_degree_planner.cpp)
 add_test(test_dd_planner ./tests/test_dd_planner.cpp)
 add_test(test_dd_arbitrary_root ./tests/test_dd_arbitrary_root.cpp)
 add_test(test_dd_incremental_session
@@ -73,6 +77,13 @@ add_executable(
   ${TEST_MAIN_FUNC})
 target_link_libraries(
   test_carrier_lacam_c_api
+  carrier_lacam gtest)
+add_executable(
+  test_carrier_lacam_adjacency_c_api
+  ./tests/test_carrier_lacam_adjacency_c_api.cpp
+  ${TEST_MAIN_FUNC})
+target_link_libraries(
+  test_carrier_lacam_adjacency_c_api
   carrier_lacam gtest)
 add_executable(
   test_carrier_lacam_incremental_c_api

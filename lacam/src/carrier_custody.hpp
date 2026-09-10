@@ -248,11 +248,7 @@ inline bool task_matches_loaded_shelf(const PhysConfig& physical, int robot,
 
 inline bool adjacent_cells(const DDGrid& grid, int from, int to)
 {
-  int neighbors[4];
-  const int count = grid.neighbors(from, neighbors);
-  for (int i = 0; i < count; ++i)
-    if (neighbors[i] == to) return true;
-  return false;
+  return grid.has_edge(from, to);
 }
 
 struct RouteHintSearchResult {
@@ -312,9 +308,7 @@ inline RouteHintSearchResult reroute_to_endpoint(
       const int cell = queue.front();
       queue.pop_front();
       ++result.expansions;
-      int raw_neighbors[4];
-      const int count = ins.grid.neighbors(cell, raw_neighbors);
-      std::vector<int> neighbors(raw_neighbors, raw_neighbors + count);
+      std::vector<int> neighbors = ins.grid.outgoing(cell);
       std::stable_sort(
           neighbors.begin(), neighbors.end(),
           [&](int a, int b) {
@@ -477,10 +471,7 @@ inline std::vector<int> transport_topology_distance(
   while (!queue.empty()) {
     const int cell = queue.front();
     queue.pop_front();
-    int neighbors[4];
-    const int count = ins.grid.neighbors(cell, neighbors);
-    for (int index = 0; index < count; ++index) {
-      const int next = neighbors[index];
+    for (const int next : ins.grid.outgoing(cell)) {
       if (distance[next] < INF) continue;
       if (next != source && ins.can_store_shelf(next)) continue;
       distance[next] = distance[cell] + 1;

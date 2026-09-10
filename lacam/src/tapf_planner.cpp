@@ -57,7 +57,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       V_size(ins->G.size()),
       weights(),
       D(TAPFDistTable(ins)),
-      C_next(Candidates(N, std::array<Vertex*, 5>())),
+      C_next(Candidates(N)),
       tie_breakers(std::vector<float>(V_size, 0)),
       A(Agents(N, nullptr)),
       occupied_now(Agents(V_size, nullptr)),
@@ -97,11 +97,19 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
   if (!ins->shelf_cells.empty() ||
       !ins->fixed_upper_cells.empty()) {
     dd_view = std::make_unique<DDInstance>();
-    dd_view->grid.height = ins->G.height;
-    dd_view->grid.width = ins->G.width;
-    dd_view->grid.wall.assign(ins->G.height * ins->G.width, 0);
-    for (int c = 0; c < (int)dd_view->grid.wall.size(); ++c)
-      dd_view->grid.wall[c] = ins->G.U[c] == nullptr ? 1 : 0;
+    std::vector<std::string> rows(
+        ins->G.height, std::string(ins->G.width, '.'));
+    for (int c = 0; c < (int)ins->G.U.size(); ++c)
+      if (ins->G.U[c] == nullptr)
+        rows[c / ins->G.width][c % ins->G.width] = '@';
+    dd_view->grid = DDGrid(rows);
+    if (ins->G.explicit_adjacency) {
+      std::vector<std::vector<int>> adjacency(ins->G.U.size());
+      for (const auto* vertex : ins->G.V)
+        for (const auto* neighbor : vertex->neighbor)
+          adjacency[vertex->index].push_back(neighbor->index);
+      dd_view->grid.set_undirected_adjacency(adjacency);
+    }
     for (const auto* v : ins->starts) dd_view->robots.push_back(v->index);
     dd_view->shelves = ins->shelf_cells;
     dd_view->shelf_storage = ins->shelf_storage;

@@ -24,6 +24,8 @@ struct TAPFCarrierPersistentState {
     int grid_height = 0;
     int grid_width = 0;
     std::vector<uint8_t> grid_wall;
+    std::vector<std::vector<int>> grid_out_neighbors;
+    bool grid_explicit_adjacency = false;
     std::vector<uint8_t> shelf_storage;
     std::vector<int> fixed_upper_cells;
     size_t robot_count = 0;
@@ -35,6 +37,9 @@ struct TAPFCarrierPersistentState {
         : grid_height(dd.grid.height),
           grid_width(dd.grid.width),
           grid_wall(dd.grid.wall),
+          grid_out_neighbors(dd.grid.out_neighbors),
+          grid_explicit_adjacency(
+              dd.grid.uses_explicit_adjacency()),
           shelf_storage(dd.shelf_storage),
           fixed_upper_cells(dd.fixed_upper_cells),
           robot_count(dd.n_robots()),
@@ -49,6 +54,9 @@ struct TAPFCarrierPersistentState {
       return grid_height == dd.grid.height &&
              grid_width == dd.grid.width &&
              grid_wall == dd.grid.wall &&
+             grid_out_neighbors == dd.grid.out_neighbors &&
+             grid_explicit_adjacency ==
+                 dd.grid.uses_explicit_adjacency() &&
              shelf_storage == dd.shelf_storage &&
              fixed_upper_cells == dd.fixed_upper_cells &&
              robot_count == dd.n_robots() &&

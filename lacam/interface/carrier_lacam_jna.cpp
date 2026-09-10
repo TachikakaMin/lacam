@@ -335,8 +335,62 @@ int carrier_lacam_set_grid(
         grid.height = height;
         grid.width = width;
         grid.wall = std::move(walls);
+        grid.reset_rectangular_adjacency();
         context.grid = std::move(grid);
         context.storage_mask = std::move(storage);
+        context.instance.reset();
+        context.state.reset();
+        context.session.reset();
+        context.clear_result();
+        context.clear_error();
+        return CARRIER_LACAM_OK;
+      });
+}
+
+int carrier_lacam_set_undirected_adjacency(
+    void* handle,
+    const int* offsets, int offset_count,
+    const int* destinations, int destination_count)
+{
+  return guarded_status(
+      handle, [&](CarrierLacamContext& context) -> int {
+        if (!context.grid.has_value())
+          return fail(
+              context, CARRIER_LACAM_INVALID_STATE,
+              "set_grid must succeed before adjacency");
+        const int cell_count = context.grid->size();
+        if (offset_count != cell_count + 1)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "adjacency offsets must have cell_count + 1 entries");
+        auto copied_offsets = copy_array(
+            offsets, offset_count, "adjacency offsets");
+        auto copied_destinations = copy_array(
+            destinations, destination_count,
+            "adjacency destinations");
+        if (copied_offsets.front() != 0 ||
+            copied_offsets.back() != destination_count)
+          return fail(
+              context, CARRIER_LACAM_INVALID_ARGUMENT,
+              "adjacency offsets do not span destinations");
+        for (int cell = 0; cell < cell_count; ++cell)
+          if (copied_offsets[cell] < 0 ||
+              copied_offsets[cell] > copied_offsets[cell + 1] ||
+              copied_offsets[cell + 1] > destination_count)
+            return fail(
+                context, CARRIER_LACAM_INVALID_ARGUMENT,
+                "adjacency offsets are not monotonic");
+
+        std::vector<std::vector<int>> adjacency(cell_count);
+        for (int cell = 0; cell < cell_count; ++cell)
+          adjacency[cell].assign(
+              copied_destinations.begin() + copied_offsets[cell],
+              copied_destinations.begin() +
+                  copied_offsets[cell + 1]);
+
+        DDGrid candidate = *context.grid;
+        candidate.set_undirected_adjacency(adjacency);
+        context.grid = std::move(candidate);
         context.instance.reset();
         context.state.reset();
         context.session.reset();

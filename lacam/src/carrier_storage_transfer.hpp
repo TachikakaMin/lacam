@@ -660,10 +660,10 @@ inline bool task_effects_conflict(const TaskId& a, const TaskId& b)
 inline bool adjacent_cells(const DDGrid& grid, int from, int to);
 
 struct OrderedShelfCandidates {
-  std::array<int, 4> endpoints{};
-  std::array<int, 4> first_steps{};
-  std::array<int, 4> route_sizes{};
-  std::array<int, 4> route_slots{{-1, -1, -1, -1}};
+  std::vector<int> endpoints;
+  std::vector<int> first_steps;
+  std::vector<int> route_sizes;
+  std::vector<int> route_slots;
   std::vector<std::vector<int>> explicit_routes;
   int count = 0;
   bool cutoff = false;
@@ -701,14 +701,10 @@ inline std::vector<StorageTransfer> reachable_storage_transfers(
     if (expired()) return transfers;
     const int cell = queue.front();
     queue.pop_front();
-    int raw_neighbors[4];
-    const int count = ins.grid.neighbors(cell, raw_neighbors);
-    std::array<int, 4> neighbors{};
-    std::copy(raw_neighbors, raw_neighbors + count, neighbors.begin());
-    std::sort(neighbors.begin(), neighbors.begin() + count);
-    for (int index = 0; index < count; ++index) {
+    std::vector<int> neighbors = ins.grid.outgoing(cell);
+    std::sort(neighbors.begin(), neighbors.end());
+    for (const int next : neighbors) {
       if (expired()) return transfers;
-      const int next = neighbors[index];
       if (next == from) continue;
       if (ins.can_store_shelf(next)) {
         if (!ins.can_place_movable_shelf(next)) continue;
@@ -762,15 +758,8 @@ nearest_channel_storage_arcs(
       !ins.can_place_movable_shelf(source))
     return arcs;
 
-  int raw_neighbors[4];
-  const int neighbor_count =
-      ins.grid.neighbors(source, raw_neighbors);
-  std::array<int, 4> neighbors{};
-  std::copy(
-      raw_neighbors, raw_neighbors + neighbor_count,
-      neighbors.begin());
-  std::sort(
-      neighbors.begin(), neighbors.begin() + neighbor_count);
+  std::vector<int> neighbors = ins.grid.outgoing(source);
+  std::sort(neighbors.begin(), neighbors.end());
 
   // Keep every one-step storage move.  For each distinct channel entrance,
   // stop at the first storage layer reached by BFS and keep every endpoint
@@ -778,7 +767,7 @@ nearest_channel_storage_arcs(
   // in StorageTransferTopology::transfers; only the vacancy-potential graph
   // is sparse.
   std::map<int, int> loaded_steps_by_endpoint;
-  for (int index = 0; index < neighbor_count; ++index) {
+  for (size_t index = 0; index < neighbors.size(); ++index) {
     if (expired()) return {};
     const int entrance = neighbors[index];
     if (ins.can_store_shelf(entrance)) {
@@ -802,16 +791,10 @@ nearest_channel_storage_arcs(
       if (distance[cell] + 1 > nearest_loaded_steps)
         continue;
 
-      int raw_next[4];
-      const int next_count =
-          ins.grid.neighbors(cell, raw_next);
-      std::array<int, 4> next_cells{};
-      std::copy(
-          raw_next, raw_next + next_count, next_cells.begin());
-      std::sort(
-          next_cells.begin(), next_cells.begin() + next_count);
-      for (int next_index = 0;
-           next_index < next_count; ++next_index) {
+      std::vector<int> next_cells = ins.grid.outgoing(cell);
+      std::sort(next_cells.begin(), next_cells.end());
+      for (size_t next_index = 0;
+           next_index < next_cells.size(); ++next_index) {
         if (expired()) return {};
         const int next = next_cells[next_index];
         if (next == source) continue;

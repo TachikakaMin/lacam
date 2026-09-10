@@ -417,11 +417,7 @@ build_bounded_joint_transport_guidance(
       }
       if (tick >= horizon) continue;
 
-      int raw_neighbors[4];
-      const int count =
-          ins.grid.neighbors(cell, raw_neighbors);
-      std::vector<int> next_cells(
-          raw_neighbors, raw_neighbors + count);
+      std::vector<int> next_cells = ins.grid.outgoing(cell);
       next_cells.push_back(cell);
       std::stable_sort(
           next_cells.begin(), next_cells.end(),

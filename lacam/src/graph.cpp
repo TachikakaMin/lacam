@@ -1,11 +1,21 @@
 #include "../include/graph.hpp"
+#include "../include/dd_carrier.hpp"
 
 Vertex::Vertex(int _id, int _index)
-    : id(_id), index(_index), neighbor(Vertices())
+    : id(_id),
+      index(_index),
+      neighbor(Vertices()),
+      predecessor(Vertices())
 {
 }
 
-Graph::Graph() : V(Vertices()), width(0), height(0) {}
+Graph::Graph()
+    : V(Vertices()),
+      width(0),
+      height(0),
+      explicit_adjacency(false)
+{
+}
 Graph::~Graph()
 {
   for (auto& v : V)
@@ -18,7 +28,11 @@ static const std::regex r_height = std::regex(R"(height\s(\d+))");
 static const std::regex r_width = std::regex(R"(width\s(\d+))");
 static const std::regex r_map = std::regex(R"(map)");
 
-Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
+Graph::Graph(const std::string& filename)
+    : V(Vertices()),
+      width(0),
+      height(0),
+      explicit_adjacency(false)
 {
   std::ifstream file(filename);
   if (!file) {
@@ -54,11 +68,53 @@ Graph::Graph(const std::string& filename) : V(Vertices()), width(0), height(0)
 }
 
 Graph::Graph(const std::vector<std::string>& rows)
-    : V(Vertices()), width(0), height(0)
+    : V(Vertices()),
+      width(0),
+      height(0),
+      explicit_adjacency(false)
 {
   height = rows.size();
   for (const auto& row : rows) width = std::max(width, (int)row.size());
   build_from_rows(rows);
+}
+
+Graph::Graph(const DDGrid& grid)
+    : V(Vertices()),
+      width(grid.width),
+      height(grid.height),
+      explicit_adjacency(grid.uses_explicit_adjacency())
+{
+  U = Vertices(width * height, nullptr);
+  for (int cell = 0; cell < grid.size(); ++cell) {
+    if (grid.is_wall(cell)) continue;
+    auto* vertex = new Vertex(V.size(), cell);
+    V.push_back(vertex);
+    U[cell] = vertex;
+  }
+  if (!explicit_adjacency) {
+    std::vector<std::string> rows(
+        height, std::string(width, '.'));
+    for (int cell = 0; cell < grid.size(); ++cell)
+      if (grid.is_wall(cell))
+        rows[grid.row(cell)][grid.col(cell)] = '@';
+    for (auto* vertex : V) delete vertex;
+    V.clear();
+    U.clear();
+    build_from_rows(rows);
+    return;
+  }
+  for (int from = 0; from < grid.size(); ++from) {
+    auto* source = U[from];
+    if (source == nullptr) continue;
+    for (const int to : grid.outgoing(from)) {
+      auto* destination = U[to];
+      if (destination == nullptr)
+        throw std::invalid_argument(
+            "Graph: adjacency touches a wall");
+      source->neighbor.push_back(destination);
+      destination->predecessor.push_back(source);
+    }
+  }
 }
 
 void Graph::build_from_rows(const std::vector<std::string>& rows)
@@ -86,22 +142,34 @@ void Graph::build_from_rows(const std::vector<std::string>& rows)
       // left
       if (x > 0) {
         auto u = U[width * y + (x - 1)];
-        if (u != nullptr) v->neighbor.push_back(u);
+        if (u != nullptr) {
+          v->neighbor.push_back(u);
+          u->predecessor.push_back(v);
+        }
       }
       // right
       if (x < width - 1) {
         auto u = U[width * y + (x + 1)];
-        if (u != nullptr) v->neighbor.push_back(u);
+        if (u != nullptr) {
+          v->neighbor.push_back(u);
+          u->predecessor.push_back(v);
+        }
       }
       // up
       if (y < height - 1) {
         auto u = U[width * (y + 1) + x];
-        if (u != nullptr) v->neighbor.push_back(u);
+        if (u != nullptr) {
+          v->neighbor.push_back(u);
+          u->predecessor.push_back(v);
+        }
       }
       // down
       if (y > 0) {
         auto u = U[width * (y - 1) + x];
-        if (u != nullptr) v->neighbor.push_back(u);
+        if (u != nullptr) {
+          v->neighbor.push_back(u);
+          u->predecessor.push_back(v);
+        }
       }
     }
   }

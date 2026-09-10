@@ -307,13 +307,13 @@ inline OrderedShelfCandidates ordered_shelf_candidate_window(
       !single_root_mode &&
       shelf.kind == ShelfSelector::Kind::ANON_AT_EPOCH_CELL;
 
-  std::array<int, 4> neighbors{};
+  std::vector<int> neighbors = ins.grid.outgoing(from);
   const int neighbor_count =
-      ins.grid.neighbors(from, neighbors.data());
+      static_cast<int>(neighbors.size());
   if (ins.has_adjacent_storage_frontier(from)) {
     using DirectCandidateScore =
         std::array<int, 9>;
-    std::array<DirectCandidateScore, 4> scores{};
+    std::vector<DirectCandidateScore> scores(neighbor_count);
     for (int index = 0; index < neighbor_count; ++index) {
       const int endpoint = neighbors[index];
       const int reserved =
@@ -390,6 +390,10 @@ inline OrderedShelfCandidates ordered_shelf_candidate_window(
     }
     OrderedShelfCandidates out;
     out.count = neighbor_count;
+    out.endpoints.resize(out.count);
+    out.first_steps.resize(out.count);
+    out.route_sizes.resize(out.count);
+    out.route_slots.assign(out.count, -1);
     for (int index = 0; index < out.count; ++index) {
       const int endpoint = neighbors[index];
       out.endpoints[index] = endpoint;
@@ -405,8 +409,7 @@ inline OrderedShelfCandidates ordered_shelf_candidate_window(
     CandidateScore score;
     StorageTransfer transfer;
   };
-  std::array<RankedCandidate, 4> ranked{};
-  int ranked_count = 0;
+  std::vector<RankedCandidate> ranked;
   const auto consider =
       [&](StorageTransfer transfer) {
     if (transfer.route.size() < 2) return;
@@ -472,18 +475,18 @@ inline OrderedShelfCandidates ordered_shelf_candidate_window(
           reserved, endpoint, first_step};
     }
 
-    int insert = 0;
-    while (insert < ranked_count &&
-           !(score < ranked[insert].score))
+    auto insert = ranked.begin();
+    while (insert != ranked.end() &&
+           !(score < insert->score))
       ++insert;
-    if (insert >= (int)ranked.size()) return;
-    const int new_count =
-        std::min<int>(ranked.size(), ranked_count + 1);
-    for (int index = new_count - 1; index > insert; --index)
-      ranked[index] = std::move(ranked[index - 1]);
-    ranked[insert] =
-        RankedCandidate{score, std::move(transfer)};
-    ranked_count = new_count;
+    ranked.insert(
+        insert, RankedCandidate{score, std::move(transfer)});
+    // Preserve the rectangular four-candidate window, but grow it with
+    // the actual local degree on general KMAP topology.
+    const size_t candidate_limit =
+        std::max<size_t>(4, ins.grid.outgoing(from).size());
+    if (ranked.size() > candidate_limit)
+      ranked.pop_back();
   };
 
   const auto& transfers =
@@ -499,8 +502,12 @@ inline OrderedShelfCandidates ordered_shelf_candidate_window(
   }
 
   OrderedShelfCandidates out;
-  out.count = ranked_count;
-  out.explicit_routes.reserve(ranked_count);
+  out.count = static_cast<int>(ranked.size());
+  out.endpoints.resize(out.count);
+  out.first_steps.resize(out.count);
+  out.route_sizes.resize(out.count);
+  out.route_slots.assign(out.count, -1);
+  out.explicit_routes.reserve(out.count);
   for (int index = 0; index < out.count; ++index) {
     auto& transfer = ranked[index].transfer;
     out.endpoints[index] = transfer.endpoint;

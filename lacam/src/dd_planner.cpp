@@ -583,11 +583,7 @@ DDPlan solve_carrier_2stage(
       open.pop();
       if (distance[cell] != std::make_pair(steps, blockers)) continue;
       if (cell == dst) break;
-      int raw_neighbors[4];
-      const int count =
-          ins.grid.neighbors(cell, raw_neighbors);
-      std::vector<int> neighbors(
-          raw_neighbors, raw_neighbors + count);
+      std::vector<int> neighbors = ins.grid.outgoing(cell);
       std::sort(neighbors.begin(), neighbors.end());
       for (const int next : neighbors) {
         const std::pair<int, int> candidate{

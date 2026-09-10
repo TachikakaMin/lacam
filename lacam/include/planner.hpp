@@ -48,8 +48,9 @@ struct Agent {
 };
 using Agents = std::vector<Agent*>;
 
-// next location candidates, for saving memory allocation
-using Candidates = std::vector<std::array<Vertex*, 5> >;
+// Reused per-agent next-location buffers. Dynamic degree is required for
+// explicit KMAP adjacency; rectangular maps keep their legacy ordering.
+using Candidates = std::vector<std::vector<Vertex*> >;
 
 struct Planner {
   const Instance* ins;

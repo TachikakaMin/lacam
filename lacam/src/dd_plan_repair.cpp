@@ -103,10 +103,7 @@ std::vector<int> distances_to(const DDGrid& grid, int goal)
   while (!open.empty()) {
     const int u = open.front();
     open.pop();
-    int nb[4];
-    const int n = grid.neighbors(u, nb);
-    for (int k = 0; k < n; ++k) {
-      const int v = nb[k];
+    for (const int v : grid.outgoing(u)) {
       if (dist[v] <= dist[u] + 1) continue;
       dist[v] = dist[u] + 1;
       open.push(v);
@@ -123,10 +120,9 @@ DDPlan single_robot_bridge(const DDGrid& grid, int start, int goal,
   int at = start;
   while (at != goal && out.size() < max_steps) {
     int next = -1;
-    int nb[4];
-    const int n = grid.neighbors(at, nb);
-    for (int k = 0; k < n; ++k)
-      if (next < 0 || dist[nb[k]] < dist[next]) next = nb[k];
+    for (const int candidate : grid.outgoing(at))
+      if (next < 0 || dist[candidate] < dist[next])
+        next = candidate;
     if (next < 0 || dist[next] >= dist[at]) return {};
     out.push_back({Op::make_move(next)});
     at = next;
@@ -195,17 +191,16 @@ std::optional<DDPlan> two_robot_bridge(
     if (static_cast<size_t>(top.g + 1) >= max_steps) continue;
 
     const auto [a, b] = decode_pair(top.key);
-    int a_nb[4], b_nb[4];
-    const int an = grid.neighbors(a, a_nb);
-    const int bn = grid.neighbors(b, b_nb);
-    int a_cand[5], b_cand[5];
-    a_cand[0] = a;
-    b_cand[0] = b;
-    std::copy(a_nb, a_nb + an, a_cand + 1);
-    std::copy(b_nb, b_nb + bn, b_cand + 1);
-    for (int ai = 0; ai <= an; ++ai) {
-      for (int bi = 0; bi <= bn; ++bi) {
-        const int na = a_cand[ai], nb = b_cand[bi];
+    std::vector<int> a_candidates{a};
+    std::vector<int> b_candidates{b};
+    a_candidates.insert(
+        a_candidates.end(), grid.outgoing(a).begin(),
+        grid.outgoing(a).end());
+    b_candidates.insert(
+        b_candidates.end(), grid.outgoing(b).begin(),
+        grid.outgoing(b).end());
+    for (const int na : a_candidates) {
+      for (const int nb : b_candidates) {
         if (na == nb || (na == b && nb == a)) continue;
         const int ng = top.g + 1;
         const int h = std::max(d0[na], d1[nb]);

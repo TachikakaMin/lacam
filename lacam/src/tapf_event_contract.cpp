@@ -149,12 +149,8 @@ CarrierEventContractValidation validate_carrier_event_contract(
             CarrierEventContractInvalidReason::
                 INVALID_ACTIVE_TRANSFER};
       if (index > 0) {
-        int neighbors[4];
-        const int count = ins.grid.neighbors(
-            fixed.transfer.route[index - 1], neighbors);
-        if (std::find(
-                neighbors, neighbors + count, cell) ==
-            neighbors + count)
+        if (!ins.grid.has_edge(
+                fixed.transfer.route[index - 1], cell))
           return {
               CarrierEventContractInvalidReason::
                   INVALID_ACTIVE_TRANSFER};

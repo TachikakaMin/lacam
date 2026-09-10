@@ -44,7 +44,7 @@
 | Phase 5：DSR lifecycle | GREEN，已提交并推送 | Carrier coordinator、staging、execution lease、control owner、participant-scoped reset、DSR bypass/completion handoff、Pick-to-station、telemetry、legacy regression、native sidecar packaging 和真实 SAZ1 smoke 均已接通；resident-drive lease 回归已修复并由独立 Sol/high APPROVE |
 | Phase 6：跨 prefix session | GREEN，已提交并推送 | C++ persistent session、prefix commit、状态 rebase、schema invalidation、PairCost 安全复用，以及 Java persistent backend、单步 checkpoint 和 coordinator 续算均已接入；真实 SAZ1 已完成 19 拍、18 次续算，C++ 440/440、Brazil release、Labyrinth subset 与 quick 77 通过 |
 | Phase 7：rho incremental repair | 完成，已提交并推送 | 保留 full bottleneck threshold，只对冻结 threshold 后的 secondary Hungarian 做 changed-row repair，并重新执行 exact canonicalization；C++ 447/447、C ABI 11/11、无货架兼容 7/7、quick 77、Brazil release 和真实 SAZ1 均通过。SAZ1 标准入口完成 19 拍/18 次续算，CSV 累计记录 13,963 次 repair，且 Phase 6/7 的成功集合、plan hash 和全部解质量逐 case 零差异；算法提交 `76d54bf`，LMS 提交 `2587828` |
-| Phase 8：一般并发 | 进行中；8.1 fixed upper obstacle GREEN | 固定、不可搬动 pod 已作为静态 upper-deck obstacle 接入现有实例校验、upper occupancy、Task-BR、PairCost、PIBT、repair 和 `apply_ops()` 路径；C++ 453/453、C ABI 11/11、新增 protected tests 6/6、BR upper 16/16、clean quick 47/77 且与 Phase 7 逐 case 语义零差异；下一步是 8.2 explicit undirected adjacency |
+| Phase 8：一般并发 | 进行中；8.1、8.2 GREEN | 8.1 fixed upper obstacle 已提交；8.2 已把动态无向 adjacency 接入 DDGrid、Lazy BFS、Graph、PIBT、repair、storage transfer、persistent schema 和 C ABI CSR setter。新增 adjacency tests 7/7、原 C ABI 11/11、相关拓扑/规划回归 42/42；默认矩形 DD 与 Graph 分别保持原邻居顺序，未运行与本次非算法扩展无关的原始 benchmark；下一步是 8.3 directed adjacency 与反向距离 |
 
 ## 4. 固定开发 benchmark
 
@@ -195,9 +195,13 @@ workspace。Carrier lifecycle 接通后，固定 60-simulation-second smoke
 | 2026-09-10 | Phase 8.1 fixed upper GREEN | `fixed_upper_cells` 接入现有 Carrier execution path | GREEN：固定格不进入 movable shelf、tau、rho 或 Task-BR；空载机器人可从下层经过，携架机器人不得进入，且不能 LIFT/DROP；BR upper cache 改用同一份 upper-deck grid，错误的 phantom shortcut 不再生成 |
 | 2026-09-10 | Phase 8.1 targeted regression | fixed upper、BR upper 和全部 Carrier C ABI tests | GREEN：新增 fixed-upper tests 6/6，BR upper 16/16，C ABI 11/11；此前完整 C++ regression 453/453 |
 | 2026-09-10 | Phase 8.1 clean quick | 固定 quick 77，10 秒、seed 0、unit weights、14 workers | GREEN：47/77，solver runtime 总和 587.7 秒，墙钟 47.4 秒；与 Phase 7 的成功集合、status、plan hash、makespan、SOC、work、首次解质量和最终解质量逐 case 零差异；结果 `benchmark/results_quick_carrier_dsr_phase8a_clean2_20260910`。一轮与其他 full benchmark 并发的 46/77 结果因 CPU contention 作废，不用于验收 |
+| 2026-09-10 | Phase 8.2 core RED | explicit undirected adjacency、degree > 4、Graph 直传和 persistent schema | 预期编译失败：`DDGrid` 尚无显式边/outgoing/incoming API；加入底层动态容器后，高出度 case 继续稳定失败于旧 `int out[4]` adapter，证明生产调用点仍会截断 |
+| 2026-09-10 | Phase 8.2 core GREEN | DDGrid → Lazy BFS → Graph → TAPFPlanner/dd_view → apply_ops | GREEN：显式边完全替换坐标推导；6 邻居不截断，非坐标长边可执行，Graph 与 DD transition 消费同一边集，默认矩形保持 DD 的 down/up/right/left 和 Graph 的 legacy 顺序；core tests 4/4，高出度 task-agent PIBT 1/1 |
+| 2026-09-10 | Phase 8.2 C ABI RED/GREEN | 对称 CSR adjacency setter | RED：header 缺少 `carrier_lacam_set_undirected_adjacency`；GREEN：setter 在 grid 副本上校验 offsets、destination、墙、重复边和对称性后原子替换 topology，未调用时保持默认矩形；新增 C ABI 2/2，原有 C ABI 11/11，符号已从 `libcarrier_lacam.so` 导出 |
+| 2026-09-10 | Phase 8.2 related regression | topology、lazy distance、repair、storage transfer、fixed upper、DD/TAPF/LaCAM planner | GREEN：相关定向回归 42/42；生产代码已无固定 `[4]`、`Candidates[5]` 或 `MAX_DEG=4` 调用，旧 fixed-buffer adapter 只为现有矩形单测兼容保留。按 `rules.md` 的原始 benchmark 触发条件，本阶段不改变默认算法决策，因此没有重复运行原始 quick benchmark |
 
 ## 6. 当前下一步
 
-1. 实现 Phase 8.2 explicit undirected adjacency：先把默认矩形图迁移到统一的动态 topology API，再加入显式无向边，并保持旧四邻接顺序和 shelf-free 行为不变。
+1. 实现 Phase 8.3 directed adjacency 与反向距离：MOVE/route/swap 使用 outgoing，目标距离场使用 incoming，并把目标可行性改为 start-to-goal 有向可达。
 2. 全部阶段结束后再按
    gate 运行最终 quick、Sol/high review、获批 full 518，并生成最终汇报网页。

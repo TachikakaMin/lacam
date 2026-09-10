@@ -4,10 +4,13 @@
 #pragma once
 #include "utils.hpp"
 
+struct DDGrid;
+
 struct Vertex {
   const int id;     // index for V in Graph
   const int index;  // index for U (width * y + x) in Graph
   std::vector<Vertex*> neighbor;
+  std::vector<Vertex*> predecessor;
 
   Vertex(int _id, int _index);
 };
@@ -19,11 +22,13 @@ struct Graph {
   Vertices U;  // with nullptr, i.e., |U| = width * height
   int width;   // grid width
   int height;  // grid height
+  bool explicit_adjacency;
   Graph();
   Graph(const std::string& filename);  // taking map filename
   // inline map rows (carrier integration M1): same wall rule and the same
   // vertex/edge construction order as the file loader
   explicit Graph(const std::vector<std::string>& rows);
+  explicit Graph(const DDGrid& grid);
   ~Graph();
 
   int size() const;  // the number of vertices, |V|

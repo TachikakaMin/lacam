@@ -14,12 +14,11 @@
 struct GraphIdTopology {
   const Graph& G;
   size_t size() const { return G.V.size(); }
-  int neighbors(int id, int out[4]) const
+  template <typename Visitor>
+  void for_each_neighbor(int id, Visitor&& visit) const
   {
-    const auto& nb = G.V[id]->neighbor;
-    const int n = (int)nb.size();
-    for (int k = 0; k < n; ++k) out[k] = nb[k]->id;
-    return n;
+    for (const auto* neighbor : G.V[id]->neighbor)
+      visit(neighbor->id);
   }
 };
 

@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 // kappa encoding (design 3.1): -1 free, -2 carrying anonymous shelf,
@@ -20,6 +21,11 @@ struct DDGrid {
   int height = 0;
   int width = 0;
   std::vector<uint8_t> wall;  // size h*w, 1 = wall
+  // Authoritative topology. Rectangular maps materialize their legacy
+  // down/up/right/left edges here; explicit maps replace them completely.
+  std::vector<std::vector<int>> out_neighbors;
+  std::vector<std::vector<int>> in_neighbors;
+  bool explicit_adjacency = false;
 
   DDGrid() = default;
   explicit DDGrid(const std::vector<std::string>& rows);
@@ -29,7 +35,32 @@ struct DDGrid {
   int col(int v) const { return v % width; }
   bool is_wall(int v) const { return wall[v] != 0; }
   int size() const { return height * width; }
-  // 4-neighborhood, walls excluded; returns count, fills out[0..3]
+  const std::vector<int>& outgoing(int v) const
+  {
+    return out_neighbors[v];
+  }
+  const std::vector<int>& incoming(int v) const
+  {
+    return in_neighbors[v];
+  }
+  bool uses_explicit_adjacency() const
+  {
+    return explicit_adjacency;
+  }
+  template <typename Visitor>
+  void for_each_neighbor(int v, Visitor&& visit) const
+  {
+    for (const int neighbor : outgoing(v)) visit(neighbor);
+  }
+  void set_undirected_edges(
+      const std::vector<std::pair<int, int>>& edges);
+  void set_undirected_adjacency(
+      const std::vector<std::vector<int>>& adjacency);
+  void reset_rectangular_adjacency();
+  void block_cell(int v);
+  bool has_edge(int from, int to) const;
+  // Legacy fixed-degree adapter retained for old tests and callers that
+  // only use rectangular maps. It throws instead of truncating degree > 4.
   int neighbors(int v, int out[4]) const;
 };
 

@@ -210,14 +210,15 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
 
   if (task_id >= 0) {
     // ---- ORIGINAL task-agent candidate construction (unchanged) ----
-    auto neighbor_agents = std::array<Agent*, 4>();
-    auto neighbor_agent_count = 0u;
+    std::vector<Agent*> neighbor_agents;
+    neighbor_agents.reserve(K);
 
     for (auto u : ai->v_now->neighbor) {
       auto aj = occupied_now[u->id];
-      if (aj != nullptr) neighbor_agents[neighbor_agent_count++] = aj;
+      if (aj != nullptr) neighbor_agents.push_back(aj);
     }
 
+    C_next[i].resize(K + 1);
     for (size_t k = 0; k < K; ++k) {
       auto u = ai->v_now->neighbor[k];
       C_next[i][k] = u;
@@ -228,8 +229,7 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
 
     auto get_hindrance = [&](Vertex* u) {
       auto count = 0u;
-      for (auto n = 0u; n < neighbor_agent_count; ++n) {
-        auto aj = neighbor_agents[n];
+      for (auto* aj : neighbor_agents) {
         if (aj->v_now == u) continue;
         const auto neighbor_task = assignment[aj->id];
         if (neighbor_task < 0) continue;  // carrier agent: no task field

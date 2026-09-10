@@ -24,17 +24,111 @@ DDGrid::DDGrid(const std::vector<std::string>& rows)
       wall[idx(r, c)] = is_map_wall_char(ch) ? 1 : 0;
     }
   }
+  reset_rectangular_adjacency();
+}
+
+void DDGrid::reset_rectangular_adjacency()
+{
+  out_neighbors.assign(size(), {});
+  in_neighbors.assign(size(), {});
+  for (int v = 0; v < size(); ++v) {
+    if (is_wall(v)) continue;
+    const int r = row(v);
+    const int c = col(v);
+    auto& out = out_neighbors[v];
+    if (r + 1 < height && !is_wall(idx(r + 1, c)))
+      out.push_back(idx(r + 1, c));
+    if (r - 1 >= 0 && !is_wall(idx(r - 1, c)))
+      out.push_back(idx(r - 1, c));
+    if (c + 1 < width && !is_wall(idx(r, c + 1)))
+      out.push_back(idx(r, c + 1));
+    if (c - 1 >= 0 && !is_wall(idx(r, c - 1)))
+      out.push_back(idx(r, c - 1));
+  }
+  in_neighbors = out_neighbors;
+  explicit_adjacency = false;
+}
+
+void DDGrid::set_undirected_adjacency(
+    const std::vector<std::vector<int>>& adjacency)
+{
+  if ((int)adjacency.size() != size())
+    throw std::invalid_argument(
+        "DDGrid: adjacency size mismatch");
+  for (int from = 0; from < size(); ++from) {
+    if (is_wall(from) && !adjacency[from].empty())
+      throw std::invalid_argument(
+          "DDGrid: wall has adjacency");
+    std::unordered_set<int> seen;
+    for (const int to : adjacency[from]) {
+      if (to < 0 || to >= size() || is_wall(to) || from == to)
+        throw std::invalid_argument(
+            "DDGrid: invalid adjacency edge");
+      if (!seen.insert(to).second)
+        throw std::invalid_argument(
+            "DDGrid: duplicate adjacency edge");
+    }
+  }
+  for (int from = 0; from < size(); ++from)
+    for (const int to : adjacency[from])
+      if (std::find(
+              adjacency[to].begin(), adjacency[to].end(), from) ==
+          adjacency[to].end())
+        throw std::invalid_argument(
+            "DDGrid: undirected adjacency is not symmetric");
+  out_neighbors = adjacency;
+  in_neighbors = adjacency;
+  explicit_adjacency = true;
+}
+
+void DDGrid::set_undirected_edges(
+    const std::vector<std::pair<int, int>>& edges)
+{
+  std::vector<std::vector<int>> adjacency(size());
+  for (const auto& edge : edges) {
+    if (edge.first < 0 || edge.first >= size() ||
+        edge.second < 0 || edge.second >= size())
+      throw std::invalid_argument(
+          "DDGrid: invalid adjacency edge");
+    adjacency[edge.first].push_back(edge.second);
+    adjacency[edge.second].push_back(edge.first);
+  }
+  set_undirected_adjacency(adjacency);
+}
+
+void DDGrid::block_cell(int v)
+{
+  if (v < 0 || v >= size())
+    throw std::invalid_argument("DDGrid: invalid blocked cell");
+  wall[v] = 1;
+  for (auto& outgoing : out_neighbors)
+    outgoing.erase(
+        std::remove(outgoing.begin(), outgoing.end(), v),
+        outgoing.end());
+  for (auto& incoming : in_neighbors)
+    incoming.erase(
+        std::remove(incoming.begin(), incoming.end(), v),
+        incoming.end());
+  out_neighbors[v].clear();
+  in_neighbors[v].clear();
+}
+
+bool DDGrid::has_edge(int from, int to) const
+{
+  if (from < 0 || from >= size() || to < 0 || to >= size())
+    return false;
+  const auto& out = outgoing(from);
+  return std::find(out.begin(), out.end(), to) != out.end();
 }
 
 int DDGrid::neighbors(int v, int out[4]) const
 {
-  const int r = row(v), c = col(v);
-  int n = 0;
-  if (r + 1 < height && !is_wall(idx(r + 1, c))) out[n++] = idx(r + 1, c);
-  if (r - 1 >= 0 && !is_wall(idx(r - 1, c))) out[n++] = idx(r - 1, c);
-  if (c + 1 < width && !is_wall(idx(r, c + 1))) out[n++] = idx(r, c + 1);
-  if (c - 1 >= 0 && !is_wall(idx(r, c - 1))) out[n++] = idx(r, c - 1);
-  return n;
+  const auto& dynamic = outgoing(v);
+  if (dynamic.size() > 4)
+    throw std::length_error(
+        "DDGrid: fixed neighbor buffer cannot represent this topology");
+  std::copy(dynamic.begin(), dynamic.end(), out);
+  return static_cast<int>(dynamic.size());
 }
 
 void DDInstance::finalize()
@@ -75,12 +169,10 @@ void DDInstance::finalize()
   adjacent_storage_frontier.assign(grid.size(), 0);
   for (int v = 0; v < grid.size(); ++v) {
     if (grid.is_wall(v)) continue;
-    int neighbors[4];
-    const int count = grid.neighbors(v, neighbors);
     bool direct_frontier = true;
-    for (int index = 0; index < count; ++index)
+    for (const int neighbor : grid.outgoing(v))
       direct_frontier &=
-          can_place_movable_shelf(neighbors[index]);
+          can_place_movable_shelf(neighbor);
     adjacent_storage_frontier[v] =
         direct_frontier ? 1 : 0;
   }
@@ -144,12 +236,10 @@ void DDInstance::finalize()
       while (!stack.empty()) {
         int u = stack.back();
         stack.pop_back();
-        int nb[4];
-        const int n = grid.neighbors(u, nb);
-        for (int k = 0; k < n; ++k)
-          if (comp[nb[k]] < 0) {
-            comp[nb[k]] = nc;
-            stack.push_back(nb[k]);
+        for (const int neighbor : grid.outgoing(u))
+          if (comp[neighbor] < 0) {
+            comp[neighbor] = nc;
+            stack.push_back(neighbor);
           }
       }
       ++nc;
@@ -363,11 +453,7 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
       case Op::MOVE: {
         // adjacency + wall
         if (op.to < 0 || op.to >= ins.grid.size()) return std::nullopt;
-        int nb[4];
-        const int n = ins.grid.neighbors(q, nb);
-        bool adj = false;
-        for (int k = 0; k < n; ++k) adj |= (nb[k] == op.to);
-        if (!adj) return std::nullopt;
+        if (!ins.grid.has_edge(q, op.to)) return std::nullopt;
         nxt.robots[i] = op.to;
         if (s.kappa[i] >= 0) nxt.target_pos[s.kappa[i]] = op.to;
         break;

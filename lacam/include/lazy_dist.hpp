@@ -17,14 +17,14 @@
  * INT_MAX/2) and is passed in, never guessed.
  *
  * Topology concept: `size_t size() const` and
- * `int neighbors(int cell, int out[MAX_DEG]) const`.
+ * `for_each_neighbor(int cell, Visitor) const`.
  */
 #pragma once
 
 #include <deque>
 #include <vector>
 
-template <typename Topology, int MAX_DEG = 4>
+template <typename Topology>
 struct LazyBfsField {
   const Topology& g;
   const int unreachable;
@@ -44,19 +44,16 @@ struct LazyBfsField {
   int get(int target)
   {
     if (d[target] < unreachable) return d[target];
-    int nb[MAX_DEG];
     while (!open.empty()) {
       const int u = open.front();
       open.pop_front();
       ++n_expanded;
       const int du = d[u];
-      const int n = g.neighbors(u, nb);
-      for (int k = 0; k < n; ++k) {
-        const int m = nb[k];
-        if (du + 1 >= d[m]) continue;
+      g.for_each_neighbor(u, [&](const int m) {
+        if (du + 1 >= d[m]) return;
         d[m] = du + 1;
         open.push_back(m);
-      }
+      });
       if (u == target) return du;
     }
     return d[target];  // exhausted: exact value or the sentinel
@@ -65,19 +62,16 @@ struct LazyBfsField {
   // drain the frontier completely (legacy full-vector views)
   void settle_all()
   {
-    int nb[MAX_DEG];
     while (!open.empty()) {
       const int u = open.front();
       open.pop_front();
       ++n_expanded;
       const int du = d[u];
-      const int n = g.neighbors(u, nb);
-      for (int k = 0; k < n; ++k) {
-        const int m = nb[k];
-        if (du + 1 >= d[m]) continue;
+      g.for_each_neighbor(u, [&](const int m) {
+        if (du + 1 >= d[m]) return;
         d[m] = du + 1;
         open.push_back(m);
-      }
+      });
     }
   }
 

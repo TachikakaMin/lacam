@@ -119,20 +119,8 @@ TAPFInstance::TAPFInstance(const std::string& map_filename,
   }
 }
 
-namespace {
-// DDGrid wall bitmap -> map rows for the shared Graph builder
-std::vector<std::string> dd_grid_rows(const DDGrid& g)
-{
-  std::vector<std::string> rows(g.height, std::string(g.width, '.'));
-  for (int r = 0; r < g.height; ++r)
-    for (int c = 0; c < g.width; ++c)
-      if (g.is_wall(g.idx(r, c))) rows[r][c] = '@';
-  return rows;
-}
-}  // namespace
-
 TAPFInstance::TAPFInstance(const DDInstance& dd)
-    : G(dd_grid_rows(dd.grid)),
+    : G(dd.grid),
       starts(Config()),
       tasks(Config()),
       allowed(std::vector<std::vector<bool> >(dd.robots.size())),
