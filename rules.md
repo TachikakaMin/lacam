@@ -23,6 +23,13 @@
 * 发现 bug、incorrect behavior、crash、unexpected timeout 或 regression 时，**禁止直接修改 implementation**：先写 regression test 固化并复现问题，确认失败后再 debug；修复后保留该 test，并重新运行相关 tests 和 benchmark cases。
 * 优先测试稳定的算法行为和接口，避免为了 TDD 而过度测试无意义的内部实现细节。
 
+### 原始 benchmark 的触发条件
+
+* **如果本次修改没有改变原有算法，就不需要运行原始 benchmark。** 这里包括只增加新输入表达、新场景语义、接口、adapter、schema validation、telemetry、构建或文档，并且在不使用新增输入时，原 LaCAM-TAPF 的搜索、状态转移、cost、heuristic、assignment 和 tie-breaking 都保持不变。
+* 这类修改只运行新增功能的定向 unit/integration/regression tests，以及确实覆盖本次接入行为的 Labyrinth simple benchmark；不得为了流程完整而重复运行与修改无关的原始 quick/full benchmark。
+* 只有修改会影响原 testcase 使用的搜索/control flow、状态转移、cost、heuristic、assignment、邻接语义、tie-breaking，或者相关 regression test 表明旧行为可能改变时，才运行原始 quick benchmark。
+* full benchmark 仍只在全部实现完成并满足下述最终 gate 后运行一次，不能因为阶段性非算法改动而提前或重复运行。
+
 ### Quick / full benchmark 层级
 
 * 本节的 quick/full 只指 **benchmark 运行层级**，不限制 unit test、integration/regression test、生成器测试、静态检查或 authoritative validator 验证；这些代码测试在开发期间仍应按 TDD 正常运行。
