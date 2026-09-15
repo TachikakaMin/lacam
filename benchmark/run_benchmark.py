@@ -163,9 +163,7 @@ FIELDS = [
     "custody_continuations", "zero_empty_no_ready",
     "rewire_guidance_rebuilds",
     "tau_time_ms", "guidance_time_ms",
-    "timed_transport_expansions", "timed_transport_frames",
-    "timed_transport_time_ms", "owner_handoffs",
-    "causal_waiting", "traffic_waiting",
+    "owner_handoffs", "causal_waiting",
     *BRD_METRIC_FIELDS,
     "deliverable_ms", "solver_runtime_ms",
     "plan_sha256",
@@ -1527,18 +1525,8 @@ def row_carrier(ins, path, name, family, work, timeout, mode="lacam",
                ),
                tau_time_ms=metrics.get("tau_time_ms", ""),
                guidance_time_ms=metrics.get("guidance_time_ms", ""),
-               timed_transport_expansions=metrics.get(
-                   "timed_transport_expansions", ""
-               ),
-               timed_transport_frames=metrics.get(
-                   "timed_transport_frames", ""
-               ),
-               timed_transport_time_ms=metrics.get(
-                   "timed_transport_time_ms", ""
-               ),
                owner_handoffs=metrics.get("owner_handoffs", ""),
                causal_waiting=metrics.get("causal_waiting", ""),
-               traffic_waiting=metrics.get("traffic_waiting", ""),
                deliverable_ms=metrics.get("deliverable_ms", ""),
                solver_runtime_ms=metrics.get("runtime_ms", ""),
                plan_sha256=hashlib.sha256(

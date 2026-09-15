@@ -230,28 +230,79 @@ TEST(dd_task_br_audit,
   std::mt19937 mt(0);
   TAPFPlanner planner(&view, nullptr, &mt);
 
-  const auto rollout = planner.carrier_rollout(
-      view.starts, initial_shelf_state(view), 64, 0, false);
+  Config config = view.starts;
+  ShelfState shelf = initial_shelf_state(view);
+  PhysConfig physical = initial_phys_config(ins);
+  std::unique_ptr<TAPFNode> anchor;
   std::ostringstream trace;
-  for (size_t step = 0; step < rollout.configs.size(); ++step) {
-    trace << "\n" << step << ": target="
-          << rollout.shelves[step].target_pos[0]
-          << " anon=";
-    for (const int cell : rollout.shelves[step].anon_occ)
-      trace << cell << ",";
-    trace << " robots=";
-    for (const auto* vertex : rollout.configs[step])
-      trace << vertex->index << ",";
-    trace << " kappa=";
-    for (const int shelf : rollout.shelves[step].kappa)
-      trace << shelf << ",";
-    if (step < rollout.ops.size()) {
+  bool reached_goal = false;
+  for (int episode = 0; episode < 32 && !reached_goal; ++episode) {
+    const auto rollout = planner.carrier_rollout(
+        config, shelf, 64, 0, true, anchor.get());
+    ASSERT_FALSE(rollout.ops.empty())
+        << "event-bounded replanning made no progress"
+        << trace.str();
+    for (size_t step = 0; step < rollout.ops.size(); ++step) {
+      const auto next = apply_ops(ins, physical, rollout.ops[step]);
+      ASSERT_TRUE(next.has_value());
+      physical = *next;
+      ASSERT_EQ(
+          physical.target_pos,
+          rollout.shelves[step + 1].target_pos);
+      ASSERT_EQ(
+          physical.anon_occ,
+          rollout.shelves[step + 1].anon_occ);
+      ASSERT_EQ(
+          physical.kappa,
+          rollout.shelves[step + 1].kappa);
+      for (size_t robot = 0; robot < ins.n_robots(); ++robot)
+        ASSERT_EQ(
+            physical.robots[robot],
+            rollout.configs[step + 1][robot]->index);
+      trace << "\n" << episode << "." << step
+            << ": target=" << physical.target_pos[0]
+            << " anon=";
+      for (const int cell : physical.anon_occ)
+        trace << cell << ",";
+      trace << " robots=";
+      for (const int cell : physical.robots)
+        trace << cell << ",";
+      trace << " kappa=";
+      for (const int carried : physical.kappa)
+        trace << carried << ",";
       trace << " ops=";
       for (const auto& op : rollout.ops[step])
         trace << (int)op.kind << "@" << op.to << ",";
     }
+    config = rollout.configs.back();
+    shelf = rollout.shelves.back();
+    reached_goal = rollout.reached_goal;
+    if (reached_goal) break;
+
+    bool ended_with_lift = false;
+    bool ended_with_drop = false;
+    for (const Op& op : rollout.ops.back()) {
+      ended_with_lift |= op.kind == Op::LIFT;
+      ended_with_drop |= op.kind == Op::DROP;
+    }
+    ASSERT_TRUE(ended_with_lift || ended_with_drop);
+    if (ended_with_drop) {
+      anchor.reset();
+      continue;
+    }
+    ASSERT_NE(rollout.terminal_guidance, nullptr);
+    anchor = std::make_unique<TAPFNode>(
+        config, shelf, planner.D, &view,
+        std::vector<int>(view.N, -1),
+        TAPFAssignmentState(), nullptr);
+    anchor->guide = std::make_unique<CarrierGuidance>(
+        *rollout.terminal_guidance);
+    anchor->order = rollout.terminal_order;
+    anchor->constraint_order = anchor->order;
+    anchor->h = rollout.terminal_h;
+    anchor->h_guidance = rollout.terminal_h_guidance;
   }
-  EXPECT_TRUE(rollout.reached_goal) << trace.str();
+  EXPECT_TRUE(reached_goal) << trace.str();
 }
 
 TEST(dd_task_br_audit,
@@ -341,7 +392,7 @@ TEST(dd_task_br_audit,
       carrier_detail::ready_tasks_with_custody(
           ins, current, current_graph, custody,
           recovered.continuation_carrier);
-  ASSERT_EQ(ready, (std::vector<int>{0}));
+  ASSERT_TRUE(ready.empty());
   carrier_detail::bind_ready_continuations(
       ins, current, current_graph, ready,
       recovered.continuation_carrier,
@@ -351,6 +402,7 @@ TEST(dd_task_br_audit,
   EXPECT_EQ(custody[0]->original_endpoint, arrived_endpoint);
   EXPECT_EQ(custody[0]->route_status, RouteStatus::ARRIVED);
   EXPECT_NE(custody[0]->task_id, reverse);
+  EXPECT_FALSE(custody[0]->preferred_leg.has_value());
 
   const TAPFInstance view(ins);
   std::mt19937 mt(0);
@@ -503,17 +555,25 @@ TEST(dd_task_br_audit,
           ins, current, current_graph, &previous,
           &previous_guidance, &move);
   auto custody = recovered.custody_by_robot;
+  ASSERT_TRUE(custody[0].has_value());
+  const TransferId arrived_id = custody[0]->transfer_id;
+  const int arrived_endpoint = custody[0]->original_endpoint;
+  ASSERT_EQ(custody[0]->route_status, RouteStatus::ARRIVED);
   const auto ready =
       carrier_detail::ready_tasks_with_custody(
           ins, current, current_graph, custody,
           recovered.continuation_carrier);
-  ASSERT_EQ(ready, (std::vector<int>{0}));
+  ASSERT_TRUE(ready.empty());
   carrier_detail::bind_ready_continuations(
       ins, current, current_graph, ready,
       recovered.continuation_carrier,
       recovered.previous_loaded_move_from, custody);
   ASSERT_TRUE(custody[0].has_value());
-  EXPECT_EQ(custody[0]->task_id, reverse);
+  EXPECT_EQ(custody[0]->transfer_id, arrived_id);
+  EXPECT_EQ(custody[0]->original_endpoint, arrived_endpoint);
+  EXPECT_EQ(custody[0]->route_status, RouteStatus::ARRIVED);
+  EXPECT_NE(custody[0]->task_id, reverse);
+  EXPECT_FALSE(custody[0]->preferred_leg.has_value());
 }
 
 TEST(dd_task_br_audit,

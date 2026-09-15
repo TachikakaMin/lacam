@@ -465,13 +465,8 @@ inline void map_stats(const TAPFStats& t, DDStats* out,
       t.rho_secondary_full_time_ms;
   out->rho_canonical_time_ms += t.rho_canonical_time_ms;
   out->custody_continuations += t.custody_continuations;
-  out->timed_transport_expansions +=
-      t.timed_transport_expansions;
-  out->timed_transport_frames +=
-      t.timed_transport_frames;
   out->owner_handoffs += t.owner_handoffs;
   out->causal_waiting += t.causal_waiting;
-  out->traffic_waiting += t.traffic_waiting;
   out->zero_empty_no_ready += t.zero_empty_no_ready;
   out->rewire_guidance_rebuilds += t.rewire_guidance_rebuilds;
   out->g_relaxed += t.g_relaxed;
@@ -487,8 +482,6 @@ inline void map_stats(const TAPFStats& t, DDStats* out,
   out->guidance_builds += t.guidance_builds;
   out->tau_time_ms += t.tau_time_ms;
   out->guidance_time_ms += t.guidance_time_ms;
-  out->timed_transport_time_ms +=
-      t.timed_transport_time_ms;
 }
 
 inline DDPlan run_search_attempt(

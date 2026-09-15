@@ -308,6 +308,217 @@ inline PairPlan pair_cost_cheap_lower_bound(
   return out;
 }
 
+inline std::map<int, std::vector<double>>
+build_shortest_path_congestion_fields(
+    const DDInstance& ins, const UpperSignature& upper,
+    const std::vector<int>& goals, DDDistCache& upper_wall,
+    double alpha, double gamma, double delta,
+    const Deadline* deadline = nullptr,
+    bool* cutoff_out = nullptr)
+{
+  if (cutoff_out != nullptr) *cutoff_out = false;
+  const auto cutoff = [&]() {
+    if (!is_expired(deadline)) return false;
+    if (cutoff_out != nullptr) *cutoff_out = true;
+    return true;
+  };
+  std::map<int, std::vector<double>> fields;
+  if (cutoff()) return fields;
+  const auto occupied = upper_occupancy_bitmap(ins, upper);
+  std::vector<uint8_t> anonymous(ins.grid.size(), 0);
+  for (const int cell : upper.anon_pos)
+    if (cell >= 0 && cell < ins.grid.size())
+      anonymous[cell] = 1;
+  std::vector<double> blocker_penalty(ins.grid.size(), 0);
+  for (int cell = 0; cell < ins.grid.size(); ++cell) {
+    if (!occupied[cell]) continue;
+    int neighbors[4];
+    const int count = ins.grid.neighbors(cell, neighbors);
+    int occupied_neighbors = 0;
+    for (int index = 0; index < count; ++index)
+      occupied_neighbors += occupied[neighbors[index]] != 0;
+    blocker_penalty[cell] =
+        alpha + 2.0 * gamma +
+        (anonymous[cell] ? delta : 0.0) +
+        alpha * static_cast<double>(occupied_neighbors);
+  }
+
+  for (const int goal : goals) {
+    if (cutoff()) return fields;
+    const auto& distance = upper_wall.to(goal);
+    int max_distance = 0;
+    for (int cell = 0; cell < ins.grid.size(); ++cell)
+      if (distance[cell] < INT_MAX / 4)
+        max_distance = std::max(max_distance, distance[cell]);
+    std::vector<std::vector<int>> by_distance(max_distance + 1);
+    for (int cell = 0; cell < ins.grid.size(); ++cell)
+      if (distance[cell] < INT_MAX / 4)
+        by_distance[distance[cell]].push_back(cell);
+
+    std::vector<double> field(
+        ins.grid.size(),
+        std::numeric_limits<double>::infinity());
+    field[goal] = 0;
+    for (int d = 1; d <= max_distance; ++d) {
+      if (cutoff()) return fields;
+      for (const int cell : by_distance[d]) {
+        int neighbors[4];
+        const int count = ins.grid.neighbors(cell, neighbors);
+        double best = std::numeric_limits<double>::infinity();
+        for (int index = 0; index < count; ++index) {
+          const int next = neighbors[index];
+          if (distance[next] != d - 1) continue;
+          best = std::min(
+              best, blocker_penalty[next] + field[next]);
+        }
+        field[cell] = best;
+      }
+    }
+    fields.emplace(goal, std::move(field));
+  }
+  return fields;
+}
+
+inline PairPlan pair_cost_shortest_path_congestion_estimate(
+    const DDInstance& ins, const UpperSignature& upper,
+    int target, int goal, DDDistCache& upper_wall,
+    double alpha, double gamma,
+    const std::map<int, std::vector<double>>& congestion_fields)
+{
+  PairPlan out;
+  out.exact = true;
+  out.bound_stage = PairBoundStage::HEURISTIC_ESTIMATE;
+  if (target < 0 ||
+      target >= static_cast<int>(upper.target_pos.size()) ||
+      !eligible_goal(ins, target, goal)) {
+    out.estimated_cost =
+        std::numeric_limits<double>::infinity();
+    out.stalled = true;
+    return out;
+  }
+
+  const int source = upper.target_pos[target];
+  const int distance = upper_wall.dist(goal, source);
+  out.direct_distance =
+      distance >= INT_MAX / 4 ? INT_MAX : distance;
+  const auto field = congestion_fields.find(goal);
+  if (distance >= INT_MAX / 4 ||
+      field == congestion_fields.end() ||
+      source < 0 ||
+      source >= static_cast<int>(field->second.size()) ||
+      !std::isfinite(field->second[source])) {
+    out.estimated_cost =
+        std::numeric_limits<double>::infinity();
+    out.stalled = true;
+    return out;
+  }
+  if (source == goal) {
+    out.reached_goal = true;
+    return out;
+  }
+  out.estimated_cost =
+      alpha * static_cast<double>(distance) +
+      2.0 * gamma + field->second[source];
+  return out;
+}
+
+// Production tau assignment evaluates one congestion estimate per eligible
+// edge and runs exactly one deterministic Hungarian solve.
+inline LazyPairAssignment build_congestion_pair_assignment(
+    const DDInstance& ins, const UpperSignature& upper,
+    DDDistCache& upper_wall,
+    double alpha, double gamma, double delta,
+    const Deadline* deadline = nullptr,
+    const RootGoalCommitment* commitments = nullptr)
+{
+  LazyPairAssignment out;
+  const auto cutoff = [&]() {
+    if (!is_expired(deadline)) return false;
+    out.cutoff = true;
+    out.tau.clear();
+    return true;
+  };
+  if (cutoff()) return out;
+  const size_t target_count = ins.n_targets();
+  out.table.resize(target_count);
+  if (target_count == 0) return out;
+
+  const auto commitment_mask =
+      make_root_goal_commitment_mask(ins, commitments);
+  std::vector<int> goals;
+  for (const auto& goal_set : ins.target_goal_sets)
+    goals.insert(goals.end(), goal_set.begin(), goal_set.end());
+  std::sort(goals.begin(), goals.end());
+  goals.erase(std::unique(goals.begin(), goals.end()), goals.end());
+  bool congestion_cutoff = false;
+  const auto congestion_fields =
+      build_shortest_path_congestion_fields(
+          ins, upper, goals, upper_wall,
+          alpha, gamma, delta, deadline,
+          &congestion_cutoff);
+  if (congestion_cutoff || cutoff()) return out;
+  std::vector<std::vector<LexAssignmentCost>> cost(
+      target_count,
+      std::vector<LexAssignmentCost>(
+          goals.size(), LexAssignmentCost::infinity()));
+
+  for (size_t target = 0; target < target_count; ++target) {
+    for (const int goal : ins.target_goal_sets[target]) {
+      if (cutoff()) return out;
+      PairPlan plan =
+          pair_cost_shortest_path_congestion_estimate(
+              ins, upper, static_cast<int>(target), goal,
+              upper_wall, alpha, gamma, congestion_fields);
+      out.table[target].push_back(PairCostEntry{goal, plan, {}});
+      ++out.total_edges;
+      ++out.evaluated_edges;
+
+      const auto goal_it =
+          std::lower_bound(goals.begin(), goals.end(), goal);
+      if (goal_it == goals.end() || *goal_it != goal)
+        throw std::logic_error(
+            "build_congestion_pair_assignment: missing goal");
+      if (!root_goal_commitment_allows(
+              commitment_mask, target, goal) ||
+          !std::isfinite(plan.estimated_cost))
+        continue;
+      const size_t goal_index = goal_it - goals.begin();
+      const bool moved_away =
+          std::binary_search(
+              ins.target_goal_sets[target].begin(),
+              ins.target_goal_sets[target].end(),
+              upper.target_pos[target]) &&
+          upper.target_pos[target] != goal;
+      cost[target][goal_index] = LexAssignmentCost{
+          static_cast<long double>(plan.estimated_cost),
+          moved_away ? 1 : 0,
+          false};
+    }
+  }
+
+  const auto assignment =
+      hungarian_lexicographic(cost, deadline);
+  ++out.hungarian_full_solves;
+  if (assignment.cutoff || cutoff()) {
+    out.cutoff = true;
+    out.tau.clear();
+    return out;
+  }
+  if (!assignment.feasible)
+    throw std::logic_error(
+        "build_congestion_pair_assignment: infeasible matching");
+  out.tau.resize(target_count, -1);
+  for (size_t target = 0; target < target_count; ++target) {
+    const int goal_index = assignment.row_to_col[target];
+    if (goal_index < 0 ||
+        goal_index >= static_cast<int>(goals.size()))
+      throw std::logic_error(
+          "build_congestion_pair_assignment: unassigned target");
+    out.tau[target] = goals[goal_index];
+  }
+  return out;
+}
+
 inline std::vector<uint64_t> upper_signature_changed_cells(
     const DDInstance& ins, const UpperSignature& previous,
     const UpperSignature& current)

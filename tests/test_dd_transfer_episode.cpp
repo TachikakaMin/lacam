@@ -241,12 +241,6 @@ TEST(dd_transfer_episode,
       *active.transfer_id,
       carried_guidance.custody_by_robot[0]->transfer_id);
   EXPECT_FALSE(carried_guidance.rho_task_id[0].has_value());
-  ASSERT_EQ(carried_guidance.timed_transport.by_robot.size(), 1u);
-  ASSERT_TRUE(
-      carried_guidance.timed_transport.by_robot[0].has_value());
-  EXPECT_EQ(
-      carried_guidance.timed_transport.by_robot[0]->endpoint,
-      ins.grid.idx(0, 3));
 }
 
 TEST(dd_transfer_episode,

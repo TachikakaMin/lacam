@@ -1,0 +1,36 @@
+{
+  "wall_time_sec": 20.3,
+  "jobs": 14,
+  "n_tasks": 24,
+  "timeout_per_run_sec": 10,
+  "solver_seed": 0,
+  "objective_weights": {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "gamma": 1.0,
+    "delta": 1.0
+  },
+  "following": "allowed",
+  "provenance": {
+    "git_commit": "500e3a7d14425c2d1bacab33d6a1e4919c979f1d",
+    "binary_path": "/tmp/dense-b9-brd-binary-u3wo15hi/dd_benchmark",
+    "binary_sha256": "d7d76608ba49716f6d07e1b841b8aa729ea73666e6611c68885ee5b949dbe49f",
+    "host": "dev-dsk-yimint-1d-d32fcf71.us-east-1.amazon.com"
+  },
+  "methods": {
+    "carrier_brd": {
+      "solved": 9,
+      "total": 24,
+      "solver_time_sum_sec": 212.7
+    }
+  },
+  "suite": {
+    "name": "dense_channel_b9_agent_task_brd_v1_24",
+    "definition_path": "/local/home/yimint/research/dd-lacam-next/benchmark/dense_channel_b9_agent_task_brd_benchmark_v1.json",
+    "definition_sha256": "47cb8ad4d619195243852c159094f370a74333e7bf62779fd329db2bdd29fced",
+    "groups": {
+      "dense_channel_b9_agent_task_v1": 24
+    },
+    "full_only_case_count": 0
+  }
+}

@@ -129,6 +129,8 @@ TEST(dd_task_br_execution,
       dd_task_br_guidance_probe(ins, *X1, &X0, &G0, &lift_ops);
   ASSERT_TRUE(G1.custody_by_robot[0].has_value());
   EXPECT_EQ(G1.custody_by_robot[0]->task_id, first);
+  const TransferId first_transfer =
+      G1.custody_by_robot[0]->transfer_id;
   EXPECT_FALSE(G1.rho_task_id[0].has_value());
 
   const std::vector<Op> wait_ops = {Op::make_wait()};
@@ -146,11 +148,28 @@ TEST(dd_task_br_execution,
   const auto G2 =
       dd_task_br_guidance_probe(ins, *X2, &*X1, &G1, &move_ops);
   ASSERT_TRUE(G2.custody_by_robot[0].has_value());
-  const TaskId second = G2.custody_by_robot[0]->task_id;
-  EXPECT_NE(second, first);
+  EXPECT_EQ(
+      G2.custody_by_robot[0]->transfer_id,
+      first_transfer);
+  EXPECT_EQ(
+      G2.custody_by_robot[0]->original_endpoint,
+      ins.grid.idx(0, 1));
+  EXPECT_EQ(
+      G2.custody_by_robot[0]->route_status,
+      RouteStatus::ARRIVED);
+  EXPECT_FALSE(
+      G2.custody_by_robot[0]->preferred_leg.has_value());
+  EXPECT_FALSE(G2.rho_task_id[0].has_value());
+
+  const std::vector<Op> drop_ops = {Op::make_drop()};
+  const auto X3 = apply_ops(ins, *X2, drop_ops);
+  ASSERT_TRUE(X3.has_value());
+  const auto G3 =
+      dd_task_br_guidance_probe(ins, *X3, &*X2, &G2, &drop_ops);
+  ASSERT_FALSE(G3.custody_by_robot[0].has_value());
+  const TaskId second = assigned_id(G3, 0);
   EXPECT_EQ(second.from, ins.grid.idx(0, 1));
   EXPECT_EQ(second.to, ins.grid.idx(0, 2));
-  EXPECT_FALSE(G2.rho_task_id[0].has_value());
 }
 
 TEST(dd_task_br_execution,
@@ -175,11 +194,33 @@ TEST(dd_task_br_execution,
   const auto G2 =
       dd_task_br_guidance_probe(ins, *X2, &*X1, &G1, &move);
   ASSERT_TRUE(G2.custody_by_robot[0].has_value());
-  EXPECT_EQ(G2.custody_by_robot[0]->from, ins.grid.idx(0, 1));
-  EXPECT_EQ(G2.custody_by_robot[0]->to, ins.grid.idx(0, 2));
+  EXPECT_EQ(
+      G2.custody_by_robot[0]->original_endpoint,
+      ins.grid.idx(0, 1));
+  EXPECT_EQ(
+      G2.custody_by_robot[0]->route_status,
+      RouteStatus::ARRIVED);
+  EXPECT_FALSE(
+      G2.custody_by_robot[0]->preferred_leg.has_value());
   ASSERT_EQ(G2.rho_task_id.size(), 2u);
+  EXPECT_FALSE(G2.rho_task_id[0].has_value());
   EXPECT_FALSE(G2.rho_task_id[1].has_value())
-      << "a free robot must not compete for the carried continuation";
+      << "the continuation does not exist before Drop";
+
+  const std::vector<Op> drop = {
+      Op::make_drop(), Op::make_wait()};
+  const auto X3 = apply_ops(ins, *X2, drop);
+  ASSERT_TRUE(X3.has_value());
+  const auto G3 =
+      dd_task_br_guidance_probe(ins, *X3, &*X2, &G2, &drop);
+  ASSERT_FALSE(G3.custody_by_robot[0].has_value());
+  bool continuation_assigned = false;
+  for (const auto& task : G3.rho_task_id)
+    continuation_assigned |=
+        task.has_value() &&
+        task->from == ins.grid.idx(0, 1) &&
+        task->to == ins.grid.idx(0, 2);
+  EXPECT_TRUE(continuation_assigned);
 }
 
 TEST(dd_task_br_execution, drop_clears_custody)

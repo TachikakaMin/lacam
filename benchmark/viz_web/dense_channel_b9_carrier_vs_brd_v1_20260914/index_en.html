@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrier vs baseline (carrier_brd) — dense-b9 Agent×Task 24 cases: our first solution vs baseline final</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "PingFang SC",
+         "Microsoft YaHei", sans-serif; margin: 16px; background: #14141a;
+         color: #e8e8ee; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  #prov { font-size: 12px; color: #9aa3b2; margin-bottom: 10px; }
+  #summaryCards { display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+                  gap: 9px; margin: 8px 0 14px; }
+  .summaryCard { background: #1d1f27; border: 1px solid #303544;
+                 border-radius: 9px; padding: 10px 12px; }
+  .summaryCard.primaryC { border-color: #2563eb; }
+  .summaryCard.primaryB { border-color: #d97706; }
+  .summaryCard small { display: block; color: #9aa3b2; font-size: 12px;
+                       margin-bottom: 4px; }
+  .summaryCard b { display: block; font-size: 23px; line-height: 1.1; }
+  .summaryCard span { color: #aeb7c7; font-size: 11px; }
+  .charts { display: flex; gap: 14px; flex-wrap: wrap; }
+  .chartbox { background: #1d1f27; border-radius: 10px; padding: 10px; }
+  .chartbox h3 { margin: 2px 0 6px; font-size: 14px; font-weight: 600;
+                 color: #cfd6e4; }
+  .chartbox small { color: #8a93a5; }
+  canvas.chart { display: block; background: #10131b; border-radius: 6px;
+                 cursor: crosshair; touch-action: none; }
+  #legend { font-size: 12px; color: #aab; margin: 8px 0 4px; }
+  .dot { display: inline-block; width: 10px; height: 10px;
+         border-radius: 50%; margin: 0 4px 0 12px; vertical-align: -1px; }
+  #tooltip { position: fixed; display: none; background: #0c0e13ee;
+             border: 1px solid #3b4252; border-radius: 6px; padding: 8px;
+             font-size: 12px; pointer-events: none; z-index: 10;
+             max-width: 380px; line-height: 1.5; }
+  #selbar { margin: 14px 0 8px; display: flex; gap: 10px;
+            align-items: center; flex-wrap: wrap; }
+  #selbar input { background: #10131b; color: #e8e8ee; padding: 6px 10px;
+                  border: 1px solid #3b4252; border-radius: 6px;
+                  width: min(480px, 90vw); font-size: 13px; }
+  #syncControls { display: flex; gap: 8px; align-items: center;
+                  flex-wrap: wrap; }
+  #syncControls button { background: #16a34a; color: #fff; border: 0;
+                         padding: 6px 12px; border-radius: 6px;
+                         cursor: pointer; }
+  #syncControls button:hover { background: #15803d; }
+  #syncControls input { width: 110px; padding: 0; }
+  #selinfo { font-size: 13px; color: #c7cede; }
+  .players { display: flex; gap: 14px; flex-wrap: wrap; align-items:
+             flex-start; }
+  .pane { background: #1d1f27; border-radius: 10px; padding: 10px;
+          flex: 1 1 480px; min-width: 380px; }
+  .pane h3 { margin: 2px 0 6px; font-size: 14px; }
+  .pane .stats { font-size: 12px; color: #9aa3b2; margin-bottom: 6px;
+                 min-height: 16px; }
+  .pane canvas { background: #2a2a32; border-radius: 8px; display: block;
+                 max-width: 100%; height: auto; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+         margin: 8px 0; font-size: 12px; }
+  .bar button { background: #3b82f6; color: #fff; border: 0;
+                padding: 4px 12px; border-radius: 6px; cursor: pointer; }
+  .bar button:hover { background: #2563eb; }
+  .bar input[type=range] { width: 130px; }
+  .bar .seek { flex: 1 1 120px; }
+  .nosol { color: #f87171; font-size: 13px; margin: 6px 0; }
+  #plegend { font-size: 12px; color: #aaa; margin-top: 10px; }
+  .sw { display: inline-block; width: 10px; height: 10px;
+        border-radius: 2px; margin: 0 4px 0 10px; vertical-align: middle; }
+  a { color: #7ab3ff; }
+</style>
+</head>
+<body>
+<h1>Carrier (dd-lacam) vs baseline (carrier_brd, decomposed BR-LaCAM baseline)</h1>
+<div style="margin:4px 0 8px;font-size:13px"><a href="index.html">中文版</a> · <a href="../dense_channel_b9_agent_task_benchmark_v1_20260914/index.html">Carrier-only matrix</a> · <a href="../dense_channel_b9_agent_task_suite_v1_20260914/index.html">Scenario list</a></div>
+<div id="prov"></div>
+<div id="protocol" style="font-size:12px;color:#9aa3b2;margin:0 0 10px;overflow-wrap:anywhere">Fair protocol: same 24 test cases; same commit <code>500e3a7d14425c2d1bacab33d6a1e4919c979f1d</code>; same reviewed binary SHA-256 <code>d7d76608ba49716f6d07e1b841b8aa729ea73666e6611c68885ee5b949dbe49f</code>; 10 seconds per case; 14 workers; solver seed 0; weights (1,1,1,1); following allowed.</div>
+<div id="summaryCards"></div>
+
+<div class="charts">
+  <div class="chartbox">
+    <h3>Solve time (our first solution / baseline final, ms, log-log)</h3>
+    <small>An unsolved run is plotted at 10 s (red dashed top/right lines); 0 ms is plotted at 0.5 ms</small>
+    <canvas id="chartT" class="chart"></canvas>
+  </div>
+  <div class="chartbox">
+    <h3>makespan（log-log）</h3>
+    <small>Only test cases solved by both methods are plotted</small>
+    <canvas id="chartM" class="chart"></canvas>
+  </div>
+  <div class="chartbox">
+    <h3>weighted SOC（log-log）</h3>
+    <small>Only test cases solved by both methods are plotted</small>
+    <canvas id="chartS" class="chart"></canvas>
+  </div>
+</div>
+<div id="legend">
+  <span class="dot" style="background:#2dd4bf"></span>Solved by both
+  <span class="dot" style="background:#3b82f6"></span>Solved only by Carrier
+  <span class="dot" style="background:#f59e0b"></span>Solved only by the baseline
+  <span class="dot" style="background:#6b7280"></span>Unsolved by both
+  ｜ Above the diagonal = a lower Carrier value.<br><strong>Time geometric ratio (Carrier first global goal / baseline final) = 0.415; values below 1 mean Carrier reaches its first global solution sooner.</strong> Scroll to zoom, drag to pan, and double-click to reset;
+  hover to highlight the same test case across all plots; click to select it and load both replays below.
+</div>
+<div id="tooltip"></div>
+
+<div id="selbar">
+  <label>testcase：
+    <input id="casePick" list="caseList" placeholder="Type a test case name or click a point in a plot">
+  </label>
+  <datalist id="caseList"></datalist>
+  <div id="syncControls">
+    <button id="syncPlay">▶ Play both</button>
+    <button id="syncReset">↺ Reset both</button>
+    <label>Shared speed <input id="syncSpeed" type="range" min="1" max="30"
+      value="8"> <span id="syncSpeedText">8 steps/s</span></label>
+  </div>
+  <span id="selinfo">No selection. Click a point or type a test case name.</span>
+</div>
+
+<div class="players">
+  <div class="pane" id="paneC">
+    <h3 style="color:#7ab3ff">Carrier (our method)</h3>
+    <div class="stats" id="statsC"></div>
+    <div id="bodyC"></div>
+  </div>
+  <div class="pane" id="paneB">
+    <h3 style="color:#fbbf24">baseline（carrier_brd）</h3>
+    <div class="stats" id="statsB"></div>
+    <div id="bodyB"></div>
+  </div>
+</div>
+<div id="plegend">
+  <span id="wlg" style="display:none"><span class="sw"
+    style="background:#26384a"></span>Aisle
+  <span class="sw" style="background:#d9c7a2"></span>Storage slot</span>
+  <span class="sw" style="background:#555"></span>Wall
+  <span class="sw" style="background:#8b5a2b"></span>Anonymous shelf
+  <span class="sw" style="background:#f59e0b"></span>Target shelf
+  <span class="sw" style="border:2px solid #22c55e"></span>Eligible goal
+  <span class="sw" style="background:#3b82f6;border-radius:50%"></span>Unladen robot
+  <span class="sw" style="background:#ef4444;border-radius:50%"></span>Loaded robot
+  <span class="sw" style="border:2px solid #fff;background:#8b5a2b"></span>Lifted shelf
+  <span class="sw" style="background:#16a34a"></span>Completed target
+</div>
+
+<script>
+"use strict";
+const RECORDS = [{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":3778.0,"mk":143.0,"soc":1774.0},"b":{"solved":true,"first":9336.0,"mk":229.0,"soc":1599.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":6943.0,"mk":474.0,"soc":2433.0},"b":{"solved":true,"first":8385.0,"mk":186.0,"soc":1493.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":2135.0,"mk":83.0,"soc":1716.0},"b":{"solved":true,"first":7541.0,"mk":179.0,"soc":1335.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":true,"first":5639.0,"mk":115.0,"soc":1079.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":1303.0,"mk":49.0,"soc":1298.0},"b":{"solved":true,"first":5529.0,"mk":118.0,"soc":1010.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":3875.0,"mk":112.0,"soc":3348.0},"b":{"solved":true,"first":9173.0,"mk":158.0,"soc":2114.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":1249.0,"mk":44.0,"soc":1149.0},"b":{"solved":true,"first":4944.0,"mk":105.0,"soc":971.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":6081.0,"mk":218.0,"soc":2758.0},"b":{"solved":true,"first":8633.0,"mk":146.0,"soc":1795.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":true,"first":4956.0,"mk":225.0,"soc":1846.0},"b":{"solved":true,"first":9515.0,"mk":305.0,"soc":1886.0}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}},{"name":"dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1","fam":"dense_channel_b9_agent_task_v1","c":{"solved":false,"first":null,"mk":null,"soc":null},"b":{"solved":false,"first":null,"mk":null,"soc":null}}];
+const META = {"carrier_run":"results_dense_channel_b9_agent_task_v1_20260914","brd_run":"results_dense_channel_b9_agent_task_brd_v1_20260914","commit":"500e3a7d1","brd_commit":"500e3a7d1","timeout_ms":10000.0,"solved_carrier":8,"solved_brd":9,"solved_both":8,"carrier_only":0,"brd_only":1,"neither":15,"total":24};
+const TIMEOUT = META.timeout_ms;
+const byName = new Map(RECORDS.map(r => [r.name, r]));
+
+document.getElementById("prov").textContent =
+  `Data: ${META.carrier_run} (Carrier solved ${META.solved_carrier}/${META.total}` +
+  `, commit ${META.commit}) vs ${META.brd_run} (carrier_brd solved ` +
+  `${META.solved_brd}/${META.total}，commit ${META.brd_commit}）；` +
+  `Solved by both: ${META.solved_both}; 10 s limit per test case.`;
+
+
+const successPct = n => (100 * n / META.total).toFixed(1) + "%";
+document.getElementById("summaryCards").innerHTML = `
+  <div class="summaryCard primaryC"><small>Carrier solved</small>
+    <b>${META.solved_carrier}/${META.total}</b>
+    <span>Success rate ${successPct(META.solved_carrier)}</span></div>
+  <div class="summaryCard primaryB"><small>Baseline solved</small>
+    <b>${META.solved_brd}/${META.total}</b>
+    <span>Success rate ${successPct(META.solved_brd)}</span></div>
+  <div class="summaryCard"><small>Solved by both</small>
+    <b>${META.solved_both}</b><span>Share of all cases ${successPct(META.solved_both)}</span></div>
+  <div class="summaryCard"><small>Solved only by Carrier</small>
+    <b>${META.carrier_only}</b><span>Baseline unsolved</span></div>
+  <div class="summaryCard"><small>Solved only by the baseline</small>
+    <b>${META.brd_only}</b><span>Carrier unsolved</span></div>
+  <div class="summaryCard"><small>Unsolved by both</small>
+    <b>${META.neither}</b><span>10 s timeout</span></div>`;
+function cls(r) {
+  if (r.c.solved && r.b.solved) return "both";
+  if (r.c.solved) return "conly";
+  if (r.b.solved) return "bonly";
+  return "none";
+}
+const CLS_COLOR = { both: "#2dd4bf", conly: "#3b82f6",
+                    bonly: "#f59e0b", none: "#6b7280" };
+
+// ---- chart data ------------------------------------------------------
+function tval(side) {  // first-solution time with the 10 s clamp
+  return side.solved ? Math.max(side.first, 0.5) : TIMEOUT;
+}
+const timePts = RECORDS.map(r => ({
+  name: r.name, x: tval(r.c), y: tval(r.b), cls: cls(r) }));
+const mkPts = RECORDS.filter(r => r.c.solved && r.b.solved).map(r => ({
+  name: r.name, x: Math.max(r.c.mk, 0.5), y: Math.max(r.b.mk, 0.5),
+  cls: "both" }));
+const socPts = RECORDS.filter(r => r.c.solved && r.b.solved).map(r => ({
+  name: r.name, x: Math.max(r.c.soc, 0.5), y: Math.max(r.b.soc, 0.5),
+  cls: "both" }));
+
+// ---- linked state ----------------------------------------------------
+let hoverName = null, selectedName = null;
+const charts = [];
+
+function setHover(name) {
+  if (hoverName === name) return;
+  hoverName = name;
+  charts.forEach(c => c.draw());
+}
+function setSelected(name) {
+  if (!byName.has(name)) return;
+  selectedName = name;
+  document.getElementById("casePick").value = name;
+  charts.forEach(c => c.draw());
+  loadCase(name);
+}
+
+// ---- scatter ---------------------------------------------------------
+function makeChart(canvasId, pts, xLabel, yLabel, opts) {
+  const cvs = document.getElementById(canvasId);
+  const CSS = 430, dpr = window.devicePixelRatio || 1;
+  cvs.style.width = CSS + "px"; cvs.style.height = CSS + "px";
+  cvs.width = CSS * dpr; cvs.height = CSS * dpr;
+  const ctx = cvs.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const pad = { l: 46, r: 12, t: 10, b: 40 };
+  const W = CSS - pad.l - pad.r, H = CSS - pad.t - pad.b;
+
+  const xs = pts.map(p => Math.log10(p.x)), ys = pts.map(p => Math.log10(p.y));
+  let lo = Math.min(Math.min(...xs), Math.min(...ys)) - 0.15;
+  let hi = Math.max(Math.max(...xs), Math.max(...ys)) + 0.15;
+  if (opts && opts.forceHi !== undefined)
+    hi = Math.max(hi, Math.log10(opts.forceHi) + 0.06);
+  const base = { x0: lo, x1: hi, y0: lo, y1: hi };
+  let view = { ...base };
+
+  const sx = v => pad.l + (Math.log10(v) - view.x0) /
+                  (view.x1 - view.x0) * W;
+  const sy = v => pad.t + H - (Math.log10(v) - view.y0) /
+                  (view.y1 - view.y0) * H;
+
+  function ticks(v0, v1) {
+    const out = [];
+    for (let e = Math.floor(v0) - 1; e <= Math.ceil(v1) + 1; e++)
+      for (const m of [1, 2, 5]) {
+        const lv = e + Math.log10(m);
+        if (lv >= v0 && lv <= v1)
+          out.push({ lv, label: m === 1, value: Math.pow(10, e) * m });
+      }
+    return out;
+  }
+  function fmt(v) {
+    if (v >= 1000) return (v / 1000) + "k";
+    if (v >= 1) return String(v);
+    return v.toFixed(1);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, CSS, CSS);
+    ctx.save();
+    // axes/frame
+    ctx.strokeStyle = "#3b4252"; ctx.lineWidth = 1;
+    ctx.strokeRect(pad.l, pad.t, W, H);
+    ctx.font = "10px sans-serif";
+    for (const t of ticks(view.x0, view.x1)) {
+      const x = pad.l + (t.lv - view.x0) / (view.x1 - view.x0) * W;
+      ctx.strokeStyle = t.label ? "#2a3140" : "#1e2430";
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + H);
+      ctx.stroke();
+      if (t.label) {
+        ctx.fillStyle = "#8a93a5"; ctx.textAlign = "center";
+        ctx.fillText(fmt(t.value), x, pad.t + H + 14);
+      }
+    }
+    for (const t of ticks(view.y0, view.y1)) {
+      const y = pad.t + H - (t.lv - view.y0) / (view.y1 - view.y0) * H;
+      ctx.strokeStyle = t.label ? "#2a3140" : "#1e2430";
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + W, y);
+      ctx.stroke();
+      if (t.label) {
+        ctx.fillStyle = "#8a93a5"; ctx.textAlign = "right";
+        ctx.fillText(fmt(t.value), pad.l - 5, y + 3);
+      }
+    }
+    ctx.fillStyle = "#aab3c5"; ctx.textAlign = "center";
+    ctx.font = "12px sans-serif";
+    ctx.fillText(xLabel, pad.l + W / 2, CSS - 6);
+    ctx.save();
+    ctx.translate(12, pad.t + H / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+
+    ctx.beginPath(); ctx.rect(pad.l, pad.t, W, H); ctx.clip();
+    // y = x diagonal
+    ctx.strokeStyle = "#4b5563"; ctx.setLineDash([5, 4]);
+    const dlo = Math.pow(10, Math.min(view.x0, view.y0) - 1);
+    const dhi = Math.pow(10, Math.max(view.x1, view.y1) + 1);
+    ctx.beginPath(); ctx.moveTo(sx(dlo), sy(dlo)); ctx.lineTo(sx(dhi), sy(dhi));
+    ctx.stroke();
+    // 10 s clamp guides
+    if (opts && opts.clampGuides) {
+      ctx.strokeStyle = "#7f1d1d";
+      ctx.beginPath(); ctx.moveTo(sx(TIMEOUT), pad.t);
+      ctx.lineTo(sx(TIMEOUT), pad.t + H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad.l, sy(TIMEOUT));
+      ctx.lineTo(pad.l + W, sy(TIMEOUT)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#b91c1c";
+      ctx.textAlign = "right";
+      ctx.fillText("unsolved=10s", pad.l + W - 4, sy(TIMEOUT) - 4);
+    }
+    ctx.setLineDash([]);
+    // points
+    for (const p of pts) {
+      ctx.fillStyle = CLS_COLOR[p.cls];
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // linked highlight rings
+    for (const p of pts) {
+      if (p.name === selectedName) {
+        ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 7.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (p.name === hoverName) {
+        ctx.strokeStyle = "#f9fafb"; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 5.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function pick(mx, my) {
+    let best = null, bd = 121;  // 11 px radius
+    for (const p of pts) {
+      const dx = sx(p.x) - mx, dy = sy(p.y) - my, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best;
+  }
+  function evPos(e) {
+    const r = cvs.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  }
+
+  const tooltip = document.getElementById("tooltip");
+  let dragging = false, moved = false, last = null;
+  cvs.addEventListener("mousedown", e => {
+    dragging = true; moved = false; last = evPos(e);
+  });
+  window.addEventListener("mouseup", () => { dragging = false; });
+  cvs.addEventListener("mousemove", e => {
+    const [mx, my] = evPos(e);
+    if (dragging) {
+      const dx = (mx - last[0]) / W * (view.x1 - view.x0);
+      const dy = (my - last[1]) / H * (view.y1 - view.y0);
+      if (Math.abs(mx - last[0]) + Math.abs(my - last[1]) > 2) moved = true;
+      view.x0 -= dx; view.x1 -= dx; view.y0 += dy; view.y1 += dy;
+      last = [mx, my];
+      draw();
+      return;
+    }
+    const p = pick(mx, my);
+    setHover(p ? p.name : null);
+    if (p) {
+      const r = byName.get(p.name);
+      tooltip.style.display = "block";
+      tooltip.style.left = (e.clientX + 14) + "px";
+      tooltip.style.top = (e.clientY + 12) + "px";
+      const f = s => s.solved
+        ? `time ${s.first} ms, mk ${s.mk}, soc ${s.soc}`
+        : "unsolved within 10 s";
+      tooltip.innerHTML = `<b>${p.name}</b><br>family: ${r.fam}<br>` +
+        `Carrier (first global goal): ${f(r.c)}<br>Baseline (final): ${f(r.b)}<br>` +
+        `<i>Click to select and load both replays below</i>`;
+    } else {
+      tooltip.style.display = "none";
+    }
+  });
+  cvs.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+    setHover(null);
+  });
+  cvs.addEventListener("click", e => {
+    if (moved) return;
+    const p = pick(...evPos(e));
+    if (p) setSelected(p.name);
+  });
+  cvs.addEventListener("dblclick", () => { view = { ...base }; draw(); });
+  cvs.addEventListener("wheel", e => {
+    e.preventDefault();
+    const [mx, my] = evPos(e);
+    const f = Math.pow(1.0015, e.deltaY);  // >1 zoom out
+    const cx = view.x0 + (mx - pad.l) / W * (view.x1 - view.x0);
+    const cy = view.y0 + (pad.t + H - my) / H * (view.y1 - view.y0);
+    view.x0 = cx + (view.x0 - cx) * f; view.x1 = cx + (view.x1 - cx) * f;
+    view.y0 = cy + (view.y0 - cy) * f; view.y1 = cy + (view.y1 - cy) * f;
+    draw();
+  }, { passive: false });
+
+  const chart = { draw };
+  charts.push(chart);
+  draw();
+  return chart;
+}
+
+makeChart("chartT", timePts, "Carrier first-solution time (ms)",
+          "Baseline final time (ms)", { clampGuides: true, forceHi: TIMEOUT });
+makeChart("chartM", mkPts, "carrier makespan", "baseline makespan", {});
+makeChart("chartS", socPts, "carrier weighted SOC", "baseline weighted SOC",
+          {});
+
+// ---- case picker -----------------------------------------------------
+const dl = document.getElementById("caseList");
+for (const r of RECORDS) {
+  const o = document.createElement("option");
+  o.value = r.name;
+  dl.appendChild(o);
+}
+document.getElementById("casePick").addEventListener("change", e => {
+  if (byName.has(e.target.value)) setSelected(e.target.value);
+});
+
+// ---- per-case data loading (file:// friendly script injection) --------
+const caseCache = new Map();
+const pendingCbs = new Map();
+window.CBVIZ = { receive(name, data) {
+  caseCache.set(name, data);
+  const cb = pendingCbs.get(name);
+  pendingCbs.delete(name);
+  if (cb) cb(data);
+} };
+function fetchCase(name, cb) {
+  if (caseCache.has(name)) { cb(caseCache.get(name)); return; }
+  pendingCbs.set(name, cb);
+  const s = document.createElement("script");
+  s.src = "cases/" + name + ".js";
+  s.onerror = () => {
+    pendingCbs.delete(name);
+    document.getElementById("selinfo").textContent =
+      `Failed to load cases/${name}.js`;
+  };
+  document.head.appendChild(s);
+}
+
+// ---- plan player (semantics ported from generate_web_viz.py) ----------
+let playerC = null, playerB = null;
+let syncPoll = null;
+function players() { return [playerC, playerB].filter(Boolean); }
+function refreshSyncButton() {
+  const anyPlaying = players().some(p => p.isPlaying());
+  document.getElementById("syncPlay").textContent = anyPlaying
+    ? "⏸ Pause both" : "▶ Play both";
+}
+function stopSyncPoll() {
+  if (syncPoll !== null) clearInterval(syncPoll);
+  syncPoll = null;
+}
+function startSyncPoll() {
+  stopSyncPoll();
+  syncPoll = setInterval(() => {
+    refreshSyncButton();
+    if (!players().some(p => p.isPlaying())) stopSyncPoll();
+  }, 100);
+}
+
+function makePlayer(bodyEl, statsEl, ins, planOps, sideLabel, sideInfo) {
+  bodyEl.innerHTML = "";
+  statsEl.textContent = sideInfo;
+  const plan = planOps || [];
+  const H = ins.h, W = ins.w;
+  const walls = ins.walls;
+  const storage = new Set();
+  if (ins.layout)
+    for (const o of ins.layout.origins)
+      for (let r = o[0]; r < o[0] + ins.layout.bs; r++)
+        for (let c = o[1]; c < o[1] + ins.layout.bs; c++)
+          storage.add(r * W + c);
+  if (ins.layout) document.getElementById("wlg").style.display = "inline";
+  const gsets = ins.targets.map(t => new Set(t.gs.map(p => p[0] * W + p[1])));
+
+  if (!planOps) {
+    const note = document.createElement("div");
+    note.className = "nosol";
+    note.textContent = `${sideLabel} was not solved within 10 s — showing the initial state.`;
+    bodyEl.appendChild(note);
+  }
+
+  const paneW = Math.max(320, bodyEl.clientWidth || 460);
+  const cell = Math.max(4, Math.min(24, Math.floor(paneW / W)));
+  const cv = document.createElement("canvas");
+  cv.width = W * cell; cv.height = H * cell;
+  bodyEl.appendChild(cv);
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  bar.innerHTML =
+    `<button class="play">▶</button>` +
+    `<button class="stepb">−1</button>` +
+    `<button class="stepf">+1</button>` +
+    `<label>Speed <input class="speed" type="range" min="1" max="30"` +
+    ` value="8"></label>` +
+    `<input class="seek" type="range" min="0" value="0">` +
+    `<span class="st"></span>`;
+  bodyEl.appendChild(bar);
+  const ctx = cv.getContext("2d");
+
+  let robots, kappa, tpos, anon;
+  function resetMutable() {
+    robots = ins.robots.map(p => [...p]);
+    kappa = ins.robots.map(() => -1);
+    tpos = ins.targets.map(t => [...t.s]);
+    anon = new Set(ins.anon.map(p => p[0] * W + p[1]));
+  }
+  const key = p => p[0] * W + p[1];
+  function snapshot() {
+    return { robots: robots.map(p => [...p]), kappa: [...kappa],
+             tpos: tpos.map(p => [...p]), anon: new Set(anon) };
+  }
+  function applyStep(ops) {
+    const tgtAt = new Map();
+    const carried = new Set(kappa.filter(k => k >= 0));
+    ins.targets.forEach((t, b) => {
+      if (!carried.has(b)) tgtAt.set(key(tpos[b]), b);
+    });
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (op[0] === "m") {
+        robots[i] = [op[1], op[2]];
+        if (kappa[i] >= 0) tpos[kappa[i]] = [op[1], op[2]];
+      } else if (op[0] === "l") {
+        const k = key(robots[i]);
+        if (tgtAt.has(k)) kappa[i] = tgtAt.get(k);
+        else { kappa[i] = -2; anon.delete(k); }
+      } else if (op[0] === "d") {
+        if (kappa[i] === -2) anon.add(key(robots[i]));
+        kappa[i] = -1;
+      }
+    }
+  }
+  resetMutable();
+  const states = [snapshot()];
+  for (const ops of plan) { applyStep(ops); states.push(snapshot()); }
+  let t = 0;
+
+  const cellRect = (r, c, color, padk) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(c * cell + padk, r * cell + padk,
+                 cell - 2 * padk, cell - 2 * padk);
+  };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const lerpPos = (a, b, p) => [lerp(a[0], b[0], p), lerp(a[1], b[1], p)];
+
+  function drawTween(from, to, p) {
+    const phase = p >= 1 ? to : from;
+    const rr = from.robots.map((q, i) => lerpPos(q, to.robots[i], p));
+    const rt = from.tpos.map((q, b) => lerpPos(q, to.tpos[b], p));
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if (ins.layout)
+      for (let r = 0; r < H; r++) for (let c = 0; c < W; c++)
+        cellRect(r, c, storage.has(r * W + c) ? "#d9c7a2" : "#26384a", 0);
+    ctx.strokeStyle = "#3a3a44"; ctx.lineWidth = 1;
+    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+      if (cell >= 6) ctx.strokeRect(c * cell, r * cell, cell, cell);
+      if (walls[r].charCodeAt(c) === 49) cellRect(r, c, "#555", 0);
+    }
+    ctx.lineWidth = Math.max(1.5, cell * 0.09);
+    ctx.strokeStyle = "#22c55e";
+    for (const gs of gsets) for (const k of gs)
+      ctx.strokeRect((k % W) * cell + 1.5, Math.floor(k / W) * cell + 1.5,
+                     cell - 3, cell - 3);
+    for (const k of phase.anon)
+      cellRect(Math.floor(k / W), k % W, "#8b5a2b", cell * 0.18);
+    const carried = new Set(phase.kappa.filter(k => k >= 0));
+    ins.targets.forEach((g, b) => {
+      const done = !carried.has(b) && gsets[b].has(key(phase.tpos[b]));
+      cellRect(rt[b][0], rt[b][1], done ? "#16a34a" : "#f59e0b",
+               cell * 0.18);
+    });
+    for (let i = 0; i < rr.length; i++) {
+      if (phase.kappa[i] === -2)
+        cellRect(rr[i][0], rr[i][1], "#8b5a2b", cell * 0.18);
+      if (phase.kappa[i] !== -1) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = Math.max(1, cell * 0.06);
+        ctx.strokeRect(rr[i][1] * cell + cell * 0.18,
+                       rr[i][0] * cell + cell * 0.18,
+                       cell * 0.64, cell * 0.64);
+      }
+    }
+    for (let i = 0; i < rr.length; i++) {
+      ctx.fillStyle = phase.kappa[i] === -1 ? "#3b82f6" : "#ef4444";
+      ctx.beginPath();
+      ctx.arc(rr[i][1] * cell + cell / 2, rr[i][0] * cell + cell * 0.68,
+              Math.max(2.2, cell * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    let done = 0;
+    ins.targets.forEach((g, b) => {
+      if (!carried.has(b) && gsets[b].has(key(phase.tpos[b]))) done++;
+    });
+    const moving = p > 0 && p < 1 && t < plan.length;
+    bar.querySelector(".st").textContent =
+      `Step ${t}${moving ? "→" + (t + 1) : ""}/${plan.length} ` +
+      `Complete ${done}/${ins.targets.length}`;
+    bar.querySelector(".seek").value = t;
+  }
+  const drawCurrent = () => drawTween(states[t], states[t], 1);
+  function goto_(v) {
+    t = Math.max(0, Math.min(plan.length, Math.round(v)));
+    tweenP = 0;
+    drawCurrent();
+  }
+
+  let playing = false, raf = null, segStart = null, tweenP = 0;
+  const playBtn = bar.querySelector(".play");
+  const speedIn = bar.querySelector(".speed");
+  const stepDur = () => 1000 / Number(speedIn.value);
+  const ease = p => p * p * (3 - 2 * p);
+  function stop() {
+    playing = false;
+    if (raf !== null) cancelAnimationFrame(raf);
+    raf = null; segStart = null; playBtn.textContent = "▶";
+  }
+  function animate(now) {
+    if (!playing) return;
+    if (t >= plan.length) { stop(); tweenP = 0; drawCurrent(); return; }
+    if (segStart === null) segStart = now;
+    const d = stepDur();
+    let raw = (now - segStart) / d;
+    while (raw >= 1 && t < plan.length) {
+      t++; segStart += d; raw = (now - segStart) / d;
+    }
+    if (t >= plan.length) { stop(); tweenP = 0; drawCurrent(); return; }
+    tweenP = Math.max(0, Math.min(1, raw));
+    drawTween(states[t], states[t + 1], ease(tweenP));
+    raf = requestAnimationFrame(animate);
+  }
+  playBtn.onclick = () => {
+    if (playing) { stop(); drawCurrent(); return; }
+    if (!plan.length) return;
+    if (t >= plan.length) goto_(0);
+    playing = true;
+    segStart = performance.now() - tweenP * stepDur();
+    playBtn.textContent = "⏸";
+    raf = requestAnimationFrame(animate);
+  };
+  bar.querySelector(".stepf").onclick = () => { stop(); goto_(t + 1); };
+  bar.querySelector(".stepb").onclick = () => { stop(); goto_(t - 1); };
+  const seek = bar.querySelector(".seek");
+  seek.max = plan.length;
+  seek.oninput = e => { stop(); goto_(Number(e.target.value)); };
+  goto_(0);
+  return {
+    play() {
+      if (!playing && plan.length) playBtn.click();
+    },
+    pause() {
+      if (playing) { stop(); drawCurrent(); }
+    },
+    reset() {
+      stop(); goto_(0);
+    },
+    setSpeed(value) {
+      speedIn.value = value;
+      if (playing && segStart !== null)
+        segStart = performance.now() - tweenP * stepDur();
+    },
+    isPlaying() { return playing; },
+    hasPlan() { return plan.length > 0; },
+  };
+}
+
+function sideInfoText(s, side) {
+  return s.solved
+    ? `${side === "carrier" ? "First global goal" : "Final"}: time ${s.first} ms ｜ makespan ${s.mk} ｜ SOC ${s.soc}`
+    : `Unsolved within 10 s`;
+}
+function loadCase(name) {
+  players().forEach(p => p.pause());
+  stopSyncPoll();
+  playerC = null; playerB = null;
+  refreshSyncButton();
+  const r = byName.get(name);
+  document.getElementById("selinfo").textContent =
+    `Selected ${name} (${r.fam})`;
+  fetchCase(name, data => {
+    if (selectedName !== name) return;
+    playerC = makePlayer(document.getElementById("bodyC"),
+                         document.getElementById("statsC"),
+                         data.ins, data.carrier.plan, "carrier",
+                         sideInfoText(r.c, "carrier"));
+    playerB = makePlayer(document.getElementById("bodyB"),
+                         document.getElementById("statsB"),
+                         data.ins, data.brd.plan, "baseline",
+                         sideInfoText(r.b, "baseline"));
+    const speed = document.getElementById("syncSpeed").value;
+    players().forEach(p => p.setSpeed(speed));
+    refreshSyncButton();
+  });
+}
+
+document.getElementById("syncPlay").onclick = () => {
+  const ps = players();
+  if (!ps.length) return;
+  if (ps.some(p => p.isPlaying())) {
+    ps.forEach(p => p.pause());
+    stopSyncPoll();
+  } else {
+    ps.forEach(p => p.play());
+    startSyncPoll();
+  }
+  refreshSyncButton();
+};
+document.getElementById("syncReset").onclick = () => {
+  players().forEach(p => p.reset());
+  stopSyncPoll();
+  refreshSyncButton();
+};
+document.getElementById("syncSpeed").oninput = e => {
+  const value = e.target.value;
+  document.getElementById("syncSpeedText").textContent = `${value} steps/s`;
+  players().forEach(p => p.setSpeed(value));
+};
+
+// preselect the first case solved by both, so the page is never empty
+const first = RECORDS.find(r => r.c.solved && r.b.solved);
+if (first) setSelected(first.name);
+</script>
+</body>
+</html>

@@ -718,15 +718,8 @@ int main(int argc, char** argv)
   std::cout << "guidance_builds=" << stats.guidance_builds << "\n";
   std::cout << "tau_time_ms=" << stats.tau_time_ms << "\n";
   std::cout << "guidance_time_ms=" << stats.guidance_time_ms << "\n";
-  std::cout << "timed_transport_expansions="
-            << stats.timed_transport_expansions << "\n";
-  std::cout << "timed_transport_frames="
-            << stats.timed_transport_frames << "\n";
-  std::cout << "timed_transport_time_ms="
-            << stats.timed_transport_time_ms << "\n";
   std::cout << "owner_handoffs=" << stats.owner_handoffs << "\n";
   std::cout << "causal_waiting=" << stats.causal_waiting << "\n";
-  std::cout << "traffic_waiting=" << stats.traffic_waiting << "\n";
   std::cout << "upper_epoch_builds=" << stats.upper_epoch_builds << "\n";
   std::cout << "pair_cache_hits=" << stats.pair_cache_hits << "\n";
   std::cout << "pair_cache_misses=" << stats.pair_cache_misses << "\n";

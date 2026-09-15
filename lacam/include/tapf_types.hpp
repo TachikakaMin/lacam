@@ -296,6 +296,7 @@ enum class PairBoundStage : uint8_t {
   CHEAP_BOUND = 0,
   PREFIX_BOUND = 1,
   EXACT = 2,
+  HEURISTIC_ESTIMATE = 3,
 };
 
 struct PairPlan {
@@ -511,11 +512,10 @@ enum class RebindReason {
 
 enum class RouteStatus {
   OK = 0,
-  PREFIX = 1,
-  ARRIVED = 2,
-  TEMPORARILY_BLOCKED = 3,
-  BUDGET_EXHAUSTED = 4,
-  NO_ROUTE = 5,
+  ARRIVED = 1,
+  TEMPORARILY_BLOCKED = 2,
+  BUDGET_EXHAUSTED = 3,
+  NO_ROUTE = 4,
 };
 
 struct StorageTransfer {
@@ -743,23 +743,6 @@ struct ExecutionView {
   std::vector<CausalConditionView> causal_conditions;
 };
 
-struct TimedRouteHint {
-  RouteStatus status = RouteStatus::NO_ROUTE;
-  int endpoint = -1;
-  std::vector<int> cells;
-  int arrival_tick = -1;
-  int expansions = 0;
-};
-
-struct JointTransportGuidance {
-  std::vector<std::optional<TimedRouteHint>> by_robot;
-  int expansions = 0;
-  int frames_evaluated = 0;
-  long long predicted_all_targets_ticks = 0;
-  long long predicted_work = 0;
-  double build_time_ms = 0;
-};
-
 struct UpperEpochGuidance {
   UpperSignature upper_signature;
   PairCostTable pair_cost;
@@ -897,5 +880,4 @@ struct CarrierGuidance {
   std::vector<uint64_t> rho_row_fingerprints;
   std::vector<std::optional<Custody>> custody_by_robot;
   ExecutionView execution_view;
-  JointTransportGuidance timed_transport;
 };

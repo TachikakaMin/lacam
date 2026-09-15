@@ -149,31 +149,56 @@ TEST(dd_task_br_production,
   ASSERT_TRUE(X2.has_value());
   const auto G2 = dd_task_br_guidance_probe(ins, *X2, &*X1, &G1, &O1);
   ASSERT_TRUE(G2.custody_by_robot[0].has_value());
+  EXPECT_EQ(
+      G2.custody_by_robot[0]->original_endpoint,
+      ins.grid.idx(0, 1));
+  EXPECT_EQ(
+      G2.custody_by_robot[0]->route_status,
+      RouteStatus::ARRIVED);
   const auto O2 = preferred_ops(planner, view, *X2, G2);
   ASSERT_EQ(O2.size(), 1u);
-  EXPECT_EQ(O2[0], Op::make_move(ins.grid.idx(0, 2)));
+  EXPECT_EQ(O2[0], Op::make_drop());
 
   const auto X3 = apply_ops(ins, *X2, O2);
   ASSERT_TRUE(X3.has_value());
   const auto G3 = dd_task_br_guidance_probe(ins, *X3, &*X2, &G2, &O2);
-  ASSERT_TRUE(G3.custody_by_robot[0].has_value());
-  EXPECT_EQ(
-      G3.custody_by_robot[0]->transfer_id,
-      G2.custody_by_robot[0]->transfer_id);
-  EXPECT_EQ(
-      G3.custody_by_robot[0]->route_status,
-      RouteStatus::ARRIVED);
-  EXPECT_FALSE(G3.custody_by_robot[0]->preferred_leg.has_value());
+  EXPECT_FALSE(G3.custody_by_robot[0].has_value());
+  EXPECT_FALSE(is_dd_goal(ins, *X3));
   const auto O3 = preferred_ops(planner, view, *X3, G3);
   ASSERT_EQ(O3.size(), 1u);
-  EXPECT_EQ(O3[0], Op::make_drop());
+  EXPECT_EQ(O3[0], Op::make_lift());
 
   const auto X4 = apply_ops(ins, *X3, O3);
   ASSERT_TRUE(X4.has_value());
   const auto G4 =
       dd_task_br_guidance_probe(ins, *X4, &*X3, &G3, &O3);
-  EXPECT_FALSE(G4.custody_by_robot[0].has_value());
-  EXPECT_TRUE(is_dd_goal(ins, *X4));
+  ASSERT_TRUE(G4.custody_by_robot[0].has_value());
+  EXPECT_EQ(
+      G4.custody_by_robot[0]->original_endpoint,
+      ins.grid.idx(0, 2));
+  const auto O4 = preferred_ops(planner, view, *X4, G4);
+  ASSERT_EQ(O4.size(), 1u);
+  EXPECT_EQ(O4[0], Op::make_move(ins.grid.idx(0, 2)));
+
+  const auto X5 = apply_ops(ins, *X4, O4);
+  ASSERT_TRUE(X5.has_value());
+  const auto G5 =
+      dd_task_br_guidance_probe(ins, *X5, &*X4, &G4, &O4);
+  ASSERT_TRUE(G5.custody_by_robot[0].has_value());
+  EXPECT_EQ(
+      G5.custody_by_robot[0]->route_status,
+      RouteStatus::ARRIVED);
+  const auto O5 = preferred_ops(planner, view, *X5, G5);
+  ASSERT_EQ(O5.size(), 1u);
+  EXPECT_EQ(O5[0], Op::make_drop());
+
+  const auto X6 = apply_ops(ins, *X5, O5);
+  ASSERT_TRUE(X6.has_value());
+  const auto G6 =
+      dd_task_br_guidance_probe(ins, *X6, &*X5, &G5, &O5);
+  EXPECT_FALSE(G6.custody_by_robot[0].has_value());
+  EXPECT_EQ(X6->kappa[0], KAPPA_FREE);
+  EXPECT_TRUE(is_dd_goal(ins, *X6));
 }
 
 TEST(dd_task_br_production, forced_unassigned_lift_prefers_drop_unbound)
@@ -346,29 +371,65 @@ TEST(dd_task_br_production,
   std::mt19937 mt(0);
   TAPFStats stats;
   TAPFPlanner planner(&view, nullptr, &mt, 0, 0, 0.001f, true, &stats);
-  const auto rollout = planner.carrier_rollout(
-      view.starts, initial_shelf_state(view), 8, 0, false);
+  const auto make_anchor =
+      [&](const TAPFPlanner::CarrierRollout& chunk) {
+        auto anchor = std::make_unique<TAPFNode>(
+            chunk.configs.back(), chunk.shelves.back(), planner.D,
+            &view, std::vector<int>(view.N, -1),
+            TAPFAssignmentState(), nullptr);
+        anchor->guide = std::make_unique<CarrierGuidance>(
+            *chunk.terminal_guidance);
+        anchor->order = chunk.terminal_order;
+        anchor->constraint_order = anchor->order;
+        anchor->h = chunk.terminal_h;
+        anchor->h_guidance = chunk.terminal_h_guidance;
+        return anchor;
+      };
+  const auto lift_chunk = planner.carrier_rollout(
+      view.starts, initial_shelf_state(view), 8, 0, true);
+  ASSERT_NE(lift_chunk.terminal_guidance, nullptr);
+  auto lift_anchor = make_anchor(lift_chunk);
+  const auto first_delivery = planner.carrier_rollout(
+      lift_anchor->C, lift_anchor->shelf, 8, 0, true,
+      lift_anchor.get());
+  const auto relift_chunk = planner.carrier_rollout(
+      first_delivery.configs.back(),
+      first_delivery.shelves.back(), 8, 0, true);
+  ASSERT_NE(relift_chunk.terminal_guidance, nullptr);
+  auto relift_anchor = make_anchor(relift_chunk);
+  const auto final_delivery = planner.carrier_rollout(
+      relift_anchor->C, relift_anchor->shelf, 8, 0, true,
+      relift_anchor.get());
 
-  ASSERT_TRUE(rollout.reached_goal);
-  ASSERT_EQ(rollout.configs.size(), rollout.ops.size() + 1);
-  ASSERT_EQ(rollout.shelves.size(), rollout.ops.size() + 1);
+  ASSERT_TRUE(final_delivery.reached_goal);
   int loaded_moves = 0;
-  for (size_t step = 0; step < rollout.ops.size(); ++step)
-    for (size_t robot = 0; robot < rollout.ops[step].size(); ++robot)
-      loaded_moves +=
-          rollout.ops[step][robot].kind == Op::MOVE &&
-          rollout.shelves[step].kappa[robot] != KAPPA_FREE;
+  size_t total_steps = 0;
+  const std::vector<const TAPFPlanner::CarrierRollout*> chunks = {
+      &lift_chunk, &first_delivery, &relift_chunk, &final_delivery};
+  for (const auto* chunk : chunks) {
+    ASSERT_EQ(chunk->configs.size(), chunk->ops.size() + 1);
+    ASSERT_EQ(chunk->shelves.size(), chunk->ops.size() + 1);
+    total_steps += chunk->ops.size();
+    for (size_t step = 0; step < chunk->ops.size(); ++step)
+      for (size_t robot = 0; robot < chunk->ops[step].size(); ++robot)
+        loaded_moves +=
+            chunk->ops[step][robot].kind == Op::MOVE &&
+            chunk->shelves[step].kappa[robot] != KAPPA_FREE;
+  }
   EXPECT_GE(loaded_moves, 2);
   EXPECT_GE(stats.guidance_builds,
-            (long)rollout.ops.size() + 1)
+            (long)total_steps + (long)chunks.size())
       << "every rollout state, including the terminal anchor, must attach";
 
-  ASSERT_NE(rollout.terminal_guidance, nullptr);
-  ASSERT_NE(rollout.terminal_guidance->upper_epoch, nullptr);
-  ASSERT_EQ(rollout.terminal_guidance->custody_by_robot.size(), 1u);
+  ASSERT_NE(final_delivery.terminal_guidance, nullptr);
+  ASSERT_NE(final_delivery.terminal_guidance->upper_epoch, nullptr);
+  ASSERT_EQ(
+      final_delivery.terminal_guidance->custody_by_robot.size(), 1u);
   EXPECT_FALSE(
-      rollout.terminal_guidance->custody_by_robot[0].has_value());
-  EXPECT_TRUE(rollout.terminal_guidance->ready_tasks.empty());
+      final_delivery.terminal_guidance
+          ->custody_by_robot[0].has_value());
+  EXPECT_TRUE(
+      final_delivery.terminal_guidance->ready_tasks.empty());
 }
 
 TEST(dd_task_br_production,
@@ -389,26 +450,62 @@ TEST(dd_task_br_production,
   ASSERT_TRUE(
       lift_chunk.terminal_guidance->custody_by_robot[0].has_value());
 
-  auto anchor = std::make_unique<TAPFNode>(
-      lift_chunk.configs.back(), lift_chunk.shelves.back(), planner.D,
-      &view, std::vector<int>(view.N, -1),
-      TAPFAssignmentState(), nullptr);
-  anchor->guide = std::make_unique<CarrierGuidance>(
-      *lift_chunk.terminal_guidance);
-  anchor->order = lift_chunk.terminal_order;
-  anchor->constraint_order = anchor->order;
-  anchor->h = lift_chunk.terminal_h;
-  anchor->h_guidance = lift_chunk.terminal_h_guidance;
+  const auto make_anchor =
+      [&](const TAPFPlanner::CarrierRollout& chunk) {
+        auto anchor = std::make_unique<TAPFNode>(
+            chunk.configs.back(), chunk.shelves.back(), planner.D,
+            &view, std::vector<int>(view.N, -1),
+            TAPFAssignmentState(), nullptr);
+        anchor->guide = std::make_unique<CarrierGuidance>(
+            *chunk.terminal_guidance);
+        anchor->order = chunk.terminal_order;
+        anchor->constraint_order = anchor->order;
+        anchor->h = chunk.terminal_h;
+        anchor->h_guidance = chunk.terminal_h_guidance;
+        return anchor;
+      };
+  auto anchor = make_anchor(lift_chunk);
 
   const auto delivery_chunk = planner.carrier_rollout(
       anchor->C, anchor->shelf, 8, 0, true, anchor.get());
-  ASSERT_TRUE(delivery_chunk.reached_goal);
+  ASSERT_FALSE(delivery_chunk.reached_goal);
   EXPECT_TRUE(delivery_chunk.shelf_moved);
   ASSERT_FALSE(delivery_chunk.ops.empty());
   EXPECT_EQ(delivery_chunk.ops.front().front().kind, Op::MOVE);
-  EXPECT_EQ(delivery_chunk.shelves.back().target_pos[0],
-            ins.target_goal_sets[0][0]);
+  EXPECT_EQ(delivery_chunk.ops.back().front().kind, Op::DROP);
+  EXPECT_EQ(
+      delivery_chunk.shelves.back().target_pos[0],
+      ins.grid.idx(0, 1));
   EXPECT_EQ(delivery_chunk.shelves.back().kappa[0], KAPPA_FREE);
+  ASSERT_NE(delivery_chunk.terminal_guidance, nullptr);
+  EXPECT_FALSE(
+      delivery_chunk.terminal_guidance
+          ->custody_by_robot[0].has_value());
+
+  const auto relift_chunk = planner.carrier_rollout(
+      delivery_chunk.configs.back(), delivery_chunk.shelves.back(),
+      8, 0, true);
+  ASSERT_FALSE(relift_chunk.reached_goal);
+  ASSERT_EQ(relift_chunk.ops.size(), 1u);
+  EXPECT_EQ(relift_chunk.ops.front().front().kind, Op::LIFT);
+  ASSERT_NE(relift_chunk.terminal_guidance, nullptr);
+  ASSERT_TRUE(
+      relift_chunk.terminal_guidance
+          ->custody_by_robot[0].has_value());
+
+  auto relift_anchor = make_anchor(relift_chunk);
+  const auto final_chunk = planner.carrier_rollout(
+      relift_anchor->C, relift_anchor->shelf, 8, 0, true,
+      relift_anchor.get());
+  ASSERT_TRUE(final_chunk.reached_goal);
+  EXPECT_TRUE(final_chunk.shelf_moved);
+  ASSERT_FALSE(final_chunk.ops.empty());
+  EXPECT_EQ(final_chunk.ops.front().front().kind, Op::MOVE);
+  EXPECT_EQ(final_chunk.ops.back().front().kind, Op::DROP);
+  EXPECT_EQ(
+      final_chunk.shelves.back().target_pos[0],
+      ins.target_goal_sets[0][0]);
+  EXPECT_EQ(final_chunk.shelves.back().kappa[0], KAPPA_FREE);
 }
 
 TEST(dd_task_br_production,

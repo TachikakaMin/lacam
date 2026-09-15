@@ -228,11 +228,8 @@ struct DDStats {
   double rho_secondary_full_time_ms = 0;
   double rho_canonical_time_ms = 0;
   long custody_continuations = 0;
-  long timed_transport_expansions = 0;
-  long timed_transport_frames = 0;
   long owner_handoffs = 0;
   long causal_waiting = 0;
-  long traffic_waiting = 0;
   long zero_empty_no_ready = 0;
   long rewire_guidance_rebuilds = 0;
   long g_relaxed = 0;         // duplicate hits relaxed to a cheaper g
@@ -240,7 +237,6 @@ struct DDStats {
   long guidance_builds = 0;
   double tau_time_ms = 0;
   double guidance_time_ms = 0;
-  double timed_transport_time_ms = 0;
   double deliverable_ms = -1;  // deferred cleanup + final replay complete
   // Incumbent and output-repair cost diagnostics.
   double first_solution_ms = -1;

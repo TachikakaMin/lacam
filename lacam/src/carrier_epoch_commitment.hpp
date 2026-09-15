@@ -449,38 +449,11 @@ build_task_br_upper_epoch(
 {
   auto epoch = std::make_shared<UpperEpochGuidance>();
   epoch->upper_signature = upper;
-  VacancyPotentialCache potential_cache(ins.grid.size());
-  PairCostDependencyContext local_dependency_context;
-  auto* dependency_context =
-      shared_dependency_context != nullptr
-          ? shared_dependency_context
-          : &local_dependency_context;
-  auto assignment = build_lazy_pair_cost_assignment(
-      ins, upper, upper_wall, storage_topology,
-      alpha, gamma, delta, nullptr, &potential_cache,
-      root_goal_commitment, dependency_context,
-      previous_pair_source != nullptr
-          ? &previous_pair_source->upper_signature
-          : nullptr,
-      previous_pair_source != nullptr
-          ? &previous_pair_source->pair_cost
-          : nullptr,
-      previous_pair_source != nullptr
-          ? &previous_pair_source->
-                pair_assignment_hungarian
-          : nullptr,
-      previous_pair_source != nullptr
-          ? &previous_pair_source->
-                root_goal_commitment
-          : nullptr);
-  if (telemetry != nullptr) {
-    telemetry->potential_builds += potential_cache.builds;
-    telemetry->potential_unreachable_cells +=
-        potential_cache.unreachable_cells;
-    telemetry->first_choice_fallbacks +=
-        potential_cache.first_choice_fallbacks;
-    telemetry->potential_time_ms += potential_cache.build_ms;
-  }
+  (void)previous_pair_source;
+  (void)shared_dependency_context;
+  auto assignment = build_congestion_pair_assignment(
+      ins, upper, upper_wall, alpha, gamma, delta,
+      nullptr, root_goal_commitment);
   epoch->pair_cost = std::move(assignment.table);
   epoch->pair_assignment_hungarian =
       std::move(assignment.hungarian_state);

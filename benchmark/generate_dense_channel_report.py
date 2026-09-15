@@ -271,16 +271,26 @@ def render_dashboard(data):
     }
     block_edge_set = profiles == {"interior_to_block_edge_set"}
     interior_to_edge = profiles == {"interior_to_edge"}
+    matrix_agents = sorted(
+        {int(row.get("robots", 0)) for row in data["records"] if row.get("robots")}
+    )
+    matrix_targets = sorted(
+        {int(row.get("targets", 0)) for row in data["records"] if row.get("targets")}
+    )
     if block_edge_set:
         page_title = (
             "40×40 Dense-channel benchmark · 起始 block 边缘终点"
         )
-        heading = "40×40 Dense-channel：负载扩展"
+        heading = "40×40 Dense-channel：Agent×Task 扩展"
         lead = (
             "目标货箱从 storage block 内部出发，最终 goal 可选择其起始 "
             "block 的任意边缘 storage 位置。这个集合只约束终态；运输"
             "途中可经过其他 block，也可在其他合法 storage 临时落箱。"
-            "机器人/目标按 8/12、16/24、32/48 三档递增。"
+            "机器人数量：{}；目标任务数：{}。共 {} 个配置。".format(
+                "、".join(str(value) for value in matrix_agents),
+                "、".join(str(value) for value in matrix_targets),
+                len(data["records"]),
+            )
         )
         goal_label = "每目标 edge 候选"
         goal_value = "{}–{}".format(
@@ -317,11 +327,60 @@ def render_dashboard(data):
     for record in data["records"]:
         groups.setdefault(record["block_size"], []).append(record)
     sections = []
+    if (
+        block_edge_set
+        and len(groups) == 1
+        and len(matrix_agents) > 1
+        and len(matrix_targets) > 1
+    ):
+        by_scale = {
+            (int(row["robots"]), int(row["targets"])): row
+            for row in data["records"]
+        }
+        header = "".join(
+            "<th style=\"padding:8px;border:1px solid #29405c\">"
+            "{} targets</th>".format(targets)
+            for targets in matrix_targets
+        )
+        matrix_rows = []
+        for robots in matrix_agents:
+            cells = []
+            for targets in matrix_targets:
+                record = by_scale.get((robots, targets))
+                if record is None:
+                    text = "—"
+                elif record["success"]:
+                    text = "✓ {} 拍".format(record["final_makespan"])
+                else:
+                    text = "{} 秒内未解".format(
+                        int(summary["timeout_sec"])
+                    )
+                cells.append(
+                    "<td data-agent=\"{}\" data-targets=\"{}\" "
+                    "style=\"padding:8px;border:1px solid #29405c;"
+                    "text-align:center\">{}</td>".format(
+                        robots, targets, html.escape(text)
+                    )
+                )
+            matrix_rows.append(
+                "<tr><th style=\"padding:8px;border:1px solid #29405c;"
+                "text-align:left\">{} robots</th>{}</tr>".format(
+                    robots, "".join(cells)
+                )
+            )
+        sections.append(
+            """<section class="panel"><div class="section-title">
+<h2>Agent×Task 结果矩阵</h2><span>单元格为最终 makespan</span></div>
+<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;
+min-width:520px"><thead><tr><th style="padding:8px;border:1px solid #29405c">
+robots / targets</th>{header}</tr></thead><tbody>{rows}</tbody></table></div>
+</section>""".format(header=header, rows="".join(matrix_rows))
+        )
     for block_size in sorted(groups):
         sections.append(
             """<section class="panel">
   <div class="section-title"><h2>{block}×{block} storage blocks</h2>
-  <span>{count} 个密度档</span></div>
+  <span>{count} 个配置</span></div>
   <div class="case-grid">{cards}</div>
 </section>""".format(
                 block=block_size,

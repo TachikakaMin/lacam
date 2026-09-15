@@ -326,7 +326,6 @@ inline RouteHintSearchResult reroute_to_endpoint(
           });
       for (const int next : neighbors) {
         if (parent[next] != -2) continue;
-        if (next != endpoint && ins.can_store_shelf(next)) continue;
         if (respect_occupancy && occupied[next]) continue;
         parent[next] = cell;
         if (next == endpoint) {
@@ -428,8 +427,7 @@ inline bool route_hint_usable(const DDInstance& ins,
                               const Custody& custody)
 {
   if (!custody_physically_valid(ins, physical, robot, custody) ||
-      (custody.route_status != RouteStatus::OK &&
-       custody.route_status != RouteStatus::PREFIX) ||
+      custody.route_status != RouteStatus::OK ||
       !custody.preferred_leg.has_value() ||
       custody.preferred_leg->shelf != custody.shelf ||
       custody.preferred_leg->from != custody.from ||
@@ -478,9 +476,8 @@ inline std::vector<int> transport_topology_distance(
     for (int index = 0; index < count; ++index) {
       const int next = neighbors[index];
       if (distance[next] < INF) continue;
-      if (next != source && ins.can_store_shelf(next)) continue;
       distance[next] = distance[cell] + 1;
-      if (next != source) queue.push_back(next);
+      queue.push_back(next);
     }
   }
   return distance;

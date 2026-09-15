@@ -432,9 +432,13 @@ root 只要求 `Vacate(source)`，并不要求特定 endpoint，它可以在重�
 `Arrived(endpoint)`、`Dropped`。到达 endpoint 完成该 transfer 的搬运
 effect；释放机器人需要 Drop；target 完成则必须在合法 goal Drop。
 
-同一个 carrier 可以在合法 storage endpoint 接续下一 transfer，省掉中间
-Drop/Lift。不能为了清晰的 task 身份而强制每个相邻 shift 举放一次。无
-storage map 时各 transfer 退化为相邻 effect，物理语义不变。
+同一个 carrier 在同一 `StorageTransfer` 的内部 route/leg 之间连续搬运，
+不强制每个相邻 shift 举放一次；这些中间 leg 不是新的 transfer。到达该
+transfer 的 committed endpoint 后，`Arrived` 仍不等于 `Dropped`：真实
+Drop 前不得把当前 shelf 当作下一 transfer 的 available source，也不得覆盖
+当前 custody。只有 Drop 经权威执行并释放 carrier 后，下一 transfer 才能
+重新进入 ready/matching。无 storage map 时 transfer 可退化为相邻 effect，
+但相邻 effect 完成后仍遵守同一 Drop 边界。
 
 ## 4. 第一层：single-root PairCost
 
@@ -1128,11 +1132,11 @@ transfer，不修改 tau，不把该状态判无解。
 
 ```text
 已经到合法 endpoint：
-    若需完成 target 或释放 carrier：优先 Drop
-    若有有效同棚 continuation：比较继续搬与释放，不强制逐段举放
+    优先 Drop；Drop 前不绑定下一 transfer
 
 carrying + route 可用：
-    推荐 next leg / 合法等待 / 其他合法 Move / 合法 storage Drop
+    同一 transfer 内推荐 next leg / 合法等待 / 其他合法 Move
+    仅在 committed endpoint 保留合法 Drop
 
 carrying + no preferred route：
     Wait 和其他合法 Move；在 storage 保留合法 Drop
@@ -1530,9 +1534,10 @@ loaded-unbound 在 storage 首选 Drop、在 transit 首选 Wait；free+assigned
 就地 LIFT/按 lower distance approach；完整 oracle fallback。
 
 修改：首选 leg 改为消费动态 route（timed guidance 或同 endpoint
-reroute 的当前建议），不再只认 custody 存储 route；到达 endpoint 后按
-§9.6 比较 Drop 与同棚 continuation；其余候选顺序、S1/lift/drop guards 与
-完备 fallback 不变。
+reroute 的当前建议），不再只认 custody 存储 route；同一 transfer 的中间
+leg 可连续 MOVE，到达 committed endpoint 后按 §9.6 先 Drop，下一 transfer
+在 Drop 后重新匹配；其余候选顺序、S1/lift/drop guards 与完备 fallback
+不变。
 
 ### 13.7 搜索目标 —— `tapf_planner.cpp`
 
@@ -2827,3 +2832,79 @@ makespan 67、末尾 8 台同步 Lift，变为 makespan 60；第二 wave 的 Lif
 分散在前一 wave 尚未清空的多个 completion event 中。另新增 storage-cycle、
 next-wave admission、locked-only matcher 和 matcher-cutoff telemetry 回归，
 分别保护 Drop-only contract、滚动前沿边界和指标契约。
+
+## 29. 移除 bounded timed transport look-ahead
+
+2026-09-10 按当前算法要求，删除 §9.2–§9.5、§13.5–§13.6 和 §19
+伪代码中的 `BuildBoundedJointTransportGuidance` 执行层扩展。前述章节保留为
+历史设计记录，但不再描述当前 production 行为；本节优先。
+
+当前流程为：upper task graph 和 rho 仍负责完整任务与机器人分配，custody
+仍固定已 Lift 货架的 transfer identity 与 Drop endpoint；PIBT 对 loaded
+robot 只把同 endpoint `preferred_leg` 作为普通下一步排序，然后保留 Wait
+和全部相邻 MOVE 候选。LaCAM 原有 constraint tree、PIBT 递归冲突处理和
+`apply_ops()` 权威验证负责联合路径搜索，不再构造固定 16-step time-expanded
+reservation frame，也不消费 timed prefix、timed passing-pocket 或 traffic
+waiting telemetry。
+
+`preferred_leg` 不是硬路径约束：LaCAM 可选择其他合法 MOVE。MOVE 不因
+storage cell 身份受限；storage 规则只在实际 DROP 时检查。搜索终止条件仍是
+全部任务完成，macro successor 仍只是原 LaCAM 搜索中的加速边，不建立第二套
+路径规划器。
+
+## 30. tau 改为最短路拥堵估价的一次匹配
+
+2026-09-10 起，production upper epoch 不再为了决定 target 到 goal 的匹配而
+运行 8 步 prefix、完整 PairCost rollout 和 forced-edge 最优性证明。旧的精确
+PairCost 代码仍保留给 BRD、诊断探针和历史回归，但不再阻塞 Carrier 根节点进入
+LaCAM 搜索。
+
+当前对每条 eligible target-goal 边先计算几何最短距离；如果存在多条等长最短
+路，则选择预计清障代价最小的一条。估价由四部分组成：目标货架自身的最短路
+移动和 Lift/Drop、最短路上需要挪开的货架、匿名货架附加代价，以及每个阻挡
+货架四邻域内的其他货架数量。源点上的目标货架不算阻挡货架。所有边估价完成
+后只运行一次确定性的 lexicographic Hungarian，先最小化总估价，再避免把已经
+位于 eligible goal 的目标货架无谓移走；匹配结果直接交给原有 Task-BR 编排。
+这些边在 `PairPlan` 中标为已完成的 `HEURISTIC_ESTIMATE`，而不是精确
+PairCost；`exact=true` 只表示该估价已经完整算完、不是等待 refinement 的下界。
+
+这只是原 upper guidance 中 tau 构造方式的替换。task graph、rho、custody、
+PIBT、LaCAM constraint tree、节点扩展、权威动作验证和“所有任务完成”的终止
+条件均保持原执行路径，不新增 planner、fallback 或独立搜索流程。
+
+固定 quick 结果为 47/77，与移除 timed look-ahead 后的上一版成功集合完全
+相同。46 个具有有效首解时间的共同成功例中，34 个更快、1 个相同、11 个更慢，
+首解时间几何平均比为 0.729；但最终 makespan 总和由 15159 增至 16189，SOC
+由 38764 增至 42344，说明粗估匹配换来了更快首解，同时牺牲了一部分计划质量。
+
+经独立 GPT-5.6 Sol/high review 明确 `APPROVE` 后，固定 full 518 结果为
+488/518，比上一版 487/518 多解出
+`dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed0`，无丢解。
+487 个共同成功例中首解时间为 381/65/41（更快/相同/更慢），几何平均比
+0.797；共同例 makespan 总和 30228→31927，SOC 140904→147971。
+full rows/timing SHA-256 分别为
+`7bc017bce37cd18a5a644761ce5de0231249ace5e8b2c38882f6168349ea4f24`
+和
+`a1a5ba1cb68e70eb91be7ee67fa0dc76cc997c1eb1701b3eb02848c96603c4ef`。
+与 carrier_brd baseline 比较时，新方法为 488/518，baseline 为 469/518；
+共同成功 463 例的新方法首解时间几何平均约为 baseline final 的 0.474。
+
+## 31. rho 直接采用确定性 Hungarian 的分配
+
+2026-09-10 起，rho 在固定 candidate 行顺序和 free-robot/dummy 列顺序后，
+直接采用 `bottleneck_then_sum_assignment()` 返回的 `row_to_col`。该函数已经
+先求最小 completion bottleneck，再在该 bottleneck 内运行一次确定性的
+Hungarian 最小化 secondary cost，因此同一输入会自然得到同一分配。
+
+删除随后为了选出“全部同成本最优分配中字典序最小者”而执行的完整 secondary
+重算和逐机器人 suffix Hungarian。这个三级 tie-break 不影响任务可行性、
+最大真实匹配数、bottleneck 或 secondary cost，只会在这些目标完全相同的多个
+最优解之间改变选择；它不是 LaCAM 路径规划或确定性所必需的。rho 的候选生成、
+合法性过滤、任务优先级、custody、PIBT、LaCAM 搜索和权威动作验证均保持不变。
+
+最终固定 quick 结果为 47/77。直接采用确定性 Hungarian 后一度出现
+`brap_h20w20_a40_e100_R1_seed0` 超时，但根因不是 Hungarian 的确定性：
+执行层错误地在真实 Drop 前把 `ARRIVED` custody 续接到下一 transfer。恢复
+Drop-before-continuation 边界并保持原 `(Config, ShelfState)` CLOSED 后，
+该例和 `brap_h6w10_a6_e1_B_seed0_pool` 均成功；前者单例首解约 1.9 秒。
+相关 63 项测试通过，未引入 commitment-aware CLOSED。

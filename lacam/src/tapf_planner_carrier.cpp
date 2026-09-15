@@ -268,13 +268,6 @@ void TAPFPlanner::attach_carrier_guidance(
         nd->guide->rho_execute_telemetry, true);
     accumulate_rho_telemetry(
         nd->guide->rho_prepare_telemetry, false);
-    stats->timed_transport_expansions +=
-        nd->guide->timed_transport.expansions;
-    stats->timed_transport_frames +=
-        nd->guide->timed_transport.frames_evaluated;
-    stats->timed_transport_time_ms +=
-        nd->guide->timed_transport.build_time_ms;
-
     if (previous_upper != nullptr &&
         nd->guide->upper_epoch != nullptr &&
         *previous_upper !=
@@ -377,21 +370,6 @@ void TAPFPlanner::attach_carrier_guidance(
             previous_guidance->rho_mode[robot] ==
                 DispatchMode::PREPARE)
           ++stats->causal_waiting;
-        if ((*previous_physical).kappa[robot] != KAPPA_FREE &&
-            robot <
-                previous_guidance->timed_transport.by_robot.size() &&
-            previous_guidance->timed_transport.by_robot[robot]
-                .has_value()) {
-          const auto& hint =
-              *previous_guidance->timed_transport.by_robot[robot];
-          if ((hint.status == RouteStatus::OK ||
-               hint.status == RouteStatus::PREFIX) &&
-              hint.cells.size() >= 2 &&
-              hint.cells.front() ==
-                  (*previous_physical).robots[robot] &&
-              hint.cells[1] == hint.cells.front())
-            ++stats->traffic_waiting;
-        }
       }
     }
 

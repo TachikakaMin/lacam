@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>40×40 Dense-channel benchmark · 起始 block 边缘终点</title>
+<style>
+:root {
+  color-scheme:dark; --bg:#07111e; --panel:#101d30; --panel2:#0a1626;
+  --line:#29405c; --text:#eef6ff; --muted:#94a8bf; --blue:#4b9dff;
+  --green:#47d7a6; --amber:#f5bc58; --red:#ff7585;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; color:var(--text); font:14px/1.55 system-ui,sans-serif;
+  background:
+    radial-gradient(circle at 8% 0,#173968 0,transparent 30rem),
+    radial-gradient(circle at 92% 4%,#342446 0,transparent 29rem),var(--bg);
+}
+main { max-width:1460px; margin:auto; padding:28px; }
+h1 { margin:0; font-size:30px; }
+h2 { margin:0; font-size:20px; }
+h3 {
+  margin:9px 0 11px; font:600 13px/1.45 ui-monospace,monospace;
+  overflow-wrap:anywhere;
+}
+a { color:#75b6ff; text-decoration:none; }
+a:hover { text-decoration:underline; }
+.lead { max-width:1050px; color:var(--muted); font-size:15px; }
+.cards { display:grid; grid-template-columns:repeat(6,1fr); gap:11px; }
+.summary,.panel,.case-card {
+  border:1px solid var(--line); border-radius:14px;
+  background:linear-gradient(145deg,#122139f5,#0b1729f5);
+}
+.summary { padding:15px; }
+.summary .label { color:var(--muted); font-size:11px; letter-spacing:.07em; }
+.summary .value { margin-top:7px; font-size:25px; font-weight:780; }
+.panel { margin-top:16px; padding:18px; }
+.audit { display:grid; grid-template-columns:1.35fr .65fr; gap:16px; }
+.audit p { color:var(--muted); margin:5px 0; }
+.section-title {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:13px;
+}
+.section-title span { color:var(--muted); }
+.case-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(350px,1fr)); gap:12px;
+}
+.case-card { padding:15px; background:var(--panel2); }
+.case-top { display:flex; justify-content:space-between; align-items:center; }
+.state { font-weight:750; font-size:12px; }
+.state.ok { color:var(--green); } .state.bad { color:var(--red); }
+.density { color:#09101b; background:var(--amber); border-radius:999px;
+  padding:3px 8px; font-weight:800; }
+.tags { display:flex; flex-wrap:wrap; gap:6px; }
+.tags span { color:#bfd0e3; background:#14243a; border:1px solid #263d59;
+  border-radius:999px; padding:3px 7px; font-size:11px; }
+.timing { margin:14px 0 10px; }
+.timing-row {
+  display:grid; grid-template-columns:130px 1fr; gap:9px; align-items:center;
+  color:#c8d6e7; font-size:12px; margin:7px 0;
+}
+.track { height:10px; border-radius:999px; overflow:hidden;
+  background:#18243a; border:1px solid #2b405c; }
+.track span { display:block; height:100%; min-width:2px; border-radius:999px; }
+.track .first { background:var(--green); }
+.track .final { background:linear-gradient(90deg,#337ee7,#9a63ed); }
+.cost { color:var(--muted); background:#0d1929; border-radius:9px;
+  padding:9px; font-size:12px; }
+.links { display:flex; flex-wrap:wrap; gap:12px; margin-top:11px; }
+.primary { color:white; background:#1d65ba; padding:5px 9px; border-radius:7px; }
+.disabled { color:#708198; }
+code { color:#d7e7fb; overflow-wrap:anywhere; }
+.foot { color:var(--muted); font-size:12px; }
+@media(max-width:1050px) {
+  .cards { grid-template-columns:repeat(3,1fr); } .audit { grid-template-columns:1fr; }
+}
+@media(max-width:650px) {
+  main { padding:16px; } .cards { grid-template-columns:repeat(2,1fr); }
+  .case-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body><main>
+<h1>40×40 Dense-channel：Agent×Task 扩展</h1>
+<p class="lead">目标货箱从 storage block 内部出发，最终 goal 可选择其起始 block 的任意边缘 storage 位置。这个集合只约束终态；运输途中可经过其他 block，也可在其他合法 storage 临时落箱。机器人数量：4、8、12、16、24、32、48、64；目标任务数：24、48、96。共 24 个配置。</p>
+
+<section class="cards">
+  <article class="summary"><div class="label">解出率</div>
+    <div class="value">8 / 24</div></article>
+  <article class="summary"><div class="label">密度范围</div>
+    <div class="value">93.8%–93.8%</div></article>
+  <article class="summary"><div class="label">内层起点</div>
+    <div class="value">1344 / 1344</div></article>
+  <article class="summary"><div class="label">深层起点</div>
+    <div class="value">557 / 1344</div></article>
+  <article class="summary"><div class="label">每目标 edge 候选</div>
+    <div class="value">32–32</div></article>
+  <article class="summary"><div class="label">并行 wall time</div>
+    <div class="value">18.4 s</div></article>
+</section>
+
+<section class="panel audit">
+  <div>
+    <h2>怎样读时间条</h2>
+    <p>绿色是 kernel 原始首解时刻：搜索第一次到达 goal，但尚未经过 normalize、
+    repair 和最终验证；紫色是第二遍严格改进搜索、验证和清理完成后的最终返回
+    时刻。两条都以本例 10 秒预算为横轴，它们不是机器人执行计划的 makespan。</p>
+  </div>
+  <div>
+    <p>Suite：<code>dense_channel_b9_agent_task_v1_24</code></p>
+    <p>Commit：<code>500e3a7d14425c2d1bacab33d6a1e4919c979f1d</code></p>
+    <p>Binary SHA：<code>d7d76608ba49716f6d07e1b841b8aa729ea73666e6611c68885ee5b949dbe49f</code></p>
+    <p><a href="rows.csv">rows.csv</a> ·
+       <a href="timing.json">timing.json</a> ·
+       <a href="summary.json">summary.json</a></p>
+  </div>
+</section>
+
+<section class="panel"><div class="section-title">
+<h2>Agent×Task 结果矩阵</h2><span>单元格为最终 makespan</span></div>
+<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;
+min-width:520px"><thead><tr><th style="padding:8px;border:1px solid #29405c">
+robots / targets</th><th style="padding:8px;border:1px solid #29405c">24 targets</th><th style="padding:8px;border:1px solid #29405c">48 targets</th><th style="padding:8px;border:1px solid #29405c">96 targets</th></tr></thead><tbody><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">4 robots</th><td data-agent="4" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="4" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="4" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">8 robots</th><td data-agent="8" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 225 拍</td><td data-agent="8" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="8" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">12 robots</th><td data-agent="12" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 143 拍</td><td data-agent="12" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="12" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">16 robots</th><td data-agent="16" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 474 拍</td><td data-agent="16" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="16" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">24 robots</th><td data-agent="24" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 83 拍</td><td data-agent="24" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="24" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">32 robots</th><td data-agent="32" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="32" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td><td data-agent="32" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">48 robots</th><td data-agent="48" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 49 拍</td><td data-agent="48" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 112 拍</td><td data-agent="48" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr><tr><th style="padding:8px;border:1px solid #29405c;text-align:left">64 robots</th><td data-agent="64" data-targets="24" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 44 拍</td><td data-agent="64" data-targets="48" style="padding:8px;border:1px solid #29405c;text-align:center">✓ 218 拍</td><td data-agent="64" data-targets="96" style="padding:8px;border:1px solid #29405c;text-align:center">10 秒内未解</td></tr></tbody></table></div>
+</section>
+<section class="panel">
+  <div class="section-title"><h2>9×9 storage blocks</h2>
+  <span>24 个配置</span></div>
+  <div class="case-grid"><article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>4 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 18</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>4 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 22</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>4 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 22</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>8 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 13</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 4.956 s</div>
+      <div class="track"><span class="first" style="width:49.56%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 6.655 s</div>
+      <div class="track"><span class="final" style="width:66.55%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 277 → 最终 225<br>Weighted SOC 1846 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>8 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 17</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>8 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 18</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>12 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 20</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 3.778 s</div>
+      <div class="track"><span class="first" style="width:37.78%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 4.956 s</div>
+      <div class="track"><span class="final" style="width:49.56%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 158 → 最终 143<br>Weighted SOC 1774 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>12 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 34</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>12 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 36</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>16 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 19</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 6.943 s</div>
+      <div class="track"><span class="first" style="width:69.43%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 8.712 s</div>
+      <div class="track"><span class="final" style="width:87.12%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 1133 → 最终 474<br>Weighted SOC 2433 ·
+    phase 2: SEARCH_CUTOFF</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>16 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 29</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>16 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 30</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>24 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 20</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 2.135 s</div>
+      <div class="track"><span class="first" style="width:21.35%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 8.631 s</div>
+      <div class="track"><span class="final" style="width:86.31%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 85 → 最终 83<br>Weighted SOC 1716 ·
+    phase 2: SEARCH_CUTOFF</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>24 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 28</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>24 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 33</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>32 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 19</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>32 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 22</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>32 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 22</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>48 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 18</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 1.303 s</div>
+      <div class="track"><span class="first" style="width:13.03%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 1.793 s</div>
+      <div class="track"><span class="final" style="width:17.93%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 50 → 最终 49<br>Weighted SOC 1298 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>48 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 24</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 3.875 s</div>
+      <div class="track"><span class="first" style="width:38.75%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 5.463 s</div>
+      <div class="track"><span class="final" style="width:54.63%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 129 → 最终 112<br>Weighted SOC 3348 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>48 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 28</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>64 robots</span>
+    <span>24 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 24 · deep 17</span>
+    <span>goal: edge 24 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 1.249 s</div>
+      <div class="track"><span class="first" style="width:12.49%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 1.763 s</div>
+      <div class="track"><span class="final" style="width:17.63%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 47 → 最终 44<br>Weighted SOC 1149 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state ok">✓ solved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>64 robots</span>
+    <span>48 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 48 · deep 23</span>
+    <span>goal: edge 48 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 6.081 s</div>
+      <div class="track"><span class="first" style="width:60.81%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 8.064 s</div>
+      <div class="track"><span class="final" style="width:80.64%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan 642 → 最终 218<br>Weighted SOC 2758 ·
+    phase 2: STRICT_IMPROVEMENT</div>
+  <div class="links">
+    <a class="primary" href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1.html">▶ 播放 solver 动画</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1.plan">生成见证</a>
+  </div>
+</article>
+<article class="case-card">
+  <div class="case-top">
+    <span class="state bad">✗ unsolved</span>
+    <span class="density">93.8%</span>
+  </div>
+  <h3>dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1</h3>
+  <div class="tags">
+    <span>9×9 block</span>
+    <span>76/81 shelves</span>
+    
+    <span>64 robots</span>
+    <span>96 targets</span>
+    <span>32 edge goals/target</span>
+    <span>start: edge 0 · inner 96 · deep 25</span>
+    <span>goal: edge 96 · inner 0</span>
+  </div>
+  <div class="timing">
+    <div class="timing-row">
+      <div>首解 —</div>
+      <div class="track"><span class="first" style="width:0.00%"></span></div>
+    </div>
+    <div class="timing-row">
+      <div>最终返回 —</div>
+      <div class="track"><span class="final" style="width:0.00%"></span></div>
+    </div>
+  </div>
+  <div class="cost">首解 makespan None → 最终 None<br>Weighted SOC 0 ·
+    phase 2: —</div>
+  <div class="links">
+    <span class="disabled">无合法动画</span>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1.html">初始布局</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1.yaml">YAML</a>
+    <a href="../dense_channel_b9_agent_task_suite_v1_20260914/certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1.plan">生成见证</a>
+  </div>
+</article></div>
+</section>
+
+<p class="foot">协议：carrier · seed 0 · unit weights · following allowed ·
+单例上限 10 秒 · 14 个并行 worker。动画只为 rows.csv 中
+success=1 且 plan SHA 匹配的计划生成，生成工具还会调用 authoritative
+validator 完整重放。</p>
+</main></body></html>

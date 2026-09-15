@@ -94,12 +94,20 @@ add_test(test_dd_pair_incremental
          ./tests/test_dd_pair_incremental.cpp)
 add_test(test_pair_staged_lower_bound
          ./tests/test_pair_staged_lower_bound.cpp)
+add_test(test_pair_congestion_assignment
+         ./tests/test_pair_congestion_assignment.cpp)
+add_test(test_pair_congestion_semantics
+         ./tests/test_pair_congestion_semantics.cpp)
+add_test(test_pair_congestion_core
+         ./tests/test_pair_congestion_core.cpp)
 add_test(test_incremental_hungarian_core
          ./tests/test_incremental_hungarian_core.cpp)
 add_test(test_pair_incremental_invalid_dual
          ./tests/test_pair_incremental_invalid_dual.cpp)
 add_test(test_dd_storage_topology_routes
          ./tests/test_dd_storage_topology_routes.cpp)
+add_test(test_dd_storage_transit_move
+         ./tests/test_dd_storage_transit_move.cpp)
 add_test(test_dd_vacancy_unit_bfs
          ./tests/test_dd_vacancy_unit_bfs.cpp)
 add_test(test_dd_vacancy_churn_telemetry
@@ -157,10 +165,15 @@ add_test(test_dd_fixed_point_work ./tests/test_dd_fixed_point_work.cpp)
 add_test(test_dd_makespan_heuristic ./tests/test_dd_makespan_heuristic.cpp)
 add_test(test_dd_reference_plan ./tests/test_dd_reference_plan.cpp)
 add_test(test_dd_transfer_episode ./tests/test_dd_transfer_episode.cpp)
-add_test(test_dd_timed_transport ./tests/test_dd_timed_transport.cpp)
+add_test(test_dd_no_timed_lookahead
+         ./tests/test_dd_no_timed_lookahead.cpp)
 add_test(test_dd_causal_preparation ./tests/test_dd_causal_preparation.cpp)
 add_test(test_dd_dispatch ./tests/test_dd_dispatch.cpp)
 add_test(test_dd_rho_candidates ./tests/test_dd_rho_candidates.cpp)
+add_test(test_dd_rho_single_assignment
+         ./tests/test_dd_rho_single_assignment.cpp)
+add_test(test_dd_drop_before_continuation
+         ./tests/test_dd_drop_before_continuation.cpp)
 add_test(test_tapf_hungarian_shared ./tests/test_tapf_hungarian_shared.cpp)
 add_test(test_lazy_dist ./tests/test_lazy_dist.cpp)
 add_test(test_lacam_search_kernel ./tests/test_lacam_search_kernel.cpp)

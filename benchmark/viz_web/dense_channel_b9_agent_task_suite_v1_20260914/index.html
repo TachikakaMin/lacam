@@ -1,0 +1,133 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>40×40 b9 Dense-channel Agent×Task V1</title><style>
+body{margin:auto;max-width:1280px;padding:30px;background:#111315;color:#f1f3f4;
+font:15px/1.65 system-ui}a{color:#79b7e8}.lead{color:#aab0b5}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
+gap:14px}article{border-top:1px solid #393d41;padding:14px 0}
+h2{font-size:14px;overflow-wrap:anywhere}b{color:#8fd3ff}
+</style></head><body><h1>40×40 b9 Dense-channel：Agent×Task 扩展</h1>
+<p class="lead">固定 9×9 storage block、76/81 货架和单格通道；机器人数量
+4、8、12、16、24、32、48、64，目标任务数 24、48、96，共 24 个配置。
+每个目标从 block 内层出发，最终只能选择其起始 block 的 32 个边缘 storage。
+逆向 witness 仅证明实例可解，solver 不读取。</p><div class="grid"><article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1</h2>
+<p><b>4</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43472 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1</h2>
+<p><b>4</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43472 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1</h2>
+<p><b>4</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43472 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r4_t96_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1</h2>
+<p><b>8</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43377 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1</h2>
+<p><b>8</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43377 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1</h2>
+<p><b>8</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43377 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r8_t96_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1</h2>
+<p><b>12</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 41920 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1</h2>
+<p><b>12</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 41920 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1</h2>
+<p><b>12</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 41920 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r12_t96_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1</h2>
+<p><b>16</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43611 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1</h2>
+<p><b>16</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43611 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1</h2>
+<p><b>16</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43611 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r16_t96_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1</h2>
+<p><b>24</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 42586 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1</h2>
+<p><b>24</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 42586 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1</h2>
+<p><b>24</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 42586 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r24_t96_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1</h2>
+<p><b>32</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43357 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1</h2>
+<p><b>32</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43357 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1</h2>
+<p><b>32</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43357 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r32_t96_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1</h2>
+<p><b>48</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43725 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1</h2>
+<p><b>48</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43725 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1</h2>
+<p><b>48</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 43725 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r48_t96_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1</h2>
+<p><b>64</b> robots · <b>24</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 42039 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t24_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1</h2>
+<p><b>64</b> robots · <b>48</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 42039 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t48_seed1.plan">可解性 witness</a></p></article>
+<article><h2>dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1</h2>
+<p><b>64</b> robots · <b>96</b> targets · 76/81 shelves ·
+每个 target 有 32 个起始 block 边缘目标 · witness 42039 拍</p>
+<p><a href="cases/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1.html">初始布局</a> · <a href="instances/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1.yaml">YAML</a> ·
+<a href="certificates/dense_channel_bedge_h40w40_b9_a1_s76of81_r64_t96_seed1.plan">可解性 witness</a></p></article></div>
+</body></html>

@@ -778,156 +778,16 @@ inline DDReadyMatchProbe match_ready_tasks(
       stop_cutoff();
       return out;
     }
-    for (size_t col = 0; col < column_count; ++col) {
-      if (is_expired(deadline)) {
-        stop_cutoff();
-        return out;
-      }
-      if (completion[row][col] > bottleneck.bottleneck)
-        cost[row][col] = INF;
-    }
+    const int column = bottleneck.row_to_col[row];
+    if (column < 0 || column >= (int)column_count)
+      throw std::logic_error(
+          "match_ready_tasks: invalid Hungarian assignment");
+    if ((size_t)column >= free_count) continue;
+    const int robot = free_robots[column];
+    out.rho_task_id[robot] = candidates[row].id;
+    out.rho_transfer_key[robot] = candidates[row].key;
+    out.rho_ready_index[robot] = candidates[row].task_index;
   }
-
-  bool minimum_cost_cutoff = false;
-  auto minimum_cost =
-      [&](const std::vector<int>& rows,
-          const std::vector<int>& cols) -> std::optional<long long> {
-    if (is_expired(deadline)) {
-      minimum_cost_cutoff = true;
-      return std::nullopt;
-    }
-    if (rows.empty()) return 0;
-    if (rows.size() > cols.size()) return std::nullopt;
-    constexpr long double HINF = 1e60L;
-    std::vector<std::vector<long double>> matrix(
-        rows.size(), std::vector<long double>(cols.size(), HINF));
-    for (size_t r = 0; r < rows.size(); ++r) {
-      if (is_expired(deadline)) {
-        minimum_cost_cutoff = true;
-        return std::nullopt;
-      }
-      for (size_t c = 0; c < cols.size(); ++c) {
-        if (is_expired(deadline)) {
-          minimum_cost_cutoff = true;
-          return std::nullopt;
-        }
-        if (cost[rows[r]][cols[c]] < INF)
-          matrix[r][c] = (long double)cost[rows[r]][cols[c]];
-      }
-    }
-    const auto assignment =
-        hungarian_long_double(matrix, deadline);
-    if (assignment.cutoff) {
-      minimum_cost_cutoff = true;
-      return std::nullopt;
-    }
-    if (!assignment.feasible) return std::nullopt;
-    long long total = 0;
-    for (size_t r = 0; r < rows.size(); ++r) {
-      if (is_expired(deadline)) {
-        minimum_cost_cutoff = true;
-        return std::nullopt;
-      }
-      const int local_col = assignment.row_to_col[r];
-      if (local_col < 0 ||
-          cost[rows[r]][cols[local_col]] >= INF)
-        return std::nullopt;
-      total += cost[rows[r]][cols[local_col]];
-    }
-    return total;
-  };
-
-  std::vector<int> active_rows(task_count);
-  std::iota(active_rows.begin(), active_rows.end(), 0);
-  std::vector<int> active_cols(column_count);
-  std::iota(active_cols.begin(), active_cols.end(), 0);
-  const auto secondary_started = std::chrono::steady_clock::now();
-  auto remaining_optimum = minimum_cost(active_rows, active_cols);
-  out.telemetry.secondary_full_time_ms =
-      std::chrono::duration<double, std::milli>(
-          std::chrono::steady_clock::now() - secondary_started)
-          .count();
-  if (minimum_cost_cutoff) {
-    stop_cutoff();
-    return out;
-  }
-  if (!remaining_optimum.has_value()) {
-    stop_infeasible();
-    return out;
-  }
-
-  const auto canonical_started = std::chrono::steady_clock::now();
-  for (size_t real_col = 0; real_col < free_count; ++real_col) {
-    if (is_expired(deadline)) {
-      stop_cutoff();
-      return out;
-    }
-    const auto col_it =
-        std::find(active_cols.begin(), active_cols.end(), (int)real_col);
-    if (col_it == active_cols.end()) continue;
-    std::vector<int> row_options = active_rows;
-    std::stable_sort(row_options.begin(), row_options.end(),
-                     [&](int a, int b) {
-                       if (candidates[a].id != candidates[b].id)
-                         return candidates[a].id < candidates[b].id;
-                       if (candidates[a].key != candidates[b].key)
-                         return candidates[a].key < candidates[b].key;
-                       return candidates[a].task_index <
-                              candidates[b].task_index;
-                     });
-    bool fixed = false;
-    for (const int row : row_options) {
-      if (is_expired(deadline)) {
-        stop_cutoff();
-        return out;
-      }
-      if (cost[row][real_col] >= INF) continue;
-      auto next_rows = active_rows;
-      next_rows.erase(
-          std::find(next_rows.begin(), next_rows.end(), row));
-      auto next_cols = active_cols;
-      next_cols.erase(
-          std::find(next_cols.begin(), next_cols.end(),
-                    (int)real_col));
-      const auto suffix = minimum_cost(next_rows, next_cols);
-      if (minimum_cost_cutoff) {
-        stop_cutoff();
-        return out;
-      }
-      if (!suffix.has_value() ||
-          cost[row][real_col] + *suffix != *remaining_optimum)
-        continue;
-      const int robot = free_robots[real_col];
-      out.rho_task_id[robot] = candidates[row].id;
-      out.rho_transfer_key[robot] = candidates[row].key;
-      out.rho_ready_index[robot] = candidates[row].task_index;
-      active_rows = std::move(next_rows);
-      active_cols = std::move(next_cols);
-      *remaining_optimum -= cost[row][real_col];
-      fixed = true;
-      break;
-    }
-    if (fixed) continue;
-
-    auto next_cols = active_cols;
-    next_cols.erase(
-        std::find(next_cols.begin(), next_cols.end(), (int)real_col));
-    const auto suffix = minimum_cost(active_rows, next_cols);
-    if (minimum_cost_cutoff) {
-      stop_cutoff();
-      return out;
-    }
-    if (suffix.has_value() && *suffix == *remaining_optimum) {
-      active_cols = std::move(next_cols);
-      continue;
-    }
-    throw std::logic_error(
-        "match_ready_tasks: failed deterministic lexicographic refinement");
-  }
-  out.telemetry.canonical_time_ms =
-      std::chrono::duration<double, std::milli>(
-          std::chrono::steady_clock::now() - canonical_started)
-          .count();
   out.telemetry.real_assignments = static_cast<long>(
       std::count_if(
           out.rho_ready_index.begin(),

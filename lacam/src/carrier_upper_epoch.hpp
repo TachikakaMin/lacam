@@ -350,22 +350,6 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
         out.rho_mode_or_conflict_fingerprint,
         static_cast<uint64_t>(out.rho_mode[robot]));
   }
-  const auto timed_started =
-      std::chrono::steady_clock::now();
-  const JointTransportContext timed_context{
-      &out.upper_epoch->task_graph,
-      &out.execution_view,
-      &out.rho_ready_index,
-      &out.rho_mode,
-      &out.upper_epoch->tau_guide};
-  out.timed_transport =
-      build_bounded_joint_transport_guidance(
-          ins, physical, out.custody_by_robot,
-          16, 256, 8, &timed_context);
-  out.timed_transport.build_time_ms =
-      std::chrono::duration<double, std::milli>(
-          std::chrono::steady_clock::now() - timed_started)
-          .count();
   return out;
 }
 

@@ -1,4 +1,4 @@
-"""Makespan quality and timed-guidance diagnostics stay exportable."""
+"""Makespan quality and remaining carrier diagnostics stay exportable."""
 
 import unittest
 
@@ -20,12 +20,8 @@ class TestMakespanDiagnostics(unittest.TestCase):
             "improvement_improvements",
             "improvement_generator_failures",
             "improvement_exit_reason",
-            "timed_transport_expansions",
-            "timed_transport_frames",
-            "timed_transport_time_ms",
             "owner_handoffs",
             "causal_waiting",
-            "traffic_waiting",
         )
         for key in required:
             self.assertIn(key, FIELDS)

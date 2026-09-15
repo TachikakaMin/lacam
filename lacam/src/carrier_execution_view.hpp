@@ -2,7 +2,7 @@
 // Chained include; see carrier_guidance.hpp for the module overview.
 #pragma once
 
-#include "carrier_joint_transport.hpp"
+#include "carrier_custody.hpp"
 
 namespace carrier_detail {
 inline bool task_shelf_is_grounded(const DDInstance& ins,
@@ -226,19 +226,12 @@ inline std::vector<int> ready_tasks_with_custody(
     if (!shelf_available) {
       const int carrier =
           carrier_of_task_shelf(ins, physical, task.id);
-      const bool arrived_continuation =
-          carrier >= 0 &&
-          carrier < (int)custody_by_robot.size() &&
-          custody_by_robot[carrier].has_value() &&
-          custody_arrived(
-              physical, carrier, *custody_by_robot[carrier]);
       shelf_available =
           carrier >= 0 &&
           carrier < (int)continuation_carrier.size() &&
           continuation_carrier[carrier] &&
           (carrier >= (int)custody_by_robot.size() ||
-           !custody_by_robot[carrier].has_value() ||
-           arrived_continuation);
+           !custody_by_robot[carrier].has_value());
     }
     if (shelf_available) ready.push_back((int)index);
   }
@@ -450,7 +443,6 @@ inline std::optional<Custody> make_storage_recovery_custody(
     install_route_hint(custody, physical.robots[robot], hint);
     custody.rebind_reason =
         hint.status == RouteStatus::OK ||
-                hint.status == RouteStatus::PREFIX ||
                 hint.status == RouteStatus::ARRIVED
             ? RebindReason::FORCED_DEVIATION
             : RebindReason::NO_ROUTE;
@@ -623,7 +615,6 @@ inline CustodyRecovery recover_task_br_custody(
               custody, physical.robots[robot], hint);
           custody.rebind_reason =
               hint.status == RouteStatus::OK ||
-                      hint.status == RouteStatus::PREFIX ||
                       hint.status == RouteStatus::ARRIVED
                   ? RebindReason::FORCED_DEVIATION
                   : RebindReason::NO_ROUTE;
@@ -804,10 +795,7 @@ inline void bind_ready_continuations(
     if (robot >= continuation_carrier.size() ||
         !continuation_carrier[robot] ||
         physical.kappa[robot] == KAPPA_FREE ||
-        (custody_by_robot[robot].has_value() &&
-         !custody_arrived(
-             physical, (int)robot,
-             *custody_by_robot[robot])))
+        custody_by_robot[robot].has_value())
       continue;
     for (const int index : ready_tasks) {
       if (index < 0 || index >= (int)graph.tasks.size()) continue;
