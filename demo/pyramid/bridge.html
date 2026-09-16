@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>LaCAM-TAPF · 双塔拱桥（悬空建造）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="hud">
+  <h1>双塔拱桥 · 悬空建造</h1>
+  <div class="sub">Minecraft 式侧贴放置：站在桥头向前悬臂搭桥，合龙后拆除楼梯</div>
+  <div id="stats"></div>
+  <div id="controls">
+    <button id="playBtn">暂停</button>
+    <button id="resetBtn">重来</button>
+    <label style="font-size:11px;color:#8b98b3">速度
+      <input id="speed" type="range" min="1" max="100" value="6">
+    </label>
+  </div>
+  <input id="timeline" type="range" min="0" max="100" value="0">
+  <div id="legend">
+    <span class="dot" style="background:#e8b04a"></span>目标建筑（双塔 + 悬空桥面）<br>
+    <span class="dot" style="background:#8b99b0"></span>脚手架（两侧楼梯，用完拆除）<br>
+    <span class="dot" style="background:#4a90d9"></span>机器人（顶上亮块 = 正在搬运）<br>
+    <span class="dot" style="background:#7bd88f"></span>料仓（取块 / 退还脚手架）<br>
+    <a href="index.html" style="color:#7ba7e8">→ 金字塔</a> ·
+    <a href="column.html" style="color:#7ba7e8">→ 柱子</a> ·
+    <a href="scene.html" style="color:#7ba7e8">→ 吉萨工地</a>
+  </div>
+</div>
+<script src="three.min.js"></script>
+<script src="plan_bridge.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

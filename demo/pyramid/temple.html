@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>LaCAM-TAPF · 神庙</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="hud">
+  <h1>神庙：石基 · 围墙 · 悬空屋顶</h1>
+  <div class="sub">墙体波次合龙 · 屋顶悬臂铺设盖住中庭 · 双楼梯用完拆除</div>
+  <div id="stats"></div>
+  <div id="controls">
+    <button id="playBtn">暂停</button>
+    <button id="resetBtn">重来</button>
+    <label style="font-size:11px;color:#8b98b3">速度
+      <input id="speed" type="range" min="1" max="30" value="10">
+    </label>
+  </div>
+  <input id="timeline" type="range" min="0" max="100" value="0">
+  <div id="legend">
+    <span class="dot" style="background:#e8b04a"></span>目标建筑（石基环带 + 墙体 + 悬空屋顶）<br>
+    <span class="dot" style="background:#8b99b0"></span>脚手架（东、北两条楼梯，用完拆除）<br>
+    <span class="dot" style="background:#4a90d9"></span>机器人（顶上亮块 = 正在搬运）<br>
+    <span class="dot" style="background:#7bd88f"></span>料仓<br>
+    <a href="colonnade.html" style="color:#7ba7e8">→ 列柱神庙</a> ·
+    <a href="index.html" style="color:#7ba7e8">→ 金字塔</a> ·
+    <a href="scene.html" style="color:#7ba7e8">→ 吉萨</a> ·
+    <a href="bridge.html" style="color:#7ba7e8">→ 拱桥</a> ·
+    <a href="column.html" style="color:#7ba7e8">→ 柱子</a>
+  </div>
+</div>
+<script src="three.min.js"></script>
+<script src="plan_temple.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

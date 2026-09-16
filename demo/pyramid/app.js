@@ -1,0 +1,572 @@
+// Shared playback app. Expects global PLAN (plan.js / plan_column.js).
+try {
+window.addEventListener('error', (e) => {
+  const el = document.getElementById('stats');
+  if (el) el.textContent = 'JS 错误: ' + (e.error && e.error.stack
+    ? e.error.stack.split('\n').slice(0, 3).join(' | ')
+    : e.message + ' @' + e.filename + ':' + e.lineno);
+});
+const ROWS = PLAN.rows, COLS = PLAN.cols, T = PLAN.T;
+const CELL = 1.0, BLOCK_H = 0.62, AGENT_H = 0.46;
+const FLY = 0.55;
+
+// ---------------- scene ----------------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0e14);
+scene.fog = new THREE.Fog(0x0b0e14, 34, 90);
+
+const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, .1, 200);
+let renderer = null;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  document.body.appendChild(renderer.domElement);
+} catch (e) {
+  document.getElementById('stats').textContent = 'WebGL 不可用: ' + e.message;
+}
+
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x30281e, .55));
+const sun = new THREE.DirectionalLight(0xfff2dd, 1.05);
+sun.position.set(14, 22, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -16; sun.shadow.camera.right = 16;
+sun.shadow.camera.top = 16; sun.shadow.camera.bottom = -16;
+scene.add(sun);
+
+function cellXZ(r, c) { return [c - COLS / 2 + .5, r - ROWS / 2 + .5]; }
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(COLS * CELL + 8, ROWS * CELL + 8),
+  new THREE.MeshStandardMaterial({ color: 0x161c2b, roughness: .95 }));
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.01;
+ground.receiveShadow = true;
+scene.add(ground);
+
+function addTiles(cells, color) {
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: .85 });
+  for (const [r, c] of cells) {
+    const tile = new THREE.Mesh(new THREE.PlaneGeometry(CELL * .92, CELL * .92), mat);
+    tile.rotation.x = -Math.PI / 2;
+    const [x, z] = cellXZ(r, c);
+    tile.position.set(x, 0.002, z);
+    tile.receiveShadow = true;
+    scene.add(tile);
+  }
+}
+addTiles(PLAN.depot, 0x1f4d33);
+
+const gridHelper = new THREE.GridHelper(Math.max(ROWS, COLS) + 8, Math.max(ROWS, COLS) + 8, 0x25304a, 0x1b2436);
+gridHelper.position.y = 0.001;
+scene.add(gridHelper);
+
+// ---------------- terrain events ----------------
+// classify events by replaying: height up = place, down = remove
+const terrainEvents = PLAN.terrain.slice().sort((a, b) => a.t - b.t);
+{
+  const cur = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+  for (const ev of terrainEvents) {
+    ev.isPlace = ev.h > cur[ev.r][ev.c];
+    cur[ev.r][ev.c] = ev.h;
+  }
+}
+const placeEvents = terrainEvents.filter(ev => ev.isPlace);
+const removeEvents = terrainEvents.filter(ev => !ev.isPlace);
+// pair each removal with the latest matching placement (same cell, block height)
+for (const rem of removeEvents) {
+  for (let j = placeEvents.length - 1; j >= 0; j--) {
+    const pl = placeEvents[j];
+    if (pl.r === rem.r && pl.c === rem.c && pl.h === rem.h + 1 &&
+        pl.t <= rem.t && pl.removedAt === undefined) {
+      pl.removedAt = rem.t;
+      pl.removerAgent = rem.agent;
+      break;
+    }
+  }
+}
+
+const blockGeo = new THREE.BoxGeometry(CELL * .98, BLOCK_H, CELL * .98);
+const blockMats = [
+  new THREE.MeshStandardMaterial({ color: 0xe8b04a, roughness: .8 }),
+  new THREE.MeshStandardMaterial({ color: 0xdea23e, roughness: .8 }),
+  new THREE.MeshStandardMaterial({ color: 0xd39634, roughness: .8 }),
+  new THREE.MeshStandardMaterial({ color: 0xc98b2c, roughness: .8 }),
+  new THREE.MeshStandardMaterial({ color: 0xbf7f24, roughness: .8 }),
+  new THREE.MeshStandardMaterial({ color: 0xb5741d, roughness: .8 }),
+];
+// scaffold (temporary) blocks: cool steel gray, clearly distinct
+const scaffoldMats = [
+  new THREE.MeshStandardMaterial({ color: 0x9aa7bd, roughness: .6, metalness: .25 }),
+  new THREE.MeshStandardMaterial({ color: 0x8b99b0, roughness: .6, metalness: .25 }),
+  new THREE.MeshStandardMaterial({ color: 0x7d8ba3, roughness: .6, metalness: .25 }),
+  new THREE.MeshStandardMaterial({ color: 0x707e96, roughness: .6, metalness: .25 }),
+  new THREE.MeshStandardMaterial({ color: 0x64738b, roughness: .6, metalness: .25 }),
+];
+const edgeMat = new THREE.LineBasicMaterial({ color: 0x8a6420, transparent: true, opacity: .5 });
+const scaffoldEdgeMat = new THREE.LineBasicMaterial({ color: 0x46536b, transparent: true, opacity: .6 });
+const blockEdges = new THREE.EdgesGeometry(blockGeo);
+
+// optional per-cell colors (PLAN.colors: {"r,c": "#rrggbb"}) override the
+// default height palette for permanent (non-scaffold) blocks
+const colorMats = {};
+function cellMat(r, c, h) {
+  const hex = (PLAN.colors3 && PLAN.colors3[r + ',' + c + ',' + h])
+      || (PLAN.colors && PLAN.colors[r + ',' + c]);
+  if (!hex) return null;
+  if (!colorMats[hex]) {
+    colorMats[hex] = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: .75 });
+  }
+  return colorMats[hex];
+}
+
+function finalHeightAt(r, c) {
+  if (PLAN.final_heights) return PLAN.final_heights[r][c];
+  return Infinity; // no final map (pyramid): everything is target structure
+}
+
+const blockMeshes = placeEvents.map(ev => {
+  const g = new THREE.Group();
+  const scaffold = ev.h > finalHeightAt(ev.r, ev.c);
+  const mats = scaffold ? scaffoldMats : blockMats;
+  const custom = scaffold ? null : cellMat(ev.r, ev.c, ev.h);
+  const mesh = new THREE.Mesh(blockGeo, custom || mats[Math.min(ev.h - 1, mats.length - 1)]);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  g.add(mesh);
+  g.add(new THREE.LineSegments(blockEdges, scaffold ? scaffoldEdgeMat : edgeMat));
+  g.visible = false;
+  scene.add(g);
+  return g;
+});
+
+// viewer-only suspender drop lines (PLAN.meta.suspenders): thin vertical
+// rods from the deck level up to the cable block, appearing when the cable
+// block above them is placed
+const suspenderRods = [];
+if (PLAN.meta && PLAN.meta.suspenders) {
+  const rodMat = new THREE.MeshStandardMaterial({ color: 0xb03018, roughness: .6 });
+  for (const s of PLAN.meta.suspenders) {
+    const ev = placeEvents.find(e => e.r === s.r && e.c === s.c && e.h === s.top);
+    const len = (s.top - 1 - s.bot) * BLOCK_H;
+    if (!ev || len <= 0) continue;
+    const rod = new THREE.Mesh(new THREE.BoxGeometry(0.1, len, 0.1), rodMat);
+    const [x, z] = cellXZ(s.r, s.c);
+    rod.position.set(x, s.bot * BLOCK_H + len / 2, z);
+    rod.visible = false;
+    scene.add(rod);
+    suspenderRods.push({ rod, t: ev.t });
+  }
+}
+
+// viewer-only horizontal tower struts (PLAN.meta.struts): thin bars between
+// the two legs of a portal tower, appearing once both legs reach their z
+const strutBars = [];
+if (PLAN.meta && PLAN.meta.struts) {
+  const strutMat = new THREE.MeshStandardMaterial({ color: 0xe0482a, roughness: .7 });
+  for (const s of PLAN.meta.struts) {
+    const evA = placeEvents.find(e => e.r === s.r0 && e.c === s.c && e.h === s.z);
+    const evB = placeEvents.find(e => e.r === s.r1 && e.c === s.c && e.h === s.z);
+    if (!evA || !evB) continue;
+    const len = (s.r1 - s.r0) * CELL;
+    const thick = s.thick ? BLOCK_H * 1.0 : BLOCK_H * .5;
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(s.thick ? 0.9 : 0.24, thick, len + (s.thick ? 0.9 : 0)), strutMat);
+    const [xa, za] = cellXZ(s.r0, s.c);
+    const [, zb] = cellXZ(s.r1, s.c);
+    bar.position.set(xa, (s.z - 0.5) * BLOCK_H, (za + zb) / 2);
+    bar.visible = false;
+    scene.add(bar);
+    strutBars.push({ bar, t: Math.max(evA.t, evB.t) });
+  }
+}
+
+// height field over time (sequential replay), memoized per integer step
+let hfCacheT = -1, hfCache = null;
+function heightsAt(t) {
+  if (t === hfCacheT) return hfCache;
+  const h = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+  for (const ev of terrainEvents) {
+    if (ev.t <= t) h[ev.r][ev.c] = ev.h;
+  }
+  hfCacheT = t;
+  hfCache = h;
+  return h;
+}
+
+// ---------------- agents ----------------
+const agentColors = [0x4a90d9, 0x50c8b4, 0xd96a9c, 0x9a7ce8, 0x6ab04c, 0xe07b4f];
+const agents = PLAN.agents.map((a, i) => {
+  const g = new THREE.Group();
+  g.rotation.order = 'YXZ'; // yaw first, then pitch (lean follows facing)
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(CELL * .62, AGENT_H, CELL * .62),
+    new THREE.MeshStandardMaterial({ color: agentColors[i % agentColors.length], roughness: .5, metalness: .15 }));
+  body.castShadow = true;
+  body.position.y = AGENT_H / 2;
+  g.add(body);
+  const eye = new THREE.Mesh(
+    new THREE.BoxGeometry(CELL * .5, AGENT_H * .22, CELL * .12),
+    new THREE.MeshStandardMaterial({ color: 0x0b0e14, roughness: .3 }));
+  eye.position.set(0, AGENT_H * .68, CELL * .26);
+  g.add(eye);
+  const carriedDefaultMat = new THREE.MeshStandardMaterial({ color: 0xffcf6e, roughness: .7, emissive: 0x332200 });
+  const carried = new THREE.Mesh(
+    new THREE.BoxGeometry(CELL * .5, BLOCK_H * .55, CELL * .5),
+    carriedDefaultMat);
+  carried.castShadow = true;
+  carried.position.y = AGENT_H + BLOCK_H * .32;
+  g.add(carried);
+  scene.add(g);
+  return { group: g, carried, carriedDefaultMat, path: a.path, carry: a.carry, idx: i };
+});
+// terrain events indexed by acting agent, for facing/lean animation
+const actByAgent = agents.map(() => []);
+for (const ev of terrainEvents) if (ev.agent !== undefined) actByAgent[ev.agent].push(ev);
+// deposit times per agent (scrap hand-off at the depot)
+const depositsByAgent = agents.map(() => []);
+for (const d of (PLAN.deposits || [])) depositsByAgent[d.agent].push(d.t);
+
+// ---------------- playback state ----------------
+let simT = 0;
+let playing = true;
+let speed = 6;
+let lastStatsT = -1;
+const timeline = document.getElementById('timeline');
+timeline.max = T;
+const statsEl = document.getElementById('stats');
+
+function lerp(a, b, u) { return a + (b - a) * u; }
+
+function updateWorld(tf) {
+  const t0 = Math.floor(tf), u = tf - t0;
+  const h0 = heightsAt(t0);
+
+  // blocks: fly from placer on placement; fly to remover on removal
+  for (let i = 0; i < placeEvents.length; i++) {
+    const ev = placeEvents[i], g = blockMeshes[i];
+    const gone = ev.removedAt !== undefined && tf >= ev.removedAt + FLY;
+    if (tf < ev.t || gone) { g.visible = false; continue; }
+    g.visible = true;
+    const [tx, tz] = cellXZ(ev.r, ev.c);
+    const ty = (ev.h - 1) * BLOCK_H + BLOCK_H / 2;
+    g.rotation.y = 0;
+    if (ev.removedAt !== undefined && tf >= ev.removedAt) {
+      // removal flight: from resting place to the remover's head
+      const ra = PLAN.agents[ev.removerAgent];
+      const rp = ra.path[Math.min(ev.removedAt, ra.path.length - 1)];
+      const [fx, fz] = cellXZ(rp[0], rp[1]);
+      const fy = (ev.h - 1) * BLOCK_H + AGENT_H + BLOCK_H * 0.32;
+      const k = (tf - ev.removedAt) / FLY;
+      const s = k * k * (3 - 2 * k);
+      g.position.set(lerp(tx, fx, s), lerp(ty, fy, s) + Math.sin(Math.PI * s) * 0.24, lerp(tz, fz, s));
+      g.scale.setScalar(1 - 0.45 * s);
+      continue;
+    }
+    const age = tf - ev.t;
+    const from = (ev.agent !== undefined) ? PLAN.agents[ev.agent].path[Math.min(ev.t, PLAN.agents[ev.agent].path.length - 1)] : null;
+    if (age < FLY && from) {
+      const [fx, fz] = cellXZ(from[0], from[1]);
+      const fy = h0[from[0]][from[1]] * BLOCK_H + AGENT_H + BLOCK_H * 0.32;
+      const k = age / FLY;
+      const s = k * k * (3 - 2 * k);
+      g.position.set(lerp(fx, tx, s), lerp(fy, ty, s) + Math.sin(Math.PI * s) * 0.28, lerp(fz, tz, s));
+      g.scale.setScalar(0.55 + 0.45 * s);
+      g.rotation.y = (1 - s) * 0.8;
+    } else {
+      g.position.set(tx, ty, tz);
+      g.scale.setScalar(1);
+    }
+  }
+
+  // agents
+  for (const s of suspenderRods) s.rod.visible = tf >= s.t + FLY;
+  for (const s of strutBars) s.bar.visible = tf >= s.t + FLY;
+  let carryingCount = 0;
+  for (const a of agents) {
+    const p0 = a.path[Math.min(t0, a.path.length - 1)];
+    const p1 = a.path[Math.min(t0 + 1, a.path.length - 1)];
+    const [x0, z0] = cellXZ(p0[0], p0[1]);
+    const [x1, z1] = cellXZ(p1[0], p1[1]);
+    const y0 = h0[p0[0]][p0[1]] * BLOCK_H;
+    const y1 = h0[p1[0]][p1[1]] * BLOCK_H;
+    let px, py, pz, squash = 1;
+    if (Math.abs(y1 - y0) > 1e-6) {
+      if (u < 0.25) {
+        const k = u / 0.25;
+        px = x0; pz = z0; py = y0;
+        squash = 1 - 0.22 * k;
+      } else if (u < 0.85) {
+        const k = (u - 0.25) / 0.6;
+        px = lerp(x0, x1, k); pz = lerp(z0, z1, k);
+        py = lerp(y0, y1, k) + Math.sin(Math.PI * k) * BLOCK_H * 0.55;
+        squash = 1 + 0.12 * Math.sin(Math.PI * k);
+      } else {
+        const k = (u - 0.85) / 0.15;
+        px = x1; pz = z1; py = y1;
+        squash = 1 - 0.18 * Math.sin(Math.PI * k);
+      }
+    } else {
+      px = lerp(x0, x1, u); py = lerp(y0, y1, u); pz = lerp(z0, z1, u);
+      if (x1 !== x0 || z1 !== z0) py += Math.abs(Math.sin(Math.PI * u)) * 0.035;
+    }
+    a.group.position.set(px, py, pz);
+    a.group.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
+    if (x1 !== x0 || z1 !== z0) a.group.rotation.y = Math.atan2(x1 - x0, z1 - z0);
+    // face + lean toward the acted cell around pick-from-terrain/placement
+    a.group.rotation.x = 0;
+    let hideCarried = false;
+    for (const ev of actByAgent[a.idx]) {
+      const rel = tf - (ev.t - 0.35);
+      if (rel >= 0 && rel <= 0.35 + FLY) {
+        const [tx, tz] = cellXZ(ev.r, ev.c);
+        a.group.rotation.y = Math.atan2(tx - px, tz - pz);
+        a.group.rotation.x = 0.28 * Math.sin(Math.PI * rel / (0.35 + FLY));
+        if (!ev.isPlace && tf >= ev.t && tf < ev.t + FLY) hideCarried = true;
+        break;
+      }
+    }
+    const c = a.carry[Math.min(t0, a.carry.length - 1)] === 1;
+    a.carried.visible = c && !hideCarried;
+    if (c) {
+      // color the carried block by its destiny: the agent's next placement
+      // gets that block's final color; scrap from a removal stays steel gray
+      let prevEv = null, nextEv = null;
+      for (const ev of actByAgent[a.idx]) {
+        if (ev.t <= tf) prevEv = ev; else { nextEv = ev; break; }
+      }
+      let mat = null;
+      const deposits = depositsByAgent[a.idx] || [];
+      const scrapped = prevEv && !prevEv.isPlace &&
+        !deposits.some(dt => dt > prevEv.t && dt <= tf);
+      if (scrapped) {
+        mat = scaffoldMats[0];
+      } else if (nextEv && nextEv.isPlace) {
+        const sc = nextEv.h > finalHeightAt(nextEv.r, nextEv.c);
+        mat = sc ? scaffoldMats[0] : cellMat(nextEv.r, nextEv.c, nextEv.h);
+      }
+      a.carried.material = mat || a.carriedDefaultMat;
+      carryingCount++;
+    }
+  }
+
+  // stats: rewrite DOM only when the displayed step changes (per-frame
+  // innerHTML rewrites cause constant reflow and visible stutter)
+  if (t0 !== lastStatsT) {
+    lastStatsT = t0;
+    let placed = 0, removed = 0;
+    for (const ev of placeEvents) if (ev.t <= tf) placed++;
+    for (const ev of removeEvents) if (ev.t <= tf) removed++;
+    const extra = (PLAN.meta && PLAN.meta.statsLine)
+      ? PLAN.meta.statsLine
+      : (PLAN.pyramid ? `金字塔 ${PLAN.pyramid.base}×${PLAN.pyramid.base} 底座 · ${PLAN.pyramid.levels} 层` : '');
+    statsEl.innerHTML = (lang === 'zh')
+      ? `时间步 <b>${t0}</b> / ${T} &nbsp;·&nbsp; 结构中 <b>${placed - removed}</b> 块` +
+        ` (放 ${placed} / 拆 ${removed})` +
+        `<br>机器人 ${agents.length} 台，搬运中 ${carryingCount} 台` +
+        (extra ? `<br>${extra}` : '')
+      : `Step <b>${t0}</b> / ${T} &nbsp;·&nbsp; <b>${placed - removed}</b> blocks in structure` +
+        ` (${placed} placed / ${removed} removed)` +
+        `<br>${agents.length} robots, ${carryingCount} carrying`;
+    timeline.value = t0;
+  }
+}
+
+// ---------------- camera orbit ----------------
+let camTheta = 0.9, camPhi = 0.42, camDist = Math.max(26, Math.max(ROWS, COLS) * 1.35);
+let dragging = false, lastX = 0, lastY = 0;
+if (renderer) {
+  renderer.domElement.addEventListener('mousedown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+  renderer.domElement.addEventListener('wheel', e => {
+    camDist = Math.min(60, Math.max(9, camDist + e.deltaY * 0.02));
+  }, { passive: true });
+}
+addEventListener('mouseup', () => dragging = false);
+addEventListener('mousemove', e => {
+  if (!dragging) return;
+  camTheta -= (e.clientX - lastX) * 0.005;
+  camPhi = Math.min(1.35, Math.max(0.12, camPhi + (e.clientY - lastY) * 0.004));
+  lastX = e.clientX; lastY = e.clientY;
+});
+
+function updateCamera(dt) {
+  if (!dragging) camTheta += dt * 0.03;
+  camera.position.set(
+    camDist * Math.cos(camPhi) * Math.sin(camTheta),
+    camDist * Math.sin(camPhi),
+    camDist * Math.cos(camPhi) * Math.cos(camTheta));
+  camera.lookAt(0, 1.2, 0);
+}
+
+// ---------------- controls ----------------
+const playBtn = document.getElementById('playBtn');
+playBtn.onclick = () => {
+  playing = !playing;
+  playBtn.textContent = lang === 'zh' ? (playing ? '暂停' : '播放')
+                                      : (playing ? 'Pause' : 'Play');
+};
+document.getElementById('resetBtn').onclick = () => { simT = 0; };
+document.getElementById('speed').oninput = e => { speed = +e.target.value; };
+timeline.oninput = e => { simT = +e.target.value; };
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  if (renderer) renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------------- HUD extras: scene nav, collapse, EN/中 toggle ----------
+const SCENES = [
+  ['index.html', '金字塔', 'Pyramid'],
+  ['column.html', '柱子', 'Column'],
+  ['bridge.html', '拱桥', 'Arch Bridge'],
+  ['temple.html', '神庙', 'Temple'],
+  ['colonnade.html', '柱廊神庙', 'Colonnade'],
+  ['scene.html', '吉萨工地', 'Giza Site'],
+  ['horse.html', '木马', 'Trojan Horse'],
+  ['goldengate.html', '金门大桥', 'Golden Gate'],
+  ['uscgate.html', 'USC 校门', 'USC Gate'],
+  ['symbot.html', 'SymBot 小车', 'SymBot'],
+  ['tommy.html', 'Tommy Trojan', 'Tommy Trojan'],
+];
+let lang = localStorage.getItem('demoLang') || 'zh';
+// per-page English copy: [h1, sub, legend lines (dot colors reused in order)]
+const PAGE_EN = {
+  'index.html': ['Multi-Robot Pyramid Construction',
+    'Offline LaCAM-TAPF planning · layer by layer, inside-out · moves limited to |Δh| ≤ 1',
+    ['Sandstone blocks (pyramid)', 'Robots (bright cap = carrying)', 'Depot (block pickup)']],
+  'column.html': ['Column + Scaffold Stair',
+    'Build the stair → raise the column → cap it → strip the stair back to the depot',
+    ['Structure (column)', 'Scaffold (temporary stair, removed)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
+  'bridge.html': ['Twin-Tower Arch Bridge · Suspended Erection',
+    'Minecraft-style side placement: cantilever the deck out from both ends, then strip the stairs',
+    ['Structure (towers + floating deck)', 'Scaffold (stairs, removed)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
+  'temple.html': ['Temple: Base, Walls, Floating Roof',
+    'Wall waves converge · roof cantilevered over the courtyard · both stairs stripped afterwards',
+    ['Structure (base ring + walls + roof)', 'Scaffold (east & north stairs, removed)', 'Robots (bright cap = carrying)', 'Depot']],
+  'colonnade.html': ['Colonnade Temple · 14 Pillars, Floating Roof',
+    'Ring scaffold wall and pillars grow hand-in-hand · roof closes by cantilever · wall stripped to the base',
+    ['Structure (pillars + roof + base ring)', 'Scaffold (ring wall + stairs, removed)', 'Robots (bright cap = carrying)', 'Depot']],
+  'scene.html': ['Giza Site: Two Pyramids + Obelisk',
+    '10 robots on site · pyramids self-ramping · the obelisk gets a stair, stripped afterwards',
+    ['Structure (pyramids + obelisk)', 'Scaffold (obelisk stair)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
+  'horse.html': ['Trojan Horse',
+    'Four leg columns · floating belly (hollow below) · stepped neck · cantilevered head · ring scaffold fully stripped',
+    ['Horse (legs, belly, neck, head)', 'Scaffold (ring wall + 4 stairs, removed)', 'Robots (bright cap = carrying)', 'Depot']],
+  'goldengate.html': ['Golden Gate Bridge',
+    'Portal towers (h16), catenary cables with suspenders, through deck, both-shore depots; work walls stripped afterwards',
+    ['Structure (towers + deck + cables, international orange)', 'Scaffold (work walls + pockets, removed)', 'Robots (bright cap = carrying)', 'Depot (both shores)']],
+  'uscgate.html': ['USC Gate · Cardinal & Gold',
+    'Two cardinal brick pillars + gold lintel, gold USC inlay on the plaza',
+    ['Structure (gate + USC ground inlay)', 'Scaffold (stairs, removed)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
+  'tommy.html': ['Tommy Trojan · USC Warrior Statue',
+    'Raising the Sword of Knowledge, holding the Shield of Courage; the blade is an ascending float chain erected from a scaffold wall, stripped afterwards',
+    ['Statue (pedestal + warrior + sword & shield)', 'Scaffold (stair-wall, removed)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
+  'symbot.html': ['SymBot · Symbotic-style Case Bot',
+    'Low-slung green body, black wheel pods, dark sensor nose, orange case payload',
+    ['Structure (the bot)', 'Scaffold (removed)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
+};
+const hud = document.getElementById('hud');
+if (hud) {
+  const here = location.pathname.split('/').pop() || 'index.html';
+  const h1el = hud.querySelector('h1');
+  const subEl = hud.querySelector('.sub');
+  const legendEl = document.getElementById('legend');
+  const zh = {
+    h1: h1el ? h1el.textContent : '',
+    sub: subEl ? subEl.textContent : '',
+    legend: legendEl ? legendEl.innerHTML : '',
+  };
+  const dots = zh.legend
+    ? Array.from(zh.legend.matchAll(/<span class="dot"[^>]*><\/span>/g), m => m[0])
+    : [];
+  const renderCopy = () => {
+    const en = PAGE_EN[here];
+    if (lang === 'en' && en) {
+      if (h1el) h1el.textContent = en[0];
+      if (subEl) subEl.textContent = en[1];
+      if (legendEl) {
+        legendEl.innerHTML = en[2].map((t, i) => (dots[i] || '') + t).join('<br>');
+      }
+      hud.dataset.minititle = en[0];
+    } else {
+      if (h1el) h1el.textContent = zh.h1;
+      if (subEl) subEl.textContent = zh.sub;
+      if (legendEl) legendEl.innerHTML = zh.legend;
+      hud.dataset.minititle = zh.h1;
+    }
+  };
+  hud.dataset.minititle = h1el ? h1el.textContent : 'demo';
+  const bar = document.createElement('div');
+  bar.id = 'hudbar';
+  const langBtn = document.createElement('button');
+  const collBtn = document.createElement('button');
+  bar.appendChild(langBtn);
+  bar.appendChild(collBtn);
+  hud.appendChild(bar);
+  const nav = document.createElement('div');
+  nav.id = 'scenenav';
+  hud.appendChild(nav);
+  const renderNav = () => {
+    nav.innerHTML = '<b style="color:#8b98b3">' +
+      (lang === 'zh' ? '所有场景：' : 'All scenes: ') + '</b>' +
+      SCENES.map(([f, zh, en]) =>
+        `<a href="${f}" class="${f === here ? 'cur' : ''}">${lang === 'zh' ? zh : en}</a>`
+      ).join('');
+  };
+  const renderBar = () => {
+    langBtn.textContent = lang === 'zh' ? 'EN' : '中';
+    collBtn.textContent = hud.classList.contains('collapsed')
+      ? (lang === 'zh' ? '展开' : 'Show')
+      : (lang === 'zh' ? '隐藏' : 'Hide');
+    playBtn.textContent = lang === 'zh' ? (playing ? '暂停' : '播放')
+                                        : (playing ? 'Pause' : 'Play');
+    const rb = document.getElementById('resetBtn');
+    if (rb) rb.textContent = lang === 'zh' ? '重来' : 'Reset';
+    const sl = document.querySelector('#controls label');
+    if (sl && sl.firstChild) sl.firstChild.textContent = lang === 'zh' ? '速度 ' : 'Speed ';
+  };
+  langBtn.onclick = () => {
+    lang = lang === 'zh' ? 'en' : 'zh';
+    localStorage.setItem('demoLang', lang);
+    renderNav();
+    renderBar();
+    renderCopy();
+    lastStatsT = -1;  // force the stats line to re-render in the new language
+  };
+  collBtn.onclick = () => {
+    hud.classList.toggle('collapsed');
+    renderBar();
+  };
+  renderNav();
+  renderBar();
+  renderCopy();
+}
+
+// ---------------- main loop ----------------
+let prev = performance.now();
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min((now - prev) / 1000, 0.1);
+  prev = now;
+  if (playing) {
+    simT += dt * speed;
+    if (simT >= T) simT = T;
+  }
+  updateWorld(simT);
+  updateCamera(dt);
+  if (renderer) {
+    try {
+      renderer.render(scene, camera);
+    } catch (e) {
+      renderer = null;  // software GL failed: keep HUD playback alive
+    }
+  }
+}
+requestAnimationFrame(animate);
+
+} catch (__e) {
+  const el = document.getElementById('stats');
+  if (el) el.textContent = '启动错误: ' + __e.message + ' :: ' + (__e.stack || '').split('\n').slice(0,2).join(' | ');
+}

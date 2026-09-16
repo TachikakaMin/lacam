@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>LaCAM-TAPF · 特洛伊木马</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="hud">
+  <h1>特洛伊木马</h1>
+  <div class="sub">四腿立柱 · 悬空马腹（下方镂空）· 阶梯马颈 · 悬挑马头 · 环形脚手架建完拆净</div>
+  <div id="stats"></div>
+  <div id="controls">
+    <button id="playBtn">暂停</button>
+    <button id="resetBtn">重来</button>
+    <label style="font-size:11px;color:#8b98b3">速度
+      <input id="speed" type="range" min="1" max="60" value="20">
+    </label>
+  </div>
+  <input id="timeline" type="range" min="0" max="100" value="0">
+  <div id="legend">
+    <span class="dot" style="background:#e8b04a"></span>木马本体（腿、腹、颈、头）<br>
+    <span class="dot" style="background:#8b99b0"></span>脚手架（环墙 + 四条楼梯，用完拆除）<br>
+    <span class="dot" style="background:#4a90d9"></span>机器人（顶上亮块 = 正在搬运）<br>
+    <span class="dot" style="background:#7bd88f"></span>料仓<br>
+    <a href="colonnade.html" style="color:#7ba7e8">→ 列柱神庙</a> ·
+    <a href="temple.html" style="color:#7ba7e8">→ 神庙</a> ·
+    <a href="bridge.html" style="color:#7ba7e8">→ 拱桥</a> ·
+    <a href="scene.html" style="color:#7ba7e8">→ 吉萨</a> ·
+    <a href="index.html" style="color:#7ba7e8">→ 金字塔</a>
+  </div>
+</div>
+<script src="three.min.js"></script>
+<script src="plan_horse.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

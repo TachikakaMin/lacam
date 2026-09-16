@@ -34,6 +34,10 @@ struct TAPFInstance {
     std::string map_filename;
     std::vector<int> start_indexes;
     std::vector<std::vector<int> > task_indexes;
+    std::vector<std::vector<int> > task_costs;  // optional, aligned with
+                                                // task_indexes (default 0)
+    std::vector<int> height_by_index;  // optional terrain, indexed by grid cell
+    int climb_cost = 1;
   };
 
   static YamlData load_yaml(const std::string& yaml_filename,
@@ -45,11 +49,17 @@ struct TAPFInstance {
   Config starts;  // initial configuration
   Config tasks;   // unique task/goal locations
   std::vector<std::vector<bool> > allowed;  // agent-task compatibility
+  std::vector<std::vector<int> > goal_cost;  // per agent-task assignment cost
+                                             // offset (0: distance only)
   const uint N;                           // number of agents
+  std::vector<int> height_by_index;  // optional terrain heights (empty: flat)
+  int climb_cost = 1;  // heuristic cost of a +-1 height move (1: uniform)
 
   TAPFInstance(const std::string& map_filename,
                const std::vector<int>& start_indexes,
-               const std::vector<std::vector<int> >& task_indexes);
+               const std::vector<std::vector<int> >& task_indexes,
+               const std::vector<std::vector<int> >& task_costs =
+                   std::vector<std::vector<int> >());
   TAPFInstance(const std::string& yaml_filename,
                const std::string& map_dir = "");
   ~TAPFInstance() {}

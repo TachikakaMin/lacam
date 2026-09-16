@@ -2,7 +2,13 @@
 #include <iostream>
 #include <lacam.hpp>
 #include <cstdint>
+#if __has_include(<filesystem>)
 #include <filesystem>
+namespace fs_compat = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs_compat = std::experimental::filesystem;
+#endif
 #include <tuple>
 #include <vector>
 
@@ -145,7 +151,7 @@ namespace
 
   std::string binary_schedule_metadata_path(const std::string& binary_path)
   {
-    return std::filesystem::path(binary_path).filename().string();
+    return fs_compat::path(binary_path).filename().string();
   }
 
   void write_schedule_binary(const TAPFInstance& ins, const Solution& solution,

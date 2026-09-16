@@ -76,3 +76,54 @@ TEST(tapf_planner, solve_ita_cbs_yaml_fixture)
   auto solution = solve_tapf(ins);
   ASSERT_TRUE(is_tapf_feasible_solution(ins, solution));
 }
+
+TEST(tapf_planner, goal_cost_offsets_steer_assignment)
+{
+  const auto map_filename = "./assets/empty-8-8.map";
+  // two agents, one shared task at (0,2); each agent also offers its own
+  // start cell as a high-cost hold goal
+  const auto starts = std::vector<int>{8 * 0 + 0, 8 * 0 + 3};
+  const auto tasks = std::vector<std::vector<int> >{
+      {8 * 0 + 2, 8 * 0 + 0},
+      {8 * 0 + 2, 8 * 0 + 3},
+  };
+  const auto costs = std::vector<std::vector<int> >{
+      {0, 10000},
+      {0, 10000},
+  };
+  const auto ins = TAPFInstance(map_filename, starts, tasks, costs);
+  ASSERT_TRUE(ins.is_valid());
+
+  auto D = TAPFDistTable(ins);
+  const auto res = assign_tapf_tasks(ins, D, ins.starts);
+  ASSERT_TRUE(res.feasible);
+  // nearest agent (a1, dist 1) takes the shared task; a0 holds
+  const auto task_a0 = res.agent_to_task[0];
+  const auto task_a1 = res.agent_to_task[1];
+  ASSERT_EQ(ins.tasks[task_a1], ins.G.U[8 * 0 + 2]);
+  ASSERT_EQ(ins.tasks[task_a0], ins.G.U[8 * 0 + 0]);
+
+  // the planner must terminate with agents on that optimal matching
+  const auto solution = solve_tapf(ins, 0, nullptr, nullptr, 0, nullptr,
+                                   /*anytime=*/false);
+  ASSERT_TRUE(is_tapf_feasible_solution(ins, solution));
+  ASSERT_EQ(solution.back()[1], ins.G.U[8 * 0 + 2]);
+  ASSERT_EQ(solution.back()[0], ins.G.U[8 * 0 + 0]);
+
+  // biasing the shared task against a1 flips the assignment to a0
+  const auto biased_costs = std::vector<std::vector<int> >{
+      {0, 10000},
+      {10000, 0},
+  };
+  const auto ins2 = TAPFInstance(map_filename, starts, tasks, biased_costs);
+  auto D2 = TAPFDistTable(ins2);
+  const auto res2 = assign_tapf_tasks(ins2, D2, ins2.starts);
+  ASSERT_TRUE(res2.feasible);
+  ASSERT_EQ(ins2.tasks[res2.agent_to_task[0]], ins2.G.U[8 * 0 + 2]);
+  ASSERT_EQ(ins2.tasks[res2.agent_to_task[1]], ins2.G.U[8 * 0 + 3]);
+  const auto solution2 = solve_tapf(ins2, 0, nullptr, nullptr, 0, nullptr,
+                                    /*anytime=*/false);
+  ASSERT_TRUE(is_tapf_feasible_solution(ins2, solution2));
+  ASSERT_EQ(solution2.back()[0], ins2.G.U[8 * 0 + 2]);
+  ASSERT_EQ(solution2.back()[1], ins2.G.U[8 * 0 + 3]);
+}

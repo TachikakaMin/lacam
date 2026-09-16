@@ -283,7 +283,7 @@ Solution TAPFPlanner::solve()
       continue;
     }
 
-    if (is_goal_config(S->C)) {
+    if (is_goal_config(S->C, S->assignment)) {
       if (S_goal == nullptr || S->g < S_goal->g) {
         if (stats != nullptr) {
           ++stats->incumbent_updates;
@@ -482,8 +482,62 @@ unsigned TAPFPlanner::get_h_value(const Config& C)
   return cost;
 }
 
+bool TAPFPlanner::has_goal_cost() const
+{
+  for (const auto& row : ins->goal_cost) {
+    for (const auto c : row) {
+      if (c != 0) return true;
+    }
+  }
+  return false;
+}
+
+bool TAPFPlanner::is_goal_config(const Config& C,
+                                 const std::vector<int>& assignment)
+{
+  // with per-goal cost offsets: offsets >= the hold threshold mark fallback
+  // ("hold") goals.  a standing perfect matching terminates unless some
+  // agent rests on a hold goal while a REAL task it is allowed to take is
+  // still unmatched ("no lazy agent while work is available").  small
+  // offsets (priority / stickiness) never block termination.
+  constexpr int kHoldCostThreshold = 5000;
+  (void)assignment;
+  if (!has_goal_cost()) return is_goal_config(C);
+
+  auto offset = [&](const size_t i, const size_t j) -> int {
+    if (i < ins->goal_cost.size() && j < ins->goal_cost[i].size()) {
+      return ins->goal_cost[i][j];
+    }
+    return 0;
+  };
+
+  // the standing matching is unique: tasks are deduplicated by vertex
+  auto used = std::vector<bool>(ins->tasks.size(), false);
+  auto standing = std::vector<int>(ins->N, -1);
+  for (size_t i = 0; i < ins->N; ++i) {
+    for (size_t j = 0; j < ins->tasks.size(); ++j) {
+      if (used[j] || !ins->allowed[i][j] || C[i] != ins->tasks[j]) continue;
+      used[j] = true;
+      standing[i] = j;
+      break;
+    }
+    if (standing[i] < 0) return false;
+  }
+  for (size_t i = 0; i < ins->N; ++i) {
+    if (offset(i, standing[i]) < kHoldCostThreshold) continue;  // working
+    for (size_t j = 0; j < ins->tasks.size(); ++j) {
+      if (!used[j] && ins->allowed[i][j] &&
+          offset(i, j) < kHoldCostThreshold) {
+        return false;  // lazy: rests on hold although real work is open
+      }
+    }
+  }
+  return true;
+}
+
 bool TAPFPlanner::is_goal_config(const Config& C) const
 {
+  // fallback (no assignment available): any perfect matching
   auto used = std::vector<bool>(ins->tasks.size(), false);
   for (size_t i = 0; i < ins->N; ++i) {
     auto matched = false;

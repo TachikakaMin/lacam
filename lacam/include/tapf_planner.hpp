@@ -124,6 +124,8 @@ struct TAPFPlanner {
               TAPFSearchConfig _search_config = TAPFSearchConfig());
   Solution solve();
   bool is_goal_config(const Config& C) const;
+  bool is_goal_config(const Config& C, const std::vector<int>& assignment);
+  bool has_goal_cost() const;
   bool get_new_config(TAPFNode* S, TAPFConstraint* M);
   void rewrite(TAPFNode* from, TAPFNode* to, TAPFNode* goal,
                std::vector<TAPFNode*>& OPEN);

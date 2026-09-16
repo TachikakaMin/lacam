@@ -120,6 +120,9 @@ std::vector<std::vector<int> > build_cost_matrix(
       auto d = D.get(j, C[i]);
       if (d >= D.K) continue;
       cost[i][j] = d;
+      if (i < ins.goal_cost.size() && j < ins.goal_cost[i].size()) {
+        cost[i][j] += ins.goal_cost[i][j];
+      }
       if (!previous_assignment.empty() &&
           previous_assignment[i] != static_cast<int>(j)) {
         cost[i][j] += sticky_penalty;
@@ -174,6 +177,10 @@ TAPFAssignmentResult assign_tapf_tasks_dynamic(
     if (!ins.allowed[i][j]) return kTapfAssignmentInfCost;
     auto d = D.get(j, C[i]);
     if (d >= D.K) return kTapfAssignmentInfCost;
+    if (i < static_cast<int>(ins.goal_cost.size()) &&
+        j < static_cast<int>(ins.goal_cost[i].size())) {
+      d += ins.goal_cost[i][j];
+    }
     return d;
   };
 
