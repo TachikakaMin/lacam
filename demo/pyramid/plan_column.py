@@ -74,14 +74,17 @@ INF = 10 ** 9
 CLIMB_COST = 2
 # assignment cost offsets (solver distance units; step=1, climb=CLIMB_COST)
 HOLD_COST = 10000   # hold-as-goal: feasibility fallback, avoided if possible
-STICKY_BONUS = int(os.environ.get("STICKY_BONUS", "6"))  # non-prev goals cost extra
+STICKY_BONUS = int(os.environ.get("STICKY_BONUS", "0"))  # 0 = auto per scene
 PRIO_W = 3          # weight per missing urgency level (deeper chain = cheaper)
 # work dir policy: 0 = reuse a single "current" dir; N>0 = keep last N rounds
 KEEP_ROUNDS = int(os.environ.get("KEEP_ROUNDS", "0"))
 # parallelism knobs: auto passing pockets on long scaffold corridors, and the
 # single-file task-segment length on those corridors
 AUTO_POCKETS = os.environ.get("AUTO_POCKETS", "1") != "0"
-AUTO_POCKET_EVERY = int(os.environ.get("AUTO_POCKET_EVERY", "8"))
+AUTO_POCKET_EVERY = int(os.environ.get("AUTO_POCKET_EVERY", "0"))  # 0 = auto
+SCAFFOLD_MIN = int(os.environ.get("SCAFFOLD_MIN", "12"))
+AUTO_POCKET_MODE = os.environ.get("AUTO_POCKET_MODE", "")  # "" = auto
+AUTO_POCKET_EVERY_SET = "AUTO_POCKET_EVERY" in os.environ
 SCAFFOLD_SEG = int(os.environ.get("SCAFFOLD_SEG", "4"))
 # small-experiment budget: stop after N wall seconds and report partial
 # throughput (actions per timestep) instead of failing
@@ -502,10 +505,14 @@ def configure_goldengate() -> None:
     # delivery stair per leg pair (every block trip must re-board the top),
     # which is ~60 scaffold blocks instead of ~700 for the old walls.
     wall_cells = []
-    for sr in (6, 12):
+    stair_rows = (6, 12) if os.environ.get("GG_DOUBLE_STAIRS", "0") == "0" \
+        else (6, 12, 5, 13)
+    for sr in stair_rows:
         for lg_c, dc in ((16, -1), (35, 1)):
             for j in range(TOWER_H - 1):
                 cell = (sr, lg_c + dc * j)
+                if cell in T_BUILD:
+                    continue
                 T_BUILD[cell] = TOWER_H - 1 - j
                 wall_cells.append(cell)
     RAMPS = [wall_cells]
@@ -513,8 +520,6 @@ def configure_goldengate() -> None:
     LINE_CELLS = set(SCAFFOLD_CELLS) | set(legs)
     COL_CELL, COL_H = legs[0], TOWER_H
 
-    global POCKET_EVERY_HINT
-    POCKET_EVERY_HINT = 4  # 16 agents on two long walls: dense sidings
     n_gg = int(os.environ.get("GG_AGENTS", "16"))
     half = max(2, n_gg // 2)
     DEPOT = [(r, 0) for r in range(2, 2 + min(half, 14))] + \
@@ -991,7 +996,8 @@ def main() -> int:
         blocked = set(T_BUILD) | set(DEPOT) | set(AGENT_STARTS) | FORBIDDEN_CELLS
         seen: set = set()
         added = 0
-        every = POCKET_EVERY_HINT or AUTO_POCKET_EVERY
+        every = (AUTO_POCKET_EVERY if AUTO_POCKET_EVERY_SET
+                 else (POCKET_EVERY_HINT or AUTO_POCKET_EVERY))
         for cell in scaffold0:
             if cell in seen:
                 continue
@@ -1006,7 +1012,7 @@ def main() -> int:
                     if nb in sset and nb not in seen:
                         seen.add(nb)
                         comp.append(nb)
-            if len(comp) < 12:
+            if len(comp) < SCAFFOLD_MIN:
                 continue  # short stairs stay as-is
             # 2-core pruning: cells on cycles have two ways around and need
             # no pockets; only tree-like corridor cells (spurs, open walls)
@@ -1044,7 +1050,7 @@ def main() -> int:
                     continue
                 if cur in core:
                     continue  # on a cycle: two ways around, no pocket needed
-                z = T_BUILD[cur] - 1
+                z = T_BUILD[cur] - (0 if AUTO_POCKET_MODE == "flat" else 1)
                 if z < 1:
                     continue
                 for dr, dc in NBRS:
@@ -1062,6 +1068,42 @@ def main() -> int:
                     break
         if added:
             print(f"auto-pockets: added {added} passing cells", flush=True)
+
+    # adaptive corridor policy (research result): HEAVY-TRAFFIC corridors
+    # (long single-file scaffold AND >=12 agents) get dense same-level
+    # landings (flat, every 2) plus strong stickiness 12 - the landings make
+    # strong stickiness safe, and together they cut shuffling (rev% 17->9 on
+    # goldengate). Light scenes get sparse step pockets (every 8) and mild
+    # stickiness 6 (dense pockets and strong stickiness both HURT there).
+    global STICKY_BONUS, AUTO_POCKET_MODE, AUTO_POCKET_EVERY
+    scaffold_all = [c for c, t in T_BUILD.items() if t > T_FINAL.get(c, 0)]
+    sset_ = set(scaffold_all)
+    long_corridor = False
+    seen_ = set()
+    for cell in scaffold_all:
+        if cell in seen_:
+            continue
+        comp_ = [cell]
+        seen_.add(cell)
+        qi_ = 0
+        while qi_ < len(comp_):
+            cur_ = comp_[qi_]
+            qi_ += 1
+            for dr, dc in NBRS:
+                nb_ = (cur_[0] + dr, cur_[1] + dc)
+                if nb_ in sset_ and nb_ not in seen_:
+                    seen_.add(nb_)
+                    comp_.append(nb_)
+        if len(comp_) >= SCAFFOLD_MIN:
+            long_corridor = True
+            break
+    heavy = long_corridor and len(AGENT_STARTS) >= 12
+    if STICKY_BONUS == 0:
+        STICKY_BONUS = 12 if heavy else 6
+    if not AUTO_POCKET_MODE:
+        AUTO_POCKET_MODE = "flat" if heavy else "step"
+    if AUTO_POCKET_EVERY == 0:
+        AUTO_POCKET_EVERY = 2 if heavy else 8
 
     if AUTO_POCKETS:
         add_auto_pockets()
@@ -1514,7 +1556,7 @@ def main() -> int:
             # pure chains support one worker per passing pocket plus one
             seg_idx: Dict[Coord, int] = {}
             for g, members in comp_cells.items():
-                if comp_size[g] < 12:
+                if comp_size[g] < SCAFFOLD_MIN:
                     continue  # short stairs: no single-file restriction
                 deg = {x: sum(1 for dr, dc in NBRS
                               if comp_id.get((x[0] + dr, x[1] + dc)) == g)
@@ -1549,7 +1591,7 @@ def main() -> int:
                             order_q.append(nb)
             best: Dict[Tuple[int, int], Tuple[tuple, Coord]] = {}
             for n, tsk in cell2task.items():
-                if n in scaffold_set and comp_size[comp_id[n]] >= 12:
+                if n in scaffold_set and comp_size[comp_id[n]] >= SCAFFOLD_MIN:
                     key = (comp_id[n], seg_idx.get(n, 0))
                     if key not in best or sel_key(tsk) < best[key][0]:
                         best[key] = (sel_key(tsk), n)
@@ -1565,7 +1607,7 @@ def main() -> int:
             keep = {v[1] for v in best.values()}
 
             def allowed_stand(n: Coord) -> bool:
-                if n not in scaffold_set or comp_size[comp_id[n]] < 12:
+                if n not in scaffold_set or comp_size[comp_id[n]] < SCAFFOLD_MIN:
                     return True  # short stairs: no single-file restriction
                 return n in keep
 
