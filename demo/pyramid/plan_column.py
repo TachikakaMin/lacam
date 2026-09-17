@@ -257,7 +257,8 @@ def configure_temple() -> None:
     SCAFFOLD_CELLS = list(ramp_e) + list(ramp_n)
     LINE_CELLS = set(walls) | set(band) | set(ramp_e) | set(ramp_n)
     DEPOT = [(r, 22) for r in range(4, 12)]
-    AGENT_STARTS = [(3 + i % 5, 20 - i // 5) for i in range(10)]
+    AGENT_STARTS = [(3 + i % 5, 20 - i // 5)
+                    for i in range(int(os.environ.get("N_AGENTS", "16")))]
 
 
 def configure_colonnade() -> None:
@@ -349,7 +350,8 @@ def configure_colonnade() -> None:
     SCAFFOLD_CELLS = list(ring2) + list(all_tails)
     LINE_CELLS = set(ring2) | set(all_tails) | set(pillars)
     DEPOT = [(r, 22) for r in range(4, 12)]
-    AGENT_STARTS = [(3 + i % 5, 20 - i // 5) for i in range(10)]
+    AGENT_STARTS = [(3 + i % 5, 20 - i // 5)
+                    for i in range(int(os.environ.get("N_AGENTS", "20")))]
 
 
 def configure_horse() -> None:
@@ -409,7 +411,8 @@ def configure_horse() -> None:
     SCAFFOLD_CELLS = list(ring) + [c for tail in tails for c in tail]
     LINE_CELLS = set(ring) | {c for tail in tails for c in tail} | set(legs)
     DEPOT = [(r, 23) for r in range(4, 12)]
-    AGENT_STARTS = [(3 + i % 5, 21 - i // 5) for i in range(10)]
+    AGENT_STARTS = [(3 + i % 5, 21 - i // 5)
+                    for i in range(int(os.environ.get("N_AGENTS", "20")))]
 
 
 def configure_goldengate() -> None:
@@ -475,7 +478,7 @@ def configure_goldengate() -> None:
     sag = {}
     for k, c in enumerate(range(7, 16)):
         sag[c] = 7 + k                      # west backstay 7..15
-    main = [14, 13, 12, 11, 10, 9, 8, 7, 7, 8, 9, 10, 11, 12, 13, 14]
+    main = [15, 14, 13, 12, 11, 10, 9, 8, 8, 9, 10, 11, 12, 13, 14, 15]
     for k, c in enumerate(range(18, 34)):
         sag[c] = main[k]
     for k, c in enumerate(range(36, 45)):
@@ -493,22 +496,18 @@ def configure_goldengate() -> None:
                 SUSPENDERS.append({"r": r, "c": c, "top": z, "bot": DECK_Z})
     DECK_CELLS = set(deck) | set(cable_cells)
 
-    # scaffold work walls following the profile (stand at z to hang the
-    # cable; leg columns get an h=15 platform), with descending tails to the
-    # ground; passing pockets are added generically by the planner
+    # research-informed scaffold: cables are hung DOWNHILL from the saddles
+    # (workers walk the cable itself, each float hangs from the previous
+    # one), so no work walls are needed. Towers still need one full-height
+    # delivery stair per leg pair (every block trip must re-board the top),
+    # which is ~60 scaffold blocks instead of ~700 for the old walls.
     wall_cells = []
-    for r_wall in (6, 12):
-        prof = {}
-        for k, c in enumerate((1, 2, 3, 4, 5, 6)):
-            prof[c] = k + 1                 # west tail 1..6
-        prof.update(sag)
-        for c in leg_cols:
-            prof[c] = TOWER_H - 1           # leg-top work platform
-        for k, c in enumerate((50, 49, 48, 47, 46, 45)):
-            prof[c] = k + 1                 # east tail 1..6
-        for c, z in prof.items():
-            T_BUILD[(r_wall, c)] = z
-            wall_cells.append((r_wall, c))
+    for sr in (6, 12):
+        for lg_c, dc in ((16, -1), (35, 1)):
+            for j in range(TOWER_H - 1):
+                cell = (sr, lg_c + dc * j)
+                T_BUILD[cell] = TOWER_H - 1 - j
+                wall_cells.append(cell)
     RAMPS = [wall_cells]
     SCAFFOLD_CELLS = list(wall_cells)
     LINE_CELLS = set(SCAFFOLD_CELLS) | set(legs)
@@ -516,9 +515,12 @@ def configure_goldengate() -> None:
 
     global POCKET_EVERY_HINT
     POCKET_EVERY_HINT = 4  # 16 agents on two long walls: dense sidings
-    DEPOT = [(r, 0) for r in range(3, 11)] + [(r, 51) for r in range(3, 11)]
-    AGENT_STARTS = [(2 + i, 1) for i in range(8)] + \
-        [(2 + i, 50) for i in range(8)]
+    n_gg = int(os.environ.get("GG_AGENTS", "16"))
+    half = max(2, n_gg // 2)
+    DEPOT = [(r, 0) for r in range(2, 2 + min(half, 14))] + \
+        [(r, 51) for r in range(2, 2 + min(half, 14))]
+    AGENT_STARTS = [(2 + i % 14, 1) for i in range(half)] + \
+        [(2 + i % 14, 50) for i in range(n_gg - half)]
 
 
 def configure_tommy() -> None:
@@ -619,6 +621,105 @@ def configure_tommy() -> None:
 
     DEPOT = [(r, 18) for r in range(3, 11)]
     AGENT_STARTS = [(3 + i, 16) for i in range(8)]
+
+
+def configure_exp() -> None:
+    """Parametric scaffold-research scene, driven by env vars:
+      EXP_F      tower footprint FxF          (default 2)
+      EXP_H      tower height                 (default 10)
+      EXP_K      number of stairs 1..4        (default 1)
+      EXP_N      number of agents             (default 8)
+      EXP_STYLE  stair style: straight | hug  (default straight)
+      EXP_SIDES  sides for stairs: spread | same (default spread)
+    Tower at the map center, one straight ramp per stair descending away
+    (or hugging the tower for style=hug). Depot on the east edge."""
+    global ROWS, COLS, COL_H, COL_CELL, RAMPS, SCAFFOLD_CELLS
+    global T_BUILD, T_FINAL, LINE_CELLS, DECK_CELLS, DECK_Z, DECK_LEVEL
+    global ORDER, FORBIDDEN_CELLS, COLORS, COLORS3, SUSPENDERS, STRUTS
+    global DEPOT, AGENT_STARTS
+    F = int(os.environ.get("EXP_F", "2"))
+    H = int(os.environ.get("EXP_H", "10"))
+    K = int(os.environ.get("EXP_K", "1"))
+    N = int(os.environ.get("EXP_N", "8"))
+    style = os.environ.get("EXP_STYLE", "straight")
+    sides_mode = os.environ.get("EXP_SIDES", "spread")
+    margin = H + 3
+    ROWS = COLS = 2 * margin + F
+    T_BUILD, T_FINAL, ORDER = {}, {}, {}
+    DECK_LEVEL, DECK_CELLS, FORBIDDEN_CELLS = {}, set(), set()
+    COLORS, COLORS3, SUSPENDERS, STRUTS = {}, {}, [], []
+    shape = os.environ.get("EXP_SHAPE", "tower")
+    W = int(os.environ.get("EXP_W", "12"))
+    r0 = c0 = margin
+    if shape == "wall":
+        # 1-wide wall of length W at height H, running east-west
+        COLS = max(COLS, W + 2 * margin)
+        for k in range(W):
+            T_BUILD[(r0, c0 + k)] = H
+            T_FINAL[(r0, c0 + k)] = H
+            COLORS[(r0, c0 + k)] = "#e8b04a"
+    else:
+        for r in range(r0, r0 + F):
+            for c in range(c0, c0 + F):
+                T_BUILD[(r, c)] = H
+                T_FINAL[(r, c)] = H
+                COLORS[(r, c)] = "#e8b04a"
+    # stairs: attach to the middle of each chosen side
+    if shape == "wall":
+        # K stairs evenly spaced along the SOUTH face of the wall,
+        # descending southward
+        ramps = []
+        for k in range(K):
+            bc = c0 + (W * (2 * k + 1)) // (2 * K)
+            cells = [(r0 + 1 + j, bc) for j in range(H - 1)]
+            for j, cell in enumerate(cells):
+                T_BUILD[cell] = H - 1 - j
+            ramps.append(cells)
+        RAMPS = ramps
+        SCAFFOLD_CELLS = [c for rp in ramps for c in rp]
+        LINE_CELLS = set(SCAFFOLD_CELLS) | {(r0, c0 + k) for k in range(W)}
+        COL_CELL, COL_H = (r0, c0), H
+        DEPOT = [(3 + i, COLS - 1) for i in range(max(N, 4))]
+        AGENT_STARTS = [(3 + i, COLS - 3) for i in range(N)]
+        return
+    mid = F // 2
+    sides = [
+        ((r0 - 1, c0 + mid), (-1, 0), (0, 1)),   # north, hug dir east
+        ((r0 + F, c0 + mid), (1, 0), (0, 1)),    # south
+        ((r0 + mid, c0 - 1), (0, -1), (1, 0)),   # west
+        ((r0 + mid, c0 + F), (0, 1), (1, 0)),    # east
+    ]
+    if sides_mode == "same":
+        base, (dr, dc), (hr, hc) = sides[0]
+        chosen = []
+        for k in range(K):
+            br, bc = base[0], base[1] + 2 * k  # parallel stairs, same side
+            chosen.append(((br, bc), (dr, dc), (hr, hc)))
+    else:
+        chosen = sides[:K]
+    ramps = []
+    for (br, bc), (dr, dc), (hr, hc) in chosen:
+        cells = []
+        if style == "hug":
+            # first cell beside the tower, then wrap around it clockwise-ish
+            cur = (br, bc)
+            vec = (hr, hc)
+            for k in range(H - 1):
+                cells.append(cur)
+                cur = (cur[0] + vec[0], cur[1] + vec[1])
+        else:
+            for k in range(H - 1):
+                cells.append((br + dr * k, bc + dc * k))
+        for k, cell in enumerate(cells):
+            T_BUILD[cell] = H - 1 - k
+        ramps.append(cells)
+    RAMPS = ramps
+    SCAFFOLD_CELLS = [c for rp in ramps for c in rp]
+    LINE_CELLS = set(SCAFFOLD_CELLS) | set(
+        (r, c) for r in range(r0, r0 + F) for c in range(c0, c0 + F))
+    COL_CELL, COL_H = (r0, c0), H
+    DEPOT = [(3 + i, COLS - 1) for i in range(max(N, 4))]
+    AGENT_STARTS = [(3 + i, COLS - 3) for i in range(N)]
 
 
 def configure_uscgate() -> None:
@@ -1977,6 +2078,7 @@ if __name__ == "__main__":
     ap.add_argument("--uscgate", action="store_true", help="USC gate with gold USC ground inlay")
     ap.add_argument("--symbot", action="store_true", help="Symbotic-style bot with floating chassis")
     ap.add_argument("--tommy", action="store_true", help="Tommy Trojan statue with sword and shield")
+    ap.add_argument("--exp", action="store_true", help="parametric scaffold research scene (env-driven)")
     ap.add_argument("--out-prefix", type=str, default="plan_column")
     args = ap.parse_args()
     if args.scene:
@@ -2000,6 +2102,8 @@ if __name__ == "__main__":
         configure_symbot()
     elif args.tommy:
         configure_tommy()
+    elif args.exp:
+        configure_exp()
     else:
         configure(args.col_h, args.helper)
         set_agents(args.agents)
