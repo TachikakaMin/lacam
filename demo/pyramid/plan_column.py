@@ -53,8 +53,21 @@ COLORS: Dict[Coord, str] = {}  # optional cell -> "#rrggbb" for the viewer
 COLORS3: Dict[Tuple[int, int, int], str] = {}  # optional (r, c, h) -> color
 SUSPENDERS: List[Dict[str, int]] = []  # viewer-only vertical cable drop lines
 STRUTS: List[Dict[str, int]] = []  # viewer-only horizontal tower struts
+ATTACHMENTS: List[Dict] = []  # anchored non-height-field parts (wheels, shafts, horse)
 POCKET_CELLS: set = set()  # auto passing pockets (corridor capacity hints)
 POCKET_EVERY_HINT = 0  # scene hint: override AUTO_POCKET_EVERY (0 = default)
+BRICK_TASKS: List = []  # scene-provided multi-cell brick tasks (LEGO mode)
+BRICK_PREV: Dict = {}  # (cell, level) -> required column top before placing
+BRICK_FINAL_H: Dict = {}  # cell -> final column height (LEGO mode)
+# temporary in-footprint stairs (LEGO mode): cell -> (fin, served_cells, hcap).
+# They stand on footprint cells whose first brick is above hcap, serve the
+# 1-wide column `served_cells` up to level hcap, and are stripped as soon as
+# that column reaches hcap (before the covering brick is laid).
+TEMP_STAIR: Dict = {}
+# scaffold stacked on top of FINISHED structure columns (LEGO mode):
+# cell -> stair top; levels BRICK_FINAL_H+1..top are ordinary scaffold that
+# is stripped with the rest at the end (T_BUILD > T_FINAL semantics).
+OVER_STAIR: Dict = {}
 DEPOT = [(r, 20) for r in range(3, 11)]
 AGENT_STARTS = [(3, 18), (4, 18), (5, 18), (6, 18), (7, 18), (8, 18)]
 
@@ -83,6 +96,8 @@ KEEP_ROUNDS = int(os.environ.get("KEEP_ROUNDS", "0"))
 AUTO_POCKETS = os.environ.get("AUTO_POCKETS", "1") != "0"
 AUTO_POCKET_EVERY = int(os.environ.get("AUTO_POCKET_EVERY", "0"))  # 0 = auto
 SCAFFOLD_MIN = int(os.environ.get("SCAFFOLD_MIN", "12"))
+LEGO_REACH = int(os.environ.get("LEGO_REACH", "99"))  # brick stand reach (99: any adjacent)
+DROP_ANY = False  # set by LEGO scenes: drop any height, climb only 1
 AUTO_POCKET_MODE = os.environ.get("AUTO_POCKET_MODE", "")  # "" = auto
 AUTO_POCKET_EVERY_SET = "AUTO_POCKET_EVERY" in os.environ
 SCAFFOLD_SEG = int(os.environ.get("SCAFFOLD_SEG", "4"))
@@ -727,6 +742,414 @@ def configure_exp() -> None:
     AGENT_STARTS = [(3 + i, COLS - 3) for i in range(N)]
 
 
+def configure_brick() -> None:
+    """Build a BrickGPT / StableText2Brick structure (env BRICK_FILE): each
+    line "hxw (x,y,z) [#rrggbb]" is a 1-unit-tall brick. Optional
+    ``@attachment {...}`` JSON lines add anchored viewer geometry for parts
+    that cannot be represented by the height field. Columns become solid stacks;
+    hollow shells map to floating segments (DECK_LEVEL + stacking, native);
+    multi-segment columns (air gaps, e.g. car windows) are filled and tinted
+    glass. One delivery stair on the west side; landings/stickiness auto."""
+    global ROWS, COLS, COL_H, COL_CELL, RAMPS, SCAFFOLD_CELLS
+    global T_BUILD, T_FINAL, LINE_CELLS, DECK_CELLS, DECK_Z, DECK_LEVEL
+    global ORDER, FORBIDDEN_CELLS, COLORS, COLORS3, SUSPENDERS, STRUTS
+    global ATTACHMENTS
+    global DEPOT, AGENT_STARTS
+    import re as _re
+    path = os.environ.get("BRICK_FILE", "brick_car.txt")
+    body_col = os.environ.get("BRICK_COLOR", "#c0392b")
+    glass_col = "#a8d0e6"
+    global BRICK_TASKS
+    BRICK_TASKS = []
+    brick_mode = os.environ.get("BRICK_UNITS", "brick") == "brick"
+    vox: Dict[Coord, set] = {}
+    raw_bricks = []
+    raw_attachments = []
+    for line in open(path):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith("@attachment "):
+            raw_attachments.append(json.loads(
+                stripped[len("@attachment "):]))
+            continue
+        m = _re.match(
+            r"(\d+)x(\d+) \((\d+),(\d+),(\d+)\)"
+            r"(?:\s+(#[0-9a-fA-F]{6}))?$", stripped)
+        if not m:
+            continue
+        h, w, x, y, z = map(int, m.groups()[:5])
+        color = m.group(6)
+        raw_bricks.append((h, w, x, y, z, color))
+        for dx in range(h):
+            for dy in range(w):
+                vox.setdefault((x + dx, y + dy), set()).add(z)
+    xs = [c[0] for c in vox]
+    ys = [c[1] for c in vox]
+    x0, x1 = min(xs), max(xs)
+    y0, y1 = min(ys), max(ys)
+    maxz = max(z for zs in vox.values() for z in zs)
+    H = maxz + 2  # stair height needs maxH-1 = top block level
+    m_w = H + 2   # west margin for the stair
+    m_e = 8       # east margin for depot
+    m_n = H + 2
+    ROWS = (x1 - x0 + 1) + 2 * m_n + 2
+    COLS = (y1 - y0 + 1) + m_w + m_e
+    T_BUILD, T_FINAL, ORDER = {}, {}, {}
+    DECK_LEVEL, DECK_CELLS, FORBIDDEN_CELLS = {}, set(), set()
+    COLORS, COLORS3, SUSPENDERS, STRUTS, ATTACHMENTS = {}, {}, [], [], []
+    top_h = 0
+    for (x, y), zs in vox.items():
+        r = m_n + (x - x0)
+        c = m_w + (y - y0)
+        zlo, zhi = min(zs), max(zs)
+        T_BUILD[(r, c)] = zhi + 1
+        T_FINAL[(r, c)] = zhi + 1
+        COLORS[(r, c)] = body_col
+        top_h = max(top_h, zhi + 1)
+        if zlo > 0:
+            DECK_LEVEL[(r, c)] = zlo + 1
+            DECK_CELLS.add((r, c))
+        for z in range(zlo, zhi + 1):     # air gaps become glass
+            if z not in zs:
+                COLORS3[(r, c, z + 1)] = glass_col
+    DECK_Z = max(DECK_LEVEL.values(), default=0)
+    if brick_mode:
+        DECK_LEVEL.clear()   # floats are decided per brick at placement time
+        DECK_CELLS = set()
+        col_levels: Dict[Coord, list] = {}
+        for (h, w, x, y, z, color) in raw_bricks:
+            cells = tuple((m_n + (x + dx - x0), m_w + (y + dy - y0))
+                          for dx in range(h) for dy in range(w))
+            BRICK_TASKS.append(Task(cell=cells[0], level=z + 1, kind="place",
+                                    cells=cells))
+            if color:
+                for c_ in cells:
+                    COLORS3[(c_[0], c_[1], z + 1)] = color
+            for c_ in cells:
+                col_levels.setdefault(c_, []).append(z + 1)
+        BRICK_PREV.clear()
+        for c_, lvls in col_levels.items():
+            lvls.sort()
+            prev = 0
+            for lv in lvls:
+                BRICK_PREV[(c_, lv)] = prev
+                prev = lv
+    BRICK_FINAL_H.clear()
+    for t_ in BRICK_TASKS:
+        for c_ in t_.cells:
+            BRICK_FINAL_H[c_] = max(BRICK_FINAL_H.get(c_, 0), t_.level)
+    def map_point(p):
+        return {
+            "r": m_n + (float(p[0]) - x0),
+            "c": m_w + (float(p[1]) - y0),
+            "z": float(p[2]),
+        }
+    for raw in raw_attachments:
+        item = dict(raw)
+        anchor = item.pop("anchor")
+        item["anchor"] = {
+            "r": m_n + (int(anchor[0]) - x0),
+            "c": m_w + (int(anchor[1]) - y0),
+            "h": int(anchor[2]) + 1,
+        }
+        for key in ("at", "from", "to"):
+            if key in item:
+                item[key] = map_point(item[key])
+        ATTACHMENTS.append(item)
+    # ---- OFFLINE STATIC CONSTRUCTION PLAN (strict physics) ----
+    # Simulate the build layer by layer. A brick at layer L is placeable
+    # when some adjacent cell outside it has terrain height L-1 or L and is
+    # walk-reachable (|dh|<=1) from the map border. Bricks that never become
+    # placeable get a personal scaffold stair (straight run to L-1, itself
+    # trivially buildable bottom-up); stairs follow the active layer at
+    # runtime, so the static terrain model is min(stair_final, L).
+    col_lvls2: Dict[Coord, list] = {}
+    for t_ in BRICK_TASKS:
+        for c_ in t_.cells:
+            col_lvls2.setdefault(c_, []).append(t_.level)
+    for lv_ in col_lvls2.values():
+        lv_.sort()
+    stair_final: Dict[Coord, int] = {}
+    support_stairs: List[Coord] = []
+    max_layer = max(t_.level for t_ in BRICK_TASKS)
+    lmin_of: Dict[Coord, int] = {c_: lv_[0] for c_, lv_ in col_lvls2.items()}
+    TEMP_STAIR.clear()
+    OVER_STAIR.clear()
+
+    def synth_stair(b_: Coord, hneed: int, occupied: set,
+                    temp_for: tuple = (), over_ok: bool = False) -> bool:
+        """Straight / L-shaped stair run ending at b_'s side. With temp_for
+        (the served column cells) footprint cells may host run cells as long
+        as their first brick lies above the run height there and the run's
+        ground end is outside the footprint; those cells become TEMP_STAIR."""
+        hneed = max(hneed, 1)
+        # straight runs first, then L-shaped (one turn at any split point)
+        for d1 in NBRS:
+            base = [(b_[0] + d1[0] * (j + 1), b_[1] + d1[1] * (j + 1))
+                    for j in range(hneed)]
+            candidates = [base]
+            for split in range(1, hneed):
+                for d2 in NBRS:
+                    if d2 == d1 or (d2[0] == -d1[0] and d2[1] == -d1[1]):
+                        continue
+                    run = base[:split]
+                    pivot = base[split - 1]
+                    run = run + [(pivot[0] + d2[0] * (j + 1),
+                                  pivot[1] + d2[1] * (j + 1))
+                                 for j in range(hneed - split)]
+                    candidates.append(run)
+            for run in candidates:
+                ok_run = True
+                for j, (cr, cc) in enumerate(run):
+                    if not (0 <= cr < ROWS and 0 <= cc < COLS):
+                        ok_run = False
+                        break
+                    if (cr, cc) in occupied:
+                        if (cr, cc) in stair_final or (cr, cc) not in lmin_of:
+                            ok_run = False
+                            break
+                        if over_ok:
+                            # scaffold above a finished column: the stair
+                            # level here must clear the column's final top
+                            if hneed - j <= col_lvls2[(cr, cc)][-1]:
+                                ok_run = False
+                                break
+                            continue
+                        if not temp_for or (cr, cc) in temp_for:
+                            ok_run = False
+                            break
+                        if lmin_of[(cr, cc)] <= hneed:
+                            ok_run = False  # covering brick would come too early
+                            break
+                if ok_run and (temp_for or over_ok) and run[-1] in lmin_of:
+                    ok_run = False  # ground end must be outside the footprint
+                if ok_run:
+                    for j, cell in enumerate(run):
+                        stair_final[cell] = hneed - j
+                        if cell in lmin_of and over_ok:
+                            OVER_STAIR[cell] = hneed - j
+                        elif temp_for:
+                            # whole run strips early (tail included), or the
+                            # tail would block the in-footprint head
+                            TEMP_STAIR[cell] = (hneed - j, temp_for, hneed)
+                    return True
+        return False
+
+    comp_of: Dict[Coord, int] = {}
+    for cell in col_lvls2:
+        if cell in comp_of:
+            continue
+        cid = len(comp_of)
+        stack = [cell]
+        comp_of[cell] = cid
+        while stack:
+            cur = stack.pop()
+            for dr, dc in NBRS:
+                nb = (cur[0] + dr, cur[1] + dc)
+                if nb in col_lvls2 and nb not in comp_of:
+                    comp_of[nb] = comp_of[cell]
+                    stack.append(nb)
+    for _attempt in range(20):
+        terrain = [[0] * COLS for _ in range(ROWS)]
+        placed_set: set = set()
+        deficient: List[Task] = []
+        by_layer: Dict[int, list] = {}
+        for t_ in BRICK_TASKS:
+            by_layer.setdefault(t_.level, []).append(t_)
+        feasible = True
+        carry_todo: List[Task] = []
+        for L in range(1, max_layer + 1):
+            for cell, fin in stair_final.items():
+                if cell in TEMP_STAIR:
+                    hcap_ = TEMP_STAIR[cell][2]
+                    if L <= hcap_:
+                        terrain[cell[0]][cell[1]] = min(fin, L)
+                    elif L == hcap_ + 1:
+                        terrain[cell[0]][cell[1]] = 0  # stripped early
+                    continue
+                if cell in OVER_STAIR and L <= col_lvls2[cell][-1]:
+                    continue  # below the column top: bricks decide
+                terrain[cell[0]][cell[1]] = min(fin, L)
+            todo = carry_todo + list(by_layer.get(L, []))
+            for _pass in range(len(todo) + 1):
+                if not todo:
+                    break
+                # reachability over current terrain from the border
+                seen_r = set()
+                stack = [(r_, c_) for r_ in range(ROWS) for c_ in (0, COLS - 1)
+                         if terrain[r_][c_] == 0]
+                stack += [(r_, c_) for c_ in range(COLS) for r_ in (0, ROWS - 1)
+                          if terrain[r_][c_] == 0]
+                seen_r.update(stack)
+                while stack:
+                    cur = stack.pop()
+                    for dr, dc in NBRS:
+                        nb = (cur[0] + dr, cur[1] + dc)
+                        if (0 <= nb[0] < ROWS and 0 <= nb[1] < COLS
+                                and nb not in seen_r
+                                and abs(terrain[nb[0]][nb[1]]
+                                        - terrain[cur[0]][cur[1]]) <= 1):
+                            seen_r.add(nb)
+                            stack.append(nb)
+                progressed = False
+                for t_ in list(todo):
+                    Lb = t_.level
+                    is_top = all(col_lvls2[c_][-1] == Lb for c_ in t_.cells)
+                    ok = False
+                    for (br, bc) in t_.cells:
+                        for dr, dc in NBRS:
+                            n_ = (br + dr, bc + dc)
+                            if not (0 <= n_[0] < ROWS and 0 <= n_[1] < COLS):
+                                continue
+                            if n_ in t_.cells:
+                                continue
+                            if (terrain[n_[0]][n_[1]] not in (Lb - 1, Lb)
+                                    or n_ not in seen_r):
+                                continue
+                            if is_top:
+                                # escape check: the placer at n_ must still
+                                # reach the ground AFTER the brick lands
+                                for (cr2, cc2) in t_.cells:
+                                    terrain[cr2][cc2] = Lb
+                                seen_e = {n_}
+                                stk_e = [n_]
+                                esc = False
+                                while stk_e:
+                                    cur2 = stk_e.pop()
+                                    if terrain[cur2[0]][cur2[1]] == 0:
+                                        esc = True
+                                        break
+                                    for dr2, dc2 in NBRS:
+                                        nb2 = (cur2[0] + dr2, cur2[1] + dc2)
+                                        if (0 <= nb2[0] < ROWS
+                                                and 0 <= nb2[1] < COLS
+                                                and nb2 not in seen_e
+                                                and abs(terrain[nb2[0]][nb2[1]]
+                                                        - terrain[cur2[0]][cur2[1]]) <= 1):
+                                            seen_e.add(nb2)
+                                            stk_e.append(nb2)
+                                for (cr2, cc2) in t_.cells:
+                                    terrain[cr2][cc2] = BRICK_PREV.get(
+                                        ((cr2, cc2), Lb), 0)
+                                if not esc:
+                                    continue
+                            ok = True
+                            break
+                        if ok:
+                            break
+                    if ok:
+                        for (br, bc) in t_.cells:
+                            terrain[br][bc] = Lb
+                        placed_set.add(id(t_))
+                        todo.remove(t_)
+                        progressed = True
+                if not progressed:
+                    break
+            carry_todo = []
+            hard = list(todo)
+            if hard:
+                feasible = False
+                deficient.extend(hard)
+                for t_ in hard:
+                    for (br, bc) in t_.cells:
+                        terrain[br][bc] = t_.level
+        if os.environ.get("DBG_STATIC"):
+            print(f"static attempt {_attempt}: stairs={sorted(stair_final.items())} "
+                  f"deficient={sorted({(t2.cells, t2.level) for t2 in deficient})}",
+                  flush=True)
+        if feasible:
+            break
+        occ = set(col_lvls2) | set(stair_final)
+        added_any = False
+        served: set = set()
+        for t_ in sorted(deficient, key=lambda t2: t2.level):
+            g_ = comp_of[t_.cells[0]]
+            if g_ in served:
+                continue  # one new stair per structure component per round
+            done_ = False
+            # build the stair up to the deficient CLUSTER's max height at
+            # once: one stair then serves every later layer there
+            hmax_top = max(col_lvls2[c_][-1] for c_ in t_.cells)
+            # a stand at hmax-1 suffices to lay the top brick at hmax, so
+            # external stairs can stop one short (saves the longest column);
+            # TEMP stairs keep serving through the top (their strip trigger
+            # is tied to the served column reaching the cap)
+            hmax = max(hmax_top - 1, 1)
+            for att in t_.cells:  # any cell of the brick can host the stair
+                if synth_stair(att, hmax, occ | set(stair_final)):
+                    done_ = True
+                    break
+            if not done_:
+                # interior column (e.g. a piano leg under the lid): a
+                # TEMPORARY stair through footprint cells that are still
+                # empty, capped below the first covering brick; it is
+                # stripped as soon as the column reaches the cap
+                for att in t_.cells:
+                    lm_ = [lmin_of[n_] for dr, dc in NBRS
+                           for n_ in [(att[0] + dr, att[1] + dc)]
+                           if n_ in lmin_of and n_ not in t_.cells
+                           and n_ not in stair_final]
+                    if not lm_:
+                        continue
+                    hcap = min(max(lm_) - 1, hmax_top)
+                    if hcap < max(t_.level - 1, 1):
+                        continue
+                    if synth_stair(att, hcap, occ | set(stair_final),
+                                   temp_for=tuple(t_.cells)):
+                        done_ = True
+                        break
+            if not done_:
+                # spire on a finished body (guitar neck): scaffold stacked
+                # on top of the body columns, running out to the ground
+                for att in t_.cells:
+                    if synth_stair(att, hmax, occ | set(stair_final),
+                                   over_ok=True):
+                        done_ = True
+                        break
+            if not done_:
+                # interior brick: hang a stair anywhere on the component
+                # boundary instead (stand comes from walking the structure)
+                members = sorted(c_ for c_, g2 in comp_of.items() if g2 == g_)
+                members.sort(key=lambda c_: abs(c_[0] - t_.cells[0][0])
+                             + abs(c_[1] - t_.cells[0][1]))
+                for att in members:
+                    if synth_stair(att, max(t_.level - 1, 1),
+                                   occ | set(stair_final)):
+                        done_ = True
+                        break
+            if done_:
+                served.add(g_)
+                added_any = True
+            else:
+                print(f"WARN: static plan cannot stair brick at "
+                      f"{t_.cells[0]} L{t_.level}", flush=True)
+        if not added_any:
+            break
+    for cell, fin in stair_final.items():
+        T_BUILD[cell] = fin
+        support_stairs.append(cell)
+    print(f"static plan: {len(stair_final)} stair cells, "
+          f"feasible={feasible}", flush=True)
+    if not feasible:
+        bad = sorted({(t_.cells[0], t_.level) for t_ in deficient})
+        print(f"static plan deficient: {bad[:12]}", flush=True)
+    sr = m_n + (x1 - x0) // 2
+    wall_cells: List[Coord] = []
+    wall_cells.extend(support_stairs)
+    RAMPS = [wall_cells]
+    SCAFFOLD_CELLS = list(wall_cells)
+    LINE_CELLS = set(SCAFFOLD_CELLS)
+    COL_CELL, COL_H = (sr, m_w), top_h
+    n = int(os.environ.get("N_AGENTS", "10"))
+    nd = max(n, 6)
+    # spread depot and starts over the whole east edge: clustering them at
+    # the north end makes far-side scaffold twice as expensive to strip and
+    # serializes demolition (crews finish the near stair first)
+    DEPOT = [(2 + (i * max(ROWS - 4, 1)) // nd, COLS - 1) for i in range(nd)]
+    AGENT_STARTS = [(2 + (i * max(ROWS - 4, 1)) // n, COLS - 3) for i in range(n)]
+
+
 def configure_uscgate() -> None:
     """USC-style gate: two cardinal brick pillars with a gold lintel slab at
     z=5 (side adhesion from the pillar tops), low side walls, and a gold
@@ -789,45 +1212,64 @@ def configure_uscgate() -> None:
 
 
 def configure_symbot() -> None:
-    """SymBot v2: Symbotic's bots are low-slung green case-carrying vehicles.
-    Solid green body (h2, 3x10), black wheel pods at the four corners (h1,
-    doubling as permanent access steps), dark sensor nose, orange case
-    payload (h3) amidships. No scaffold needed."""
+    """SymBot v6, tuned against Symbotic's official isometric render:
+    GREEN base rails all around (h1, they double as boarding steps), a
+    charcoal deck, a tall front tower whose face is one big green panel
+    (sloping into the bay: 4-5-5), a low rear module (h3), and a large
+    light-grey case riding in the bay. Tower middle columns are painted
+    near-black so the towers read as open frames with dark pillars."""
     global ROWS, COLS, COL_H, COL_CELL, RAMPS, SCAFFOLD_CELLS
     global T_BUILD, T_FINAL, LINE_CELLS, DECK_CELLS, DECK_Z, DECK_LEVEL
-    global ORDER, FORBIDDEN_CELLS, COLORS, DEPOT, AGENT_STARTS
-    ROWS, COLS = 14, 24
+    global ORDER, FORBIDDEN_CELLS, COLORS, COLORS3, DEPOT, AGENT_STARTS
+    ROWS, COLS = 14, 26
     T_BUILD, T_FINAL, ORDER = {}, {}, {}
-    DECK_LEVEL, DECK_CELLS, FORBIDDEN_CELLS, COLORS = {}, set(), set(), {}
-    green, black, dark, case = "#00b140", "#16161a", "#2d3436", "#ff8c00"
-    body_rows, body_cols = (6, 7, 8), range(5, 15)
-    wheels = [(6, 5), (8, 5), (6, 14), (8, 14)]
-    nose = (7, 15)  # sensor nose at the front
-    case_cells = [(7, 9), (7, 10)]  # carried case amidships, one above deck
-    for r in body_rows:
-        for c in body_cols:
+    DECK_LEVEL, DECK_CELLS, FORBIDDEN_CELLS = {}, set(), set()
+    COLORS, COLORS3 = {}, {}
+    frame, void = "#26282b", "#0c0d10"
+    green, case = "#00b140", "#cfd2d4"
+    r0, r1 = 5, 8              # 4 cells wide
+    c0, c1 = 5, 17             # 13 cells long, front at c1
+    rear_tower = range(c0, c0 + 2)       # cols 5-6, low rear module h3
+    front_tower = range(c1 - 2, c1 + 1)  # cols 15-17, front tower 4-5-5
+    tote_cells = [(r, c) for r in (6, 7) for c in range(8, 15)]  # big case
+    rails = [(r, c) for r in (r0, r1) for c in range(7, 15)]     # green rails
+    deck_step = [(6, 7), (7, 7)]         # h2 step between case and rails
+    for r in range(r0, r1 + 1):
+        for c in range(c0, c1 + 1):
             cell = (r, c)
-            if cell in wheels:
-                T_BUILD[cell] = 1
-                T_FINAL[cell] = 1
-                COLORS[cell] = black
+            if c in front_tower:
+                h = 4 if c == min(front_tower) else 5
+            elif c in rear_tower:
+                h = 3
+            elif cell in tote_cells:
+                h = 3
+            elif cell in rails:
+                h = 1
             else:
-                T_BUILD[cell] = 2
-                T_FINAL[cell] = 2
-                COLORS[cell] = green
-    T_BUILD[nose] = 1
-    T_FINAL[nose] = 1
-    COLORS[nose] = dark
-    for cell in case_cells:
-        T_BUILD[cell] = 3
-        T_FINAL[cell] = 3
-        COLORS[cell] = case
+                h = 2
+            T_BUILD[cell] = h
+            T_FINAL[cell] = h
+            if cell in rails:
+                COLORS[cell] = green      # green base rail ring
+                continue
+            COLORS[cell] = frame
+            COLORS3[(r, c, 1)] = green    # green rail band all around z1
+            if cell in tote_cells:
+                COLORS3[(r, c, 2)] = case  # light-grey case in the bay
+                COLORS3[(r, c, 3)] = case
+            if c in front_tower or c in rear_tower:
+                if r in (6, 7):
+                    for z in range(2, T_BUILD[cell] + 1):
+                        COLORS3[(r, c, z)] = void  # open-frame shadow
+            if c == c1:                    # big green front panel
+                for z in range(2, 6):
+                    COLORS3[(r, c, z)] = green
     RAMPS = []
     SCAFFOLD_CELLS = []
-    LINE_CELLS = set(wheels) | {nose}
-    COL_CELL, COL_H = (7, 9), 3
-    DEPOT = [(r, 21) for r in range(3, 11)]
-    AGENT_STARTS = [(3 + i, 19) for i in range(6)]
+    LINE_CELLS = set(rails)
+    COL_CELL, COL_H = (6, 16), 5
+    DEPOT = [(r, 23) for r in range(3, 11)]
+    AGENT_STARTS = [(3 + i, 21) for i in range(6)]
 
 
 def _add_pyramid(t_build: dict, r0: int, c0: int, base: int, levels: int) -> None:
@@ -891,6 +1333,7 @@ class Task:
     cell: Coord
     level: int  # place: resulting height; remove: height of removed block
     kind: str   # "place" | "remove"
+    cells: tuple = ()  # multi-cell LEGO brick: all covered cells (incl. cell)
 
 
 @dataclass
@@ -923,10 +1366,10 @@ def dijkstra(src: Coord, heights: List[List[int]]) -> List[List[int]]:
             nr, nc = r + dr, c + dc
             if not (0 <= nr < ROWS and 0 <= nc < COLS):
                 continue
-            dh = abs(heights[nr][nc] - heights[r][c])
-            if dh > 1:
-                continue
-            nd = d + (CLIMB_COST if dh == 1 else 1)
+            dh = heights[nr][nc] - heights[r][c]
+            if (dh > 1) if DROP_ANY else (abs(dh) > 1):
+                continue  # dropAny: asymmetric edges (climb 1, drop any)
+            nd = d + (CLIMB_COST if dh != 0 else 1)
             if nd < dist[nr][nc]:
                 dist[nr][nc] = nd
                 heapq.heappush(pq, (nd, (nr, nc)))
@@ -1109,7 +1552,20 @@ def main() -> int:
         add_auto_pockets()
 
     build_pending: List[Task] = []
+    brick_cells_all = {c for t in BRICK_TASKS for c in t.cells}
+    if BRICK_TASKS:
+        build_pending.extend(BRICK_TASKS)
+        for c_, (fin_, _sv, _hc) in TEMP_STAIR.items():
+            if c_ not in BRICK_FINAL_H:
+                continue  # tail outside the footprint: covered by T_BUILD
+            for l in range(1, fin_ + 1):  # temporary in-footprint stair
+                build_pending.append(Task(cell=c_, level=l, kind="place"))
+        for c_, fin_ in OVER_STAIR.items():
+            for l in range(BRICK_FINAL_H[c_] + 1, fin_ + 1):  # over-structure
+                build_pending.append(Task(cell=c_, level=l, kind="place"))
     for cell, tgt in T_BUILD.items():
+        if cell in brick_cells_all:
+            continue  # covered by whole-brick tasks
         if cell in DECK_LEVEL:
             dz = DECK_LEVEL[cell]
             build_pending.append(Task(cell=cell, level=dz, kind="place"))
@@ -1122,6 +1578,10 @@ def main() -> int:
     demolition: List[Task] = [Task(cell=c, level=l, kind="remove")
                               for c in SCAFFOLD_CELLS
                               for l in range(T_FINAL.get(c, 0) + 1, T_BUILD[c] + 1)]
+    demolition += [Task(cell=c_, level=l, kind="remove")
+                   for c_, (fin_, _sv, _hc) in TEMP_STAIR.items()
+                   if c_ in BRICK_FINAL_H  # tail handled with scaffold above
+                   for l in range(1, fin_ + 1)]
     demolition_start_t = 0
     peaks = [[0] * COLS for _ in range(ROWS)]
 
@@ -1136,7 +1596,10 @@ def main() -> int:
     evict_names: set = set()
     progress_stall = 0
     task_cooldown: Dict[Tuple, int] = {}
+    stand_blacklist: Dict[Coord, int] = {}
     throttle_until = [0]
+    stall_resets = [0]
+    brick_layer_gate = [10 ** 9]
     dist_cache: Dict[Coord, List[List[int]]] = {}
     comp_cache: List[List[List[int]]] = []
     dist_cache_ver = [-1]
@@ -1145,6 +1608,34 @@ def main() -> int:
 
     def ready_place(task: Task) -> bool:
         r, c = task.cell
+        if task.cells:
+            # LEGO brick: every covered column must be at most level-1 high,
+            # none may already exceed it; needs a stud connection: some cell
+            # resting on a column top at level-1, or (shell rows) a side
+            # neighbour solid at this level / a float one above to hang from
+            if task.level > brick_layer_gate[0]:
+                return False  # strict layer-by-layer construction
+            support = False
+            for (br, bc) in task.cells:
+                h_ = heights[br][bc]
+                need = BRICK_PREV.get(((br, bc), task.level), 0)
+                if h_ != need:
+                    return False  # column must be exactly at its predecessor
+                if h_ == task.level - 1:
+                    support = True
+            if support:
+                return True
+            for (br, bc) in task.cells:
+                for dr, dc in NBRS:
+                    n = (br + dr, bc + dc)
+                    if not (0 <= n[0] < ROWS and 0 <= n[1] < COLS) or n in task.cells:
+                        continue
+                    hn = heights[n[0]][n[1]]
+                    if hn >= task.level and DECK_LEVEL.get(n, 0) <= task.level:
+                        return True  # side adhesion
+                    if hn == task.level + 1 and DECK_LEVEL.get(n) == task.level + 1:
+                        return True  # hung from one above
+            return False
         if deck_task(task.cell, task.level):
             if heights[r][c] >= task.level:
                 return False
@@ -1166,6 +1657,8 @@ def main() -> int:
                        for dr, dc in NBRS)
         if heights[r][c] != task.level - 1:
             return False
+        if BRICK_TASKS and task.level > brick_layer_gate[0]:
+            return False  # stairs follow the active brick layer (+1 max)
         # locomotive rule: never rise more than 1 above an unfinished
         # neighbour that still needs to grow to this level or beyond
         # (side-placement makes any 1-step ledge buildable, so keeping the
@@ -1177,6 +1670,8 @@ def main() -> int:
             n = (r + dr, c + dc)
             if not (0 <= n[0] < ROWS and 0 <= n[1] < COLS) or n not in T_BUILD:
                 continue
+            if n in brick_cells_all:
+                continue  # bricks follow the global layer gate instead
             hn = heights[n[0]][n[1]]
             if n in DECK_LEVEL and hn < DECK_LEVEL[n]:
                 hn = DECK_LEVEL[n] - 1  # unroofed slab counts as one-below-slab
@@ -1189,6 +1684,8 @@ def main() -> int:
             return ORDER.get(cell, T_BUILD.get(cell, 0))
         for dr, dc in NBRS:
             n = (r + dr, c + dc)
+            if n in brick_cells_all:
+                continue  # LEGO bricks follow their own ordering
             if n in DECK_LEVEL and heights[n[0]][n[1]] < DECK_LEVEL[n]:
                 continue  # unroofed floating cells exert no bottom-up ordering
             if n in T_BUILD and _order(n) > _order(task.cell):
@@ -1258,22 +1755,33 @@ def main() -> int:
             return False
         if peaks[r][c] < T_BUILD[task.cell]:
             return False  # this scaffold cell hasn't finished growing yet
+        is_temp = task.cell in TEMP_STAIR
+        if is_temp:
+            _fin, served_, hcap_ = TEMP_STAIR[task.cell]
+            # strip only once the served column has reached the cap
+            if any(heights[s_[0]][s_[1]] < min(hcap_, BRICK_FINAL_H.get(s_, hcap_))
+                   for s_ in served_):
+                return False
         for dr, dc in NBRS:
             y = (r + dr, c + dc)
             if not (0 <= y[0] < ROWS and 0 <= y[1] < COLS):
                 continue
+            y_brick = y in brick_cells_all and y not in TEMP_STAIR
+            if is_temp and y_brick:
+                continue  # temp stair serves only its own column (checked)
             if y in T_BUILD and T_BUILD[y] > T_BUILD[task.cell]:
                 # deeper neighbor may need to stand on x at h to build (y, h+1)
                 if peaks[y[0]][y[1]] < min(h + 1, T_BUILD[y]):
                     return False
-            if not (y in T_BUILD and T_BUILD[y] > T_FINAL.get(y, 0)):
+            y_fin = 0 if y in TEMP_STAIR else T_FINAL.get(y, 0)
+            if not (y in T_BUILD and T_BUILD[y] > y_fin):
                 continue  # not scaffold
-            if heights[y[0]][y[1]] <= T_FINAL.get(y, 0):
+            if heights[y[0]][y[1]] <= y_fin:
                 continue  # already stripped to final: needs no stand anymore
             # strip locomotive rule: never sink more than one level below a
             # still-taller unfinished scaffold neighbour (keeps descent
             # ladders intact while letting strip waves pipeline)
-            if (heights[y[0]][y[1]] > T_FINAL.get(y, 0)
+            if (heights[y[0]][y[1]] > y_fin
                     and heights[y[0]][y[1]] > h):
                 return False
             if heights[y[0]][y[1]] != h + 1:
@@ -1292,8 +1800,11 @@ def main() -> int:
         # remaining above-final scaffold block stays reachable from ground
         # level (|dh| <= 1 walk).  local flood fill from the changed cell's
         # region only (cheap: scaffold sets are small).
+        pending_rm = {t.cell for t in demolition}
         rest = [y for y in scaffold_cells_set
-                if heights[y[0]][y[1]] > T_FINAL.get(y, 0) and y != task.cell]
+                if y in pending_rm
+                and heights[y[0]][y[1]] > (0 if y in TEMP_STAIR else T_FINAL.get(y, 0))
+                and y != task.cell]
         if rest:
             heights[r][c] -= 1  # hypothetical removal
             try:
@@ -1326,6 +1837,20 @@ def main() -> int:
         return True
 
     def task_stand_cells(task: Task) -> List[Coord]:
+        if task.cells:
+            # STRICT physics: a brick is placed at the worker's own layer or
+            # one below - stand height must be level-1 or level, adjacent
+            out = []
+            for (br, bc) in task.cells:
+                for dr, dc in NBRS:
+                    n = (br + dr, bc + dc)
+                    if not (0 <= n[0] < ROWS and 0 <= n[1] < COLS):
+                        continue
+                    if n in task.cells:
+                        continue
+                    if heights[n[0]][n[1]] in (task.level - 1, task.level):
+                        out.append(n)
+            return out
         if task.kind == "place" and deck_task(task.cell, task.level):
             # floating slab: lay from its own level or one above (stepping
             # half a level down to bridge sideways is a legal reach)
@@ -1347,6 +1872,7 @@ def main() -> int:
         out = set()
         for tsk in build_pending:
             out.add(tsk.cell)
+            out.update(tsk.cells)
         for tsk in demolition:
             out.add(tsk.cell)
         for r in range(ROWS):
@@ -1356,7 +1882,7 @@ def main() -> int:
         out |= {c for c in FORBIDDEN_CELLS if heights[c[0]][c[1]] < DECK_LEVEL.get(c, DECK_Z)}
         return out
 
-    removal_latch = not DECK_CELLS  # bridge scene: scaffold locked until latch opens
+    removal_latch = not DECK_CELLS and not BRICK_TASKS  # locked until built
     import time as _time
     _wall_start = _time.time()
     while round_no < MAX_ROUNDS and t_global < MAX_STEPS:
@@ -1379,7 +1905,16 @@ def main() -> int:
             break
 
         if stall_rounds >= 50:
-            raise RuntimeError(f"stalled at round {round_no}")
+            if task_cooldown and stall_resets[0] < 5:
+                # cooldown storm: everything ready is cooling off and nobody
+                # moves; clear the cooldowns and try again instead of dying
+                task_cooldown.clear()
+                stall_rounds = 0
+                stall_resets[0] += 1
+                print(f"round {round_no}: stall during cooldown storm, "
+                      f"clearing cooldowns (reset {stall_resets[0]}/5)", flush=True)
+            else:
+                raise RuntimeError(f"stalled at round {round_no}")
         if progress_stall >= 800:
             raise RuntimeError(
                 f"no completed action for {progress_stall} rounds "
@@ -1393,8 +1928,9 @@ def main() -> int:
             if a.action in ("place", "remove") and a.task is None:
                 a.action = None  # zombie: action without a task
             elif a.action in ("place", "remove") and a.task is not None:
-                tr_, tc_ = a.task.cell
-                if abs(a.pos[0] - tr_) + abs(a.pos[1] - tc_) != 1:
+                tcells = a.task.cells or (a.task.cell,)
+                if all(abs(a.pos[0] - r_) + abs(a.pos[1] - c_) != 1
+                       for r_, c_ in tcells):
                     a.action = None
                     a.task = None
                     a.action_fails = 0
@@ -1431,12 +1967,19 @@ def main() -> int:
             return dist_cache[pos]
 
         def reachable(a: Agent, cell: Coord) -> bool:
+            if DROP_ANY:  # asymmetric movement: use directed distances
+                return dist_from(a.pos)[cell[0]][cell[1]] < INF
             return comp[a.pos[0]][a.pos[1]] == comp[cell[0]][cell[1]]
 
         def _cool(t: Task) -> bool:
             return task_cooldown.get((t.cell, t.level, t.kind), 0) > round_no
+        if BRICK_TASKS:
+            pend_lvls = [t.level for t in build_pending if t.cells]
+            brick_layer_gate[0] = min(pend_lvls) if pend_lvls else 10 ** 9
         ready_pl = [t for t in build_pending if not _cool(t) and ready_place(t)]
-        ready_rm = [t for t in demolition if not _cool(t) and ready_remove(t)] if removal_latch else []
+        ready_rm = [t for t in demolition if not _cool(t)
+                    and (removal_latch or t.cell in TEMP_STAIR)
+                    and ready_remove(t)]
 
         # map stand cell -> task (first task claims the cell); never offer a
         # stand cell that is itself the target of another ready task, or two
@@ -1456,7 +1999,14 @@ def main() -> int:
 
         target_key = {}
         for t in ready_pl + ready_rm:
-            if deck_task(t.cell, t.level):
+            if t.cells:
+                for c_ in t.cells:
+                    # brick footprint: standing allowed only toward a strictly
+                    # later task (same conga-line argument as single cells);
+                    # an unconditional ban deadlocks full-rectangle layers
+                    # where every stand is inside some brick's footprint
+                    target_key[c_] = tkey(t)
+            elif deck_task(t.cell, t.level):
                 target_key[t.cell] = None  # never stand here
             else:
                 target_key[t.cell] = tkey(t)
@@ -1474,6 +2024,8 @@ def main() -> int:
         def task_stand_candidates(tsk: Task) -> List[Coord]:
             cands = []
             for n in task_stand_cells(tsk):
+                if stand_blacklist.get(n, 0) > round_no:
+                    continue
                 if n in target_key:
                     nk = target_key[n]
                     if nk is None or nk <= tkey(tsk):
@@ -1500,6 +2052,12 @@ def main() -> int:
 
         carrying_new = sum(1 for a in agents if (a.carrying and a.cargo == "new") or a.action == "pick")
         pick_quota = remaining_places - carrying_new
+        if not ready_pl and ready_rm:
+            # nothing can be laid until something is stripped (e.g. an early
+            # temp-stair removal gates the next brick layer): stop picking,
+            # or free agents ping-pong pick/return at the depot forever
+            # while nobody walks out to the removal stand
+            pick_quota = 0
         action_cells = {a.pos for a in agents if a.action is not None}
         hold_positions = set()
 
@@ -1659,6 +2217,15 @@ def main() -> int:
                     if reachable(a, n):
                         add(n, "stand", tsk,
                             PRIO_W * (u_max - task_urgency(tsk)) + sticky(n))
+                    elif TRACE_A2 and stall_rounds > 40:
+                        print(f"TRACE {a.name}@{a.pos} cannot reach stand {n} h={heights[n[0]][n[1]]}", flush=True)
+                if not place_cells and ready_rm:
+                    # nothing can be laid until scaffold is stripped (early
+                    # temp-stair removal): hand the brick back so this
+                    # worker can strip instead of holding the crew hostage
+                    for dep in avail_depot:
+                        if reachable(a, dep):
+                            add(dep, "return", None, sticky(dep))
             else:
                 for n, tsk in remove_cells.items():
                     if reachable(a, n):
@@ -1729,6 +2296,7 @@ def main() -> int:
             "map": str(map_path.resolve()),
             "heights": [list(row) for row in heights],
             "climbCost": CLIMB_COST,
+            "dropAny": DROP_ANY,
             "agents": agents_yaml,
         }, sort_keys=False), encoding="utf-8")
         out_yaml = rd / "out.yaml"
@@ -1770,6 +2338,7 @@ def main() -> int:
                 "map": str(map_path.resolve()),
                 "heights": [list(row) for row in heights],
                 "climbCost": CLIMB_COST,
+                "dropAny": DROP_ANY,
                 "agents": agents_yaml,
             }, sort_keys=False), encoding="utf-8")
             proc = subprocess.run(cmd, capture_output=True, text=True,
@@ -1827,8 +2396,8 @@ def main() -> int:
                 if a.task.kind == "remove" and not a.carrying:
                     a.action = "remove"
                     return True
-            if a.intent == "return" and a.carrying and a.cargo == "scrap":
-                a.action = "deposit"
+            if a.intent == "return" and a.carrying:
+                a.action = "deposit"  # scrap, or an unplaceable new brick
                 return True
             return False
 
@@ -1842,6 +2411,80 @@ def main() -> int:
                 a.carry_hist[-1] = 1
                 pick_events.append({"t": t_global, "agent": int(a.name[1:]),
                                     "r": a.pos[0], "c": a.pos[1]})
+                return True
+            if act == "place" and a.task is not None and a.task.cells:
+                # LEGO brick: all covered cells must be free, rule re-checked
+                if (any(c_ in positions for c_ in a.task.cells)
+                        or not ready_place(a.task)):
+                    for b in agents:
+                        if b.pos in a.task.cells and b.action is None:
+                            evict_names.add(b.name)
+                    a.action_fails += 1
+                    if ready_place(a.task) and a.action_fails <= 8:
+                        a.action = act
+                    else:
+                        task_cooldown[(a.task.cell, a.task.level, a.task.kind)] = round_no + 30
+                    return False
+                # trap check: placing this brick must not seal any agent
+                # above ground (another worker's return path could vanish)
+                for (br, bc) in a.task.cells:
+                    heights[br][bc] = a.task.level
+                trapped = None
+                for b in agents:
+                    if heights[b.pos[0]][b.pos[1]] == 0 or b.pos in a.task.cells:
+                        continue
+                    seen_t = {b.pos}
+                    stk = [b.pos]
+                    okg = False
+                    while stk:
+                        cur = stk.pop()
+                        if heights[cur[0]][cur[1]] == 0:
+                            okg = True
+                            break
+                        for dr, dc in NBRS:
+                            nb2 = (cur[0] + dr, cur[1] + dc)
+                            if (0 <= nb2[0] < ROWS and 0 <= nb2[1] < COLS
+                                    and nb2 not in seen_t
+                                    and abs(heights[nb2[0]][nb2[1]]
+                                            - heights[cur[0]][cur[1]]) <= 1):
+                                seen_t.add(nb2)
+                                stk.append(nb2)
+                    if not okg:
+                        trapped = b.name
+                        break
+                if trapped is not None:
+                    if __import__("os").environ.get("DBG_FAIL"):
+                        b_ = next(b for b in agents if b.name == trapped)
+                        print(f"   TRAP place {a.task.cells}@{a.task.level} by {a.name}@{a.pos}: seals {trapped}@{b_.pos} h={heights[b_.pos[0]][b_.pos[1]]}", flush=True)
+                    for (br, bc) in a.task.cells:
+                        need0 = BRICK_PREV.get(((br, bc), a.task.level), 0)
+                        heights[br][bc] = need0
+                    a.action_fails += 1
+                    if a.action_fails <= 8:
+                        a.action = act
+                    else:
+                        # this stand keeps sealing someone in: try another
+                        stand_blacklist[a.pos] = round_no + 60
+                        task_cooldown[(a.task.cell, a.task.level, a.task.kind)] = round_no + 15
+                    return False
+                bh_ = len({c_[0] for c_ in a.task.cells})
+                bw_ = len({c_[1] for c_ in a.task.cells})
+                for (br, bc) in a.task.cells:
+                    if BRICK_PREV.get(((br, bc), a.task.level), 0) < a.task.level - 1:
+                        DECK_LEVEL[(br, bc)] = a.task.level  # floats over a gap
+                    heights[br][bc] = a.task.level
+                    peaks[br][bc] = max(peaks[br][bc], a.task.level)
+                    terrain_events.append({"t": t_global, "r": br, "c": bc,
+                                           "h": a.task.level,
+                                           "agent": int(a.name[1:]),
+                                           "bw": bw_, "bh": bh_})
+                build_pending.remove(a.task)
+                a.task = None
+                a.carrying = False
+                a.cargo = None
+                a.carry_hist[-1] = 0
+                a.action_fails = 0
+                remaining_places -= 1
                 return True
             if act == "place" and a.task is not None:
                 tc = a.task.cell
@@ -1942,7 +2585,8 @@ def main() -> int:
             for t in range(1, len(p)):
                 (r0, c0), (r1, c1) = p[t - 1], p[t]
                 assert abs(r1 - r0) + abs(c1 - c0) <= 1, f"round {round_no}: non-unit move"
-                assert abs(heights[r1][c1] - heights[r0][c0]) <= 1, f"round {round_no}: height jump"
+                dh_ = heights[r1][c1] - heights[r0][c0]
+                assert dh_ <= 1 if DROP_ANY else abs(dh_) <= 1, f"round {round_no}: height jump"
         for t in range(makespan + 1):
             seen = set()
             for p in paths:
@@ -1995,8 +2639,14 @@ def main() -> int:
             assert all(tuple(b.path_hist[t]) != (r, c) for b in agents), \
                 f"round {round_no}: terrain event on occupied cell t={t} ({r},{c})"
             ar, ac = actor.path_hist[t]
-            assert abs(ar - r) + abs(ac - c) == 1, \
-                f"round {round_no}: acting agent not adjacent t={t} ({r},{c})"
+            if "bw" in ev:
+                near = any(abs(ar - e2["r"]) + abs(ac - e2["c"]) == 1
+                           for e2 in terrain_events
+                           if e2["t"] == t and e2["agent"] == ev["agent"])
+                assert near, f"round {round_no}: brick placer not adjacent t={t}"
+            else:
+                assert abs(ar - r) + abs(ac - c) == 1, \
+                    f"round {round_no}: acting agent not adjacent t={t} ({r},{c})"
         for ev in pick_events:
             if not (t_round_start < ev["t"] <= t_global):
                 continue
@@ -2018,6 +2668,7 @@ def main() -> int:
 
         stall_rounds = 0 if (moved or event_this_round) else stall_rounds + 1
         progress_stall = 0 if completed_this_round else progress_stall + 1
+
         import os
         if os.environ.get("DBG_ROUND") and round_no >= int(os.environ["DBG_ROUND"]):
             rp = [t for t in build_pending if ready_place(t)]
@@ -2032,6 +2683,11 @@ def main() -> int:
             print('   DBG latch:', removal_latch, 'ready_rm:', [(t.cell, t.level) for t in rr_][:8], flush=True)
             print('   DBG remove_cells:', {k: (v.cell, v.level) for k, v in list(remove_cells.items())[:8]}, flush=True)
             print('   DBG ready_pl:', [(t.cell, t.level) for t in ready_pl][:10], flush=True)
+            for t in build_pending:
+                if ready_place(t):
+                    print('   DBG stands for', (t.cell, t.level, t.cells), '->', task_stand_cells(t),
+                          'cands', task_stand_candidates(t), 'cool', _cool(t),
+                          'blk', {n: stand_blacklist.get(n) for n in task_stand_cells(t)}, flush=True)
             for rr2 in (0, 1, 2, min(12, ROWS-1), min(13, ROWS-1), min(14, ROWS-1)):
                 print('   row', rr2, [heights[rr2][cc] for cc in range(2, 20)], flush=True)
             import json as _json
@@ -2075,10 +2731,18 @@ def main() -> int:
         "cols": COLS,
         "T": t_global,
         "depot": [list(d) for d in DEPOT],
-        "meta": {"statsLine": f"柱子高 {COL_H} · 脚手架 {sum(T_BUILD[c] for c in SCAFFOLD_CELLS)} 块（用完拆除）",
+        "meta": {"statsLine": (
+                     f"{os.environ.get('BRICK_NAME', '整砖结构')} · "
+                     f"{len(BRICK_TASKS)} 个结构任务 · "
+                     f"{len(ATTACHMENTS)} 个锚定异形构件 · "
+                     f"脚手架 {sum(T_BUILD[c] for c in SCAFFOLD_CELLS)} 块（用完拆除）"
+                     if BRICK_TASKS else
+                     f"柱子高 {COL_H} · 脚手架 {sum(T_BUILD[c] for c in SCAFFOLD_CELLS)} 块（用完拆除）"),
                  "demolitionStart": demolition_start_t,
                  "suspenders": SUSPENDERS,
-                 "struts": STRUTS},
+                 "struts": STRUTS,
+                 "attachments": ATTACHMENTS,
+                 "lego": bool(BRICK_TASKS)},
         "final_heights": expect,
         "colors": {f"{r},{c}": col for (r, c), col in COLORS.items()},
         "colors3": {f"{r},{c},{h}": col for (r, c, h), col in COLORS3.items()},
@@ -2121,6 +2785,7 @@ if __name__ == "__main__":
     ap.add_argument("--symbot", action="store_true", help="Symbotic-style bot with floating chassis")
     ap.add_argument("--tommy", action="store_true", help="Tommy Trojan statue with sword and shield")
     ap.add_argument("--exp", action="store_true", help="parametric scaffold research scene (env-driven)")
+    ap.add_argument("--brick", action="store_true", help="build a BrickGPT structure from BRICK_FILE")
     ap.add_argument("--out-prefix", type=str, default="plan_column")
     args = ap.parse_args()
     if args.scene:
@@ -2146,6 +2811,8 @@ if __name__ == "__main__":
         configure_tommy()
     elif args.exp:
         configure_exp()
+    elif args.brick:
+        configure_brick()
     else:
         configure(args.col_h, args.helper)
         set_agents(args.agents)

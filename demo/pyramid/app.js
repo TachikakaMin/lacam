@@ -7,13 +7,17 @@ window.addEventListener('error', (e) => {
     : e.message + ' @' + e.filename + ':' + e.lineno);
 });
 const ROWS = PLAN.rows, COLS = PLAN.cols, T = PLAN.T;
+// embed mode (?embed=1): page-styled light theme, HUD hidden, controls
+// driven by the parent page through postMessage
+const EMBED = new URLSearchParams(location.search).has('embed');
 const CELL = 1.0, BLOCK_H = 0.62, AGENT_H = 0.46;
 const FLY = 0.55;
 
 // ---------------- scene ----------------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0e14);
-scene.fog = new THREE.Fog(0x0b0e14, 34, 90);
+const BG = EMBED ? 0xf3f4f6 : 0x0b0e14;
+scene.background = new THREE.Color(BG);
+scene.fog = new THREE.Fog(BG, 34, 90);
 
 const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, .1, 200);
 let renderer = null;
@@ -28,7 +32,7 @@ try {
   document.getElementById('stats').textContent = 'WebGL 不可用: ' + e.message;
 }
 
-scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x30281e, .55));
+scene.add(new THREE.HemisphereLight(0xbfd4ff, EMBED ? 0x8a8272 : 0x30281e, EMBED ? .75 : .55));
 const sun = new THREE.DirectionalLight(0xfff2dd, 1.05);
 sun.position.set(14, 22, 8);
 sun.castShadow = true;
@@ -41,7 +45,7 @@ function cellXZ(r, c) { return [c - COLS / 2 + .5, r - ROWS / 2 + .5]; }
 
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(COLS * CELL + 8, ROWS * CELL + 8),
-  new THREE.MeshStandardMaterial({ color: 0x161c2b, roughness: .95 }));
+  new THREE.MeshStandardMaterial({ color: EMBED ? 0xfaf8f2 : 0x161c2b, roughness: .95 }));
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.01;
 ground.receiveShadow = true;
@@ -58,9 +62,10 @@ function addTiles(cells, color) {
     scene.add(tile);
   }
 }
-addTiles(PLAN.depot, 0x1f4d33);
+addTiles(PLAN.depot, EMBED ? 0x9dc4a8 : 0x1f4d33);
 
-const gridHelper = new THREE.GridHelper(Math.max(ROWS, COLS) + 8, Math.max(ROWS, COLS) + 8, 0x25304a, 0x1b2436);
+const gridHelper = new THREE.GridHelper(Math.max(ROWS, COLS) + 8, Math.max(ROWS, COLS) + 8,
+  EMBED ? 0xe3e0d6 : 0x25304a, EMBED ? 0xece9e0 : 0x1b2436);
 gridHelper.position.y = 0.001;
 scene.add(gridHelper);
 
@@ -118,7 +123,15 @@ function cellMat(r, c, h) {
       || (PLAN.colors && PLAN.colors[r + ',' + c]);
   if (!hex) return null;
   if (!colorMats[hex]) {
-    colorMats[hex] = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: .75 });
+    const isGlass = /^#(?:9cc9dc|a8d0e6)$/i.test(hex);
+    colorMats[hex] = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(hex),
+      roughness: isGlass ? .18 : .75,
+      metalness: isGlass ? .05 : 0,
+      transparent: isGlass,
+      opacity: isGlass ? .34 : 1,
+      side: isGlass ? THREE.DoubleSide : THREE.FrontSide,
+    });
   }
   return colorMats[hex];
 }
@@ -128,19 +141,290 @@ function finalHeightAt(r, c) {
   return Infinity; // no final map (pyramid): everything is target structure
 }
 
+const LEGO = !!(PLAN.meta && PLAN.meta.lego);
+const studGeo = LEGO ? new THREE.CylinderGeometry(CELL * 0.3, CELL * 0.3, BLOCK_H * 0.22, 16) : null;
+// merge multi-cell LEGO bricks into ONE seamless box: group brick-marked
+// events by (t, agent); the anchor event carries the merged mesh (centered
+// on the brick), sibling events render nothing
+if (LEGO) {
+  const groups = {};
+  for (const ev of placeEvents) {
+    if (ev.bw === undefined) continue;
+    const key = ev.t + ':' + ev.agent;
+    (groups[key] = groups[key] || []).push(ev);
+  }
+  for (const key in groups) {
+    const grp = groups[key];
+    let r0 = 1e9, r1 = -1e9, c0 = 1e9, c1 = -1e9;
+    for (const e of grp) {
+      r0 = Math.min(r0, e.r); r1 = Math.max(r1, e.r);
+      c0 = Math.min(c0, e.c); c1 = Math.max(c1, e.c);
+    }
+    grp[0]._anchor = true;
+    grp[0]._cr = (r0 + r1) / 2;
+    grp[0]._cc = (c0 + c1) / 2;
+    grp[0]._spanR = r1 - r0 + 1;
+    grp[0]._spanC = c1 - c0 + 1;
+    for (let i = 1; i < grp.length; i++) grp[i]._hidden = true;
+  }
+}
 const blockMeshes = placeEvents.map(ev => {
   const g = new THREE.Group();
+  if (ev._hidden) { g.visible = false; scene.add(g); return g; }
   const scaffold = ev.h > finalHeightAt(ev.r, ev.c);
   const mats = scaffold ? scaffoldMats : blockMats;
   const custom = scaffold ? null : cellMat(ev.r, ev.c, ev.h);
-  const mesh = new THREE.Mesh(blockGeo, custom || mats[Math.min(ev.h - 1, mats.length - 1)]);
+  const material = custom || mats[Math.min(ev.h - 1, mats.length - 1)];
+  let mesh;
+  if (ev._anchor) {
+    const geo = new THREE.BoxGeometry(CELL * ev._spanC - 0.02, BLOCK_H, CELL * ev._spanR - 0.02);
+    mesh = new THREE.Mesh(geo, material);
+    g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
+    if (LEGO && !scaffold) {
+      for (let dr = 0; dr < ev._spanR; dr++) {
+        for (let dc = 0; dc < ev._spanC; dc++) {
+          const stud = new THREE.Mesh(studGeo, material);
+          stud.position.set((dc - (ev._spanC - 1) / 2) * CELL,
+                            BLOCK_H / 2 + BLOCK_H * 0.11,
+                            (dr - (ev._spanR - 1) / 2) * CELL);
+          stud.castShadow = true;
+          g.add(stud);
+        }
+      }
+    }
+  } else {
+    mesh = new THREE.Mesh(blockGeo, material);
+    if (LEGO && !scaffold) {
+      const stud = new THREE.Mesh(studGeo, material);
+      stud.position.y = BLOCK_H / 2 + BLOCK_H * 0.11;
+      stud.castShadow = true;
+      g.add(stud);
+    }
+  }
   mesh.castShadow = true; mesh.receiveShadow = true;
   g.add(mesh);
-  g.add(new THREE.LineSegments(blockEdges, scaffold ? scaffoldEdgeMat : edgeMat));
+  if (!ev._anchor) {
+    g.add(new THREE.LineSegments(blockEdges, scaffold ? scaffoldEdgeMat : edgeMat));
+  }
   g.visible = false;
   scene.add(g);
   return g;
 });
+
+// Parts such as vertical wheels and long shafts cannot be encoded by the
+// terrain height field. Each is tied to a real brick placement and appears
+// only after that validated anchor task completes.
+const anchoredParts = [];
+function partMaterial(color, emissive = 0x000000) {
+  return new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color || '#222222'),
+    roughness: .65,
+    metalness: .12,
+    emissive,
+  });
+}
+function addBox(group, sx, sy, sz, x, y, z, mat) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  return mesh;
+}
+function worldPoint(p) {
+  const [x, z] = cellXZ(p.r, p.c);
+  return new THREE.Vector3(x, p.z * BLOCK_H, z);
+}
+function addCylinderBetween(group, a, b, radius, mat) {
+  const v = new THREE.Vector3(b.x - a.x, b.y - a.y, b.z - a.z);
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, v.length(), 14), mat);
+  mesh.position.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+  mesh.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0), v.clone().normalize());
+  mesh.castShadow = true;
+  group.add(mesh);
+  return mesh;
+}
+function makeWheel(spec) {
+  const g = new THREE.Group();
+  const mat = partMaterial(spec.color || '#75411f');
+  const radius = spec.radius || 1.65;
+  const thick = spec.width || .22;
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(radius, Math.max(.08, radius * .09), 10, 32), mat);
+  rim.castShadow = true;
+  g.add(rim);
+  const hub = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * .16, radius * .16, thick * 1.8, 16), mat);
+  hub.rotation.x = Math.PI / 2;
+  hub.castShadow = true;
+  g.add(hub);
+  for (let i = 0; i < 8; i++) {
+    const spoke = addBox(g, radius * 1.7, radius * .075, thick,
+                         0, 0, 0, mat);
+    spoke.rotation.z = i * Math.PI / 4;
+  }
+  g.position.copy(worldPoint(spec.at));
+  return g;
+}
+function makeShaft(spec) {
+  const g = new THREE.Group();
+  addCylinderBetween(g, worldPoint(spec.from), worldPoint(spec.to),
+                     spec.radius || .07,
+                     partMaterial(spec.color || '#171b24'));
+  return g;
+}
+function makeLamp(spec) {
+  const g = new THREE.Group();
+  const dark = partMaterial(spec.color || '#11151b');
+  const glow = partMaterial(spec.glass || '#ffd84d', 0x6b4b00);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .52, 12), dark);
+  body.castShadow = true;
+  g.add(body);
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, .28, 12), glow);
+  glass.position.y = -.02;
+  g.add(glass);
+  const hook = addBox(g, .09, .35, .09, 0, .39, 0, dark);
+  hook.rotation.z = .25;
+  g.position.copy(worldPoint(spec.at));
+  return g;
+}
+function makeHorse(spec) {
+  const g = new THREE.Group();
+  const white = partMaterial(spec.color || '#f1f1eb');
+  const harness = partMaterial(spec.harness || '#6b3824');
+  const mane = partMaterial(spec.mane || '#b7b2a8');
+  addBox(g, 3.15, 1.38, 1.18, 0, 1.75, 0, white);
+  for (const x of [-1.05, .92]) for (const z of [-.39, .39]) {
+    const leg = addBox(g, .38, 1.85, .38, x, .45, z, white);
+    leg.rotation.z = x < 0 ? -.07 : .07;
+  }
+  const neck = addBox(g, .72, 1.65, .82, -1.35, 2.55, 0, white);
+  neck.rotation.z = -.34;
+  const head = addBox(g, 1.02, .72, .78, -1.92, 3.22, 0, white);
+  head.rotation.z = -.18;
+  addBox(g, .48, .36, .7, -2.5, 3.02, 0, white);
+  addBox(g, .13, .38, .14, -1.98, 3.78, -.22, white).rotation.z = -.2;
+  addBox(g, .13, .38, .14, -1.98, 3.78, .22, white).rotation.z = -.2;
+  for (let i = 0; i < 6; i++) {
+    addBox(g, .13, .34, .12, -1.05 - i * .17, 3.15 - i * .15, 0, mane);
+  }
+  addCylinderBetween(g,
+    new THREE.Vector3(1.5, 2.05, 0),
+    new THREE.Vector3(2.35, 2.75, 0), .08, mane);
+  addBox(g, 1.55, .08, .88, -1.62, 3.18, 0, harness);
+  addBox(g, .09, 1.05, .9, -1.95, 3.05, 0, harness);
+  addBox(g, 2.8, .08, 1.26, .1, 1.78, 0, harness);
+  g.position.copy(worldPoint(spec.at));
+  g.rotation.y = spec.yaw || 0;
+  g.scale.setScalar(spec.scale || 1);
+  return g;
+}
+function makeWindow(spec) {
+  const g = new THREE.Group();
+  const frame = partMaterial(spec.color || '#11151b');
+  const glass = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(spec.glass || '#b9d9e8'),
+    roughness: .12,
+    transparent: true,
+    opacity: .28,
+    side: THREE.DoubleSide,
+  });
+  const w = spec.width || 3.4;
+  const h = spec.height || 2.45;
+  const t = spec.thickness || .13;
+  addBox(g, w, .18, t, 0, h / 2, 0, frame);
+  addBox(g, w, .18, t, 0, -h / 2, 0, frame);
+  addBox(g, .18, h, t, -w / 2, 0, 0, frame);
+  addBox(g, .18, h, t, w / 2, 0, 0, frame);
+  addBox(g, w - .3, h - .3, t * .35, 0, 0, 0, glass);
+  g.position.copy(worldPoint(spec.at));
+  if (spec.plane === 'end') g.rotation.y = Math.PI / 2;
+  return g;
+}
+function makeDoor(spec) {
+  const g = new THREE.Group();
+  const panel = partMaterial(spec.color || '#11151b');
+  const trim = partMaterial(spec.trim || '#303742');
+  const w = spec.width || 2.2;
+  const h = spec.height || 3.25;
+  addBox(g, w, h, .14, 0, 0, 0, panel);
+  addBox(g, w - .22, .09, .17, 0, h * .34, 0, trim);
+  addBox(g, w - .22, .09, .17, 0, -h * .34, 0, trim);
+  const handle = new THREE.Mesh(
+    new THREE.CylinderGeometry(.065, .065, .28, 10), trim);
+  handle.rotation.x = Math.PI / 2;
+  handle.position.set(w * .3, 0, .14);
+  g.add(handle);
+  g.position.copy(worldPoint(spec.at));
+  if (spec.plane === 'end') g.rotation.y = Math.PI / 2;
+  return g;
+}
+function makeSeat(spec) {
+  const g = new THREE.Group();
+  const mat = partMaterial(spec.color || '#161b24');
+  const cushion = addBox(g, 1.45, .34, 1.65, 0, .36, 0, mat);
+  cushion.rotation.z = -.04;
+  const back = addBox(g, .34, 1.25, 1.65, -.55, 1.0, 0, mat);
+  back.rotation.z = -.3;
+  g.position.copy(worldPoint(spec.at));
+  g.rotation.y = spec.yaw || 0;
+  return g;
+}
+function makeCanopy(spec) {
+  const g = new THREE.Group();
+  const mat = partMaterial(spec.color || '#11151b');
+  const radius = spec.radius || 1.05;
+  const width = spec.width || 5.7;
+  const curved = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, width, 24, 1, false, 0, Math.PI),
+    mat);
+  curved.rotation.x = Math.PI / 2;
+  curved.castShadow = true;
+  g.add(curved);
+  g.position.copy(worldPoint(spec.at));
+  g.rotation.y = spec.yaw || 0;
+  return g;
+}
+function makeWheelArch(spec) {
+  const g = new THREE.Group();
+  const mat = partMaterial(spec.color || '#11151b');
+  const arch = new THREE.Mesh(
+    new THREE.TorusGeometry(spec.radius || 1.82, spec.tube || .14, 9, 28, Math.PI),
+    mat);
+  arch.castShadow = true;
+  g.add(arch);
+  g.position.copy(worldPoint(spec.at));
+  return g;
+}
+function makeFootboard(spec) {
+  const g = new THREE.Group();
+  const mat = partMaterial(spec.color || '#11151b');
+  addBox(g, spec.length || 4.5, .18, spec.width || .62, 0, 0, 0, mat);
+  g.position.copy(worldPoint(spec.at));
+  if (spec.axis === 'row') g.rotation.y = Math.PI / 2;
+  return g;
+}
+for (const spec of ((PLAN.meta && PLAN.meta.attachments) || [])) {
+  let group = null;
+  if (spec.kind === 'wheel') group = makeWheel(spec);
+  else if (spec.kind === 'shaft') group = makeShaft(spec);
+  else if (spec.kind === 'lamp') group = makeLamp(spec);
+  else if (spec.kind === 'horse') group = makeHorse(spec);
+  else if (spec.kind === 'window') group = makeWindow(spec);
+  else if (spec.kind === 'door') group = makeDoor(spec);
+  else if (spec.kind === 'seat') group = makeSeat(spec);
+  else if (spec.kind === 'canopy') group = makeCanopy(spec);
+  else if (spec.kind === 'wheelArch') group = makeWheelArch(spec);
+  else if (spec.kind === 'footboard') group = makeFootboard(spec);
+  if (!group) continue;
+  const a = spec.anchor;
+  const ev = placeEvents.find(e => e.r === a.r && e.c === a.c && e.h === a.h);
+  group.visible = false;
+  scene.add(group);
+  anchoredParts.push({ group, t: ev ? ev.t : T });
+}
 
 // viewer-only suspender drop lines (PLAN.meta.suspenders): thin vertical
 // rods from the deck level up to the cable block, appearing when the cable
@@ -223,18 +507,26 @@ const agents = PLAN.agents.map((a, i) => {
 });
 // terrain events indexed by acting agent, for facing/lean animation
 const actByAgent = agents.map(() => []);
-for (const ev of terrainEvents) if (ev.agent !== undefined) actByAgent[ev.agent].push(ev);
+for (const ev of terrainEvents) {
+  if (ev.agent === undefined) continue;
+  if (!actByAgent[ev.agent]) throw new Error(`bad terrain agent ${ev.agent}`);
+  actByAgent[ev.agent].push(ev);
+}
 // deposit times per agent (scrap hand-off at the depot)
 const depositsByAgent = agents.map(() => []);
 for (const d of (PLAN.deposits || [])) depositsByAgent[d.agent].push(d.t);
 
 // ---------------- playback state ----------------
-let simT = 0;
-let playing = true;
+const initialT = new URLSearchParams(location.search).get('t');
+// let the clock run one step past the last event so the final block's
+// flight animation (FLY) can land instead of freezing mid-air
+const T_END = T + 1;
+let simT = initialT === 'end' ? T_END : Math.max(0, Math.min(T_END, Number(initialT) || 0));
+let playing = initialT !== 'end';
 let speed = 6;
 let lastStatsT = -1;
 const timeline = document.getElementById('timeline');
-timeline.max = T;
+timeline.max = T_END;
 const statsEl = document.getElementById('stats');
 
 function lerp(a, b, u) { return a + (b - a) * u; }
@@ -249,7 +541,7 @@ function updateWorld(tf) {
     const gone = ev.removedAt !== undefined && tf >= ev.removedAt + FLY;
     if (tf < ev.t || gone) { g.visible = false; continue; }
     g.visible = true;
-    const [tx, tz] = cellXZ(ev.r, ev.c);
+    const [tx, tz] = cellXZ(ev._cr !== undefined ? ev._cr : ev.r, ev._cc !== undefined ? ev._cc : ev.c);
     const ty = (ev.h - 1) * BLOCK_H + BLOCK_H / 2;
     g.rotation.y = 0;
     if (ev.removedAt !== undefined && tf >= ev.removedAt) {
@@ -279,6 +571,8 @@ function updateWorld(tf) {
       g.scale.setScalar(1);
     }
   }
+
+  for (const p of anchoredParts) p.group.visible = tf >= p.t + FLY;
 
   // agents
   for (const s of suspenderRods) s.rod.visible = tf >= s.t + FLY;
@@ -320,7 +614,7 @@ function updateWorld(tf) {
     for (const ev of actByAgent[a.idx]) {
       const rel = tf - (ev.t - 0.35);
       if (rel >= 0 && rel <= 0.35 + FLY) {
-        const [tx, tz] = cellXZ(ev.r, ev.c);
+        const [tx, tz] = cellXZ(ev._cr !== undefined ? ev._cr : ev.r, ev._cc !== undefined ? ev._cc : ev.c);
         a.group.rotation.y = Math.atan2(tx - px, tz - pz);
         a.group.rotation.x = 0.28 * Math.sin(Math.PI * rel / (0.35 + FLY));
         if (!ev.isPlace && tf >= ev.t && tf < ev.t + FLY) hideCarried = true;
@@ -347,6 +641,11 @@ function updateWorld(tf) {
         mat = sc ? scaffoldMats[0] : cellMat(nextEv.r, nextEv.c, nextEv.h);
       }
       a.carried.material = mat || a.carriedDefaultMat;
+      if (LEGO && nextEv && nextEv.bw) {
+        a.carried.scale.set(Math.min(nextEv.bw, 5) * 0.85, 1, Math.min(nextEv.bh, 5) * 0.85);
+      } else {
+        a.carried.scale.set(1, 1, 1);
+      }
       carryingCount++;
     }
   }
@@ -355,6 +654,7 @@ function updateWorld(tf) {
   // innerHTML rewrites cause constant reflow and visible stutter)
   if (t0 !== lastStatsT) {
     lastStatsT = t0;
+    const t0show = Math.min(t0, T);  // padding frames still display T
     let placed = 0, removed = 0;
     for (const ev of placeEvents) if (ev.t <= tf) placed++;
     for (const ev of removeEvents) if (ev.t <= tf) removed++;
@@ -362,11 +662,11 @@ function updateWorld(tf) {
       ? PLAN.meta.statsLine
       : (PLAN.pyramid ? `金字塔 ${PLAN.pyramid.base}×${PLAN.pyramid.base} 底座 · ${PLAN.pyramid.levels} 层` : '');
     statsEl.innerHTML = (lang === 'zh')
-      ? `时间步 <b>${t0}</b> / ${T} &nbsp;·&nbsp; 结构中 <b>${placed - removed}</b> 块` +
+      ? `时间步 <b>${t0show}</b> / ${T} &nbsp;·&nbsp; 结构中 <b>${placed - removed}</b> 块` +
         ` (放 ${placed} / 拆 ${removed})` +
         `<br>机器人 ${agents.length} 台，搬运中 ${carryingCount} 台` +
         (extra ? `<br>${extra}` : '')
-      : `Step <b>${t0}</b> / ${T} &nbsp;·&nbsp; <b>${placed - removed}</b> blocks in structure` +
+      : `Step <b>${t0show}</b> / ${T} &nbsp;·&nbsp; <b>${placed - removed}</b> blocks in structure` +
         ` (${placed} placed / ${removed} removed)` +
         `<br>${agents.length} robots, ${carryingCount} carrying`;
     timeline.value = t0;
@@ -375,28 +675,61 @@ function updateWorld(tf) {
 
 // ---------------- camera orbit ----------------
 let camTheta = 0.9, camPhi = 0.42, camDist = Math.max(26, Math.max(ROWS, COLS) * 1.35);
-let dragging = false, lastX = 0, lastY = 0;
+const camTarget = new THREE.Vector3(0, 1.2, 0);
+const CAM_T0 = camTarget.clone();
+const PAN_LIM = Math.max(ROWS, COLS) * 0.75 + 6;
+let dragging = false, panning = false, lastX = 0, lastY = 0;
 if (renderer) {
-  renderer.domElement.addEventListener('mousedown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+  renderer.domElement.addEventListener('mousedown', e => {
+    dragging = true;
+    // Isaac Sim / Unity style: hold Cmd (mac) or Ctrl (win/linux), or use
+    // the middle button, to pan the camera instead of orbiting
+    panning = e.metaKey || e.ctrlKey || e.button === 1;
+    if (e.button === 1) e.preventDefault();
+    lastX = e.clientX; lastY = e.clientY;
+  });
+  renderer.domElement.addEventListener('dblclick', () => {
+    camTarget.copy(CAM_T0);  // double-click: recenter
+  });
+  const MAXDIST = Math.max(66, camDist * 1.6);
   renderer.domElement.addEventListener('wheel', e => {
-    camDist = Math.min(60, Math.max(9, camDist + e.deltaY * 0.02));
-  }, { passive: true });
+    e.preventDefault();  // keep the (parent) page from scrolling / zooming
+    let d = e.deltaY;
+    if (e.deltaMode === 1) d *= 33;        // line-based wheels
+    const k = e.ctrlKey ? 0.011 : 0.0022;  // trackpad pinch sends ctrlKey
+    camDist = Math.min(MAXDIST, Math.max(7, camDist * Math.exp(d * k)));
+  }, { passive: false });
 }
-addEventListener('mouseup', () => dragging = false);
+addEventListener('mouseup', () => { dragging = false; panning = false; });
 addEventListener('mousemove', e => {
   if (!dragging) return;
-  camTheta -= (e.clientX - lastX) * 0.005;
-  camPhi = Math.min(1.35, Math.max(0.12, camPhi + (e.clientY - lastY) * 0.004));
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
   lastX = e.clientX; lastY = e.clientY;
+  if (panning || e.metaKey || e.ctrlKey) {
+    // pan in the camera's screen plane, scaled by distance
+    const f = camDist * 0.0016;
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+    camTarget.addScaledVector(right, -dx * f);
+    camTarget.addScaledVector(up, dy * f);
+    camTarget.x = Math.max(-PAN_LIM, Math.min(PAN_LIM, camTarget.x));
+    camTarget.z = Math.max(-PAN_LIM, Math.min(PAN_LIM, camTarget.z));
+    camTarget.y = Math.max(0, Math.min(PAN_LIM, camTarget.y));
+    return;
+  }
+  camTheta -= dx * 0.005;
+  camPhi = Math.min(1.35, Math.max(0.12, camPhi + dy * 0.004));
 });
 
 function updateCamera(dt) {
   if (!dragging) camTheta += dt * 0.03;
   camera.position.set(
-    camDist * Math.cos(camPhi) * Math.sin(camTheta),
-    camDist * Math.sin(camPhi),
-    camDist * Math.cos(camPhi) * Math.cos(camTheta));
-  camera.lookAt(0, 1.2, 0);
+    camTarget.x + camDist * Math.cos(camPhi) * Math.sin(camTheta),
+    camTarget.y + camDist * Math.sin(camPhi),
+    camTarget.z + camDist * Math.cos(camPhi) * Math.cos(camTheta));
+  camera.lookAt(camTarget);
+  camera.updateMatrix();
 }
 
 // ---------------- controls ----------------
@@ -407,6 +740,8 @@ playBtn.onclick = () => {
                                       : (playing ? 'Pause' : 'Play');
 };
 document.getElementById('resetBtn').onclick = () => { simT = 0; };
+const endBtn = document.getElementById('endBtn');
+if (endBtn) endBtn.onclick = () => { simT = T_END; playing = false; };
 document.getElementById('speed').oninput = e => { speed = +e.target.value; };
 timeline.oninput = e => { simT = +e.target.value; };
 
@@ -429,6 +764,11 @@ const SCENES = [
   ['uscgate.html', 'USC 校门', 'USC Gate'],
   ['symbot.html', 'SymBot 小车', 'SymBot'],
   ['tommy.html', 'Tommy Trojan', 'Tommy Trojan'],
+  ['brickcar.html', '乐高小车', 'Brick Car'],
+  ['brickchair.html', '乐高椅子', 'Brick Chair'],
+  ['brickguitar.html', '乐高吉他', 'Brick Guitar'],
+  ['brickpiano.html', '乐高钢琴', 'Brick Piano'],
+  ['brougham.html', '维多利亚马车', 'Victorian Brougham'],
 ];
 let lang = localStorage.getItem('demoLang') || 'zh';
 // per-page English copy: [h1, sub, legend lines (dot colors reused in order)]
@@ -463,11 +803,28 @@ const PAGE_EN = {
   'tommy.html': ['Tommy Trojan · USC Warrior Statue',
     'Raising the Sword of Knowledge, holding the Shield of Courage; the blade is an ascending float chain erected from a scaffold wall, stripped afterwards',
     ['Statue (pedestal + warrior + sword & shield)', 'Scaffold (stair-wall, removed)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
+  'brickcar.html': ['BrickGPT Brick Car',
+    'A StableText2Brick structure converted to voxels: solid columns + floating shell, windows filled as glass',
+    ['Brick structure (red body / glass windows)', 'Scaffold (stair, removed)', 'Robots (bright cap = carrying)', 'Depot']],
+  'brickchair.html': ['BrickGPT Brick Chair',
+    'A StableText2Brick structure: 1x1 legs served by side stairs, self-raising 2-thick back, gold finish',
+    ['Brick structure (gold)', 'Scaffold (stairs, removed)', 'Robots (bright cap = carrying)', 'Depot']],
+  'brickguitar.html': ['BrickGPT Brick Guitar',
+    'Wood-tone body and neck; the head spire is served by scaffold stacked on the finished body, stripped afterwards',
+    ['Brick structure (wood)', 'Scaffold (stairs, removed)', 'Robots (bright cap = carrying)', 'Depot']],
+  'brickpiano.html': ['BrickGPT Brick Piano',
+    'Black grand piano: the legs under the floating lid are built with temporary in-footprint stairs, stripped before the lid closes',
+    ['Brick structure (black / glass)', 'Scaffold (stairs, removed)', 'Robots (bright cap = carrying)', 'Depot']],
+  'brougham.html': ['Victorian Horse-Drawn Brougham',
+    'MOC-194603 brick list: carriage body AND horse are laid brick by brick; wheels, shafts and lamps are tied to anchor bricks; scaffold stripped afterwards',
+    ['Brick structure (black body / glass / red seat)', 'Scaffold (delivery stairs, removed)', 'Robots (bright cap = carrying)', 'Depot']],
   'symbot.html': ['SymBot · Symbotic-style Case Bot',
-    'Low-slung green body, black wheel pods, dark sensor nose, orange case payload',
+    'Charcoal frame, tall green-faced front tower, low rear module, light-grey case sitting in the central cargo bay, green skirt band',
     ['Structure (the bot)', 'Scaffold (removed)', 'Robots (bright cap = carrying)', 'Depot (pickup / scrap return)']],
 };
 const hud = document.getElementById('hud');
+if (hud && EMBED) hud.style.display = 'none';
+if (EMBED) document.body.style.background = '#eef2f7';
 if (hud) {
   const here = location.pathname.split('/').pop() || 'index.html';
   const h1el = hud.querySelector('h1');
@@ -544,15 +901,37 @@ if (hud) {
   renderCopy();
 }
 
+// ---------------- embed control API ----------------
+if (EMBED) {
+  window.addEventListener('message', ev => {
+    const m = ev.data && ev.data.lacamCmd;
+    if (!m) return;
+    if (m.cmd === 'toggle') playing = !playing;
+    else if (m.cmd === 'play') playing = true;
+    else if (m.cmd === 'pause') playing = false;
+    else if (m.cmd === 'reset') { simT = 0; playing = true; }
+    else if (m.cmd === 'end') { simT = T_END; playing = false; }
+    else if (m.cmd === 'speed') speed = +m.value;
+    else if (m.cmd === 'seek') { simT = Math.max(0, Math.min(T_END, +m.value)); playing = false; }
+  });
+  setInterval(() => {
+    if (window.parent !== window) {
+      window.parent.postMessage({ lacamState: {
+        t: Math.min(Math.floor(simT), T), simT: simT, T: T, T_END: T_END,
+        playing: playing, speed: speed } }, '*');
+    }
+  }, 120);
+}
+
 // ---------------- main loop ----------------
 let prev = performance.now();
 function animate(now) {
   requestAnimationFrame(animate);
-  const dt = Math.min((now - prev) / 1000, 0.1);
+  const dt = Math.max(0, Math.min((now - prev) / 1000, 0.1));
   prev = now;
   if (playing) {
     simT += dt * speed;
-    if (simT >= T) simT = T;
+    if (simT >= T_END) simT = T_END;
   }
   updateWorld(simT);
   updateCamera(dt);

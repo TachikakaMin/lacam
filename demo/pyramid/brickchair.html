@@ -2,34 +2,37 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>LaCAM-TAPF · 吉萨工地</title>
+<title>LaCAM-TAPF · BrickGPT 乐高椅子</title>
 <script>if(location.search.indexOf("embed")>=0){document.write('<style>html,body{background:#f3f4f6 !important}#hud,#hudbar,#scenenav{display:none !important}</style>');}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="hud">
-  <h1>吉萨工地：双金字塔 + 方尖碑</h1>
-  <div class="sub">10 机器人同场施工 · 金字塔自带坡道 · 方尖碑修楼梯再拆除</div>
+  <h1>BrickGPT 乐高椅子</h1>
+  <div class="sub">BrickGPT 积木清单 → 整砖搬运放置：agent 驮着 h×w 乐高砖，凸点连接，金色坐垫</div>
   <div id="stats"></div>
   <div id="controls">
     <button id="playBtn">暂停</button>
     <button id="resetBtn">重来</button>
     <label style="font-size:11px;color:#8b98b3">速度
-      <input id="speed" type="range" min="1" max="100" value="8">
+      <input id="speed" type="range" min="1" max="100" value="6">
     </label>
   </div>
   <input id="timeline" type="range" min="0" max="100" value="0">
   <div id="legend">
-    <span class="dot" style="background:#e8b04a"></span>目标建筑（金字塔 + 方尖碑）<br>
-    <span class="dot" style="background:#8b99b0"></span>脚手架（方尖碑的临时楼梯）<br>
+    <span class="dot" style="background:#e8b04a"></span>乐高结构<br>
+    <span class="dot" style="background:#8b99b0"></span>脚手架（两侧楼梯，用完拆除）<br>
     <span class="dot" style="background:#4a90d9"></span>机器人（顶上亮块 = 正在搬运）<br>
     <span class="dot" style="background:#7bd88f"></span>料仓（取块 / 退还脚手架）<br>
-    <a href="index.html" style="color:#7ba7e8">→ 金字塔场景</a> ·
-    <a href="column.html" style="color:#7ba7e8">→ 柱子</a> · <a href="bridge.html" style="color:#7ba7e8">→ 双塔拱桥</a> · <a href="temple.html" style="color:#7ba7e8">→ 神庙</a> · <a href="horse.html" style="color:#7ba7e8">→ 木马</a>
+    <a href="index.html" style="color:#7ba7e8">→ 金字塔</a> ·
+    <a href="brickcar.html" style="color:#7ba7e8">→ 乐高小车</a> ·
+    <a href="brickguitar.html" style="color:#7ba7e8">→ 乐高吉他</a> ·
+    <a href="column.html" style="color:#7ba7e8">→ 柱子</a> ·
+    <a href="scene.html" style="color:#7ba7e8">→ 吉萨工地</a>
   </div>
 </div>
 <script src="three.min.js"></script>
-<script src="plan_scene.js"></script>
+<script src="plan_brickchair.js"></script>
 <script src="app.js?v=11"></script>
 </body>
 </html>

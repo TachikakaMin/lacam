@@ -1,0 +1,1992 @@
+{
+  "model_status": "verified-against-pdf-key-steps",
+  "source": "MOC-194603_brickbicycle_brougham.pdf",
+  "units": {
+    "ldu_per_stud": 20,
+    "ldu_per_plate": 8
+  },
+  "axes": {
+    "x": "left-right",
+    "y": "down",
+    "z": "rear-to-horse"
+  },
+  "geometry_fallbacks": [
+    {
+      "part": "4493c01pb04",
+      "geometry": "4493c01",
+      "reason": "pb04 is not present in the official complete LDraw library",
+      "render_adjustment": "fixed tack color 6 remapped to Dark Orange"
+    }
+  ],
+  "part_count": 82,
+  "parts": [
+    {
+      "id": "s01-p001",
+      "step": 1,
+      "part": "3031",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        0,
+        -40
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s02-p002",
+      "step": 2,
+      "part": "3010",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -24,
+        -70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s03-p003",
+      "step": 3,
+      "part": "3021",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -20,
+        -32,
+        -50
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s03-p004",
+      "step": 3,
+      "part": "3021",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        20,
+        -32,
+        -50
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s04-p005",
+      "step": 4,
+      "part": "3004",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -56,
+        -70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s04-p006",
+      "step": 4,
+      "part": "3622",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -30,
+        -56,
+        -50
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s04-p007",
+      "step": 4,
+      "part": "3622",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        30,
+        -56,
+        -50
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s05-p008",
+      "step": 5,
+      "part": "51266",
+      "color": "Trans-Clear",
+      "ldraw_color": 47,
+      "position": [
+        0,
+        -128,
+        -70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s05-p009",
+      "step": 5,
+      "part": "51239",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -128,
+        -70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s06-p010",
+      "step": 6,
+      "part": "2362b",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -30,
+        -128,
+        -30
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s06-p011",
+      "step": 6,
+      "part": "2362b",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        30,
+        -128,
+        -30
+      ],
+      "matrix": [
+        -0.0,
+        0,
+        -1.0,
+        0,
+        1,
+        0,
+        1.0,
+        0,
+        -0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s07-p012",
+      "step": 7,
+      "part": "3031",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        0,
+        40
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s08-p013",
+      "step": 8,
+      "part": "88292",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -30,
+        -48,
+        30
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s08-p014",
+      "step": 8,
+      "part": "88292",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        30,
+        -48,
+        30
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s09-p015",
+      "step": 9,
+      "part": "3023",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -30,
+        -56,
+        50
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s09-p016",
+      "step": 9,
+      "part": "3023",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        30,
+        -56,
+        50
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s10-p017",
+      "step": 10,
+      "part": "3747b",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -24,
+        70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s11-p018",
+      "step": 11,
+      "part": "3005",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -10,
+        -48,
+        30
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s11-p019",
+      "step": 11,
+      "part": "3005",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        10,
+        -48,
+        30
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s12-p020",
+      "step": 12,
+      "part": "3021",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -56,
+        50
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s13-p021",
+      "step": 13,
+      "part": "51266",
+      "color": "Trans-Clear",
+      "ldraw_color": 47,
+      "position": [
+        0,
+        -128,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s13-p022",
+      "step": 13,
+      "part": "51239",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -128,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s15-p023",
+      "step": 15,
+      "part": "3020",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -64,
+        60
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s15-p024",
+      "step": 15,
+      "part": "3020",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -72,
+        60
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s16-p025",
+      "step": 16,
+      "part": "3709b",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -80,
+        60
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s17-p026",
+      "step": 17,
+      "part": "48336",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -20,
+        -88,
+        50
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s17-p027",
+      "step": 17,
+      "part": "48336",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        20,
+        -88,
+        70
+      ],
+      "matrix": [
+        -1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        -1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s18-p028",
+      "step": 18,
+      "part": "54200",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -20,
+        -88,
+        70
+      ],
+      "matrix": [
+        -1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        -1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s18-p029",
+      "step": 18,
+      "part": "54200",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        20,
+        -88,
+        50
+      ],
+      "matrix": [
+        -1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        -1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s19-p030",
+      "step": 19,
+      "part": "3024",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -20,
+        -88,
+        50
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s19-p031",
+      "step": 19,
+      "part": "3024",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        20,
+        -88,
+        70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s20-p032",
+      "step": 20,
+      "part": "3070",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -20,
+        -96,
+        50
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s20-p033",
+      "step": 20,
+      "part": "3070",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        20,
+        -96,
+        70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s21-p034",
+      "step": 21,
+      "part": "3021",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -48,
+        90
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s22-p035",
+      "step": 22,
+      "part": "3023",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -10,
+        -56,
+        100
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s22-p036",
+      "step": 22,
+      "part": "25269",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -10,
+        -56,
+        70
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s22-p037",
+      "step": 22,
+      "part": "3023",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        10,
+        -56,
+        100
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s22-p038",
+      "step": 22,
+      "part": "25269",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        10,
+        -56,
+        70
+      ],
+      "matrix": [
+        -1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        -1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s23-p039",
+      "step": 23,
+      "part": "3021",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -64,
+        90
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s24-p040",
+      "step": 24,
+      "part": "99207",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -72,
+        110
+      ],
+      "matrix": [
+        -1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        -1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s25-p041",
+      "step": 25,
+      "part": "3023",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -88,
+        136
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        0,
+        0.0,
+        -1.0,
+        0,
+        1.0,
+        0.0
+      ],
+      "note": "vertical spacer on the driver-box bracket"
+    },
+    {
+      "id": "s25-p042",
+      "step": 25,
+      "part": "15068",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -88,
+        152
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        0,
+        0.0,
+        -1.0,
+        0,
+        1.0,
+        0.0
+      ],
+      "note": "vertical curved splash board across the carriage"
+    },
+    {
+      "id": "s26-p043",
+      "step": 26,
+      "part": "3070",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -10,
+        -80,
+        70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s26-p044",
+      "step": 26,
+      "part": "3070",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        10,
+        -80,
+        70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s28-p045",
+      "step": 28,
+      "part": "2926",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        32,
+        70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s28-p046",
+      "step": 28,
+      "part": "4489b",
+      "color": "Reddish Brown",
+      "ldraw_color": 70,
+      "position": [
+        -50,
+        37,
+        70
+      ],
+      "matrix": [
+        0.0,
+        0,
+        -1.0,
+        0,
+        1,
+        0,
+        1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s28-p047",
+      "step": 28,
+      "part": "4489b",
+      "color": "Reddish Brown",
+      "ldraw_color": 70,
+      "position": [
+        50,
+        37,
+        70
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s29-p048",
+      "step": 29,
+      "part": "30236",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        8,
+        70
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s30-p049",
+      "step": 30,
+      "part": "11476",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        0,
+        70
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s31-p050",
+      "step": 31,
+      "part": "2397",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -16,
+        130
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": "large local -Z end is centered on the front axle"
+    },
+    {
+      "id": "s32-p051",
+      "step": 32,
+      "part": "2460",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        0,
+        70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s34-p052",
+      "step": 34,
+      "part": "3010",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        8,
+        -70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s35-p053",
+      "step": 35,
+      "part": "2926",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        32,
+        -70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s35-p054",
+      "step": 35,
+      "part": "4489b",
+      "color": "Reddish Brown",
+      "ldraw_color": 70,
+      "position": [
+        -50,
+        37,
+        -70
+      ],
+      "matrix": [
+        0.0,
+        0,
+        -1.0,
+        0,
+        1,
+        0,
+        1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s35-p055",
+      "step": 35,
+      "part": "4489b",
+      "color": "Reddish Brown",
+      "ldraw_color": 70,
+      "position": [
+        50,
+        37,
+        -70
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s36-p056",
+      "step": 36,
+      "part": "3023",
+      "color": "Dark Red",
+      "ldraw_color": 320,
+      "position": [
+        0,
+        -64,
+        -30
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s36-p057",
+      "step": 36,
+      "part": "15068",
+      "color": "Dark Red",
+      "ldraw_color": 320,
+      "position": [
+        0,
+        -64,
+        -30
+      ],
+      "matrix": [
+        -1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        -1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s38-p058",
+      "step": 38,
+      "part": "3188",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -40,
+        -56,
+        -50
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s38-p059",
+      "step": 38,
+      "part": "3189",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        40,
+        -56,
+        -50
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s39-p060",
+      "step": 39,
+      "part": "60603",
+      "color": "Trans-Clear",
+      "ldraw_color": 47,
+      "position": [
+        -40,
+        -128,
+        -30
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s39-p061",
+      "step": 39,
+      "part": "60594",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -40,
+        -128,
+        -30
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s39-p062",
+      "step": 39,
+      "part": "60603",
+      "color": "Trans-Clear",
+      "ldraw_color": 47,
+      "position": [
+        40,
+        -128,
+        -30
+      ],
+      "matrix": [
+        -0.0,
+        0,
+        -1.0,
+        0,
+        1,
+        0,
+        1.0,
+        0,
+        -0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s39-p063",
+      "step": 39,
+      "part": "60594",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        40,
+        -128,
+        -30
+      ],
+      "matrix": [
+        -0.0,
+        0,
+        -1.0,
+        0,
+        1,
+        0,
+        1.0,
+        0,
+        -0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s41-p064",
+      "step": 41,
+      "part": "41740",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -40,
+        -136,
+        -30
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s41-p065",
+      "step": 41,
+      "part": "41740",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        40,
+        -136,
+        -30
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s41-p066",
+      "step": 41,
+      "part": "3069",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -136,
+        -70
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s41-p067",
+      "step": 41,
+      "part": "3069",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -20,
+        -136,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s41-p068",
+      "step": 41,
+      "part": "3069",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        20,
+        -136,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s42-p069",
+      "step": 42,
+      "part": "3023",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -144,
+        20
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s42-p070",
+      "step": 42,
+      "part": "2555",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -30,
+        -144,
+        20
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s42-p071",
+      "step": 42,
+      "part": "2555",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        30,
+        -144,
+        20
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s43-p072",
+      "step": 43,
+      "part": "3023",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -152,
+        20
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s43-p073",
+      "step": 43,
+      "part": "93273",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -152,
+        20
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s44-p074",
+      "step": 44,
+      "part": "36840",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -50,
+        -144,
+        10
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s44-p075",
+      "step": 44,
+      "part": "36840",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        50,
+        -144,
+        10
+      ],
+      "matrix": [
+        -0.0,
+        0,
+        -1.0,
+        0,
+        1,
+        0,
+        1.0,
+        0,
+        -0.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s45-p076",
+      "step": 45,
+      "part": "4589",
+      "color": "Trans-Yellow",
+      "ldraw_color": 46,
+      "position": [
+        -55,
+        -126,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s45-p077",
+      "step": 45,
+      "part": "37776",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        -55,
+        -144,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s45-p078",
+      "step": 45,
+      "part": "4589",
+      "color": "Trans-Yellow",
+      "ldraw_color": 46,
+      "position": [
+        55,
+        -126,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s45-p079",
+      "step": 45,
+      "part": "37776",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        55,
+        -144,
+        10
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": ""
+    },
+    {
+      "id": "s47-p080",
+      "step": 47,
+      "part": "3032",
+      "color": "Black",
+      "ldraw_color": 0,
+      "position": [
+        0,
+        -144,
+        -30
+      ],
+      "matrix": [
+        0.0,
+        0,
+        1.0,
+        0,
+        1,
+        0,
+        -1.0,
+        0,
+        0.0
+      ],
+      "note": "4x6 roof plate seated directly on the step-41 side rails"
+    },
+    {
+      "id": "s48-p081",
+      "step": 48,
+      "part": "4493c01pb04",
+      "color": "White",
+      "ldraw_color": 15,
+      "position": [
+        0,
+        22,
+        180
+      ],
+      "matrix": [
+        -1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        -1.0
+      ],
+      "note": "printed horse; official-library fallback geometry is 4493c01"
+    },
+    {
+      "id": "s48-p082",
+      "step": 48,
+      "part": "3004",
+      "color": "White",
+      "ldraw_color": 15,
+      "position": [
+        0,
+        -2,
+        180
+      ],
+      "matrix": [
+        1.0,
+        0,
+        0.0,
+        0,
+        1,
+        0,
+        -0.0,
+        0,
+        1.0
+      ],
+      "note": "1x2 brick attached only to the two horse-back studs"
+    }
+  ]
+}

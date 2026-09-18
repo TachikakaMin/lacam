@@ -63,6 +63,16 @@ def validate(path: Path) -> int:
                 for j in range(i + 1, N):
                     if prev[i] == pos[j] and prev[j] == pos[i]:
                         err(f"edge collision {i},{j} at t={t}")
+        # group multi-cell brick events (same t + agent + "bw" marker)
+        group_start = ev_idx
+        brick_groups = {}
+        j = ev_idx
+        while j < len(events) and events[j]["t"] == t:
+            e2 = events[j]
+            if "bw" in e2:
+                brick_groups.setdefault(e2.get("agent"), []).append(e2)
+            j += 1
+        checked_groups = set()
         while ev_idx < len(events) and events[ev_idx]["t"] == t:
             ev = events[ev_idx]
             r, c, hh = ev["r"], ev["c"], ev["h"]
@@ -70,6 +80,30 @@ def validate(path: Path) -> int:
             actor = agents[ai] if ai is not None else None
             if (r, c) in pos:
                 err(f"terrain event on occupied cell t={t} ({r},{c})")
+            if "bw" in ev and hh > h[r][c]:  # LEGO brick cell: validate per group
+                if ai not in checked_groups:
+                    n_place += 1  # one pick = one brick = one placement
+                    checked_groups.add(ai)
+                    grp = brick_groups[ai]
+                    supported = any(h[e2["r"]][e2["c"]] == e2["h"] - 1 for e2 in grp)
+                    adh = supported or any(
+                        0 <= e2["r"] + dr < ROWS and 0 <= e2["c"] + dc < COLS
+                        and h[e2["r"] + dr][e2["c"] + dc] >= e2["h"]
+                        for e2 in grp for dr, dc in NBRS)
+                    if not adh:
+                        err(f"brick without stud support or adhesion: t={t}")
+                    if actor is not None:
+                        ar, ac = actor["path"][t]
+                        near = any(abs(ar - e2["r"]) + abs(ac - e2["c"]) == 1
+                                   and h[ar][ac] in (e2["h"] - 1, e2["h"])
+                                   for e2 in grp)  # strict: same or one below
+                        if not near:
+                            err(f"brick placer stand invalid: t={t}")
+                        if not (actor["carry"][t - 1] == 1 and actor["carry"][t] == 0):
+                            err(f"brick placer carry not 1->0 at t={t}")
+                h[r][c] = hh
+                ev_idx += 1
+                continue
             if hh > h[r][c]:  # placement (hh == old+1: stacked; hh > old+1: bridged)
                 n_place += 1
                 bridged = hh > h[r][c] + 1
