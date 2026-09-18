@@ -150,16 +150,27 @@ TAPFInstance::TAPFInstance(const YamlData& data)
 {
   height_by_index = data.height_by_index;
   climb_cost = data.climb_cost;
+  drop_any = data.drop_any;
   if (!height_by_index.empty()) {
-    // drop edges with height difference > 1 (unclimbable cliffs)
+    // drop edges with height difference > 1 (unclimbable cliffs);
+    // with dropAny (LEGO-figure physics) only UPWARD steps are limited
     for (auto u : G.V) {
       auto& nb = u->neighbor;
       nb.erase(std::remove_if(nb.begin(), nb.end(),
                               [&](Vertex* m) {
-                                return std::abs(height_by_index[u->index] -
-                                                height_by_index[m->index]) > 1;
+                                const auto dh = height_by_index[m->index] -
+                                                height_by_index[u->index];
+                                return drop_any ? (dh > 1)
+                                                : (std::abs(dh) > 1);
                               }),
                nb.end());
+    }
+    if (drop_any) {
+      // asymmetric graph: build reverse adjacency for to-task distances
+      rev_neighbor.assign(G.V.size(), std::vector<Vertex*>());
+      for (auto u : G.V) {
+        for (auto m : u->neighbor) rev_neighbor[m->id].push_back(u);
+      }
     }
   }
 }
@@ -236,6 +247,9 @@ TAPFInstance::YamlData TAPFInstance::load_yaml(
   }
   if (config["climbCost"]) {
     data.climb_cost = std::max(1, config["climbCost"].as<int>());
+  }
+  if (config["dropAny"]) {
+    data.drop_any = config["dropAny"].as<bool>();
   }
 
   return data;

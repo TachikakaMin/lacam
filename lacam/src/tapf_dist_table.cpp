@@ -14,6 +14,7 @@ TAPFDistTable::TAPFDistTable(const TAPFInstance* ins)
 
 void TAPFDistTable::setup(const TAPFInstance* ins)
 {
+  if (!ins->rev_neighbor.empty()) rev = &ins->rev_neighbor;
   weighted = !ins->height_by_index.empty() && ins->climb_cost > 1;
   if (weighted) {
     heights = &ins->height_by_index;
@@ -48,7 +49,8 @@ int TAPFDistTable::get(int task_id, int v_id)
       pq.pop();
       if (closed[task_id][n->id]) continue;
       closed[task_id][n->id] = true;
-      for (auto& m : n->neighbor) {
+      const auto& nbrs = rev ? (*rev)[n->id] : n->neighbor;
+      for (auto& m : nbrs) {
         const int step =
             ((*heights)[n->index] != (*heights)[m->index]) ? climb_cost : 1;
         if (d_n + step < table[task_id][m->id]) {
@@ -67,7 +69,8 @@ int TAPFDistTable::get(int task_id, int v_id)
     auto n = OPEN[task_id].front();
     OPEN[task_id].pop();
     const int d_n = table[task_id][n->id];
-    for (auto& m : n->neighbor) {
+    const auto& nbrs = rev ? (*rev)[n->id] : n->neighbor;
+    for (auto& m : nbrs) {
       const int d_m = table[task_id][m->id];
       if (d_n + 1 >= d_m) continue;
       table[task_id][m->id] = d_n + 1;

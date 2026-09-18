@@ -38,6 +38,7 @@ struct TAPFInstance {
                                                 // task_indexes (default 0)
     std::vector<int> height_by_index;  // optional terrain, indexed by grid cell
     int climb_cost = 1;
+    bool drop_any = false;  // LEGO-figure physics: drop any height, climb 1
   };
 
   static YamlData load_yaml(const std::string& yaml_filename,
@@ -54,6 +55,10 @@ struct TAPFInstance {
   const uint N;                           // number of agents
   std::vector<int> height_by_index;  // optional terrain heights (empty: flat)
   int climb_cost = 1;  // heuristic cost of a +-1 height move (1: uniform)
+  bool drop_any = false;  // asymmetric movement: unlimited drops
+  // reverse adjacency (only with drop_any): rev_neighbor[v->id] lists u
+  // with a directed edge u -> v; used for correct to-task distances
+  std::vector<std::vector<Vertex*> > rev_neighbor;
 
   TAPFInstance(const std::string& map_filename,
                const std::vector<int>& start_indexes,

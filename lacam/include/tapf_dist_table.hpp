@@ -22,6 +22,7 @@ struct TAPFDistTable {
   int climb_cost = 1;
   bool weighted = false;
   std::vector<std::vector<bool> > closed;  // settled flags (weighted mode)
+  const std::vector<std::vector<Vertex*> >* rev = nullptr;  // dropAny
 
   int get(int task_id, int v_id);
   int get(int task_id, Vertex* v);

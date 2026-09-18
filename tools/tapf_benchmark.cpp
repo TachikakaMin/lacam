@@ -89,9 +89,9 @@ namespace
         auto v_i_from = solution[t - 1][i];
         auto v_i_to = solution[t][i];
         if (v_i_from != v_i_to &&
-            std::find(v_i_to->neighbor.begin(), v_i_to->neighbor.end(),
-                      v_i_from) == v_i_to->neighbor.end()) {
-          result.moves_valid = false;
+            std::find(v_i_from->neighbor.begin(), v_i_from->neighbor.end(),
+                      v_i_to) == v_i_from->neighbor.end()) {
+          result.moves_valid = false;  // directed edge FROM -> TO must exist
         }
         for (size_t j = i + 1; j < ins.N; ++j) {
           auto v_j_from = solution[t - 1][j];
