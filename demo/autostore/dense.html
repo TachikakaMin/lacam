@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>LaCAM-Carrier · 高密度分层重排 · 透明暂存格</title>
+<script>if(location.search.indexOf("embed")>=0){document.write('<style>html,body{background:#f3f4f6 !important}#hud,#hudbar,#scenenav{display:none !important}</style>');}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="hud">
+  <h1>高密度分层重排 · 透明暂存格</h1>
+  <div class="sub">Carrier-LaCAM 逐轮求解 · 机器人在顶部轨道平面行驶，吊绳竖直取放，砖块沉入列内堆叠</div>
+  <div id="stats"></div>
+  <div id="controls">
+    <button id="playBtn">暂停</button>
+    <button id="resetBtn">重来</button>
+    <label style="font-size:11px;color:#8b98b3">速度
+      <input id="speed" type="range" min="1" max="100" value="6">
+    </label>
+  </div>
+  <input id="timeline" type="range" min="0" max="100" value="0">
+  <div id="legend">
+    <span class="dot" style="background:#3b7dd8"></span>第 1 层（蓝）<br>
+    <span class="dot" style="background:#e8c531"></span>第 2 层（黄）<br>
+    <span class="dot" style="background:#d84a3b"></span>第 3 层（红）<br>
+    <span class="dot" style="background:#4a90d9"></span>顶部机器人（砖挂在车底 = 正在吊运）<br>
+    <span class="dot" style="background:#7bd88f"></span>料仓（每轮补充彩砖）
+  </div>
+</div>
+<script src="three.min.js"></script>
+<script src="plan_dense.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>
