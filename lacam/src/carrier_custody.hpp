@@ -286,14 +286,18 @@ inline RouteHintSearchResult reroute_to_endpoint(
   }
 
   std::vector<uint8_t> occupied(ins.grid.size(), 0);
-  for (size_t target = 0; target < physical.target_pos.size(); ++target) {
-    if ((int)target == physical.kappa[robot]) continue;
-    const int cell = physical.target_pos[target];
-    if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
+  // gantry: the carried load travels above grounded shelves, so the route
+  // search has no shelf occupancy to respect
+  if (!ins.gantry) {
+    for (size_t target = 0; target < physical.target_pos.size(); ++target) {
+      if ((int)target == physical.kappa[robot]) continue;
+      const int cell = physical.target_pos[target];
+      if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
+    }
+    for (const int cell : physical.anon_occ)
+      if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
+    occupied[source] = 0;
   }
-  for (const int cell : physical.anon_occ)
-    if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
-  occupied[source] = 0;
 
   auto search = [&](bool respect_occupancy,
                     int budget) -> RouteHintSearchResult {

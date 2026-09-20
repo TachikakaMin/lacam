@@ -279,16 +279,22 @@ ShelfState initial_shelf_state(const TAPFInstance& ins);
 struct UpperSignature {
   std::vector<int> target_pos;
   std::vector<int> anon_pos;
+  // gantry only (empty on warehouse instances): per-target carried flag.
+  // A carried load hovers above the grounded layer, so the structure
+  // projection must distinguish installed from hoisted (design_final §8).
+  std::vector<uint8_t> target_carried;
 
   bool operator==(const UpperSignature& o) const
   {
-    return target_pos == o.target_pos && anon_pos == o.anon_pos;
+    return target_pos == o.target_pos && anon_pos == o.anon_pos &&
+           target_carried == o.target_carried;
   }
   bool operator!=(const UpperSignature& o) const { return !(*this == o); }
   bool operator<(const UpperSignature& o) const
   {
-    return target_pos != o.target_pos ? target_pos < o.target_pos
-                                      : anon_pos < o.anon_pos;
+    if (target_pos != o.target_pos) return target_pos < o.target_pos;
+    if (anon_pos != o.anon_pos) return anon_pos < o.anon_pos;
+    return target_carried < o.target_carried;
   }
 };
 

@@ -11,9 +11,20 @@
 
 
 
+#include <cstdlib>
 #include "dd_planner_internal.hpp"
 
 using namespace dd_detail;
+
+namespace {
+// DD_FIRST_SOLUTION_ONLY=1: return the first feasible plan without the
+// improvement pass (event-driven demo callers; default behavior unchanged)
+inline bool phys1_first_only_env()
+{
+  const char* v = std::getenv("DD_FIRST_SOLUTION_ONLY");
+  return v != nullptr && v[0] == '1';
+}
+}  // namespace
 
 const char* dd_improvement_exit_reason_name(
     DDImprovementExitReason reason)
@@ -136,7 +147,10 @@ DDSolveResult solve_carrier_lacam_result(
     stats->improvement_exit_reason =
         DDImprovementExitReason::NO_REMAINING_BUDGET;
 
-  if (phase1_solved && !is_expired(&search_deadline)) {
+  if (phys1_first_only_env() && phase1_solved) {
+    // event-driven callers replan after the next event anyway: the
+    // improvement pass would refine a tail that is never executed
+  } else if (phase1_solved && !is_expired(&search_deadline)) {
     auto fixed = fixed_goal_instance_from_plan(ins, plan);
     if (!fixed.has_value()) {
       if (stats != nullptr)

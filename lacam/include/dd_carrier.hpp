@@ -52,6 +52,14 @@ struct DDInstance {
   // singleton sets {target_goals[b]} (materialized by finalize when the
   // caller only filled target_goals).
   std::vector<std::vector<int>> target_goal_sets;
+  // Gantry (top-rail hoist) semantics: carried loads travel at transport
+  // height and never conflict with grounded shelves.  Default false keeps
+  // the original warehouse two-deck semantics unchanged.
+  bool gantry = false;
+  // Cold-start carrying (event-driven replanning): per robot, KAPPA_FREE
+  // or the target index this robot already holds at t=0.  Empty means all
+  // robots start free (legacy behavior).
+  std::vector<int> carrying;
   std::string name;
 
   size_t n_robots() const { return robots.size(); }

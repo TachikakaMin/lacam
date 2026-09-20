@@ -104,6 +104,8 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
     dd_view->target_starts = ins->target_starts;
     dd_view->target_goals = ins->target_goals;
     dd_view->target_goal_sets = ins->target_goal_sets;  // T1: eligibility
+    dd_view->gantry = ins->shelf_gantry;
+    dd_view->carrying = ins->shelf_carrying;
     dd_view->finalize();
     const size_t n_cells = ins->G.U.size();
     carrier_grounded.assign(n_cells, 0);

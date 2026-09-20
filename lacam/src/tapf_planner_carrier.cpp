@@ -468,6 +468,8 @@ ShelfState initial_shelf_state(const TAPFInstance& ins)
     if (!tset.count(p)) S.anon_occ.push_back(p);
   std::sort(S.anon_occ.begin(), S.anon_occ.end());
   S.kappa.assign(ins.N, KAPPA_FREE);
+  for (size_t i = 0; i < ins.shelf_carrying.size() && i < S.kappa.size(); ++i)
+    S.kappa[i] = ins.shelf_carrying[i];
   return S;
 }
 

@@ -194,7 +194,7 @@ inline std::vector<int> ready_tasks_with_custody(
     long* candidates_before_claims = nullptr,
     long* claims_filtered = nullptr)
 {
-  const auto upper = make_upper_signature(physical);
+  const auto upper = make_upper_signature(physical, ins.gantry);
   std::vector<uint8_t> occupied(ins.grid.size(), 0);
   for (const int cell : upper.target_pos)
     if (cell >= 0 && cell < (int)occupied.size()) occupied[cell] = 1;
@@ -212,12 +212,16 @@ inline std::vector<int> ready_tasks_with_custody(
     if (!task_dependencies_fulfilled(
             graph, (int)index, execution_view))
       continue;
+    const int landing =
+        ins.gantry && task.transfer.route.size() >= 2
+            ? task.transfer.endpoint
+            : task.id.to;
     const bool occupied_placement =
-        task.id.to >= 0 &&
-        task.id.to < (int)occupied.size() &&
-        ins.can_store_shelf(task.id.to) &&
-        occupied[task.id.to];
-    if (task.id.to < 0 || task.id.to >= (int)occupied.size() ||
+        landing >= 0 &&
+        landing < (int)occupied.size() &&
+        ins.can_store_shelf(landing) &&
+        occupied[landing];
+    if (landing < 0 || landing >= (int)occupied.size() ||
         occupied_placement || custody_owner.count(task.id))
       continue;
 
@@ -249,7 +253,10 @@ inline std::vector<int> ready_tasks_with_custody(
   for (const int index : ready) {
     const auto transfer =
         normalized_transfer(graph.tasks[index]);
-    if (transfer_conflicts_with_claims(claims, transfer))
+    // gantry: carried loads fly above each other's routes, so shelf-route
+    // claims never conflict; keep every ready task
+    if (!ins.gantry &&
+        transfer_conflicts_with_claims(claims, transfer))
       continue;
     filtered.push_back(index);
     add_transfer_claim(claims, transfer);
@@ -459,7 +466,7 @@ inline std::optional<Custody> make_storage_recovery_custody(
     return custody;
   }
 
-  const auto upper_signature = make_upper_signature(physical);
+  const auto upper_signature = make_upper_signature(physical, ins.gantry);
   const auto upper =
       make_abstract_upper_state(ins, upper_signature);
   auto transfers = reachable_storage_transfers(
@@ -542,8 +549,17 @@ inline CustodyRecovery recover_task_br_custody(
   if (previous_physical == nullptr || executed_ops == nullptr ||
       previous_physical->robots.size() != robot_count ||
       previous_physical->kappa.size() != robot_count ||
-      executed_ops->size() != robot_count)
+      executed_ops->size() != robot_count) {
+    // Cold start (event-driven replanning): a robot declared as carrying
+    // by the instance keeps its load as a task continuation, so guidance
+    // binds it to the compiled task instead of releasing in place.
+    for (size_t robot = 0;
+         robot < robot_count && robot < ins.carrying.size(); ++robot)
+      if (ins.carrying[robot] != KAPPA_FREE &&
+          physical.kappa[robot] == ins.carrying[robot])
+        out.continuation_carrier[robot] = 1;
     return out;
+  }
   const auto replayed = apply_ops(ins, *previous_physical, *executed_ops);
   if (!replayed.has_value() || !(*replayed == physical)) return out;
   out.transition_valid = true;
@@ -790,7 +806,7 @@ inline void bind_ready_continuations(
 {
   const bool suppress_immediate_reverse =
       !target_dense_upper_layout(
-          ins, make_upper_signature(physical));
+          ins, make_upper_signature(physical, ins.gantry));
   for (size_t robot = 0; robot < ins.n_robots(); ++robot) {
     if (robot >= continuation_carrier.size() ||
         !continuation_carrier[robot] ||

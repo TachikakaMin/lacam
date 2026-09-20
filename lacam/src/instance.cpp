@@ -202,6 +202,8 @@ TAPFInstance::TAPFInstance(const DDInstance& dd)
       target_goals(dd.target_goals),
       target_goal_sets(dd.target_goal_sets)
 {
+  shelf_gantry = dd.gantry;
+  shelf_carrying = dd.carrying;
   for (auto cell : dd.robots) starts.push_back(G.U[cell]);
 }
 

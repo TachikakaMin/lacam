@@ -120,9 +120,11 @@ struct AbstractUpperState {
       dependency_recorder->record_cell(from);
       dependency_recorder->record_cell(to);
     }
-    if (from >= 0) occupant[from] = -1;
+    // gantry-safe occupancy bookkeeping: a hoisted mover may share its
+    // cell with a grounded shelf, so only release/claim its own slots
+    if (from >= 0 && occupant[from] == index) occupant[from] = -1;
     positions[index] = to;
-    occupant[to] = index;
+    if (to >= 0 && occupant[to] < 0) occupant[to] = index;
   }
 };
 
@@ -135,24 +137,28 @@ inline AbstractUpperState make_abstract_upper_state(
   out.target_count = (int)upper.target_pos.size();
   out.anon_index_by_epoch_cell.assign(ins.grid.size(), -1);
   out.occupant.assign(ins.grid.size(), -1);
-  auto add = [&](const ShelfSelector& shelf, int cell) {
+  auto add = [&](const ShelfSelector& shelf, int cell, bool carried) {
     if (cell < 0 || cell >= ins.grid.size() || ins.grid.is_wall(cell))
       throw std::logic_error("abstract shelf on invalid cell");
-    if (out.occupant[cell] >= 0)
+    if (!carried && out.occupant[cell] >= 0)
       throw std::logic_error("duplicate shelf cell in upper projection");
     const int index = (int)out.shelves.size();
     out.shelves.push_back(shelf);
     out.positions.push_back(cell);
     if (shelf.kind == ShelfSelector::Kind::ANON_AT_EPOCH_CELL)
       out.anon_index_by_epoch_cell[shelf.value] = index;
-    out.occupant[cell] = index;
+    // a hoisted load (gantry) floats above the grounded layer: tracked
+    // by position, but it occupies no grounded cell
+    if (!carried) out.occupant[cell] = index;
   };
   for (size_t b = 0; b < upper.target_pos.size(); ++b)
     add(ShelfSelector{ShelfSelector::Kind::TARGET, (int)b},
-        upper.target_pos[b]);
+        upper.target_pos[b],
+        b < upper.target_carried.size() &&
+            upper.target_carried[b] != 0);
   for (const int cell : upper.anon_pos)
     add(ShelfSelector{ShelfSelector::Kind::ANON_AT_EPOCH_CELL, cell},
-        cell);
+        cell, false);
   return out;
 }
 
@@ -696,15 +702,19 @@ inline std::vector<StorageTransfer> reachable_storage_transfers(
       const int next = neighbors[index];
       if (next == from) continue;
       if (ins.can_store_shelf(next)) {
-        if (route_by_endpoint.count(next) != 0) continue;
-        std::vector<int> route;
-        for (int cursor = cell; cursor >= 0; cursor = parent[cursor])
-          route.push_back(cursor);
-        std::reverse(route.begin(), route.end());
-        route.push_back(next);
-        route_by_endpoint.emplace(
-            next, StorageTransfer{next, std::move(route)});
-        continue;
+        if (route_by_endpoint.count(next) == 0) {
+          std::vector<int> route;
+          for (int cursor = cell; cursor >= 0; cursor = parent[cursor])
+            route.push_back(cursor);
+          std::reverse(route.begin(), route.end());
+          route.push_back(next);
+          route_by_endpoint.emplace(
+              next, StorageTransfer{next, std::move(route)});
+        }
+        // Warehouse: a grounded shelf may only hop between ADJACENT storage
+        // cells, so discovery stops at storage.  Gantry: the carried load
+        // travels above everything, so storage cells are transit cells too.
+        if (!ins.gantry) continue;
       }
       // Discovery is topological.  A shelf occupying a transit cell is a
       // temporal blocker, not evidence that the endpoint is unreachable.

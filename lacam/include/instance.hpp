@@ -63,6 +63,10 @@ struct TAPFInstance {
   // unique; singleton {target_goals[b]} on fixed-goal instances; empty
   // (like the other carrier fields) on shelf-free TAPF instances.
   std::vector<std::vector<int> > target_goal_sets;
+  // gantry semantics passthrough from DDInstance (top-rail hoist)
+  bool shelf_gantry = false;
+  // cold-start carrying passthrough (empty: all robots start free)
+  std::vector<int> shelf_carrying;
 
   TAPFInstance(const std::string& map_filename,
                const std::vector<int>& start_indexes,

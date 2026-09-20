@@ -332,7 +332,7 @@ inline std::vector<int> tau_of(const DDInstance& ins, const PhysConfig& X)
   DDDistCache uw(ins.grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
-  const auto upper = carrier_detail::make_upper_signature(X);
+  const auto upper = carrier_detail::make_upper_signature(X, ins.gantry);
   const auto table = carrier_detail::build_pair_cost_table(
       ins, upper, uw, storage_topology,
       w.alpha, w.gamma, w.delta);

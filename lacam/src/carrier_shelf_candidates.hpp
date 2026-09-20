@@ -309,7 +309,10 @@ inline OrderedShelfCandidates ordered_shelf_candidate_window(
   std::array<int, 4> neighbors{};
   const int neighbor_count =
       ins.grid.neighbors(from, neighbors.data());
-  if (ins.has_adjacent_storage_frontier(from)) {
+  // Dense-warehouse fast path: with every neighbor a storage endpoint the
+  // shelf can only hop one cell at a time.  Gantry loads fly directly, so
+  // they always use the full long-route topology below.
+  if (!ins.gantry && ins.has_adjacent_storage_frontier(from)) {
     using DirectCandidateScore =
         std::array<int, 9>;
     std::array<DirectCandidateScore, 4> scores{};
@@ -765,7 +768,9 @@ inline int resolve_shelf_task_br_pibt(
           leave_recursion();
           return -1;
         }
-        route_valid &= !ins.can_store_shelf(route[index]);
+        // gantry: the carried load flies over storage cells too
+        if (!ins.gantry)
+          route_valid &= !ins.can_store_shelf(route[index]);
       }
       if (!route_valid) {
         record_first_choice_fallback(candidate_index);
@@ -788,7 +793,11 @@ inline int resolve_shelf_task_br_pibt(
       record_first_choice_fallback(candidate_index);
       continue;
     }
-    const bool placement_destination = ins.can_store_shelf(to);
+    // gantry: the load lands only at the endpoint, so a storage first_step
+    // crossed in the air is not a placement destination
+    const bool placement_destination =
+        ins.can_store_shelf(to) &&
+        (!ins.gantry || to == transfer.endpoint);
     if (placement_destination &&
         context.destination_effect_conflicts(to, effect)) {
       ++budget.effect_conflicts;
@@ -816,6 +825,10 @@ inline int resolve_shelf_task_br_pibt(
       context.reserve_endpoint(transfer.endpoint, effect);
     int must_be_vacated = -1;
     if (transfer.explicit_route == nullptr) {
+      if (!upper.empty(transfer.endpoint))
+        must_be_vacated = transfer.endpoint;
+    } else if (ins.gantry) {
+      // gantry: only the landing cell can block; intermediates are flown over
       if (!upper.empty(transfer.endpoint))
         must_be_vacated = transfer.endpoint;
     } else {

@@ -77,7 +77,8 @@ inline void load_solver_weights(W& w)
   read("DD_DELTA", w.delta, w.delta_scaled);
 }
 
-inline UpperSignature make_upper_signature(const PhysConfig& s)
+inline UpperSignature make_upper_signature(const PhysConfig& s,
+                                           bool gantry = false)
 {
   UpperSignature out;
   out.target_pos = s.target_pos;
@@ -85,6 +86,14 @@ inline UpperSignature make_upper_signature(const PhysConfig& s)
   for (size_t i = 0; i < s.kappa.size(); ++i)
     if (s.kappa[i] == KAPPA_ANON) out.anon_pos.push_back(s.robots[i]);
   std::sort(out.anon_pos.begin(), out.anon_pos.end());
+  if (gantry) {
+    // installed/hoisted mode bits (design_final §8); warehouse instances
+    // keep this empty so signature equality is byte-identical to before
+    out.target_carried.assign(s.target_pos.size(), 0);
+    for (const int k : s.kappa)
+      if (k >= 0 && k < (int)out.target_carried.size())
+        out.target_carried[k] = 1;
+  }
   return out;
 }
 

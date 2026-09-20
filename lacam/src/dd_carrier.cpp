@@ -41,6 +41,20 @@ int DDGrid::neighbors(int v, int out[4]) const
 
 void DDInstance::finalize()
 {
+  if (!carrying.empty()) {
+    if (carrying.size() > robots.size())
+      throw std::invalid_argument("finalize: carrying longer than robots");
+    carrying.resize(robots.size(), KAPPA_FREE);
+    for (size_t i = 0; i < carrying.size(); ++i) {
+      const int b = carrying[i];
+      if (b == KAPPA_FREE) continue;
+      if (b < 0 || b >= (int)target_starts.size() ||
+          target_starts[b] != robots[i])
+        throw std::invalid_argument(
+            "finalize: carried target must start at its carrier's cell");
+    }
+  }
+
   if (grid.size() == 0) throw std::invalid_argument("finalize: empty grid");
   if (shelf_storage.empty()) {
     shelf_storage.resize(grid.size(), 0);
@@ -79,12 +93,21 @@ void DDInstance::finalize()
     if (!seen_r.insert(q).second)
       throw std::invalid_argument("finalize: robots overlap");
   }
+  // cells of targets that start in a robot's hand (cold-start carrying):
+  // hoisted bricks are airborne, so their start cell is exempt from the
+  // storage and shelf-overlap rules of the grounded layer
+  std::unordered_set<int> carried_start;
+  for (size_t i = 0; i < carrying.size(); ++i)
+    if (carrying[i] != KAPPA_FREE &&
+        carrying[i] < (int)target_starts.size())
+      carried_start.insert(target_starts[carrying[i]]);
   for (int p : shelves) {
     check_cell(p, "shelf");
-    if (!can_store_shelf(p))
+    const bool carried = carried_start.count(p) != 0;
+    if (!carried && !can_store_shelf(p))
       throw std::invalid_argument(
           "finalize: shelf is outside storage");
-    if (!seen_s.insert(p).second)
+    if (!seen_s.insert(p).second && !carried)
       throw std::invalid_argument("finalize: shelves overlap");
   }
   // goal-set layer (design_final 2.1, T1): materialize singleton sets when
@@ -100,9 +123,14 @@ void DDInstance::finalize()
     throw std::invalid_argument("finalize: target starts/goals mismatch");
   std::unordered_set<int> seen_t;  // one physical shelf = one target label
   for (size_t b = 0; b < target_starts.size(); ++b) {
-    if (!seen_s.count(target_starts[b]))
+    // a hoisted target (cold-start carrying) hovers above the grounded
+    // layer; its start cell may coincide with a grounded shelf/target
+    bool b_carried = false;
+    for (size_t i = 0; i < carrying.size(); ++i)
+      b_carried |= carrying[i] == (int)b;
+    if (!seen_s.count(target_starts[b]) && !b_carried)
       throw std::invalid_argument("finalize: target start is not a shelf");
-    if (!seen_t.insert(target_starts[b]).second)
+    if (!b_carried && !seen_t.insert(target_starts[b]).second)
       throw std::invalid_argument(
           "finalize: duplicate target start (two targets reference the "
           "same shelf)");
@@ -207,6 +235,11 @@ DDInstance load_dd_instance(const std::string& yaml_path)
   // loudly on any non-default value instead of silently ignoring it.
   if (doc["flags"]) {
     for (const auto& kv : doc["flags"]) {
+      const auto key = kv.first.as<std::string>();
+      if (key == "gantry") {  // top-rail hoist semantics (opt-in)
+        ins.gantry = kv.second.as<bool>();
+        continue;
+      }
       bool value = false;
       try {
         value = kv.second.as<bool>();
@@ -218,6 +251,19 @@ DDInstance load_dd_instance(const std::string& yaml_path)
             "load_dd_instance: unsupported non-default flag '" +
             kv.first.as<std::string>() + "' (v1 implements defaults only)");
       }
+    }
+  }
+
+  if (doc["carrying"] && doc["carrying"].IsSequence()) {
+    // pairs [robot_index, target_index]; resized after robots are read
+    for (const auto& kv : doc["carrying"]) {
+      const int robot = kv[0].as<int>();
+      const int target = kv[1].as<int>();
+      if (robot < 0 || target < 0)
+        throw std::invalid_argument("load_dd_instance: bad carrying entry");
+      if ((int)ins.carrying.size() <= robot)
+        ins.carrying.resize(robot + 1, KAPPA_FREE);
+      ins.carrying[robot] = target;
     }
   }
 
@@ -314,6 +360,8 @@ PhysConfig initial_phys_config(const DDInstance& ins)
     if (!tset.count(p)) s.anon_occ.push_back(p);
   std::sort(s.anon_occ.begin(), s.anon_occ.end());
   s.kappa.assign(ins.robots.size(), KAPPA_FREE);
+  for (size_t i = 0; i < ins.carrying.size() && i < s.kappa.size(); ++i)
+    s.kappa[i] = ins.carrying[i];
   return s;
 }
 
@@ -519,7 +567,10 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
       auto it = was_at.find(nxt.robots[i]);
       if (it != was_at.end() && it->second != (int)i) return std::nullopt;
     }
-    // upper deck: shelf cell entered while being vacated this step
+    // upper deck: shelf cell entered while being vacated this step.
+    // Gantry: carried loads travel above the grounded layer, so there is
+    // no upper-deck following constraint to enforce.
+    if (!ins.gantry) {
     std::unordered_set<int> shelf_was;  // occupied upper cells at t
     for (int p : s.anon_occ) shelf_was.insert(p);
     for (size_t b = 0; b < ins.n_targets(); ++b)
@@ -540,9 +591,13 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
           entered_occupied(nxt.robots[i], s.robots[i]))
         return std::nullopt;
     }
+    }  // !ins.gantry
   }
 
   // --- S1: shelf vertex conflict at t+1 ---
+  // Gantry: only GROUNDED shelves are mutually exclusive per cell; carried
+  // loads are at transport height above the grounded layer (robot-level
+  // conflicts already forbid two carriers on one cell).
   {
     std::unordered_set<int> upper;
     for (int p : anon_next)
@@ -550,12 +605,13 @@ std::optional<PhysConfig> apply_ops(const DDInstance& ins, const PhysConfig& s,
     std::vector<bool> carried_next(ins.n_targets(), false);
     for (size_t i = 0; i < R; ++i) {
       if (nxt.kappa[i] >= 0) carried_next[nxt.kappa[i]] = true;
-      if (nxt.kappa[i] == KAPPA_ANON)
+      if (nxt.kappa[i] == KAPPA_ANON && !ins.gantry)
         if (!upper.insert(nxt.robots[i]).second) return std::nullopt;
     }
-    for (size_t b = 0; b < ins.n_targets(); ++b)
+    for (size_t b = 0; b < ins.n_targets(); ++b) {
+      if (ins.gantry && carried_next[b]) continue;
       if (!upper.insert(nxt.target_pos[b]).second) return std::nullopt;
-    (void)carried_next;
+    }
   }
 
   std::sort(anon_next.begin(), anon_next.end());

@@ -107,7 +107,7 @@ PairPlan dd_pair_cost_probe(const DDInstance& ins, const PhysConfig& X,
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   return carrier_detail::pair_cost(
-      ins, carrier_detail::make_upper_signature(X), target, goal, upper_wall,
+      ins, carrier_detail::make_upper_signature(X, ins.gantry), target, goal, upper_wall,
       storage_topology, w.alpha, w.gamma, w.delta);
 }
 
@@ -119,7 +119,7 @@ DDLazyTauProbe dd_lazy_tau_guide_probe(const DDInstance& ins,
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
   const auto result = carrier_detail::build_lazy_pair_cost_assignment(
-      ins, carrier_detail::make_upper_signature(X), upper_wall,
+      ins, carrier_detail::make_upper_signature(X, ins.gantry), upper_wall,
       storage_topology, w.alpha, w.gamma, w.delta);
   DDLazyTauProbe out;
   out.tau = result.tau;
@@ -133,7 +133,7 @@ std::optional<TaskId> dd_pair_next_ready_effect_probe(
     const DDInstance& ins, const PhysConfig& X, int target, int goal,
     int recursion_cap)
 {
-  const auto upper = carrier_detail::make_upper_signature(X);
+  const auto upper = carrier_detail::make_upper_signature(X, ins.gantry);
   const auto abstract =
       carrier_detail::make_abstract_upper_state(ins, upper);
   DDDistCache upper_wall(ins.grid);
@@ -162,7 +162,7 @@ std::vector<int> dd_tau_guide_probe(const DDInstance& ins,
   DDDistCache upper_wall(ins.grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
-  const auto upper = carrier_detail::make_upper_signature(X);
+  const auto upper = carrier_detail::make_upper_signature(X, ins.gantry);
   const auto table = carrier_detail::build_pair_cost_table(
       ins, upper, upper_wall, storage_topology,
       w.alpha, w.gamma, w.delta);
@@ -188,7 +188,7 @@ ShelfTaskGraph dd_compile_single_root_graph_probe(
     const DDInstance& ins, const PhysConfig& X, int target, int goal,
     int recursion_cap, int backtrack_cap)
 {
-  const auto upper = carrier_detail::make_upper_signature(X);
+  const auto upper = carrier_detail::make_upper_signature(X, ins.gantry);
   auto abstract =
       carrier_detail::make_abstract_upper_state(ins, upper);
   DDDistCache upper_wall(ins.grid);
@@ -217,7 +217,7 @@ ShelfTaskGraph dd_compile_joint_graph_probe(
   DDDistCache upper_wall(ins.grid);
   const auto storage_topology =
       carrier_detail::build_storage_transfer_topology(ins);
-  const auto upper = carrier_detail::make_upper_signature(X);
+  const auto upper = carrier_detail::make_upper_signature(X, ins.gantry);
   const auto table = carrier_detail::build_pair_cost_table(
       ins, upper, upper_wall, storage_topology,
       w.alpha, w.gamma, w.delta);

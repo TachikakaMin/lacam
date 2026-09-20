@@ -225,7 +225,7 @@ inline std::vector<int> ready_tasks(const DDInstance& ins,
                                     const PhysConfig& physical,
                                     const ShelfTaskGraph& graph)
 {
-  const auto upper = make_upper_signature(physical);
+  const auto upper = make_upper_signature(physical, ins.gantry);
   std::vector<uint8_t> occupied(ins.grid.size(), 0);
   for (const int cell : upper.target_pos) occupied[cell] = 1;
   for (const int cell : upper.anon_pos) occupied[cell] = 1;
@@ -253,7 +253,13 @@ inline std::vector<int> ready_tasks(const DDInstance& ins,
                              physical.anon_occ.end(), task.id.from) &&
           task.id.shelf.value == task.id.from;
     }
-    if (!shelf_grounded || occupied[task.id.to]) continue;
+    // gantry: readiness is gated by the landing cell (endpoint), not the
+    // abstract first step the load flies over
+    const int landing =
+        ins.gantry && task.transfer.route.size() >= 2
+            ? task.transfer.endpoint
+            : task.id.to;
+    if (!shelf_grounded || occupied[landing]) continue;
     ready.push_back((int)index);
   }
   std::stable_sort(ready.begin(), ready.end(), [&](int a, int b) {
@@ -403,6 +409,17 @@ inline PairPlan pair_cost_prefix_lower_bound(
           effect.shelf, alpha, gamma, delta);
       abstract.move(effect.shelf, transfer.first_step);
       ++out.rollout_steps;
+    } else if (ins.gantry) {
+      // gantry rollout: the load flies over intermediates and lands only
+      // at the endpoint; count the flight legs but keep the abstract
+      // occupancy of crossed cells intact
+      for (int leg = 0; leg < legs; ++leg) {
+        if (cutoff()) return finish();
+        episode_cost.apply_shift(
+            effect.shelf, alpha, gamma, delta);
+        ++out.rollout_steps;
+      }
+      abstract.move(effect.shelf, transfer.endpoint);
     } else {
       const auto& route = transfer.explicit_route;
       for (size_t index = 1;
@@ -557,6 +574,17 @@ inline PairPlan pair_cost(const DDInstance& ins, const UpperSignature& upper,
           effect.shelf, alpha, gamma, delta);
       abstract.move(effect.shelf, transfer.first_step);
       ++out.rollout_steps;
+    } else if (ins.gantry) {
+      // gantry rollout: the load flies over intermediates and lands only
+      // at the endpoint; count the flight legs but keep the abstract
+      // occupancy of crossed cells intact
+      for (int leg = 0; leg < legs; ++leg) {
+        if (cutoff()) return finish();
+        episode_cost.apply_shift(
+            effect.shelf, alpha, gamma, delta);
+        ++out.rollout_steps;
+      }
+      abstract.move(effect.shelf, transfer.endpoint);
     } else {
       const auto& route = transfer.explicit_route;
       for (size_t index = 1;

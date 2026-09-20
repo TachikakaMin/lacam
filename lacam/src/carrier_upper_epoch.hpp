@@ -234,7 +234,8 @@ inline CarrierGuidance build_task_br_guidance_from_upper_epoch(
     const std::vector<Op>* executed_ops = nullptr)
 {
   if (upper_epoch == nullptr ||
-      upper_epoch->upper_signature != make_upper_signature(physical))
+      upper_epoch->upper_signature !=
+          make_upper_signature(physical, ins.gantry))
     throw std::invalid_argument(
         "build_task_br_guidance_from_upper_epoch: epoch mismatch");
   CarrierGuidance out;
@@ -364,7 +365,7 @@ inline CarrierGuidance build_task_br_guidance(
     UpperEpochCache* upper_epoch_cache = nullptr,
     VacancyGuidanceTelemetry* telemetry = nullptr)
 {
-  const auto upper = make_upper_signature(physical);
+  const auto upper = make_upper_signature(physical, ins.gantry);
   std::shared_ptr<const UpperEpochGuidance> upper_epoch;
   const long cache_evictions_before =
       upper_epoch_cache != nullptr

@@ -169,8 +169,9 @@ bool TAPFPlanner::get_new_config(TAPFNode* S, TAPFConstraint* M)
     A[i]->op_kind = kind;
     occupied_next[l] = A[i];
     // a carried shelf occupies the destination upper cell at t+1
+    // (gantry: carried loads travel above the grounded layer)
     if (!S->shelf.kappa.empty() && S->shelf.kappa[i] != KAPPA_FREE &&
-        kind != Op::LIFT)
+        kind != Op::LIFT && !(dd_view != nullptr && dd_view->gantry))
       carrier_upper_add(M->where[k]->index);
   }
 
@@ -501,7 +502,9 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     if (ak != nullptr && ak->v_next == ai->v_now) continue;
 
     // carrier feasibility (M4); none of these fire for task agents
-    if (kind == Op::MOVE && loaded && carrier_upper_taken(u->index))
+    const bool gantry_mode = dd_view != nullptr && dd_view->gantry;
+    if (kind == Op::MOVE && loaded && !gantry_mode &&
+        carrier_upper_taken(u->index))
       continue;  // S1
     if (kind == Op::LIFT && carrier_grounded[u->index] == 0) continue;
     if (kind == Op::DROP && kappa_i == KAPPA_ANON &&
@@ -511,7 +514,8 @@ bool TAPFPlanner::funcPIBT(Agent* ai, const std::vector<int>& assignment)
     occupied_next[u->id] = ai;
     ai->v_next = u;
     ai->op_kind = kind;
-    if (loaded && kind != Op::LIFT) carrier_upper_add(u->index);
+    if (loaded && kind != Op::LIFT && !gantry_mode)
+      carrier_upper_add(u->index);
 
     if (ak != nullptr && ak != ai && ak->v_next == nullptr) {
       if (stats != nullptr) ++stats->pibt_recursions;
@@ -656,8 +660,9 @@ bool TAPFPlanner::forced_op_feasible(const TAPFNode* S, int i, Vertex* v,
   const int kappa_i = S->shelf.kappa[i];
   switch (kind) {
     case Op::MOVE:
-      if (kappa_i != KAPPA_FREE && carrier_upper_taken(v->index))
-        return false;  // S1
+      if (kappa_i != KAPPA_FREE && carrier_upper_taken(v->index) &&
+          !(dd_view != nullptr && dd_view->gantry))
+        return false;  // S1 (gantry: carried loads pass over grounded)
       return true;
     case Op::LIFT:
       return kappa_i == KAPPA_FREE && carrier_grounded[S->C[i]->index] != 0;
