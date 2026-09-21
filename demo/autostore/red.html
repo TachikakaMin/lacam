@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>LaCAM-Carrier · 满箱取红砖 · 底部检索</title>
+<script>if(location.search.indexOf("embed")>=0){document.write('<style>html,body{background:#f3f4f6 !important}#hud,#hudbar,#scenenav{display:none !important}</style>');}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="hud">
+  <h1>满箱取红砖 · 底部检索</h1>
+  <div class="sub">5×5 箱体填满 125 块砖 · 红砖埋在中心列最底部 · 目标：挖出红砖放到最顶层</div>
+  <div id="stats"></div>
+  <div id="controls">
+    <button id="playBtn">暂停</button>
+    <button id="resetBtn">重来</button>
+    <label style="font-size:11px;color:#8b98b3">速度
+      <input id="speed" type="range" min="1" max="100" value="6">
+    </label>
+  </div>
+  <input id="timeline" type="range" min="0" max="100" value="0">
+  <div id="legend">
+    <span class="dot" style="background:#d84a3b"></span>红砖（初始 z=0，最终全场最高）<br>
+    <span class="dot" style="background:#9aa4b2"></span>灰砖（压在红砖上方，需先停放）<br>
+    <span class="dot" style="background:#4a90d9"></span>顶部机器人（砖挂在车底 = 正在吊运）<br>
+    <span class="dot" style="background:#7bd88f"></span>红砖所在列
+  </div>
+</div>
+<script src="three.min.js"></script>
+<script src="plan_red.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>

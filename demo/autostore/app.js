@@ -932,11 +932,15 @@ const SCENES = [
   ['index.html', '整板搭桌子', 'Table (exact board)'],
   ['horse.html', '木马', 'Trojan Horse'],
   ['dense.html', '高密度重排', 'Dense Re-sort'],
+  ['red.html', '满箱取红砖', 'Red-Brick Retrieval'],
   ['report.html', '算法报告', 'Report'],
 ];
 let lang = localStorage.getItem('demoLang') || 'zh';
 // per-page English copy: [h1, sub, legend lines (dot colors reused in order)]
 const PAGE_EN = {
+  'red.html': ['Red-Brick Retrieval from a Full Box',
+    '5×5 box packed with 125 bricks · the red brick is buried at the bottom of the center column · goal: dig it out and place it on the top layer',
+    ['Red brick (starts at z=0, ends the global top)', 'Gray bricks (covering the red one, parked first)', 'Top-rail robots (brick under the hull = hoisting)', 'Red brick column']],
   'index.html': ['Multi-Robot Pyramid Construction',
     'Offline LaCAM-TAPF planning · layer by layer, inside-out · moves limited to |Δh| ≤ 1',
     ['Sandstone blocks (pyramid)', 'Robots (bright cap = carrying)', 'Depot (block pickup)']],
