@@ -932,15 +932,15 @@ const SCENES = [
   ['index.html', '整板搭桌子', 'Table (exact board)'],
   ['horse.html', '木马', 'Trojan Horse'],
   ['dense.html', '高密度重排', 'Dense Re-sort'],
-  ['red.html', '满箱取红砖', 'Red-Brick Retrieval'],
+  ['red.html', '底层翻顶层', 'Bottom Layer to Top'],
   ['report.html', '算法报告', 'Report'],
 ];
 let lang = localStorage.getItem('demoLang') || 'zh';
 // per-page English copy: [h1, sub, legend lines (dot colors reused in order)]
 const PAGE_EN = {
-  'red.html': ['Red-Brick Retrieval · Airborne Rotation in a Full Box',
-    '5×5 box, 125 bricks, ZERO free slots · the red brick is at the bottom of the center column · the only free space is the robots\' hands: four hover with gray bricks while a fifth extracts the red one, then everything is lowered back with red on top',
-    ['Red brick (z=0 → top layer z=4)', 'Gray bricks (four held airborne for the swap)', 'Top-rail robots (brick under the hull = hoisting)', 'Red brick column']],
+  'red.html': ['Bottom Layer to Top · Column Rotation Pipeline',
+    '5×5 box, 100 bricks: every column has a red brick at the bottom under three grays, one spare layer on top · 8 robots run 4 focus columns in parallel: dig grays into neighbors, hold the red airborne, refill the bottom with borrowed grays, cap with red',
+    ['Red bricks (each column z=0 → top z=3)', 'Gray bricks (dug out, parked, refilled)', 'Top-rail robots (brick under the hull = hoisting)', 'Focus columns']],
   'index.html': ['Multi-Robot Pyramid Construction',
     'Offline LaCAM-TAPF planning · layer by layer, inside-out · moves limited to |Δh| ≤ 1',
     ['Sandstone blocks (pyramid)', 'Robots (bright cap = carrying)', 'Depot (block pickup)']],
