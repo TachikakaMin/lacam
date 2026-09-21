@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Red-brick retrieval demo: a box FULL of gray bricks, one red brick at
-the very bottom of the center column.  Goal: dig it out and place it on
-the TOP layer (it ends as the globally highest brick).
+"""Red-brick retrieval from a TRULY FULL box.
 
-Reuses the gantry event loop of plan_dense.py: robots run on the C++
-gantry Carrier-LaCAM (2D), hoists are uninterruptible timed services
-(2 ticks per depth unit), replan after every hoist start/completion.
-No template here -- every task is a 'park' move; the last park drops the
-red brick onto the tallest column.
+5x5 box, every column filled to the brim (height 5, 125 bricks, zero
+free slots).  The red brick sits at the very bottom of the center
+column.  The ONLY free space in the system is the robots' hands: four
+robots must hold the four covering gray bricks airborne simultaneously,
+a fifth lifts the red brick, then the grays are lowered back into the
+same column bottom-up and the red brick is placed last -- on the top
+layer.  An in-column rotation.
+
+Reuses the gantry event loop (plan_dense.py): hoists are timed
+uninterruptible services, robots in service become walls, replan after
+every hoist start/completion.  Robots holding bricks with no drop slot
+yet simply roam (stay in the instance, get pushed aside).
 
 Usage: plan_red.py [--seed=N]
 """
@@ -15,7 +20,6 @@ from __future__ import annotations
 
 import json
 import os
-import random
 import subprocess
 import sys
 import time
@@ -28,12 +32,12 @@ HERE = REPO / "demo" / "autostore"
 
 NR = NC = 5
 FILL_H = 5                      # box filled solid to this height
-MAX_H = FILL_H + 2              # temporary headroom above the fill
+MAX_H = FILL_H                  # hard ceiling: NO headroom anywhere
 RAIL = MAX_H + 2
 RED_CELL = (2, 2)               # red brick buried at z=0 of this column
 GRAY, RED = "gray", "red"
 HEX = {GRAY: "#9aa4b2", RED: "#d84a3b"}
-ROBOT_STARTS = [(0, 0), (0, 4), (4, 0), (4, 4)]
+ROBOT_STARTS = [(0, 0), (0, 4), (4, 0), (4, 4), (2, 0)]
 CELLS = [(r, c) for r in range(NR) for c in range(NC)]
 SEED = int([a for a in sys.argv if a.startswith("--seed=")][0][7:]) \
     if any(a.startswith("--seed=") for a in sys.argv) else 7
@@ -63,24 +67,17 @@ class World:
         z = self.top_z(cell)
         return z, self.vox[cell].pop(z)
 
-    def find_red(self):
-        for cell in CELLS:
-            for z, col in self.vox[cell].items():
-                if col == RED:
-                    return cell, z
-        return None, None
-
 
 def main() -> int:
     t0 = time.time()
     work = WORK / f"s{SEED}"
     work.mkdir(parents=True, exist_ok=True)
     world = World()
-    for cell in CELLS:                       # box filled solid
+    for cell in CELLS:                       # box filled to the brim
         for z in range(FILL_H):
             world.vox[cell][z] = RED if cell == RED_CELL and z == 0 else GRAY
     robots = list(ROBOT_STARTS)
-    held = {}      # robot -> {"color", "goal": ("park", cell)}
+    held = {}      # robot -> color in hand
     serving = {}   # robot -> {"kind", "cell", "remain", "task", ...}
 
     def hoist_ticks(z_stop):
@@ -91,7 +88,7 @@ def main() -> int:
     terrain, picks, hoists = [], [], []
     bricks_out = []
     stack_ids = defaultdict(dict)
-    hand = {}
+    hand = {}      # robot -> brick id (viz timeline)
     def new_brick(color, r, c, z):
         bid = len(bricks_out)
         bricks_out.append({"color": HEX[color],
@@ -110,88 +107,67 @@ def main() -> int:
             stack_ids[cell][z] = new_brick(world.vox[cell][z],
                                            cell[0], cell[1], z)
     t_global = 0
-    replans = n_dig = 0
+    replans = n_lift = 0
 
-    def global_top():
-        return max(world.top_z(c) for c in CELLS)
+    def red_in_column():
+        return RED in world.vox[RED_CELL].values()
 
     def done():
-        if held or serving:
-            return False
-        cell, z = world.find_red()
-        return cell is not None and z == world.top_z(cell) and \
-            z >= FILL_H and z == global_top()
-
-    def park_spot(avoid, planned_lift, planned_drop, near):
-        """lowest column first (spread the dig), then nearest"""
-        cand = []
-        for c in CELLS:
-            if c in avoid or c in planned_lift or c in planned_drop:
-                continue
-            if world.top_z(c) + 1 >= MAX_H:
-                continue
-            cand.append((world.top_z(c),
-                         abs(c[0] - near[0]) + abs(c[1] - near[1]), c))
-        return min(cand)[2] if cand else None
-
-    def red_goal(avoid, planned_lift, planned_drop):
-        """tallest column with headroom: red ends the global top"""
-        cand = []
-        for c in CELLS:
-            if c in avoid or c in planned_lift or c in planned_drop:
-                continue
-            if world.top_z(c) + 1 >= MAX_H:
-                continue
-            cand.append((-world.top_z(c), c))
-        return min(cand)[1] if cand else None
+        return (not held and not serving and
+                world.vox[RED_CELL].get(FILL_H - 1) == RED and
+                sum(len(v) for v in world.vox.values()) == NR * NC * FILL_H)
 
     while not done() or serving:
         replans += 1
-        if replans > 500:
+        if replans > 300:
             print("livelock: too many replans")
             return 1
-        # ---- task compilation (trivial here: dig the red column) ----
-        planned_lift = {sv["cell"] for sv in serving.values()}
-        planned_drop = set(planned_lift)
+        # ---- task compilation: in-column rotation at RED_CELL ----
+        planned_cells = {sv["cell"] for sv in serving.values()}
+        col_busy = RED_CELL in planned_cells
         tasks = []                    # (start, goal, color, kind, z)
         carrying = {}
-        for rob, info in sorted(held.items()):   # carried bricks first
-            color = info["color"]
-            if color == RED:
-                g = red_goal({robots[rob]}, planned_lift, planned_drop)
-            else:
-                g = info["goal"][1] if info["goal"][1] not in planned_drop \
-                    and world.top_z(info["goal"][1]) + 1 < MAX_H \
-                    else park_spot({robots[rob]}, planned_lift,
-                                   planned_drop, robots[rob])
-            assert g is not None, "no drop slot left"
-            carrying[rob] = len(tasks)
-            planned_drop.add(g)
-            tasks.append((robots[rob], g, color, "park", -1))
-            held[rob]["goal"] = ("park", g)
-        red_cell, red_z = world.find_red()
-        if red_cell is not None and red_cell not in planned_lift:
-            top = world.top_z(red_cell)
-            if red_z == top:              # red is exposed: lift it out
-                g = red_goal({red_cell}, planned_lift, planned_drop)
-                if g is not None and not done():
-                    planned_lift.add(red_cell)
-                    planned_drop.add(g)
-                    tasks.append((red_cell, g, RED, "park", -1))
-            else:                         # dig: park the covering brick
-                g = park_spot({red_cell}, planned_lift, planned_drop,
-                              red_cell)
-                if g is not None:
-                    planned_lift.add(red_cell)
-                    planned_drop.add(g)
-                    tasks.append((red_cell, g,
-                                  world.vox[red_cell][top], "park", -1))
-        n_dig += sum(1 for t in tasks if t[2] != RED)
-        if not tasks and not serving:
-            if done():
-                break
-            print("deadlock: no feasible task")
-            return 1
+        red_held = any(c == RED for c in held.values())
+        hold_spots = [(0, 0), (0, 4), (4, 0), (4, 4), (0, 2), (4, 2)]
+        fake_cells = set()
+        col_claimed = col_busy
+        for rob in sorted(held):      # drops back into the red column
+            color = held[rob]
+            top = world.top_z(RED_CELL)
+            drop_ok = not col_claimed and (
+                (color == RED and top == FILL_H - 2) or
+                (color == GRAY and red_held and top + 1 <= FILL_H - 2))
+            if drop_ok:
+                carrying[rob] = len(tasks)
+                tasks.append((robots[rob], RED_CELL, color, "park", -1))
+                col_claimed = True
+            elif red_in_column():
+                # dig phase: a lift task will be issued below; pin every
+                # loaded robot to a HOLD task so the C++ dispatcher never
+                # hands the lift to a robot whose hook is occupied.  The
+                # nominal drop is intercepted and never executed.  (In the
+                # refill phase the only task is pre-bound via `carrying`,
+                # so waiting robots can stay taskless.)
+                spot = next(s for s in hold_spots
+                            if s not in fake_cells and s != RED_CELL)
+                fake_cells.add(spot)
+                carrying[rob] = len(tasks)
+                tasks.append((robots[rob], spot, color, "hold", -1))
+        free = [i for i in range(len(robots))
+                if i not in held and i not in serving]
+        fake_goal = None
+        if red_in_column() and not col_busy and free and \
+           RED_CELL not in {t[1] for t in tasks}:
+            top = world.top_z(RED_CELL)
+            color = world.vox[RED_CELL][top]
+            # lift the column top; the nominal goal is a distant cell
+            # (it is never reached: the segment truncates at hoist start
+            # and the drop is re-decided by the next compilation)
+            fake_goal = next(s for s in hold_spots + [(2, 4)]
+                             if s not in fake_cells and s != RED_CELL)
+            fake_cells.add(fake_goal)
+            tasks.append((RED_CELL, fake_goal, color, "park", -1))
+            n_lift += 1
 
         # ---- serving cells are walls: connectivity filter ----
         tasks0, carrying0 = list(tasks), dict(carrying)
@@ -239,6 +215,11 @@ def main() -> int:
             if not grew:
                 break
         active = [i for i in range(len(robots)) if i not in serving]
+        if not tasks and not serving:
+            if done():
+                break
+            print("deadlock: no feasible task")
+            return 1
 
         # ---- write instance, solve ----
         plan_lines = []
@@ -259,7 +240,8 @@ def main() -> int:
                     base = world.top_z((r, c)) + 1 - \
                         (1 if (r, c) in starts else 0)
                     ok = (((r, c) in goal_cells or (r, c) in starts)
-                          and base < MAX_H and (r, c) not in serving_cells)
+                          and (base < MAX_H or (r, c) in fake_cells)
+                          and (r, c) not in serving_cells)
                     row += "S" if ok else "."
                 lines.append("  " + row)
             lines.append("robots:")
@@ -329,7 +311,8 @@ def main() -> int:
                     parts = toks[k].split()
                     if parts and parts[0] == "m":
                         robots[i] = (int(parts[1]), int(parts[2]))
-                    elif parts and parts[0] == "l" and loc[robots[i]]:
+                    elif parts and parts[0] == "l" and loc[robots[i]] \
+                            and i not in held:
                         tid = loc[robots[i]].pop()
                         cell = robots[i]
                         serving[i] = {
@@ -339,6 +322,9 @@ def main() -> int:
                             "task": tasks[tid]}
                         completed = True
                     elif parts and parts[0] == "d" and i in bound:
+                        if tasks[bound[i]][3] == "hold":
+                            bound.pop(i)   # never actually drop a HOLD
+                            continue
                         tid = bound.pop(i)
                         cell = robots[i]
                         z_stop = world.top_z(cell) + 1
@@ -356,8 +342,7 @@ def main() -> int:
                 s_, g, color, kind, z = sv["task"]
                 cell = sv["cell"]
                 if sv["kind"] == "freeze":
-                    held[rob] = {"color": color, "goal": ("park", g)}
-                    bound[rob] = -1
+                    held[rob] = color
                     del serving[rob]
                     completed = True
                     continue
@@ -376,9 +361,7 @@ def main() -> int:
                                     "c": cell[1],
                                     "h": world.top_z(cell) + 1,
                                     "agent": rob})
-                    bound[rob] = tasks.index(sv["task"]) \
-                        if sv["task"] in tasks else -1
-                    held[rob] = {"color": color, "goal": ("park", g)}
+                    held[rob] = color
                 else:
                     put_z = world.top_z(cell) + 1
                     world.place(cell, put_z, color)
@@ -404,21 +387,15 @@ def main() -> int:
                 completed = True
             for i in range(len(robots)):
                 paths[i].append(list(robots[i]))
-                in_air = i in bound or (
-                    i in serving and serving[i]["kind"] == "drop")
-                carry[i].append(1 if in_air else 0)
-        new_held = {}
-        for rob, tid in bound.items():
-            if tid >= 0:
-                s_, g, color, kind, z = tasks[tid]
-                new_held[rob] = {"color": color, "goal": ("park", g)}
-            elif rob in held:
-                new_held[rob] = held[rob]
-        held = new_held
+                in_air = i in held or i in bound or (
+                    i in serving and serving[i]["kind"] in ("drop", "freeze"))
+                carry[i].append(1 if in_air and (i in hand or i in bound)
+                                else 0)
 
-    red_cell, red_z = world.find_red()
     ok = done()
     total = sum(len(v) for v in world.vox.values())
+    red_z = next((z for z, c in world.vox[RED_CELL].items() if c == RED),
+                 None)
     plan = {
         "rows": NR, "cols": NC, "T": t_global,
         "depot": [list(RED_CELL)],
@@ -427,13 +404,13 @@ def main() -> int:
         "terrain": terrain, "picks": picks, "hoists": hoists,
         "bricks": bricks_out,
         "meta": {"gantry": RAIL, "statsLine":
-                 f"满箱红砖检索 · {total} 块(红砖埋于底部) · "
-                 f"{replans} 次规划 · 挖掘 {n_dig} 次 · "
-                 f"红砖最终 z={red_z}"},
+                 f"满箱红砖旋转 · {total} 块无一空位 · "
+                 f"{replans} 次规划 · {n_lift} 次吊起 · "
+                 f"红砖 z=0 → z={red_z}"},
     }
     OUT.write_text("const PLAN = " + json.dumps(plan) + ";\n",
                    encoding="utf-8")
-    print(f"done: replans={replans} T={t_global} red={red_cell},z={red_z} "
+    print(f"done: replans={replans} T={t_global} red_z={red_z} "
           f"bricks={total} wall={time.time()-t0:.2f}s "
           f"valid={'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1

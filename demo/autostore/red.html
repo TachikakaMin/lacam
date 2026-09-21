@@ -8,8 +8,8 @@
 </head>
 <body>
 <div id="hud">
-  <h1>满箱取红砖 · 底部检索</h1>
-  <div class="sub">5×5 箱体填满 125 块砖 · 红砖埋在中心列最底部 · 目标：挖出红砖放到最顶层</div>
+  <h1>满箱取红砖 · 空中接力旋转</h1>
+  <div class="sub">5×5 箱体 125 块砖填到顶、无一空位 · 红砖埋在中心列最底部 · 唯一的空间是机器人手里：4 台各吊一块灰砖悬停，第 5 台吊出红砖，再依次放回，红砖最后落在最顶层</div>
   <div id="stats"></div>
   <div id="controls">
     <button id="playBtn">暂停</button>
@@ -20,8 +20,8 @@
   </div>
   <input id="timeline" type="range" min="0" max="100" value="0">
   <div id="legend">
-    <span class="dot" style="background:#d84a3b"></span>红砖（初始 z=0，最终全场最高）<br>
-    <span class="dot" style="background:#9aa4b2"></span>灰砖（压在红砖上方，需先停放）<br>
+    <span class="dot" style="background:#d84a3b"></span>红砖（z=0 → 最顶层 z=4）<br>
+    <span class="dot" style="background:#9aa4b2"></span>灰砖（4 块悬停在空中等待回填）<br>
     <span class="dot" style="background:#4a90d9"></span>顶部机器人（砖挂在车底 = 正在吊运）<br>
     <span class="dot" style="background:#7bd88f"></span>红砖所在列
   </div>

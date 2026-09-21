@@ -938,9 +938,9 @@ const SCENES = [
 let lang = localStorage.getItem('demoLang') || 'zh';
 // per-page English copy: [h1, sub, legend lines (dot colors reused in order)]
 const PAGE_EN = {
-  'red.html': ['Red-Brick Retrieval from a Full Box',
-    '5×5 box packed with 125 bricks · the red brick is buried at the bottom of the center column · goal: dig it out and place it on the top layer',
-    ['Red brick (starts at z=0, ends the global top)', 'Gray bricks (covering the red one, parked first)', 'Top-rail robots (brick under the hull = hoisting)', 'Red brick column']],
+  'red.html': ['Red-Brick Retrieval · Airborne Rotation in a Full Box',
+    '5×5 box, 125 bricks, ZERO free slots · the red brick is at the bottom of the center column · the only free space is the robots\' hands: four hover with gray bricks while a fifth extracts the red one, then everything is lowered back with red on top',
+    ['Red brick (z=0 → top layer z=4)', 'Gray bricks (four held airborne for the swap)', 'Top-rail robots (brick under the hull = hoisting)', 'Red brick column']],
   'index.html': ['Multi-Robot Pyramid Construction',
     'Offline LaCAM-TAPF planning · layer by layer, inside-out · moves limited to |Δh| ≤ 1',
     ['Sandstone blocks (pyramid)', 'Robots (bright cap = carrying)', 'Depot (block pickup)']],
