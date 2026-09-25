@@ -163,6 +163,29 @@ tr:last-child td { border-bottom: 0; }
 .mcard b { display: block; font-size: 19.5px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.01em; }
 .mcard p { font-size: 16px; color: var(--ink-soft); margin: 0; }
 
+/* ---------- paper evidence ---------- */
+#results { background: #f5f5f7; border: 0; padding: 88px 0; }
+#results .wrap { max-width: 1280px; }
+.results-intro { max-width: 680px; }
+.results-intro h2 { margin-bottom: 14px; }
+.results-intro p { color: #6e6e73; font-size: 19px; line-height: 1.6; margin: 0; }
+.evidence { margin-top: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.evidence-card { margin: 0; min-width: 0; }
+.figure-link { display: block; padding: 16px; background: #fff; border-radius: 18px; }
+.figure-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.evidence-card img { display: block; width: 100%; height: auto; aspect-ratio: 656 / 572; object-fit: contain; }
+.evidence-card figcaption { padding: 22px 2px 0; }
+.figure-label { display: block; color: #6e6e73; font-size: 12px; font-weight: 600; letter-spacing: .05em; margin-bottom: 8px; }
+.evidence-card h3 { margin: 0 0 10px; font-size: 23px; line-height: 1.2; letter-spacing: -.025em; }
+.evidence-card p { margin: 0; font-size: 15px; line-height: 1.65; color: #6e6e73; }
+.evidence-card strong { color: #1d1d1f; }
+.evidence-card .reading { margin-top: 12px; font-size: 13px; }
+.results-source { margin: 30px 0 0; font-size: 12px; color: #6e6e73; }
+@media (max-width: 760px) {
+  #results { padding: 56px 0; }
+  .evidence { grid-template-columns: 1fr; gap: 36px; max-width: 480px; margin: 30px auto 0; }
+}
+
 /* ---------- citation ---------- */
 pre {
   background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
@@ -178,10 +201,10 @@ pre {
     <div class="brand">ITA-LaCAM</div>
     <div class="links">
       <a href="#abstract">Abstract</a>
-      <a href="#method">Method</a>
-      <a href="#results">Results</a>
       <a href="#demos">Live demos</a>
       <a href="#gallery">Gallery</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
       <a href="#citation">Citation</a>
     </div>
   </div>
@@ -199,7 +222,6 @@ pre {
     <div class="btnrow">
       <a class="btn primary" href="https://arxiv.org/abs/2609.14208">Paper</a>
       <a class="btn" href="https://arxiv.org/html/2609.14208v1">HTML version</a>
-      <a class="btn" href="https://github.com/TachikakaMin/lacam">Code</a>
       <a class="btn" href="#demos">Interactive demos ↓</a>
     </div>
   </div>
@@ -233,77 +255,6 @@ pre {
       <div class="stat"><div class="num">65.0%</div><div class="lbl">of jointly solved instances end with a lower sum of costs</div></div>
       <div class="stat"><div class="num">10.2%</div><div class="lbl">90% of paired solutions fall within this margin of the ITA&#8209;CBS optimum</div></div>
     </div>
-  </div>
-</section>
-
-<section class="alt" id="method">
-  <div class="narrow">
-    <h2>Method</h2>
-    <p>
-      LaCAM&#42; performs an A*-like search over <em>joint configurations</em> and uses Priority
-      Inheritance with Backtracking (PIBT) to generate successors lazily, searching the full valid
-      configuration graph without enumerating the joint action space. The key observation: feasible future
-      transitions depend only on the current configuration, not on how it was reached &mdash; so extending
-      LaCAM&#42; from MAPF to TAPF only requires replacing fixed-target guidance with
-      <strong>assignment-aware guidance</strong>.
-    </p>
-    <p>
-      Where CBS-TA and IR-TAPF fix an assignment and only get path feedback after a complete MAPF solve,
-      ITA-LaCAM closes the assignment&harr;path-finding feedback loop <em>at every search node</em>.
-    </p>
-    <div class="method">
-      <div class="mcard"><span class="step">1</span>
-        <b>Matching in every node</b>
-        <p>Each high-level node stores a feasible minimum-distance agent-to-target matching computed with the
-        Hungarian algorithm over collision-agnostic shortest-path distances. The matching supplies the
-        temporary PIBT targets, the heuristic, and an assignment-dependent search cost.</p>
-      </div>
-      <div class="mcard"><span class="step">2</span>
-        <b>Incremental repair</b>
-        <p>When a successor configuration is generated, only the rows of agents that moved change. ITA-LaCAM
-        reuses the parent&rsquo;s matching and Hungarian dual variables and repairs those rows, updating the
-        assignment online without solving it from scratch at every node.</p>
-      </div>
-      <div class="mcard"><span class="step">3</span>
-        <b>PIBT with swap</b>
-        <p>Successor generation uses PIBT with priority inheritance, plus a swap rule for narrow-corridor
-        livelocks: when two agents must pass, the candidate order is reversed and the blocker takes the
-        vacated cell, creating a legal multi-step rearrangement.</p>
-      </div>
-      <div class="mcard"><span class="step">4</span>
-        <b>Complete and anytime</b>
-        <p>The assignment guides but never permanently prunes: every valid successor stays reachable through
-        lazy expansion, preserving LaCAM&#42;&rsquo;s completeness. After the first feasible solution, the
-        search continues within the budget and keeps its best incumbent.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="results">
-  <div class="narrow">
-    <h2>Results</h2>
-    <p>
-      Experiments follow the ITA-CBS setting on eight maps (random, Symbotic, den312d, maze, room, Boston,
-      orz900d, warehouse), 20 seeded instances per configuration, 10-second limit. Two settings:
-      the <strong>Group Test</strong> (disjoint groups of five agents share five candidate targets,
-      10&ndash;200 agents) and the <strong>Common Target Test</strong> (one private target per agent plus
-      15 additional targets with 0&ndash;100% shared).
-    </p>
-    <table>
-      <thead><tr><th>Solver</th><th class="num">Group Test<br>(3,200 inst.)</th><th class="num">Common Target Test<br>(6,560 inst.)</th><th class="num">Median first solution</th></tr></thead>
-      <tbody>
-        <tr><td><strong>ITA-LaCAM (ours)</strong></td><td class="num"><strong>100%</strong></td><td class="num"><strong>100%</strong></td><td class="num"><strong>0.010 s</strong></td></tr>
-        <tr><td>IR-TAPF (DBS-Hungarian)</td><td class="num">94.9%</td><td class="num">96.0%</td><td class="num">0.014 s</td></tr>
-        <tr><td>ITA-CBS (optimal)</td><td class="num">15.9%</td><td class="num">67.8%</td><td class="num">&mdash;</td></tr>
-      </tbody>
-    </table>
-    <p class="muted" style="font-size:16px">
-      The Common Target Test exposes assignment coupling: with all additional targets shared, IR-TAPF drops
-      to 84.6% while ITA-LaCAM stays at 100% and wins over 90% of paired SOC comparisons at 60% and 100%
-      overlap &mdash; per-configuration matching repair matters most exactly when shared targets couple
-      assignment and congestion.
-    </p>
   </div>
 </section>
 
@@ -365,6 +316,96 @@ pre {
       collisions, placements stacked from legal stands, conservation of picks, placements, removals and
       deposits, and exact final-terrain match.
     </p>
+  </div>
+</section>
+
+<section id="method">
+  <div class="narrow">
+    <h2>Method</h2>
+    <p>
+      LaCAM&#42; performs an A*-like search over <em>joint configurations</em> and uses Priority
+      Inheritance with Backtracking (PIBT) to generate successors lazily, searching the full valid
+      configuration graph without enumerating the joint action space. The key observation: feasible future
+      transitions depend only on the current configuration, not on how it was reached &mdash; so extending
+      LaCAM&#42; from MAPF to TAPF only requires replacing fixed-target guidance with
+      <strong>assignment-aware guidance</strong>.
+    </p>
+    <p>
+      Where CBS-TA and IR-TAPF fix an assignment and only get path feedback after a complete MAPF solve,
+      ITA-LaCAM closes the assignment&harr;path-finding feedback loop <em>at every search node</em>.
+    </p>
+    <div class="method">
+      <div class="mcard"><span class="step">1</span>
+        <b>Matching in every node</b>
+        <p>Each high-level node stores a feasible minimum-distance agent-to-target matching computed with the
+        Hungarian algorithm over collision-agnostic shortest-path distances. The matching supplies the
+        temporary PIBT targets, the heuristic, and an assignment-dependent search cost.</p>
+      </div>
+      <div class="mcard"><span class="step">2</span>
+        <b>Incremental repair</b>
+        <p>When a successor configuration is generated, only the rows of agents that moved change. ITA-LaCAM
+        reuses the parent&rsquo;s matching and Hungarian dual variables and repairs those rows, updating the
+        assignment online without solving it from scratch at every node.</p>
+      </div>
+      <div class="mcard"><span class="step">3</span>
+        <b>PIBT with swap</b>
+        <p>Successor generation uses PIBT with priority inheritance, plus a swap rule for narrow-corridor
+        livelocks: when two agents must pass, the candidate order is reversed and the blocker takes the
+        vacated cell, creating a legal multi-step rearrangement.</p>
+      </div>
+      <div class="mcard"><span class="step">4</span>
+        <b>Complete and anytime</b>
+        <p>The assignment guides but never permanently prunes: every valid successor stays reachable through
+        lazy expansion, preserving LaCAM&#42;&rsquo;s completeness. After the first feasible solution, the
+        search continues within the budget and keeps its best incumbent.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="results">
+  <div class="wrap">
+    <div class="results-intro">
+      <h2>Results</h2>
+      <p>9,760 test cases. Eight maps. A 10-second limit.<br>
+        ITA-LaCAM solved every case.</p>
+    </div>
+    <div class="evidence" aria-label="Figures 4, 5, and 6 from the ITA-LaCAM paper">
+      <figure class="evidence-card">
+        <a class="figure-link" href="paper_fig4_first_solution.png" target="_blank" rel="noopener" aria-label="View Figure 4 at full size">
+          <img src="paper_fig4_first_solution.png" width="656" height="538" alt="First-solution times: ITA-LaCAM versus IR-TAPF. Points below the diagonal favor ITA-LaCAM." loading="lazy">
+        </a>
+        <figcaption>
+          <span class="figure-label">FIGURE 4 · FIRST-SOLUTION TIME</span>
+          <h3>Faster in 84% of cases.</h3>
+          <p>Across <strong>9,760 test cases</strong>, ITA-LaCAM found a first solution sooner than IR-TAPF in <strong>84.0%</strong>. IR-TAPF timed out on 425 cases; ours solved all of them.</p>
+          <p class="reading">Below the diagonal = faster with ITA-LaCAM.</p>
+        </figcaption>
+      </figure>
+      <figure class="evidence-card">
+        <a class="figure-link" href="paper_fig5_ir_soc.png" target="_blank" rel="noopener" aria-label="View Figure 5 at full size">
+          <img src="paper_fig5_ir_soc.png" width="607" height="529" alt="IR-TAPF SOC divided by ITA-LaCAM SOC. Values above one favor ITA-LaCAM." loading="lazy">
+        </a>
+        <figcaption>
+          <span class="figure-label">FIGURE 5 · SOLUTION QUALITY</span>
+          <h3>Lower cost in 65%.</h3>
+          <p>Of <strong>9,335 cases solved by both methods</strong>, ITA-LaCAM achieved lower total arrival time (SOC) in <strong>65.0%</strong> versus IR-TAPF. SOC counts both movement and waiting.</p>
+          <p class="reading">Above 1 = lower cost with ITA-LaCAM.</p>
+        </figcaption>
+      </figure>
+      <figure class="evidence-card">
+        <a class="figure-link" href="paper_fig6_optimal_soc.png" target="_blank" rel="noopener" aria-label="View Figure 6 at full size">
+          <img src="paper_fig6_optimal_soc.png" width="607" height="529" alt="ITA-LaCAM SOC divided by optimal ITA-CBS SOC. One represents optimal cost." loading="lazy">
+        </a>
+        <figcaption>
+          <span class="figure-label">FIGURE 6 · OPTIMALITY GAP</span>
+          <h3>Just 1.6% above optimal.</h3>
+          <p>The <strong>median</strong> cost gap was <strong>1.6%</strong> on the 4,955 cases solved by both ITA-LaCAM and optimal ITA-CBS. 90% were within 10.2% of optimal.</p>
+          <p class="reading">Closer to 1 = closer to optimal. Paired cases only.</p>
+        </figcaption>
+      </figure>
+    </div>
+    <p class="results-source">Figures 4–6 from <a class="inline" href="https://arxiv.org/html/2609.14208v1">the paper</a>. Click any plot to enlarge. Original figures, CC BY-SA 4.0.</p>
   </div>
 </section>
 
