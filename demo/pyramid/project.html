@@ -62,6 +62,14 @@ h1 {
 .authors { font-size: 17.5px; color: var(--ink); line-height: 1.9; max-width: 760px; margin: 0 auto; }
 .authors sup { color: var(--ink-soft); font-size: 11px; }
 .affil { color: var(--ink-soft); font-size: 15.5px; margin-top: 8px; }
+.affiliation-logos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 28px 56px; max-width: 820px; margin: 32px auto 0; padding: 24px 28px; background: #fff; border-radius: 18px; }
+.affiliation-logos a { display: flex; align-items: center; justify-content: center; min-height: 54px; border-radius: 4px; }
+.affiliation-logos a:focus-visible { outline: 2px solid var(--accent); outline-offset: 8px; }
+.affiliation-logos img { display: block; height: auto; object-fit: contain; }
+.affiliation-logos .logo-usc { width: 232px; }
+.affiliation-logos .logo-uci { width: 166px; }
+.affiliation-logos .logo-symbotic { width: 176px; }
+@media (max-width: 600px) { .affiliation-logos { gap: 18px 28px; padding: 22px 18px; } .affiliation-logos .logo-usc { width: 206px; } .affiliation-logos .logo-uci { width: 142px; } .affiliation-logos .logo-symbotic { width: 154px; } }
 .btnrow { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 38px; justify-content: center; }
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
@@ -227,10 +235,15 @@ pre {
     <div class="kicker">Research · arXiv:2609.14208 · cs.RO</div>
     <h1>ITA-LaCAM: a complete and scalable TAPF solver via assignment-aware configuration-space search</h1>
     <p class="authors">
-      Yimin Tang<sup>1</sup> · Han Zhang<sup>3</sup> · Shao-Hung Chan<sup>3</sup> ·
+      Yimin Tang<sup>1,3</sup> · Han Zhang<sup>3</sup> · Shao-Hung Chan<sup>3</sup> ·
       Junsoo Kim<sup>1</sup> · Erdem Bıyık<sup>1</sup> · Sven Koenig<sup>2</sup> · Jingkai Chen<sup>3</sup>
     </p>
     <p class="affil"><sup>1</sup>University of Southern California &nbsp;·&nbsp; <sup>2</sup>University of California, Irvine &nbsp;·&nbsp; <sup>3</sup>Symbotic</p>
+    <div class="affiliation-logos">
+      <a href="https://www.usc.edu/" target="_blank" rel="noopener"><img class="logo-usc" src="logo-usc.png" width="1024" height="219" alt="University of Southern California (USC)"></a>
+      <a href="https://www.uci.edu/" target="_blank" rel="noopener"><img class="logo-uci" src="logo-uci.png" width="266" height="45" alt="UC Irvine"></a>
+      <a href="https://www.symbotic.com/" target="_blank" rel="noopener"><img class="logo-symbotic" src="logo-symbotic.svg" width="205" height="44" alt="Symbotic"></a>
+    </div>
     <div class="btnrow">
       <a class="btn primary" href="https://arxiv.org/abs/2609.14208">Paper</a>
       <a class="btn" href="https://arxiv.org/html/2609.14208v1">HTML version</a>
