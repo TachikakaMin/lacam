@@ -906,6 +906,11 @@ if (EMBED) {
   window.addEventListener('message', ev => {
     const m = ev.data && ev.data.lacamCmd;
     if (!m) return;
+    if (m.cmd === 'language' && ev.source === window.parent && ev.origin === location.origin && (m.value === 'zh' || m.value === 'en')) {
+      lang = m.value;
+      lastStatsT = -1;
+      return;
+    }
     if (m.cmd === 'toggle') playing = !playing;
     else if (m.cmd === 'play') playing = true;
     else if (m.cmd === 'pause') playing = false;

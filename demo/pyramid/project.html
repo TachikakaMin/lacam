@@ -41,6 +41,14 @@ nav .brand { font-weight: 700; font-size: 19px; letter-spacing: -.02em; }
 nav a { color: var(--ink-soft); text-decoration: none; font-size: 15px; font-weight: 500; }
 nav a:hover { color: var(--ink); }
 nav .links { display: flex; gap: 24px; margin-left: auto; }
+.language-switch { margin-left: auto; display: flex; flex: none; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
+.language-switch button { border: 0; background: transparent; color: var(--ink-soft); padding: 6px 10px; border-radius: 999px; font: 500 13px var(--sans); cursor: pointer; }
+.language-switch button[aria-pressed="true"] { background: var(--ink); color: white; }
+.language-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+html[lang="zh-CN"] h1 { font-size: clamp(32px, 5vw, 58px); line-height: 1.3; }
+html[lang="zh-CN"] h2 { line-height: 1.3; }
+@media (min-width: 721px) and (max-width: 1000px) { nav .links { gap: 12px; } nav .wrap { gap: 14px; } }
+@media (max-width: 540px) { .ctrls { flex-wrap: wrap; gap: 10px; } .playerbar { gap: 4px; } .pbtn { padding: 7px 10px; font-size: 12px; } #gallery .wrap { overflow-x: auto; } }
 @media (max-width: 720px) { nav .links { display: none; } }
 
 /* ---------- hero ---------- */
@@ -207,6 +215,10 @@ pre {
       <a href="#results">Results</a>
       <a href="#citation">Citation</a>
     </div>
+    <div class="language-switch" role="group" aria-label="Language / 语言">
+      <button type="button" data-language="en" lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-language="zh" lang="zh-CN" aria-pressed="false">中文</button>
+    </div>
   </div>
 </nav>
 
@@ -281,7 +293,7 @@ pre {
         <button class="cbtn" id="ctlReset" title="Restart">⟲</button>
         <input type="range" id="ctlTimeline" min="0" max="100" value="0" step="1">
         <span class="tlab" id="ctlLabel">t 0 / 0</span>
-        <label class="slab">速度
+        <label class="slab"><span id="speedLabel">Speed</span>
           <input type="range" id="ctlSpeed" min="1" max="100" value="6">
         </label>
       </div>
@@ -485,6 +497,7 @@ document.getElementById('fsBtn').onclick = () => {
 document.getElementById('growBtn').onclick = function () {
   player.classList.toggle('tall');
   this.textContent = player.classList.contains('tall') ? '⤡ 还原' : '⤢ 放大';
+  window.syncLanguageControls?.();
   player.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 };
 SCENES.forEach(([f, name], i) => {
@@ -522,5 +535,6 @@ GALLERY.forEach(([img, name, sub, page]) => {
   grid.appendChild(a);
 });
 </script>
+<script src="project-i18n.js"></script>
 </body>
 </html>
