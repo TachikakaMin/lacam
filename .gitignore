@@ -42,3 +42,7 @@
 outputs/
 Manifest.toml
 map
+data/paper_2609_14208/
+
+# Reproducible generated fixtures and local experiment archives
+/data/

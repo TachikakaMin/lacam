@@ -1,0 +1,1878 @@
+[
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_0",
+    "map": "maze-32-32-2",
+    "agents": 400,
+    "seed": 0,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 4312.68,
+    "ir_soc": 4277270,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 676,
+      "hl_nodes_created": 50989
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 7296,
+      "soc": 274939,
+      "assignment_changes": 1315,
+      "hl_nodes_created": 34707
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 6513,
+      "soc": 274939,
+      "assignment_changes": 1315,
+      "hl_nodes_created": 34701
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4549,
+      "soc": 68684,
+      "assignment_changes": 882,
+      "hl_nodes_created": 27274
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4217,
+      "soc": 68684,
+      "assignment_changes": 882,
+      "hl_nodes_created": 31831
+    },
+    "baseline_trace": {
+      "h": 604,
+      "assigned_reached": 346,
+      "restart_selected": 6,
+      "restart_applied": 0,
+      "restart_blocked": 6,
+      "duplicate_queued": 9498,
+      "assignment_changes": 676,
+      "nodes": 51401
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 400,
+      "restart_selected": 9,
+      "restart_applied": 9,
+      "restart_blocked": 0,
+      "duplicate_queued": 7916,
+      "assignment_changes": 1315,
+      "nodes": 34934
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_1",
+    "map": "maze-32-32-2",
+    "agents": 400,
+    "seed": 1,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 32.94,
+    "ir_soc": 66722,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 84,
+      "hl_nodes_created": 51697
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 324,
+      "soc": 62368,
+      "assignment_changes": 8649,
+      "hl_nodes_created": 20481
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 287,
+      "soc": 62368,
+      "assignment_changes": 10137,
+      "hl_nodes_created": 23445
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 350,
+      "soc": 64368,
+      "assignment_changes": 175,
+      "hl_nodes_created": 7698
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 308,
+      "soc": 64368,
+      "assignment_changes": 175,
+      "hl_nodes_created": 8145
+    },
+    "baseline_trace": {
+      "h": 298,
+      "assigned_reached": 376,
+      "restart_selected": 22,
+      "restart_applied": 0,
+      "restart_blocked": 22,
+      "duplicate_queued": 25990,
+      "assignment_changes": 84,
+      "nodes": 50010
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 400,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 245,
+      "assignment_changes": 9831,
+      "nodes": 22977
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_12",
+    "map": "maze-32-32-2",
+    "agents": 400,
+    "seed": 12,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 32.37,
+    "ir_soc": 65481,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 78,
+      "hl_nodes_created": 46656
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 262,
+      "soc": 62039,
+      "assignment_changes": 160,
+      "hl_nodes_created": 8857
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 231,
+      "soc": 62039,
+      "assignment_changes": 160,
+      "hl_nodes_created": 11584
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 1347,
+      "soc": 61470,
+      "assignment_changes": 323,
+      "hl_nodes_created": 23090
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 1274,
+      "soc": 61470,
+      "assignment_changes": 323,
+      "hl_nodes_created": 25434
+    },
+    "baseline_trace": {
+      "h": 416,
+      "assigned_reached": 369,
+      "restart_selected": 35,
+      "restart_applied": 0,
+      "restart_blocked": 35,
+      "duplicate_queued": 23177,
+      "assignment_changes": 78,
+      "nodes": 47062
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 400,
+      "restart_selected": 1,
+      "restart_applied": 1,
+      "restart_blocked": 0,
+      "duplicate_queued": 83,
+      "assignment_changes": 160,
+      "nodes": 12236
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_15",
+    "map": "maze-32-32-2",
+    "agents": 400,
+    "seed": 15,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 624.41,
+    "ir_soc": 741865,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 649,
+      "hl_nodes_created": 49220
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 357,
+      "soc": 61679,
+      "assignment_changes": 298,
+      "hl_nodes_created": 20699
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 319,
+      "soc": 61679,
+      "assignment_changes": 298,
+      "hl_nodes_created": 25744
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 747,
+      "soc": 70658,
+      "assignment_changes": 308,
+      "hl_nodes_created": 12506
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 686,
+      "soc": 70658,
+      "assignment_changes": 308,
+      "hl_nodes_created": 13033
+    },
+    "baseline_trace": {
+      "h": 635,
+      "assigned_reached": 352,
+      "restart_selected": 20,
+      "restart_applied": 0,
+      "restart_blocked": 20,
+      "duplicate_queued": 20583,
+      "assignment_changes": 635,
+      "nodes": 48598
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 400,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 320,
+      "assignment_changes": 298,
+      "nodes": 24532
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_18",
+    "map": "maze-32-32-2",
+    "agents": 400,
+    "seed": 18,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 30.81,
+    "ir_soc": 64439,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 142,
+      "hl_nodes_created": 30578
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 771,
+      "soc": 71925,
+      "assignment_changes": 215,
+      "hl_nodes_created": 9417
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 691,
+      "soc": 71925,
+      "assignment_changes": 215,
+      "hl_nodes_created": 7922
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 405,
+      "soc": 66233,
+      "assignment_changes": 4157,
+      "hl_nodes_created": 24115
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 391,
+      "soc": 66233,
+      "assignment_changes": 3766,
+      "hl_nodes_created": 23660
+    },
+    "baseline_trace": {
+      "h": 130,
+      "assigned_reached": 383,
+      "restart_selected": 55,
+      "restart_applied": 0,
+      "restart_blocked": 55,
+      "duplicate_queued": 49446,
+      "assignment_changes": 142,
+      "nodes": 30911
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 400,
+      "restart_selected": 1,
+      "restart_applied": 1,
+      "restart_blocked": 0,
+      "duplicate_queued": 1721,
+      "assignment_changes": 215,
+      "nodes": 10215
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_8",
+    "map": "maze-32-32-2",
+    "agents": 450,
+    "seed": 8,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 40.66,
+    "ir_soc": 81492,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 133,
+      "hl_nodes_created": 7868
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 846,
+      "soc": 82456,
+      "assignment_changes": 491,
+      "hl_nodes_created": 8367
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 736,
+      "soc": 82456,
+      "assignment_changes": 491,
+      "hl_nodes_created": 6986
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 3096,
+      "soc": 83239,
+      "assignment_changes": 714,
+      "hl_nodes_created": 10253
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 2715,
+      "soc": 83239,
+      "assignment_changes": 714,
+      "hl_nodes_created": 10193
+    },
+    "baseline_trace": {
+      "h": 4,
+      "assigned_reached": 447,
+      "restart_selected": 45,
+      "restart_applied": 0,
+      "restart_blocked": 45,
+      "duplicate_queued": 41585,
+      "assignment_changes": 133,
+      "nodes": 7647
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 3,
+      "restart_applied": 3,
+      "restart_blocked": 0,
+      "duplicate_queued": 1283,
+      "assignment_changes": 491,
+      "nodes": 10667
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_11",
+    "map": "maze-32-32-2",
+    "agents": 450,
+    "seed": 11,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 2446.52,
+    "ir_soc": 77550,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 109,
+      "hl_nodes_created": 20805
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 327,
+      "soc": 77296,
+      "assignment_changes": 236,
+      "hl_nodes_created": 4682
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 285,
+      "soc": 77296,
+      "assignment_changes": 236,
+      "hl_nodes_created": 4853
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 412,
+      "soc": 76410,
+      "assignment_changes": 369,
+      "hl_nodes_created": 9043
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 343,
+      "soc": 76410,
+      "assignment_changes": 369,
+      "hl_nodes_created": 10349
+    },
+    "baseline_trace": {
+      "h": 122,
+      "assigned_reached": 438,
+      "restart_selected": 46,
+      "restart_applied": 0,
+      "restart_blocked": 46,
+      "duplicate_queued": 43264,
+      "assignment_changes": 109,
+      "nodes": 21743
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 1,
+      "restart_applied": 1,
+      "restart_blocked": 0,
+      "duplicate_queued": 61,
+      "assignment_changes": 236,
+      "nodes": 4971
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_13",
+    "map": "maze-32-32-2",
+    "agents": 450,
+    "seed": 13,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 81.79,
+    "ir_soc": 84065,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 109,
+      "hl_nodes_created": 43319
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 9835,
+      "soc": 79789,
+      "assignment_changes": 2226,
+      "hl_nodes_created": 31355
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 8921,
+      "soc": 79789,
+      "assignment_changes": 2226,
+      "hl_nodes_created": 31609
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 2065,
+      "soc": 79093,
+      "assignment_changes": 403,
+      "hl_nodes_created": 12211
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 1973,
+      "soc": 79093,
+      "assignment_changes": 403,
+      "hl_nodes_created": 14044
+    },
+    "baseline_trace": {
+      "h": 670,
+      "assigned_reached": 418,
+      "restart_selected": 30,
+      "restart_applied": 0,
+      "restart_blocked": 30,
+      "duplicate_queued": 20749,
+      "assignment_changes": 109,
+      "nodes": 42416
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 18,
+      "restart_applied": 18,
+      "restart_blocked": 0,
+      "duplicate_queued": 18894,
+      "assignment_changes": 2226,
+      "nodes": 31355
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_14",
+    "map": "maze-32-32-2",
+    "agents": 450,
+    "seed": 14,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 34.06,
+    "ir_soc": 70441,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 89,
+      "hl_nodes_created": 21799
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 843,
+      "soc": 68217,
+      "assignment_changes": 373,
+      "hl_nodes_created": 24963
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 777,
+      "soc": 68217,
+      "assignment_changes": 373,
+      "hl_nodes_created": 29120
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 403,
+      "soc": 75834,
+      "assignment_changes": 282,
+      "hl_nodes_created": 20620
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 357,
+      "soc": 75834,
+      "assignment_changes": 282,
+      "hl_nodes_created": 22760
+    },
+    "baseline_trace": {
+      "h": 232,
+      "assigned_reached": 429,
+      "restart_selected": 38,
+      "restart_applied": 0,
+      "restart_blocked": 38,
+      "duplicate_queued": 54543,
+      "assignment_changes": 89,
+      "nodes": 21299
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 3,
+      "restart_applied": 3,
+      "restart_blocked": 0,
+      "duplicate_queued": 2156,
+      "assignment_changes": 373,
+      "nodes": 28794
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_15",
+    "map": "maze-32-32-2",
+    "agents": 450,
+    "seed": 15,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 37.54,
+    "ir_soc": 78625,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 105,
+      "hl_nodes_created": 26713
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 450,
+      "soc": 91776,
+      "assignment_changes": 225,
+      "hl_nodes_created": 7529
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 397,
+      "soc": 91776,
+      "assignment_changes": 225,
+      "hl_nodes_created": 9674
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 938,
+      "soc": 87988,
+      "assignment_changes": 1405,
+      "hl_nodes_created": 12587
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 887,
+      "soc": 88310,
+      "assignment_changes": 1260,
+      "hl_nodes_created": 8454
+    },
+    "baseline_trace": {
+      "h": 126,
+      "assigned_reached": 436,
+      "restart_selected": 41,
+      "restart_applied": 0,
+      "restart_blocked": 41,
+      "duplicate_queued": 45174,
+      "assignment_changes": 105,
+      "nodes": 26538
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 473,
+      "assignment_changes": 350,
+      "nodes": 12216
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_16",
+    "map": "maze-32-32-2",
+    "agents": 450,
+    "seed": 16,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 2789.34,
+    "ir_soc": 1189398,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 117,
+      "hl_nodes_created": 34237
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4142,
+      "soc": 74517,
+      "assignment_changes": 1187,
+      "hl_nodes_created": 20725
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 3848,
+      "soc": 74517,
+      "assignment_changes": 1187,
+      "hl_nodes_created": 21526
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 1154,
+      "soc": 598615,
+      "assignment_changes": 241,
+      "hl_nodes_created": 5179
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 1049,
+      "soc": 598615,
+      "assignment_changes": 241,
+      "hl_nodes_created": 5924
+    },
+    "baseline_trace": {
+      "h": 277,
+      "assigned_reached": 422,
+      "restart_selected": 28,
+      "restart_applied": 0,
+      "restart_blocked": 28,
+      "duplicate_queued": 34216,
+      "assignment_changes": 117,
+      "nodes": 33400
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 6,
+      "restart_applied": 6,
+      "restart_blocked": 0,
+      "duplicate_queued": 8472,
+      "assignment_changes": 1187,
+      "nodes": 21906
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_12",
+    "map": "maze-32-32-2",
+    "agents": 500,
+    "seed": 12,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 55.95,
+    "ir_soc": 109947,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 172,
+      "hl_nodes_created": 22441
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1594,
+      "hl_nodes_created": 30635
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1631,
+      "hl_nodes_created": 36196
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1834,
+      "hl_nodes_created": 34026
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1924,
+      "hl_nodes_created": 36559
+    },
+    "baseline_trace": {
+      "h": 617,
+      "assigned_reached": 445,
+      "restart_selected": 39,
+      "restart_applied": 0,
+      "restart_blocked": 39,
+      "duplicate_queued": 34360,
+      "assignment_changes": 172,
+      "nodes": 22102
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 274,
+      "assigned_reached": 468,
+      "restart_selected": 6,
+      "restart_applied": 6,
+      "restart_blocked": 0,
+      "duplicate_queued": 9560,
+      "assignment_changes": 1619,
+      "nodes": 34402
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "重启生效后仍超时"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_14",
+    "map": "maze-32-32-2",
+    "agents": 500,
+    "seed": 14,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 82.34,
+    "ir_soc": 166921,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1022,
+      "hl_nodes_created": 38669
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1848,
+      "hl_nodes_created": 32810
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1967,
+      "hl_nodes_created": 33232
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 3616,
+      "soc": 123342,
+      "assignment_changes": 907,
+      "hl_nodes_created": 15394
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 3387,
+      "soc": 123342,
+      "assignment_changes": 907,
+      "hl_nodes_created": 15482
+    },
+    "baseline_trace": {
+      "h": 571,
+      "assigned_reached": 457,
+      "restart_selected": 11,
+      "restart_applied": 0,
+      "restart_blocked": 11,
+      "duplicate_queued": 12961,
+      "assignment_changes": 998,
+      "nodes": 36974
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 578,
+      "assigned_reached": 453,
+      "restart_selected": 8,
+      "restart_applied": 8,
+      "restart_blocked": 0,
+      "duplicate_queued": 11946,
+      "assignment_changes": 1984,
+      "nodes": 33530
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "重启生效后仍超时"
+  },
+  {
+    "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_17",
+    "map": "maze-32-32-2",
+    "agents": 500,
+    "seed": 17,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 3168.46,
+    "ir_soc": 111180,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1935,
+      "hl_nodes_created": 39556
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 2222,
+      "hl_nodes_created": 33926
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 2222,
+      "hl_nodes_created": 36737
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1532,
+      "hl_nodes_created": 32027
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1532,
+      "hl_nodes_created": 34100
+    },
+    "baseline_trace": {
+      "h": 1059,
+      "assigned_reached": 392,
+      "restart_selected": 5,
+      "restart_applied": 0,
+      "restart_blocked": 5,
+      "duplicate_queued": 10795,
+      "assignment_changes": 1919,
+      "nodes": 39129
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 484,
+      "assigned_reached": 424,
+      "restart_selected": 6,
+      "restart_applied": 6,
+      "restart_blocked": 0,
+      "duplicate_queued": 11797,
+      "assignment_changes": 2222,
+      "nodes": 35715
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "重启生效后仍超时"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_300_test_19",
+    "map": "symbotic",
+    "agents": 300,
+    "seed": 19,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 170.65,
+    "ir_soc": 146964,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 1998,
+      "hl_nodes_created": 20733
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 1032,
+      "soc": 57237,
+      "assignment_changes": 2349,
+      "hl_nodes_created": 20645
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 955,
+      "soc": 57237,
+      "assignment_changes": 2349,
+      "hl_nodes_created": 21481
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 3204,
+      "soc": 70840,
+      "assignment_changes": 4785,
+      "hl_nodes_created": 28841
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 2878,
+      "soc": 70840,
+      "assignment_changes": 4785,
+      "hl_nodes_created": 28984
+    },
+    "baseline_trace": {
+      "h": 8,
+      "assigned_reached": 296,
+      "restart_selected": 67,
+      "restart_applied": 0,
+      "restart_blocked": 67,
+      "duplicate_queued": 66308,
+      "assignment_changes": 1998,
+      "nodes": 21020
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 300,
+      "restart_selected": 3,
+      "restart_applied": 3,
+      "restart_blocked": 0,
+      "duplicate_queued": 1947,
+      "assignment_changes": 2349,
+      "nodes": 26010
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_0",
+    "map": "symbotic",
+    "agents": 450,
+    "seed": 0,
+    "ir_source": "仅旧版 IR 有已验证解",
+    "ir_first_ms": 440.23,
+    "ir_soc": 393141,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 19556,
+      "hl_nodes_created": 36266
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 19578,
+      "hl_nodes_created": 36305
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 21118,
+      "hl_nodes_created": 39299
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 19882,
+      "hl_nodes_created": 37468
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 21666,
+      "hl_nodes_created": 41028
+    },
+    "baseline_trace": {
+      "h": 146,
+      "assigned_reached": 417,
+      "restart_selected": 0,
+      "restart_applied": 0,
+      "restart_blocked": 0,
+      "duplicate_queued": 10,
+      "assignment_changes": 19424,
+      "nodes": 36046
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 145,
+      "assigned_reached": 417,
+      "restart_selected": 0,
+      "restart_applied": 0,
+      "restart_blocked": 0,
+      "duplicate_queued": 11,
+      "assignment_changes": 20762,
+      "nodes": 38565
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "10 秒内未触发重启"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_10",
+    "map": "symbotic",
+    "agents": 450,
+    "seed": 10,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 474.25,
+    "ir_soc": 617266,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 2632,
+      "hl_nodes_created": 6327
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4546,
+      "soc": 597161,
+      "assignment_changes": 5105,
+      "hl_nodes_created": 24532
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 3860,
+      "soc": 597161,
+      "assignment_changes": 5615,
+      "hl_nodes_created": 26048
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 6766,
+      "soc": 1430406,
+      "assignment_changes": 10629,
+      "hl_nodes_created": 24133
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 5502,
+      "soc": 1430406,
+      "assignment_changes": 10629,
+      "hl_nodes_created": 24583
+    },
+    "baseline_trace": {
+      "h": 80,
+      "assigned_reached": 436,
+      "restart_selected": 2,
+      "restart_applied": 0,
+      "restart_blocked": 2,
+      "duplicate_queued": 3319,
+      "assignment_changes": 2632,
+      "nodes": 6327
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 3,
+      "restart_applied": 3,
+      "restart_blocked": 0,
+      "duplicate_queued": 1382,
+      "assignment_changes": 7163,
+      "nodes": 27596
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_13",
+    "map": "symbotic",
+    "agents": 450,
+    "seed": 13,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 1719.56,
+    "ir_soc": 465170,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 21973,
+      "hl_nodes_created": 44702
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4584,
+      "soc": 633282,
+      "assignment_changes": 13519,
+      "hl_nodes_created": 24292
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4357,
+      "soc": 633282,
+      "assignment_changes": 14211,
+      "hl_nodes_created": 25183
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 29601,
+      "hl_nodes_created": 40827
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 30698,
+      "hl_nodes_created": 41924
+    },
+    "baseline_trace": {
+      "h": 34,
+      "assigned_reached": 444,
+      "restart_selected": 7,
+      "restart_applied": 0,
+      "restart_blocked": 7,
+      "duplicate_queued": 5863,
+      "assignment_changes": 21723,
+      "nodes": 43957
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 822,
+      "assignment_changes": 14401,
+      "nodes": 26087
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_16",
+    "map": "symbotic",
+    "agents": 450,
+    "seed": 16,
+    "ir_source": "仅旧版 IR 有已验证解",
+    "ir_first_ms": 505.05,
+    "ir_soc": 645938,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 31555,
+      "hl_nodes_created": 31605
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 9545,
+      "soc": 1334586,
+      "assignment_changes": 11083,
+      "hl_nodes_created": 34576
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 8692,
+      "soc": 1334586,
+      "assignment_changes": 11083,
+      "hl_nodes_created": 35467
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 18121,
+      "hl_nodes_created": 31933
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 23816,
+      "hl_nodes_created": 37629
+    },
+    "baseline_trace": {
+      "h": 248,
+      "assigned_reached": 407,
+      "restart_selected": 8,
+      "restart_applied": 0,
+      "restart_blocked": 8,
+      "duplicate_queued": 3336,
+      "assignment_changes": 30735,
+      "nodes": 30785
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 2038,
+      "assignment_changes": 11083,
+      "nodes": 34576
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_17",
+    "map": "symbotic",
+    "agents": 450,
+    "seed": 17,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 650.58,
+    "ir_soc": 804105,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 35632,
+      "hl_nodes_created": 36747
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 7826,
+      "soc": 1296414,
+      "assignment_changes": 21285,
+      "hl_nodes_created": 31386
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 7122,
+      "soc": 1296414,
+      "assignment_changes": 21379,
+      "hl_nodes_created": 32470
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 23707,
+      "hl_nodes_created": 32957
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 27637,
+      "hl_nodes_created": 36887
+    },
+    "baseline_trace": {
+      "h": 225,
+      "assigned_reached": 416,
+      "restart_selected": 1,
+      "restart_applied": 0,
+      "restart_blocked": 1,
+      "duplicate_queued": 1826,
+      "assignment_changes": 34864,
+      "nodes": 35948
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 450,
+      "restart_selected": 1,
+      "restart_applied": 1,
+      "restart_blocked": 0,
+      "duplicate_queued": 825,
+      "assignment_changes": 21285,
+      "nodes": 32105
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_6",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 6,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 513.96,
+    "ir_soc": 994441,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 30146,
+      "hl_nodes_created": 30149
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 30166,
+      "hl_nodes_created": 30169
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 32079,
+      "hl_nodes_created": 32082
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 21261,
+      "hl_nodes_created": 25576
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 26810,
+      "hl_nodes_created": 31145
+    },
+    "baseline_trace": {
+      "h": 334,
+      "assigned_reached": 437,
+      "restart_selected": 0,
+      "restart_applied": 0,
+      "restart_blocked": 0,
+      "duplicate_queued": 1535,
+      "assignment_changes": 29181,
+      "nodes": 29184
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 334,
+      "assigned_reached": 437,
+      "restart_selected": 0,
+      "restart_applied": 0,
+      "restart_blocked": 0,
+      "duplicate_queued": 1638,
+      "assignment_changes": 31861,
+      "nodes": 31864
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "10 秒内未触发重启"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_7",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 7,
+    "ir_source": "仅旧版 IR 有已验证解",
+    "ir_first_ms": 1665.99,
+    "ir_soc": 1140033,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 28404,
+      "hl_nodes_created": 28637
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 29104,
+      "hl_nodes_created": 29337
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 32240,
+      "hl_nodes_created": 32473
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 30651,
+      "hl_nodes_created": 30884
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 32979,
+      "hl_nodes_created": 33212
+    },
+    "baseline_trace": {
+      "h": 468,
+      "assigned_reached": 417,
+      "restart_selected": 0,
+      "restart_applied": 0,
+      "restart_blocked": 0,
+      "duplicate_queued": 0,
+      "assignment_changes": 28950,
+      "nodes": 29183
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 468,
+      "assigned_reached": 417,
+      "restart_selected": 0,
+      "restart_applied": 0,
+      "restart_blocked": 0,
+      "duplicate_queued": 0,
+      "assignment_changes": 31531,
+      "nodes": 31764
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "10 秒内未触发重启"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_10",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 10,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 2875.32,
+    "ir_soc": 2112672,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 18427,
+      "hl_nodes_created": 26436
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 19944,
+      "hl_nodes_created": 25474
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 21937,
+      "hl_nodes_created": 27996
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 16929,
+      "hl_nodes_created": 23711
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 21598,
+      "hl_nodes_created": 28560
+    },
+    "baseline_trace": {
+      "h": 50,
+      "assigned_reached": 483,
+      "restart_selected": 8,
+      "restart_applied": 0,
+      "restart_blocked": 8,
+      "duplicate_queued": 10915,
+      "assignment_changes": 17996,
+      "nodes": 26003
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 82,
+      "assigned_reached": 474,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 2178,
+      "assignment_changes": 20811,
+      "nodes": 26870
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "重启生效后仍超时"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_11",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 11,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 614.32,
+    "ir_soc": 1051878,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 25006,
+      "hl_nodes_created": 25056
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 19700,
+      "hl_nodes_created": 19937
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 20857,
+      "hl_nodes_created": 21094
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 19030,
+      "hl_nodes_created": 25160
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 20887,
+      "hl_nodes_created": 28962
+    },
+    "baseline_trace": {
+      "h": 180,
+      "assigned_reached": 472,
+      "restart_selected": 2,
+      "restart_applied": 0,
+      "restart_blocked": 2,
+      "duplicate_queued": 1866,
+      "assignment_changes": 24464,
+      "nodes": 24503
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 222,
+      "assigned_reached": 451,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 1314,
+      "assignment_changes": 21737,
+      "nodes": 21974
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "重启生效后仍超时"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_12",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 12,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 529.93,
+    "ir_soc": 918205,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 400,
+      "hl_nodes_created": 10143
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 5338,
+      "hl_nodes_created": 25723
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 6805,
+      "hl_nodes_created": 27190
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4682,
+      "soc": 1587631,
+      "assignment_changes": 11365,
+      "hl_nodes_created": 20318
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4220,
+      "soc": 1587631,
+      "assignment_changes": 11469,
+      "hl_nodes_created": 20510
+    },
+    "baseline_trace": {
+      "h": 8,
+      "assigned_reached": 496,
+      "restart_selected": 6,
+      "restart_applied": 0,
+      "restart_blocked": 6,
+      "duplicate_queued": 10122,
+      "assignment_changes": 400,
+      "nodes": 10143
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 8,
+      "assigned_reached": 496,
+      "restart_selected": 3,
+      "restart_applied": 3,
+      "restart_blocked": 0,
+      "duplicate_queued": 3820,
+      "assignment_changes": 6767,
+      "nodes": 27152
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "重启生效后仍超时"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_13",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 13,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 1076.85,
+    "ir_soc": 1591478,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 605,
+      "hl_nodes_created": 9892
+    },
+    "restart_only": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 20067,
+      "hl_nodes_created": 28299
+    },
+    "restart_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 23871,
+      "hl_nodes_created": 32247
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 9515,
+      "soc": 1148981,
+      "assignment_changes": 5143,
+      "hl_nodes_created": 27493
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 8416,
+      "soc": 1148981,
+      "assignment_changes": 5143,
+      "hl_nodes_created": 28719
+    },
+    "baseline_trace": {
+      "h": 16,
+      "assigned_reached": 494,
+      "restart_selected": 18,
+      "restart_applied": 0,
+      "restart_blocked": 18,
+      "duplicate_queued": 19936,
+      "assignment_changes": 605,
+      "nodes": 9892
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 16,
+      "assigned_reached": 494,
+      "restart_selected": 1,
+      "restart_applied": 1,
+      "restart_blocked": 0,
+      "duplicate_queued": 1389,
+      "assignment_changes": 22853,
+      "nodes": 31188
+    },
+    "restart_fast_extension": false,
+    "diagnosis": "重启生效后仍超时"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_17",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 17,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 757.12,
+    "ir_soc": 994729,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 10681,
+      "hl_nodes_created": 22704
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 7773,
+      "soc": 872505,
+      "assignment_changes": 14637,
+      "hl_nodes_created": 22737
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 6874,
+      "soc": 872505,
+      "assignment_changes": 14637,
+      "hl_nodes_created": 23512
+    },
+    "native_stack": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 7393,
+      "soc": 2876029,
+      "assignment_changes": 19409,
+      "hl_nodes_created": 25034
+    },
+    "stack_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 6706,
+      "soc": 2876029,
+      "assignment_changes": 20175,
+      "hl_nodes_created": 28968
+    },
+    "baseline_trace": {
+      "h": 188,
+      "assigned_reached": 466,
+      "restart_selected": 28,
+      "restart_applied": 0,
+      "restart_blocked": 28,
+      "duplicate_queued": 21872,
+      "assignment_changes": 10796,
+      "nodes": 23168
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 500,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 2913,
+      "assignment_changes": 14637,
+      "nodes": 23243
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  },
+  {
+    "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_19",
+    "map": "symbotic",
+    "agents": 500,
+    "seed": 19,
+    "ir_source": "修复后 IR",
+    "ir_first_ms": 632.6,
+    "ir_soc": 922020,
+    "baseline": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 26161,
+      "hl_nodes_created": 32789
+    },
+    "restart_only": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 5397,
+      "soc": 905513,
+      "assignment_changes": 13993,
+      "hl_nodes_created": 18740
+    },
+    "restart_fast": {
+      "valid_solution_verified": true,
+      "first_solution_time_ms": 4780,
+      "soc": 905513,
+      "assignment_changes": 14140,
+      "hl_nodes_created": 19712
+    },
+    "native_stack": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 26365,
+      "hl_nodes_created": 26939
+    },
+    "stack_fast": {
+      "valid_solution_verified": false,
+      "first_solution_time_ms": 0,
+      "soc": 0,
+      "assignment_changes": 32159,
+      "hl_nodes_created": 32733
+    },
+    "baseline_trace": {
+      "h": 43,
+      "assigned_reached": 492,
+      "restart_selected": 2,
+      "restart_applied": 0,
+      "restart_blocked": 2,
+      "duplicate_queued": 5065,
+      "assignment_changes": 25743,
+      "nodes": 31766
+    },
+    "baseline_extension": false,
+    "restart_fast_trace": {
+      "h": 0,
+      "assigned_reached": 500,
+      "restart_selected": 2,
+      "restart_applied": 2,
+      "restart_blocked": 0,
+      "duplicate_queued": 682,
+      "assignment_changes": 14247,
+      "nodes": 20351
+    },
+    "restart_fast_extension": true,
+    "diagnosis": "重启修复后成功"
+  }
+]

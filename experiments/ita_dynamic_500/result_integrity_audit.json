@@ -1,0 +1,21 @@
+{
+  "dynamic_queue_screen": {
+    "records": 540,
+    "independent_validations_passed": 351,
+    "hashes_match": true,
+    "errors": 0
+  },
+  "extension_paired": {
+    "records": 1920,
+    "independent_validations_passed": 1833,
+    "hashes_match": true,
+    "errors": 0
+  },
+  "dynamic_traces": {
+    "records": 56,
+    "independent_validations_passed": 18,
+    "hashes_match": true,
+    "errors": 0
+  },
+  "counterexample_success_sets_identical": true
+}

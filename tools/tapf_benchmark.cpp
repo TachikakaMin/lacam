@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <lacam.hpp>
 #include <cstdint>
 #include <filesystem>
@@ -13,7 +14,11 @@ namespace
     if (value == "1" || value == "focal" || value == "FOCAL") {
       return TAPFSearchMode::FOCAL;
     }
-    return TAPFSearchMode::DFS;
+    if (value == "0" || value == "dfs" || value == "DFS") {
+      return TAPFSearchMode::DFS;
+    }
+    throw std::invalid_argument("unsupported search mode: " + value +
+                                "; expected dfs or focal");
   }
 
   TAPFFocalTieBreak parse_focal_tie_break(const std::string& value)
@@ -223,7 +228,14 @@ int main(int argc, char** argv)
   const auto force_full_assignment = argc >= 7 ? std::stoi(argv[6]) != 0 : false;
   const auto seed = argc >= 8 ? std::stoi(argv[7]) : -1;
   auto search_config = TAPFSearchConfig();
-  if (argc >= 9) search_config.mode = parse_search_mode(argv[8]);
+  if (argc >= 9) {
+    try {
+      search_config.mode = parse_search_mode(argv[8]);
+    } catch (const std::invalid_argument& error) {
+      std::cerr << error.what() << "\n";
+      return 2;
+    }
+  }
   if (argc >= 10) search_config.focal_weight = std::stod(argv[9]);
   if (argc >= 11) search_config.focal_tie_break = parse_focal_tie_break(argv[10]);
 

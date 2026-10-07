@@ -1,0 +1,54 @@
+{
+  "baseline_source_sha256": "c789bb08c54f1f76fd6caba845c8c0d8a4c1e3d1b715799cacc05a9bcfbf4975",
+  "variants": [
+    {
+      "variant": "restart_only",
+      "source_sha256": "fbe833cd9447fbb3efa8eb26fcf59d5db7d0a6f6175c27d9f5e639027dcfaf29",
+      "checks": {
+        "priority_code_identical": true,
+        "pibt_and_successor_code_identical": true,
+        "dynamic_assignment_calls_identical": true,
+        "no_assignment_vector_override": true,
+        "same_assignment_state_copy": true,
+        "dynamic_result_passed_to_node": true
+      }
+    },
+    {
+      "variant": "restart_fast",
+      "source_sha256": "3c7702a8fb4445854d2533f8d2b2df997ecd6a8525dbfeb7aa015d8efea72c09",
+      "checks": {
+        "priority_code_identical": true,
+        "pibt_and_successor_code_identical": true,
+        "dynamic_assignment_calls_identical": true,
+        "no_assignment_vector_override": true,
+        "same_assignment_state_copy": true,
+        "dynamic_result_passed_to_node": true
+      }
+    },
+    {
+      "variant": "native_stack",
+      "source_sha256": "262bf719db860ec4bc9f34f5c371f8c4017688e1eb22a2960692329a116247cc",
+      "checks": {
+        "priority_code_identical": true,
+        "pibt_and_successor_code_identical": true,
+        "dynamic_assignment_calls_identical": true,
+        "no_assignment_vector_override": true,
+        "same_assignment_state_copy": true,
+        "dynamic_result_passed_to_node": true
+      }
+    },
+    {
+      "variant": "stack_fast",
+      "source_sha256": "d98f8079108d40ceb00ca3ab0fa70897565aabd514e1dfa723478c3aea59897b",
+      "checks": {
+        "priority_code_identical": true,
+        "pibt_and_successor_code_identical": true,
+        "dynamic_assignment_calls_identical": true,
+        "no_assignment_vector_override": true,
+        "same_assignment_state_copy": true,
+        "dynamic_result_passed_to_node": true
+      }
+    }
+  ],
+  "note": "Code-section checks supplement manual patch review; they are not a formal equivalence proof."
+}

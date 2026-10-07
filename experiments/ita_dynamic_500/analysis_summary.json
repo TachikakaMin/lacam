@@ -1,0 +1,164 @@
+{
+  "scope": {
+    "all_cases": 10720,
+    "unique_case_ids": 10720,
+    "max_agents": 500,
+    "extension_cases": 960,
+    "fixed_counterexamples": 25,
+    "any_ir_counterexamples": 28,
+    "all_lacam_failures": 54,
+    "counterexamples_all_timeout": true,
+    "input_hash_errors": [],
+    "matrix_map_disk_hash_errors": [],
+    "checked_fixture_matrix_map_on_disk": true
+  },
+  "screen": {
+    "baseline": {
+      "all": {
+        "cases": 108,
+        "solved": 54
+      },
+      "counterexamples": {
+        "cases": 28,
+        "solved": 0
+      },
+      "original_failures": {
+        "cases": 54,
+        "solved": 0
+      },
+      "success_controls": {
+        "cases": 54,
+        "solved": 54
+      }
+    },
+    "restart_only": {
+      "all": {
+        "cases": 108,
+        "solved": 76
+      },
+      "counterexamples": {
+        "cases": 28,
+        "solved": 18
+      },
+      "original_failures": {
+        "cases": 54,
+        "solved": 24
+      },
+      "success_controls": {
+        "cases": 54,
+        "solved": 52
+      }
+    },
+    "restart_fast": {
+      "all": {
+        "cases": 108,
+        "solved": 77
+      },
+      "counterexamples": {
+        "cases": 28,
+        "solved": 18
+      },
+      "original_failures": {
+        "cases": 54,
+        "solved": 24
+      },
+      "success_controls": {
+        "cases": 54,
+        "solved": 53
+      }
+    },
+    "native_stack": {
+      "all": {
+        "cases": 108,
+        "solved": 72
+      },
+      "counterexamples": {
+        "cases": 28,
+        "solved": 17
+      },
+      "original_failures": {
+        "cases": 54,
+        "solved": 23
+      },
+      "success_controls": {
+        "cases": 54,
+        "solved": 49
+      }
+    },
+    "stack_fast": {
+      "all": {
+        "cases": 108,
+        "solved": 72
+      },
+      "counterexamples": {
+        "cases": 28,
+        "solved": 17
+      },
+      "original_failures": {
+        "cases": 54,
+        "solved": 23
+      },
+      "success_controls": {
+        "cases": 54,
+        "solved": 49
+      }
+    }
+  },
+  "extension": {
+    "baseline": {
+      "cases": 960,
+      "solved": 905,
+      "counterexamples_solved": 0
+    },
+    "restart_fast": {
+      "cases": 960,
+      "solved": 928,
+      "counterexamples_solved": 18
+    }
+  },
+  "paired_recovered": [
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_16",
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_19",
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_300_test_19",
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_17",
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_10",
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_17",
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_13",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_7",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_0",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_13",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_2",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_1",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_15",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_18",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_10",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_8",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_16",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_3",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_15",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_12",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_14",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_11",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_17",
+    "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_18"
+  ],
+  "paired_regressions": [
+    "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_4"
+  ],
+  "common_solved": 904,
+  "median_first_time_ratio": 0.9266888210286809,
+  "median_soc_ratio": 1.0,
+  "trace_counters": {
+    "baseline_restart_selected": 570,
+    "baseline_restart_applied": 0,
+    "baseline_restart_blocked": 570,
+    "baseline_duplicate_queued": 578314,
+    "restart_fast_restart_selected": 91,
+    "restart_fast_restart_applied": 91,
+    "restart_fast_restart_blocked": 0,
+    "restart_fast_duplicate_queued": 95886
+  },
+  "default_solver_changed_to_candidate": false,
+  "dynamic_ta_preserved": true,
+  "formal_benchmark_statistics_changed": false
+}

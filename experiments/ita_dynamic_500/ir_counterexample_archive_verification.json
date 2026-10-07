@@ -1,0 +1,174 @@
+{
+  "checked": 28,
+  "errors": [],
+  "records": [
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_11",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 1051878,
+      "makespan": 4460
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_16",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_repository",
+      "soc": 645938,
+      "makespan": 4079
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_6",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 994441,
+      "makespan": 3785
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_7",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_repository",
+      "soc": 1140033,
+      "makespan": 6897
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_12",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 918205,
+      "makespan": 3730
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_19",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 922020,
+      "makespan": 4415
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_300_test_19",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 146964,
+      "makespan": 2324
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_17",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 994729,
+      "makespan": 5449
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_10",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 617266,
+      "makespan": 3794
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_0",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_repository",
+      "soc": 393141,
+      "makespan": 3158
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_13",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 1591478,
+      "makespan": 7973
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_17",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 804105,
+      "makespan": 5777
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_10",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 2112672,
+      "makespan": 10231
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_13",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 465170,
+      "makespan": 2125
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_17",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 111180,
+      "makespan": 451
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_12",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 109947,
+      "makespan": 311
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_0",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 4277270,
+      "makespan": 32919
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_13",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 84065,
+      "makespan": 317
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_1",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 66722,
+      "makespan": 225
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_15",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 78625,
+      "makespan": 245
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_18",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 64439,
+      "makespan": 208
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_8",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 81492,
+      "makespan": 259
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_16",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 1189398,
+      "makespan": 12703
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_15",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 741865,
+      "makespan": 4418
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_12",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 65481,
+      "makespan": 220
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_14",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 70441,
+      "makespan": 208
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_11",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 77550,
+      "makespan": 271
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_14",
+      "source": "/home/yimin/research/lacam/build/results/group_250_500_cache_fixed",
+      "soc": 166921,
+      "makespan": 500
+    }
+  ]
+}

@@ -76,3 +76,28 @@ TEST(tapf_planner, solve_ita_cbs_yaml_fixture)
   auto solution = solve_tapf(ins);
   ASSERT_TRUE(is_tapf_feasible_solution(ins, solution));
 }
+
+TEST(tapf_planner, indexed_goals_preserve_eligibility_and_uniqueness)
+{
+  const auto ins = TAPFInstance("./assets/empty-8-8.map", {0, 1},
+                                {{63}, {62, 63}});
+  auto planner = TAPFPlanner(&ins, nullptr, nullptr);
+  EXPECT_TRUE(planner.is_goal_config({ins.G.U[63], ins.G.U[62]}));
+  EXPECT_FALSE(planner.is_goal_config({ins.G.U[62], ins.G.U[63]}));
+  EXPECT_FALSE(planner.is_goal_config({ins.G.U[63], ins.G.U[63]}));
+  EXPECT_FALSE(planner.is_goal_config({ins.G.U[0], ins.G.U[62]}));
+}
+
+TEST(tapf_planner, optional_metrics_preserve_node_priority)
+{
+  const auto ins = TAPFInstance("./assets/empty-8-8.map", {0}, {{63}});
+  auto distance = TAPFDistTable(&ins);
+  auto assignment_state = TAPFAssignmentState();
+  auto root = TAPFNode(ins.starts, distance, &ins, {0}, assignment_state);
+  auto measured = TAPFNode(ins.starts, distance, &ins, {0}, assignment_state, &root);
+  auto skipped = TAPFNode(ins.starts, distance, &ins, {0}, assignment_state, &root, false);
+  EXPECT_EQ(measured.non_goal_waits, 1u);
+  EXPECT_EQ(skipped.non_goal_waits, 0u);
+  EXPECT_EQ(measured.priorities, skipped.priorities);
+  EXPECT_EQ(measured.order, skipped.order);
+}

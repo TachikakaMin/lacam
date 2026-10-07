@@ -1,0 +1,22 @@
+--- a/lacam/src/tapf_planner.cpp
++++ b/lacam/src/tapf_planner.cpp
+@@ -332,11 +332,15 @@
+       S->neighbor.insert(S_known);
+       rewrite(S, S_known, S_goal, OPEN);
+       auto S_insert = S_known;
+-      if (MT != nullptr && get_random_float(MT) < restart_rate) {
+-        S_insert = S_init;
+-      }
++      const bool restart_selected = MT != nullptr && get_random_float(MT) < restart_rate;
++      if (restart_selected) S_insert = S_init;
+       if ((S_goal == nullptr || S_insert->f < S_goal->g) &&
+-          !S_insert->queued && !S_insert->search_tree.empty()) {
++          !S_insert->search_tree.empty() && (!S_insert->queued || restart_selected)) {
++        if (S_insert->queued) {
++          auto position = std::find(OPEN.begin(), OPEN.end(), S_insert);
++          if (position != OPEN.end()) OPEN.erase(position);
++          S_insert->queued = false;
++        }
+         push_open(S_insert);
+         if (stats != nullptr) ++stats->hl_reinsertions;
+       }

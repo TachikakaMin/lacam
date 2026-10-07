@@ -46,7 +46,7 @@ _MAP_CACHE: dict[Path, MapInfo] = {}
 
 def load_yaml(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return yaml.load(f, Loader=getattr(yaml, 'CSafeLoader', yaml.SafeLoader))
 
 
 def load_map(path: Path) -> MapInfo:

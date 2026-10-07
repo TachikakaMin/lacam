@@ -1,0 +1,58 @@
+--- a/lacam/src/tapf_planner.cpp
++++ b/lacam/src/tapf_planner.cpp
+@@ -66,7 +66,7 @@
+       neighbor(std::set<TAPFNode*>()),
+       assignment(_assignment),
+       assignment_state(_assignment_state),
+-      queued(false),
++      queued(0),
+       g(0),
+       h(0),
+       f(0),
+@@ -188,14 +188,14 @@
+   auto C_new = Config(N, nullptr);
+ 
+   auto push_open = [&](TAPFNode* node) {
+-    if (!node->queued && !node->search_tree.empty()) {
++    if (!node->search_tree.empty()) {
+       OPEN.push_back(node);
+-      node->queued = true;
++      ++node->queued;
+     }
+   };
+ 
+   auto erase_open = [&](const size_t index) {
+-    OPEN[index]->queued = false;
++    --OPEN[index]->queued;
+     OPEN.erase(OPEN.begin() + index);
+   };
+ 
+@@ -336,7 +336,7 @@
+         S_insert = S_init;
+       }
+       if ((S_goal == nullptr || S_insert->f < S_goal->g) &&
+-          !S_insert->queued && !S_insert->search_tree.empty()) {
++          !S_insert->search_tree.empty()) {
+         push_open(S_insert);
+         if (stats != nullptr) ++stats->hl_reinsertions;
+       }
+@@ -449,7 +449,7 @@
+         if (goal != nullptr && node_to->f < goal->g && !node_to->queued &&
+             !node_to->search_tree.empty()) {
+           OPEN.push_back(node_to);
+-          node_to->queued = true;
++          ++node_to->queued;
+         }
+       }
+     }
+--- a/lacam/include/tapf_planner.hpp
++++ b/lacam/include/tapf_planner.hpp
+@@ -43,7 +43,7 @@
+   std::set<TAPFNode*> neighbor;
+   std::vector<int> assignment;
+   TAPFAssignmentState assignment_state;
+-  bool queued;
++  int queued;  // Number of OPEN references to this node.
+   unsigned g;
+   unsigned h;
+   unsigned f;

@@ -60,7 +60,8 @@ TAPFConstraint::~TAPFConstraint(){};
 
 TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
                    std::vector<int> _assignment,
-                   TAPFAssignmentState _assignment_state, TAPFNode* _parent)
+                   TAPFAssignmentState _assignment_state, TAPFNode* _parent,
+                   bool collect_search_metrics)
     : C(_C),
       parent(_parent),
       neighbor(std::set<TAPFNode*>()),
@@ -82,7 +83,7 @@ TAPFNode::TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
   search_tree.push(new TAPFConstraint());
   if (parent != nullptr) parent->neighbor.insert(this);
   refresh_priority(D);
-  refresh_search_metrics(D, ins);
+  if (collect_search_metrics) refresh_search_metrics(D, ins);
 }
 
 TAPFNode::~TAPFNode()
@@ -166,6 +167,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       assignment_stats(TAPFAssignmentStats()),
       N(ins->N),
       V_size(ins->G.size()),
+      goal_task_by_vertex(std::vector<int>(V_size, -1)),
       D(TAPFDistTable(ins)),
       C_next(Candidates(N, std::array<Vertex*, 5>())),
       tie_breakers(std::vector<float>(V_size, 0)),
@@ -174,6 +176,7 @@ TAPFPlanner::TAPFPlanner(const TAPFInstance* _ins, const Deadline* _deadline,
       occupied_next(Agents(V_size, nullptr))
 {
   if (stats != nullptr) *stats = TAPFStats();
+  for (size_t j = 0; j < ins->tasks.size(); ++j) goal_task_by_vertex[ins->tasks[j]->id] = j;
 }
 
 Solution TAPFPlanner::solve()
@@ -364,8 +367,10 @@ Solution TAPFPlanner::solve()
       }
     }
 
+    const bool collect_metrics = search_config.mode == TAPFSearchMode::FOCAL &&
+                                 search_config.focal_tie_break != TAPFFocalTieBreak::H;
     auto S_new = new TAPFNode(C_new, D, ins, assignment.agent_to_task,
-                              assignment_state, S);
+                              assignment_state, S, collect_metrics);
     S_new->g = S->g + get_edge_cost(S, S_new);
     S_new->h = assignment.cost;
     S_new->f = S_new->g + S_new->h;
@@ -486,14 +491,9 @@ bool TAPFPlanner::is_goal_config(const Config& C) const
 {
   auto used = std::vector<bool>(ins->tasks.size(), false);
   for (size_t i = 0; i < ins->N; ++i) {
-    auto matched = false;
-    for (size_t j = 0; j < ins->tasks.size(); ++j) {
-      if (used[j] || !ins->allowed[i][j] || C[i] != ins->tasks[j]) continue;
-      used[j] = true;
-      matched = true;
-      break;
-    }
-    if (!matched) return false;
+    const auto task = goal_task_by_vertex[C[i]->id];
+    if (task < 0 || used[task] || !ins->allowed[i][task]) return false;
+    used[task] = true;
   }
   return true;
 }

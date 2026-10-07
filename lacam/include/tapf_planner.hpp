@@ -58,7 +58,7 @@ struct TAPFNode {
 
   TAPFNode(Config _C, TAPFDistTable& D, const TAPFInstance* ins,
            std::vector<int> _assignment, TAPFAssignmentState _assignment_state,
-           TAPFNode* _parent = nullptr);
+           TAPFNode* _parent = nullptr, bool collect_search_metrics = true);
   ~TAPFNode();
   void discard_search_tree();
   void refresh_priority(TAPFDistTable& D);
@@ -110,6 +110,7 @@ struct TAPFPlanner {
 
   const int N;
   const int V_size;
+  std::vector<int> goal_task_by_vertex;
   TAPFDistTable D;
   Candidates C_next;
   std::vector<float> tie_breakers;

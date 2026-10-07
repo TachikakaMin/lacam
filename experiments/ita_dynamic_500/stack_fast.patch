@@ -1,0 +1,120 @@
+--- a/lacam/src/tapf_planner.cpp
++++ b/lacam/src/tapf_planner.cpp
+@@ -66,7 +66,7 @@
+       neighbor(std::set<TAPFNode*>()),
+       assignment(_assignment),
+       assignment_state(_assignment_state),
+-      queued(false),
++      queued(0),
+       g(0),
+       h(0),
+       f(0),
+@@ -82,7 +82,7 @@
+   search_tree.push(new TAPFConstraint());
+   if (parent != nullptr) parent->neighbor.insert(this);
+   refresh_priority(D);
+-  refresh_search_metrics(D, ins);
++  // Metrics are evaluated by the planner only when focal tie-breaking uses them.
+ }
+ 
+ TAPFNode::~TAPFNode()
+@@ -166,6 +166,7 @@
+       assignment_stats(TAPFAssignmentStats()),
+       N(ins->N),
+       V_size(ins->G.size()),
++      goal_task_by_vertex(std::vector<int>(V_size, -1)),
+       D(TAPFDistTable(ins)),
+       C_next(Candidates(N, std::array<Vertex*, 5>())),
+       tie_breakers(std::vector<float>(V_size, 0)),
+@@ -174,6 +175,7 @@
+       occupied_next(Agents(V_size, nullptr))
+ {
+   if (stats != nullptr) *stats = TAPFStats();
++  for (size_t j = 0; j < ins->tasks.size(); ++j) goal_task_by_vertex[ins->tasks[j]->id] = j;
+ }
+ 
+ Solution TAPFPlanner::solve()
+@@ -188,14 +190,14 @@
+   auto C_new = Config(N, nullptr);
+ 
+   auto push_open = [&](TAPFNode* node) {
+-    if (!node->queued && !node->search_tree.empty()) {
++    if (!node->search_tree.empty()) {
+       OPEN.push_back(node);
+-      node->queued = true;
++      ++node->queued;
+     }
+   };
+ 
+   auto erase_open = [&](const size_t index) {
+-    OPEN[index]->queued = false;
++    --OPEN[index]->queued;
+     OPEN.erase(OPEN.begin() + index);
+   };
+ 
+@@ -336,7 +338,7 @@
+         S_insert = S_init;
+       }
+       if ((S_goal == nullptr || S_insert->f < S_goal->g) &&
+-          !S_insert->queued && !S_insert->search_tree.empty()) {
++          !S_insert->search_tree.empty()) {
+         push_open(S_insert);
+         if (stats != nullptr) ++stats->hl_reinsertions;
+       }
+@@ -366,6 +368,10 @@
+ 
+     auto S_new = new TAPFNode(C_new, D, ins, assignment.agent_to_task,
+                               assignment_state, S);
++    if (search_config.mode == TAPFSearchMode::FOCAL &&
++        search_config.focal_tie_break != TAPFFocalTieBreak::H) {
++      S_new->refresh_search_metrics(D, ins);
++    }
+     S_new->g = S->g + get_edge_cost(S, S_new);
+     S_new->h = assignment.cost;
+     S_new->f = S_new->g + S_new->h;
+@@ -449,7 +455,7 @@
+         if (goal != nullptr && node_to->f < goal->g && !node_to->queued &&
+             !node_to->search_tree.empty()) {
+           OPEN.push_back(node_to);
+-          node_to->queued = true;
++          ++node_to->queued;
+         }
+       }
+     }
+@@ -486,14 +492,9 @@
+ {
+   auto used = std::vector<bool>(ins->tasks.size(), false);
+   for (size_t i = 0; i < ins->N; ++i) {
+-    auto matched = false;
+-    for (size_t j = 0; j < ins->tasks.size(); ++j) {
+-      if (used[j] || !ins->allowed[i][j] || C[i] != ins->tasks[j]) continue;
+-      used[j] = true;
+-      matched = true;
+-      break;
+-    }
+-    if (!matched) return false;
++    const auto task = goal_task_by_vertex[C[i]->id];
++    if (task < 0 || used[task] || !ins->allowed[i][task]) return false;
++    used[task] = true;
+   }
+   return true;
+ }
+--- a/lacam/include/tapf_planner.hpp
++++ b/lacam/include/tapf_planner.hpp
+@@ -43,7 +43,7 @@
+   std::set<TAPFNode*> neighbor;
+   std::vector<int> assignment;
+   TAPFAssignmentState assignment_state;
+-  bool queued;
++  int queued;  // Number of OPEN references to this node.
+   unsigned g;
+   unsigned h;
+   unsigned f;
+@@ -110,6 +110,7 @@
+ 
+   const int N;
+   const int V_size;
++  std::vector<int> goal_task_by_vertex;
+   TAPFDistTable D;
+   Candidates C_next;
+   std::vector<float> tie_breakers;

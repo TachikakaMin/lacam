@@ -1,0 +1,1755 @@
+{
+  "all_cases": 10720,
+  "unique_case_ids": 10720,
+  "max_agents": 500,
+  "extension_cases": 960,
+  "fixed_counterexamples": 25,
+  "any_ir_counterexamples": 28,
+  "all_lacam_failures": 54,
+  "counterexamples_all_timeout": true,
+  "input_hash_errors": [],
+  "coverage": [
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "Boston_0_256",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "den312d",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 5,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 10,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "maze-32-32-2",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "orz900d",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "random-32-32-10",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "room-64-64-8",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "symbotic",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 15,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 20,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 25,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 30,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 35,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 40,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 45,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 50,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 55,
+      "cases": 80
+    },
+    {
+      "suite": "common",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 60,
+      "cases": 80
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "Boston_0_256",
+      "agents": 500,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "den312d",
+      "agents": 500,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "maze-32-32-2",
+      "agents": 500,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "orz900d",
+      "agents": 500,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "random-32-32-10",
+      "agents": 500,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "room-64-64-8",
+      "agents": 500,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "symbotic",
+      "agents": 500,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 10,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 20,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 30,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 40,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 50,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 60,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 70,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 80,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 90,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 100,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 110,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 120,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 130,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 140,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 150,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 160,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 170,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 180,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 190,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 200,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 250,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 300,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 350,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 400,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 450,
+      "cases": 20
+    },
+    {
+      "suite": "group",
+      "map": "warehouse-10-20-10-2-1",
+      "agents": 500,
+      "cases": 20
+    }
+  ],
+  "matrix_map_disk_hash_errors": [],
+  "checked_fixture_matrix_map_on_disk": true
+}

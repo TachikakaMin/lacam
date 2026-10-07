@@ -1,0 +1,344 @@
+{
+  "checked_runs": 56,
+  "all_positions_collision_free": true,
+  "all_targets_unique_and_eligible": true,
+  "dynamic_target_changes_observed_in_every_run": true,
+  "records": [
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_11",
+      "variant": "baseline_trace",
+      "frames": 28,
+      "frames_with_target_assignment_different_from_initial": 25
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_11",
+      "variant": "restart_fast_trace",
+      "frames": 25,
+      "frames_with_target_assignment_different_from_initial": 22
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_16",
+      "variant": "baseline_trace",
+      "frames": 40,
+      "frames_with_target_assignment_different_from_initial": 31
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_16",
+      "variant": "restart_fast_trace",
+      "frames": 39,
+      "frames_with_target_assignment_different_from_initial": 36
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_6",
+      "variant": "baseline_trace",
+      "frames": 31,
+      "frames_with_target_assignment_different_from_initial": 30
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_6",
+      "variant": "restart_fast_trace",
+      "frames": 33,
+      "frames_with_target_assignment_different_from_initial": 32
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_7",
+      "variant": "baseline_trace",
+      "frames": 31,
+      "frames_with_target_assignment_different_from_initial": 30
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_7",
+      "variant": "restart_fast_trace",
+      "frames": 33,
+      "frames_with_target_assignment_different_from_initial": 32
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_12",
+      "variant": "baseline_trace",
+      "frames": 18,
+      "frames_with_target_assignment_different_from_initial": 11
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_12",
+      "variant": "restart_fast_trace",
+      "frames": 32,
+      "frames_with_target_assignment_different_from_initial": 28
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_19",
+      "variant": "baseline_trace",
+      "frames": 35,
+      "frames_with_target_assignment_different_from_initial": 32
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_19",
+      "variant": "restart_fast_trace",
+      "frames": 25,
+      "frames_with_target_assignment_different_from_initial": 22
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_300_test_19",
+      "variant": "baseline_trace",
+      "frames": 35,
+      "frames_with_target_assignment_different_from_initial": 22
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_300_test_19",
+      "variant": "restart_fast_trace",
+      "frames": 32,
+      "frames_with_target_assignment_different_from_initial": 28
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_17",
+      "variant": "baseline_trace",
+      "frames": 37,
+      "frames_with_target_assignment_different_from_initial": 24
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_17",
+      "variant": "restart_fast_trace",
+      "frames": 28,
+      "frames_with_target_assignment_different_from_initial": 25
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_10",
+      "variant": "baseline_trace",
+      "frames": 10,
+      "frames_with_target_assignment_different_from_initial": 7
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_10",
+      "variant": "restart_fast_trace",
+      "frames": 34,
+      "frames_with_target_assignment_different_from_initial": 30
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_0",
+      "variant": "baseline_trace",
+      "frames": 38,
+      "frames_with_target_assignment_different_from_initial": 37
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_0",
+      "variant": "restart_fast_trace",
+      "frames": 40,
+      "frames_with_target_assignment_different_from_initial": 39
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_13",
+      "variant": "baseline_trace",
+      "frames": 23,
+      "frames_with_target_assignment_different_from_initial": 10
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_13",
+      "variant": "restart_fast_trace",
+      "frames": 34,
+      "frames_with_target_assignment_different_from_initial": 32
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_17",
+      "variant": "baseline_trace",
+      "frames": 38,
+      "frames_with_target_assignment_different_from_initial": 36
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_17",
+      "variant": "restart_fast_trace",
+      "frames": 36,
+      "frames_with_target_assignment_different_from_initial": 34
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_10",
+      "variant": "baseline_trace",
+      "frames": 36,
+      "frames_with_target_assignment_different_from_initial": 27
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_500_test_10",
+      "variant": "restart_fast_trace",
+      "frames": 30,
+      "frames_with_target_assignment_different_from_initial": 27
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_13",
+      "variant": "baseline_trace",
+      "frames": 52,
+      "frames_with_target_assignment_different_from_initial": 44
+    },
+    {
+      "case_id": "Paper_symbotic_39_37_gp_5/symbotic_agents_450_test_13",
+      "variant": "restart_fast_trace",
+      "frames": 31,
+      "frames_with_target_assignment_different_from_initial": 28
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_17",
+      "variant": "baseline_trace",
+      "frames": 46,
+      "frames_with_target_assignment_different_from_initial": 40
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_17",
+      "variant": "restart_fast_trace",
+      "frames": 43,
+      "frames_with_target_assignment_different_from_initial": 36
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_12",
+      "variant": "baseline_trace",
+      "frames": 36,
+      "frames_with_target_assignment_different_from_initial": 23
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_12",
+      "variant": "restart_fast_trace",
+      "frames": 42,
+      "frames_with_target_assignment_different_from_initial": 35
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_0",
+      "variant": "baseline_trace",
+      "frames": 59,
+      "frames_with_target_assignment_different_from_initial": 52
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_0",
+      "variant": "restart_fast_trace",
+      "frames": 46,
+      "frames_with_target_assignment_different_from_initial": 36
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_13",
+      "variant": "baseline_trace",
+      "frames": 56,
+      "frames_with_target_assignment_different_from_initial": 43
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_13",
+      "variant": "restart_fast_trace",
+      "frames": 46,
+      "frames_with_target_assignment_different_from_initial": 33
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_1",
+      "variant": "baseline_trace",
+      "frames": 64,
+      "frames_with_target_assignment_different_from_initial": 51
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_1",
+      "variant": "restart_fast_trace",
+      "frames": 27,
+      "frames_with_target_assignment_different_from_initial": 24
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_15",
+      "variant": "baseline_trace",
+      "frames": 40,
+      "frames_with_target_assignment_different_from_initial": 27
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_15",
+      "variant": "restart_fast_trace",
+      "frames": 18,
+      "frames_with_target_assignment_different_from_initial": 15
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_18",
+      "variant": "baseline_trace",
+      "frames": 44,
+      "frames_with_target_assignment_different_from_initial": 31
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_18",
+      "variant": "restart_fast_trace",
+      "frames": 14,
+      "frames_with_target_assignment_different_from_initial": 12
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_8",
+      "variant": "baseline_trace",
+      "frames": 21,
+      "frames_with_target_assignment_different_from_initial": 8
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_8",
+      "variant": "restart_fast_trace",
+      "frames": 17,
+      "frames_with_target_assignment_different_from_initial": 13
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_16",
+      "variant": "baseline_trace",
+      "frames": 47,
+      "frames_with_target_assignment_different_from_initial": 34
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_16",
+      "variant": "restart_fast_trace",
+      "frames": 31,
+      "frames_with_target_assignment_different_from_initial": 24
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_15",
+      "variant": "baseline_trace",
+      "frames": 62,
+      "frames_with_target_assignment_different_from_initial": 49
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_15",
+      "variant": "restart_fast_trace",
+      "frames": 29,
+      "frames_with_target_assignment_different_from_initial": 26
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_12",
+      "variant": "baseline_trace",
+      "frames": 61,
+      "frames_with_target_assignment_different_from_initial": 48
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_400_test_12",
+      "variant": "restart_fast_trace",
+      "frames": 16,
+      "frames_with_target_assignment_different_from_initial": 14
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_14",
+      "variant": "baseline_trace",
+      "frames": 35,
+      "frames_with_target_assignment_different_from_initial": 22
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_14",
+      "variant": "restart_fast_trace",
+      "frames": 35,
+      "frames_with_target_assignment_different_from_initial": 31
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_11",
+      "variant": "baseline_trace",
+      "frames": 35,
+      "frames_with_target_assignment_different_from_initial": 22
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_450_test_11",
+      "variant": "restart_fast_trace",
+      "frames": 8,
+      "frames_with_target_assignment_different_from_initial": 6
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_14",
+      "variant": "baseline_trace",
+      "frames": 49,
+      "frames_with_target_assignment_different_from_initial": 37
+    },
+    {
+      "case_id": "Paper_maze_32_32_2_gp_5/maze-32-32-2_agents_500_test_14",
+      "variant": "restart_fast_trace",
+      "frames": 43,
+      "frames_with_target_assignment_different_from_initial": 34
+    }
+  ]
+}
